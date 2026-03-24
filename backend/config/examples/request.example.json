@@ -1,0 +1,25 @@
+{
+  "meta": {
+    "candidate_id": "cand_demo_0001",
+    "primary_country": "Canada",
+    "secondary_countries": [
+      "Japan",
+      "Argentina"
+    ],
+    "target_roles": [
+      "Data Analyst"
+    ],
+    "industry": "SaaS",
+    "ats_max_pages": 1,
+    "recruiter_max_pages": 2
+  },
+  "form": {
+    "demo": "replace_with_real_form_json"
+  },
+  "job_posting_text": "We are looking for a Data Analyst with SQL and BI...",
+  "company_name": "SaaSCo",
+  "photo_provided": false,
+  "languages": [
+    "en"
+  ]
+}

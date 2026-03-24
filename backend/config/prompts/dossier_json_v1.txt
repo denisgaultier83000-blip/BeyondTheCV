@@ -1,0 +1,32 @@
+RETURN ONLY VALID JSON. NO MARKDOWN. NO EXTRA TEXT.
+
+You generate a complete personal career dossier from user-provided data (no selection).
+
+Inputs:
+- Candidate form JSON (validated): {FORM_JSON}
+- Meta JSON (candidate_id, countries, roles, etc.): {META_JSON}
+- Output language: {LANGUAGE}
+
+Rules:
+- Include ALL information provided by the candidate. No strategic selection.
+- Do not creatively rewrite. Only normalize:
+  - dates to YYYY-MM when possible
+  - lists as arrays
+- Use null when unknown.
+- Do not invent facts.
+- Add warnings only for clear inconsistencies (impossible dates, obvious overlaps).
+
+Required output:
+Produce JSON matching config/schemas/dossier.schema.json:
+- meta
+- identity
+- preferences
+- summary
+- experience
+- education
+- skills
+- interests
+- gaps
+- documents
+- notes
+- warnings

@@ -1,0 +1,45 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2cm]{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+
+\pagestyle{empty}
+
+\begin{document}
+
+% --- Header ---
+\begin{center}
+    {\Huge \textbf{\VAR{first_name} \VAR{last_name}}} \\ \vspace{5pt}
+    \VAR{current_role} \\ \vspace{5pt}
+    \VAR{email} | \VAR{phone} | \VAR{city}, \VAR{residence_country} \\
+    \href{https://\VAR{linkedin}}{\VAR{linkedin}}
+\end{center}
+
+\vspace{10pt}
+\hrule
+\vspace{10pt}
+
+% --- Profile ---
+\section*{Professional Summary}
+\VAR{bio}
+
+% --- Experience ---
+\section*{Experience}
+\begin{itemize}[leftmargin=*]
+\BLOCK{for exp in experiences}
+    \item \textbf{\VAR{exp.role}} at \textbf{\VAR{exp.company}} \\
+    \textit{\VAR{exp.duration}} \\
+\BLOCK{endfor}
+\end{itemize}
+
+% --- Education ---
+\section*{Education}
+\begin{itemize}[leftmargin=*]
+\BLOCK{for edu in educations}
+    \item \textbf{\VAR{edu.degree}}, \VAR{edu.school} (\VAR{edu.year})
+\BLOCK{endfor}
+\end{itemize}
+
+\end{document}

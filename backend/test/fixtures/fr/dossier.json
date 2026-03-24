@@ -1,0 +1,41 @@
+{
+  "meta": {
+    "version": "v1",
+    "language": "fr",
+    "generated_at_utc": "2026-01-10T10:00:00.000Z",
+    "candidate_id": "cand_test_0001",
+    "primary_country": "France",
+    "secondary_countries": [],
+    "target_roles": ["Data Analyst"],
+    "intended_use": "personal_reference_only"
+  },
+  "identity": {
+    "first_name": null,
+    "last_name": null,
+    "email": null,
+    "phone": null,
+    "location": { "city": null, "country": null },
+    "links": { "linkedin": null, "portfolio": null, "github": null, "other": [] }
+  },
+  "preferences": {
+    "ui_language": null,
+    "content_languages": [],
+    "contract_types": [],
+    "tone_preference": null
+  },
+  "summary": {
+    "headline": null,
+    "objective": null,
+    "is_self_taught": false,
+    "self_taught_details": null,
+    "key_strengths": []
+  },
+  "experience": { "professional": [], "internships": [] },
+  "education": { "degrees": [], "certifications": [] },
+  "skills": { "hard": [], "soft": [], "languages": [] },
+  "interests": [],
+  "gaps": [],
+  "documents": { "photo_provided": false, "photo_notes": null },
+  "notes": { "candidate_free_notes": null, "system_notes": [] },
+  "warnings": []
+}

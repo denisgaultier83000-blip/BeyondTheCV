@@ -1,0 +1,24 @@
+node_modules/
+dist/
+build/
+.env
+.env.*
+*.log
+
+# Python
+__pycache__/
+.venv/
+venv/
+*.db
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes / data
+data/
+uploads/
+
+# App generated files
+temp/
+output/

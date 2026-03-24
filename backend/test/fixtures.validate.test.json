@@ -1,0 +1,35 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs/promises";
+import path from "node:path";
+
+import { loadSchema } from "../src/schemas.js";
+import { validateJsonOrThrow } from "../src/validators.js";
+
+async function readJson(relPath) {
+  return JSON.parse(
+    await fs.readFile(path.resolve(relPath), "utf8")
+  );
+}
+
+test("golden fixtures validate against schemas", async () => {
+  const base = "test/fixtures/fr";
+
+  // Load schemas
+  const cvSchema = await loadSchema("cv.schema.json");
+  const simSchema = await loadSchema("sim.schema.json");
+  const interviewSchema = await loadSchema("interview.schema.json");
+  const dossierSchema = await loadSchema("dossier.schema.json");
+
+  // Load fixtures
+  const cv = await readJson(`${base}/cv.json`);
+  const sim = await readJson(`${base}/sim.json`);
+  const interview = await readJson(`${base}/interview.json`);
+  const dossier = await readJson(`${base}/dossier.json`);
+
+  // Validate fixtures
+  assert.doesNotThrow(() => validateJsonOrThrow(cvSchema, cv));
+  assert.doesNotThrow(() => validateJsonOrThrow(simSchema, sim));
+  assert.doesNotThrow(() => validateJsonOrThrow(interviewSchema, interview));
+  assert.doesNotThrow(() => validateJsonOrThrow(dossierSchema, dossier));
+});

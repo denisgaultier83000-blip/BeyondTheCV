@@ -1,0 +1,65 @@
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: supersecretpassword
+      POSTGRES_DB: beyondthecv
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuser -d beyondthecv"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    user: root  # <--- AJOUT CRUCIAL : Fixe les permissions avec les volumes montés
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env  # Injecte les variables (OPENAI_API_KEY, etc.) dans le conteneur backend
+    environment:
+      - DATABASE_URL=postgresql://appuser:supersecretpassword@db:5432/beyondthecv
+
+    volumes:
+      - ./backend:/app  # <--- AJOUT CRUCIAL : Synchronise ton code local avec le conteneur
+
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    networks: ["app-network"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    env_file:
+      - .env  # Injecte aussi les variables pour le frontend (ex: VITE_API_URL)
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./front:/app          # Synchronise le code source
+      - /app/node_modules     # Protège les modules installés dans le conteneur
+    depends_on:
+      - backend
+    networks: ["app-network"]
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local

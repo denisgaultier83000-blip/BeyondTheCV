@@ -1,0 +1,83 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2cm]{geometry}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{graphicx}
+
+% Colors
+\definecolor{primary}{RGB}{31, 166, 160} % Teal from logo
+\definecolor{text}{RGB}{31, 41, 55}
+
+% Fonts & Styling
+\titleformat{\section}{\Large\bfseries\color{primary}}{}{0em}{}[\titlerule]
+\renewcommand{\familydefault}{\sfdefault}
+
+\pagestyle{empty}
+
+\begin{document}
+
+% --- Header ---
+\begin{center}
+    \BLOCK{if photo_path}
+    \includegraphics[width=3cm,height=3cm,keepaspectratio]{\VAR{photo_path}} \\ \vspace{5pt}
+    \BLOCK{endif}
+    {\Huge \textbf{\color{primary}\VAR{first_name} \VAR{last_name}}} \\ \vspace{5pt}
+    {\Large \VAR{current_role}} \\ \vspace{5pt}
+    \VAR{email} | \VAR{phone} | \VAR{city}, \VAR{residence_country} \\
+    \href{https://\VAR{linkedin}}{\VAR{linkedin}}
+\end{center}
+
+\vspace{15pt}
+
+% --- Profile ---
+\section*{Profile}
+\VAR{bio}
+
+% --- Experience ---
+\section*{Experience}
+\begin{itemize}[leftmargin=*]
+\BLOCK{for exp in experiences}
+    \item \textbf{\VAR{exp.role}} \hfill \textit{\VAR{exp.start_date} -- \VAR{exp.end_date}} \\
+    \textbf{\color{primary}\VAR{exp.company}}
+\BLOCK{endfor}
+\end{itemize}
+
+% --- Education ---
+\section*{Education}
+\begin{itemize}[leftmargin=*]
+\BLOCK{for edu in educations}
+    \item \textbf{\VAR{edu.degree}} \hfill \VAR{edu.year} \\
+    \VAR{edu.school}
+\BLOCK{endfor}
+\end{itemize}
+
+% --- Skills ---
+\section*{Skills}
+\BLOCK{if skills is string}
+    \VAR{skills}
+\BLOCK{else}
+    \BLOCK{if skills.technical}
+        \textbf{Technical:} \VAR{skills.technical} \\
+    \BLOCK{endif}
+    \BLOCK{if skills.languages}
+        \textbf{Languages:} \VAR{skills.languages} \\
+    \BLOCK{endif}
+    \BLOCK{if skills.soft}
+        \textbf{Soft Skills:} \VAR{skills.soft} \\
+    \BLOCK{endif}
+    \BLOCK{if skills.text} \VAR{skills.text} \BLOCK{endif}
+\BLOCK{endif}
+
+% --- Soft Skills / Successes ---
+\section*{Key Achievements}
+\begin{itemize}[leftmargin=*]
+\BLOCK{for success in successes}
+    \item \VAR{success.description} -- \textbf{\VAR{success.metric}}
+\BLOCK{endfor}
+\end{itemize}
+
+\end{document}

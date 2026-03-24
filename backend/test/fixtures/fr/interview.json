@@ -1,0 +1,76 @@
+{
+  "meta": {
+    "version": "v1",
+    "primary_country": "France",
+    "target_role": "Data Analyst",
+    "company_name": "SaaSCo",
+    "language": "fr"
+  },
+  "interview_prep": {
+    "sections": [
+      {
+        "key": "cv_based",
+        "title": "Parcours",
+        "qa": [
+          {
+            "id": "q1",
+            "question": "Parlez-moi de votre parcours.",
+            "answer_points": ["Résumé clair", "Lien avec le poste"],
+            "tone": "confident",
+            "tags": []
+          }
+        ]
+      },
+      {
+        "key": "company_based",
+        "title": "Entreprise",
+        "qa": [
+          {
+            "id": "q2",
+            "question": "Pourquoi cette entreprise ?",
+            "answer_points": ["Produit", "Vision"],
+            "tone": "direct",
+            "tags": []
+          }
+        ]
+      },
+      {
+        "key": "curiosity_context",
+        "title": "Curiosité",
+        "qa": [
+          {
+            "id": "q3",
+            "question": "Comment vous tenez-vous à jour ?",
+            "answer_points": ["Veille", "Pratique"],
+            "tone": "neutral",
+            "tags": []
+          }
+        ]
+      },
+      {
+        "key": "classics",
+        "title": "Classiques",
+        "qa": [
+          {
+            "id": "q4",
+            "question": "Quels sont vos points forts ?",
+            "answer_points": ["Analyse", "Communication"],
+            "tone": "humble",
+            "tags": []
+          }
+        ]
+      }
+    ],
+    "questions_to_ask_them": [],
+    "pitches": {
+      "pitch_30s": "Pitch 30 secondes.",
+      "pitch_60s": "Pitch 60 secondes.",
+      "pitch_90s": "Pitch 90 secondes."
+    }
+  },
+  "print_pack": {
+    "recommended_order": [],
+    "format_notes": []
+  },
+  "warnings": []
+}

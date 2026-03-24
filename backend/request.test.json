@@ -1,0 +1,64 @@
+{
+  "meta": {
+    "candidate_id": "cand_test_0001",
+    "primary_country": "France",
+    "secondary_countries": ["Canada"],
+    "target_roles": ["Data Analyst"],
+    "industry": "SaaS",
+    "ats_max_pages": 1,
+    "recruiter_max_pages": 2
+  },
+  "form": {
+    "identity": {
+      "first_name": "Alex",
+      "last_name": "Martin",
+      "email": "alex@example.com",
+      "phone": "+33 6 00 00 00 00",
+      "city": "Paris",
+      "country": "France",
+      "links": { "linkedin": null, "portfolio": null, "github": null, "other": [] }
+    },
+    "summary": {
+      "objective": "Poste data orienté produit.",
+      "tone_preference": "professional",
+      "is_self_taught": true,
+      "self_taught_details": "SQL + Python appris en autodidacte via projets.",
+      "key_strengths": ["Analyse", "Autonomie", "Communication"]
+    },
+    "skills": {
+      "hard": ["SQL", "Python", "Power BI", "Excel"],
+      "soft": ["Communication", "Rigueur"],
+      "languages": [{ "language": "English", "level": "C1" }]
+    },
+    "experience": {
+      "professional": [
+        {
+          "type": "employment",
+          "role": "Data Analyst",
+          "company": "SaaSCo",
+          "location": "Paris",
+          "start": "2023-02",
+          "end": null,
+          "is_current": true,
+          "missions": ["Dashboards KPIs", "Analyses funnel"],
+          "achievements": ["Réduction du temps de reporting de 30%"],
+          "tools": ["SQL", "Power BI", "Python"]
+        }
+      ],
+      "internships": []
+    },
+    "education": {
+      "degrees": [
+        { "degree": "Licence", "institution": "Université X", "location": "France", "year": 2020, "details": null }
+      ],
+      "certifications": []
+    },
+    "gaps": [],
+    "interests": ["Course à pied", "Échecs"],
+    "documents": { "photo_provided": false }
+  },
+  "job_posting_text": "Nous recherchons un Data Analyst SQL/BI, à l'aise avec des stakeholders.",
+  "company_name": "SaaSCo",
+  "photo_provided": false,
+  "languages": ["fr"]
+}

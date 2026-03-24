@@ -1,0 +1,68 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{graphicx} % Nécessaire pour inclure des images
+
+% Couleurs
+\definecolor{primary}{RGB}{31, 166, 160}
+\definecolor{darkgray}{RGB}{50, 50, 50}
+
+% Polices
+\renewcommand{\familydefault}{\sfdefault}
+\titleformat{\section}{\Large\bfseries\color{primary}}{}{0em}{}[\titlerule]
+
+\begin{document}
+
+% --- Logo (Haut Droite) ---
+\begin{flushright}
+    \BLOCK{if logo_path}
+    \includegraphics[width=3cm]{\VAR{logo_path}}
+    \BLOCK{endif}
+\end{flushright}
+\vspace{-1cm} % Ajustez cette valeur pour contrôler l'espacement vertical entre le logo et le titre
+
+% En-tête
+\begin{center}
+    {\Huge \textbf{\VAR{title}}} \\ \vspace{10pt}
+    {\Large \textbf{\VAR{first_name} \VAR{last_name}}}
+\end{center}
+
+\vspace{20pt}
+
+% Contenu dynamique (Questionnaire)
+\BLOCK{if type == 'questions'}
+    \BLOCK{for q in content}
+        \section*{\VAR{q.category}}
+        \textbf{\large \VAR{q.question}} \\ \vspace{5pt}
+        
+        \textit{\color{darkgray} Suggested Answer / Talking Points:} \\
+        \VAR{q.suggested_answer}
+        
+        \BLOCK{if q.user_answer}
+            \vspace{5pt}
+            \textbf{Your Notes:} \\
+            \VAR{q.user_answer}
+        \BLOCK{endif}
+        
+        \vspace{15pt}
+    \BLOCK{endfor}
+\BLOCK{endif}
+
+% Contenu dynamique (Marché)
+\BLOCK{if type == 'market'}
+    \BLOCK{for m in content}
+        \section*{Market Analysis}
+        \textbf{Estimated Salary Range:} \VAR{m.estimated_range} \VAR{m.currency} \\
+        \textbf{Market Trend:} \VAR{m.market_trend} \\
+        \vspace{10pt}
+        \textbf{Notes:} \\
+        \VAR{m.notes}
+    \BLOCK{endfor}
+\BLOCK{endif}
+
+\end{document}

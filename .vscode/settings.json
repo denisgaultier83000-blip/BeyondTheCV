@@ -1,0 +1,10 @@
+{
+    "python-envs.defaultEnvManager": "ms-python.python:system"
+}
+{
+  "pylint.args": [
+    "--disable=C,R,W", 
+    "--enable=E,cyclic-import",
+    "--extension-pkg-whitelist=pydantic" 
+  ]
+}

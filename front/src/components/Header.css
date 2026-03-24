@@ -1,0 +1,93 @@
+/* z:/Beyondthecv/front/src/components/Header.css */
+
+.app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: var(--bleu-fonce, #0F2650);
+  color: white;
+  padding: 15px 30px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: row; /* Alignement horizontal */
+  gap: 0;
+  transition: padding-bottom 0.3s, gap 0.3s;
+  box-sizing: border-box;
+}
+
+.app-header.with-stepper {
+  padding-bottom: 15px; /* Retour à un padding standard */
+}
+
+.header-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 50px; /* Ensures a minimum height even without logo */
+}
+
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-img {
+  height: 40px;
+  width: auto;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.lang-selector {
+  padding: 5px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: transparent;
+  color: white;
+  cursor: pointer;
+}
+
+.login-link {
+  text-decoration: none;
+  color: white;
+  font-weight: 600;
+}
+
+.dark-mode-toggle {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  color: white;
+}
+
+.user-profile-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 6px 12px;
+  border-radius: 20px;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+.user-profile-btn:hover { background: rgba(255, 255, 255, 0.2); }
+
+.header-stepper {
+  /* The stepper inside the header can be specifically styled if needed */
+  flex: 1; /* Prend l'espace disponible au centre */
+  width: auto;
+  max-width: 1000px; /* Aligns with the card width */
+  margin: 0 20px; /* Espacement latéral */
+}

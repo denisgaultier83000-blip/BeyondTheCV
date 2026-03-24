@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://beyondthecv.local/schemas/cv.schema.json",
+  "title": "BeyondTheCV - CV JSON (per language)",
+  "type": "object",
+  "additionalProperties": false,
+
+  "$defs": {
+    "CV": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["header", "experience", "education", "skills"],
+      "properties": {
+        "header": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["title", "subtitle"],
+          "properties": {
+            "title": { "type": "string" },
+            "subtitle": { "type": ["string", "null"] }
+          }
+        },
+
+        "experience": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["company", "role", "description", "start_date", "end_date"],
+            "properties": {
+              "company": { "type": "string" },
+              "role": { "type": "string" },
+              "description": { "type": "string" },
+              "start_date": { "type": ["string", "null"] },
+              "end_date": { "type": ["string", "null"] }
+            }
+          }
+        },
+
+        "education": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["title", "institution"],
+            "properties": {
+              "title": { "type": "string" },
+              "institution": { "type": ["string", "null"] }
+            }
+          }
+        },
+
+        "skills": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  },
+
+  "required": ["meta", "input_summary", "selection_rationale", "cv", "alternates"],
+
+  "properties": {
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "generated_at_utc",
+        "primary_country",
+        "secondary_countries",
+        "target_role",
+        "industry",
+        "language",
+        "ats_max_pages",
+        "recruiter_max_pages"
+      ],
+      "properties": {
+        "version": { "type": "string" },
+        "generated_at_utc": { "type": "string", "format": "date-time" },
+        "primary_country": { "type": "string" },
+        "secondary_countries": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "target_role": { "type": "string" },
+        "industry": { "type": ["string", "null"] },
+        "language": { "type": "string" },
+        "ats_max_pages": { "type": "integer", "minimum": 1 },
+        "recruiter_max_pages": { "type": "integer", "minimum": 1 }
+      }
+    },
+
+    "input_summary": { "type": "string" },
+    "selection_rationale": { "type": "string" },
+
+    "cv": { "$ref": "#/$defs/CV" },
+
+    "alternates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label", "cv"],
+        "properties": {
+          "label": { "type": "string" },
+          "cv": { "$ref": "#/$defs/CV" }
+        }
+      }
+    }
+  }
+}

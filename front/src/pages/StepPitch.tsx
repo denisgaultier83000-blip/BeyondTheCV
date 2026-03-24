@@ -1,0 +1,1 @@
+// DEPRECATED: This file is a duplicate of src/components/StepPitch.tsx and should be deleted.

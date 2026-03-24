@@ -1,0 +1,141 @@
+{
+  "identity": {
+    "first_name": "Alex",
+    "last_name": "Martin",
+    "email": "alex@example.com",
+    "phone": "+1 555 555 555",
+    "city": "Montreal",
+    "country": "Canada",
+    "links": {
+      "linkedin": "https://linkedin.com/in/alex-martin",
+      "portfolio": null,
+      "github": "https://github.com/alexmartin",
+      "other": []
+    }
+  },
+  "targeting": {
+    "target_role_primary": "Data Analyst",
+    "target_role_secondary": "BI Analyst",
+    "industry": "SaaS",
+    "years_experience_total": 4,
+    "contract_types": [
+      "CDI",
+      "CDD",
+      "Internship"
+    ],
+    "job_posting_url": "https://example.com/job-posting",
+    "job_posting_text": "We are looking for a Data Analyst with SQL, BI, experimentation..."
+  },
+  "summary": {
+    "objective": "Move into a product analytics role in a fast-growing SaaS.",
+    "tone_preference": "professional",
+    "is_self_taught": true,
+    "self_taught_details": "Self-taught SQL & Python via projects and online certifications.",
+    "key_strengths": [
+      "Analytical mindset",
+      "Autonomy",
+      "Stakeholder communication"
+    ]
+  },
+  "skills": {
+    "hard": [
+      "SQL",
+      "Python",
+      "Power BI",
+      "Excel",
+      "dbt",
+      "Looker",
+      "GA4"
+    ],
+    "soft": [
+      "Communication",
+      "Problem solving",
+      "Ownership"
+    ],
+    "languages": [
+      {
+        "language": "English",
+        "level": "C1"
+      },
+      {
+        "language": "Spanish",
+        "level": "B2"
+      }
+    ]
+  },
+  "experience": {
+    "professional": [
+      {
+        "type": "employment",
+        "role": "Data Analyst",
+        "company": "SaaSCo",
+        "location": "Montreal, Canada",
+        "start": "2023-02",
+        "end": null,
+        "is_current": true,
+        "missions": [
+          "Built dashboards for product KPIs",
+          "Partnered with PMs to define experiments"
+        ],
+        "achievements": [
+          "Reduced reporting time by 30% via automation",
+          "Improved conversion by 12% through funnel analysis"
+        ],
+        "tools": [
+          "SQL",
+          "Power BI",
+          "Python",
+          "dbt"
+        ]
+      }
+    ],
+    "internships": [
+      {
+        "role": "Analytics Intern",
+        "company": "RetailCo",
+        "location": "Toronto, Canada",
+        "start": "2021-06",
+        "end": "2021-12",
+        "missions": [
+          "Weekly sales reporting",
+          "Ad-hoc analysis for marketing"
+        ],
+        "deliverables": [
+          "Automated weekly report template"
+        ],
+        "tools": [
+          "Excel",
+          "SQL"
+        ]
+      }
+    ]
+  },
+  "education": {
+    "degrees": [
+      {
+        "degree": "BSc Computer Science",
+        "institution": "University X",
+        "location": "Canada",
+        "year": 2020,
+        "details": null
+      }
+    ],
+    "certifications": [
+      {
+        "name": "Google Data Analytics",
+        "issuer": "Google",
+        "year": 2022,
+        "credential_id": null
+      }
+    ]
+  },
+  "gaps": [],
+  "interests": [
+    "Running",
+    "Chess",
+    "Volunteering"
+  ],
+  "documents": {
+    "photo_provided": false
+  }
+}

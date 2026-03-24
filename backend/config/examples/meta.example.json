@@ -1,0 +1,22 @@
+{
+  "candidate_id": "cand_demo_0001",
+  "primary_country": "Canada",
+  "secondary_countries": [
+    "Japan",
+    "Argentina"
+  ],
+  "target_roles": [
+    "Data Analyst"
+  ],
+  "industry": "SaaS",
+  "ui_language": "en",
+  "content_languages": [
+    "en",
+    "es"
+  ],
+  "contract_types": [
+    "CDI",
+    "CDD",
+    "Internship"
+  ]
+}

@@ -1,0 +1,835 @@
+
+Je veux que tu analyses l'ensemble de l'algorithmique, que tu identifies les bugs et que tu me proposes un mode de résolution.
+
+Mon application est une application de coaching pour les personnes qui cherchent du travail.
+La finalité repose sur les produits qui sont mis à disposition sur le dashboard.
+- onglet CV, on va trouver 1 CV ATS et 1 CV humain (avec 3 mise en page au choix)
+- onglet Aide à l'entretien : 1 questionnaire + 1 pitch
+- onglet Analyse : 1 analyse de l'entreprise (si entreprise cible fournie) et 1 analyse secteur et une estimation du salaire fourchette.
+- onglet Adéquation : 1 page GAPS par rapport au poste visé 
+
+Pour produire ces produits, le client entre des données dans les 8 pages formulaires de saisie :
+- page 1 : données personnelles et poste actuellement occupé
+saisie des données à stocker dans le json. Ces données serviront pour produire le CV mais également pour créer des questions en page 8 ou créer des questions dans le produit questionnaire.
+- page 2 : données entreprise visée
+mobilité (pays dans lequel le client postule et télétravail ou non)
+Le pays ciblé doit permettre de créer un CV adapté à ce pays (s'il apparait dans le listing des pays qui ont une culture particulière renseignée) ou à un type commun sinon.
+je veux que le bouton next de la page 2 du formulaire lance un thread de recherche en tache de fond.
+je veux que tu analyses l'ensemble des fichiers appelés entre le clic sur ce bouton et l'affichage de la production par le bouton du dashboard.
+L'intéret est d'appeler un pipeline de prompts ia en tache de fond pour gagner du temps et que l'analyse soit quasi immédiate dans le dashboard.
+Je sais que l'asynchronisation apporte une difficulté supplémentaire en terme de développement mais elle est obligatoire.
+Pour les clés AI, j'ai dans mon .env une clé OPEN_AI, une clé GEMINI et une clé SERPER.
+Si l'entreprise n'est pas renseignée, le bouton analyse entreprise apparaitra en grisé dans le dashboard. L'étude du marché reste possible.
+- page 3 : études
+ensemble des diplomes du client
+- page 4 : expériences
+ensemble des expériences du client
+- page 5 : qualités, défauts, hobbies et langues parlées
+le client renseigne les différents champs, qui sont stockés dans le JSON
+- page 6 : texte libre
+Le client y inscrit tout ce qui lui semble important. On utilisera cette partie pour le CV et pour le questionnaire 
+- page 7 : questions qui visent à préciser le profil du client
+De manière dynamique, par rapport au JSON, le prompt ia détermine un ensemble de questions qui visent à préciser le profil du client.
+
+Dashboard:
+- onglet CV:
+CV ATS : le client visualise les données rensignées à gauche et une prévisualisation à droite. La prévisualisation est un fichier latex.
+Les modifications qu'il réalise sur la gauche ont une répercution sur la prévisualisation du CV (bouton refresh).
+Le bouton "refresh" appelle un ou des prompts IA dont un analyseur de cohérence à la fin.
+Un bouton "imprimer" permet de prévisualiser le fichier latex en pdf avant impression.
+CV humain : le client visualise les données rensignées à gauche et une prévisualisation à droite. La prévisualisation est un fichier latex.
+Les modifications qu'il réalise sur la gauche ont une répercution sur la prévisualisation du CV (bouton refresh). 
+Le bouton "refresh" appelle un ou des prompts IA dont un analyseur de cohérence à la fin.
+3 boutons permettent de modifier le rendu (couleurs / polices / organisation des partie). 3 CV types au choix
+Un bouton "imprimer" permet de prévisualiser le fichier latex en pdf avant impression.
+Pour les CV, une barre colorée avec le pourcentage de match est affichée.
+
+- onglet Aide à l'entretien :
+Questionnaire : un pipeline de prompt ia permet de déterminer un ensemble de questions que pourrait poser le recruteur. 
+Il se base essentiellement sur le CV pour la premiere partie (trou entre 2 expériences, hobbies, ...) puis sur des questions basiques de recruteur.
+Je veux des questions qui permettent de déterminer la curiosité du candidat sur des points que l'IA aura identifiés. Exemple, il habite rue Victor Hugo, questions sur la vie et les oeuvres de cet homme connu. 
+L'ia doit parser l'ensemble des informations récueillies pour essayer de trouver des questions qui démontreront que le candidat est de nature curieuse.
+Les questions posées reposent sur les éléments saisis qui pourraient apparaitre sur un CV. Or personne n'inscrit ses défauts sur un CV... 
+Donc tu ne peux pas écrire dans le questionnaires parmis les défauts que vous avez mentionné... 
+Je veux donc que le script IA pour faire référence à un défaut dans ses questions affiche la questions "quels sont vos trois principaux défauts" et 
+remplisse le champ éditable par les 3 défauts les moins graves pour le poste visé parmis les défauts cochés. 
+Pour faire simple cette question des 3 défauts apparaitra systématiquement mais l'IA doit proposer les 3 défauts les "moins pires" parmis les défauts cochés pour le poste visé.  
+Pour chacune de ces questions, une fleche permet de dérouler la réponse attendue par le recruteur. L'IA propose une réponse si elle considère qu'elle a les éléments, sinon elle indique comment répondre (ce qu'attend le recruteur).
+Ce champ reste éditable pour que le client puisse le modifier comme il l'entend.
+
+Pitch :
+Rédiger un pitch introductif pour le candidat en se basant sur le JSON renseigné et les caractéristiques de l'annonce du recruteur.
+Les paragraphes du pitch sont eux aussi éditable. Si l'IA n'a pas suffisamment de données, elle fournit des conseils précis.
+
+- onglet analyse :
+Dans le rapport Marché :
+Tendances & Mutations Technologiques : Analyse des enjeux de l'IA, de la transition écologique ou de la digitalisation du secteur.
+Compétences les plus Prisées : Liste des compétences "en vogue" (Hard & Soft skills) basées sur l'analyse sémantique des offres d'emploi actuelles.
+Fiabilité Moyenne : "À manipuler avec précaution"
+Ici, l'IA peut être imprécise. Il est conseillé de présenter ces données comme des "estimations" ou des "tendances générales".
+Échiquier Concurrentiel : L'IA identifiera bien les gros acteurs, mais peut oublier les challengers locaux ou les startups très récentes.
+Dynamique de Recrutement : Elle peut dire si "le secteur recrute", mais aura du mal à quantifier le volume exact d'offres sans accès à des agrégateurs type Indeed/LinkedIn.
+
+Dans le rapport Entreprise :
+Identité & ADN (Mission/Vision) : Analyse du discours officiel de la marque pour aider le candidat à s'aligner sur les mots-clés de l'entreprise.
+Positionnement Unique (USP) : Ce qui différencie leurs produits/services de la concurrence (données marketing publiques).
+Actualités Brûlantes : Synthèse des 3 dernières grandes news (nominations, prix, nouveaux contrats, levées de fonds).
+Culture & Environnement : L'IA risque de ne capter que la "vitrine" (ce que l'entreprise dit d'elle-même). Pour avoir le "vrai" ressenti (avis salariés), l'accès OSINT est souvent bloqué par les plateformes d'avis (Glassdoor).
+Taille de l'Équipe : L'IA peut donner une tranche globale (ex: 50-200 salariés), mais pas la taille exacte du département visé.Analyse de l'entreprise : pipeline de prompt ia pour fournir une page web fournie et essentielle pour la préparation du candidat.
+Des articles récents peuvent y apparaitre avec lien vers l'article, résumé de l'article et source.
+
+
+Analyse salariale : fournit une fourchette basée sur le CV du client et l'étude du marché de son domaine. 
+
+- onglet adéquation :
+une page web s'affiche pour indiquer clairement le gap entre les compétences du client et le poste visé.
+- keys needs from job
+- Missings / Gaps
+- Recommended adjustment
+
+Je veux que mon application soit internationale et pour cela un menu déroulant permet de choisir la langue.
+La langue choisit appelle un prompt ia de traduction. Je veux les 10 langues les plus parlées dans  le monde.
+
+Je veux également que les données essentielles soient embasées dans une base postgres dans la version définitive, je tolère le SQLite pour la phase de dev.
+J'ai 3 clés AI dans mon .env : 
+GEMINI_API_KEY="AIz"
+OPENAI_API_KEY="sk-proj--"
+SERPER_API_KEY=""
+
+Pour préciser mon besoin sur les taches de fond :
+--> next page 2 : on a les éléments pour lancer la recherche analyse entreprise en tache de fond (si l'entreprise cible est renseignée sinon on ne fait rien)
+--> next page 2 : on a les éléments pour lancer la recherche analyse marché en tache de fond (si l'entreprise ou le domaine sont renseignés sinon on ne fait rien)
+--> next page 6 : on lance en synchrone une requete pour identifier les questions essentielles à poser en page 7 (un peu d'attente du client, c'est ok)
+--> next page 7 : on lance l'analyse salaire le gap analysis, le questionnaire et le pitch en tahce de fond (si le client clique pendant la recherche il attendra mais moins longtemps qu'une recherche synchrone)
+--> dashboard : les CV sont générés en tant réel (synchrone)
+
+Pour la mise en forme, Je veux utiliser Lucide React avec ces couleurs 
+--bleu-fonce: #0F2650;
+--bleu-moyen: #446285;
+--bleu-clair: #6DBEF7;
+--blanc-logo: #F7FAFC.
+
+Pour les produits d'analyse, je te demande d'améliorer la pertinence des recherches et de ne pas afficher les pragraphes sans données. N'affiche que l'essentiel.
+
+
+
+
+Score d’employabilité (Recruiter Score)
+Un score global basé sur :
+-cohérence parcours
+-clarté du CV
+-adéquation au marché
+-compétences demandées
+-rareté du profil
+
+Sortie :
+score /100
+
+benchmark par secteur
+
+Exemple :
+
+Critère	Score
+Compétences marché	82
+Cohérence parcours	74
+Lisibilité CV	91
+Positionnement salarial	68
+
+💡 Très marketing.
+
+3. Stratégie de recherche d’emploi
+Les gens savent rarement comment chercher efficacement.
+Rapport :
+-où candidater
+-combien de candidatures par semaine
+-quelles plateformes
+-stratégie réseau
+
+Exemple :
+40% candidatures directes
+30% LinkedIn
+20% réseau
+10% cabinets
+
+💡 Très utile pour juniors et reconversion.
+
+4. Analyse LinkedIn
+Produit évident.
+Sortie :
+optimisation titre
+résumé
+mots-clés ATS
+contenu recommandé
+score visibilité recruteur
+
+💡 Beaucoup paient déjà pour ça.
+
+5. Plan de montée en compétences
+L’IA dit :
+"Pour obtenir ce poste, il vous manque ces 4 compétences."
+Et propose :
+formations
+certifications
+projets à faire
+
+💡 Très puissant pour les jeunes.
+
+6. Simulation salariale
+
+Basé sur :
+expérience
+ville
+secteur
+poste
+
+Sortie :
+salaire médian
+fourchette réaliste
+stratégie de négociation
+
+💡 Très recherché.
+
+7. Analyse des risques du poste
+Peu d’outils le font.
+Ton IA dit :
+⚠️ Risques potentiels :
+entreprise en décroissance
+turnover élevé
+faible évolution
+
+💡 Positionne ton produit comme protecteur du candidat.
+
+8. Lettre de motivation intelligente
+
+Pas une lettre générique.
+Mais :
+personnalisée pour le poste précis
+basée sur le CV et l’analyse entreprise.
+
+9. Plan d’entretien 30-60-90 jours
+
+Très apprécié pour les postes cadres.
+Sortie :
+Plan de prise de poste
+30 jours
+→ comprendre l’organisation
+60 jours
+→ premiers résultats
+90 jours
+→ optimisation
+
+💡 Très premium.
+
+1. Le radar de carrière (Career Radar)
+Le principe
+Ton IA analyse :
+le CV
+les compétences
+l’expérience
+les tendances du marché
+Et elle détecte les trajectoires de carrière plausibles auxquelles le candidat n’a pas pensé.
+
+Exemple
+
+Profil :
+Officier marine + cyber
+Radar IA :
+Trajectoire	Probabilité	Salaire moyen
+Cybersecurity manager	92%	90k
+Risk & resilience manager	87%	95k
+Défense consulting	83%	100k
+Chief security officer	71%	120k
+Effet utilisateur
+
+Moment “Ah… je n’y avais jamais pensé.”
+
+C’est un effet addictif.
+
+💡 Peu d’outils font ça sérieusement.
+
+2. Le décodeur de fiches de poste
+
+Les fiches de poste sont pleines de bullshit RH.
+
+Ton IA traduit :
+
+Annonce :
+“Profil dynamique avec forte capacité d’adaptation dans un environnement exigeant.”
+Traduction :
+charge de travail élevée
+organisation encore immature
+autonomie forte requise
+
+L’outil donne :
+1️⃣ Ce que veut vraiment le recruteur
+2️⃣ Les compétences réellement attendues
+3️⃣ Les pièges
+
+Exemple :
+
+⚠️ Signaux faibles :
+
+turnover élevé
+rôle hybride mal défini
+entreprise en restructuration
+
+💡 Ça rend l’utilisateur beaucoup plus intelligent dans sa candidature.
+
+3. L’attaque du marché caché (Hidden Job Market Engine)
+
+80% des emplois ne sont jamais publiés.
+Ton IA identifie :
+entreprises compatibles avec le profil
+recruteurs pertinents
+personnes à contacter
+
+Et génère :
+stratégie réseau personnalisée
+Exemple :
+Entreprise cible : Airbus
+Contacts recommandés :
+Head of cyber risk
+HR business partner
+ancien alumni école
+
+Message suggéré :
+
+Bonjour X, votre parcours dans Y m’intéresse particulièrement…
+
+💡 Là tu crées un outil qui génère des opportunités.
+
+Ce que ça change pour ton produit
+Aujourd’hui ton produit aide à :
+postuler mieux
+Avec ces fonctions il aide à :
+trouver les bonnes opportunités
+comprendre le marché
+anticiper sa carrière
+
+
+11. Une fonctionnalité simple mais très impressionnante
+
+Ajoute une ligne de synthèse automatique :
+Votre profil en une phrase
+Exemple :
+Officier spécialisé en cyberdéfense avec 10 ans d’expérience dans les environnements critiques, orienté gestion du risque et leadership opérationnel.
+
+Les recruteurs adorent.
+
+. Un petit détail produit très important
+Dans ton interface, affiche parfois :
+Comment l’IA a raisonné
+Exemple :
+
+Analyse effectuée :
+
+• 47 compétences détectées
+• 18 comparées avec le poste
+• 5 lacunes identifiées
+
+Ça renforce énormément la confiance dans l’outil.
+
+Pour BeyondTheCV, l’écran le plus important est le premier que l’utilisateur voit après l’analyse.
+C’est lui qui crée l’effet “wow” et qui justifie le prix.
+
+L’erreur classique des outils carrière :
+ils affichent un long texte IA. Personne ne lit ça.
+
+Il faut un dashboard de diagnostic, comme un tableau de bord.
+1. L’écran principal idéal
+Quand l’analyse est terminée, l’utilisateur voit :
+Career Intelligence Report
+
+Nom
+poste visé
+date de l’analyse
+
+Puis 4 blocs visuels.
+
+1️⃣ Score d’adéquation
+
+Match Score
+87 / 100
+Indicateur visuel (jauge ou barre).
+
+Sous le score :
+Votre profil correspond fortement à ce poste.
+Deux compétences techniques doivent être renforcées.
+
+2️⃣ Forces principales
+Bloc simple.
+Vos 3 forces clés
+leadership opérationnel
+gestion du risque
+prise de décision en environnement critique
+
+C’est le résumé du profil.
+
+3️⃣ Compétences à combler
+
+Tableau rapide :
+Compétence	Impact	Action
+Power BI	moyen	MOOC recommandé
+Cloud security	élevé	certification AWS
+Gestion projet agile	moyen	formation Scrum
+L’utilisateur comprend immédiatement quoi faire.
+
+4️⃣ Stratégie de candidature
+
+Petit bloc stratégique :
+
+Recommandation IA
+Priorité :
+cibler entreprises industrielles
+valoriser expérience opérationnelle
+insister sur leadership
+
+2. Les boutons d’action
+Sous le dashboard :
+Télécharger :
+CV ATS
+CV humain
+pitch
+questionnaire entretien
+
+L’utilisateur voit immédiatement la valeur du produit.
+
+3. Le petit détail qui crée l’effet premium
+
+Ajoute une ligne :
+Analyse basée sur :
+46 compétences détectées
+18 exigences du poste analysées
+5 écarts identifiés
+
+Ça donne l’impression d’une analyse sérieuse, pas d’un texte généré.
+
+4. Le deuxième écran (très important)
+Quand l’utilisateur clique :
+Gap Analysis
+Là tu détailles :
+compétences alignées
+compétences manquantes
+plan de progression
+
+5. Le troisième écran
+Documents générés
+CV ATS
+CV humain
+Pitch
+Questions entretien
+
+Téléchargeables.
+
+6. Pourquoi ce design fonctionne
+
+Le cerveau humain adore :
+les scores
+les comparaisons
+les plans d’action
+
+Donc ton utilisateur voit immédiatement :
+
+1️⃣ où il en est
+2️⃣ ce qui manque
+3️⃣ quoi faire.
+
+7. Ton produit devient alors
+pas un outil CV
+mais
+un diagnostic de carrière.
+
+Et c’est beaucoup plus puissant.
+
+8. Le détail marketing très malin
+
+Sur le dashboard, affiche :
+Votre position sur le marché
+
+Exemple :
+Votre profil se situe dans le top 22 % des candidats pour ce type de poste.
+Les gens adorent ce genre d’indicateur.
+Le petit hack produit qui peut presque doubler la valeur perçue de ton application est extrêmement simple :
+montrer à l’utilisateur ce que verrait un recruteur.
+
+C’est très puissant psychologiquement.
+
+Pour BeyondTheCV, tu peux ajouter une fonctionnalité appelée par exemple :
+
+Recruiter View
+1. Le principe
+Après l’analyse, l’utilisateur peut cliquer sur :
+Voir mon profil comme un recruteur
+L’écran affiche :
+Recruiter Snapshot
+Résumé du candidat
+Profil :
+Expert en cybersécurité avec expérience opérationnelle dans environnements critiques.
+Points forts
+leadership opérationnel
+gestion de crise
+cybersécurité stratégique
+
+Points d’attention
+manque certification cloud
+expérience secteur privé limitée
+Risque perçu par un recruteur
+possible surqualification
+adaptation culture entreprise
+Probabilité d’entretien
+72 %
+
+2. Pourquoi c’est puissant
+
+Les candidats ne savent jamais :
+comment ils sont perçus
+pourquoi ils ne sont pas retenus.
+
+Ton outil devient :
+un simulateur de perception recruteur.
+C’est très différenciant.
+
+3. Impact sur l’utilisateur
+
+L’utilisateur comprend immédiatement :
+ce qu’il doit corriger
+ce qu’il doit mettre en avant.
+Par exemple :
+
+👉 insister sur management
+👉 ajouter expérience projet
+👉 enlever certains éléments.
+
+4. Impact marketing
+Cette fonction crée des phrases très fortes pour ton site :
+“Découvrez comment les recruteurs voient votre profil”
+“Analysez votre candidature du point de vue recruteur”
+C’est beaucoup plus vendeur que :
+générateur de CV.
+
+5. Impact produit
+
+Techniquement c’est facile.
+Tu réutilises les données que ton IA a déjà produites :
+forces
+lacunes
+score.
+
+Tu changes simplement la perspective du prompt.
+
+6. Exemple de prompt
+Tu es recruteur senior.
+
+Analyse ce profil et indique :
+1. les points qui donnent envie de convoquer le candidat
+2. les doutes éventuels
+3. les risques perçus
+4. la probabilité d'entretien (0-100)
+7. Le bonus intelligent
+
+Ajoute une dernière section :
+Comment améliorer cette perception
+
+Exemple :
+ajouter résultats chiffrés
+mentionner management d'équipe
+supprimer expériences peu pertinentes.
+
+8. Pourquoi c’est un très bon ajout
+Tu ne crées pas une nouvelle analyse.
+Tu représentes différemment les données existantes.
+
+Donc :
+peu de dev
+gros impact utilisateur.
+
+module GPS-navigation
+L’idée du “GPS de carrière” est très simple : appliquer la logique d’un GPS de navigation à la carrière d’un candidat.
+Et pour un outil comme BeyondTheCV, la métaphore fonctionne particulièrement bien.
+
+Tu connais ça par cœur en navigation :
+
+1️⃣ position actuelle
+2️⃣ destination
+3️⃣ route optimale
+4️⃣ corrections en cours de route.
+
+C’est exactement ce que tu peux appliquer à une carrière.
+1. Position actuelle
+L’IA analyse le profil et détermine où se situe réellement le candidat sur le marché.
+Exemple :
+Position actuelle
+niveau : middle management
+secteur : cybersécurité
+expérience : 8 ans
+employabilité : 78 / 100
+
+Position marché :
+Top 35 % des profils comparables.
+
+L’utilisateur voit immédiatement où il se situe.
+
+2. Destination
+
+Le candidat choisit un objectif :
+Exemples :
+Cybersecurity manager
+Risk manager
+Chief Information Security Officer
+L’IA transforme ça en destination professionnelle précise.
+
+3. Route optimale
+Comme un GPS.
+L’IA calcule :
+le chemin le plus réaliste pour atteindre ce poste.
+
+Exemple :
+Destination : Cybersecurity Manager
+
+Étapes :
+1️⃣ certification cloud security
+2️⃣ expérience management équipe
+3️⃣ projet cybersécurité transverse
+
+Temps estimé :
+18 à 24 mois
+
+4. Obstacles sur la route
+
+Comme un GPS qui annonce les ralentissements.
+L’IA peut détecter :
+⚠️ obstacles possibles
+manque expérience cloud
+concurrence élevée sur certains postes
+secteur en mutation
+
+Ça aide à anticiper les problèmes.
+
+5. Routes alternatives
+Le GPS propose toujours plusieurs routes.
+
+L’IA peut afficher :
+trajectoires alternatives
+
+Route A (rapide)
+cyber risk manager
+
+Route B (plus longue mais mieux payée)
+security architect
+
+Route C (transition latérale)
+defence industry consultant
+
+6. Indicateur de progression
+
+L’utilisateur voit une barre :
+Progression vers l’objectif
+Exemple :
+65 %
+
+Compétences restantes :
+cloud architecture
+budget management
+
+C’est très motivant.
+
+7. Mise à jour du GPS
+
+Le candidat peut mettre à jour :
+nouvelle compétence
+nouvelle expérience
+nouvelle certification.
+
+Et l’IA recalculera la trajectoire.
+
+Comme un GPS :
+
+recalcul de l’itinéraire.
+
+8. Pourquoi cette idée est très forte
+
+Parce que la plupart des gens ressentent :
+l’impression de naviguer à l’aveugle dans leur carrière.
+
+Ton outil devient :
+un système de navigation professionnelle.
+
+C’est un positionnement très puissant.
+
+9. En plus, ça colle parfaitement à ton univers
+
+Ton parcours :
+
+marine
+navigation
+stratégie
+
+Et ta société Tactic Edge.
+
+La métaphore navigation / trajectoire / cap est parfaite.
+
+10. Exemple d’écran
+
+Career Navigation
+Position actuelle
+→ Cybersecurity analyst
+Destination
+→ Cybersecurity manager
+Progression
+→ 62 %
+
+Étapes restantes :
+certification cloud
+expérience management
+projet sécurité transverse
+ETA : 18 mois
+
+------
+Simulateur de carriere
+Le simulateur de carrière est l’évolution logique du GPS de carrière.
+Le GPS dit où aller.
+Le simulateur permet de tester différents choix avant de les faire.
+
+Pour BeyondTheCV, ça peut devenir une fonctionnalité vraiment différenciante.
+
+1. Le principe
+
+L’utilisateur peut simuler des décisions professionnelles et voir leur impact probable.
+
+Un peu comme un jeu de stratégie, mais appliqué à la carrière.
+
+Exemple :
+
+Que se passe-t-il si je fais une certification cloud ?
+Que se passe-t-il si je change de secteur ?
+Que se passe-t-il si je passe manager ?
+
+L’IA calcule les effets possibles.
+
+2. Exemple concret
+
+Profil actuel :
+
+Cybersecurity analyst
+8 ans expérience
+
+Salaire moyen :
+
+65k €
+
+Objectif :
+
+Cybersecurity manager
+Simulation 1
+Certification cloud
+Résultat :
+employabilité : +12 %
+nouvelles opportunités : +25 %
+salaire potentiel : 80k €
+
+Simulation 2
+MBA management
+Résultat :
+employabilité management : +18 %
+accès postes direction : +30 %
+temps nécessaire : 2 ans
+
+Simulation 3
+
+Changement de secteur
+Cyber → banque
+Résultat :
+demande marché : très forte
+salaire moyen : 85k €
+
+3. L’interface simple
+
+Career Simulator
+“Que voulez-vous tester ?”
+
+Options :
+nouvelle compétence
+certification
+changement secteur
+promotion
+expatriation
+
+Puis l’IA affiche :
+
+Impact estimé
+
+4. Exemple d’affichage
+
+Simulation : certification cloud security
+
+Impact :
+Employabilité
+78 → 86
+
+Opportunités nouvelles :
+cloud security engineer
+security architect
+
+Salaire potentiel :
++15 %
+
+5. Pourquoi c’est très puissant
+
+Les gens prennent souvent des décisions de carrière à l’aveugle :
+quelle formation faire
+quelle spécialisation choisir
+quel secteur viser.
+
+Ton outil permet de tester les choix avant de les faire.
+
+6. Effet psychologique
+
+L’utilisateur ressent :
+
+“Je comprends enfin comment piloter ma carrière.”
+Ton produit devient :
+un outil de stratégie personnelle.
+
+7. Impact marketing énorme
+
+Tu peux écrire sur ton site :
+“Simulez votre avenir professionnel”
+“Testez vos choix de carrière avant de les faire”
+“Visualisez l’impact d’une formation ou d’une certification”
+
+C’est extrêmement vendeur.
+
+8. Techniquement c’est plus simple qu’on ne pense
+
+Tu utilises simplement :
+les données du profil
+les tendances du marché
+les compétences requises pour les postes.
+
+L’IA extrapole ensuite les impacts.
+
+9. Combiné avec le GPS de carrière
+
+Tu obtiens :
+Career Navigation System
+
+Position actuelle
+→ GPS
+
+Choix stratégiques
+→ simulateur
+
+Plan d’action
+→ gap analysis + formation
+
+10. Et là ton produit devient vraiment unique
+
+Parce que la plupart des outils carrière font :
+
+CV
+lettre de motivation.
+
+Toi tu proposes :
+
+un système de pilotage de carrière.
+Et ça correspond parfaitement à l’univers stratégique de Tactic Edge.

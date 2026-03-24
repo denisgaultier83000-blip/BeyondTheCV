@@ -1,0 +1,58 @@
+:root {
+  /* --- Palette de Couleurs (Light Mode par défaut) --- */
+  --bg-body: #f3f4f6;
+  --bg-card: #ffffff;
+  --bg-secondary: #f9fafb;
+  
+  --text-main: #1f2937;
+  --text-muted: #6b7280;
+  --text-inverse: #ffffff;
+
+  --primary: #1fa6a0;
+  --primary-hover: #178580;
+  
+  --border-color: #e5e7eb;
+  
+  --input-bg: #ffffff;
+  --input-border: #d1d5db;
+  
+  --danger-text: #b91c1c;
+  --error-bg: #fee2e2;
+  --error-text: #b91c1c;
+  --error-border: #fca5a5;
+
+  /* --- Typographie --- */
+  --font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* --- Dark Mode (Activé via la classe .dark-mode) --- */
+.dark-mode {
+  --bg-body: #111827;
+  --bg-card: #1f2937;
+  --bg-secondary: #374151;
+  
+  --text-main: #f9fafb;
+  --text-muted: #9ca3af;
+
+  --primary: #1fa6a0;
+  --primary-hover: #178580;
+  
+  --border-color: #4b5563;
+  
+  --input-bg: #374151;
+  --input-border: #4b5563;
+  
+  --danger-text: #fca5a5;
+  --error-bg: #7f1d1d;
+  --error-text: #fca5a5;
+  --error-border: #991b1b;
+}
+
+/* --- Reset Global --- */
+body {
+  margin: 0;
+  font-family: var(--font-family-sans);
+  background-color: var(--bg-body);
+  color: var(--text-main);
+  transition: background-color 0.3s, color 0.3s;
+}

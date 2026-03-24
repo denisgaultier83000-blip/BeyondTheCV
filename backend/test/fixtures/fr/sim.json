@@ -1,0 +1,25 @@
+{
+  "meta": {
+    "version": "v1",
+    "primary_country": "France",
+    "target_role": "Data Analyst",
+    "industry": "SaaS",
+    "language": "fr"
+  },
+  "recruiter_simulation": {
+    "thirty_second_read": {
+      "what_is_clear": [],
+      "what_stands_out": [],
+      "what_is_unclear": []
+    },
+    "risk_flags": [],
+    "what_i_would_verify": [],
+    "positioning_advice": {
+      "emphasize": [],
+      "clarify": [],
+      "avoid_or_rephrase": []
+    },
+    "summary_for_candidate": "Profil cohérent avec le poste."
+  },
+  "warnings": []
+}

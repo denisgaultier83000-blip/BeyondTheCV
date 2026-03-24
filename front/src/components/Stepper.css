@@ -1,0 +1,31 @@
+.stepper-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 10px 0;
+}
+
+.step-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #6DBEF7;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.step-dot.active {
+  transform: scale(1.5);
+  background-color: #fff;
+}
+
+.step-dot.clickable:hover {
+  transform: scale(1.5);
+}
+
+.step-line {
+  height: 2px;
+  flex-grow: 1;
+  background-color: #6DBEF7;
+}

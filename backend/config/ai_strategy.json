@@ -1,0 +1,16 @@
+{
+    "comment": "Maps actions to preferred AI providers (openai or gemini). 'default' is used if an action is not specified. This file is loaded by ai_generator.py.",
+    "strategy": {
+        "comment_gemini": "Gemini is preferred for tasks involving search, synthesis of web data, and logical consistency checks.",
+        "perform_company_research": "gemini",
+        "perform_consistency_check": "gemini",
+        "disambiguate_company": "gemini",
+        "Planner": "gemini",
+        "Extractor": "gemini",
+        "Auditor": "gemini",
+        "Synthesizer": "gemini",
+        
+        "comment_openai": "OpenAI is the default for its strength in complex instruction following, structured JSON formatting, and creative/nuanced text generation.",
+        "default": "openai"
+    }
+}

@@ -1,0 +1,31 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Docker: Start BTCV Stack",
+      "type": "shell",
+      // --build force la reconstruction si tu as changé le code
+      "command": "docker compose up --build", 
+      "options": {
+        // S'assure que la commande s'exécute à la racine de TacticEdge
+        "cwd": "${workspaceFolder}" 
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "group": "build"
+      },
+      // Permet à VS Code de savoir quand le serveur est prêt (optionnel mais propre)
+      "problemMatcher": [],
+      "isBackground": true
+    },
+    {
+      "label": "Docker: Stop BTCV Stack",
+      "type": "shell",
+      "command": "docker compose down",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    }
+  ]
+}

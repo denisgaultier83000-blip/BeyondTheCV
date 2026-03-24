@@ -1,0 +1,52 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2cm]{geometry}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{titlesec}
+
+\titleformat{\section}{\large\bfseries\uppercase}{}{0em}{}[\titlerule]
+\titlespacing{\section}{0pt}{12pt}{8pt}
+
+\begin{document}
+\pagestyle{empty}
+
+\begin{center}
+    {\Huge \textbf{\VAR{first_name} \VAR{last_name}}}\\[5pt]
+    \VAR{current_role} \\
+    \VAR{email} | \VAR{phone} | \VAR{city}, \VAR{country} \\
+    \href{\VAR{linkedin}}{LinkedIn}
+\end{center}
+
+\BLOCK{if bio}
+\section*{Profil}
+\VAR{bio}
+\BLOCK{endif}
+
+\section*{Expérience Professionnelle}
+\BLOCK{for exp in experiences}
+\noindent \textbf{\VAR{exp.role}} \hfill \VAR{exp.start_date} -- \VAR{exp.end_date} \\
+\textit{\VAR{exp.company}}
+\begin{itemize}[noitemsep,topsep=0pt]
+    \item \VAR{exp.description}
+\end{itemize}
+\vspace{5pt}
+\BLOCK{endfor}
+
+\section*{Formation}
+\BLOCK{for edu in educations}
+\noindent \textbf{\VAR{edu.degree}} \hfill \VAR{edu.year} \\
+\textit{\VAR{edu.school}}
+\vspace{5pt}
+\BLOCK{endfor}
+
+\section*{Compétences}
+\BLOCK{if skills.technical}
+\textbf{Techniques:} \VAR{skills.technical} \\
+\BLOCK{endif}
+\BLOCK{if skills.languages}
+\textbf{Langues:} \VAR{skills.languages}
+\BLOCK{endif}
+
+\end{document}

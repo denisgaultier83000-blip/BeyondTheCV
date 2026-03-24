@@ -1,0 +1,7 @@
+Résumé express (à garder sous la main)
+Situation	Commande
+Code seul	docker compose up -d
+Backend modifié	docker compose up -d --build backend
+Front modifié	docker compose up -d --build frontend
+Config runtime	docker compose restart backend
+Dev rapide	Volumes + hot reload

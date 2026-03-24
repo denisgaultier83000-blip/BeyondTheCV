@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://beyondthecv.local/schemas/sim.schema.json",
+  "title": "BeyondTheCV - Recruiter Simulator JSON (per language)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "meta",
+    "recruiter_simulation",
+    "warnings"
+  ],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "primary_country",
+        "target_role",
+        "industry",
+        "language"
+      ],
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "primary_country": {
+          "type": "string"
+        },
+        "target_role": {
+          "type": "string"
+        },
+        "industry": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "language": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "recruiter_simulation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "thirty_second_read",
+        "risk_flags",
+        "what_i_would_verify",
+        "positioning_advice",
+        "summary_for_candidate"
+      ],
+      "properties": {
+        "thirty_second_read": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "what_is_clear",
+            "what_stands_out",
+            "what_is_unclear"
+          ],
+          "properties": {
+            "what_is_clear": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "what_stands_out": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "what_is_unclear": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "risk_flags": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "flag",
+              "description",
+              "recommended_fix"
+            ],
+            "properties": {
+              "flag": {
+                "type": "string",
+                "enum": [
+                  "gap",
+                  "job_hop",
+                  "unclear_scope",
+                  "missing_metrics",
+                  "title_mismatch",
+                  "other"
+                ]
+              },
+              "description": {
+                "type": "string"
+              },
+              "recommended_fix": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "what_i_would_verify": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "topic",
+              "why",
+              "how_i_would_test"
+            ],
+            "properties": {
+              "topic": {
+                "type": "string"
+              },
+              "why": {
+                "type": "string"
+              },
+              "how_i_would_test": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "positioning_advice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "emphasize",
+            "clarify",
+            "avoid_or_rephrase"
+          ],
+          "properties": {
+            "emphasize": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "clarify": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "avoid_or_rephrase": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "summary_for_candidate": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "general": [
+    "reuters.com",
+    "bloomberg.com",
+    "forbes.com",
+    "ft.com"
+  ],
+  "tech": [
+    "techcrunch.com",
+    "wired.com",
+    "theverge.com"
+  ],
+  "business": [
+    "wsj.com",
+    "cnbc.com",
+    "lesechos.fr"
+  ]
+}
