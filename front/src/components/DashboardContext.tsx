@@ -12,8 +12,14 @@ interface DashboardContextType {
   cvData: any;
   researchResult: any;
   salaryResult: any;
+  careerGpsResult: any;
+  careerRadarResult: any;
+  jobDecoderResult: any;
+  pitchResult: any;
+  questionsResult: any;
   globalStatus: string;
   setCurrentStep: (step: number) => void;
+  triggerResearch: () => Promise<void>;
 }
 
 interface DashboardProviderProps {
@@ -21,8 +27,14 @@ interface DashboardProviderProps {
   initialCvData?: any;
   initialResearchResult?: any;
   initialSalaryResult?: any;
+  initialCareerGpsResult?: any;
+  initialCareerRadarResult?: any;
+  initialJobDecoderResult?: any;
+  initialPitchResult?: any;
+  initialQuestionsResult?: any;
   initialGlobalStatus?: string;
   onSetCurrentStep?: (step: number) => void;
+  onTriggerResearch?: () => Promise<void>;
 }
 
 // --- INITIALISATION DU CONTEXTE ---
@@ -34,8 +46,14 @@ export const DashboardProvider = ({
   initialCvData = null,
   initialResearchResult = null,
   initialSalaryResult = null,
+  initialCareerGpsResult = null,
+  initialCareerRadarResult = null,
+  initialJobDecoderResult = null,
+  initialPitchResult = null,
+  initialQuestionsResult = null,
   initialGlobalStatus = 'IDLE',
-  onSetCurrentStep = () => {}
+  onSetCurrentStep = () => {},
+  onTriggerResearch = async () => {}
 }: DashboardProviderProps) => {
   // État de navigation interne
   const [activeTab, setActiveTab] = useState<string>('pilot');
@@ -83,8 +101,14 @@ export const DashboardProvider = ({
       cvData: initialCvData,
       researchResult: initialResearchResult,
       salaryResult: initialSalaryResult,
+      careerGpsResult: initialCareerGpsResult,
+      careerRadarResult: initialCareerRadarResult,
+      jobDecoderResult: initialJobDecoderResult,
+      pitchResult: initialPitchResult,
+      questionsResult: initialQuestionsResult,
       globalStatus: initialGlobalStatus,
-      setCurrentStep: onSetCurrentStep
+      setCurrentStep: onSetCurrentStep,
+      triggerResearch: onTriggerResearch
     }}>
       {children}
     </DashboardContext.Provider>

@@ -1,7 +1,6 @@
 import React from 'react';
-import { Compass, Clock, Euro, AlertTriangle } from 'lucide-react';
-import { formatMarkdown } from '../utils/markdown';
-import { DashboardCard } from './DashboardCard';
+import { Map, Clock, AlertCircle, Loader2, Target, Lightbulb, Wallet, ChevronRight } from 'lucide-react';
+import { FeedbackWidget } from './FeedbackWidget';
 
 interface Trajectory {
   title: string;
@@ -14,72 +13,127 @@ interface Trajectory {
 
 interface CareerRadarProps {
   data?: {
-    trajectories?: Trajectory[];
+    trajectories: Trajectory[];
   };
   loading?: boolean;
   error?: boolean;
 }
 
+// Helper pour parser le gras Markdown fourni par l'IA (**texte**)
+const formatMarkdown = (text: string) => {
+  if (!text) return text;
+  return text.split('**').map((part, i) => 
+    i % 2 === 1 ? <strong key={i} style={{ color: 'inherit', fontWeight: 700 }}>{part}</strong> : part
+  );
+};
+
+// Helper pour la couleur dynamique du score
+const getScoreColor = (percent: number) => {
+  if (percent >= 80) return { text: '#059669', bg: '#d1fae5', border: '#34d399' }; // Émeraude (Fort)
+  if (percent >= 60) return { text: '#d97706', bg: '#fef3c7', border: '#fbbf24' }; // Ambre (Moyen)
+  return { text: '#e11d48', bg: '#ffe4e6', border: '#fb7185' }; // Rose (Faible)
+};
+
 export const CareerRadar: React.FC<CareerRadarProps> = ({ data, loading, error }) => {
-  const trajectories = data?.trajectories;
+  if (loading) {
+    return (
+      <div className="result-card" style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '0 0 1.5rem 0', color: 'var(--primary)' }}>
+          <Map size={24} /> Radar de Carrière
+        </h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+          {[1, 2, 3].map(i => (
+            <div key={i} style={{ border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="skeleton-pulse" style={{ width: '60%', height: '24px', borderRadius: '4px' }}></div>
+              <div className="skeleton-pulse" style={{ width: '40%', height: '16px', borderRadius: '4px' }}></div>
+              <div className="skeleton-pulse" style={{ width: '100%', height: '30px', borderRadius: '4px', margin: '1rem 0' }}></div>
+              <div className="skeleton-pulse" style={{ width: '100%', height: '100px', borderRadius: '8px' }}></div>
+              <div className="skeleton-pulse" style={{ width: '100%', height: '100px', borderRadius: '8px' }}></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="error-box" style={{ padding: '1.5rem', borderRadius: '1rem' }}>
+        <AlertCircle size={24} />
+        <span>Une erreur est survenue lors de la génération du Radar de Carrière. Veuillez réessayer.</span>
+      </div>
+    );
+  }
+
+  if (!data || !data.trajectories || data.trajectories.length === 0) return null;
 
   return (
-    <DashboardCard
-      title="Career Radar : Pistes & Pivots"
-      icon={<Compass size={24} />}
-      loading={loading}
-      loadingText="Génération des trajectoires de carrière..."
-      error={error || (!loading && (!trajectories || trajectories.length === 0))}
-      errorText="Impossible de générer les trajectoires."
-      featureId="career_radar"
-      style={{ gridColumn: '1 / -1' }}
-    >
-      {trajectories && trajectories.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {trajectories.map((traj, idx) => (
-          <div key={idx} style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column' }}>
-            
-            {/* En-tête avec Jauge Visuelle */}
-            <div style={{ marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <h4 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-main)' }}>{traj.title}</h4>
-                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: traj.match_percent >= 80 ? '#10b981' : traj.match_percent >= 60 ? '#f59e0b' : '#ef4444' }}>
-                  {traj.match_percent}% Match
-                </span>
+    <div className="result-card" style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
+      <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '0 0 1.5rem 0', color: 'var(--primary)' }}>
+        <Map size={24} /> Radar de Carrière
+      </h3>
+      
+      <div className="radar-grid">
+        {data.trajectories.map((traj, idx) => {
+          const colors = getScoreColor(traj.match_percent);
+          
+          return (
+            <div key={idx} className="radar-card">
+              {/* EN-TÊTE : Titre et Pourcentage */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+                <h4 style={{ margin: 0, fontSize: '1.15rem', color: 'var(--text-main)', lineHeight: 1.3, fontWeight: 700 }}>
+                  {traj.title}
+                </h4>
+                <div style={{ background: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, padding: '0.35rem 0.75rem', borderRadius: '2rem', fontWeight: 800, fontSize: '1rem', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                  {traj.match_percent}%
+                </div>
               </div>
-              <div style={{ width: '100%', height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
-                <div style={{ 
-                  width: `${traj.match_percent}%`, height: '100%', 
-                  background: traj.match_percent >= 80 ? '#10b981' : traj.match_percent >= 60 ? '#f59e0b' : '#ef4444',
-                  transition: 'width 1s ease-out'
-                }}></div>
+
+              {/* SALAIRE */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                <Wallet size={16} color="var(--text-muted)" /> Potentiel : <strong style={{ color: 'var(--text-main)' }}>{traj.salary_potential}</strong>
+              </div>
+
+              {/* LIGNE TEMPORELLE (TIMELINE) */}
+              <div style={{ margin: '1.5rem 0', position: 'relative' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <span style={{ fontWeight: 700 }}>Actuel</span>
+                  <span style={{ fontWeight: 700, color: 'var(--primary)' }}>Cible</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--border-color)', border: '2px solid var(--bg-card)', zIndex: 2 }}></div>
+                  <div style={{ flex: 1, height: '2px', background: 'var(--border-color)', position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <span style={{ background: 'var(--bg-card)', padding: '0 10px', fontSize: '0.75rem', color: 'var(--text-main)', fontWeight: 600, border: '1px solid var(--border-color)', borderRadius: '1rem', display: 'flex', alignItems: 'center', gap: '4px', zIndex: 2, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                      <Clock size={12} /> {traj.time_to_reach}
+                    </span>
+                  </div>
+                  <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--primary)', border: '2px solid var(--bg-card)', zIndex: 2 }}></div>
+                </div>
+              </div>
+
+              {/* RATIONALE (Carré Vert) */}
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0.75rem', padding: '1rem', marginBottom: '1rem', flex: 1, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.01)' }}>
+                <h5 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#166534', margin: '0 0 0.5rem 0', fontSize: '0.9rem', fontWeight: 700 }}><Lightbulb size={16} /> Pourquoi ce choix ?</h5>
+                <p style={{ margin: 0, fontSize: '0.9rem', color: '#14532d', lineHeight: 1.6 }}>{formatMarkdown(traj.rationale)}</p>
+              </div>
+
+              {/* GAP (Carré Rosé) */}
+              <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '0.75rem', padding: '1rem', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.01)' }}>
+                <h5 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#be123c', margin: '0 0 0.5rem 0', fontSize: '0.9rem', fontWeight: 700 }}><Target size={16} /> Ce qu'il manque</h5>
+                <p style={{ margin: 0, fontSize: '0.9rem', color: '#881337', lineHeight: 1.6 }}>{formatMarkdown(traj.gap)}</p>
               </div>
             </div>
-            
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Euro size={14} /> {traj.salary_potential}</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Clock size={14} /> {traj.time_to_reach}</span>
-            </div>
-
-            <div style={{ marginBottom: '1rem', flex: 1 }}>
-              <strong style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-main)', marginBottom: '0.25rem' }}>💡 La tactique</strong>
-              <div 
-                style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: '1.5' }}
-                dangerouslySetInnerHTML={formatMarkdown(traj.rationale)}
-              />
-            </div>
-
-            <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px dashed rgba(239, 68, 68, 0.3)' }}>
-              <strong style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', color: 'var(--danger-text)' }}><AlertTriangle size={14} /> Ce qu'il vous manque</strong>
-              <div 
-                style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }} 
-                dangerouslySetInnerHTML={formatMarkdown(traj.gap)}
-              />
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
-      )}
-    </DashboardCard>
+
+      <style>{`
+        .radar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; }
+        .radar-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 1rem; padding: 1.5rem; display: flex; flex-direction: column; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); }
+        .radar-card:hover { transform: translateY(-4px); box-shadow: 0 12px 20px -5px rgba(0,0,0,0.08); border-color: rgba(59, 130, 246, 0.4); }
+      `}</style>
+
+      <FeedbackWidget feature="career_radar" question="Ces suggestions de trajectoires sont-elles pertinentes ?" />
+    </div>
   );
 };

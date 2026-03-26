@@ -8,7 +8,7 @@ import { DashboardView } from './components/DashboardView';
 import { DashboardProvider as GlobalProvider, useDashboard as useGlobalDashboard } from './hooks/DashboardContext';
 import { DashboardProvider as TabProvider } from './components/DashboardContext';
 import { 
-  StepProfile, StepTarget, StepEducation, StepExperience, 
+  StepImport, StepProfile, StepTarget, StepEducation, StepExperience, 
   StepQualitiesFlaws, StepFreeText, StepClarification 
 } from './components/CandidateSteps';
 import AdminFeedbacks from './components/AdminFeedbacks';
@@ -40,6 +40,8 @@ function AppContent() {
   const [showPaywall, setShowPaywall] = useState(false);
   // État de chargement du profil
   const [isProfileLoading, setIsProfileLoading] = useState(false);
+  // État de chargement pour l'import du PDF LinkedIn
+  const [isImportLoading, setIsImportLoading] = useState(false);
   
   // État pour le Dark Mode avec persistance (localStorage)
   const [darkMode, setDarkMode] = useState<boolean>(() => {
@@ -50,8 +52,9 @@ function AppContent() {
   const {
     isAuthenticated, setIsAuthenticated,
     currentStep, setCurrentStep,
-    targetLanguage, setTargetLanguage,
     cvResult, researchResult, salaryResult, displaySalary,
+    careerGpsResult, careerRadarResult, jobDecoderResult,
+    pitchResult, questionsResult,
     globalStatus, error,
     handleNextStep,
     cvData,
@@ -59,10 +62,12 @@ function AppContent() {
     setFormData,
     updateList,
     resetDashboard,
+    triggerResearch,
     toasts, setToasts
   } = useGlobalDashboard();
 
   const CAREER_EDGE_STEPS: Step[] = [
+    { id: 0, title: "Import" },
     { id: 1, title: t('profile_title') },
     { id: 2, title: t('target_title') },
     { id: 3, title: t('education_title') },
@@ -84,7 +89,6 @@ function AppContent() {
 
   // Synchronisation Langue Interface + Langue Cible IA
   const handleLanguageChange = (lang: string) => {
-    setTargetLanguage(lang);
     i18n.changeLanguage(lang);
   };
 
@@ -124,21 +128,67 @@ function AppContent() {
             return nextState;
           });
         }
+      } else if (response.status === 404) {
+        console.log("🚨 [PROFIL] Nouveau candidat détecté (404). Initialisation à l'étape 1.");
+        resetDashboard();
       } else if (response.status === 401) {
         console.warn("🚨 [PROFIL] Session fantôme détectée (401). Déconnexion automatique...");
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('currentStep'); // 🔥 FORCE LE RETOUR À L'ÉTAPE 1
         localStorage.removeItem('cvData');      // 🔥 VIDE LES DONNÉES OBSOLÈTES
-        setCurrentStep(1);                      // Reset l'état local
+        setCurrentStep(0);                      // Reset l'état local
         setIsAuthenticated(false);
       } else {
         console.error(`❌ [PROFIL] API Error ${response.status}`);
       }
     } catch (e) {
       console.error("🚨 [PROFIL] Fatal error during fetch:", e);
+      setCurrentStep(0); // Retour de secours à l'étape 0 en cas de problème réseau
     } finally {
       setIsProfileLoading(false);
+    }
+  };
+
+  // --- IMPORT LINKEDIN (ETAPE 0) ---
+  const handleLinkedInImport = async (file: File) => {
+    setIsImportLoading(true);
+    try {
+      const uploadData = new FormData();
+      uploadData.append('file', file);
+      
+      const token = localStorage.getItem('token');
+      // [EXPERT FIX] On utilise le fetch natif pour ne PAS forcer de 'Content-Type'. 
+      // Le navigateur va générer lui-même le boundary Multipart indispensable au fichier.
+      const res = await fetch(`${API_BASE_URL}/api/cv/parse-linkedin`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: uploadData
+      });
+      
+      if (!res.ok) throw new Error("Erreur d'analyse du PDF");
+      const parsedData = await res.json();
+      
+      setFormData((prev: any) => {
+        const next = JSON.parse(JSON.stringify(prev));
+        if (parsedData.first_name) next.personal_info.first_name = parsedData.first_name;
+        if (parsedData.last_name) next.personal_info.last_name = parsedData.last_name;
+        if (parsedData.email) next.personal_info.email = parsedData.email;
+        if (parsedData.linkedin) next.personal_info.linkedin = parsedData.linkedin;
+        if (parsedData.bio) next.personal_info.bio = parsedData.bio;
+        if (parsedData.experiences) next.experiences = parsedData.experiences.map((e: any, i: number) => ({ ...e, id: Date.now() + i }));
+        if (parsedData.educations) next.educations = parsedData.educations.map((e: any, i: number) => ({ ...e, id: Date.now() + 100 + i }));
+        if (parsedData.skills) next.skills = parsedData.skills;
+        return next;
+      });
+      
+      setToasts(prev => [...prev, { id: Date.now(), text: "Profil importé avec succès !" }]);
+      setCurrentStep(1); // Le fichier a été lu, on propulse le candidat à la vérification
+    } catch (e) {
+      console.error(e);
+      setToasts(prev => [...prev, { id: Date.now(), text: "Échec de l'import. Assurez-vous d'avoir fourni le PDF LinkedIn officiel." }]);
+    } finally {
+      setIsImportLoading(false);
     }
   };
 
@@ -152,6 +202,17 @@ function AppContent() {
     console.log(`[DEBUG] Affichage Page ${currentStep}/${CAREER_EDGE_STEPS.length} | Statut: '${globalStatus}'`);
 
     switch(currentStep) {
+      case 0:
+        return (
+          <div className="step-wrapper">
+            <StepImport onUpload={handleLinkedInImport} loading={isImportLoading} />
+            <div className="actions-row" style={{ justifyContent: 'center' }}>
+              <button className="btn-outline" onClick={() => setCurrentStep(1)}>
+                Ou remplir manuellement
+              </button>
+            </div>
+          </div>
+        );
       case 1:
         return (
           <div className="step-wrapper">
@@ -304,8 +365,14 @@ function AppContent() {
             initialCvData={cvData} 
             initialResearchResult={researchResult} 
             initialSalaryResult={salaryResult} 
+            initialCareerGpsResult={careerGpsResult}
+            initialCareerRadarResult={careerRadarResult}
+            initialJobDecoderResult={jobDecoderResult}
+            initialPitchResult={pitchResult}
+            initialQuestionsResult={questionsResult}
             initialGlobalStatus={globalStatus} 
             onSetCurrentStep={setCurrentStep}
+            onTriggerResearch={triggerResearch}
           >
             <DashboardView />
           </TabProvider>
@@ -319,6 +386,42 @@ function AppContent() {
   const removeToast = (id: number) => {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
+
+  // Si l'utilisateur est déjà authentifié (via cache/token), on masque immédiatement la landing page
+  useEffect(() => {
+    if (isAuthenticated) {
+      setShowLanding(false);
+      
+      // [FIX] On force l'URL /candidate pour que le Header affiche correctement les pastilles
+      if (location.pathname === '/') {
+        navigate('/candidate', { replace: true });
+      }
+
+      loadProfile();
+
+      // Vérification du statut d'abonnement au chargement
+      try {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          const user = JSON.parse(storedUser);
+          const isExpired = user.subscription_status === 'expired' || 
+                           (user.subscription_expiration_date && new Date(user.subscription_expiration_date) < new Date());
+          setIsFrozen(isExpired);
+        }
+      } catch (e) { console.error("Erreur parsing user", e); }
+    }
+  }, [isAuthenticated]);
+
+  // Appliquer la classe sur le body pour que toute l'app (y compris les modales) hérite du thème
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add('dark-mode');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.body.classList.remove('dark-mode');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [darkMode]);
 
   // Rendu de la vue Admin si activée
   if (showAdmin) {
@@ -376,42 +479,6 @@ function AppContent() {
     );
   }
 
-  // Si l'utilisateur est déjà authentifié (via cache/token), on masque immédiatement la landing page
-  useEffect(() => {
-    if (isAuthenticated) {
-      setShowLanding(false);
-      
-      // [FIX] On force l'URL /candidate pour que le Header affiche correctement les pastilles
-      if (location.pathname === '/') {
-        navigate('/candidate', { replace: true });
-      }
-
-      loadProfile();
-
-      // Vérification du statut d'abonnement au chargement
-      try {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          const user = JSON.parse(storedUser);
-          const isExpired = user.subscription_status === 'expired' || 
-                           (user.subscription_expiration_date && new Date(user.subscription_expiration_date) < new Date());
-          setIsFrozen(isExpired);
-        }
-      } catch (e) { console.error("Erreur parsing user", e); }
-    }
-  }, [isAuthenticated]);
-
-  // Appliquer la classe sur le body pour que toute l'app (y compris les modales) hérite du thème
-  useEffect(() => {
-    if (darkMode) {
-      document.body.classList.add('dark-mode');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.body.classList.remove('dark-mode');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [darkMode]);
-
   return (
     <div className="app-container">
       <Header 
@@ -426,7 +493,6 @@ function AppContent() {
           setIsAuthenticated(false);
           navigate('/', { replace: true });
         }}
-        targetLanguage={targetLanguage}
         onLanguageChange={handleLanguageChange}
       />
       <main className="main-content">

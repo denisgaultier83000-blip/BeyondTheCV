@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Map, Navigation, Flag, AlertTriangle, TrendingUp, Zap, Clock, Percent } from 'lucide-react';
+import { Map, Navigation, Flag, AlertTriangle, TrendingUp, Zap, Clock, Percent, AlertCircle } from 'lucide-react';
 import { formatMarkdown } from '../utils/markdown';
-import { DashboardCard } from './DashboardCard';
+import { FeedbackWidget } from './FeedbackWidget';
 
 interface CareerGPSData {
   current_position: {
@@ -43,13 +43,45 @@ interface CareerGPSProps {
 export function CareerGPS({ data, loading, error }: CareerGPSProps) {
   const [selectedRouteIndex, setSelectedRouteIndex] = useState<number>(-1); // -1 = Main Route
 
+  if (loading) {
+    return (
+      <div className="result-card" style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: 0, color: 'var(--primary)' }}>
+            <Map size={24} /> GPS de Carrière
+          </h3>
+        </div>
+        <div className="skeleton-pulse" style={{ width: '100%', height: '60px', borderRadius: '8px', marginBottom: '2rem' }}></div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+          <div className="skeleton-pulse" style={{ width: '100%', height: '300px', borderRadius: '8px' }}></div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <div className="skeleton-pulse" style={{ width: '100%', height: '140px', borderRadius: '8px' }}></div>
+              <div className="skeleton-pulse" style={{ width: '100%', height: '140px', borderRadius: '8px' }}></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="error-box" style={{ padding: '1.5rem', borderRadius: '1rem' }}>
+        <AlertCircle size={24} />
+        <span>Une erreur est survenue lors du calcul de votre itinéraire. Veuillez réessayer.</span>
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
   // Defensive Coding
-  const currentPos = data?.current_position || {};
-  const dest = data?.destination || {};
-  const mainRoute = data?.route || {};
-  const prog = data?.progression || {};
-  const radar = data?.market_radar || {};
-  const alts = data?.alternatives || [];
+  const gpsData = (data as any).career_gps_result || data;
+  const currentPos = gpsData?.current_position || {};
+  const dest = gpsData?.destination || {};
+  const mainRoute = gpsData?.route || {};
+  const prog = gpsData?.progression || {};
+  const radar = gpsData?.market_radar || {};
+  const alts = gpsData?.alternatives || [];
 
   // Determine active route data
   const activeRoute = selectedRouteIndex === -1 
@@ -70,21 +102,16 @@ export function CareerGPS({ data, loading, error }: CareerGPSProps) {
   const probabilityColor = activeRoute.probability >= 80 ? '#10b981' : activeRoute.probability >= 60 ? '#f59e0b' : '#ef4444';
 
   return (
-    <DashboardCard
-      title="GPS de Carrière"
-      icon={<Map size={24} />}
-      loading={loading}
-      loadingText="Calcul de l'itinéraire optimal..."
-      error={error || (!loading && !data)}
-      errorText="Signal GPS perdu. Analyse impossible."
-      headerAction={
+    <div className="result-card" style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: 0, color: 'var(--primary)' }}>
+          <Map size={24} /> GPS de Carrière
+        </h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: '#16a34a', fontWeight: 600, background: '#dcfce7', padding: '0.25rem 0.75rem', borderRadius: '1rem' }}>
           <Navigation size={16} /> En route
         </div>
-      }
-    >
-      {data && (
-        <>
+      </div>
+
       {/* 1. Carte de Navigation (Header visuel) */}
       <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginBottom: '2rem', position: 'relative', overflow: 'hidden' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1 }}>
@@ -214,8 +241,8 @@ export function CareerGPS({ data, loading, error }: CareerGPSProps) {
           </div>
         </div>
       )}
-        </>
-      )}
-    </DashboardCard>
+
+      <FeedbackWidget feature="career_gps" question="Cette feuille de route vous semble-t-elle réaliste et applicable ?" />
+    </div>
   );
 }

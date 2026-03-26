@@ -2,7 +2,8 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { 
   FileText, User, MessageSquare, Mic, 
-  BarChart3, Target, Sparkles, Briefcase, Wallet, Linkedin
+  BarChart3, Target, Sparkles, Briefcase, Wallet, Linkedin,
+  Compass, Map, Search
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -17,6 +18,11 @@ interface DashboardProps {
   salaryData?: any;
   researchData?: any;
   isResearching?: boolean;
+  careerGpsData?: any;
+  careerRadarData?: any;
+  jobDecoderData?: any;
+  pitchData?: any;
+  questionsData?: any;
   flawCoachingResult?: any;
   gapAnalysis?: any; // Ajout optionnel pour le futur
   lang?: string;
@@ -32,6 +38,11 @@ export default function Dashboard({
   researchData,
   gapAnalysis,
   flawCoachingResult,
+  careerGpsData,
+  careerRadarData,
+  jobDecoderData,
+  pitchData,
+  questionsData,
   isResearching,
 }: DashboardProps) {
 
@@ -132,6 +143,7 @@ export default function Dashboard({
               desc={t('card_interview_desc')}
               onClick={() => onAction && onAction("Questionnaire")}
               disabled={loading && currentAction === "Questionnaire"}
+              ready={questionsData}
             />
             <ActionCard 
               icon={<Mic />} 
@@ -139,6 +151,7 @@ export default function Dashboard({
               desc={t('card_pitch_desc')}
               onClick={() => onAction && onAction("Pitch")}
               disabled={loading && currentAction === "Pitch"}
+              ready={pitchData}
             />
             <ActionCard 
               icon={<Sparkles />} 
@@ -192,6 +205,30 @@ export default function Dashboard({
               onClick={() => onAction && onAction(gapAnalysis ? "View Gap Analysis" : "Gap Analysis")}
               disabled={loading && currentAction === "Gap Analysis"}
               ready={gapAnalysis}
+            />
+            <ActionCard 
+              icon={<Search />} 
+              title="Décodeur d'annonce" 
+              desc="Lisez entre les lignes et décodez le vrai jargon RH."
+              onClick={() => onAction && onAction("Job Decoder")}
+              disabled={loading}
+              ready={jobDecoderData}
+            />
+            <ActionCard 
+              icon={<Compass />} 
+              title="Career GPS" 
+              desc="Votre feuille de route pas-à-pas vers ce poste."
+              onClick={() => onAction && onAction("Career GPS")}
+              disabled={loading}
+              ready={careerGpsData}
+            />
+            <ActionCard 
+              icon={<Map />} 
+              title="Career Radar" 
+              desc="Découvrez des trajectoires de carrière alternatives."
+              onClick={() => onAction && onAction("Career Radar")}
+              disabled={loading}
+              ready={careerRadarData}
             />
             <ActionCard 
               icon={<Linkedin />} 

@@ -12,9 +12,75 @@ import { CVTab } from './CVTab';
 import { InterviewTab } from './InterviewTab';
 import { AnalysisTab } from './AnalysisTab';
 
+// NOUVEAU COMPOSANT DE MODALE PREMIUM GÉNÉRIQUE (Fallback visuel)
+const PremiumModal = ({ title, data, onClose }: { title: string, data: any, onClose: () => void }) => {
+  // Algorithme de rendu dynamique pour transformer le JSON IA en belle UI
+  const renderValue = (val: any): any => {
+    if (Array.isArray(val)) {
+      if (val.length > 0 && typeof val[0] === 'object') {
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
+            {val.map((item, i) => (
+              <div key={i} style={{ background: 'var(--bg-body)', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
+                {Object.entries(item).map(([k, v]) => (
+                  <div key={k} style={{ marginBottom: '0.5rem' }}>
+                    <span style={{ fontWeight: 600, color: 'var(--text-muted)', textTransform: 'capitalize', fontSize: '0.85rem' }}>{k.replace(/_/g, ' ')} : </span>
+                    <span style={{ color: 'var(--text-main)', fontSize: '0.95rem' }}>{String(v)}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        );
+      } else {
+        return (
+          <ul style={{ margin: 0, paddingLeft: '1.5rem', color: 'var(--text-main)', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            {val.map((item, i) => <li key={i} style={{ lineHeight: '1.5' }}>{String(item)}</li>)}
+          </ul>
+        );
+      }
+    } else if (typeof val === 'object' && val !== null) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
+           {Object.entries(val).map(([k, v]) => (
+             <div key={k} style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '1rem', borderRadius: '0.5rem', borderLeft: '3px solid var(--primary)' }}>
+               <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>{k.replace(/_/g, ' ')}</div>
+               <div>{renderValue(v)}</div>
+             </div>
+           ))}
+        </div>
+      );
+    }
+    return <span style={{ color: 'var(--text-main)', lineHeight: '1.6' }}>{String(val)}</span>;
+  };
+
+  return (
+  <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.8)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', backdropFilter: 'blur(4px)' }}>
+    <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '1rem', width: '100%', maxWidth: '800px', maxHeight: '85vh', overflowY: 'auto', border: '1px solid var(--border-color)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'relative' }}>
+      <button onClick={onClose} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+        <X size={24} />
+      </button>
+      <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <Sparkles color="var(--primary)" /> {title}
+      </h2>
+      {data ? (
+        <div style={{ padding: '0.5rem' }}>
+          {renderValue(data)}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '3rem 0', color: 'var(--text-muted)' }}>
+          <Loader2 size={32} className="spin" style={{ marginBottom: '1rem', color: 'var(--primary)' }} />
+          <p>Analyse IA en cours ou données non disponibles...</p>
+        </div>
+      )}
+    </div>
+  </div>
+  );
+};
+
 export const DashboardView = () => {
   const { t } = useTranslation();
-  const { activeTab, setActiveTab, pilotData, isPilotLoading, cvData, researchResult, salaryResult, globalStatus, setCurrentStep } = useDashboard();
+  const { activeTab, setActiveTab, pilotData, isPilotLoading, cvData, researchResult, salaryResult, careerGpsResult, careerRadarResult, jobDecoderResult, pitchResult, questionsResult, globalStatus, setCurrentStep, triggerResearch } = useDashboard();
   
   console.log("researchResult in DashboardView:", researchResult);
 
@@ -23,6 +89,9 @@ export const DashboardView = () => {
     // On force l'atterrissage sur la vue Pilote (Bento) selon les spécifications produit
     return 'pilot'; 
   });
+  const [showJobDecoder, setShowJobDecoder] = useState(false);
+  const [showCareerRadar, setShowCareerRadar] = useState(false);
+  const [showCareerGps, setShowCareerGps] = useState(false);
 
 
   // Navigation fluide : si on bascule sur "Détaillé", on affiche le sous-onglet actif ou "cv" par défaut
@@ -59,7 +128,14 @@ export const DashboardView = () => {
                <div className="bento-card col-span-2 skeleton-pulse" style={{ minHeight: '150px' }}></div>
                <div className="bento-card col-span-2 skeleton-pulse" style={{ minHeight: '150px' }}></div>
             </div>
-          ) : <PilotBento data={pilotData} onGoToGap={() => { handleSetViewMode('detailed'); setActiveTab('gap'); }} />
+          ) : <PilotBento 
+                data={pilotData} 
+                careerRadarData={careerRadarResult}
+                careerGpsData={careerGpsResult}
+                onGoToGap={() => { handleSetViewMode('detailed'); setActiveTab('gap'); }} 
+                onGoToRadar={() => setShowCareerRadar(true)}
+                onGoToGps={() => setShowCareerGps(true)}
+              />
         )}
 
         {/* 2. VUE COMPACTE */}
@@ -73,7 +149,25 @@ export const DashboardView = () => {
             salaryData={salaryResult}
             researchData={researchResult}
             gapAnalysis={pilotData}
+            careerGpsData={careerGpsResult}
+            careerRadarData={careerRadarResult}
+            jobDecoderData={jobDecoderResult}
+            pitchData={pitchResult}
+            questionsData={questionsResult}
             onAction={(action) => {
+              // Si c'est un module Premium avec Modale, on ne change pas d'onglet
+              if (action === "Job Decoder") {
+                setShowJobDecoder(true);
+                return;
+              }
+              if (action === "Career Radar") {
+                setShowCareerRadar(true);
+                return;
+              }
+              if (action === "Career GPS") {
+                setShowCareerGps(true);
+                return;
+              }
               handleSetViewMode('detailed');
               if (action.includes('CV')) setActiveTab('cv');
               else if (action.includes('Pitch') || action.includes('Questionnaire')) setActiveTab('interview');
@@ -96,10 +190,21 @@ export const DashboardView = () => {
             <div style={{ marginTop: '1.5rem' }}>
               {activeTab === 'cv' && <CVTab data={pilotData} />}
               {activeTab === 'interview' && <InterviewTab />}
-              {activeTab === 'analysis' && <AnalysisTab researchResult={researchResult} salaryResult={salaryResult} />}
+              {activeTab === 'analysis' && <AnalysisTab researchResult={researchResult} salaryResult={salaryResult} onRefresh={triggerResearch} isRefreshing={globalStatus === "PROCESSING"} />}
               {activeTab === 'gap' && <GapAnalysisFull data={pilotData} onBack={() => handleSetViewMode('pilot')} />}
             </div>
           </div>
+        )}
+        
+        {/* MODALES OVERLAY */}
+        {showJobDecoder && (
+          <PremiumModal title="🕵️ Décodeur d'Annonce" data={jobDecoderResult} onClose={() => setShowJobDecoder(false)} />
+        )}
+        {showCareerRadar && (
+          <PremiumModal title="🗺️ Career Radar" data={careerRadarResult} onClose={() => setShowCareerRadar(false)} />
+        )}
+        {showCareerGps && (
+          <PremiumModal title="🧭 Career GPS" data={careerGpsResult} onClose={() => setShowCareerGps(false)} />
         )}
       </div>
 

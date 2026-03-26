@@ -85,12 +85,17 @@ def generate_pdf_from_latex(data: dict, template_name: str) -> str:
     rendered_tex = template.render(**clean_data)
     print(f"[DEBUG] LaTeX rendered. Length: {len(rendered_tex)} chars. Preview: {rendered_tex[:100]}...", flush=True)
     
+    # ⚡ Optimisation RAM Disk (tmpfs) pour des I/O instantanés
+    run_dir = "/dev/shm" if os.path.exists("/dev/shm") else OUTPUT_DIR
+
     # 3. Écriture du fichier .tex temporaire
-    tex_filename = f"temp_{data.get('last_name', 'cv')}.tex"
-    tex_path = os.path.join(OUTPUT_DIR, tex_filename)
+    # Utilisation d'un UUID pour éviter toute collision en accès concurrent
+    unique_id = uuid.uuid4().hex[:8]
+    tex_filename = f"temp_{data.get('last_name', 'cv')}_{unique_id}.tex"
+    tex_path = os.path.join(run_dir, tex_filename)
     
-    if not os.path.exists(OUTPUT_DIR):
-        os.makedirs(OUTPUT_DIR)
+    if not os.path.exists(run_dir):
+        os.makedirs(run_dir, exist_ok=True)
         
     with open(tex_path, "w", encoding="utf-8") as f:
         f.write(rendered_tex)
@@ -102,12 +107,13 @@ def generate_pdf_from_latex(data: dict, template_name: str) -> str:
         return tex_path  # Retourne le fichier source .tex
 
     try:
+        # ⚡ Flags d'optimisation : -interaction=batchmode (pas de console) et -halt-on-error
         result = subprocess.run(
-            ["pdflatex", "-interaction=nonstopmode", "-output-directory", OUTPUT_DIR, tex_path],
+            ["pdflatex", "-interaction=batchmode", "-halt-on-error", "-output-directory", run_dir, tex_path],
             check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=60 # Sécurité anti-blocage
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=15 # Timeout réduit car la compilation devrait prendre < 1s
         )
         print(f"[DEBUG] pdflatex executed successfully. Return code: {result.returncode}", flush=True)
     except subprocess.TimeoutExpired:
@@ -130,11 +136,13 @@ def generate_pdf_from_latex(data: dict, template_name: str) -> str:
         
     # Le fichier PDF généré aura le même nom de base que le .tex
     pdf_filename = tex_filename.replace(".tex", ".pdf")
-    pdf_path = os.path.join(OUTPUT_DIR, pdf_filename)
+    pdf_path = os.path.join(run_dir, pdf_filename)
     print(f"[DEBUG] PDF generated at: {pdf_path}. Exists: {os.path.exists(pdf_path)}", flush=True)
     
-    # [ROBUSTESSE] Nettoyage du fichier source temporaire après une compilation réussie
-    if os.path.exists(tex_path):
-        os.remove(tex_path)
+    # [ROBUSTESSE] Nettoyage complet des fichiers générés par LaTeX (sauf le PDF final)
+    for ext in [".tex", ".log", ".aux", ".out"]:
+        temp_file = tex_path.replace(".tex", ext)
+        if os.path.exists(temp_file):
+            os.remove(temp_file)
         
     return pdf_path

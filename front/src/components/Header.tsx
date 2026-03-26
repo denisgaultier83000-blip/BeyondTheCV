@@ -21,7 +21,6 @@ interface HeaderProps {
   goToStep?: (stepId: number) => void;
   userName?: string;
   onOpenProfile?: () => void;
-  targetLanguage?: string;
   onLanguageChange?: (lang: string) => void;
 }
 
@@ -37,7 +36,6 @@ export default function Header({
   goToStep = () => {},
   userName,
   onOpenProfile,
-  targetLanguage,
   onLanguageChange
 }: HeaderProps) {
   const { t } = useTranslation();
@@ -67,7 +65,6 @@ export default function Header({
         <div className="header-actions">
           {/* Menu Langue Contrôlé */}
           {showLangSelector && <LanguageSelector 
-            value={targetLanguage}
             onChange={onLanguageChange}
             style={{ marginRight: "10px" }}
           />}

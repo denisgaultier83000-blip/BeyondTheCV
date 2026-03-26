@@ -90,6 +90,7 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
   const [diagnosticData, setDiagnosticData] = useState<any>(null);
   const [isLoadingDiagnostic, setIsLoadingDiagnostic] = useState(false);
   const [isGeneratingDashboard, setIsGeneratingDashboard] = useState(false);
+  const [completenessTaskId, setCompletenessTaskId] = useState<string | null>(null);
   
   const [premiumLoading, setPremiumLoading] = useState({
     radar: false,
@@ -376,7 +377,7 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
 
           try {
               const payload = { ...form, experiences, educations };
-              const response = await authenticatedFetch(`${API_BASE_URL}/api/generate`, {
+              const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/generate`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ 
@@ -918,31 +919,40 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
         launchBackgroundResearch();
     }
 
+    // [OPTIMISATION] Trigger background completeness analysis when leaving Step 5
+    if (currentStep === 5) {
+        const payload = formatPayload(form);
+        fetchWithRetry(`${API_BASE_URL}/api/cv/analyze-completeness`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        }).then(res => res.json()).then(data => {
+            if (data.task_id) {
+                console.log("[Completeness] Background task started from Step 5:", data.task_id);
+                setCompletenessTaskId(data.task_id);
+            }
+        }).catch(e => console.error("Failed to start background completeness analysis", e));
+    }
+
     // Before going to Clarification, check completeness at step 6 (Free Text) -> 7 (Clarification)
     if (currentStep === 6) {
         setIsAnalyzingCompleteness(true);
         try {
-            const payload = formatPayload(form); // [FIX] Utilisation du formatteur
-            // [FIX] Utilisation de fetchWithRetry ici aussi car c'est un appel lourd qui suit souvent un redémarrage
-            const response = await fetchWithRetry(`${API_BASE_URL}/api/cv/analyze-completeness`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "check", data: payload }),
-            });
-            
-            if (!response.ok) {
-                throw new Error(`Server error: ${response.status}`);
-            }
-
-            const initialRes = await response.json();
-            let finalResult = initialRes;
-
-            // [OPTIMISATION] Si le backend répond avec un task_id (mode asynchrone/BackgroundTasks)
-            // on utilise le polling pour attendre le résultat sans bloquer la connexion HTTP
-            if (initialRes.task_id) {
-                console.log("[Completeness] Async task started:", initialRes.task_id);
-                setToast({ type: "info", message: "Analyzing profile completeness..." });
-                finalResult = await pollTaskResult(initialRes.task_id);
+            let finalResult;
+            if (completenessTaskId) {
+                console.log("[Completeness] Waiting for background task started at Step 5...");
+                finalResult = await pollTaskResult(completenessTaskId);
+            } else {
+                // Fallback si la tâche n'a pas pu démarrer à l'étape 5
+                const payload = formatPayload(form);
+                const response = await fetchWithRetry(`${API_BASE_URL}/api/cv/analyze-completeness`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                });
+                if (!response.ok) throw new Error(`Server error: ${response.status}`);
+                const initialRes = await response.json();
+                finalResult = initialRes.task_id ? await pollTaskResult(initialRes.task_id) : initialRes;
             }
 
             if (finalResult.clarifications && finalResult.clarifications.length > 0) {
@@ -1031,7 +1041,7 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
     // Here we just call handleActionWrapper but we need to pass the questions.
     setIsPrinting(true);
     try {
-        const res = await authenticatedFetch(`${API_BASE_URL}/api/generate`, {
+        const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/generate`, {
             method: "POST",
             headers: { "Content-Type": "application/json" }, 
             body: JSON.stringify({ action: "Print Questionnaire", data: { ...form, questions_list: questions } }),

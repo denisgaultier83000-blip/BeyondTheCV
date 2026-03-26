@@ -60,8 +60,8 @@ async def analyze_completeness(request: Request):
         
         Return JSON with 'score', 'quality', 'missing_info', 'suggestions', 'clarifications'.
         
-        For 'clarifications', provide a list of objects: {{ 'question': '...', 'suggested_answer': '...' }}.
-        The questions should specifically target the missing pitch elements (e.g., "What is your proudest achievement?", "Why specifically this company?", "What is your unique value proposition?").
+        For 'clarifications', you MUST provide EXACTLY 3 objects: { 'question': '...', 'suggested_answer': '...' }.
+        Even if the profile seems completely perfect, you MUST ask 3 strategic questions to extract quantifiable metrics (KPIs), specific challenges overcome, or unique value propositions that will make the oral pitch memorable.
         The suggested answer should be a plausible draft based on the context, written in the first person.
         
         CONTENT:
@@ -69,8 +69,8 @@ async def analyze_completeness(request: Request):
         
         OUTPUT LANGUAGE: {target_lang}
         """
-        result_str = await ai_service.generate(prompt, provider="gemini", system_instruction=f"You are a Data Quality Analyst. Language: {target_lang}. Output STRICT JSON.")
-        return clean_ai_json_response(result_str)
+        result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a Data Quality Analyst. Language: {target_lang}. Output STRICT JSON.")
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

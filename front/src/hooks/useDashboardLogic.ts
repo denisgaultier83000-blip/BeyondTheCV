@@ -10,6 +10,7 @@ const INITIAL_DATA = {
   target_company: "",
   target_industry: "",
   target_country: "",
+  availability: "",
   remote_preference: "",
   contract_type: "",
   experiences: [],
@@ -33,10 +34,8 @@ export function useDashboardLogic() {
   // [PERSISTANCE] Chargement initial depuis localStorage
   const [currentStep, setCurrentStep] = useState(() => {
     const saved = localStorage.getItem("currentStep");
-    return saved ? parseInt(saved, 10) : 1;
+    return saved ? parseInt(saved, 10) : 0;
   });
-  
-  const [targetLanguage, setTargetLanguage] = useState('French');
   
   const [formData, setFormData] = useState<any>(() => {
     const saved = localStorage.getItem("cvData");
@@ -51,6 +50,13 @@ export function useDashboardLogic() {
   const [researchResult, setResearchResult] = useState<any>(null);
   const [salaryResult, setSalaryResult] = useState<any>(null);
   const [displaySalary, setDisplaySalary] = useState<any>(null);
+  
+  // [FIX] Rétablissement des états pour les modules Premium
+  const [careerGpsResult, setCareerGpsResult] = useState<any>(null);
+  const [careerRadarResult, setCareerRadarResult] = useState<any>(null);
+  const [jobDecoderResult, setJobDecoderResult] = useState<any>(null);
+  const [pitchResult, setPitchResult] = useState<any>(null);
+  const [questionsResult, setQuestionsResult] = useState<any>(null);
   
   const [globalStatus, setGlobalStatus] = useState<"IDLE" | "STARTING" | "PROCESSING" | "COMPLETED" | "FAILED">("IDLE");
   const [error, setError] = useState<string | null>(null);
@@ -132,7 +138,7 @@ export function useDashboardLogic() {
   // [RESET] Pour recommencer à zéro
   const resetDashboard = () => {
     setFormData(INITIAL_DATA);
-    setCurrentStep(1);
+    setCurrentStep(0);
     setTaskIds(null);
     setCvResult(null);
     setResearchResult(null);
@@ -146,7 +152,7 @@ export function useDashboardLogic() {
 
   // --- ORCHESTRATION DES ÉTAPES ---
   const handleNextStep = async () => {
-    const payload = { ...formData, target_language: targetLanguage };
+    const payload = { ...formData, target_language: formData.target_language || 'fr' };
     setError(null); // Reset error on retry
     
     try {
@@ -155,32 +161,67 @@ export function useDashboardLogic() {
         // On ne lance que si une entreprise ou un secteur est défini
         if (formData.target_company || formData.target_industry) {
         console.log("🚀 Triggering Page 2 Background Tasks (Market/Company)...");
-        const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/start-analysis`, {
+        const res = await authenticatedFetch(`${API_BASE_URL}/api/research/start`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...payload, is_partial_start: true })
+          body: JSON.stringify({ 
+            target_company: payload.target_company,
+            target_industry: payload.target_industry,
+            candidate_data: payload 
+          })
         });
         if (!res.ok) throw new Error(`Erreur API (Marché): ${res.statusText}`);
         const data = await res.json();
-        setTaskIds(prev => ({ ...prev, ...data.tasks })); // Merge task IDs
+        setTaskIds(prev => ({ ...prev, market_research: data.tasks.research, salary_estimation: data.tasks.salary }));
         }
         setCurrentStep(3);
       } 
-      else if (currentStep === 6) {
-        // PAGE 6 -> 7 : Sync Call for Clarifications
-        setGlobalStatus("PROCESSING"); // Petit feedback visuel
-        console.log("⏳ Fetching Clarification Questions (Sync)..."); 
-        const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/generate-clarifications`, {
+      else if (currentStep === 5) {
+        // Lancement anticipé (asynchrone) de l'analyse de complétude
+        console.log("🚀 Triggering Page 5 Background Task (Completeness)...");
+        authenticatedFetch(`${API_BASE_URL}/api/cv/analyze-completeness`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
-        });
-        if (!res.ok) throw new Error(`Erreur API (Clarifications): ${res.statusText}`);
-        const questions = await res.json();
+        }).then(res => res.json()).then(data => {
+            if (data.task_id) setTaskIds(prev => ({ ...prev, completeness: data.task_id }));
+        }).catch(err => console.error("Completeness trigger error:", err));
+        
+        setCurrentStep(6);
+      }
+      else if (currentStep === 6) {
+        // PAGE 6 -> 7 : Sync Call for Clarifications
+        setGlobalStatus("PROCESSING"); // Petit feedback visuel
+        console.log("⏳ Fetching Clarification Questions..."); 
+        let responseData;
+        
+        const fetchResult = async (tid: string) => {
+            while (true) {
+                const res = await fetch(`${API_BASE_URL}/api/cv/analysis-status/${tid}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.status === "SUCCESS" || data.status === "COMPLETED") return data.result;
+                    if (data.status === "FAILED") throw new Error("Task failed");
+                }
+                await new Promise(r => setTimeout(r, 1500));
+            }
+        };
+
+        if (taskIds?.completeness) {
+            responseData = await fetchResult(taskIds.completeness);
+        } else {
+            const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/analyze-completeness`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            const initData = await res.json();
+            responseData = initData.task_id ? await fetchResult(initData.task_id) : initData;
+        }
         
         // Mise à jour du formulaire avec les questions reçues
-        if (questions.questions && Array.isArray(questions.questions)) {
-            const clarifications = questions.questions.map((q: string, i: number) => ({ id: i, question: q, answer: "" }));
+        if (responseData.clarifications && Array.isArray(responseData.clarifications)) {
+            const clarifications = responseData.clarifications.map((c: any, i: number) => ({ id: i, question: c.question || c, answer: "" }));
+            updateFormData("clarifications", clarifications);
+        } else if (responseData.questions && Array.isArray(responseData.questions)) {
+            // Fallback de rétrocompatibilité
+            const clarifications = responseData.questions.map((q: string, i: number) => ({ id: i, question: q, answer: "" }));
             updateFormData("clarifications", clarifications);
         }
         setGlobalStatus("IDLE");
@@ -189,10 +230,18 @@ export function useDashboardLogic() {
       else if (currentStep === 7) {
          // PAGE 7 -> DASHBOARD : Trigger Full Analysis
          setGlobalStatus("STARTING");
+         
+         // [FIX] On injecte les résultats de recherche calculés en arrière-plan
+         // pour que le backend comprenne qu'il ne doit pas relancer l'agent "Marché"
+         const payloadWithCache = { ...payload };
+         if (researchResult) {
+             payloadWithCache.research_data = researchResult;
+         }
+
          const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/start-analysis`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...payload, is_partial_start: false })
+          body: JSON.stringify({ ...payloadWithCache, is_partial_start: false })
         });
         if (!res.ok) throw new Error(`Erreur API (Analyse): ${res.statusText}`);
         const data = await res.json();
@@ -214,14 +263,16 @@ export function useDashboardLogic() {
   // --- POLLING GÉNÉRIQUE ---
   const useTaskPolling = (taskId: string | undefined, onComplete: (data: any) => void) => {
     useEffect(() => {
-      if (!taskId || globalStatus !== "PROCESSING") return;
+      // [FIX] On retire 'globalStatus !== "PROCESSING"' pour permettre le background polling dès la page 3
+      if (!taskId) return;
       
       const interval = setInterval(async () => {
         try {
           const res = await fetch(`${API_BASE_URL}/api/cv/analysis-status/${taskId}`);
           if (res.ok) {
             const data = await res.json();
-            if (data.status === "COMPLETED") {
+            // [FIX] Support du nouveau statut backend (SUCCESS) et de l'ancien (COMPLETED)
+            if (data.status === "COMPLETED" || data.status === "SUCCESS") {
               onComplete(data.result);
               clearInterval(interval);
             } else if (data.status === "FAILED") {
@@ -231,13 +282,20 @@ export function useDashboardLogic() {
         } catch (e) { console.error("Polling error", e); }
       }, 2000);
       return () => clearInterval(interval);
-    }, [taskId, globalStatus]);
+    }, [taskId]);
   };
 
   // Activation des pollings parallèles
   useTaskPolling(taskIds?.cv_analysis, setCvResult);
   useTaskPolling(taskIds?.market_research, setResearchResult);
   useTaskPolling(taskIds?.salary_estimation, setSalaryResult);
+  
+  // [FIX] Rétablissement de l'écoute (polling) des tâches Premium
+  useTaskPolling(taskIds?.career_gps, setCareerGpsResult);
+  useTaskPolling(taskIds?.career_radar, setCareerRadarResult);
+  useTaskPolling(taskIds?.job_decoder, setJobDecoderResult);
+  useTaskPolling(taskIds?.pitch, setPitchResult);
+  useTaskPolling(taskIds?.questions, setQuestionsResult);
 
   // Effect pour la conversion de devise
   useEffect(() => {
@@ -269,11 +327,36 @@ export function useDashboardLogic() {
     }
   }, [cvResult, researchResult, globalStatus]);
 
+  // --- DÉCLENCHEMENT MANUEL ---
+  const triggerResearch = async () => {
+    setGlobalStatus("PROCESSING");
+    setResearchResult(null); // On vide l'ancien résultat pour forcer le chargement
+    try {
+      const payload = { ...formData, target_language: formData.target_language || 'fr' };
+      const res = await authenticatedFetch(`${API_BASE_URL}/api/research/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          target_company: payload.target_company,
+          target_industry: payload.target_industry,
+          candidate_data: payload 
+        })
+      });
+      if (!res.ok) throw new Error("Failed to start research");
+      const data = await res.json();
+      setTaskIds(prev => ({ ...prev, market_research: data.tasks.research, salary_estimation: data.tasks.salary }));
+    } catch (e) {
+      console.error(e);
+      setGlobalStatus("FAILED");
+    }
+  };
+
   return {
     isAuthenticated, setIsAuthenticated,
     currentStep, setCurrentStep,
-    targetLanguage, setTargetLanguage,
     cvResult, researchResult, salaryResult, displaySalary,
+    careerGpsResult, careerRadarResult, jobDecoderResult,
+    pitchResult, questionsResult,
     globalStatus, error,
     handleNextStep,
     cvData: formData,
@@ -284,6 +367,7 @@ export function useDashboardLogic() {
     activeTab, setActiveTab,
     pilotData, setPilotData,
     toasts, setToasts,
-    fetchPilotData
+    fetchPilotData,
+    triggerResearch
   };
 }

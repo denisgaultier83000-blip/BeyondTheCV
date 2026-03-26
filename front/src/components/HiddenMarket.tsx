@@ -1,6 +1,6 @@
 import React from 'react';
-import { Network, Users, MessageCircle, Lightbulb } from 'lucide-react';
-import { DashboardCard } from './DashboardCard';
+import { Network, Users, MessageCircle, Lightbulb, AlertCircle, Compass } from 'lucide-react';
+import { FeedbackWidget } from './FeedbackWidget';
 
 interface HiddenMarketData {
   target_profiles: { role: string; reason: string }[];
@@ -17,40 +17,73 @@ interface HiddenMarketProps {
 }
 
 export function HiddenMarket({ data, loading, error }: HiddenMarketProps) {
-  const hidden_market = data?.hidden_market;
+  if (loading) {
+    return (
+      <div className="result-card" style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '0 0 1.5rem 0', color: 'var(--primary)' }}>
+          <Network size={24} /> Marché Caché & Réseau
+        </h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+             <div className="skeleton-pulse" style={{ width: '100%', height: '120px', borderRadius: '8px' }}></div>
+             <div className="skeleton-pulse" style={{ width: '100%', height: '120px', borderRadius: '8px' }}></div>
+          </div>
+          <div className="skeleton-pulse" style={{ width: '100%', height: '260px', borderRadius: '8px' }}></div>
+        </div>
+      </div>
+    );
+  }
 
-  const outreach = hidden_market?.outreach_message || { subject: "", body: "" };
-  const tips = hidden_market?.networking_tips || [];
+  if (error) {
+    return (
+      <div className="error-box" style={{ padding: '1.5rem', borderRadius: '1rem' }}>
+        <AlertCircle size={24} />
+        <span>Une erreur est survenue lors de l'analyse du marché caché et réseau. Veuillez réessayer.</span>
+      </div>
+    );
+  }
+
+  // Résolution robuste (Support de l'encapsulation IA)
+  const hidden_market = data?.hidden_market || data;
+  if (!hidden_market || Object.keys(hidden_market).length === 0) return null;
+
+  const outreach = hidden_market.outreach_message || { subject: "", body: "" };
+  const tips = hidden_market.networking_tips || [];
+  const strategy = hidden_market.connection_strategy || "";
 
   return (
-    <DashboardCard
-      title="Marché Caché & Réseau"
-      icon={<Network size={24} />}
-      loading={loading}
-      loadingText="Identification des cibles réseau..."
-      error={error || (!loading && !hidden_market)}
-      errorText="Analyse réseau échouée."
-      featureId="hidden_market"
-    >
-      {hidden_market && (
-        <>
-      <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-        Stratégie pour accéder aux 80% d'offres non publiées.
+    <div className="result-card" style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
+      <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '0 0 1.5rem 0', color: 'var(--primary)' }}>
+        <Network size={24} /> Marché Caché & Réseau
+      </h3>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
+        Stratégie pour accéder aux offres non publiées (qui représentent jusqu'à 80% du marché).
       </p>
 
-      <div style={{ display: 'grid', gap: '1.5rem' }}>
-        {/* Cibles */}
-        {/* [FIX] Passage en grid responsive pour éviter l'écrasement sur mobile */}
-        <div className="grid-2" style={{ gap: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+        
+        {/* Colonne Gauche : Cibles */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          
+          {/* Stratégie Globale */}
+          {strategy && (
+            <div style={{ background: '#f0fdf4', padding: '1.5rem', borderRadius: '1rem', border: '1px solid #bbf7d0' }}>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#166534', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Compass size={18} /> Approche Recommandée
+              </h4>
+              <p style={{ margin: 0, color: '#14532d', fontSize: '0.95rem', lineHeight: '1.6' }}>{strategy}</p>
+            </div>
+          )}
+
           <div>
-            <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Users size={16} /> Qui contacter ?
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Users size={18} color="var(--primary)" /> Profils à cibler en priorité
             </h4>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {(hidden_market.target_profiles || []).map((p: any, i: number) => (
-                <div key={i} style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.85rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
-                  <span style={{ fontWeight: 600, color: 'var(--primary)' }}>{typeof p === 'string' ? p : p.role}</span>
-                  {typeof p !== 'string' && p.reason && <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--primary)', opacity: 0.8 }}>{p.reason}</span>}
+                <div key={i} style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontWeight: 600, color: 'var(--primary)', marginBottom: '0.25rem' }}>{typeof p === 'string' ? p : p.role}</div>
+                  {typeof p !== 'string' && p.reason && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Pourquoi : {p.reason}</div>}
                 </div>
               ))}
             </div>
@@ -58,16 +91,17 @@ export function HiddenMarket({ data, loading, error }: HiddenMarketProps) {
           
           {(hidden_market.suggested_companies || []).length > 0 && (
             <div>
-               <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.5rem' }}>Entreprises Cibles</h4>
+               <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.75rem' }}>Entreprises Suggérées</h4>
                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                  {(hidden_market.suggested_companies || []).map((company: any, i: number) => (
                    <span key={i} style={{ 
                      background: 'var(--bg-secondary)', 
-                     padding: '0.25rem 0.75rem', 
-                     borderRadius: '1rem', 
+                     padding: '0.5rem 1rem', 
+                     borderRadius: '2rem', 
                      fontSize: '0.85rem', 
                      color: 'var(--text-main)',
-                     border: '1px solid var(--border-color)'
+                     border: '1px solid var(--border-color)',
+                     fontWeight: 500
                    }}>
                      {typeof company === 'string' ? company : (company.name || JSON.stringify(company))}
                    </span>
@@ -77,29 +111,38 @@ export function HiddenMarket({ data, loading, error }: HiddenMarketProps) {
           )}
         </div>
 
-        {/* Message */}
-        <div style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
-          <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <MessageCircle size={16} /> Message d'approche suggéré
-          </h4>
-          <div style={{ background: 'var(--bg-card)', padding: '1rem', borderRadius: '0.5rem', border: '1px dashed var(--border-color)', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-            <div style={{ fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-main)' }}>Objet: {outreach.subject || "Sujet"}</div>
-            <div style={{ whiteSpace: 'pre-wrap' }}>{outreach.body || "Contenu non disponible."}</div>
-          </div>
-        </div>
-
-        {/* Tips */}
-        {tips.length > 0 && (
-          <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--success)', background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.2)', padding: '0.75rem', borderRadius: '0.5rem' }}>
-            <Lightbulb size={16} style={{ flexShrink: 0 }} />
-            <div>
-              {tips.map((tip: any, i: number) => <div key={i}>• {typeof tip === 'string' ? tip : (tip.text || tip.description || JSON.stringify(tip))}</div>)}
+        {/* Colonne Droite : Message & Tips */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
+            <h4 style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <MessageCircle size={18} color="var(--primary)" /> Message d'approche (Modèle)
+            </h4>
+            <div style={{ background: 'var(--bg-card)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px dashed var(--border-color)', fontSize: '0.95rem', color: 'var(--text-muted)' }}>
+              <div style={{ fontWeight: 600, marginBottom: '1rem', color: 'var(--text-main)', paddingBottom: '0.75rem', borderBottom: '1px solid var(--border-color)' }}>
+                <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>Objet :</span> {outreach.subject || "Prise de contact"}
+              </div>
+              <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>{outreach.body || "Contenu non disponible."}</div>
             </div>
           </div>
-        )}
+
+          {tips.length > 0 && (
+            <div style={{ background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.2)', padding: '1.5rem', borderRadius: '1rem' }}>
+              <h4 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#1d4ed8', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Lightbulb size={18} /> Conseils de Networking
+              </h4>
+              <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#1e40af', fontSize: '0.95rem', lineHeight: '1.6' }}>
+                {tips.map((tip: any, i: number) => (
+                  <li key={i} style={{ marginBottom: '0.5rem' }}>
+                    {typeof tip === 'string' ? tip : (tip.text || tip.description || JSON.stringify(tip))}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
-        </>
-      )}
-    </DashboardCard>
+
+      <FeedbackWidget feature="hidden_market" question="Ces suggestions de réseau vous semblent-elles actionnables ?" />
+    </div>
   );
 }

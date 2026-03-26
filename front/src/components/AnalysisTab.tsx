@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Building, Globe, RefreshCw, Shield, User, Newspaper, LineChart, Wallet, Star } from 'lucide-react';
 import { FeedbackWidget } from './FeedbackWidget';
 
-export const AnalysisTab = ({ researchResult, salaryResult }: { researchResult: any, salaryResult: any }) => {
+export const AnalysisTab = ({ researchResult, salaryResult, onRefresh, isRefreshing }: { researchResult: any, salaryResult: any, onRefresh?: () => void, isRefreshing?: boolean }) => {
   const [subTab, setSubTab] = useState<'company' | 'market'>('company');
 
   return (
@@ -16,8 +16,14 @@ export const AnalysisTab = ({ researchResult, salaryResult }: { researchResult: 
             <Globe size={16} /> Rapport Marché
           </button>
         </div>
-        <button className="btn-action btn-secondary-action" style={{ maxWidth: '250px', padding: '0.5rem 1rem' }}>
-          <RefreshCw size={16} /> Mettre à jour les données
+        <button 
+          className="btn-action btn-secondary-action" 
+          style={{ maxWidth: '250px', padding: '0.5rem 1rem' }}
+          onClick={onRefresh}
+          disabled={isRefreshing}
+        >
+          <RefreshCw size={16} className={isRefreshing ? "spin" : ""} /> 
+          {isRefreshing ? "Actualisation..." : "Mettre à jour les données"}
         </button>
       </div>
       <div>

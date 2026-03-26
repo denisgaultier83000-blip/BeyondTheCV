@@ -117,7 +117,7 @@ async def _run_completeness_logic(task_id: str, payload: dict):
         data_to_analyze = payload.get("data", payload)
         target_lang = normalize_language(data_to_analyze.get('target_language', 'French'))
         text_content = json.dumps(data_to_analyze, indent=2, ensure_ascii=False, default=str) if isinstance(data_to_analyze, dict) else str(data_to_analyze)
-        prompt = f"Analyze completeness. Return JSON with 'score', 'quality', 'missing_info'ai e bes, 'suggestions', 'clarifications'.\n\nCONTENT:\n{text_content[:15000]}"
+        prompt = f"Analyze completeness. Return JSON with 'score', 'quality', 'missing_info', 'suggestions', 'clarifications'.\n\nCONTENT:\n{text_content[:15000]}"
         result = await ai_service.generate_valid_json(prompt, provider="gemini", system_instruction=f"You are a Data Quality Analyst. Output STRICT JSON. Language: {target_lang}.")
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
@@ -175,31 +175,22 @@ async def _run_pitch_logic(task_id: str, candidate_data: dict):
         CONTEXTE CIBLE :
         Poste : {target_job}
         Entreprise : {target_company}
-        Langue du Pitch : {target_lang}
         {research_context}
         
-        CLARIFICATIONS APPORTÉES PAR LE CANDIDAT (IMPORTANT - À UTILISER) :
+        CLARIFICATIONS APPORTÉES PAR LE CANDIDAT :
         {clarifications_str}
         
         DONNÉES CANDIDAT :
         {context_str}
         
-        INSTRUCTIONS SUPPLÉMENTAIRES :
-        1. Utilise PRIORITAIREMENT les réponses aux clarifications pour construire le pitch.
-        2. Si une partie (accroche, preuve, valeur, projection) manque d'informations concrètes pour être rédigée professionnellement :
-           - NE PAS inventer de contenu générique.
-           - À la place du texte du pitch, fournis un CONSEIL précis entre crochets pour aider le candidat à remplir cette partie.
-           - Exemple : "[CONSEIL] Il manque une réussite chiffrée pour prouver votre impact. Mentionnez un projet où vous avez..."
-        3. ⚠️ IMPORTANT : Rédige le texte en {target_lang}, mais CONSERVE STRICTEMENT les clés du JSON d'origine (accroche, preuve, valeur, projection, analysis). Ne les traduis pas.
-        3. ⚠️ IMPORTANT : Rédige le texte en {target_lang}, mais CONSERVE STRICTEMENT les clés du JSON d'origine (accroche, preuve, valeur, projection, analysis). Ne les traduis pas.
-        
-        Génère le pitch en {target_lang}.
+        OUTPUT LANGUAGE: {target_lang}
         """
         
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction=f"You are a senior recruiter. Output STRICT JSON in {target_lang}.")
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
-        fallback = {"accroche": "Erreur", "preuve": "",
+        fallback = {"accroche": "Erreur", "preuve": "", "valeur": "", "projection": ""}
+        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", fallback)
 
 async def process_questions_in_background(task_id: str, candidate_data: dict):
     print(f"[Task {task_id}] ❓ Starting Questions (Async)...")
@@ -217,10 +208,10 @@ async def _run_questions_logic(task_id: str, candidate_data: dict):
         hobbies = candidate_data.get('interests', [])
         flaws = candidate_data.get('flaws', [])
         target_job = candidate_data.get('target_job', 'Poste visé')
+        prompt_template = load_prompt(get_prompt_path("interview_questions.md"))
         
         prompt = f"""
-        Génère 10 questions d'entretien pour ce candidat.
-        Langue de sortie : {target_lang}
+        {prompt_template}
         
         CONTEXTE CANDIDAT :
         Adresse Complète : {address}, {city}
@@ -228,31 +219,10 @@ async def _run_questions_logic(task_id: str, candidate_data: dict):
         Défauts identifiés par le candidat : {flaws}
         Poste visé : {target_job}
         
-        INSTRUCTIONS SPÉCIFIQUES :
-        1. ANALYSE L'ADRESSE : Si la rue ou la ville porte le nom d'une personne célèbre (ex: Victor Hugo, Pasteur), pose une question de culture générale sur cette personne pour tester la curiosité. Si les hobbies sont fournis, base d'autres questions dessus. Si les hobbies sont vides, pose plutôt une question ouverte sur ses centres d'intérêt extra-professionnels.
-        2. Inclus des questions classiques de recruteur (trous dans le CV, qualités/défauts).
-        3. Pour CHAQUE question, fournis une 'suggested_answer' (une proposition de réponse complète et bien formulée à la première personne, basée sur les données du candidat) ET 'advice' (ce que le recruteur cherche à évaluer avec cette question).
-           ⚠️ POSTURE DE COACH (ANTI-AUTO-SABOTAGE) : Si les données du candidat (notamment les 'flaws') contiennent des "red flags" (ex: "fainéant", "menteur", agressivité), utilise le champ 'advice' pour le recadrer fermement mais avec bienveillance. Explique-lui pourquoi il ne faut jamais formuler les choses ainsi en entretien, et utilise 'suggested_answer' pour lui proposer une reformulation positive et professionnelle (ex: transformer "fainéant" en "volonté d'automatiser pour éviter les tâches répétitives").
-        4. LOGIQUE DÉFAUTS : Inclus SYSTEMATIQUEMENT la question : "Quels sont vos trois principaux défauts ?".
-           Pour la 'suggested_answer' de cette question :
-           - Tu DOIS sélectionner les 3 défauts les MOINS graves pour le poste de "{target_job}" PARMI la liste fournie : {flaws}.
-           - Si la liste est vide, invente 3 "faux défauts" classiques (ex: Exigeant, Impatient).
-           - Formule la réponse à la première personne, en montrant une conscience de soi et des efforts d'amélioration (ex: "Je suis parfois [défaut], mais je travaille dessus en...").
-        
-        FORMAT JSON STRICT ATTENDU :
-        {{
-            "questions": [
-                {{
-                    "category": "Curiosité" | "Parcours" | "Personnalité",
-                    "question": "...",
-                    "suggested_answer": "...",
-                    "advice": "..."
-                }}
-            ]
-        }}
-        
         DONNÉES :
         {json.dumps(candidate_data, indent=2, ensure_ascii=False, default=str)}
+        
+        OUTPUT LANGUAGE: {target_lang}
         """
         
         result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are an expert interviewer. Output ONLY JSON. Language: {target_lang}.")
@@ -292,21 +262,16 @@ async def _run_gap_analysis_logic(task_id: str, data: dict):
         # Retrait d'autres champs lourds inutiles pour l'analyse
         if 'pitch_data' in clean_data: del clean_data['pitch_data']
         
-        # [FIX] Prompt durci pour garantir les clés JSON attendues par le Frontend
+        prompt_template = load_prompt(get_prompt_path("gap_analysis.md"))
         prompt = f"""
-        Réalise une analyse d'écart (Gap Analysis) entre le candidat et le poste visé.
+        {prompt_template}
+        
         {context_job}
         
         PROFIL CANDIDAT :
         {json.dumps(clean_data, indent=2, ensure_ascii=False, default=str)}
         
-        FORMAT JSON STRICT ATTENDU (en {target_lang}) :
-        {{
-            "key_needs_from_job": ["Compétence clé 1", "Compétence clé 2", ...],
-            "missing_gaps": ["Manque 1", "Manque 2", ...],
-            "recommended_adjustments": ["Action concrète 1", "Action concrète 2", ...],
-            "match_score": 0-100
-        }}
+        OUTPUT LANGUAGE: {target_lang}
         """
         
         result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a Career Coach. Output STRICT JSON in {target_lang}.")
@@ -344,21 +309,16 @@ async def run_gap_analysis_and_get_result(data: dict):
         
         print(f"[Gap Analysis] Running for job: {target_job}...", flush=True)
 
-        # [FIX] Prompt durci pour garantir les clés JSON attendues par le Frontend
+        prompt_template = load_prompt(get_prompt_path("gap_analysis.md"))
         prompt = f"""
-        Réalise une analyse d'écart (Gap Analysis) entre le candidat et le poste visé.
+        {prompt_template}
+        
         {context_job}
         
         PROFIL CANDIDAT :
         {json.dumps(clean_data, indent=2, ensure_ascii=False, default=str)}
         
-        FORMAT JSON STRICT ATTENDU (⚠️ Rédige le texte en {target_lang}, mais CONSERVE EXACTEMENT LES CLES EN ANGLAIS) :
-        {{
-            "key_needs_from_job": ["Compétence clé 1", "Compétence clé 2", ...],
-            "missing_gaps": ["Manque 1", "Manque 2", ...],
-            "recommended_adjustments": ["Action concrète 1", "Action concrète 2", ...],
-            "match_score": 0-100
-        }}
+        OUTPUT LANGUAGE: {target_lang}
         """
         
         return await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a Career Coach. Output STRICT JSON in {target_lang}.")
@@ -743,7 +703,18 @@ async def process_executive_summary_in_background(task_ids: dict, data: dict):
         OUTPUT STRICT JSON (Conserve exactement ces clés en anglais):
         {{
             "one_liner_result": {{ "one_liner": "..." }},
-            "career_radar_result": {{ "analysis": "...", "opportunities": ["..."] }},
+            "career_radar_result": {{ 
+                "trajectories": [
+                    {{
+                        "title": "Nom du poste alternatif",
+                        "match_percent": 85,
+                        "salary_potential": "ex: 55k€ - 65k€",
+                        "time_to_reach": "ex: Immédiat / 6 mois",
+                        "rationale": "Pourquoi ce pivot a du sens",
+                        "gap": "Ce qu'il manque pour y arriver"
+                    }}
+                ]
+            }},
             "recruiter_view_result": {{
                 "recruiter_persona": {{
                     "first_impression": "...", "red_flags": ["..."], "reassurance_points": ["..."],
@@ -805,14 +776,25 @@ async def process_market_strategy_in_background(task_ids: dict, data: dict):
         
         OUTPUT STRICT JSON (Conserve exactement ces clés en anglais):
         {{
-            "job_decoder_result": {{ "decoded_analysis": "...", "hidden_requirements": ["..."] }},
+            "job_decoder_result": {{
+                "reality_check": [ {{ "jargon": "Phrase RH typique", "translation": "Ce que ça veut dire en vrai" }} ],
+                "real_expectations": ["Attente concrète 1", "Attente concrète 2"],
+                "red_flags": ["Signal d'alerte 1"],
+                "culture_fit": "Analyse de la culture d'entreprise déduite"
+            }},
             "risk_analysis_result": {{
                 "overall_risk_level": "Low" | "Medium" | "High",
                 "warnings": ["..."],
                 "positive_signals": ["..."],
                 "advice": "..."
             }},
-            "hidden_market_result": {{ "networking_strategy": "...", "target_profiles": ["..."] }}
+            "hidden_market_result": {{
+                "target_profiles": [ {{ "role": "Titre cible", "reason": "Pourquoi le contacter" }} ],
+                "suggested_companies": ["Nom Entr 1", "Nom Entr 2"],
+                "connection_strategy": "Stratégie globale...",
+                "outreach_message": {{ "subject": "Objet du message", "body": "Corps du message..." }},
+                "networking_tips": ["Astuce 1", "Astuce 2"]
+            }}
         }}
         LANGUAGE: {target_lang}
         """

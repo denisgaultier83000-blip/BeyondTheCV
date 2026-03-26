@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import ScoreGauge from "./ScoreGauge";
 import { useTranslation } from "react-i18next";
 import { 
-  Camera, Loader2, Sparkles, User, Briefcase, GraduationCap, Circle, CheckCircle2, Plus, Trash2, Target, Gem, RefreshCw, HelpCircle
+  Camera, Loader2, Sparkles, User, Briefcase, GraduationCap, Circle, CheckCircle2, Plus, Trash2, Target, Gem, RefreshCw, HelpCircle, Linkedin, UploadCloud, FileText
 } from 'lucide-react';
 import RadarChart from './RadarChart'; // Import the new component
 import { API_BASE_URL } from "../config";
@@ -44,14 +44,46 @@ const COUNTRIES = [
   { code: "AE", name: "United Arab Emirates" }
 ];
 
-export const StepImport = ({ lang = 'en' }: { lang?: string }) => {
+export const StepImport = ({ onUpload, loading, lang = 'en' }: { onUpload?: (file: File) => void, loading?: boolean, lang?: string }) => {
   const { t } = useTranslation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0 && onUpload) {
+      onUpload(e.target.files[0]);
+    }
+  };
+
   return (
     <div className="step-content">
-      <h2>{t('import_title')}</h2>
-      <div style={{ border: "2px dashed var(--border-color)", padding: 40, textAlign: "center", borderRadius: 12, margin: "20px 0" }}>
-        <p>{t('import_desc')}</p>
-        <button className="btn-secondary">{t('browse')}</button>
+      <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+        <Linkedin size={48} color="#0a66c2" style={{ marginBottom: "1rem" }} />
+        <h2>Importez votre profil LinkedIn</h2>
+        <p style={{ color: "var(--text-muted)", fontSize: "1rem", maxWidth: "600px", margin: "0 auto" }}>
+          Pour garantir une analyse parfaite de votre profil, nous utilisons exclusivement le format standard de LinkedIn. Téléchargez votre profil en 3 clics.
+        </p>
+      </div>
+
+      <div style={{ display: "flex", gap: "1.5rem", justifyContent: "center", marginBottom: "2rem" }}>
+        <div style={{ background: "var(--bg-secondary)", padding: "1rem 1.5rem", borderRadius: "0.5rem", flex: 1, maxWidth: "250px", textAlign: "center" }}>
+          <div style={{ fontWeight: "bold", color: "var(--primary)", marginBottom: "0.5rem" }}>Étape 1</div>
+          <div style={{ fontSize: "0.9rem", color: "var(--text-main)" }}>Allez sur votre profil LinkedIn.</div>
+        </div>
+        <div style={{ background: "var(--bg-secondary)", padding: "1rem 1.5rem", borderRadius: "0.5rem", flex: 1, maxWidth: "250px", textAlign: "center" }}>
+          <div style={{ fontWeight: "bold", color: "var(--primary)", marginBottom: "0.5rem" }}>Étape 2</div>
+          <div style={{ fontSize: "0.9rem", color: "var(--text-main)" }}>Cliquez sur le bouton <b>"Plus"</b>.</div>
+        </div>
+        <div style={{ background: "var(--bg-secondary)", padding: "1rem 1.5rem", borderRadius: "0.5rem", flex: 1, maxWidth: "250px", textAlign: "center" }}>
+          <div style={{ fontWeight: "bold", color: "var(--primary)", marginBottom: "0.5rem" }}>Étape 3</div>
+          <div style={{ fontSize: "0.9rem", color: "var(--text-main)" }}>Choisissez <b>"Enregistrer au format PDF"</b>.</div>
+        </div>
+      </div>
+
+      <div onClick={() => !loading && fileInputRef.current?.click()} style={{ border: "2px dashed #0a66c2", background: "rgba(10, 102, 194, 0.05)", padding: "3rem", textAlign: "center", borderRadius: "1rem", cursor: loading ? "not-allowed" : "pointer", transition: "all 0.2s" }}>
+        <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf" style={{ display: "none" }} />
+        {loading ? <Loader2 size={32} className="spin" color="#0a66c2" /> : <UploadCloud size={32} color="#0a66c2" />}
+        <h3 style={{ marginTop: "1rem", color: "#0a66c2" }}>{loading ? "Analyse en cours..." : "Cliquez ici pour charger votre PDF LinkedIn"}</h3>
+        <p style={{ color: "var(--text-muted)", margin: 0, fontSize: "0.9rem" }}>Format accepté : .pdf uniquement</p>
       </div>
     </div>
   );
@@ -134,7 +166,13 @@ export const StepTarget = ({ data, onChange, errors, loading, lang = 'en' }: Ste
     <div className="row">
       <div className="col form-group">
         <label>{t('target_role')}</label>
-        <input disabled={loading} value={data.target_role_primary} onChange={e => onChange("target_role_primary", e.target.value)} placeholder={t('placeholder_target_role')} style={{ width: "100%", borderColor: errors?.target_role_primary ? "#ef4444" : undefined, opacity: loading ? 0.6 : 1 }} />
+        <input 
+            disabled={loading} 
+            value={data.target_job || data.target_role_primary || ""} 
+            onChange={e => { onChange("target_job", e.target.value); onChange("target_role_primary", e.target.value); }} 
+            placeholder={t('placeholder_target_role')} 
+            style={{ width: "100%", borderColor: errors?.target_job ? "#ef4444" : undefined, opacity: loading ? 0.6 : 1 }} 
+        />
       </div>
       <div className="col form-group">
         <label>{t('contract_type')}</label>
@@ -215,13 +253,31 @@ export const StepTarget = ({ data, onChange, errors, loading, lang = 'en' }: Ste
     </div>
     
     <div className="form-group" style={{ marginTop: 15 }}>
-      <label>{t('availability_label')}</label>
-      <select disabled={loading} value={data.availability || ""} onChange={e => onChange("availability", e.target.value)} style={{ width: "100%", opacity: loading ? 0.6 : 1 }}>
-        <option value="">{t('select')}</option>
-        <option value="immediate">{t('availability_immediate')}</option>
-        <option value="1_month">{t('availability_1_month')}</option>
-        <option value="3_months">{t('availability_3_months')}</option>
+      <label>{t('availability_label', 'Disponibilité')}</label>
+      <select 
+        disabled={loading} 
+        value={['immediate', '1_month', '3_months'].includes(data.availability) ? data.availability : (data.availability ? 'Autre' : '')} 
+        onChange={(e) => onChange("availability", e.target.value)} 
+        style={{ width: "100%", opacity: loading ? 0.6 : 1 }}
+      >
+        <option value="">{t('select', 'Sélectionnez...')}</option>
+        <option value="immediate">{t('availability_immediate', 'Immédiate')}</option>
+        <option value="1_month">{t('availability_1_month', '1 mois (Préavis)')}</option>
+        <option value="3_months">{t('availability_3_months', '3 mois (Préavis)')}</option>
+        <option value="Autre">{t('availability_other', 'Autre (Préciser)...')}</option>
       </select>
+
+      {(!['immediate', '1_month', '3_months', ''].includes(data.availability || '') || data.availability === "Autre") && (
+        <input 
+          type="text" 
+          placeholder={t('availability_custom_placeholder', 'Précisez (ex: Dans 5 mois, Mi-Septembre)...')} 
+          value={data.availability === "Autre" ? "" : data.availability} 
+          onChange={(e) => onChange("availability", e.target.value)} 
+          className="form-control"
+          style={{ width: "100%", marginTop: '0.5rem' }}
+          autoFocus
+        />
+      )}
     </div>
   </div>
   );
@@ -264,9 +320,28 @@ export const StepExperience = ({ list, onAdd, onRemove, onUpdate, lang = 'en', o
         <div className="form-group">
           <input placeholder={t('role')} value={exp.role} onChange={e => onUpdate(exp.id, "role", e.target.value)} style={{ marginBottom: 8, width: "100%" }} />
           <input placeholder={t('company')} value={exp.company} onChange={e => onUpdate(exp.id, "company", e.target.value)} style={{ marginBottom: 8, width: "100%" }} />
-          <div style={{ display: "flex", gap: "10px" }}>
-            <input placeholder={t('start_date')} value={exp.start_date} onChange={e => onUpdate(exp.id, "start_date", e.target.value)} style={{ flex: 1 }} />
-            <input placeholder={t('end_date')} value={exp.end_date} onChange={e => onUpdate(exp.id, "end_date", e.target.value)} style={{ flex: 1 }} />
+          <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
+            <div style={{ flex: 1 }}>
+              <input placeholder={t('start_date')} value={exp.start_date || ""} onChange={e => onUpdate(exp.id, "start_date", e.target.value)} style={{ width: "100%" }} />
+            </div>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "5px" }}>
+              <input 
+                placeholder={t('end_date')} 
+                value={exp.end_date || ""} 
+                onChange={e => onUpdate(exp.id, "end_date", e.target.value)} 
+                disabled={exp.end_date === "Aujourd'hui"}
+                style={{ width: "100%", opacity: exp.end_date === "Aujourd'hui" ? 0.6 : 1 }} 
+              />
+              <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.8rem", color: "var(--text-muted)", cursor: "pointer" }}>
+                <input 
+                  type="checkbox" 
+                  checked={exp.end_date === "Aujourd'hui"}
+                  onChange={e => onUpdate(exp.id, "end_date", e.target.checked ? "Aujourd'hui" : "")}
+                  style={{ margin: 0, width: "auto", cursor: "pointer" }}
+                />
+                {t('present_date', "Jusqu'à aujourd'hui")}
+              </label>
+            </div>
           </div>
           <div style={{ position: "relative" }}>
             <textarea 

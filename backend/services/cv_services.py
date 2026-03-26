@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks, Body, Depends, Query
 from fastapi.responses import JSONResponse, FileResponse
 from starlette.background import BackgroundTask
+from pypdf import PdfReader
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 
@@ -22,28 +23,25 @@ from .tasks import (
     process_cv_analysis_in_background,
     process_research_in_background,
     process_salary_in_background,
-    process_pitch_in_background,
-    process_questions_in_background,
-    process_gap_analysis_in_background,
     process_completeness_in_background,
-    process_career_radar_in_background,
-    process_recruiter_view_in_background,
-    process_oneliner_in_background,
-    process_risk_analysis_in_background,
-    process_job_decoder_in_background,
-    process_hidden_market_in_background,
-    process_career_gps_in_background,
-    process_reality_check_in_background,
-    process_profile_validation_in_background,
-    process_flaw_coaching_in_background,
-    process_market_strategy_in_background,
     update_task_status_sync,
-    run_gap_analysis_and_get_result
+    process_profile_validation_in_background,
+    process_gap_analysis_in_background,
+    process_pitch_in_background,
+    process_recruiter_view_in_background,
+    process_reality_check_in_background,
+    process_flaw_coaching_in_background,
+    process_career_radar_in_background,
+    process_questions_in_background,
+    process_career_gps_in_background,
+    process_oneliner_in_background,
+    process_market_strategy_in_background,
+    run_gap_analysis_and_get_result,
 )
 from .utils import clean_ai_json_response, normalize_language, load_prompt
 from .tasks import get_prompt_path
 
-router = APIRouter(tags=["CV"])
+router = APIRouter(prefix="/api/cv", tags=["CV Generator"])
 
 class FlawCoachRequest(BaseModel):
     flaw: str
@@ -83,6 +81,10 @@ class FullCVData(BaseModel):
     remote_preference: Optional[str] = Field(None, description="full, hybrid, onsite")
     availability: Optional[str] = Field(None, description="Disponibilité du candidat")
     contract_type: Optional[str] = Field(None, description="Type de contrat visé (CDI, Freelance...)")
+    free_text: Optional[str] = Field(None, description="Texte libre du candidat (Étape 6)")
+    current_role: Optional[str] = None
+    current_company: Optional[str] = None
+    target_role_primary: Optional[str] = None
     provider: Optional[str] = None
     target_language: Optional[str] = "French"
     is_partial_start: bool = False
@@ -150,8 +152,8 @@ async def require_active_subscription(current_user: dict = Depends(get_current_u
     if not row:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
     
-    status = row.get("subscription_status")
-    exp_date = row.get("subscription_expiration_date")
+    status = row[0] if isinstance(row, tuple) else row.get("subscription_status")
+    exp_date = row[1] if isinstance(row, tuple) else row.get("subscription_expiration_date")
     
     is_expired = status == "expired"
     if exp_date and isinstance(exp_date, datetime) and exp_date.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
@@ -206,9 +208,9 @@ async def generate_interview_questions(data, quality='smart'):
     hobbies = data.get('interests', [])
     flaws = data.get('flaws', [])
     
+    prompt_template = load_prompt(get_prompt_path("interview_questions.md"))
     prompt = f"""
-    Génère 20 questions d'entretien pour ce candidat.
-    Langue de sortie : {target_lang}
+    {prompt_template}
     
     CONTEXTE CANDIDAT :
     Adresse : {address}, {city}
@@ -216,27 +218,10 @@ async def generate_interview_questions(data, quality='smart'):
     Défauts identifiés par le candidat : {flaws}
     Poste visé : {data.get('target_job')}
     
-    INSTRUCTIONS SPÉCIFIQUES :
-    1. Inclus 3-4 questions de "Curiosité/Culture" basées sur son adresse ou ses hobbies. Si la liste des hobbies est vide, pose une question ouverte (ex: "Qu'est-ce qui vous passionne en dehors du travail ?").
-    2. Inclus des questions classiques de recruteur.
-    3. Pour CHAQUE question, fournis une 'suggested_answer' (une proposition de réponse complète à la 1ère personne) ET 'advice' (ce que le recruteur cherche à évaluer). Si les données sont insuffisantes pour une réponse complète, la 'suggested_answer' doit être un modèle de structure de réponse (ex: 'Je commencerais par expliquer le contexte de [projet X]...').
-       ⚠️ POSTURE DE COACH (ANTI-AUTO-SABOTAGE) : Si les données du candidat (notamment les 'flaws') contiennent des "red flags" (ex: "fainéant", "menteur"), utilise le champ 'advice' pour le recadrer avec bienveillance. Explique-lui pourquoi ce terme est éliminatoire, et utilise 'suggested_answer' pour proposer un pivot professionnel.
-    4. Inclus SYSTEMATIQUEMENT la question : "Quels sont vos trois principaux défauts ?".
-       Pour la 'suggested_answer' de cette question :
-       - Sélectionne les 3 défauts les moins préjudiciables pour le poste visé PARMI la liste 'flaws' fournie ci-dessus.
-       - Si la liste 'flaws' est vide, propose 3 "faux défauts" stratégiques classiques (ex: Trop exigeant, Impatient) avec une parade.
-       - Formule la réponse à la première personne, en montrant une conscience de soi et des efforts d'amélioration.
-    5. FORMAT JSON IMPÉRATIF : Échappe tous les guillemets internes avec `\\"` et les retours à la ligne avec `\\n`.
-    
-    FORMAT JSON STRICT ATTENDU :
-    {{
-        "questions": [
-            {{ "category": "Curiosité" | "Parcours" | "Personnalité", "question": "...", "suggested_answer": "...", "advice": "..." }}
-        ]
-    }}
-    
     DONNÉES :
     {json.dumps(_sanitize_data_for_ai(data), indent=2)}
+    
+    OUTPUT LANGUAGE: {target_lang}
     """
     res_str = await ai_service.generate(prompt, provider="openai", system_instruction=f"You are an expert interviewer. Output ONLY JSON. Language: {target_lang}.")
     parsed = clean_ai_json_response(res_str)
@@ -250,22 +235,18 @@ async def generate_smart_questions(data, quality='smart'):
     target_job = data.get('target_job', 'Poste visé')
     target_company = data.get('target_company', 'Entreprise cible')
     
+    # [FIX] Chargement du prompt expert depuis le fichier
+    prompt_template = load_prompt("5_questions.md")
+
     prompt = f"""
-    Agis comme un coach de carrière expert.
-    Génère 5 questions pertinentes et stratégiques que le candidat DOIT POSER au recruteur à la fin de l'entretien.
+    {prompt_template}
     
     CONTEXTE :
     Poste visé : {target_job}
     Entreprise : {target_company}
     Langue de sortie : {target_lang}
     
-    OBJECTIFS :
-    1. Montrer que le candidat a compris les enjeux du poste.
-    2. Démontrer une curiosité intelligente (pas de questions basiques type tickets resto).
-    3. Créer une discussion sur la vision, l'équipe ou les défis à venir.
-    4. Pour chaque question, explique brièvement l'intention stratégique (pourquoi la poser).
-    5. FORMAT JSON STRICT : Pas de markdown texte autour, échappe les caractères spéciaux.
-    
+    INSTRUCTIONS COMPLÉMENTAIRES :
     FORMAT JSON STRICT :
     {{
         "questions_to_ask": [
@@ -287,17 +268,19 @@ async def generate_gap_analysis(data, job_desc, quality='smart'):
     target_job = data.get('target_job') or data.get('target_role_primary', 'Inconnu')
     jd_text = job_desc.get('job_description', '').strip()
     jd_instruction = jd_text if jd_text else "Aucune annonce n'a été fournie par le candidat. Évalue son profil en te basant sur les STANDARDS STRICTS DU MARCHÉ pour ce titre de poste."
+    
+    prompt_template = load_prompt(get_prompt_path("gap_analysis.md"))
     prompt = f"""
-    Réalise une analyse d'écart (Gap Analysis) entre le candidat et le poste visé.
+    {prompt_template}
+    
+    CONTEXTE DU POSTE :
     Poste visé : {target_job}
     Description / Contexte : {jd_instruction}
     
     PROFIL CANDIDAT :
     {json.dumps(_sanitize_data_for_ai(data, strict=True), default=str)}
     
-    CONTRAINTES : Rédige le contenu en {target_lang}. Ne traduis SURTOUT PAS les clés du JSON.
-    FORMAT JSON STRICT ATTENDU :
-    {{ "key_needs_from_job": [], "missing_gaps": [], "recommended_adjustments": [], "match_score": 0-100 }}
+    OUTPUT LANGUAGE: {target_lang}
     """
     res_str = await ai_service.generate(prompt, provider="openai", system_instruction=f"You are a Career Coach. Output STRICT JSON in {target_lang}.")
     return clean_ai_json_response(res_str)
@@ -316,8 +299,9 @@ async def generate_pitch(data, quality='smart'):
         mr = rd.get("market_report", {})
         research_context = f"\nCONTEXTE ENTREPRISE & MARCHÉ (À UTILISER POUR LA PROJECTION) :\n- ADN: {cr.get('identity_dna', '')}\n- Défis: {cr.get('usp', '')}\n- Marché: {mr.get('trends', '')}\n"
 
+    prompt_template = load_prompt(get_prompt_path("pitch_v1.md"))
     prompt = f"""
-    Tu es un expert en recrutement. Rédige un Elevator Pitch pour ce candidat.
+    {prompt_template}
     
     DONNÉES CANDIDAT :
     {json.dumps(_sanitize_data_for_ai(data, strict=True), default=str)}
@@ -326,26 +310,12 @@ async def generate_pitch(data, quality='smart'):
     {clarifications_str}
     {research_context}
     
-    INSTRUCTIONS :
-    1. Rédige le contenu en {target_lang}, mais CONSERVE STRICTEMENT les clés du JSON en français (accroche, preuve, valeur, projection). Ne les traduis surtout pas.
-    2. Si une section manque d'info, donne un CONSEIL entre crochets [CONSEIL: ...] au lieu d'inventer.
-    3. Le JSON doit être valide. Les chaînes de caractères sur plusieurs lignes doivent utiliser des `\\n`.
-    4. Encadre TOUJOURS ta réponse finale dans un bloc de code JSON markdown.
-    
-    FORMAT JSON STRICT ATTENDU :
-    ```json
-    {{
-      "accroche": "Accroche...",
-      "preuve": "Preuve...",
-      "valeur": "Valeur...",
-      "projection": "Projection..."
-    }}
-    ```
+    OUTPUT LANGUAGE: {target_lang}
     """
     res_str = await ai_service.generate(prompt, provider="openai", system_instruction=f"Output STRICT JSON in {target_lang}.")
     return clean_ai_json_response(res_str)
 
-@router.post("/api/cv/coach-flaw")
+@router.post("/coach-flaw")
 async def coach_flaw(request: FlawCoachRequest):
     """Transforme un défaut brut en argument d'entretien."""
     target_lang = normalize_language(request.target_language)
@@ -373,7 +343,7 @@ def run_compliance_check(data, lang, quality='smart'):
 
 # --- Routes exclusives rapatriées de cv_generator.py ---
 
-@router.post("/api/cv/optimize-experience")
+@router.post("/optimize-experience")
 async def optimize_experience(request: ExperienceRequest, current_user: dict = Depends(require_active_subscription)):
     target_lang = normalize_language(request.target_language)
     prompt = f"You are a CV writing expert. Rewrite the following professional experience in {target_lang}. Context:\n- Role: {request.role} at {request.company}\n- Raw Description: {request.description}\n\nInstructions: Use strong action verbs, highlight concrete metrics, make it professional. Output ONLY the rewritten text."
@@ -383,7 +353,7 @@ async def optimize_experience(request: ExperienceRequest, current_user: dict = D
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur IA: {str(e)}")
 
-@router.post("/api/cv/extract-skills")
+@router.post("/extract-skills")
 async def extract_skills(request: SkillExtractionRequest, current_user: dict = Depends(require_active_subscription)):
     prompt = f"Analyse le texte suivant et extrais les compétences clés. Texte :\n{request.raw_text}\n\nFormat attendu : Une liste simple séparée par des virgules."
     try:
@@ -393,7 +363,7 @@ async def extract_skills(request: SkillExtractionRequest, current_user: dict = D
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur IA: {str(e)}")
 
-@router.post("/api/cv/simulate-career")
+@router.post("/simulate-career")
 async def simulate_career(request: SimulationRequest, current_user: dict = Depends(require_active_subscription)):
     target_lang = normalize_language(request.candidate_data.get('target_language', 'French'))
     prompt_template = load_prompt(get_prompt_path("career_simulator.md"))
@@ -420,14 +390,46 @@ async def simulate_career(request: SimulationRequest, current_user: dict = Depen
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Simulation failed: {str(e)}")
 
-@router.post("/api/cv/generate-clarifications")
+@router.post("/generate-clarifications")
 async def generate_clarifications(data: FullCVData, current_user: dict = Depends(require_active_subscription)):
     target_lang = normalize_language(data.target_language)
     prompt = f"Analyze this candidate profile. Identify ambiguous/missing points CRITICAL for a CV. Generate up to 20 clarification questions (0-3 if well detailed).\nCRITICAL: If the user includes typos, self-sabotaging flaws (e.g., 'lazy', 'liar'), or unprofessional terms, your FIRST question MUST act as a coach: point out the error gently and propose a positive professional alternative to reframe it.\n\nDATA: {json.dumps(_sanitize_data_for_ai(data.model_dump(), strict=True), default=str)}\n\nOUTPUT STRICT JSON: {{ \"questions\": [\"Q1?\", \"Q2?\"] }}\nLANGUAGE: {target_lang}"
     res = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are a Career Coach.")
     return res
 
-@router.post("/api/cv/start")
+@router.post("/parse-linkedin")
+async def parse_linkedin_pdf(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+    """
+    Extrait les données d'un PDF LinkedIn pour pré-remplir le formulaire.
+    """
+    if not file.filename.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Format de fichier invalide. Seuls les PDF sont acceptés.")
+
+    try:
+        pdf_reader = PdfReader(file.file)
+        text_content = ""
+        for page in pdf_reader.pages:
+            text_content += page.extract_text() + "\n"
+
+        if "linkedin.com" not in text_content[:1000] and "Experience" not in text_content[:1000]:
+             print("[PARSER] Warning: Le document ne semble pas être un profil LinkedIn standard.")
+             # On continue quand même, l'IA pourrait s'en sortir.
+
+        prompt_template = load_prompt(get_prompt_path("linkedin_parser.md"))
+
+        final_prompt = f"""
+        {prompt_template}
+
+        TEXTE BRUT EXTRAIT DU PDF :
+        {text_content}
+        """
+
+        parsed_data = await ai_service.generate_valid_json(final_prompt, provider="gemini", system_instruction="You are a LinkedIn Profile Parser. Output STRICT JSON.")
+        return parsed_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur lors de l'analyse du PDF : {str(e)}")
+
+@router.post("/start")
 async def start_cv_generation(background_tasks: BackgroundTasks, data: dict = Body(...), current_user: dict = Depends(require_active_subscription)):
     task_id = str(uuid.uuid4())
     async with db.get_connection() as conn:
@@ -437,7 +439,7 @@ async def start_cv_generation(background_tasks: BackgroundTasks, data: dict = Bo
     background_tasks.add_task(process_cv_draft_in_background, task_id, data)
     return {"task_id": task_id, "status": "PENDING"}
 
-@router.post("/api/generate")
+@router.post("/generate")
 async def generate_document(request: GenerateRequest, current_user: dict = Depends(require_active_subscription)):
     action = request.action
     data = request.data
@@ -586,7 +588,7 @@ async def generate_document(request: GenerateRequest, current_user: dict = Depen
         print(f"Generate error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/api/cv/render")
+@router.post("/render")
 async def render_final_cv(cv_final_data: CVFinal, preview: bool = Query(False), current_user: dict = Depends(get_current_user)):
     try:
         # Transformation simplifiée pour LaTeX (logique extraite de main.py)
@@ -640,37 +642,56 @@ async def orchestrate_dashboard_tasks(tasks_map: dict, cv_dict: dict):
     """
     print("\n[ORCHESTRATOR] 🌊 Dispatching tasks to Semaphore Queue...", flush=True)
     
-    def fire(coro):
-        asyncio.create_task(coro)
+    def fire(task_key, coro):
+        async def safe_coro():
+            try:
+                await coro
+            except Exception as e:
+                print(f"[ORCHESTRATOR ERROR] Crash critique intercepté sur '{task_key}' : {e}", flush=True)
+                
+                # [ROBUSTESSE] Récupération des IDs pour forcer le statut FAILED en DB et libérer le Frontend
+                tids = []
+                if isinstance(task_key, str) and task_key in tasks_map:
+                    tids.append(tasks_map[task_key])
+                elif isinstance(task_key, dict):  # Cas des tâches fusionnées (Market Strategy)
+                    tids.extend(task_key.values())
+                    
+                for tid in tids:
+                    try:
+                        await asyncio.to_thread(update_task_status_sync, tid, "FAILED", {"error": f"Orchestrator safety fallback: {str(e)}"})
+                    except Exception as db_err:
+                        print(f"[ORCHESTRATOR DB ERROR] Impossible de MAJ le statut pour {tid}: {db_err}", flush=True)
+                        
+        asyncio.create_task(safe_coro())
 
-    if "profile_validation" in tasks_map: fire(process_profile_validation_in_background(tasks_map["profile_validation"], cv_dict))
-    if "cv_analysis" in tasks_map: fire(process_cv_analysis_in_background(tasks_map["cv_analysis"], cv_dict))
-    if "gap_analysis" in tasks_map: fire(process_gap_analysis_in_background(tasks_map["gap_analysis"], cv_dict))
+    if "profile_validation" in tasks_map: fire("profile_validation", process_profile_validation_in_background(tasks_map["profile_validation"], cv_dict))
+    if "cv_analysis" in tasks_map: fire("cv_analysis", process_cv_analysis_in_background(tasks_map["cv_analysis"], cv_dict))
+    if "gap_analysis" in tasks_map: fire("gap_analysis", process_gap_analysis_in_background(tasks_map["gap_analysis"], cv_dict))
     
     await asyncio.sleep(0.5) # Micro-délai pour garantir la priorité
 
-    if "pitch" in tasks_map: fire(process_pitch_in_background(tasks_map["pitch"], cv_dict))
-    if "recruiter_view" in tasks_map: fire(process_recruiter_view_in_background(tasks_map["recruiter_view"], cv_dict))
-    if "reality_check" in tasks_map: fire(process_reality_check_in_background(tasks_map["reality_check"], cv_dict))
-    if "flaw_coaching" in tasks_map: fire(process_flaw_coaching_in_background(tasks_map["flaw_coaching"], cv_dict))
+    if "pitch" in tasks_map: fire("pitch", process_pitch_in_background(tasks_map["pitch"], cv_dict))
+    if "recruiter_view" in tasks_map: fire("recruiter_view", process_recruiter_view_in_background(tasks_map["recruiter_view"], cv_dict))
+    if "reality_check" in tasks_map: fire("reality_check", process_reality_check_in_background(tasks_map["reality_check"], cv_dict))
+    if "flaw_coaching" in tasks_map: fire("flaw_coaching", process_flaw_coaching_in_background(tasks_map["flaw_coaching"], cv_dict))
 
     await asyncio.sleep(0.5)
 
-    if "career_radar" in tasks_map: fire(process_career_radar_in_background(tasks_map["career_radar"], cv_dict))
-    if "questions" in tasks_map: fire(process_questions_in_background(tasks_map["questions"], cv_dict))
+    if "career_radar" in tasks_map: fire("career_radar", process_career_radar_in_background(tasks_map["career_radar"], cv_dict))
+    if "questions" in tasks_map: fire("questions", process_questions_in_background(tasks_map["questions"], cv_dict))
 
     await asyncio.sleep(0.5)
 
-    if "career_gps" in tasks_map: fire(process_career_gps_in_background(tasks_map["career_gps"], cv_dict))
-    if "one_liner" in tasks_map: fire(process_oneliner_in_background(tasks_map["one_liner"], cv_dict))
+    if "career_gps" in tasks_map: fire("career_gps", process_career_gps_in_background(tasks_map["career_gps"], cv_dict))
+    if "one_liner" in tasks_map: fire("one_liner", process_oneliner_in_background(tasks_map["one_liner"], cv_dict))
         
     # TÂCHES FUSIONNÉES : Market Strategy
     strategy_tasks = {k: tasks_map[k] for k in ["job_decoder", "risk_analysis", "hidden_market"] if k in tasks_map}
-    if strategy_tasks: fire(process_market_strategy_in_background(strategy_tasks, cv_dict))
+    if strategy_tasks: fire(strategy_tasks, process_market_strategy_in_background(strategy_tasks, cv_dict))
 
     print("[ORCHESTRATOR] ✅ All tasks queued successfully. Semaphore is handling the flow.", flush=True)
 
-@router.post("/api/cv/start-analysis")
+@router.post("/start-analysis")
 async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, current_user: dict = Depends(require_active_subscription)):
     tasks_map = {}
     now = datetime.now()
@@ -751,7 +772,7 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
         "salary_task_id": tasks_map.get("salary_estimation")
     }
 
-@router.post("/api/cv/analyze-completeness")
+@router.post("/analyze-completeness")
 async def analyze_completeness(background_tasks: BackgroundTasks, payload: dict = Body(...), current_user: dict = Depends(require_active_subscription)):
     task_id = str(uuid.uuid4())
     async with db.get_connection() as conn:
@@ -761,7 +782,7 @@ async def analyze_completeness(background_tasks: BackgroundTasks, payload: dict 
     background_tasks.add_task(process_completeness_in_background, task_id, payload)
     return {"task_id": task_id, "status": "PENDING"}
 
-@router.get("/api/cv/analysis-status/{task_id}")
+@router.get("/analysis-status/{task_id}")
 async def get_analysis_status(task_id: str):
     async with db.get_connection() as conn:
         cursor = await db.execute(conn, "SELECT status, result FROM tasks WHERE id = ?", (task_id,))
@@ -783,7 +804,7 @@ async def get_analysis_status(task_id: str):
             
     return response
 
-@router.post("/api/cv/dashboard/summary")
+@router.post("/dashboard/summary")
 async def get_dashboard_summary(data: FullCVData, current_user: dict = Depends(require_active_subscription)):
     try:
         cv_dict = data.model_dump()
@@ -861,7 +882,7 @@ async def get_dashboard_summary(data: FullCVData, current_user: dict = Depends(r
         }
     }
 
-@router.post("/api/cv/feedback")
+@router.post("/feedback")
 async def submit_feedback(request: FeedbackRequest):
     """Enregistre le feedback utilisateur (pouces) pour une fonctionnalité spécifique."""
     vote = "👍" if request.is_positive else "👎"
@@ -900,7 +921,7 @@ async def submit_feedback(request: FeedbackRequest):
 
     return {"status": "success", "message": "Feedback enregistré avec succès"}
 
-@router.get("/api/cv/feedbacks")
+@router.get("/feedbacks")
 async def get_feedbacks():
     """Récupère la liste de tous les feedbacks (Vue Admin)."""
     async with db.get_connection() as conn:
@@ -931,7 +952,7 @@ async def get_feedbacks():
         })
     return {"feedbacks": feedbacks}
 
-@router.get("/api/cv/me/profile")
+@router.get("/me/profile")
 async def get_my_profile(current_user: dict = Depends(get_current_user)):
     """Récupère le profil complet (JSON) de l'utilisateur connecté."""
     try:
@@ -939,17 +960,18 @@ async def get_my_profile(current_user: dict = Depends(get_current_user)):
             cursor = await db.execute(conn, "SELECT profile_data FROM user_profiles WHERE user_id = ?", (current_user["id"],))
             row = await cursor.fetchone()
             
-        if row and row.get("profile_data"):
-            data = row.get("profile_data")
-            return json.loads(data) if isinstance(data, str) else data
-        else:
+        if row:
+            data = row[0] if isinstance(row, tuple) else row.get("profile_data")
+            if data:
+                return json.loads(data) if isinstance(data, str) else data
+                
             print(f"[PROFIL WARNING] Aucun profil complet trouvé en base pour {current_user['email']}.", flush=True)
             return {"form": {"email": current_user.get("email", ""), "first_name": current_user.get("first_name", ""), "last_name": current_user.get("last_name", "")}}
     except Exception as e:
         print(f"[PROFILE ERROR] {e}", flush=True)
         return {"form": {"email": current_user.get("email", "")}}
 
-@router.post("/api/cv/me/profile")
+@router.post("/me/profile")
 async def update_my_profile(payload: dict = Body(...), current_user: dict = Depends(get_current_user)):
     """Met à jour ou fusionne le profil complet du candidat dans la base de données."""
     try:
@@ -963,7 +985,7 @@ async def update_my_profile(payload: dict = Body(...), current_user: dict = Depe
         print(f"[PROFILE SAVE ERROR] {e}", flush=True)
         return {"status": "error", "message": str(e)}
 
-@router.get("/api/cv/documents")
+@router.get("/documents")
 async def get_my_documents(current_user: dict = Depends(get_current_user)):
     """Récupère la liste des vrais documents générés par l'utilisateur connecté."""
     async with db.get_connection() as conn:
@@ -990,7 +1012,7 @@ async def get_my_documents(current_user: dict = Depends(get_current_user)):
         "created_at": row[3] if isinstance(row, tuple) else row["created_at"]
     } for row in rows]
 
-@router.get("/api/cv/documents/{doc_id}/download")
+@router.get("/documents/{doc_id}/download")
 async def download_document(doc_id: str, current_user: dict = Depends(get_current_user)):
     """Télécharge ou affiche un document spécifique (PDF/Word)."""
     async with db.get_connection() as conn:
@@ -1009,7 +1031,7 @@ async def download_document(doc_id: str, current_user: dict = Depends(get_curren
         
     return FileResponse(path=path, filename=filename, media_type=media_type)
 
-@router.delete("/api/cv/documents/{doc_id}")
+@router.delete("/documents/{doc_id}")
 async def delete_document(doc_id: str, current_user: dict = Depends(get_current_user)):
     """Supprime un document de la base."""
     async with db.get_connection() as conn:

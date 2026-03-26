@@ -16,10 +16,14 @@ Le pitch DOIT IMPÉRATIVEMENT être rédigé à la **première personne du singu
 - **Ne PAS** suivre l’ordre chronologique des expériences.
 - **Ne PAS** lister des compétences de manière robotique.
 - **Ne PAS** reformuler le CV sous forme narrative.
+- **Ne JAMAIS** laisser une section vide ou la remplacer par un simple conseil.
+- Si une information te manque, tu dois la déduire, **extrapoler intelligemment** et valoriser le profil au maximum avec ce que tu possèdes. L'objectif est d'avoir un texte complet et prêt à être lu.
+- Conserve strictement les clés JSON originales sans les traduire.
+- **RÉALISME & IMPACT :** Inclus obligatoirement des chiffres, des métriques et des noms d'outils ou d'entreprises réels tirés du profil pour asseoir la crédibilité. Pas de blabla conceptuel.
 
 ## 🔑 PRINCIPES CLÉS
 - Le pitch doit raconter une **trajectoire** et une logique, pas un inventaire.
-- Les réussites doivent être intégrées naturellement, comme des **preuves implicites**.
+- Les réussites doivent être intégrées naturellement, comme des **preuves implicites avec des résultats chiffrés**.
 - Les qualités doivent transparaître à travers les faits, jamais être affirmées gratuitement.
 - Le recruteur doit comprendre **“qui est ce candidat”** et **“ce qu’il apporte”** en moins de 2 minutes.
 
