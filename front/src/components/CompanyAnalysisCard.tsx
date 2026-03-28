@@ -78,12 +78,12 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
             </div>
           </div>
 
-          {/* 5. Articles de presse (Pleine largeur en bas) */}
-          <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
-            <h4 style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', fontSize: '1.05rem' }}>
-              <Newspaper size={18} /> Liens d'Actualités & Revue de Presse
-            </h4>
-            {newsLinks.length > 0 ? (
+          {/* 5. Articles de presse (Affiché uniquement si présent) */}
+          {newsLinks.length > 0 && (
+            <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
+              <h4 style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', fontSize: '1.05rem' }}>
+                <Newspaper size={18} /> Liens d'Actualités & Revue de Presse
+              </h4>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
                 {newsLinks.map((news: any, i: number) => (
                   <a key={i} href={news.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', flexDirection: 'column', padding: '1.25rem', background: 'var(--bg-card)', borderRadius: '0.5rem', textDecoration: 'none', border: '1px solid var(--border-color)', transition: 'all 0.2s', color: 'var(--text-main)' }} onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-2px)'; }} onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.transform = 'translateY(0)'; }}>
@@ -96,12 +96,8 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
                   </a>
                 ))}
               </div>
-            ) : (
-              <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-card)', borderRadius: '0.5rem', border: '1px dashed var(--border-color)' }}>
-                Aucun lien d'actualité gratuit récent n'a été identifié pour cette entreprise.
-              </div>
-            )}
-          </div>
+            </div>
+          )}
 
         </div>
       )}

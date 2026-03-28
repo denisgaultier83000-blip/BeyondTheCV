@@ -1,3 +1,4 @@
+// @refresh reset
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
@@ -8,8 +9,6 @@ interface DashboardContextType {
   setActiveTab: (tab: string) => void;
   pilotData: any;
   isPilotLoading: boolean;
-  fetchPilotData: () => Promise<void>;
-  cvData: any;
   researchResult: any;
   salaryResult: any;
   careerGpsResult: any;
@@ -17,14 +16,19 @@ interface DashboardContextType {
   jobDecoderResult: any;
   pitchResult: any;
   questionsResult: any;
+  hiddenMarketResult: any;
+  recruiterResult: any;
+  realityResult: any;
+  flawCoachingResult: any;
   globalStatus: string;
+  cvData: any;
   setCurrentStep: (step: number) => void;
   triggerResearch: () => Promise<void>;
+  fetchPilotData: () => Promise<void>;
 }
 
 interface DashboardProviderProps {
   children: ReactNode;
-  initialCvData?: any;
   initialResearchResult?: any;
   initialSalaryResult?: any;
   initialCareerGpsResult?: any;
@@ -32,9 +36,14 @@ interface DashboardProviderProps {
   initialJobDecoderResult?: any;
   initialPitchResult?: any;
   initialQuestionsResult?: any;
+  initialHiddenMarketResult?: any;
+  initialRecruiterResult?: any;
+  initialRealityResult?: any;
+  initialFlawCoachingResult?: any;
   initialGlobalStatus?: string;
   onSetCurrentStep?: (step: number) => void;
   onTriggerResearch?: () => Promise<void>;
+  initialCvData?: any;
 }
 
 // --- INITIALISATION DU CONTEXTE ---
@@ -51,13 +60,17 @@ export const DashboardProvider = ({
   initialJobDecoderResult = null,
   initialPitchResult = null,
   initialQuestionsResult = null,
+  initialHiddenMarketResult = null,
+  initialRecruiterResult = null,
+  initialRealityResult = null,
+  initialFlawCoachingResult = null,
   initialGlobalStatus = 'IDLE',
   onSetCurrentStep = () => {},
   onTriggerResearch = async () => {}
 }: DashboardProviderProps) => {
   // État de navigation interne
-  const [activeTab, setActiveTab] = useState<string>('pilot');
-  
+  const [activeTab, setActiveTab] = useState<string>('overview');
+
   // État des données de la vue Bento (Résumé)
   const [pilotData, setPilotData] = useState<any>(null);
   const [isPilotLoading, setIsPilotLoading] = useState<boolean>(false);
@@ -68,10 +81,16 @@ export const DashboardProvider = ({
     
     setIsPilotLoading(true);
     try {
+      // [FIX] On injecte les résultats de marché pour une synthèse beaucoup plus riche
+      const payload = { ...initialCvData };
+      if (initialResearchResult) {
+        payload.research_data = initialResearchResult;
+      }
+
       const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/dashboard/summary`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(initialCvData)
+        body: JSON.stringify(payload)
       });
       
       if (response.ok) {
@@ -86,7 +105,7 @@ export const DashboardProvider = ({
     } finally {
       setIsPilotLoading(false);
     }
-  }, [initialCvData]); // La fonction ne se recrée que si les données CV changent
+  }, [initialCvData, initialResearchResult]); // La fonction se recrée si les données du CV ou de la recherche changent
 
   // Auto-fetch ultra-robuste quand le CV (mock puis réel) est mis à jour
   useEffect(() => {
@@ -106,6 +125,10 @@ export const DashboardProvider = ({
       jobDecoderResult: initialJobDecoderResult,
       pitchResult: initialPitchResult,
       questionsResult: initialQuestionsResult,
+      hiddenMarketResult: initialHiddenMarketResult,
+      recruiterResult: initialRecruiterResult,
+      realityResult: initialRealityResult,
+      flawCoachingResult: initialFlawCoachingResult,
       globalStatus: initialGlobalStatus,
       setCurrentStep: onSetCurrentStep,
       triggerResearch: onTriggerResearch

@@ -17,8 +17,8 @@ Produire un **dossier de préparation à l’entretien** de haut niveau, straté
 2. **CITER LES SOURCES** dans le texte pour renforcer la crédibilité (ex: *"Selon Les Echos..."*, *"Comme indiqué dans le rapport annuel..."*).
 3. Mettre en avant les **enjeux clés** que le recruteur a en tête.
 4. Produire des **questions intelligentes** que le candidat pourra poser.
-5. Sélectionner les articles de presse les plus pertinents et récents.
-6. Pour les actualités (news_links), fournis de vrais liens URL vers des articles récents. Privilégie ABSOLUMENT des sources gratuites et sans abonnement (ex: communiqués de presse officiels, blogs tech, médias ouverts).
+5. **EXTRACTION DE CHIFFRES CLÉS :** Tu DOIS extraire les chiffres clés (nombre d'employés, CA, date de création) s'ils sont présents dans le contexte fourni.
+6. **REVUE DE PRESSE OBLIGATOIRE :** Pour la section `news_links`, tu DOIS extraire de vrais articles présents dans le CONTEXTE DE RECHERCHE. Récupère l'URL exacte du lien fourni, le titre de l'article et le nom du média. La presse payante est autorisée. Ne laisse JAMAIS cette section vide si des liens d'actualité sont présents dans tes sources brutes.
 
 ## 📦 SORTIE ATTENDUE (JSON STRICT)
 ```json
@@ -43,7 +43,7 @@ Produire un **dossier de préparation à l’entretien** de haut niveau, straté
       {
         "title": "Titre de l'article",
         "url": "https://lien-vers-article.com",
-        "source": "Nom du média (gratuit de préférence)",
+        "source": "Nom du média (ex: Les Echos, Le Figaro, L'Usine Nouvelle)",
         "date": "Mois Année"
       }
     ]

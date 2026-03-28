@@ -8,7 +8,7 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks,
 from fastapi.responses import JSONResponse, FileResponse
 from starlette.background import BackgroundTask
 from pypdf import PdfReader
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional, List, Dict, Any
 
 from database import db
@@ -77,6 +77,8 @@ class FullCVData(BaseModel):
     target_industry: Optional[str] = None
     job_description: Optional[str] = Field(None, description="Description brute de l'offre d'emploi")
     research_data: Optional[Dict[str, Any]] = Field(None, description="Données de recherche marché et entreprise")
+    gap_analysis: Optional[Dict[str, Any]] = Field(None, description="Cached gap analysis pour éviter le recalcul")
+    pitch_data: Optional[Dict[str, Any]] = None
     target_country: Optional[str] = Field(None, description="Pays visé pour l'analyse de marché")
     remote_preference: Optional[str] = Field(None, description="full, hybrid, onsite")
     availability: Optional[str] = Field(None, description="Disponibilité du candidat")
@@ -91,6 +93,23 @@ class FullCVData(BaseModel):
     design_variant: Optional[str] = Field("1", description="Variante de design du CV (1, 2, 3)")
     preview: bool = Field(False, description="Mode prévisualisation")
     renderer: Optional[str] = Field("pdf", description="Format de sortie: 'pdf' ou 'json'")
+
+    @model_validator(mode='before')
+    @classmethod
+    def extract_form_data(cls, values):
+        # [FIX CRITIQUE] Empêche la perte de données si le frontend envoie un objet imbriqué "form"
+        if isinstance(values, dict) and 'form' in values and isinstance(values['form'], dict):
+            form_data = values.pop('form')
+            if 'personal_info' not in values:
+                values['personal_info'] = {}
+            
+            personal_keys = ['first_name', 'last_name', 'email', 'phone', 'address', 'city', 'country', 'linkedin', 'bio']
+            for k, v in form_data.items():
+                if k in personal_keys:
+                    values['personal_info'][k] = v
+                elif k not in values:
+                    values[k] = v
+        return values
 
 # --- Modèles rapatriés de cv_generator.py ---
 class ExperienceRequest(BaseModel):
@@ -135,6 +154,9 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
         # Suppression des flags de l'UI
         for key in ['target_language', 'provider', 'renderer', 'design_variant', 'is_partial_start', 'preview', 'clarifications']:
             clean_data.pop(key, None)
+            
+        # [FIX CRITIQUE] On purge les données de marché brutes (Serper) pour ne pas exploser les tokens de chaque tâche IA
+        clean_data.pop('research_data', None)
             
     return clean_data
 
@@ -223,9 +245,10 @@ async def generate_interview_questions(data, quality='smart'):
     
     OUTPUT LANGUAGE: {target_lang}
     """
-    res_str = await ai_service.generate(prompt, provider="openai", system_instruction=f"You are an expert interviewer. Output ONLY JSON. Language: {target_lang}.")
-    parsed = clean_ai_json_response(res_str)
-    return parsed.get('questions', [])
+    result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are an expert interviewer. Output ONLY JSON. Language: {target_lang}.")
+    if "error" in result:
+        return []
+    return result.get('questions', [])
 
 async def generate_smart_questions(data, quality='smart'):
     # [AMELIORATION] Génération de questions stratégiques à poser au recruteur
@@ -257,9 +280,10 @@ async def generate_smart_questions(data, quality='smart'):
         ]
     }}
     """
-    res_str = await ai_service.generate(prompt, provider="openai", system_instruction=f"You are a Career Coach. Output ONLY JSON in {target_lang}.")
-    parsed = clean_ai_json_response(res_str)
-    return parsed.get('questions_to_ask', [])
+    result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a Career Coach. Output ONLY JSON in {target_lang}.")
+    if "error" in result:
+        return []
+    return result.get('questions_to_ask', [])
 
 async def generate_gap_analysis(data, job_desc, quality='smart'):
     # [AMELIORATION] Prompt aligné avec tasks.py pour garantir la structure attendue par le Frontend
@@ -282,8 +306,10 @@ async def generate_gap_analysis(data, job_desc, quality='smart'):
     
     OUTPUT LANGUAGE: {target_lang}
     """
-    res_str = await ai_service.generate(prompt, provider="openai", system_instruction=f"You are a Career Coach. Output STRICT JSON in {target_lang}.")
-    return clean_ai_json_response(res_str)
+    result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a Career Coach. Output STRICT JSON in {target_lang}.")
+    if "error" in result:
+        return {}
+    return result
 
 async def generate_pitch(data, quality='smart'):
     # [AMELIORATION] Utilisation des clarifications et fallback conseils
@@ -312,8 +338,10 @@ async def generate_pitch(data, quality='smart'):
     
     OUTPUT LANGUAGE: {target_lang}
     """
-    res_str = await ai_service.generate(prompt, provider="openai", system_instruction=f"Output STRICT JSON in {target_lang}.")
-    return clean_ai_json_response(res_str)
+    result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"Output STRICT JSON in {target_lang}.")
+    if "error" in result:
+        return {}
+    return result
 
 @router.post("/coach-flaw")
 async def coach_flaw(request: FlawCoachRequest):
@@ -724,12 +752,10 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
         tasks_map["profile_validation"] = str(uuid.uuid4())
         tasks_map["flaw_coaching"] = str(uuid.uuid4())
         
-        # [CRITIQUE] Ne pas écraser la recherche de marché si l'Étape 2 est déjà en cours ou terminée
+        # [CRITIQUE] Toujours renvoyer une tâche market_research pour que le Frontend puisse l'afficher
         has_research_data = isinstance(data.research_data, dict) and len(data.research_data) > 0
-        if (data.target_company or data.target_industry) and not has_research_data:
+        if data.target_company or data.target_industry:
             tasks_map["market_research"] = str(uuid.uuid4())
-        else:
-            print("[PIPELINE] Market research skipped (Already running or cached from Step 2).", flush=True)
 
     try:
         async with db.get_connection() as conn:
@@ -744,7 +770,10 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
         raise HTTPException(status_code=500, detail="Database insert error")
     
     if "market_research" in tasks_map:
-        if data.target_company or data.target_industry:
+        if has_research_data:
+            # Renvoyer instantanément les données en cache au Dashboard
+            background_tasks.add_task(update_task_status_sync, tasks_map["market_research"], "SUCCESS", data.research_data)
+        elif data.target_company or data.target_industry:
             research_payload = {
                 "target_company": data.target_company,
                 "target_industry": data.target_industry,
@@ -798,7 +827,18 @@ async def get_analysis_status(task_id: str):
     
     if (status in ["SUCCESS", "COMPLETED", "FAILED"]) and result_raw:
         try:
-            response["result"] = json.loads(result_raw)
+            parsed = json.loads(result_raw)
+            # [FIX] Gère le cas d'une double stringification de l'IA ("{\"clé\":...}")
+            if isinstance(parsed, str):
+                try: parsed = json.loads(parsed)
+                except Exception: pass
+            # [FIX] Nettoyage markdown profond si des sous-clés sont polluées
+            if isinstance(parsed, dict):
+                for k, v in parsed.items():
+                    if isinstance(v, str) and (v.strip().startswith("{") or v.strip().startswith("```")):
+                        try: parsed[k] = clean_ai_json_response(v)
+                        except Exception: pass
+            response["result"] = parsed
         except Exception:
             response["result"] = result_raw
             
@@ -806,22 +846,24 @@ async def get_analysis_status(task_id: str):
 
 @router.post("/dashboard/summary")
 async def get_dashboard_summary(data: FullCVData, current_user: dict = Depends(require_active_subscription)):
+    # [FIX] Le bloc try...except doit englober toute la fonction pour intercepter les erreurs IA
     try:
         cv_dict = data.model_dump()
     except AttributeError:
         cv_dict = data.dict()
     target_lang = normalize_language(cv_dict.get('target_language', 'French'))
+    cv_lean_dict = _sanitize_data_for_ai(cv_dict, strict=True)
     
     cached_gap = cv_dict.get('gap_analysis')
     has_cached_gap = bool(cached_gap and isinstance(cached_gap, dict) and cached_gap.get('match_score'))
-    gap_analysis_task = asyncio.sleep(0) if has_cached_gap else run_gap_analysis_and_get_result(cv_dict)
+    gap_analysis_task = asyncio.sleep(0) if has_cached_gap else run_gap_analysis_and_get_result(cv_lean_dict)
 
     key_strengths_prompt = f"""
     Analyse ce profil et résume-le en 3 forces clés percutantes.
     Exemple: "Leadership opérationnel", "Gestion du risque", "Prise de décision en environnement critique".
     Ne retourne QUE le JSON.
     
-    PROFIL: {json.dumps(_sanitize_data_for_ai(cv_dict), default=str)}
+    PROFIL: {json.dumps(cv_lean_dict, default=str)}
     
     OUTPUT LANGUAGE: {target_lang}
     FORMAT JSON STRICT: {{"key_strengths": ["Force 1", "Force 2", "Force 3"]}}
@@ -836,7 +878,7 @@ async def get_dashboard_summary(data: FullCVData, current_user: dict = Depends(r
     ⚠️ RÈGLE D'OR : IGNORE TOTALEMENT les erreurs de forme (absence de majuscules, fautes de frappe, accents manquants, mots en majuscules). Le texte brut est un brouillon informel adressé au coach et sera formaté automatiquement plus tard. Ne fais JAMAIS de remarques sur la typographie.
     Ne retourne QUE le JSON.
     
-    PROFIL: {json.dumps(_sanitize_data_for_ai(cv_dict), default=str)}
+    PROFIL: {json.dumps(cv_lean_dict, default=str)}
     
     OUTPUT LANGUAGE: {target_lang}
     FORMAT JSON STRICT: {{"application_strategy": ["Priorité 1", "Priorité 2", "Priorité 3"]}}
@@ -881,6 +923,10 @@ async def get_dashboard_summary(data: FullCVData, current_user: dict = Depends(r
             "gaps_identified": len(gap_analysis_result.get("missing_gaps", []))
         }
     }
+    try:
+        pass
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Dashboard summary failed: {e}")
 
 @router.post("/feedback")
 async def submit_feedback(request: FeedbackRequest):
@@ -957,30 +1003,67 @@ async def get_my_profile(current_user: dict = Depends(get_current_user)):
     """Récupère le profil complet (JSON) de l'utilisateur connecté."""
     try:
         async with db.get_connection() as conn:
+            # Création défensive pour éviter le crash SQL et le Fallback vide
+            await db.execute(conn, """
+                CREATE TABLE IF NOT EXISTS user_profiles (
+                    user_id TEXT PRIMARY KEY,
+                    profile_data JSONB
+                )
+            """)
             cursor = await db.execute(conn, "SELECT profile_data FROM user_profiles WHERE user_id = ?", (current_user["id"],))
             row = await cursor.fetchone()
-            
-        if row:
-            data = row[0] if isinstance(row, tuple) else row.get("profile_data")
-            if data:
-                return json.loads(data) if isinstance(data, str) else data
-                
-            print(f"[PROFIL WARNING] Aucun profil complet trouvé en base pour {current_user['email']}.", flush=True)
-            return {"form": {"email": current_user.get("email", ""), "first_name": current_user.get("first_name", ""), "last_name": current_user.get("last_name", "")}}
+
+            if row:
+                data = row[0] if isinstance(row, tuple) else row.get("profile_data")
+                if data:
+                    return json.loads(data) if isinstance(data, str) else data
+
+            # [EXPERT FIX] Si aucun profil n'existe, on en crée un à partir des données de l'utilisateur.
+            # On ne se fie pas à `current_user`, on va chercher les données fraîches en base.
+            print(f"[PROFIL] Aucun profil trouvé pour {current_user['email']}. Construction depuis la table users.", flush=True)
+            user_cursor = await db.execute(conn, "SELECT email, first_name, last_name FROM users WHERE id = ?", (current_user["id"],))
+            user_row = await user_cursor.fetchone()
+
+            if user_row:
+                user_data = dict(user_row)
+                # La structure `{form: {...}}` est ce que le frontend attend pour un nouvel utilisateur.
+                return {"form": {
+                    "email": user_data.get("email", ""),
+                    "first_name": user_data.get("first_name", ""),
+                    "last_name": user_data.get("last_name", "")
+                }}
+
+        # Fallback ultime si l'utilisateur n'est même pas dans la table `users` (ne devrait jamais arriver)
+        print(f"[PROFIL WARNING] Utilisateur {current_user['id']} non trouvé dans la table users.", flush=True)
+        return {"form": {"email": current_user.get("email", "")}}
     except Exception as e:
-        print(f"[PROFILE ERROR] {e}", flush=True)
+        print(f"[PROFILE CRITICAL ERROR] {e}", flush=True)
+        # On renvoie une structure minimale pour ne pas crasher le frontend.
         return {"form": {"email": current_user.get("email", "")}}
 
 @router.post("/me/profile")
 async def update_my_profile(payload: dict = Body(...), current_user: dict = Depends(get_current_user)):
-    """Met à jour ou fusionne le profil complet du candidat dans la base de données."""
+    """Met à jour (écrase) le profil complet du candidat dans la base de données."""
     try:
         async with db.get_connection() as conn:
+            # [FIX] Création défensive
             await db.execute(conn, """
-                INSERT INTO user_profiles (user_id, profile_data) VALUES (?, ?::jsonb)
-                ON CONFLICT(user_id) DO UPDATE SET profile_data = user_profiles.profile_data || EXCLUDED.profile_data::jsonb
-            """, (current_user["id"], json.dumps(payload)))
-        return {"status": "success", "message": "Brouillon fusionné et sauvegardé"}
+                CREATE TABLE IF NOT EXISTS user_profiles (
+                    user_id TEXT PRIMARY KEY,
+                    profile_data JSONB
+                )
+            """)
+            
+            # [FIX CRITIQUE] Contournement de l'erreur ON CONFLICT (Contrainte PK/Unique manquante en BDD)
+            profile_json = json.dumps(payload)
+            cursor = await db.execute(conn, "SELECT 1 FROM user_profiles WHERE user_id = ?", (current_user["id"],))
+            exists = await cursor.fetchone()
+            
+            if exists:
+                await db.execute(conn, "UPDATE user_profiles SET profile_data = ?::jsonb WHERE user_id = ?", (profile_json, current_user["id"]))
+            else:
+                await db.execute(conn, "INSERT INTO user_profiles (user_id, profile_data) VALUES (?, ?::jsonb)", (current_user["id"], profile_json))
+        return {"status": "success", "message": "Profil sauvegardé"}
     except Exception as e:
         print(f"[PROFILE SAVE ERROR] {e}", flush=True)
         return {"status": "error", "message": str(e)}

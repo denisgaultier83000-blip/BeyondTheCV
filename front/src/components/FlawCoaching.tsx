@@ -3,20 +3,24 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Sparkles, MessageSquare, AlertTriangle, Lightbulb } from 'lucide-react';
 import { FeedbackWidget } from './FeedbackWidget';
 
-export default function FlawCoaching({ data, onBack }: { data: any, onBack: () => void }) {
+export default function FlawCoaching({ data, onBack, inline = false, loading = false }: { data: any, onBack?: () => void, inline?: boolean, loading?: boolean }) {
   const { t } = useTranslation();
   const coachingList = data?.coaching || [];
 
-  return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 2000, padding: '1rem', backdropFilter: 'blur(4px)'
-    }}>
-      <div style={{ background: 'var(--bg-card)', padding: '2.5rem', borderRadius: '1rem', width: '90%', maxWidth: '850px', position: 'relative', maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--border-color)', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-        <button onClick={onBack} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'var(--bg-secondary)', border: 'none', borderRadius: '50%', width: '36px', height: '36px', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>✕</button>
+  if (loading) {
+    return (
+      <div className="result-card" style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--primary)', margin: '0 0 1.5rem 0' }}><Sparkles size={24} /> Parades aux Défauts</h3>
+        <div className="skeleton-pulse" style={{ width: '100%', height: '150px', borderRadius: '8px' }}></div>
+      </div>
+    );
+  }
+
+  const content = (
+      <div style={{ background: 'var(--bg-card)', padding: inline ? '1.5rem' : '2.5rem', borderRadius: '1rem', width: '100%', maxWidth: inline ? '100%' : '850px', position: 'relative', maxHeight: inline ? 'none' : '90vh', overflowY: inline ? 'visible' : 'auto', border: '1px solid var(--border-color)', boxShadow: inline ? 'none' : '0 20px 25px -5px rgba(0,0,0,0.1)', marginTop: inline ? '0.5rem' : '0' }}>
+        {!inline && onBack && <button onClick={onBack} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'var(--bg-secondary)', border: 'none', borderRadius: '50%', width: '36px', height: '36px', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>✕</button>}
         
-        <h2 style={{ textAlign: 'center', margin: '0 0 2rem 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', color: 'var(--text-main)', fontSize: '1.8rem' }}>
+        <h2 style={{ textAlign: inline ? 'left' : 'center', margin: '0 0 2rem 0', display: 'flex', alignItems: 'center', justifyContent: inline ? 'flex-start' : 'center', gap: '0.75rem', color: 'var(--text-main)', fontSize: inline ? '1.5rem' : '1.8rem' }}>
           <Sparkles size={28} color="var(--primary)" />
           Parades aux Défauts (Entretien)
         </h2>
@@ -73,6 +77,13 @@ export default function FlawCoaching({ data, onBack }: { data: any, onBack: () =
         />
       )}
       </div>
+  );
+
+  if (inline) return content;
+  
+  return (
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '1rem', backdropFilter: 'blur(4px)' }}>
+      {content}
     </div>
   );
 }

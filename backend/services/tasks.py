@@ -117,8 +117,19 @@ async def _run_completeness_logic(task_id: str, payload: dict):
         data_to_analyze = payload.get("data", payload)
         target_lang = normalize_language(data_to_analyze.get('target_language', 'French'))
         text_content = json.dumps(data_to_analyze, indent=2, ensure_ascii=False, default=str) if isinstance(data_to_analyze, dict) else str(data_to_analyze)
-        prompt = f"Analyze completeness. Return JSON with 'score', 'quality', 'missing_info', 'suggestions', 'clarifications'.\n\nCONTENT:\n{text_content[:15000]}"
-        result = await ai_service.generate_valid_json(prompt, provider="gemini", system_instruction=f"You are a Data Quality Analyst. Output STRICT JSON. Language: {target_lang}.")
+        
+        prompt = f"""
+        Analyze the candidate's profile completeness with a specific focus on generating a strong Elevator Pitch.
+        Return JSON with 'score', 'quality', 'missing_info', 'suggestions', 'clarifications'.
+        
+        For 'clarifications', you MUST provide EXACTLY 3 objects: {{ 'question': '...', 'suggested_answer': '...' }}.
+        Even if the profile seems completely perfect, you MUST ask 3 strategic questions to extract quantifiable metrics (KPIs), specific challenges overcome, or unique value propositions that will make the oral pitch memorable.
+        The suggested answer should be a plausible draft based on the context, written in the first person.
+        
+        CONTENT:
+        {text_content[:15000]}
+        """
+        result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a Data Quality Analyst. Output STRICT JSON. Language: {target_lang}.")
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         fallback = {"score": 50, "quality": "Moyen", "missing_info": [], "suggestions": [], "clarifications": []}

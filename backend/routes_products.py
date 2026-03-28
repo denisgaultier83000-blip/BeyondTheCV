@@ -37,7 +37,9 @@ def create_product(
         mime_type = None
         
         if file:
-            file_path = f"products/{user_id}/{filename}"
+            # [SECURITÉ] Prévention du Path Traversal
+            secure_filename = os.path.basename(filename)
+            file_path = f"products/{user_id}/{secure_filename}"
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
             
             content = file.file.read()
@@ -50,7 +52,7 @@ def create_product(
         product_id = ProductService.create_product(
             user_id=user_id,
             product_type=product_type,
-            filename=filename,
+            filename=secure_filename if file else filename,
             title=title or filename,
             description=description,
             file_path=file_path,
@@ -62,7 +64,7 @@ def create_product(
             "id": product_id,
             "user_id": user_id,
             "product_type": product_type,
-            "filename": filename,
+            "filename": secure_filename if file else filename,
             "title": title or filename,
             "description": description,
             "file_size": file_size,

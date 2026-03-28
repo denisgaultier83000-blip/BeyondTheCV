@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import ScoreGauge from "./ScoreGauge";
 import { useTranslation } from "react-i18next";
-import { Mic, User, Briefcase, Star, Target, Printer, ArrowLeft, CheckCircle2, Lightbulb } from 'lucide-react';
+import { Mic, User, Briefcase, Star, Target, Printer, ArrowLeft, Lightbulb, Play, Pause, RotateCcw, X, MonitorPlay } from 'lucide-react';
+import { createPortal } from 'react-dom';
 
 interface PitchData {
   accroche: string;
@@ -16,9 +17,60 @@ interface PitchEditorProps {
   onBack: () => void;
 }
 
+// --- COMPOSANT TÉLÉPROMPTEUR INTÉGRÉ (Sorti du composant parent pour éviter les re-renders mortels) ---
+const Teleprompter = ({ text, onClose }: { text: string, onClose: () => void }) => {
+  const [timeLeft, setTimeLeft] = useState(180); // 3 minutes = 180s
+  const [isActive, setIsActive] = useState(false);
+
+  useEffect(() => {
+    let interval: any = null;
+    if (isActive && timeLeft > 0) {
+      interval = setInterval(() => setTimeLeft(t => t - 1), 1000);
+    } else if (timeLeft === 0) {
+      setIsActive(false);
+    }
+    return () => clearInterval(interval);
+  }, [isActive, timeLeft]);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: '#0f172a', zIndex: 99999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      <button onClick={onClose} title="Fermer le téléprompteur" style={{ position: 'absolute', top: '2rem', right: '2rem', background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', width: '50px', height: '50px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100000, transition: 'background 0.2s' }}>
+        <X size={28} />
+      </button>
+      
+      <div style={{ position: 'absolute', top: '2rem', background: 'rgba(255,255,255,0.1)', padding: '0.75rem 2rem', borderRadius: '50px', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', gap: '1.5rem', zIndex: 100000 }}>
+        <span style={{ fontSize: '2rem', fontFamily: 'monospace', color: timeLeft <= 30 ? '#ef4444' : 'white', fontWeight: 'bold', width: '100px', textAlign: 'center' }}>
+          {formatTime(timeLeft)}
+        </span>
+        <div style={{ width: '2px', height: '30px', background: 'rgba(255,255,255,0.2)' }}></div>
+        <button onClick={() => setIsActive(!isActive)} style={{ background: isActive ? 'rgba(255,255,255,0.2)' : '#3b82f6', border: 'none', color: 'white', width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: '0.2s' }}>
+          {isActive ? <Pause size={24} /> : <Play size={24} style={{ marginLeft: '4px' }} />}
+        </button>
+        <button onClick={() => { setIsActive(false); setTimeLeft(180); }} style={{ background: 'transparent', border: '2px solid rgba(255,255,255,0.3)', color: 'white', width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: '0.2s' }}>
+          <RotateCcw size={20} />
+        </button>
+      </div>
+
+        <div style={{ width: '100%', maxWidth: '900px', height: '70vh', overflowY: 'auto', textAlign: 'center', marginTop: '2rem', paddingBottom: '6rem' }}>
+        {text.split('\n').map((para, idx) => para.trim() ? (
+          <p key={idx} style={{ color: 'rgba(255,255,255,0.7)', fontSize: '2.2rem', lineHeight: 1.6, marginBottom: '2.5rem', fontWeight: 600 }}>{para}</p>
+        ) : null)}
+      </div>
+      </div>,
+      document.body
+  );
+};
+
 export default function PitchEditor({ data: initialData, onBack }: PitchEditorProps) {
   const { t } = useTranslation();
   const [pitch, setPitch] = useState<PitchData>(initialData);
+  const [showTeleprompter, setShowTeleprompter] = useState(false);
 
   const handleChange = (key: keyof PitchData, value: string) => {
     setPitch(prev => ({ ...prev, [key]: value }));
@@ -116,20 +168,25 @@ export default function PitchEditor({ data: initialData, onBack }: PitchEditorPr
 
       {/* Aperçu complet pour lecture fluide */}
       <div style={{ marginTop: '3rem', background: 'white', padding: '2rem', borderRadius: '16px', border: '1px solid var(--border-color)', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 0, color: 'var(--primary)' }}>
-          <Mic size={20} /> {t('pitch_preview_title', 'Aperçu complet (Lecture à voix haute)')}
-        </h3>
-        <div style={{ fontSize: '1.1rem', lineHeight: '1.8', color: '#1e293b', padding: '1rem', background: '#f8fafc', borderRadius: '8px', borderLeft: '4px solid var(--primary)' }}>
-        <p style={{ marginBottom: '1rem' }}>{pitch.accroche}</p>
-        <p style={{ marginBottom: '1rem' }}>{pitch.preuve}</p>
-        <p style={{ marginBottom: '1rem' }}>{pitch.valeur}</p>
-        <p style={{ marginBottom: 0 }}>{pitch.projection}</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0, color: 'var(--primary)' }}>
+            <Mic size={20} /> {t('pitch_preview_title', 'Aperçu complet (Lecture à voix haute)')}
+          </h3>
+          <button className="btn-primary" onClick={() => setShowTeleprompter(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <MonitorPlay size={16} /> Lancer le Téléprompteur
+          </button>
         </div>
-        <div style={{ marginTop: '1rem', fontSize: '0.9rem', color: 'var(--text-muted)', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <Lightbulb size={16} color="#eab308" />
-          <span>{t('pitch_tip_recording', 'Astuce : Enregistrez-vous pour vérifier la fluidité et le timing (~3 min).')}</span>
+        
+        <div style={{ fontSize: '1.1rem', lineHeight: '1.8', color: '#1e293b', padding: '1rem', background: '#f8fafc', borderRadius: '8px', borderLeft: '4px solid var(--primary)' }}>
+          <p style={{ marginBottom: '1rem' }}>{pitch.accroche}</p>
+          <p style={{ marginBottom: '1rem' }}>{pitch.preuve}</p>
+          <p style={{ marginBottom: '1rem' }}>{pitch.valeur}</p>
+          <p style={{ marginBottom: 0 }}>{pitch.projection}</p>
         </div>
       </div>
+      
+      {/* Affichage conditionnel du Téléprompteur */}
+      {showTeleprompter && <Teleprompter text={`${pitch.accroche}\n\n${pitch.preuve}\n\n${pitch.valeur}\n\n${pitch.projection}`} onClose={() => setShowTeleprompter(false)} />}
     </div>
   );
 }

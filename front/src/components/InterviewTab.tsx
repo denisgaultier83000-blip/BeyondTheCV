@@ -36,7 +36,7 @@ const PitchSection = () => {
   const sections = [
     { key: "accroche", title: "Qui je suis (L'accroche)", icon: <User size={20} />, color: "var(--primary, #3b82f6)", bg: "rgba(59, 130, 246, 0.1)", placeholder: "Je suis un professionnel avec 5 ans d'expérience dans..." },
     { key: "preuve", title: "Ce que j'ai fait (La preuve)", icon: <Briefcase size={20} />, color: "#8b5cf6", bg: "rgba(139, 92, 246, 0.1)", placeholder: "J'ai notamment dirigé le projet X qui a permis de..." },
-    { key: "valeur", title: "Ce que j'apporte (La valeur)", icon: <Star size={20} />, color: "var(--warning, #eab308)", bg: "rgba(234, 179, 8, 0.1)", placeholder: "Mon expertise me permet de résoudre rapidement..." },
+    { key: "valeur", title: "Ce que j'apporte (La valeur)", icon: <Star size={20} />, color: "var(--warning)", bg: "rgba(234, 179, 8, 0.1)", placeholder: "Mon expertise me permet de résoudre rapidement..." },
     { key: "projection", title: "Pourquoi ce poste (La projection)", icon: <Target size={20} />, color: "var(--success, #10b981)", bg: "rgba(16, 185, 129, 0.1)", placeholder: "Je postule chez vous car votre vision résonne avec..." }
   ];
 
@@ -49,7 +49,11 @@ const PitchSection = () => {
               <div style={{ background: sec.bg, color: sec.color, padding: '0.5rem', borderRadius: '0.5rem', display: 'flex' }}>{sec.icon}</div>
               <h3 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--text-main)' }}>{sec.title}</h3>
             </div>
-            <textarea className="pitch-textarea" style={{ background: 'var(--bg-secondary)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }} placeholder={sec.placeholder} defaultValue={cvData?.pitch?.[sec.key] || ""}></textarea>
+            <textarea 
+              className="pitch-textarea" 
+              style={{ background: 'var(--bg-secondary)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }} 
+              placeholder={sec.placeholder} 
+              defaultValue={cvData?.pitch_data?.[sec.key] || cvData?.pitch?.[sec.key] || ""}></textarea>
           </div>
         ))}
         <div style={{ gridColumn: 'span 2', background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -78,10 +82,10 @@ const PitchSection = () => {
             <X size={24} />
           </button>
           <div className="teleprompter-text-container">
-            <p className="teleprompter-paragraph">Bonjour, je suis un professionnel avec 5 ans d'expérience dans l'architecture Cloud.</p>
-            <p className="teleprompter-paragraph">J'ai notamment dirigé la migration vers AWS pour le projet X, ce qui a permis de réduire les coûts d'infrastructure de 30% tout en augmentant la disponibilité.</p>
-            <p className="teleprompter-paragraph">Mon expertise technique couplée à ma vision FinOps me permet de résoudre rapidement les goulots d'étranglement de vos équipes de développement.</p>
-            <p className="teleprompter-paragraph" style={{ marginBottom: '150px' }}>Je postule chez vous aujourd'hui car votre vision d'un écosystème sécurisé by design résonne parfaitement avec mes ambitions d'architecte.</p>
+            <p className="teleprompter-paragraph">{cvData?.pitch_data?.accroche || cvData?.pitch?.accroche || "Accroche non générée."}</p>
+            <p className="teleprompter-paragraph">{cvData?.pitch_data?.preuve || cvData?.pitch?.preuve || "Preuve non générée."}</p>
+            <p className="teleprompter-paragraph">{cvData?.pitch_data?.valeur || cvData?.pitch?.valeur || "Valeur non générée."}</p>
+            <p className="teleprompter-paragraph" style={{ marginBottom: '150px' }}>{cvData?.pitch_data?.projection || cvData?.pitch?.projection || "Projection non générée."}</p>
           </div>
           <div style={{ position: 'absolute', bottom: '2rem', color: '#64748b', fontSize: '0.9rem' }}>Lisez à voix haute (Survolez le texte pour le mettre en évidence)</div>
         </div>
@@ -91,19 +95,32 @@ const PitchSection = () => {
 };
 
 const QASection = () => {
+  const { cvData } = useDashboard();
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   
-  // Mock enrichi
+  // Extraction dynamique des questions IA
+  let realQuestions: any[] = [];
+  if (cvData?.questions) {
+    if (Array.isArray(cvData.questions)) {
+      realQuestions = cvData.questions;
+    } else if (Array.isArray(cvData.questions.questions)) {
+      realQuestions = cvData.questions.questions;
+    }
+  }
+  
+  // Fallback sur le mock uniquement pendant le chargement
   const mockQuestions = [
     { category: "Conscience de soi", question: "Quels sont vos 3 principaux défauts ?", suggested_answer: "Je suis parfois trop perfectionniste...", advice: "Ne niez pas le défaut." },
     { category: "Culture & Curiosité", question: "Quelle a été votre principale difficulté ?", suggested_answer: "La gestion des dépendances techniques...", advice: "Restez factuel." },
     { category: "Technique", question: "Pourquoi privilégier Terraform plutôt qu'Ansible ?", suggested_answer: "Terraform est axé sur l'infrastructure immuable...", advice: "Montrez que vous connaissez leurs limites respectives." }
   ];
 
+  const displayQuestions = realQuestions.length > 0 ? realQuestions : mockQuestions;
+
   return (
     <>
       <div className="qa-list" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
-        {mockQuestions.map((q, i) => {
+        {displayQuestions.map((q, i) => {
           const isOpen = openIndex === i;
           return (
             <div key={i} className="qa-item" style={{ animationDelay: `${i * 0.15}s` }}>

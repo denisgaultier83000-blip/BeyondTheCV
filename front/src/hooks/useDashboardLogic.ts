@@ -57,11 +57,15 @@ export function useDashboardLogic() {
   const [jobDecoderResult, setJobDecoderResult] = useState<any>(null);
   const [pitchResult, setPitchResult] = useState<any>(null);
   const [questionsResult, setQuestionsResult] = useState<any>(null);
+  const [hiddenMarketResult, setHiddenMarketResult] = useState<any>(null);
+  const [recruiterResult, setRecruiterResult] = useState<any>(null);
+  const [realityResult, setRealityResult] = useState<any>(null);
+  const [flawCoachingResult, setFlawCoachingResult] = useState<any>(null);
   
   const [globalStatus, setGlobalStatus] = useState<"IDLE" | "STARTING" | "PROCESSING" | "COMPLETED" | "FAILED">("IDLE");
   const [error, setError] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'pilot' | 'cv' | 'interview' | 'analysis' | 'gap' | 'compact'>('pilot');
+  const [activeTab, setActiveTab] = useState<'overview' | 'cv' | 'interview' | 'market' | 'career'>('overview');
   const [pilotData, setPilotData] = useState<any | null>(null);
   const [toasts, setToasts] = useState<Array<{ id: number; text: string }>>([]);
 
@@ -70,10 +74,14 @@ export function useDashboardLogic() {
     if (pilotData || !formData) return; // Already fetched or no data
     console.log("Fetching pilot data...");
     try {
+      // [OPTIMISATION] On injecte les résultats de marché pour que la synthèse IA soit beaucoup plus riche
+      const enrichedPayload = { ...formData };
+      if (researchResult) enrichedPayload.research_data = researchResult;
+
       const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/dashboard/summary`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(enrichedPayload)
       });
       
       if (response.ok) {
@@ -114,6 +122,7 @@ export function useDashboardLogic() {
   useEffect(() => {
     localStorage.setItem("cvData", JSON.stringify(formData));
     localStorage.setItem("currentStep", currentStep.toString());
+    
   }, [formData, currentStep]);
 
   // --- GESTION DU FORMULAIRE ---
@@ -143,8 +152,17 @@ export function useDashboardLogic() {
     setCvResult(null);
     setResearchResult(null);
     setSalaryResult(null);
+    setCareerGpsResult(null);
+    setCareerRadarResult(null);
+    setJobDecoderResult(null);
+    setPitchResult(null);
+    setQuestionsResult(null);
+    setHiddenMarketResult(null);
+    setRecruiterResult(null);
+    setRealityResult(null);
+    setFlawCoachingResult(null);
     setGlobalStatus("IDLE");
-    setActiveTab('pilot');
+    setActiveTab('overview');
     setPilotData(null);
     localStorage.removeItem("cvData");
     localStorage.removeItem("currentStep");
@@ -296,6 +314,10 @@ export function useDashboardLogic() {
   useTaskPolling(taskIds?.job_decoder, setJobDecoderResult);
   useTaskPolling(taskIds?.pitch, setPitchResult);
   useTaskPolling(taskIds?.questions, setQuestionsResult);
+  useTaskPolling(taskIds?.hidden_market, setHiddenMarketResult);
+  useTaskPolling(taskIds?.recruiter_view, setRecruiterResult);
+  useTaskPolling(taskIds?.reality_check, setRealityResult);
+  useTaskPolling(taskIds?.flaw_coaching, setFlawCoachingResult);
 
   // Effect pour la conversion de devise
   useEffect(() => {
@@ -355,8 +377,8 @@ export function useDashboardLogic() {
     isAuthenticated, setIsAuthenticated,
     currentStep, setCurrentStep,
     cvResult, researchResult, salaryResult, displaySalary,
-    careerGpsResult, careerRadarResult, jobDecoderResult,
-    pitchResult, questionsResult,
+    careerGpsResult, careerRadarResult, jobDecoderResult, pitchResult, questionsResult,
+    hiddenMarketResult, recruiterResult, realityResult, flawCoachingResult,
     globalStatus, error,
     handleNextStep,
     cvData: formData,

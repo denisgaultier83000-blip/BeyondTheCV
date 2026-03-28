@@ -74,8 +74,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
                 
         except Exception as e:
             print(f"[AUTH ERROR] Database error in get_current_user: {e}")
-            # Fallback si db est indisponible ou erreur
-            return {"id": user_id, "email": f"user_{user_id}@test.com", "first_name": "Test", "last_name": "User", "is_premium": True}
+            # [SECURITÉ] Ne jamais accorder d'accès par défaut en cas d'erreur DB
+            raise HTTPException(status_code=500, detail="Internal server error during authentication verification")
             
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")

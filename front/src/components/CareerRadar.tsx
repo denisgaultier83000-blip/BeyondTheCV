@@ -41,7 +41,7 @@ export const CareerRadar: React.FC<CareerRadarProps> = ({ data, loading, error }
         <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '0 0 1.5rem 0', color: 'var(--primary)' }}>
           <Map size={24} /> Radar de Carrière
         </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {[1, 2, 3].map(i => (
             <div key={i} style={{ border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="skeleton-pulse" style={{ width: '60%', height: '24px', borderRadius: '4px' }}></div>
@@ -111,16 +111,19 @@ export const CareerRadar: React.FC<CareerRadarProps> = ({ data, loading, error }
                 </div>
               </div>
 
-              {/* RATIONALE (Carré Vert) */}
-              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0.75rem', padding: '1rem', marginBottom: '1rem', flex: 1, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.01)' }}>
-                <h5 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#166534', margin: '0 0 0.5rem 0', fontSize: '0.9rem', fontWeight: 700 }}><Lightbulb size={16} /> Pourquoi ce choix ?</h5>
-                <p style={{ margin: 0, fontSize: '0.9rem', color: '#14532d', lineHeight: 1.6 }}>{formatMarkdown(traj.rationale)}</p>
-              </div>
+              {/* RATIONALE & GAP (Grid 2 cols) */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                {/* RATIONALE (Carré Vert) */}
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0.75rem', padding: '1rem', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.01)' }}>
+                  <h5 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#166534', margin: '0 0 0.5rem 0', fontSize: '0.9rem', fontWeight: 700 }}><Lightbulb size={16} /> Pourquoi ce choix ?</h5>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: '#14532d', lineHeight: 1.6 }}>{formatMarkdown(traj.rationale)}</p>
+                </div>
 
-              {/* GAP (Carré Rosé) */}
-              <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '0.75rem', padding: '1rem', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.01)' }}>
-                <h5 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#be123c', margin: '0 0 0.5rem 0', fontSize: '0.9rem', fontWeight: 700 }}><Target size={16} /> Ce qu'il manque</h5>
-                <p style={{ margin: 0, fontSize: '0.9rem', color: '#881337', lineHeight: 1.6 }}>{formatMarkdown(traj.gap)}</p>
+                {/* GAP (Carré Rosé) */}
+                <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '0.75rem', padding: '1rem', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.01)' }}>
+                  <h5 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#be123c', margin: '0 0 0.5rem 0', fontSize: '0.9rem', fontWeight: 700 }}><Target size={16} /> Ce qu'il manque</h5>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: '#881337', lineHeight: 1.6 }}>{formatMarkdown(traj.gap)}</p>
+                </div>
               </div>
             </div>
           );
@@ -128,7 +131,7 @@ export const CareerRadar: React.FC<CareerRadarProps> = ({ data, loading, error }
       </div>
 
       <style>{`
-        .radar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; }
+        .radar-grid { display: flex; flex-direction: column; gap: 1.5rem; }
         .radar-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 1rem; padding: 1.5rem; display: flex; flex-direction: column; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); }
         .radar-card:hover { transform: translateY(-4px); box-shadow: 0 12px 20px -5px rgba(0,0,0,0.08); border-color: rgba(59, 130, 246, 0.4); }
       `}</style>

@@ -41,18 +41,17 @@ class AIGenerator:
         if self.gemini_api_key and genai:
             try:
                 self.gemini_client = genai.Client(api_key=self.gemini_api_key)
-                # [REVERT] Exécution stricte au démarrage (Lancement de l'algorithme)
-                self.gemini_model_name = self._resolve_best_gemini_model()
+                self.gemini_model_name = None # [FIX] Sera résolu de manière asynchrone
             except Exception as e:
                 print(f"[AI ERROR] Failed to initialize Gemini client: {e}", flush=True)
                 self.gemini_model_name = None
 
         # Modèle par défaut
         self.default_provider = os.getenv("DEFAULT_AI_PROVIDER", "gemini")
+        self.max_concurrent_requests = int(os.getenv("AI_MAX_CONCURRENT_REQUESTS", "4"))
 
-        # [CRITIQUE] Régulateur de trafic (Sémaphore)
-        # Empêche de lancer 14 requêtes simultanées et d'exploser le "Rate Limit" (429) des APIs.
-        self.semaphore = asyncio.Semaphore(4) # 4 tâches IA maximum en parallèle
+        # [FIX] Sémaphore reporté au runtime pour éviter le crash "No event loop" (Python 3.10+)
+        self._semaphore = None
 
     def _resolve_best_gemini_model(self):
         """
@@ -66,7 +65,7 @@ class AIGenerator:
         
         # 🎯 NOTRE STRATÉGIE (Par ordre de préférence strict)
         PREFERENCE_ORDER = [
-            "gemini-1.5-pro",
+            "gemini-1.5-flash", # Moins cher et plus rapide, idéal pour 95% des tâches
             "gemini-1.5-flash",
             "gemini-1.0-pro",
             "gemini-pro"
@@ -96,6 +95,14 @@ class AIGenerator:
             print(f"[AI INIT] ❌ Model discovery failed: {e}. Defaulting to 'gemini-1.5-flash'.", flush=True)
             return "gemini-1.5-flash"
             
+    async def _get_gemini_model(self) -> str:
+        """Exécute l'algorithme d'intersection sans bloquer l'Event Loop."""
+        if self.gemini_model_name:
+            return self.gemini_model_name
+        
+        # Délègue la requête API synchrone à un pool de threads système
+        self.gemini_model_name = await asyncio.to_thread(self._resolve_best_gemini_model)
+        return self.gemini_model_name
 
     async def _get_openai_model(self) -> str:
         """
@@ -110,9 +117,9 @@ class AIGenerator:
 
         print("[AI INIT] 📡 Discovery: Querying available OpenAI models...", flush=True)
         PREFERRED_MODELS = [
+            "gpt-4o-mini", # Moins cher et plus rapide
             "gpt-4o",
             "gpt-4-turbo",
-            "gpt-4o-mini",
             "gpt-3.5-turbo"
         ]
 
@@ -148,8 +155,12 @@ class AIGenerator:
         target_provider = provider or self.default_provider
         fallback_provider = "openai" if target_provider == "gemini" else "gemini"
 
+        # Initialisation Lazy du Sémaphore (Garanti dans l'Event Loop)
+        if self._semaphore is None:
+            self._semaphore = asyncio.Semaphore(self.max_concurrent_requests)
+
         # Le sémaphore met les requêtes excédentaires en file d'attente au lieu de spammer l'API
-        async with self.semaphore:
+        async with self._semaphore:
             try:
                 return await self._execute_provider(target_provider, prompt, system_instruction)
                     
@@ -161,10 +172,9 @@ class AIGenerator:
                 try:
                     return await self._execute_provider(fallback_provider, prompt, system_instruction)
                 except Exception as fallback_e:
-                    msg = f"Both providers failed. Primary: {str(e)} | Fallback: {str(fallback_e)}"
+                    msg = f"Both providers failed. Primary: {e!r} | Fallback: {fallback_e!r}"
                     print(f"[AI] 💀 FATAL: {msg}", flush=True)
-                    # On ajoute un type pour que generate_valid_json ne boucle pas
-                    return json.dumps({"error": msg, "type": "api_error"})
+                    raise RuntimeError(msg)
 
     async def generate_valid_json(self, prompt: str, provider: str = None, system_instruction: str = None) -> dict:
         """
@@ -173,9 +183,15 @@ class AIGenerator:
         """
         from .utils import clean_ai_json_response
         
+        # [FIX] Force l'IA à ne pas utiliser de Markdown dans les réponses JSON pour éviter les **xxxx** à l'affichage
+        prompt = prompt + "\n\n⚠️ CRITICAL INSTRUCTION: DO NOT use any markdown formatting (like **bold** or *italic*) inside the JSON values. Return raw, unformatted plain text only."
+        
         if not AsyncRetrying:
-            res_str = await self.generate(prompt, provider, system_instruction)
-            return clean_ai_json_response(res_str)
+            try:
+                res_str = await self.generate(prompt, provider, system_instruction)
+                return clean_ai_json_response(res_str)
+            except Exception as e:
+                return {"error": str(e), "type": "api_error"}
             
         current_prompt = prompt
         async for attempt in AsyncRetrying(
@@ -184,18 +200,17 @@ class AIGenerator:
             reraise=True
         ):
             with attempt:
-                res_str = await self.generate(current_prompt, provider, system_instruction)
-                parsed = clean_ai_json_response(res_str)
-                if "error" in parsed:
-                    if parsed.get("type") == "api_error":
-                        # C'est une erreur d'API (Timeout/Quota), l'IA ne peut pas corriger ça.
-                        return parsed
-                        
-                    # On informe l'IA de son erreur exacte pour qu'elle s'auto-corrige
-                    current_prompt = prompt + f"\n\n⚠️ ATTENTION : Ta réponse précédente n'était pas un JSON valide.\nErreur retournée : {parsed['error']}\nExtrait de ce que tu as envoyé : {res_str[:150]}...\nMerci de CORRIGER ce format et de retourner STRICTEMENT un JSON valide."
-                    print(f"[AI RETRY] JSON invalide détecté. Tentative de correction en cours...", flush=True)
-                    raise ValueError(f"Invalid JSON from AI: {parsed['error']}")
-                return parsed
+                try:
+                    res_str = await self.generate(current_prompt, provider, system_instruction)
+                    parsed = clean_ai_json_response(res_str)
+                    if "error" in parsed:
+                        current_prompt = prompt + f"\n\n⚠️ ATTENTION : Ta réponse précédente n'était pas un JSON valide.\nErreur retournée : {parsed['error']}\nExtrait de ce que tu as envoyé : {res_str[:150]}...\nMerci de CORRIGER ce format et de retourner STRICTEMENT un JSON valide."
+                        print(f"[AI RETRY] JSON invalide détecté. Tentative de correction en cours...", flush=True)
+                        raise ValueError(f"Invalid JSON from AI: {parsed['error']}")
+                    return parsed
+                except Exception as e:
+                    # Erreur d'API (Timeout, Quota, etc.), on renvoie l'erreur pour que le frontend gère
+                    return {"error": str(e), "type": "api_error"}
 
     async def _execute_provider(self, target_provider: str, prompt: str, system_instruction: str) -> str:
         """Exécute l'appel vers le provider spécifique de manière isolée."""
@@ -208,9 +223,10 @@ class AIGenerator:
         elif target_provider == "gemini":
             if not self.gemini_client:
                 raise ValueError("Gemini client not configured (Missing API Key).")
-            if not self.gemini_model_name:
+            model_name = await self._get_gemini_model()
+            if not model_name:
                 raise ValueError("Gemini initialized but no model found during discovery.")
-            return await self._attempt_call(self._call_gemini, self.gemini_model_name, prompt, system_instruction)
+            return await self._attempt_call(self._call_gemini, model_name, prompt, system_instruction)
             
         raise ValueError(f"Provider '{target_provider}' is unknown or not supported.")
 
@@ -230,7 +246,7 @@ class AIGenerator:
                     print(f"[AI] ⏳ Retry après Timeout dans {delay:.1f}s...", flush=True)
                     await asyncio.sleep(delay)
                 else:
-                    raise TimeoutError(f"Le provider AI a fait Timeout après {max_retries + 1} tentatives.")
+                    raise asyncio.TimeoutError(f"Le provider AI a fait Timeout après {max_retries + 1} tentatives.")
             except Exception as e:
                 error_msg = str(e).lower()
                 
@@ -284,7 +300,11 @@ class AIGenerator:
             contents=prompt,
             config=config
         )
-        return response.text
+        try:
+            return response.text
+        except ValueError as e:
+            # [FIX] Gère les blocages dus aux Safety Filters de Google (renvoie un bloc vide)
+            raise RuntimeError(f"Gemini Safety Filter Blocked Content: {e}")
 
 # Instance singleton pour être importée ailleurs
 ai_service = AIGenerator()

@@ -58,10 +58,10 @@ const CompanyReportSection = ({ data }: { data: any }) => {
         </div>
       </div>
 
-      <div className="analysis-card full-width">
-        <h3 className="analysis-card-title"><Newspaper size={20} color="#3b82f6" /> Liens d'Actualités & Revue de Presse</h3>
-        <div className="analysis-card-content">
-          {newsLinks.length > 0 ? (
+      {newsLinks.length > 0 && (
+        <div className="analysis-card full-width">
+          <h3 className="analysis-card-title"><Newspaper size={20} color="#3b82f6" /> Liens d'Actualités & Revue de Presse</h3>
+          <div className="analysis-card-content">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', marginTop: '0.5rem' }}>
               {newsLinks.map((news: any, i: number) => (
                 <a key={i} href={news.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', flexDirection: 'column', padding: '1.25rem', background: 'var(--bg-secondary)', borderRadius: '0.75rem', textDecoration: 'none', border: '1px solid var(--border-color)', transition: 'all 0.2s', color: 'var(--text-main)' }}>
@@ -74,9 +74,9 @@ const CompanyReportSection = ({ data }: { data: any }) => {
                 </a>
               ))}
             </div>
-          ) : <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Aucun lien d'actualité gratuit récent.</div>}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="analysis-card full-width" style={{ padding: '0', background: 'transparent', border: 'none', boxShadow: 'none', marginTop: '-0.5rem' }}>
         <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>

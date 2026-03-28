@@ -49,7 +49,7 @@ class CandidateProfile(BaseModel):
     bio: str = ""
     
     # Skills & Traits
-    skills: str = "" # Comma separated string
+    skills: List[str] = [] # [COHÉRENCE] Toujours un tableau pour éviter les bugs downstream
     qualities: List[str] = []
     flaws: List[str] = []
     interests: List[str] = []
@@ -65,6 +65,14 @@ class CandidateProfile(BaseModel):
     
     # Generated Content (Optional, for printing/export)
     questions_list: Optional[List[Dict[str, Any]]] = None
+
+    @field_validator('skills', mode='before')
+    @classmethod
+    def parse_skills(cls, v):
+        # Transforme silencieusement une chaîne brute en liste si l'IA ou le Frontend envoie du texte
+        if isinstance(v, str):
+            return [s.strip() for s in v.split(',') if s.strip()]
+        return v if isinstance(v, list) else []
 
 # --- Auth Models ---
 class UserLogin(BaseModel):

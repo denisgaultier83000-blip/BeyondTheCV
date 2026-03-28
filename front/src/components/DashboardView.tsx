@@ -1,126 +1,56 @@
 import React, { useState, useEffect } from 'react';
 import { useDashboard } from './DashboardContext';
-import { Activity, Target, Zap, AlertTriangle, TrendingUp, Download, Presentation, MessageSquare, ChevronRight, FileText, Sparkles, User, RefreshCw, LayoutTemplate, Mic, HelpCircle, ChevronDown, CheckCircle2, Lightbulb, Briefcase, Star, Building, Globe, Newspaper, Shield, LineChart, Wallet, X, Play, Loader2, Linkedin, Trophy, Plus } from 'lucide-react';
+import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { API_BASE_URL } from '../config';
-import Dashboard from './Dashboard';
-import Gauge from './Gauge';
-import { FeedbackWidget } from './FeedbackWidget';
 import { PilotBento } from './PilotBento';
 import { GapAnalysisFull } from './GapAnalysisFull';
 import { CVTab } from './CVTab';
 import { InterviewTab } from './InterviewTab';
 import { AnalysisTab } from './AnalysisTab';
-
-// NOUVEAU COMPOSANT DE MODALE PREMIUM GÉNÉRIQUE (Fallback visuel)
-const PremiumModal = ({ title, data, onClose }: { title: string, data: any, onClose: () => void }) => {
-  // Algorithme de rendu dynamique pour transformer le JSON IA en belle UI
-  const renderValue = (val: any): any => {
-    if (Array.isArray(val)) {
-      if (val.length > 0 && typeof val[0] === 'object') {
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
-            {val.map((item, i) => (
-              <div key={i} style={{ background: 'var(--bg-body)', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
-                {Object.entries(item).map(([k, v]) => (
-                  <div key={k} style={{ marginBottom: '0.5rem' }}>
-                    <span style={{ fontWeight: 600, color: 'var(--text-muted)', textTransform: 'capitalize', fontSize: '0.85rem' }}>{k.replace(/_/g, ' ')} : </span>
-                    <span style={{ color: 'var(--text-main)', fontSize: '0.95rem' }}>{String(v)}</span>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        );
-      } else {
-        return (
-          <ul style={{ margin: 0, paddingLeft: '1.5rem', color: 'var(--text-main)', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-            {val.map((item, i) => <li key={i} style={{ lineHeight: '1.5' }}>{String(item)}</li>)}
-          </ul>
-        );
-      }
-    } else if (typeof val === 'object' && val !== null) {
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
-           {Object.entries(val).map(([k, v]) => (
-             <div key={k} style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '1rem', borderRadius: '0.5rem', borderLeft: '3px solid var(--primary)' }}>
-               <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>{k.replace(/_/g, ' ')}</div>
-               <div>{renderValue(v)}</div>
-             </div>
-           ))}
-        </div>
-      );
-    }
-    return <span style={{ color: 'var(--text-main)', lineHeight: '1.6' }}>{String(val)}</span>;
-  };
-
-  return (
-  <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.8)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', backdropFilter: 'blur(4px)' }}>
-    <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '1rem', width: '100%', maxWidth: '800px', maxHeight: '85vh', overflowY: 'auto', border: '1px solid var(--border-color)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'relative' }}>
-      <button onClick={onClose} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
-        <X size={24} />
-      </button>
-      <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <Sparkles color="var(--primary)" /> {title}
-      </h2>
-      {data ? (
-        <div style={{ padding: '0.5rem' }}>
-          {renderValue(data)}
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '3rem 0', color: 'var(--text-muted)' }}>
-          <Loader2 size={32} className="spin" style={{ marginBottom: '1rem', color: 'var(--primary)' }} />
-          <p>Analyse IA en cours ou données non disponibles...</p>
-        </div>
-      )}
-    </div>
-  </div>
-  );
-};
+import { CareerGPS } from './CareerGPS';
+import { CareerRadar } from './CareerRadar';
+import { JobDecoder } from './JobDecoder';
+import { HiddenMarket } from './HiddenMarket';
+import { CareerRealityCheck } from './CareerRealityCheck';
+import { CareerSimulator } from './CareerSimulator';
+import { RecruiterView } from './RecruiterView';
+import FlawCoaching from './FlawCoaching';
 
 export const DashboardView = () => {
   const { t } = useTranslation();
-  const { activeTab, setActiveTab, pilotData, isPilotLoading, cvData, researchResult, salaryResult, careerGpsResult, careerRadarResult, jobDecoderResult, pitchResult, questionsResult, globalStatus, setCurrentStep, triggerResearch } = useDashboard();
-  
-  console.log("researchResult in DashboardView:", researchResult);
+  const { 
+    activeTab, setActiveTab, pilotData, isPilotLoading, cvData, 
+    researchResult, salaryResult, careerGpsResult, careerRadarResult, 
+    jobDecoderResult, hiddenMarketResult, recruiterResult, realityResult, flawCoachingResult,
+    globalStatus, triggerResearch 
+  } = useDashboard();
 
-  // 💡 FIX ARCHITECTURAL : Initialisation intelligente du viewMode selon le contexte global
-  const [viewMode, setViewMode] = useState<'pilot' | 'compact' | 'detailed'>(() => {
-    // On force l'atterrissage sur la vue Pilote (Bento) selon les spécifications produit
-    return 'pilot'; 
-  });
-  const [showJobDecoder, setShowJobDecoder] = useState(false);
-  const [showCareerRadar, setShowCareerRadar] = useState(false);
-  const [showCareerGps, setShowCareerGps] = useState(false);
+  const isProcessing = globalStatus === "PROCESSING" || globalStatus === "STARTING";
 
-
-  // Navigation fluide : si on bascule sur "Détaillé", on affiche le sous-onglet actif ou "cv" par défaut
-  const handleSetViewMode = (mode: 'pilot' | 'compact' | 'detailed') => {
-    setViewMode(mode);
-    if (mode === 'detailed' && (activeTab === 'pilot' || activeTab === 'compact')) {
-      setActiveTab('cv');
-    }
-  };
 
   return (
     <div className="dashboard-wrapper">
-      {/* LE SÉLECTEUR STRICT DES 3 VUES POUR LE TEST */}
-      <div className="view-mode-selector">
-        <button className={`view-btn ${viewMode === 'compact' ? 'active' : ''}`} onClick={() => handleSetViewMode('compact')}>
-          <LayoutTemplate size={20} /> Vue Compacte
+      <div className="tabs-navigation">
+        <button className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
+          <Activity size={18} /> Vue d'ensemble
         </button>
-        <button className={`view-btn ${viewMode === 'detailed' ? 'active' : ''}`} onClick={() => handleSetViewMode('detailed')}>
-          <FileText size={20} /> Vue Détaillée
+        <button className={`tab-btn ${activeTab === 'cv' ? 'active' : ''}`} onClick={() => setActiveTab('cv')}>
+          <FileText size={18} /> CV & ATS
         </button>
-        <button className={`view-btn ${viewMode === 'pilot' ? 'active' : ''}`} onClick={() => handleSetViewMode('pilot')}>
-          <Activity size={20} /> Vue Pilote
+        <button className={`tab-btn ${activeTab === 'interview' ? 'active' : ''}`} onClick={() => setActiveTab('interview')}>
+          <MessageSquare size={18} /> Entretien
+        </button>
+        <button className={`tab-btn ${activeTab === 'market' ? 'active' : ''}`} onClick={() => setActiveTab('market')}>
+          <Globe size={18} /> Marché & Offre
+        </button>
+        <button className={`tab-btn ${activeTab === 'career' ? 'active' : ''}`} onClick={() => setActiveTab('career')}>
+          <Compass size={18} /> Stratégie & Trajectoires
         </button>
       </div>
 
       {/* Contenu de l'onglet actif */}
       <div className="tab-content">
-        {/* 1. VUE PILOTE */}
-        {viewMode === 'pilot' && (
+        {activeTab === 'overview' && (
           isPilotLoading ? (
             <div className="bento-grid">
                {/* Skeletons pour faire patienter */}
@@ -128,99 +58,62 @@ export const DashboardView = () => {
                <div className="bento-card col-span-2 skeleton-pulse" style={{ minHeight: '150px' }}></div>
                <div className="bento-card col-span-2 skeleton-pulse" style={{ minHeight: '150px' }}></div>
             </div>
-          ) : <PilotBento 
-                data={pilotData} 
-                careerRadarData={careerRadarResult}
-                careerGpsData={careerGpsResult}
-                onGoToGap={() => { handleSetViewMode('detailed'); setActiveTab('gap'); }} 
-                onGoToRadar={() => setShowCareerRadar(true)}
-                onGoToGps={() => setShowCareerGps(true)}
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+              <PilotBento 
+                  data={pilotData} 
+                  careerRadarData={careerRadarResult}
+                  careerGpsData={careerGpsResult}
+                  onGoToGap={() => setActiveTab('market')} 
+                  onGoToRadar={() => setActiveTab('career')}
+                  onGoToGps={() => setActiveTab('career')}
               />
-        )}
-
-        {/* 2. VUE COMPACTE */}
-        {viewMode === 'compact' && (
-          <Dashboard 
-            data={cvData || {}}
-            experiences={cvData?.experiences || []}
-            educations={cvData?.educations || []}
-            loading={globalStatus === "PROCESSING" || globalStatus === "STARTING"}
-            onBack={() => setCurrentStep(7)}
-            salaryData={salaryResult}
-            researchData={researchResult}
-            gapAnalysis={pilotData}
-            careerGpsData={careerGpsResult}
-            careerRadarData={careerRadarResult}
-            jobDecoderData={jobDecoderResult}
-            pitchData={pitchResult}
-            questionsData={questionsResult}
-            onAction={(action) => {
-              // Si c'est un module Premium avec Modale, on ne change pas d'onglet
-              if (action === "Job Decoder") {
-                setShowJobDecoder(true);
-                return;
-              }
-              if (action === "Career Radar") {
-                setShowCareerRadar(true);
-                return;
-              }
-              if (action === "Career GPS") {
-                setShowCareerGps(true);
-                return;
-              }
-              handleSetViewMode('detailed');
-              if (action.includes('CV')) setActiveTab('cv');
-              else if (action.includes('Pitch') || action.includes('Questionnaire')) setActiveTab('interview');
-              else if (action.includes('Gap')) setActiveTab('gap');
-              else setActiveTab('analysis');
-            }}
-          />
-        )}
-
-        {/* 3. VUE DÉTAILLÉE (Avec sous-navigation) */}
-        {viewMode === 'detailed' && (
-          <div className="detailed-view-wrapper">
-            <div className="tabs-navigation">
-              <button className={`tab-btn ${activeTab === 'cv' ? 'active' : ''}`} onClick={() => setActiveTab('cv')}><Target size={16} /> CV & ATS</button>
-              <button className={`tab-btn ${activeTab === 'interview' ? 'active' : ''}`} onClick={() => setActiveTab('interview')}><MessageSquare size={16} /> Entretien</button>
-              <button className={`tab-btn ${activeTab === 'analysis' ? 'active' : ''}`} onClick={() => setActiveTab('analysis')}><TrendingUp size={16} /> Analyses</button>
-              <button className={`tab-btn ${activeTab === 'gap' ? 'active' : ''}`} onClick={() => setActiveTab('gap')}><AlertTriangle size={16} /> Gap Analysis</button>
+              <CareerRealityCheck data={realityResult} score={pilotData?.matchScore} loading={isProcessing && !realityResult} />
             </div>
-            
-            <div style={{ marginTop: '1.5rem' }}>
-              {activeTab === 'cv' && <CVTab data={pilotData} />}
-              {activeTab === 'interview' && <InterviewTab />}
-              {activeTab === 'analysis' && <AnalysisTab researchResult={researchResult} salaryResult={salaryResult} onRefresh={triggerResearch} isRefreshing={globalStatus === "PROCESSING"} />}
-              {activeTab === 'gap' && <GapAnalysisFull data={pilotData} onBack={() => handleSetViewMode('pilot')} />}
-            </div>
-          </div>
+          )
         )}
         
-        {/* MODALES OVERLAY */}
-        {showJobDecoder && (
-          <PremiumModal title="🕵️ Décodeur d'Annonce" data={jobDecoderResult} onClose={() => setShowJobDecoder(false)} />
+        {activeTab === 'cv' && (
+           <CVTab data={pilotData} />
         )}
-        {showCareerRadar && (
-          <PremiumModal title="🗺️ Career Radar" data={careerRadarResult} onClose={() => setShowCareerRadar(false)} />
+
+        {activeTab === 'interview' && (
+           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+             <InterviewTab />
+             <FlawCoaching data={flawCoachingResult} inline={true} loading={isProcessing && !flawCoachingResult} />
+           </div>
         )}
-        {showCareerGps && (
-          <PremiumModal title="🧭 Career GPS" data={careerGpsResult} onClose={() => setShowCareerGps(false)} />
+
+        {activeTab === 'market' && (
+           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+             <GapAnalysisFull data={pilotData} onBack={() => setActiveTab('overview')} />
+             <AnalysisTab researchResult={researchResult} salaryResult={salaryResult} onRefresh={triggerResearch} isRefreshing={globalStatus === "PROCESSING"} />
+             <JobDecoder data={jobDecoderResult} loading={isProcessing && !jobDecoderResult} />
+           </div>
+        )}
+
+        {activeTab === 'career' && (
+           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+             <RecruiterView data={recruiterResult} loading={isProcessing && !recruiterResult} />
+             <CareerGPS data={careerGpsResult} loading={isProcessing && !careerGpsResult} />
+             <CareerRadar data={careerRadarResult} loading={isProcessing && !careerRadarResult} />
+             <HiddenMarket data={hiddenMarketResult} loading={isProcessing && !hiddenMarketResult} />
+             
+             <div className="result-card" style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
+               <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 1.5rem 0', color: 'var(--primary)' }}>🚀 Simulateur de Carrière</h3>
+               <CareerSimulator candidateData={cvData} />
+             </div>
+           </div>
         )}
       </div>
 
       <style>{`
         .dashboard-wrapper { display: flex; flex-direction: column; gap: 2rem; width: 100%; }
         
-        /* Sélecteur principal des 3 Vues - RENDU EXTRÊMEMENT VISIBLE ET HARMONISÉ */
-        .view-mode-selector { display: flex; gap: 1rem; justify-content: center; background: var(--bg-card); padding: 1rem; border-radius: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--border-color); margin-bottom: 1rem; }
-        .view-btn { flex: 1; max-width: 280px; display: flex; justify-content: center; align-items: center; gap: 0.75rem; padding: 1rem 1.5rem; border: 1px solid var(--border-color); background: var(--bg-secondary); border-radius: 0.75rem; font-weight: 700; color: var(--text-main); cursor: pointer; transition: all 0.2s; font-size: 1.05rem; }
-        .view-btn:hover { border-color: var(--primary); background: var(--bg-card); transform: translateY(-2px); }
-        .view-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4); transform: translateY(0); }
-        
-        .tabs-navigation { display: flex; gap: 1rem; border-bottom: 2px solid var(--border-color); padding-bottom: 1rem; }
-        .tab-btn { display: flex; align-items: center; gap: 0.5rem; background: none; border: none; padding: 0.5rem 1rem; cursor: pointer; font-weight: 600; color: var(--text-muted); border-radius: 0.5rem; transition: all 0.2s; }
-        .tab-btn:hover { background: var(--bg-secondary); color: var(--text-main); }
-        .tab-btn.active { background: var(--primary); color: white; }
+        .tabs-navigation { display: flex; gap: 0.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 1rem; overflow-x: auto; }
+        .tab-btn { display: flex; align-items: center; gap: 0.5rem; background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 0.75rem 1.25rem; cursor: pointer; font-weight: 600; color: var(--text-muted); border-radius: 0.75rem; transition: all 0.2s; white-space: nowrap; }
+        .tab-btn:hover { background: var(--bg-card); color: var(--text-main); border-color: var(--primary); }
+        .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
         
         /* BENTO GRID CSS */
         .bento-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; grid-auto-rows: minmax(150px, auto); }

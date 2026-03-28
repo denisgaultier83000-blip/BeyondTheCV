@@ -187,10 +187,13 @@ async def rate_limiter(request: Request):
     if request.url.path == "/":
         return
 
-    try:
+    # [SÉCURITÉ & RÉSEAU] Récupérer la vraie IP derrière un proxy/Docker
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        client_ip = forwarded_for.split(",")[0].strip()
+    else:
         client_ip = request.client.host if request.client else "unknown"
-    except AttributeError:
-        client_ip = "unknown"
+        
     now = time.time()
     
     # Clean up old timestamps for the current IP (Sliding Window)
@@ -268,8 +271,10 @@ def include_safe_router(module_name, from_services=True):
         app.include_router(mod.router)
         print(f"[ROUTER] ✅ Loaded: {module_name}", flush=True)
     except Exception as e:
-        print(f"[ROUTER] ❌ FAILED loading {module_name}: {e}", flush=True)
-        # On pourrait ajouter un routeur "placeholder" qui retourne l'erreur 500 pour les routes de ce module
+        # [FIABILITÉ] Ne JAMAIS démarrer silencieusement si un routeur est cassé.
+        # Une erreur de syntaxe doit crasher l'appli pour empêcher un déploiement corrompu (Fail-Closed).
+        print(f"[ROUTER] ❌ FATAL ERROR loading {module_name}: {e}", flush=True)
+        raise RuntimeError(f"Failed to load vital router: {module_name}") from e
 
 include_safe_router("auth")
 include_safe_router("cv_services")

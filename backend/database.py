@@ -1,6 +1,7 @@
 import os
 from contextlib import asynccontextmanager, contextmanager
 from dotenv import load_dotenv
+import asyncio
 
 # Load environment variables
 load_dotenv()
@@ -81,11 +82,16 @@ class Database:
         
         if hasattr(conn, 'cursor') and not hasattr(conn, 'fetch'):
             # Mode psycopg2 (synchrone wrappé en asynchrone, ne possède pas de méthode fetch direct sur la connection)
-            from psycopg2.extras import RealDictCursor
-            cur = conn.cursor(cursor_factory=RealDictCursor)
-            cur.execute(safe_query, params)
-            if safe_query.strip().upper().startswith(("INSERT", "UPDATE", "DELETE")):
-                conn.commit()
+            def _run_query():
+                from psycopg2.extras import RealDictCursor
+                cur = conn.cursor(cursor_factory=RealDictCursor)
+                cur.execute(safe_query, params)
+                if safe_query.strip().upper().startswith(("INSERT", "UPDATE", "DELETE")):
+                    conn.commit()
+                return cur
+                
+            # [FIX PERFORMANCE] Ne bloque pas l'event loop ASGI
+            cur = await asyncio.to_thread(_run_query)
             
             class AsyncCursor:
                 def __init__(self, c): self.c = c

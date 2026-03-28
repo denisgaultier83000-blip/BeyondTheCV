@@ -16,9 +16,10 @@ Extraire les informations clés du texte brut d'un profil LinkedIn et les struct
   - Pour la bio, prends le texte de la section "Summary" (ou "Résumé").
   - Nettoyage des dates : Retire scrupuleusement les durées entre parenthèses comme "(3 years 2 months)" ou "(1 an 2 mois)" pour ne conserver que "Mois Année".
 - **Langue :** Le contenu doit être conservé dans sa langue d'origine. Ne traduis rien.
+- **Format Strict :** N'utilise AUCUNE balise markdown. Renvoie uniquement le JSON pur.
 
 ## 📦 FORMAT DE SORTIE (JSON STRICT)
-Tu dois retourner UNIQUEMENT un objet JSON valide avec la structure exacte suivante.
+Tu dois retourner UNIQUEMENT un objet JSON valide avec la structure exacte suivante. Renvoie des chaînes vides `""` si une donnée est manquante.
 
 ```json
 {
@@ -39,6 +40,6 @@ Tu dois retourner UNIQUEMENT un objet JSON valide avec la structure exacte suiva
     "educations": [
       { "degree": "Intitulé du diplôme", "school": "Nom de l'école", "year": "Année" }
     ],
-    "skills": "Liste des compétences séparées par des virgules."
+    "skills": ["Compétence 1", "Compétence 2", "Compétence 3"]
 }
 ```

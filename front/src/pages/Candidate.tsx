@@ -431,38 +431,58 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
       const currentUser = getUser();
       if (!currentUser) return;
 
-      // 1. Pour les comptes de test, on force TOUJOURS la récupération en base de données
-      if (currentUser.email.startsWith('test')) {
-        try {
-          const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/me/profile?email=${currentUser.email}`);
-          if (response.ok) {
-            const parsed = await response.json();
+      let profileLoadedFromDB = false;
+
+      // --- 1. Priorité : Toujours tenter de charger depuis la base de données pour tous les utilisateurs ---
+      try {
+        const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/me/profile?email=${currentUser.email}`);
+        if (response.ok) {
+          const parsed = await response.json();
+          
+          // Vérifie si le profil retourné contient des données significatives
+          if (parsed && parsed.form && parsed.form.first_name) {
             if (parsed.form?.target_language) i18n.changeLanguage(parsed.form.target_language.toLowerCase());
-            // ⚠️ FUSION (Merge) pour conserver les tableaux par défaut du state initial
+            
             if (parsed.form) setForm((prev: any) => ({ ...prev, ...parsed.form }));
             if (parsed.experiences && parsed.experiences.length > 0) setExperiences(parsed.experiences);
             if (parsed.educations && parsed.educations.length > 0) setEducations(parsed.educations);
-            setToast({ type: "success", message: `Profil de test chargé depuis la base.` });
-            return; // 🛑 On s'arrête ici pour ne pas écraser avec le cache local vide
+            
+            if (parsed.researchData) setResearchData(parsed.researchData);
+            if (parsed.salaryData) setSalaryData(parsed.salaryData);
+            if (parsed.pitchData) setPitchData(parsed.pitchData);
+            if (parsed.gapAnalysis) setGapAnalysis(parsed.gapAnalysis);
+            if (parsed.questionsList) setQuestionsList(parsed.questionsList);
+            if (parsed.radarResult) setRadarResult(parsed.radarResult);
+            if (parsed.decoderResult) setDecoderResult(parsed.decoderResult);
+            if (parsed.hiddenMarketResult) setHiddenMarketResult(parsed.hiddenMarketResult);
+            if (parsed.recruiterResult) setRecruiterResult(parsed.recruiterResult);
+            if (parsed.gpsResult) setGpsResult(parsed.gpsResult);
+            if (parsed.realityResult) setRealityResult(parsed.realityResult);
+            if (parsed.flawCoachingResult) setFlawCoachingResult(parsed.flawCoachingResult);
+
+            setToast({ type: "success", message: `Profil de ${currentUser.email} chargé depuis la base de données.` });
+            profileLoadedFromDB = true;
           }
-        } catch (e) {
-          console.warn("API profile fetch failed.", e);
         }
+      } catch (e) {
+        console.warn("API profile fetch failed, will try localStorage.", e);
       }
 
-      // 2. Fallback classique : Si session existe pour CET utilisateur sur ce PC, on la restaure
+      // --- 2. Fallback : Si le profil n'a pas été chargé depuis la DB, on tente le localStorage ---
+      if (profileLoadedFromDB) {
+        return; // On s'arrête ici, la DB est la source de vérité
+      }
+
       const storageKey = `candidateForm_${currentUser.email}`;
       const savedData = localStorage.getItem(storageKey);
       
       if (savedData) {
         try {
           const parsed = JSON.parse(savedData);
-          if (parsed.form?.target_language) {
-              i18n.changeLanguage(parsed.form.target_language.toLowerCase());
-          }
+          if (parsed.form?.target_language) i18n.changeLanguage(parsed.form.target_language.toLowerCase());
           if (parsed.form) setForm((prev: any) => ({ ...prev, ...parsed.form }));
-          if (parsed.experiences) setExperiences(parsed.experiences);
-          if (parsed.educations) setEducations(parsed.educations);
+          if (parsed.experiences && parsed.experiences.length > 0) setExperiences(parsed.experiences);
+          if (parsed.educations && parsed.educations.length > 0) setEducations(parsed.educations);
           if (parsed.researchData) setResearchData(parsed.researchData);
           if (parsed.salaryData) setSalaryData(parsed.salaryData);
           if (parsed.pitchData) setPitchData(parsed.pitchData);
@@ -476,9 +496,9 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
           if (parsed.realityResult) setRealityResult(parsed.realityResult);
           if (parsed.flawCoachingResult) setFlawCoachingResult(parsed.flawCoachingResult);
           
-          setToast({ type: "info", message: `Session restaurée pour ${currentUser.email}` });
+          setToast({ type: "info", message: `Session locale restaurée pour ${currentUser.email}` });
         } catch (e) {
-          console.error("Failed to load saved form", e);
+          console.error("Failed to load saved form from localStorage", e);
         }
       }
     }
@@ -486,7 +506,7 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
     if (isLoggedIn) {
       loadProfile();
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, i18n]);
 
   useEffect(() => {
     const currentUser = getUser();

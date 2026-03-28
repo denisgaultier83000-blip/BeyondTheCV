@@ -126,6 +126,41 @@ button { cursor: pointer; font-family: inherit; }
 }
 .btn-secondary:hover { background: var(--bg-secondary); border-color: var(--text-muted); }
 
+.btn-outline {
+  background: transparent;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+.btn-outline:hover {
+  background: rgba(15, 38, 80, 0.05);
+}
+.dark-mode .btn-outline {
+  color: var(--bleu-clair);
+  border-color: var(--bleu-clair);
+}
+.dark-mode .btn-outline:hover {
+  background: rgba(109, 190, 247, 0.1);
+}
+
+.btn-link {
+  background: transparent;
+  color: var(--primary);
+  border: none;
+  padding: 0;
+  text-decoration: underline;
+  font-weight: 600;
+  font-size: 14px;
+}
+.btn-link:hover {
+  color: var(--primary-hover);
+}
+
+
 .btn-ghost {
   background: transparent; color: var(--primary); border: none; padding: 6px 12px; border-radius: 6px;
   font-weight: 600; font-size: 13px; transition: background 0.2s;

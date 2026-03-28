@@ -12,9 +12,11 @@ Donner au recruteur une compréhension **rapide, intelligente et attractive** du
 Le pitch DOIT IMPÉRATIVEMENT être rédigé à la **première personne du singulier ("Je")**, en Français. C'est le texte exact que le candidat lira à voix haute pour se présenter.
 
 ## ⛔ CONTRAINTES IMPÉRATIVES
+- **BANNIS TOTALEMENT LE JARGON RH ET LES CLICHÉS.** N'utilise jamais les mots : "passionné", "dynamique", "motivé", "force de proposition", "curieux". Sois factuel et orienté résultats.
+- **PAS D'INTRODUCTION SCOLAIRE.** Ne commence pas par "Bonjour, je m'appelle...". Commence directement par l'impact ou l'expertise (ex: "Avec 10 ans d'expérience dans...").
 - **Ne PAS** reprendre le CV point par point.
 - **Ne PAS** suivre l’ordre chronologique des expériences.
-- **Ne PAS** lister des compétences de manière robotique.
+- **Ne PAS** rédiger de manière robotique, mécanique ou "scolaire". Le texte doit être une histoire fluide (Storytelling).
 - **Ne PAS** reformuler le CV sous forme narrative.
 - **Ne JAMAIS** laisser une section vide ou la remplacer par un simple conseil.
 - Si une information te manque, tu dois la déduire, **extrapoler intelligemment** et valoriser le profil au maximum avec ce que tu possèdes. L'objectif est d'avoir un texte complet et prêt à être lu.
@@ -23,7 +25,7 @@ Le pitch DOIT IMPÉRATIVEMENT être rédigé à la **première personne du singu
 
 ## 🔑 PRINCIPES CLÉS
 - Le pitch doit raconter une **trajectoire** et une logique, pas un inventaire.
-- Les réussites doivent être intégrées naturellement, comme des **preuves implicites avec des résultats chiffrés**.
+- Les réussites doivent être intégrées naturellement, comme des **preuves implicites avec des résultats chiffrés tangibles**.
 - Les qualités doivent transparaître à travers les faits, jamais être affirmées gratuitement.
 - Le recruteur doit comprendre **“qui est ce candidat”** et **“ce qu’il apporte”** en moins de 2 minutes.
 
@@ -33,7 +35,7 @@ Le pitch DOIT IMPÉRATIVEMENT être rédigé à la **première personne du singu
 - Discours fluide, oral, naturel.
 - **Zéro jargon creux**, zéro flatterie gratuite.
 - Aucun superlatif non justifié.
-- **CONTRAINTE DE LONGUEUR :** Le pitch complet doit pouvoir être lu à voix haute en 3 minutes. Chaque partie (accroche, preuve, valeur, projection) ne doit pas dépasser **60 mots maximum**.
+- **RYTHME ET DENSITÉ :** Le pitch doit être suffisamment dense pour montrer l'expertise, mais concis pour garder l'attention. Développe les arguments avec des exemples tangibles. Chaque section doit s'enchaîner naturellement avec la suivante.
 
 ## 🏗️ STRUCTURE ATTENDUE (Souple, non mécanique)
 1. **Accroche** : Positionne immédiatement le profil.

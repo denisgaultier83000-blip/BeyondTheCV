@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { API_BASE_URL } from "../config";
 import { useTranslation } from "react-i18next";
+import "./AuthScreen.css";
 
 interface AuthScreenProps {
   onLoginSuccess: () => void;
@@ -43,38 +44,29 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
   }
 
   return (
-    <div style={{ 
-      display: "flex", 
-      flexDirection: "column", 
-      alignItems: "center", 
-      justifyContent: "center", 
-      height: "100vh", 
-      width: "100%",
-      backgroundColor: "var(--bg-body)",
-      color: "var(--text-main)"
-    }}>
-      <div className="card" style={{ maxWidth: "400px", width: "100%", padding: "30px" }}>
-        <h2 style={{ textAlign: "center", marginBottom: "20px", color: "var(--text-main)" }}>{t('auth_required', "Authentication Required")}</h2>
-        <p style={{ textAlign: "center", marginBottom: "20px", color: "var(--text-muted)" }}>
+    <div className="auth-screen">
+      <div className="card auth-card">
+        <h2 className="auth-title">{t('auth_required', "Authentication Required")}</h2>
+        <p className="auth-subtitle">
           {t('auth_please_login', "Please log in to access the candidate interface.")}
         </p>
         
         {error && (
-          <div style={{ marginBottom: 16, padding: "10px", background: "var(--error-bg)", color: "var(--error-text)", borderRadius: 8, border: "1px solid var(--error-border)", fontSize: 14 }}>
+          <div className="auth-error">
             {error}
           </div>
         )}
 
         <form onSubmit={onSubmit}>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", marginBottom: "8px" }}>{t('auth_email', "Email")}</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid var(--border-color)", boxSizing: "border-box" }} />
+          <div className="auth-form-group">
+            <label className="auth-label">{t('auth_email', "Email")}</label>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="auth-input" />
           </div>
-          <div style={{ marginBottom: 24 }}>
-            <label style={{ display: "block", marginBottom: "8px" }}>{t('auth_password', "Password")}</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid var(--border-color)", boxSizing: "border-box" }} />
+          <div className="auth-form-group" style={{marginBottom: 24}}>
+            <label className="auth-label">{t('auth_password', "Password")}</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="auth-input" />
           </div>
-          <button type="submit" className="btn-primary" style={{ width: "100%" }} disabled={loading}>{loading ? t('auth_signing_in', "Signing in...") : t('auth_sign_in', "Sign In")}</button>
+          <button type="submit" className="btn-primary auth-button" disabled={loading}>{loading ? t('auth_signing_in', "Signing in...") : t('auth_sign_in', "Sign In")}</button>
         </form>
       </div>
     </div>

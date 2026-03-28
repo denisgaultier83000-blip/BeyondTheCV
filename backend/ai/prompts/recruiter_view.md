@@ -25,6 +25,7 @@ Si le CV contient des red flags majeurs d'auto-sabotage, la probabilité baisse 
 ## ⚠️ CONTRAINTES STRICTES (JSON)
 - Le résultat DOIT être un JSON 100% valide.
 - N'inclus AUCUN texte explicatif en dehors du bloc de code JSON.
+- NE METS PAS le JSON dans des balises markdown (comme ```json).
 - Les guillemets internes aux phrases doivent être échappés avec `\"`.
 
 ## 📦 SORTIE ATTENDUE (JSON STRICT)
@@ -40,7 +41,7 @@ Si le CV contient des red flags majeurs d'auto-sabotage, la probabilité baisse 
       "Point fort 1 (ex: 'Expérience chez Big 4')",
       "Point fort 2"
     ],
-    "interview_probability": 72,
+    "interview_probability": 72, // Entier strict entre 0 et 100
     "verdict": "Convoquer" | "Garder sous le coude" | "Rejeter",
     "brutal_truth": "Conseil direct et pédagogique (ex: 'L'utilisation du terme X casse votre crédibilité. Remplacez-le plutôt par Y pour rassurer le recruteur sur votre professionnalisme.')"
   }

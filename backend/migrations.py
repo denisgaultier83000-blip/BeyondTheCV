@@ -4,10 +4,13 @@ from db_services import get_postgres_connection
 
 def create_tables():
     """Create all required tables in PostgreSQL."""
-    conn = get_postgres_connection()
-    cur = conn.cursor()
+    conn = None
+    cur = None
     
     try:
+        conn = get_postgres_connection()
+        cur = conn.cursor()
+
         # [FIX CRITIQUE] Création sécurisée des types ENUM sans destruction
         cur.execute("SELECT 1 FROM pg_type WHERE typname = 'product_type';")
         if not cur.fetchone():
@@ -155,15 +158,20 @@ def create_tables():
         conn.rollback()
         return False
     finally:
-        cur.close()
-        conn.close()
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
 
 def insert_default_subscription_plans():
     """Insert default subscription plans."""
-    conn = get_postgres_connection()
-    cur = conn.cursor()
+    conn = None
+    cur = None
     
     try:
+        conn = get_postgres_connection()
+        cur = conn.cursor()
+        
         plans = [
             ("plan_1_month", "1 Month", 30, 999, "One month extension"),
             ("plan_3_months", "3 Months", 90, 2499, "Three months extension"),
@@ -187,8 +195,10 @@ def insert_default_subscription_plans():
         conn.rollback()
         return False
     finally:
-        cur.close()
-        conn.close()
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
 
 def verify_connection():
     """Verify PostgreSQL connection."""

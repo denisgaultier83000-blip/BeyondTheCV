@@ -47,7 +47,7 @@ def generate_deterministic_queries(company: str, industry: str) -> list:
             f"{company} main competitors market share",
             f"{company} interview process questions candidates",
             f"{company} key products and services",
-            f"{company} recent news {current_year}",
+            f'"{company}" (actualité OR news OR article OR presse) {current_year}',
             f"{company} employee reviews glassdoor culture"
         ])
         

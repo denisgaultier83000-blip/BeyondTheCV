@@ -2,7 +2,8 @@
 Pydantic models for database operations.
 Includes schemas for users, products, evaluations, and subscriptions.
 """
-from pydantic import BaseModel, Field, EmailStr, AwareDatetime
+from pydantic import BaseModel, Field, EmailStr
+from datetime import datetime
 from typing import Optional, List, Dict, Any
 from enum import Enum
 
@@ -35,15 +36,15 @@ class UserUpdate(BaseModel):
 
 class UserSubscriptionUpdate(BaseModel):
     subscription_status: SubscriptionStatusEnum
-    subscription_expiration_date: AwareDatetime
+    subscription_expiration_date: datetime
     subscription_extension_count: Optional[int] = None
 
 class UserResponse(UserBase):
     id: str
-    created_at: AwareDatetime
-    updated_at: AwareDatetime
+    created_at: datetime
+    updated_at: datetime
     subscription_status: SubscriptionStatusEnum
-    subscription_expiration_date: Optional[AwareDatetime] = None
+    subscription_expiration_date: Optional[datetime] = None
     subscription_extension_count: int = 0
     is_active: bool = True
 
@@ -75,12 +76,12 @@ class ProductResponse(ProductBase):
     file_size: Optional[int] = None
     file_path: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
-    created_at: AwareDatetime
-    updated_at: AwareDatetime
+    created_at: datetime
+    updated_at: datetime
     downloaded_count: int = 0
     printed_count: int = 0
-    last_downloaded_at: Optional[AwareDatetime] = None
-    last_printed_at: Optional[AwareDatetime] = None
+    last_downloaded_at: Optional[datetime] = None
+    last_printed_at: Optional[datetime] = None
     is_archived: bool = False
 
     class Config:
@@ -91,7 +92,7 @@ class ProductListResponse(BaseModel):
     id: str
     title: str
     product_type: ProductTypeEnum
-    created_at: AwareDatetime
+    created_at: datetime
     downloaded_count: int
     printed_count: int
 
@@ -112,8 +113,8 @@ class SubscriptionPlanCreate(SubscriptionPlanBase):
 class SubscriptionPlanResponse(SubscriptionPlanCreate):
     id: str
     is_active: bool = True
-    created_at: AwareDatetime
-    updated_at: AwareDatetime
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True
@@ -128,13 +129,13 @@ class SubscriptionExtensionResponse(BaseModel):
     id: str
     user_id: str
     plan_id: str
-    extension_date: AwareDatetime
-    new_expiration_date: AwareDatetime
+    extension_date: datetime
+    new_expiration_date: datetime
     price_paid_cents: Optional[int] = None
     payment_status: Optional[str] = None
     transaction_id: Optional[str] = None
     notes: Optional[str] = None
-    created_at: AwareDatetime
+    created_at: datetime
 
     class Config:
         from_attributes = True
@@ -154,7 +155,7 @@ class FeedbackResponse(FeedbackBase):
     id: int
     user_id: str
     sentiment: Optional[str] = None
-    created_at: AwareDatetime
+    created_at: datetime
 
     class Config:
         from_attributes = True
@@ -177,9 +178,9 @@ class TaskResponse(BaseModel):
     status: str
     task_type: str
     progress_percent: int = 0
-    created_at: AwareDatetime
-    started_at: Optional[AwareDatetime] = None
-    completed_at: Optional[AwareDatetime] = None
+    created_at: datetime
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
     result: Optional[str] = None
     error_message: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None

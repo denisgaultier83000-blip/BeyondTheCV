@@ -99,26 +99,26 @@ export const StepProfile = ({ data, onChange, errors, lang = 'en' }: StepProps) 
     <div className="row">
       <div className="col form-group">
         <label>{t('first_name')}</label>
-        <input value={data.first_name} onChange={e => onChange("first_name", e.target.value)} placeholder={t('placeholder_firstname')} style={{ width: "100%", borderColor: errors?.first_name ? "#ef4444" : undefined }} />
+        <input value={data.first_name || ""} onChange={e => onChange("first_name", e.target.value)} placeholder={t('placeholder_firstname')} style={{ width: "100%", borderColor: errors?.first_name ? "#ef4444" : undefined }} />
       </div>
       <div className="col form-group">
         <label>{t('last_name')}</label>
-        <input value={data.last_name} onChange={e => onChange("last_name", e.target.value)} placeholder={t('placeholder_lastname')} style={{ width: "100%", borderColor: errors?.last_name ? "#ef4444" : undefined }} />
+        <input value={data.last_name || ""} onChange={e => onChange("last_name", e.target.value)} placeholder={t('placeholder_lastname')} style={{ width: "100%", borderColor: errors?.last_name ? "#ef4444" : undefined }} />
       </div>
     </div>
     <div className="row">
       <div className="col form-group">
         <label>{t('email')}</label>
-        <input type="email" value={data.email} onChange={e => onChange("email", e.target.value)} placeholder={t('placeholder_email')} style={{ width: "100%", borderColor: errors?.email ? "#ef4444" : undefined }} />
+        <input type="email" value={data.email || ""} onChange={e => onChange("email", e.target.value)} placeholder={t('placeholder_email')} style={{ width: "100%", borderColor: errors?.email ? "#ef4444" : undefined }} />
       </div>
       <div className="col form-group">
         <label>{t('phone')}</label>
-        <input type="tel" value={data.phone} onChange={e => onChange("phone", e.target.value)} placeholder={t('placeholder_phone')} style={{ width: "100%" }} />
+        <input type="tel" value={data.phone || ""} onChange={e => onChange("phone", e.target.value)} placeholder={t('placeholder_phone')} style={{ width: "100%" }} />
       </div>
     </div>
     <div className="form-group">
       <label>{t('linkedin')}</label>
-      <input value={data.linkedin} onChange={e => onChange("linkedin", e.target.value)} placeholder={t('placeholder_linkedin')} style={{ width: "100%" }} />
+      <input value={data.linkedin || ""} onChange={e => onChange("linkedin", e.target.value)} placeholder={t('placeholder_linkedin')} style={{ width: "100%" }} />
     </div>
     <div className="row">
       <div className="col form-group">
@@ -146,7 +146,7 @@ export const StepProfile = ({ data, onChange, errors, lang = 'en' }: StepProps) 
       </div>
       <div className="col form-group">
         <label>{t('city')}</label>
-        <input value={data.city} onChange={e => onChange("city", e.target.value)} placeholder={t('placeholder_city')} style={{ width: "100%" }} />
+        <input value={data.city || ""} onChange={e => onChange("city", e.target.value)} placeholder={t('placeholder_city')} style={{ width: "100%" }} />
       </div>
     </div>
   </div>
@@ -176,7 +176,7 @@ export const StepTarget = ({ data, onChange, errors, loading, lang = 'en' }: Ste
       </div>
       <div className="col form-group">
         <label>{t('contract_type')}</label>
-        <select disabled={loading} value={data.contract_type} onChange={e => onChange("contract_type", e.target.value)} style={{ width: "100%", opacity: loading ? 0.6 : 1 }}>
+        <select disabled={loading} value={data.contract_type || ""} onChange={e => onChange("contract_type", e.target.value)} style={{ width: "100%", opacity: loading ? 0.6 : 1 }}>
           <option value="">{t('select')}</option>
           <option value="CDI">{t('full_time')}</option>
           <option value="Freelance">{t('freelance')}</option>
@@ -295,9 +295,9 @@ export const StepEducation = ({ list, onAdd, onRemove, onUpdate, lang = 'en' }: 
           {list.length > 1 && <button type="button" onClick={() => onRemove(edu.id)} className="btn-danger" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Trash2 size={14} /> {t('remove')}</button>}
         </div>
         <div className="form-group">
-          <input placeholder={t('degree')} value={edu.degree} onChange={e => onUpdate(edu.id, "degree", e.target.value)} style={{ marginBottom: 8, width: "100%" }} />
-          <input placeholder={t('school')} value={edu.school} onChange={e => onUpdate(edu.id, "school", e.target.value)} style={{ marginBottom: 8, width: "100%" }} />
-          <input placeholder={t('year')} value={edu.year} onChange={e => onUpdate(edu.id, "year", e.target.value)} style={{ width: "100%" }} />
+          <input placeholder={t('degree')} value={edu.degree || ""} onChange={e => onUpdate(edu.id, "degree", e.target.value)} style={{ marginBottom: 8, width: "100%" }} />
+          <input placeholder={t('school')} value={edu.school || ""} onChange={e => onUpdate(edu.id, "school", e.target.value)} style={{ marginBottom: 8, width: "100%" }} />
+          <input placeholder={t('year')} value={edu.year || ""} onChange={e => onUpdate(edu.id, "year", e.target.value)} style={{ width: "100%" }} />
         </div>
       </div>
     ))}
@@ -318,8 +318,8 @@ export const StepExperience = ({ list, onAdd, onRemove, onUpdate, lang = 'en', o
           {list.length > 1 && <button type="button" onClick={() => onRemove(exp.id)} className="btn-danger" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Trash2 size={14} /> {t('remove')}</button>}
         </div>
         <div className="form-group">
-          <input placeholder={t('role')} value={exp.role} onChange={e => onUpdate(exp.id, "role", e.target.value)} style={{ marginBottom: 8, width: "100%" }} />
-          <input placeholder={t('company')} value={exp.company} onChange={e => onUpdate(exp.id, "company", e.target.value)} style={{ marginBottom: 8, width: "100%" }} />
+          <input placeholder={t('role')} value={exp.role || ""} onChange={e => onUpdate(exp.id, "role", e.target.value)} style={{ marginBottom: 8, width: "100%" }} />
+          <input placeholder={t('company')} value={exp.company || ""} onChange={e => onUpdate(exp.id, "company", e.target.value)} style={{ marginBottom: 8, width: "100%" }} />
           <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
             <div style={{ flex: 1 }}>
               <input placeholder={t('start_date')} value={exp.start_date || ""} onChange={e => onUpdate(exp.id, "start_date", e.target.value)} style={{ width: "100%" }} />
@@ -623,7 +623,7 @@ export const StepQualitiesFlaws = ({ data, onChange, lang = 'en' }: any) => {
 
     <div className="form-group">
         <label>{t('tech_skills')}</label>
-        <textarea rows={2} value={data.skills} onChange={e => onChange("skills", e.target.value)} placeholder={t('placeholder_tech_skills')} style={{ width: "100%" }} />
+        <textarea rows={2} value={data.skills || ""} onChange={e => onChange("skills", e.target.value)} placeholder={t('placeholder_tech_skills')} style={{ width: "100%" }} />
     </div>
 
     <div className="form-group" style={{marginTop: 20}}>
