@@ -520,7 +520,7 @@ export const StepQualitiesFlaws = ({ data, onChange, lang = 'en' }: any) => {
       </p>
       
       <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: 15 }}>
-          {(t('flaws_list', { returnObjects: true, defaultValue: ['Impatient', 'Trop exigeant', 'Difficulté à déléguer', 'Tendance à tout contrôler'] }) as string[]).map((f: string) => {
+          {(t('flaws_list', { returnObjects: true, defaultValue: ['Impatient', 'Trop exigeant', 'Difficulté à déléguer', 'Tendance à tout contrôler', 'Manque de diplomatie', 'Difficulté à dire non', 'Obstiné'] }) as string[]).map((f: string) => {
               const isSelected = (data.flaws || []).includes(f);
               return (
                   <button 

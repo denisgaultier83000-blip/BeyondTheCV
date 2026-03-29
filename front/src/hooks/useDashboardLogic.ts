@@ -34,38 +34,52 @@ export function useDashboardLogic() {
   // [PERSISTANCE] Chargement initial depuis localStorage
   const [currentStep, setCurrentStep] = useState(() => {
     const saved = localStorage.getItem("currentStep");
-    return saved ? parseInt(saved, 10) : 0;
+    const parsed = saved ? parseInt(saved, 10) : 0;
+    return isNaN(parsed) ? 0 : parsed;
   });
   
   const [formData, setFormData] = useState<any>(() => {
     const saved = localStorage.getItem("cvData");
-    return saved ? JSON.parse(saved) : INITIAL_DATA;
+    if (saved && saved !== "undefined" && saved !== "null") {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.warn("Corrupted cvData in localStorage, resetting.");
+      }
+    }
+    return INITIAL_DATA;
   });
   
   // --- ÉTAT DU PIPELINE ---
-  const [taskIds, setTaskIds] = useState<{ [key: string]: string } | null>(null);
+  const [taskIds, setTaskIds] = useState<{ [key: string]: string } | null>(() => {
+    const saved = localStorage.getItem("taskIds");
+    return saved ? JSON.parse(saved) : null;
+  });
   
   // États séparés pour chaque brique du dashboard
-  const [cvResult, setCvResult] = useState<any>(null);
-  const [researchResult, setResearchResult] = useState<any>(null);
-  const [salaryResult, setSalaryResult] = useState<any>(null);
+  const [cvResult, setCvResult] = useState<any>(() => JSON.parse(localStorage.getItem("cvResult") || "null"));
+  const [gapResult, setGapResult] = useState<any>(() => JSON.parse(localStorage.getItem("gapResult") || "null"));
+  const [researchResult, setResearchResult] = useState<any>(() => JSON.parse(localStorage.getItem("researchResult") || "null"));
+  const [salaryResult, setSalaryResult] = useState<any>(() => JSON.parse(localStorage.getItem("salaryResult") || "null"));
   const [displaySalary, setDisplaySalary] = useState<any>(null);
   
   // [FIX] Rétablissement des états pour les modules Premium
-  const [careerGpsResult, setCareerGpsResult] = useState<any>(null);
-  const [careerRadarResult, setCareerRadarResult] = useState<any>(null);
-  const [jobDecoderResult, setJobDecoderResult] = useState<any>(null);
-  const [pitchResult, setPitchResult] = useState<any>(null);
-  const [questionsResult, setQuestionsResult] = useState<any>(null);
-  const [hiddenMarketResult, setHiddenMarketResult] = useState<any>(null);
-  const [recruiterResult, setRecruiterResult] = useState<any>(null);
-  const [realityResult, setRealityResult] = useState<any>(null);
-  const [flawCoachingResult, setFlawCoachingResult] = useState<any>(null);
+  const [careerGpsResult, setCareerGpsResult] = useState<any>(() => JSON.parse(localStorage.getItem("careerGpsResult") || "null"));
+  const [careerRadarResult, setCareerRadarResult] = useState<any>(() => JSON.parse(localStorage.getItem("careerRadarResult") || "null"));
+  const [jobDecoderResult, setJobDecoderResult] = useState<any>(() => JSON.parse(localStorage.getItem("jobDecoderResult") || "null"));
+  const [pitchResult, setPitchResult] = useState<any>(() => JSON.parse(localStorage.getItem("pitchResult") || "null"));
+  const [questionsResult, setQuestionsResult] = useState<any>(() => JSON.parse(localStorage.getItem("questionsResult") || "null"));
+  const [hiddenMarketResult, setHiddenMarketResult] = useState<any>(() => JSON.parse(localStorage.getItem("hiddenMarketResult") || "null"));
+  const [recruiterResult, setRecruiterResult] = useState<any>(() => JSON.parse(localStorage.getItem("recruiterResult") || "null"));
+  const [realityResult, setRealityResult] = useState<any>(() => JSON.parse(localStorage.getItem("realityResult") || "null"));
+  const [flawCoachingResult, setFlawCoachingResult] = useState<any>(() => JSON.parse(localStorage.getItem("flawCoachingResult") || "null"));
+  const [actionPlanResult, setActionPlanResult] = useState<any>(() => JSON.parse(localStorage.getItem("actionPlanResult") || "null"));
   
   const [globalStatus, setGlobalStatus] = useState<"IDLE" | "STARTING" | "PROCESSING" | "COMPLETED" | "FAILED">("IDLE");
   const [error, setError] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'cv' | 'interview' | 'market' | 'career'>('overview');
+  const [isPilotLoading, setIsPilotLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'cv' | 'interview' | 'market' | 'career' | 'actions'>('overview');
   const [pilotData, setPilotData] = useState<any | null>(null);
   const [toasts, setToasts] = useState<Array<{ id: number; text: string }>>([]);
 
@@ -73,6 +87,7 @@ export function useDashboardLogic() {
   const fetchPilotData = async () => {
     if (pilotData || !formData) return; // Already fetched or no data
     console.log("Fetching pilot data...");
+    setIsPilotLoading(true);
     try {
       // [OPTIMISATION] On injecte les résultats de marché pour que la synthèse IA soit beaucoup plus riche
       const enrichedPayload = { ...formData };
@@ -111,6 +126,8 @@ export function useDashboardLogic() {
         gapsMatrix: [],
         recommendedStrategy: ""
       });
+    } finally {
+      setIsPilotLoading(false);
     }
   };
 
@@ -122,8 +139,22 @@ export function useDashboardLogic() {
   useEffect(() => {
     localStorage.setItem("cvData", JSON.stringify(formData));
     localStorage.setItem("currentStep", currentStep.toString());
-    
-  }, [formData, currentStep]);
+    if (taskIds) localStorage.setItem("taskIds", JSON.stringify(taskIds));
+    if (cvResult) localStorage.setItem("cvResult", JSON.stringify(cvResult));
+    if (gapResult) localStorage.setItem("gapResult", JSON.stringify(gapResult));
+    if (researchResult) localStorage.setItem("researchResult", JSON.stringify(researchResult));
+    if (salaryResult) localStorage.setItem("salaryResult", JSON.stringify(salaryResult));
+    if (careerGpsResult) localStorage.setItem("careerGpsResult", JSON.stringify(careerGpsResult));
+    if (careerRadarResult) localStorage.setItem("careerRadarResult", JSON.stringify(careerRadarResult));
+    if (jobDecoderResult) localStorage.setItem("jobDecoderResult", JSON.stringify(jobDecoderResult));
+    if (pitchResult) localStorage.setItem("pitchResult", JSON.stringify(pitchResult));
+    if (questionsResult) localStorage.setItem("questionsResult", JSON.stringify(questionsResult));
+    if (hiddenMarketResult) localStorage.setItem("hiddenMarketResult", JSON.stringify(hiddenMarketResult));
+    if (recruiterResult) localStorage.setItem("recruiterResult", JSON.stringify(recruiterResult));
+    if (realityResult) localStorage.setItem("realityResult", JSON.stringify(realityResult));
+    if (flawCoachingResult) localStorage.setItem("flawCoachingResult", JSON.stringify(flawCoachingResult));
+    if (actionPlanResult) localStorage.setItem("actionPlanResult", JSON.stringify(actionPlanResult));
+  }, [formData, currentStep, taskIds, cvResult, gapResult, researchResult, salaryResult, careerGpsResult, careerRadarResult, jobDecoderResult, pitchResult, questionsResult, hiddenMarketResult, recruiterResult, realityResult, flawCoachingResult, actionPlanResult]);
 
   // --- GESTION DU FORMULAIRE ---
   const updateFormData = (key: string, value: any) => {
@@ -145,11 +176,12 @@ export function useDashboardLogic() {
   };
 
   // [RESET] Pour recommencer à zéro
-  const resetDashboard = () => {
+  const resetDashboard = (onComplete?: () => void) => {
     setFormData(INITIAL_DATA);
     setCurrentStep(0);
     setTaskIds(null);
     setCvResult(null);
+    setGapResult(null);
     setResearchResult(null);
     setSalaryResult(null);
     setCareerGpsResult(null);
@@ -161,11 +193,24 @@ export function useDashboardLogic() {
     setRecruiterResult(null);
     setRealityResult(null);
     setFlawCoachingResult(null);
+    setActionPlanResult(null);
     setGlobalStatus("IDLE");
     setActiveTab('overview');
     setPilotData(null);
     localStorage.removeItem("cvData");
     localStorage.removeItem("currentStep");
+    localStorage.removeItem("taskIds");
+    localStorage.removeItem("cvResult");
+    localStorage.removeItem("researchResult");
+    localStorage.removeItem("salaryResult");
+    // etc. pour tous les résultats
+    Object.keys(localStorage).forEach(key => {
+      if (key.endsWith("Result")) localStorage.removeItem(key);
+    });
+
+    if (onComplete) {
+      onComplete();
+    }
   };
 
   // --- ORCHESTRATION DES ÉTAPES ---
@@ -254,6 +299,10 @@ export function useDashboardLogic() {
          const payloadWithCache = { ...payload };
          if (researchResult) {
              payloadWithCache.research_data = researchResult;
+         } else if (taskIds?.market_research) {
+             // [FIX CRITIQUE] L'analyse marché a été lancée à l'étape 2 et tourne encore !
+             // On passe un faux cache pour empêcher le backend de relancer l'analyse de zéro.
+             payloadWithCache.research_data = { _pending: true };
          }
 
          const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/start-analysis`, {
@@ -263,7 +312,13 @@ export function useDashboardLogic() {
         });
         if (!res.ok) throw new Error(`Erreur API (Analyse): ${res.statusText}`);
         const data = await res.json();
-        setTaskIds(prev => ({ ...prev, ...data.tasks }));
+        setTaskIds(prev => ({ 
+            ...prev, 
+            ...data.tasks,
+            // On PRÉSERVE les IDs des tâches de fond lancées à l'Étape 2 si elles ne sont pas finies
+            market_research: (!researchResult && prev?.market_research) ? prev.market_research : data.tasks.market_research,
+            salary_estimation: (!salaryResult && prev?.salary_estimation) ? prev.salary_estimation : data.tasks.salary_estimation
+        }));
         setGlobalStatus("PROCESSING");
         setCurrentStep(8); // Dashboard
       }
@@ -294,6 +349,8 @@ export function useDashboardLogic() {
               onComplete(data.result);
               clearInterval(interval);
             } else if (data.status === "FAILED") {
+              // [FIX] Si la tâche backend plante (timeout IA), on injecte une erreur pour arrêter l'écran de chargement
+              onComplete({ error: true, message: "L'analyse a échoué." });
               clearInterval(interval); // On arrête mais on ne bloque pas tout le dashboard
             }
           }
@@ -305,6 +362,7 @@ export function useDashboardLogic() {
 
   // Activation des pollings parallèles
   useTaskPolling(taskIds?.cv_analysis, setCvResult);
+  useTaskPolling(taskIds?.gap_analysis, setGapResult);
   useTaskPolling(taskIds?.market_research, setResearchResult);
   useTaskPolling(taskIds?.salary_estimation, setSalaryResult);
   
@@ -318,6 +376,7 @@ export function useDashboardLogic() {
   useTaskPolling(taskIds?.recruiter_view, setRecruiterResult);
   useTaskPolling(taskIds?.reality_check, setRealityResult);
   useTaskPolling(taskIds?.flaw_coaching, setFlawCoachingResult);
+  useTaskPolling(taskIds?.action_plan, setActionPlanResult);
 
   // Effect pour la conversion de devise
   useEffect(() => {
@@ -376,10 +435,10 @@ export function useDashboardLogic() {
   return {
     isAuthenticated, setIsAuthenticated,
     currentStep, setCurrentStep,
-    cvResult, researchResult, salaryResult, displaySalary,
+    cvResult, gapResult, researchResult, salaryResult, displaySalary,
     careerGpsResult, careerRadarResult, jobDecoderResult, pitchResult, questionsResult,
     hiddenMarketResult, recruiterResult, realityResult, flawCoachingResult,
-    globalStatus, error,
+    actionPlanResult, globalStatus, error,
     handleNextStep,
     cvData: formData,
     updateFormData,
@@ -387,6 +446,7 @@ export function useDashboardLogic() {
     updateList,
     resetDashboard,
     activeTab, setActiveTab,
+    isPilotLoading, setIsPilotLoading,
     pilotData, setPilotData,
     toasts, setToasts,
     fetchPilotData,

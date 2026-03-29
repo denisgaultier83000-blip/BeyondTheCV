@@ -8,6 +8,7 @@ import Payment from "./pages/Payment";
 import Candidate from "./pages/Candidate";
 import ResearchReport from "./pages/ResearchReport"; // Importer la nouvelle page
 import AdminFeedbacks from "./components/AdminFeedbacks";
+import ErrorBoundary from "./components/ErrorBoundary";
 import "./index.css";
 import "./i18n";
 
@@ -15,6 +16,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Suspense fallback="loading">
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <ErrorBoundary>
         <Routes>
           {/* La Landing Page doit être publique */}
           <Route path="/" element={<App />} />
@@ -44,6 +46,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           {/* Redirection par défaut vers la racine */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </ErrorBoundary>
       </BrowserRouter>
     </Suspense>
   </React.StrictMode>

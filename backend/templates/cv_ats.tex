@@ -15,8 +15,12 @@
 \begin{center}
     {\Huge \textbf{\VAR{first_name} \VAR{last_name}}}\\[5pt]
     \VAR{current_role} \\
-    \VAR{email} | \VAR{phone} | \VAR{city}, \VAR{country} \\
-    \href{\VAR{linkedin}}{LinkedIn}
+    % [FIX] Affiche les séparateurs uniquement si les données existent
+    \VAR{email}
+    \BLOCK{if phone} | \VAR{phone}\BLOCK{endif}
+    \BLOCK{if city} | \VAR{city}\BLOCK{endif}
+    \BLOCK{if country}, \VAR{country}\BLOCK{endif}
+    \\ \href{\VAR{linkedin}}{LinkedIn}
 \end{center}
 
 \BLOCK{if bio}

@@ -35,27 +35,6 @@ const getScoreColor = (percent: number) => {
 };
 
 export const CareerRadar: React.FC<CareerRadarProps> = ({ data, loading, error }) => {
-  if (loading) {
-    return (
-      <div className="result-card" style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '0 0 1.5rem 0', color: 'var(--primary)' }}>
-          <Map size={24} /> Radar de Carrière
-        </h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {[1, 2, 3].map(i => (
-            <div key={i} style={{ border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div className="skeleton-pulse" style={{ width: '60%', height: '24px', borderRadius: '4px' }}></div>
-              <div className="skeleton-pulse" style={{ width: '40%', height: '16px', borderRadius: '4px' }}></div>
-              <div className="skeleton-pulse" style={{ width: '100%', height: '30px', borderRadius: '4px', margin: '1rem 0' }}></div>
-              <div className="skeleton-pulse" style={{ width: '100%', height: '100px', borderRadius: '8px' }}></div>
-              <div className="skeleton-pulse" style={{ width: '100%', height: '100px', borderRadius: '8px' }}></div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="error-box" style={{ padding: '1.5rem', borderRadius: '1rem' }}>
@@ -65,14 +44,10 @@ export const CareerRadar: React.FC<CareerRadarProps> = ({ data, loading, error }
     );
   }
 
-  if (!data || !data.trajectories || data.trajectories.length === 0) return null;
+  if (loading || !data || !data.trajectories || data.trajectories.length === 0) return null;
 
   return (
-    <div className="result-card" style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
-      <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '0 0 1.5rem 0', color: 'var(--primary)' }}>
-        <Map size={24} /> Radar de Carrière
-      </h3>
-      
+    <>
       <div className="radar-grid">
         {data.trajectories.map((traj, idx) => {
           const colors = getScoreColor(traj.match_percent);
@@ -114,15 +89,15 @@ export const CareerRadar: React.FC<CareerRadarProps> = ({ data, loading, error }
               {/* RATIONALE & GAP (Grid 2 cols) */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
                 {/* RATIONALE (Carré Vert) */}
-                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0.75rem', padding: '1rem', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.01)' }}>
-                  <h5 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#166534', margin: '0 0 0.5rem 0', fontSize: '0.9rem', fontWeight: 700 }}><Lightbulb size={16} /> Pourquoi ce choix ?</h5>
-                  <p style={{ margin: 0, fontSize: '0.9rem', color: '#14532d', lineHeight: 1.6 }}>{formatMarkdown(traj.rationale)}</p>
+                <div style={{ background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.2)', borderRadius: '0.75rem', padding: '1rem', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.01)' }}>
+                  <h5 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--success)', margin: '0 0 0.5rem 0', fontSize: '0.9rem', fontWeight: 700 }}><Lightbulb size={16} /> Pourquoi ce choix ?</h5>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-main)', lineHeight: 1.6 }}>{formatMarkdown(traj.rationale)}</p>
                 </div>
 
                 {/* GAP (Carré Rosé) */}
-                <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '0.75rem', padding: '1rem', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.01)' }}>
-                  <h5 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#be123c', margin: '0 0 0.5rem 0', fontSize: '0.9rem', fontWeight: 700 }}><Target size={16} /> Ce qu'il manque</h5>
-                  <p style={{ margin: 0, fontSize: '0.9rem', color: '#881337', lineHeight: 1.6 }}>{formatMarkdown(traj.gap)}</p>
+                <div style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '0.75rem', padding: '1rem', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.01)' }}>
+                  <h5 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--danger-text)', margin: '0 0 0.5rem 0', fontSize: '0.9rem', fontWeight: 700 }}><Target size={16} /> Ce qu'il manque</h5>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-main)', lineHeight: 1.6 }}>{formatMarkdown(traj.gap)}</p>
                 </div>
               </div>
             </div>
@@ -135,8 +110,6 @@ export const CareerRadar: React.FC<CareerRadarProps> = ({ data, loading, error }
         .radar-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 1rem; padding: 1.5rem; display: flex; flex-direction: column; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); }
         .radar-card:hover { transform: translateY(-4px); box-shadow: 0 12px 20px -5px rgba(0,0,0,0.08); border-color: rgba(59, 130, 246, 0.4); }
       `}</style>
-
-      <FeedbackWidget feature="career_radar" question="Ces suggestions de trajectoires sont-elles pertinentes ?" />
-    </div>
+    </>
   );
 };

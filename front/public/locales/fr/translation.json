@@ -186,7 +186,7 @@
   "add_custom_quality": "Ajouter une qualité personnalisée...",
   "select_flaws": "Sélectionnez 1 à 2 points de vigilance (axes d'amélioration)",
   "avoid_cliche": "Évitez les clichés comme 'perfectionniste'",
-  "flaws_list": ["Impatient", "Directif", "Délègue difficilement", "Trop de détails", "Introverti", "A besoin de feedback régulier", "Prise de parole en public"],
+  "flaws_list": ["Impatient", "Directif", "Délègue difficilement", "Trop de détails", "Introverti", "A besoin de feedback régulier", "Prise de parole en public", "Manque de diplomatie", "Difficulté à dire non", "Obstiné"],
   "add_custom_flaw": "Ajouter un défaut personnalisé...",
   "key_successes": "Réussites Clés",
   "success_desc_placeholder": "Description d'une réussite (Ex: Optimisation du processus de facturation)",

@@ -5,7 +5,20 @@ import { FeedbackWidget } from './FeedbackWidget';
 
 export default function FlawCoaching({ data, onBack, inline = false, loading = false }: { data: any, onBack?: () => void, inline?: boolean, loading?: boolean }) {
   const { t } = useTranslation();
-  const coachingList = data?.coaching || [];
+  
+  // [FIX CRITIQUE] Extraction robuste du tableau généré par l'IA
+  let coachingList: any[] = [];
+  if (Array.isArray(data)) {
+    coachingList = data;
+  } else if (data && typeof data === 'object') {
+    const payload = data.flaw_coaching_result || data.flaw_coaching || data;
+    if (Array.isArray(payload)) {
+      coachingList = payload;
+    } else {
+      // L'IA peut utiliser d'autres clés selon la langue ou le contexte. On cherche la bonne clé, sinon le premier tableau.
+      coachingList = payload.coaching || payload.flaws || payload.parades || payload.defauts || Object.values(payload).find(v => Array.isArray(v)) || [];
+    }
+  }
 
   if (loading) {
     return (
@@ -34,7 +47,7 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
             {coachingList.map((item: any, idx: number) => (
               <div key={idx} style={{ background: 'var(--bg-card)', borderRadius: '16px', padding: '1.5rem', border: '1px solid var(--border-color)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
                 <h3 style={{ margin: '0 0 1rem 0', color: 'var(--danger-text)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem' }}>
-                  <AlertTriangle size={22} /> Défaut abordé : {item.flaw}
+                  <AlertTriangle size={22} /> Défaut abordé : {item.flaw || item.defaut || item.name || "Non spécifié"}
                 </h3>
                 
                 <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', marginBottom: '1.25rem', border: '1px solid var(--border-color)' }}>
@@ -42,26 +55,26 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
                     <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>
                       <MessageSquare size={18} color="var(--primary)" /> 🗣️ Réponse Courte (Entretien)
                     </h4>
-                    <p style={{ margin: 0, color: 'var(--text-muted)', lineHeight: '1.6', fontSize: '1rem', fontStyle: 'italic' }}>"{item.short_answer}"</p>
+                    <p style={{ margin: 0, color: 'var(--text-muted)', lineHeight: '1.6', fontSize: '1rem', fontStyle: 'italic' }}>"{item.short_answer || item.reponse_courte || item.short || item.reponse}"</p>
                   </div>
                   <div>
                     <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>
                       <Sparkles size={18} color="var(--primary)" /> 🧠 Storytelling (Réponse détaillée)
                     </h4>
-                    <p style={{ margin: 0, color: 'var(--text-muted)', lineHeight: '1.6', fontSize: '0.95rem' }}>"{item.long_answer}"</p>
+                    <p style={{ margin: 0, color: 'var(--text-muted)', lineHeight: '1.6', fontSize: '0.95rem' }}>"{item.long_answer || item.reponse_longue || item.storytelling || item.long}"</p>
                   </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                   <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1rem', borderRadius: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
                     <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--danger-text)', fontSize: '0.95rem' }}>⚠️ Pièges à éviter</h4>
-                    <p style={{ margin: 0, color: 'var(--danger-text)', fontSize: '0.9rem', lineHeight: '1.5' }}>{item.to_avoid}</p>
+                    <p style={{ margin: 0, color: 'var(--danger-text)', fontSize: '0.9rem', lineHeight: '1.5' }}>{item.to_avoid || item.a_eviter || item.pieges || item.avoid}</p>
                   </div>
                   <div style={{ background: 'rgba(34, 197, 94, 0.05)', padding: '1rem', borderRadius: '0.5rem', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
                     <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--success)', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <Lightbulb size={16} /> Le Conseil du Coach
                     </h4>
-                    <p style={{ margin: 0, color: 'var(--success)', fontSize: '0.9rem', lineHeight: '1.5' }}>{item.coach_advice}</p>
+                    <p style={{ margin: 0, color: 'var(--success)', fontSize: '0.9rem', lineHeight: '1.5' }}>{item.coach_advice || item.conseil_coach || item.conseil || item.advice}</p>
                   </div>
                 </div>
               </div>

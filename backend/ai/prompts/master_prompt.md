@@ -32,9 +32,9 @@ Tu dois retourner UNIQUEMENT un objet JSON valide avec la structure exacte suiva
 ```json
 {
   "optimized_data": {
-    "first_name": "Prénom (formaté, ex: Jean)",
-    "last_name": "Nom (formaté, ex: DUPONT)",
-    "current_role": "Titre du poste visé ou actuel (clair et professionnel)",
+    "first_name": "Jean",
+    "last_name": "DUPONT",
+    "current_role": "Chef de Projet Agile",
     "email": "email@example.com",
     "phone": "Numéro formaté",
     "city": "Ville",

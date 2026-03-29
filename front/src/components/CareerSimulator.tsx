@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Play, TrendingUp, DollarSign, Clock, ArrowRight, Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '../config';
+import { authenticatedFetch } from '../utils/auth';
 import { formatMarkdown } from '../utils/markdown';
 import { DashboardCard } from './DashboardCard';
 
@@ -55,8 +56,6 @@ export function CareerSimulator({ candidateData }: SimulatorProps) {
       icon={<Play size={24} />}
       featureId={result ? "career_simulator" : undefined}
       jobType={candidateData?.target_job}
-      noPadding={true}
-      style={{ padding: '0', border: 'none', background: 'transparent' }}
     >
       <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
         Testez des choix de carrière avant de les faire (Certifications, Mobilité, Promotion...).
@@ -116,9 +115,8 @@ export function CareerSimulator({ candidateData }: SimulatorProps) {
           </div>
 
           <div 
-            // [FIX] Supprime formatMarkdown car le backend est censé envoyer du texte brut maintenant
             style={{ whiteSpace: 'pre-wrap', color: 'var(--text-main)', fontSize: '0.95rem', lineHeight: '1.6' }}
-            dangerouslySetInnerHTML={{ __html: result.analysis || result.content || result.market_verdict || "Analyse indisponible." }}
+            dangerouslySetInnerHTML={formatMarkdown(result.analysis || result.content || result.market_verdict || "Analyse indisponible.")}
           ></div>
         </div>
       )}

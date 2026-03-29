@@ -18,7 +18,7 @@ Produire un **dossier de préparation à l’entretien** de haut niveau, straté
 3. Mettre en avant les **enjeux clés** que le recruteur a en tête.
 4. Produire des **questions intelligentes** que le candidat pourra poser.
 5. **EXTRACTION DE CHIFFRES CLÉS :** Tu DOIS extraire les chiffres clés (nombre d'employés, CA, date de création) s'ils sont présents dans le contexte fourni.
-6. **REVUE DE PRESSE OBLIGATOIRE :** Pour la section `news_links`, tu DOIS extraire de vrais articles présents dans le CONTEXTE DE RECHERCHE. Récupère l'URL exacte du lien fourni, le titre de l'article et le nom du média. La presse payante est autorisée. Ne laisse JAMAIS cette section vide si des liens d'actualité sont présents dans tes sources brutes.
+6. **REVUE DE PRESSE OBLIGATOIRE :** Pour la section `news_links`, tu DOIS extraire jusqu'à 3 articles pertinents présents dans les résultats de recherche. Renseigne scrupuleusement `url`, `title`, `source` et `date`. Ne laisse JAMAIS cette section vide pour un grand groupe. Si tu ne trouves rien d'explicite, utilise l'URL du site officiel ou du profil LinkedIn de l'entreprise en fallback avec un titre générique.
 
 ## 📦 SORTIE ATTENDUE (JSON STRICT)
 ```json
@@ -30,10 +30,12 @@ Produire un **dossier de préparation à l’entretien** de haut niveau, straté
     "competitive_landscape": "Qui sont les Leaders, Challengers, Startups ?",
     "trends": "Innovations majeures (IA, RSE, Régulation...).",
     "recruitment_dynamics": "Tendance des embauches (Gel vs Hypercroissance).",
-    "top_skills": { "hard": ["Compétence 1"], "soft": ["Qualité 1"] }
+    "top_skills": { "hard": ["Compétence 1"], "soft": ["Qualité 1"] } // Peut être vide si non trouvé
   },
   "company_report": {
     "identity_dna": "Vision, mission et valeurs réelles perçues.",
+    "ceo_name": "Nom du CEO/Président actuel.",
+    "key_figures": "Chiffres clés (CA, employés, date de création).",
     "financial_health": "État de santé (CA, Rentabilité, Investissements).",
     "usp": "Positionnement unique (Unique Selling Proposition).",
     "culture_environment": "Style de management, télétravail, ambiance.",

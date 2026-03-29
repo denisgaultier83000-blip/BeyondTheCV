@@ -1,155 +1,202 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Download, Target, AlertTriangle, CheckCircle2, Plus, RefreshCw } from 'lucide-react';
-import { FeedbackWidget } from './FeedbackWidget';
+import { useDashboard } from './DashboardContext';
+import { FileText, Download, Loader2, RefreshCw, AlertTriangle, Target, CheckCircle2, Plus } from 'lucide-react';
+import { authenticatedFetch } from '../utils/auth';
+import { KeywordCoachModal } from './KeywordCoachModal';
+import { API_BASE_URL } from '../config';
 
 export const CVTab = ({ data }: { data: any }) => {
-  // États pour gérer l'ajout interactif des mots-clés
+  const { cvData, cvResult, gapResult, updateFormData } = useDashboard();
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Logique interactive des mots-clés
+  const payload = gapResult || data || {};
+  const missingKeywordsRaw = payload.missing_gaps || payload.lacunes || payload.ecarts || [];
+  const missingKeywords = missingKeywordsRaw.map((g: any) => typeof g === 'string' ? g : (g.skill || JSON.stringify(g)));
+  const baseScore = payload.match_score || payload.score_adequation || payload.matchScore || payload.score || 0;
+
   const [addedKeywords, setAddedKeywords] = useState<string[]>([]);
-  const [editingKw, setEditingKw] = useState<string | null>(null);
-  const [kwInput, setKwInput] = useState("");
+  const [coachingKeyword, setCoachingKeyword] = useState<string | null>(null);
 
-  const baseScore = data?.matchScore || 0;
-  const gaps = data?.gapsMatrix || [];
-  const missingKeywords = gaps.map((g: any) => g.skill);
-  
-  // Calcul dynamique des points : chaque mot ajouté rapproche de 100%
   const pointsPerKeyword = missingKeywords.length > 0 ? Math.ceil((100 - baseScore) / missingKeywords.length) : 0;
-  const targetScore = Math.min(100, baseScore + (addedKeywords.length * pointsPerKeyword));
+  const currentScore = Math.min(100, baseScore + (addedKeywords.length * pointsPerKeyword));
+  const scoreColor = currentScore >= 80 ? '#10b981' : currentScore >= 50 ? '#f59e0b' : '#ef4444';
 
-  // État pour l'animation fluide du compteur
-  const [animatedScore, setAnimatedScore] = useState(baseScore);
+  const generatePreview = async () => {
+    // [FIX CRITIQUE] On utilise les données optimisées par l'IA si elles existent
+    // On fusionne pour s'assurer d'avoir les skills à jour ajoutés manuellement
+    const payloadData = { ...(cvResult?.optimized_data || cvResult || cvData) };
+    payloadData.skills = cvData.skills; // On force l'injection des skills modifiés manuellement
 
-  useEffect(() => {
-    let current = animatedScore;
-    if (current === targetScore) return;
-    
-    const step = targetScore > current ? 1 : -1;
-    const timer = setInterval(() => {
-      if (current === targetScore) clearInterval(timer);
-      else { current += step; setAnimatedScore(current); }
-    }, 20); // Vitesse de l'animation (20ms par point)
-    return () => clearInterval(timer);
-  }, [targetScore]);
+    // [FIX CRITIQUE] On écrase les "hallucinations" de l'IA (Prénom / Nom) 
+    // par les vraies données personnelles saisies en direct dans le formulaire.
+    if (cvData.personal_info) {
+        payloadData.first_name = cvData.personal_info.first_name || payloadData.first_name;
+        payloadData.last_name = cvData.personal_info.last_name || payloadData.last_name;
+        payloadData.email = cvData.personal_info.email || payloadData.email;
+        payloadData.phone = cvData.personal_info.phone || payloadData.phone;
+        payloadData.linkedin = cvData.personal_info.linkedin || payloadData.linkedin;
+        payloadData.city = cvData.personal_info.city || payloadData.city;
+        payloadData.country = cvData.personal_info.country || payloadData.country;
+    }
+    payloadData.current_role = cvData.current_role || payloadData.current_role;
 
-  const handleConfirmAdd = (originalKw: string) => {
-    if (kwInput.trim()) {
-      if (!addedKeywords.includes(originalKw)) {
-        setAddedKeywords(prev => [...prev, originalKw]);
+    if (!payloadData) {
+      setError("Les données du candidat ne sont pas disponibles pour générer le CV.");
+      setLoadingPreview(false);
+      return;
+    }
+
+    setLoadingPreview(true);
+    setError(null);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'Generate CV (ATS)',
+          data: payloadData,
+          skip_ai: true, // [FIX CRITIQUE] Empêche l'API de relancer l'IA (15s) et génère directement le PDF
+          preview: true,
+          renderer: 'pdf'
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`La génération du PDF a échoué: ${errorData}`);
       }
-      setEditingKw(null);
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+    } catch (err: any) {
+      console.error("Erreur de génération de l'aperçu:", err);
+      setError(err.message || "Une erreur inconnue est survenue.");
+    } finally {
+      setLoadingPreview(false);
     }
   };
 
-  const getScoreColor = (score: number) => score >= 80 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444';
-  const scoreColor = getScoreColor(animatedScore);
+  const handleApplyKeyword = (newText: string) => {
+    if (coachingKeyword) {
+      // Marque le mot-clé comme traité
+      if (!addedKeywords.includes(coachingKeyword)) {
+        setAddedKeywords(prev => [...prev, coachingKeyword]);
+      }
+      // Ici, vous pourriez décider d'ajouter `newText` à une expérience spécifique.
+      // Pour l'instant, on se contente de marquer le mot-clé comme ajouté.
+      // Une logique plus complexe pourrait être d'ouvrir une autre modale pour choisir l'expérience à modifier.
+    }
+    setTimeout(generatePreview, 100); // On rafraîchit le CV
+  };
+
+  useEffect(() => {
+    generatePreview();
+  // [FIX] On régénère le PDF dès que l'IA a fini d'optimiser le CV (cvResult)
+  }, [cvResult]);
+
+  // [FIX] Cleanup séparé pour éviter les fuites mémoire
+  useEffect(() => {
+    // Cleanup function pour révoquer l'URL du blob quand le composant est démonté
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]); 
 
   return (
+    <>
+    {coachingKeyword && (
+      <KeywordCoachModal keyword={coachingKeyword} cvData={cvData} onClose={() => setCoachingKeyword(null)} onApply={handleApplyKeyword} />
+    )}
     <div className="cv-tab-container">
       <div className="cv-header">
-        <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-main)' }}>
-          <FileText size={20} color="var(--primary)" /> CV Unique (Optimisé ATS & Recruteur)
-        </h3>
-        <button className="btn-action btn-primary-action" style={{ maxWidth: '200px', padding: '0.5rem 1rem' }}>
-          <Download size={16} /> Télécharger PDF
-        </button>
+        <div className="cv-type-selector">
+          <button className="cv-type-btn active">
+            <FileText size={16} /> CV Optimisé ATS
+          </button>
+          {/* D'autres boutons pourraient venir ici */}
+        </div>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <button className="btn-secondary" onClick={generatePreview} disabled={loadingPreview}>
+            {loadingPreview ? <Loader2 size={16} className="spin" /> : <RefreshCw size={16} />}
+            Rafraîchir
+          </button>
+          <button className="btn-primary" onClick={() => { if(previewUrl) window.open(previewUrl, '_blank')}} disabled={!previewUrl}>
+            <Download size={16} /> Télécharger
+          </button>
+        </div>
       </div>
 
-      <div className="cv-content-split">
-        {/* Colonne de gauche */}
-        <div className="cv-controls">
-             <div className="control-section">
-               <h3 className="section-title">Analyse de Pertinence</h3>
-               <p className="text-muted">Votre CV est évalué en fonction des mots-clés de l'offre et des standards du marché.</p>
-               
-               {/* Jauge Score ATS */}
-               <div style={{ marginTop: '1.5rem', marginBottom: '2rem' }}>
-                 <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>
-                   <Target size={16} color={scoreColor}/> Score d'Adéquation (Mots-clés)
-                 </h4>
-                 <div className="progress-bar">
-                  <div className="progress-fill" style={{ width: `${animatedScore}%`, background: scoreColor, transition: 'width 0.1s linear, background 0.5s ease-in-out' }}></div>
-                 </div>
-                <span style={{ fontSize: '0.85rem', color: scoreColor, fontWeight: 600, transition: 'color 0.5s ease-in-out' }}>
-                  {animatedScore}/100 - {animatedScore >= 80 ? "Excellent" : animatedScore >= 50 ? "Moyen" : "À améliorer"}
-                 </span>
-               </div>
-
-               {/* Mots-clés manquants */}
-               <div style={{ marginBottom: '1.5rem', padding: '1rem', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                 <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: 'var(--danger-text, #ef4444)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                   <AlertTriangle size={16}/> Mots-clés manquants (Offre vs CV)
-                 </h4>
-                 {missingKeywords.length > 0 ? (
-                   <div className="badge-list">
-                     {missingKeywords.map((kw: string, i: number) => {
-                       const isAdded = addedKeywords.includes(kw);
-                       
-                       if (editingKw === kw) {
-                         return (
-                           <div key={i} style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-card)', border: '1px solid var(--primary)', borderRadius: '2rem', padding: '0.15rem 0.25rem 0.15rem 0.75rem', boxShadow: '0 2px 4px rgba(59, 130, 246, 0.1)' }}>
-                             <input 
-                               autoFocus
-                               value={kwInput}
-                               onChange={(e) => setKwInput(e.target.value)}
-                               onKeyDown={(e) => {
-                                 if (e.key === 'Enter') handleConfirmAdd(kw);
-                                 if (e.key === 'Escape') setEditingKw(null);
-                               }}
-                               style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '0.85rem', width: '120px', color: 'var(--text-main)' }}
-                             />
-                             <button 
-                               onClick={() => handleConfirmAdd(kw)}
-                               style={{ background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '50%', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginLeft: '0.25rem' }}
-                             >
-                               <CheckCircle2 size={14} />
-                             </button>
-                           </div>
-                         );
-                       }
-
-                       return (
-                         <span 
-                           key={i} 
-                           className="badge" 
-                           onClick={() => { if (!isAdded) { setEditingKw(kw); setKwInput(kw); } }}
-                           style={{ background: isAdded ? 'rgba(34, 197, 94, 0.1)' : 'transparent', color: isAdded ? 'var(--success)' : 'var(--danger-text)', border: `1px solid ${isAdded ? 'var(--success)' : 'var(--danger-text)'}`, cursor: isAdded ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', transition: 'all 0.2s' }}
-                           title={isAdded ? "Ajouté à vos compétences" : "Cliquez pour modifier et ajouter"}
-                         >
-                           {kw} {isAdded ? <CheckCircle2 size={14} /> : <Plus size={14} />}
-                         </span>
-                       );
-                     })}
-                   </div>
-                 ) : (
-                   <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--success)' }}>Tous les mots-clés essentiels sont présents !</p>
-                 )}
-                 <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>L'offre exige ces compétences. Ajoutez-les à votre CV pour passer la barrière de l'ATS.</p>
-               </div>
-
-               <button className="btn-action btn-secondary-action" style={{ width: '100%', marginBottom: '1rem' }}>
-                 <RefreshCw size={16} /> Rafraîchir l'analyse IA
-               </button>
-             </div>
-        </div>
-
-        {/* Colonne de droite : Prévisualisation PDF LaTeX */}
-        <div className="cv-preview">
-          <div className="preview-header">
-            <span>Prévisualisation Document</span>
-            <span style={{ color: '#94a3b8' }}>Format Unique</span>
-          </div>
-          <div className="preview-document">
-            <div className="pdf-placeholder">
-              <FileText size={48} color="#cbd5e1" style={{ marginBottom: '1rem' }} />
-              <p style={{ margin: 0 }}>Génération LaTeX / PDF en cours...</p>
+      <div className="cv-content-split" style={{ gridTemplateColumns: '350px 1fr' }}>
+        
+        {/* Colonne Gauche : Score et Mots-clés interactifs */}
+        <div className="cv-controls" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
+            <h4 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
+              <Target size={20} color={scoreColor} /> Score ATS
+            </h4>
+            
+            <div style={{ width: '100%', height: '10px', background: '#e2e8f0', borderRadius: '5px', overflow: 'hidden', marginBottom: '0.5rem' }}>
+                <div style={{ width: `${currentScore}%`, height: '100%', background: scoreColor, transition: 'width 0.5s ease-out, background 0.5s ease-in-out' }}></div>
+            </div>
+            <div style={{ fontSize: '0.95rem', color: scoreColor, fontWeight: 700 }}>
+              {currentScore}/100 - {currentScore >= 80 ? "Excellent" : currentScore >= 50 ? "Moyen" : "À améliorer"}
             </div>
           </div>
+
+          {missingKeywords.length > 0 && (
+            <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                <h5 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: 'var(--danger-text)' }}>Mots-clés manquants</h5>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Cliquez sur un mot-clé pour l'ajouter à votre CV et augmenter votre score.</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    {missingKeywords.map((kw: string, i: number) => {
+                        const isAdded = addedKeywords.includes(kw);
+                        return (
+                            <button key={i} onClick={() => { if(!isAdded) setCoachingKeyword(kw); }} disabled={isAdded} style={{ background: isAdded ? 'rgba(34, 197, 94, 0.1)' : 'transparent', color: isAdded ? 'var(--success)' : 'var(--danger-text)', border: `1px solid ${isAdded ? 'var(--success)' : 'var(--danger-text)'}`, padding: '0.35rem 0.75rem', borderRadius: '1rem', fontSize: '0.85rem', cursor: isAdded ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', transition: 'all 0.2s' }}>
+                                {kw} {isAdded ? <CheckCircle2 size={14}/> : <Plus size={14}/>}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+          )}
+        </div>
+
+        {/* Colonne Droite : Le PDF */}
+        <div className="cv-preview">
+          <div className="preview-header">
+            <span>Aperçu du Document</span>
+          </div>
+          <div className="preview-document" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: '800px', padding: 0 }}>
+            {loadingPreview ? (
+              <div className="pdf-placeholder">
+                <Loader2 size={32} className="spin" />
+                <p style={{ marginTop: '1rem' }}>Génération de votre CV...</p>
+              </div>
+            ) : error ? (
+              <div className="pdf-placeholder" style={{ borderColor: 'var(--danger-text)', color: 'var(--danger-text)' }}>
+                <AlertTriangle size={32} />
+                <p style={{ marginTop: '1rem', maxWidth: '80%' }}>{error}</p>
+              </div>
+            ) : previewUrl ? (
+              <iframe src={previewUrl} style={{ width: '100%', height: '100%', flex: 1, minHeight: '800px', border: 'none', borderRadius: '0 0 1rem 1rem', background: '#525659' }} title="Aperçu du CV" />
+            ) : (
+              <div className="pdf-placeholder">Aperçu non disponible.</div>
+            )}
+          </div>
         </div>
       </div>
-
-      <div style={{ marginTop: '1rem', padding: '1.5rem', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
-        <FeedbackWidget feature="cv_analysis" question="L'analyse ATS de votre CV vous semble-t-elle pertinente ?" />
-      </div>
     </div>
+    </>
   );
 };

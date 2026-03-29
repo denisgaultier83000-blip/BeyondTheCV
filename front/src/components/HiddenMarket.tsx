@@ -17,23 +17,6 @@ interface HiddenMarketProps {
 }
 
 export function HiddenMarket({ data, loading, error }: HiddenMarketProps) {
-  if (loading) {
-    return (
-      <div className="result-card" style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '0 0 1.5rem 0', color: 'var(--primary)' }}>
-          <Network size={24} /> Marché Caché & Réseau
-        </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-             <div className="skeleton-pulse" style={{ width: '100%', height: '120px', borderRadius: '8px' }}></div>
-             <div className="skeleton-pulse" style={{ width: '100%', height: '120px', borderRadius: '8px' }}></div>
-          </div>
-          <div className="skeleton-pulse" style={{ width: '100%', height: '260px', borderRadius: '8px' }}></div>
-        </div>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="error-box" style={{ padding: '1.5rem', borderRadius: '1rem' }}>
@@ -45,17 +28,14 @@ export function HiddenMarket({ data, loading, error }: HiddenMarketProps) {
 
   // Résolution robuste (Support de l'encapsulation IA)
   const hidden_market = data?.hidden_market || data;
-  if (!hidden_market || Object.keys(hidden_market).length === 0) return null;
+  if (loading || !hidden_market || Object.keys(hidden_market).length === 0) return null;
 
   const outreach = hidden_market.outreach_message || { subject: "", body: "" };
   const tips = hidden_market.networking_tips || [];
   const strategy = hidden_market.connection_strategy || "";
 
   return (
-    <div className="result-card" style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
-      <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '0 0 1.5rem 0', color: 'var(--primary)' }}>
-        <Network size={24} /> Marché Caché & Réseau
-      </h3>
+    <>
       <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
         Stratégie pour accéder aux offres non publiées (qui représentent jusqu'à 80% du marché).
       </p>
@@ -67,11 +47,11 @@ export function HiddenMarket({ data, loading, error }: HiddenMarketProps) {
           
           {/* Stratégie Globale */}
           {strategy && (
-            <div style={{ background: '#f0fdf4', padding: '1.5rem', borderRadius: '1rem', border: '1px solid #bbf7d0' }}>
-              <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#166534', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ background: 'rgba(34, 197, 94, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--success)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Compass size={18} /> Approche Recommandée
               </h4>
-              <p style={{ margin: 0, color: '#14532d', fontSize: '0.95rem', lineHeight: '1.6' }}>{strategy}</p>
+              <p style={{ margin: 0, color: 'var(--text-main)', fontSize: '0.95rem', lineHeight: '1.6' }}>{strategy}</p>
             </div>
           )}
 
@@ -126,11 +106,11 @@ export function HiddenMarket({ data, loading, error }: HiddenMarketProps) {
           </div>
 
           {tips.length > 0 && (
-            <div style={{ background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.2)', padding: '1.5rem', borderRadius: '1rem' }}>
-              <h4 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#1d4ed8', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Lightbulb size={18} /> Conseils de Networking
+            <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderLeft: '4px solid var(--primary)', padding: '1.25rem', borderRadius: '0.75rem' }}>
+              <h4 style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--primary)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Lightbulb size={18} color="#a78bfa" /> Conseils de Networking
               </h4>
-              <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#1e40af', fontSize: '0.95rem', lineHeight: '1.6' }}>
+              <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-main)', fontSize: '0.95rem', lineHeight: '1.6' }}>
                 {tips.map((tip: any, i: number) => (
                   <li key={i} style={{ marginBottom: '0.5rem' }}>
                     {typeof tip === 'string' ? tip : (tip.text || tip.description || JSON.stringify(tip))}
@@ -141,8 +121,6 @@ export function HiddenMarket({ data, loading, error }: HiddenMarketProps) {
           )}
         </div>
       </div>
-
-      <FeedbackWidget feature="hidden_market" question="Ces suggestions de réseau vous semblent-elles actionnables ?" />
-    </div>
+    </>
   );
 }

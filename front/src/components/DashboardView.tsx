@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDashboard } from './DashboardContext';
-import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass } from 'lucide-react';
+import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass, Mic, Search, Eye, Navigation, Network, Loader2, RotateCcw, CheckSquare } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PilotBento } from './PilotBento';
 import { GapAnalysisFull } from './GapAnalysisFull';
@@ -14,63 +14,164 @@ import { HiddenMarket } from './HiddenMarket';
 import { CareerRealityCheck } from './CareerRealityCheck';
 import { CareerSimulator } from './CareerSimulator';
 import { RecruiterView } from './RecruiterView';
+import { DashboardCard } from './DashboardCard';
 import FlawCoaching from './FlawCoaching';
+import { ToDoListCard } from './ToDoListCard';
 
 export const DashboardView = () => {
   const { t } = useTranslation();
   const { 
-    activeTab, setActiveTab, pilotData, isPilotLoading, cvData, 
-    researchResult, salaryResult, careerGpsResult, careerRadarResult, 
+    activeTab, setActiveTab, pilotData, isPilotLoading, cvData, fetchPilotData,
+    researchResult, salaryResult, careerGpsResult, careerRadarResult, resetDashboard, setCurrentStep,
     jobDecoderResult, hiddenMarketResult, recruiterResult, realityResult, flawCoachingResult,
-    globalStatus, triggerResearch 
+    globalStatus, triggerResearch,
+    pitchResult, questionsResult, cvResult, gapResult, actionPlanResult
   } = useDashboard();
+
+  // --- GESTION DES NOTIFICATIONS ---
+  const [viewedTabs, setViewedTabs] = useState<string[]>(['overview']);
+
+  const handleTabChange = (tab: string, anchor?: string) => {
+    setActiveTab(tab);
+    if (!viewedTabs.includes(tab)) {
+      setViewedTabs(prev => [...prev, tab]);
+    }
+    if (anchor) {
+      setTimeout(() => {
+        document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   const isProcessing = globalStatus === "PROCESSING" || globalStatus === "STARTING";
 
+  // Liste de tous les livrables avec leur état
+  const deliverableItems = [
+    { name: "CV & ATS", tab: "cv", data: cvResult, icon: <FileText size={18}/> },
+    { name: "Pitch de 3 minutes", tab: "interview", data: pitchResult, icon: <Mic size={18}/> },
+    { name: "Questions d'Entretien", tab: "interview", data: questionsResult, icon: <MessageSquare size={18}/> },
+    { name: "Parades aux Défauts", tab: "interview", data: flawCoachingResult, icon: <AlertTriangle size={18}/> },
+    { name: "Analyse d'Écarts (Gap)", tab: "market", data: gapResult, icon: <Target size={18}/> },
+    { name: "Rapport Entreprise & Marché", tab: "market", data: researchResult, icon: <Globe size={18}/> },
+    { name: "Décodeur d'Annonce", tab: "market", data: jobDecoderResult, icon: <Search size={18}/> },
+    { name: "Vue Recruteur", tab: "career", data: recruiterResult, icon: <Eye size={18}/> },
+    { name: "GPS de Carrière", tab: "career", data: careerGpsResult, icon: <Navigation size={18}/> },
+    { name: "Radar de Carrière", tab: "career", data: careerRadarResult, icon: <Compass size={18}/> },
+    { name: "Marché Caché", tab: "career", data: hiddenMarketResult, icon: <Network size={18}/> },
+    { name: "To-Do List d'Action", tab: "actions", data: actionPlanResult, icon: <CheckSquare size={18}/> }
+  ];
+
+  // Calcul des pastilles par onglet
+  const hasUnseen = (tabName: string, items: any[]) => {
+    if (viewedTabs.includes(tabName)) return false;
+    return items.some(item => !!item);
+  };
+
+  const cvUnseen = hasUnseen('cv', [cvResult]);
+  const interviewUnseen = hasUnseen('interview', [pitchResult, questionsResult, flawCoachingResult]);
+  const marketUnseen = hasUnseen('market', [gapResult, researchResult, jobDecoderResult]);
+  const careerUnseen = hasUnseen('career', [careerGpsResult, careerRadarResult, hiddenMarketResult, recruiterResult]);
+  const actionsUnseen = hasUnseen('actions', [actionPlanResult]);
+
+  // [FIX CRITIQUE] On force le chargement du résumé si les données sont absentes pour briser la boucle de crash
+  useEffect(() => {
+    if (activeTab === 'overview' && !pilotData && typeof fetchPilotData === 'function') {
+      fetchPilotData();
+    }
+  }, [activeTab, pilotData, fetchPilotData]);
+
+  // La condition de chargement est maintenant robuste grâce à l'état explicite `isPilotLoading`
+  const isLoadingOverview = isPilotLoading || !pilotData;
 
   return (
     <div className="dashboard-wrapper">
       <div className="tabs-navigation">
-        <button className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
+        <button className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => handleTabChange('overview')}>
           <Activity size={18} /> Vue d'ensemble
         </button>
-        <button className={`tab-btn ${activeTab === 'cv' ? 'active' : ''}`} onClick={() => setActiveTab('cv')}>
-          <FileText size={18} /> CV & ATS
+        <button className={`tab-btn ${activeTab === 'cv' ? 'active' : ''}`} onClick={() => handleTabChange('cv')} style={{ position: 'relative' }}>
+          <FileText size={18} /> CV & ATS {cvUnseen && <span className="notification-dot"></span>}
         </button>
-        <button className={`tab-btn ${activeTab === 'interview' ? 'active' : ''}`} onClick={() => setActiveTab('interview')}>
-          <MessageSquare size={18} /> Entretien
+        <button className={`tab-btn ${activeTab === 'interview' ? 'active' : ''}`} onClick={() => handleTabChange('interview')} style={{ position: 'relative' }}>
+          <MessageSquare size={18} /> Entretien {interviewUnseen && <span className="notification-dot"></span>}
         </button>
-        <button className={`tab-btn ${activeTab === 'market' ? 'active' : ''}`} onClick={() => setActiveTab('market')}>
-          <Globe size={18} /> Marché & Offre
+        <button className={`tab-btn ${activeTab === 'market' ? 'active' : ''}`} onClick={() => handleTabChange('market')} style={{ position: 'relative' }}>
+          <Globe size={18} /> Marché & Offre {marketUnseen && <span className="notification-dot"></span>}
         </button>
-        <button className={`tab-btn ${activeTab === 'career' ? 'active' : ''}`} onClick={() => setActiveTab('career')}>
-          <Compass size={18} /> Stratégie & Trajectoires
+        <button className={`tab-btn ${activeTab === 'career' ? 'active' : ''}`} onClick={() => handleTabChange('career')} style={{ position: 'relative' }}>
+          <Compass size={18} /> Stratégie & Trajectoires {careerUnseen && <span className="notification-dot"></span>}
+        </button>
+        <button className={`tab-btn ${activeTab === 'actions' ? 'active' : ''}`} onClick={() => handleTabChange('actions')} style={{ position: 'relative' }}>
+          <CheckSquare size={18} /> Actions {actionsUnseen && <span className="notification-dot"></span>}
         </button>
       </div>
 
       {/* Contenu de l'onglet actif */}
       <div className="tab-content">
         {activeTab === 'overview' && (
-          isPilotLoading ? (
-            <div className="bento-grid">
-               {/* Skeletons pour faire patienter */}
-               <div className="bento-card row-span-2 skeleton-pulse" style={{ minHeight: '350px' }}></div>
-               <div className="bento-card col-span-2 skeleton-pulse" style={{ minHeight: '150px' }}></div>
-               <div className="bento-card col-span-2 skeleton-pulse" style={{ minHeight: '150px' }}></div>
-            </div>
-          ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-              <PilotBento 
-                  data={pilotData} 
-                  careerRadarData={careerRadarResult}
-                  careerGpsData={careerGpsResult}
-                  onGoToGap={() => setActiveTab('market')} 
-                  onGoToRadar={() => setActiveTab('career')}
-                  onGoToGps={() => setActiveTab('career')}
-              />
-              <CareerRealityCheck data={realityResult} score={pilotData?.matchScore} loading={isProcessing && !realityResult} />
+              
+              {/* [FIX ARCHITECTURE] Le Hub est sorti de la condition de chargement. 
+                  Il s'affiche instantanément. Les analyses terminées en amont (ex: Marché) 
+                  seront cliquables immédiatement sans attendre la synthèse IA. */}
+              <div className="bento-card col-span-3" style={{ background: 'var(--bg-card)' }}>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                   <div className="bento-header" style={{ marginBottom: '0.5rem' }}><Activity size={20} color="var(--primary)"/> Centre de Suivi des Analyses</div>
+                   {/* [NOUVEAU] Bouton Réinitialiser, accessible et logique */}
+                   <button className="btn-ghost" onClick={() => resetDashboard(() => setCurrentStep(0))} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                     <RotateCcw size={16} /> Réinitialiser
+                   </button>
+                 </div>
+                 <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: '0 0 1.5rem 0' }}>Suivez la génération de vos outils en temps réel et cliquez pour y accéder.</p>
+                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                    {deliverableItems.map((item, idx) => {
+                       const isReady = !!item.data;
+                       const isPending = isProcessing && !isReady;
+                       const isNew = isReady && !viewedTabs.includes(item.tab);
+                       return (
+                          <div key={idx} onClick={() => handleTabChange(item.tab, (item as any).anchor)} style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', border: `1px solid ${isReady ? 'var(--primary)' : 'var(--border-color)'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', opacity: isPending ? 0.7 : 1, transition: 'all 0.2s', boxShadow: isNew ? '0 4px 12px rgba(59, 130, 246, 0.15)' : 'none' }} onMouseOver={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')} onMouseOut={(e) => (e.currentTarget.style.transform = 'none')}>
+                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: isReady ? 'var(--text-main)' : 'var(--text-muted)', fontWeight: isReady ? 600 : 400 }}>
+                                <div style={{ color: isReady ? 'var(--primary)' : 'var(--text-muted)', display: 'flex' }}>{item.icon}</div>
+                                <span style={{ fontSize: '0.95rem' }}>{item.name}</span>
+                             </div>
+                             {isNew ? (
+                                <span style={{ background: '#ef4444', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, animation: 'pulse-new 2s infinite' }}>NEW</span>
+                             ) : isReady ? (
+                                <span style={{ background: '#dcfce7', color: '#16a34a', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700 }}>PRÊT</span>
+                             ) : isPending ? (
+                                <Loader2 size={16} className="spin" color="var(--text-muted)" />
+                             ) : (
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>En attente</span>
+                             )}
+                          </div>
+                       );
+                    })}
+                 </div>
+              </div>
+
+              {/* Seules les cartes dépendantes de la synthèse affichent le Skeleton */}
+              {isLoadingOverview ? (
+                <div className="bento-grid">
+                   <div className="bento-card row-span-2 skeleton-pulse" style={{ minHeight: '350px' }}></div>
+                   <div className="bento-card col-span-2 skeleton-pulse" style={{ minHeight: '150px' }}></div>
+                   <div className="bento-card col-span-2 skeleton-pulse" style={{ minHeight: '150px' }}></div>
+                </div>
+              ) : (
+                <>
+                  <PilotBento 
+                      data={pilotData} 
+                      careerRadarData={careerRadarResult}
+                      careerGpsData={careerGpsResult}
+                      onGoToGap={() => handleTabChange('market')} 
+                      onGoToRadar={() => handleTabChange('career')}
+                      onGoToGps={() => handleTabChange('career')}
+                  />
+                  <CareerRealityCheck data={realityResult} score={pilotData?.matchScore} loading={isProcessing && !realityResult} />
+                </>
+              )}
             </div>
-          )
         )}
         
         {activeTab === 'cv' && (
@@ -86,7 +187,8 @@ export const DashboardView = () => {
 
         {activeTab === 'market' && (
            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-             <GapAnalysisFull data={pilotData} onBack={() => setActiveTab('overview')} />
+             {/* [FIX] On injecte enfin les vraies données détaillées du Gap Analysis */}
+             <GapAnalysisFull data={gapResult || pilotData} loading={isProcessing && !gapResult} onBack={() => handleTabChange('overview')} />
              <AnalysisTab researchResult={researchResult} salaryResult={salaryResult} onRefresh={triggerResearch} isRefreshing={globalStatus === "PROCESSING"} />
              <JobDecoder data={jobDecoderResult} loading={isProcessing && !jobDecoderResult} />
            </div>
@@ -94,15 +196,26 @@ export const DashboardView = () => {
 
         {activeTab === 'career' && (
            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+             {/* [FIX] Uniformisation de l'affichage des cartes Premium */}
              <RecruiterView data={recruiterResult} loading={isProcessing && !recruiterResult} />
-             <CareerGPS data={careerGpsResult} loading={isProcessing && !careerGpsResult} />
-             <CareerRadar data={careerRadarResult} loading={isProcessing && !careerRadarResult} />
-             <HiddenMarket data={hiddenMarketResult} loading={isProcessing && !hiddenMarketResult} />
-             
-             <div className="result-card" style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
-               <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 1.5rem 0', color: 'var(--primary)' }}>🚀 Simulateur de Carrière</h3>
-               <CareerSimulator candidateData={cvData} />
-             </div>
+             <DashboardCard title="GPS de Carrière" icon={<Navigation size={24} />} featureId="career_gps" loading={isProcessing && !careerGpsResult} error={!isProcessing && !careerGpsResult}>
+               <CareerGPS data={careerGpsResult} />
+             </DashboardCard>
+             <DashboardCard title="Radar de Carrière" icon={<Compass size={24} />} featureId="career_radar" loading={isProcessing && !careerRadarResult} error={!isProcessing && !careerRadarResult}>
+               <CareerRadar data={careerRadarResult} />
+             </DashboardCard>
+             <DashboardCard title="Marché Caché & Réseau" icon={<Network size={24} />} featureId="hidden_market" loading={isProcessing && !hiddenMarketResult} error={!isProcessing && !hiddenMarketResult}>
+               <HiddenMarket data={hiddenMarketResult} />
+             </DashboardCard>
+
+             {/* [FIX] Le simulateur utilise déjà le DashboardCard en interne, on retire la duplication */}
+             <CareerSimulator candidateData={cvData} />
+           </div>
+        )}
+
+        {activeTab === 'actions' && (
+           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+             <ToDoListCard data={actionPlanResult} loading={isProcessing && !actionPlanResult} />
            </div>
         )}
       </div>
@@ -216,6 +329,19 @@ export const DashboardView = () => {
         .teleprompter-paragraph { color: rgba(255,255,255,0.4); font-size: 2.2rem; line-height: 1.6; margin-bottom: 2.5rem; transition: color 0.3s; font-weight: 600; cursor: default; }
         .teleprompter-paragraph:hover { color: white; }
         .teleprompter-controls { position: absolute; bottom: 2rem; display: flex; gap: 1rem; }
+        
+        /* Notifications & Animations */
+        .notification-dot { position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; background-color: #ef4444; border-radius: 50%; border: 2px solid var(--bg-card); animation: pulse-dot 2s infinite; }
+        @keyframes pulse-dot {
+          0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+          70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        @keyframes pulse-new {
+          0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+          70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
         .spin { animation: spin 1s linear infinite; } @keyframes spin { 100% { transform: rotate(360deg); } }
       `}</style>
     </div>

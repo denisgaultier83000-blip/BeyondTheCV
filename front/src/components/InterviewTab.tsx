@@ -1,142 +1,187 @@
-import React, { useState } from 'react';
-import { Mic, MessageSquare, RefreshCw, User, Briefcase, Star, Target, Play, X, HelpCircle, ChevronDown, CheckCircle2, Lightbulb } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useDashboard } from './DashboardContext';
-import { FeedbackWidget } from './FeedbackWidget';
+import { Mic, MessageSquare, X, Play, Pause, RotateCcw, ChevronDown, BrainCircuit, Lightbulb, ArrowLeft } from 'lucide-react';
+import { DashboardCard } from './DashboardCard';
 
-export const InterviewTab = () => {
-  const [subTab, setSubTab] = useState<'pitch' | 'qa'>('pitch');
+// Ce sous-composant peut être extrait dans son propre fichier s'il grandit
+const QAList = ({ questions }: { questions: any }) => {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  // [FIX CRITIQUE] Sécurisation de l'extraction : si l'IA a renvoyé un objet { questions: [...] } on extrait le tableau
+  const safeQuestions = Array.isArray(questions) ? questions : (questions?.questions || []);
 
   return (
-    <div className="interview-tab-container">
-      {/* Navigation interne */}
-      <div className="cv-header">
-        <div className="cv-type-selector">
-          <button className={`cv-type-btn ${subTab === 'pitch' ? 'active' : ''}`} onClick={() => setSubTab('pitch')}>
-            <Mic size={16} /> Pitch de 3 minutes
-          </button>
-          <button className={`cv-type-btn ${subTab === 'qa' ? 'active' : ''}`} onClick={() => setSubTab('qa')}>
-            <MessageSquare size={16} /> Questionnaire IA
-          </button>
+    <div className="qa-list">
+      {safeQuestions.map((item: any, index: number) => (
+        <div key={index} className="qa-item" style={{ animationDelay: `${index * 100}ms` }}>
+          <div className="qa-header" onClick={() => setOpenIndex(openIndex === index ? null : index)}>
+            <div className="qa-icon"><BrainCircuit size={20} /></div>
+            <div className="qa-question-content">
+              <div className="qa-category">{item.category}</div>
+              <p className="qa-question">{item.question}</p>
+            </div>
+            <ChevronDown className={`qa-chevron ${openIndex === index ? 'open' : ''}`} />
+          </div>
+          {openIndex === index && (
+            <div className="qa-body">
+              <div className="qa-answer-box">
+                <h4 className="qa-answer-title"><MessageSquare size={16} /> Réponse Suggérée</h4>
+                <textarea className="qa-answer-textarea" defaultValue={item.suggested_answer} />
+              </div>
+              <div className="qa-advice">
+                <Lightbulb size={28} style={{ flexShrink: 0 }} />
+                <span><strong>Conseil du Coach :</strong> {item.advice}</span>
+              </div>
+            </div>
+          )}
         </div>
-        <button className="btn-action btn-secondary-action" style={{ maxWidth: '200px', padding: '0.5rem 1rem' }}>
-          <RefreshCw size={16} /> Rafraîchir l'IA
-        </button>
-      </div>
-
-      <div>
-        {subTab === 'pitch' ? <PitchSection /> : <QASection />}
-      </div>
+      ))}
     </div>
   );
 };
 
-const PitchSection = () => {
-  const { cvData } = useDashboard();
-  const [teleprompterMode, setTeleprompterMode] = useState(false);
-  const sections = [
-    { key: "accroche", title: "Qui je suis (L'accroche)", icon: <User size={20} />, color: "var(--primary, #3b82f6)", bg: "rgba(59, 130, 246, 0.1)", placeholder: "Je suis un professionnel avec 5 ans d'expérience dans..." },
-    { key: "preuve", title: "Ce que j'ai fait (La preuve)", icon: <Briefcase size={20} />, color: "#8b5cf6", bg: "rgba(139, 92, 246, 0.1)", placeholder: "J'ai notamment dirigé le projet X qui a permis de..." },
-    { key: "valeur", title: "Ce que j'apporte (La valeur)", icon: <Star size={20} />, color: "var(--warning)", bg: "rgba(234, 179, 8, 0.1)", placeholder: "Mon expertise me permet de résoudre rapidement..." },
-    { key: "projection", title: "Pourquoi ce poste (La projection)", icon: <Target size={20} />, color: "var(--success, #10b981)", bg: "rgba(16, 185, 129, 0.1)", placeholder: "Je postule chez vous car votre vision résonne avec..." }
-  ];
+export const InterviewTab = () => {
+  const { pitchResult, questionsResult, globalStatus } = useDashboard();
+  const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false);
+  const [timer, setTimer] = useState(0);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  return (
-    <>
-      <div className="pitch-grid">
-        {sections.map((sec, i) => (
-          <div key={i} className="pitch-card">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ background: sec.bg, color: sec.color, padding: '0.5rem', borderRadius: '0.5rem', display: 'flex' }}>{sec.icon}</div>
-              <h3 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--text-main)' }}>{sec.title}</h3>
-            </div>
-            <textarea 
-              className="pitch-textarea" 
-              style={{ background: 'var(--bg-secondary)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }} 
-              placeholder={sec.placeholder} 
-              defaultValue={cvData?.pitch_data?.[sec.key] || cvData?.pitch?.[sec.key] || ""}></textarea>
-          </div>
-        ))}
-        <div style={{ gridColumn: 'span 2', background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0', color: 'var(--primary)' }}><Mic size={20} /> Aperçu complet (Lecture à voix haute)</h3>
-            <p style={{ color: 'var(--text-muted)', margin: 0, fontStyle: 'italic', fontSize: '0.9rem' }}>L'objectif est de pouvoir le lire de manière fluide en moins de 3 minutes.</p>
-          </div>
-          <button 
-            className="btn-action btn-primary-action" 
-            style={{ maxWidth: '250px' }}
-            onClick={() => setTeleprompterMode(true)}
-          >
-            <Play size={16} /> Mode Téléprompteur
-          </button>
-        </div>
-      </div>
+  // [FIX] Local state pour rendre le pitch éditable et réactif
+  const [editablePitch, setEditablePitch] = useState({
+    accroche: "", preuve: "", valeur: "", projection: ""
+  });
 
-      <div style={{ marginTop: '1.5rem', padding: '1.5rem', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
-        <FeedbackWidget feature="pitch_generator" question="Ce pitch met-il bien en valeur votre profil ?" />
-      </div>
-
-      {/* Mode Téléprompteur Plein Écran */}
-      {teleprompterMode && (
-        <div className="teleprompter-overlay">
-          <button className="teleprompter-close" onClick={() => setTeleprompterMode(false)} title="Fermer">
-            <X size={24} />
-          </button>
-          <div className="teleprompter-text-container">
-            <p className="teleprompter-paragraph">{cvData?.pitch_data?.accroche || cvData?.pitch?.accroche || "Accroche non générée."}</p>
-            <p className="teleprompter-paragraph">{cvData?.pitch_data?.preuve || cvData?.pitch?.preuve || "Preuve non générée."}</p>
-            <p className="teleprompter-paragraph">{cvData?.pitch_data?.valeur || cvData?.pitch?.valeur || "Valeur non générée."}</p>
-            <p className="teleprompter-paragraph" style={{ marginBottom: '150px' }}>{cvData?.pitch_data?.projection || cvData?.pitch?.projection || "Projection non générée."}</p>
-          </div>
-          <div style={{ position: 'absolute', bottom: '2rem', color: '#64748b', fontSize: '0.9rem' }}>Lisez à voix haute (Survolez le texte pour le mettre en évidence)</div>
-        </div>
-      )}
-    </>
-  );
-};
-
-const QASection = () => {
-  const { cvData } = useDashboard();
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
-  
-  // Extraction dynamique des questions IA
-  let realQuestions: any[] = [];
-  if (cvData?.questions) {
-    if (Array.isArray(cvData.questions)) {
-      realQuestions = cvData.questions;
-    } else if (Array.isArray(cvData.questions.questions)) {
-      realQuestions = cvData.questions.questions;
+  useEffect(() => {
+    if (pitchResult) {
+      const p = pitchResult?.pitch || pitchResult || {};
+      setEditablePitch({
+        accroche: p.accroche || "",
+        preuve: p.preuve || "",
+        valeur: p.valeur || "",
+        projection: p.projection || ""
+      });
     }
-  }
-  
-  // Fallback sur le mock uniquement pendant le chargement
-  const mockQuestions = [
-    { category: "Conscience de soi", question: "Quels sont vos 3 principaux défauts ?", suggested_answer: "Je suis parfois trop perfectionniste...", advice: "Ne niez pas le défaut." },
-    { category: "Culture & Curiosité", question: "Quelle a été votre principale difficulté ?", suggested_answer: "La gestion des dépendances techniques...", advice: "Restez factuel." },
-    { category: "Technique", question: "Pourquoi privilégier Terraform plutôt qu'Ansible ?", suggested_answer: "Terraform est axé sur l'infrastructure immuable...", advice: "Montrez que vous connaissez leurs limites respectives." }
-  ];
+  }, [pitchResult]);
 
-  const displayQuestions = realQuestions.length > 0 ? realQuestions : mockQuestions;
+  const handlePitchChange = (field: string, value: string) => {
+    setEditablePitch(prev => ({ ...prev, [field]: value }));
+  };
+
+  const fullPitchText = [editablePitch.accroche, editablePitch.preuve, editablePitch.valeur, editablePitch.projection].filter(Boolean).join('\n\n');
+
+  useEffect(() => {
+    if (isTimerRunning) {
+      timerRef.current = setInterval(() => {
+        setTimer(prev => prev + 1);
+      }, 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isTimerRunning]);
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleTeleprompterOpen = () => {
+    setTimer(0);
+    setIsTimerRunning(false);
+    setIsTeleprompterOpen(true);
+  };
+  
+  const handleTeleprompterClose = () => {
+    setIsTimerRunning(false);
+    setIsTeleprompterOpen(false);
+  };
+
+  const toggleTimer = () => setIsTimerRunning(prev => !prev);
+  const resetTimer = () => {
+    setIsTimerRunning(false);
+    setTimer(0);
+  };
+
+  // [FIX] Utilisation de createPortal pour échapper aux contraintes CSS parentes et corriger le scrolling
+  const Teleprompter = () => createPortal(
+    <div className="teleprompter-overlay" style={{ zIndex: 999999 }}>
+      {/* [FIX] Bouton Retour explicite et toujours visible */}
+      <button onClick={handleTeleprompterClose} className="teleprompter-close" style={{ top: '2rem', left: '2rem', right: 'auto', width: 'auto', padding: '0 1.5rem', borderRadius: '2rem', gap: '0.5rem', fontWeight: 'bold' }}>
+        <ArrowLeft size={20} /> Retour
+      </button>
+      <div className="teleprompter-text-container">
+        {fullPitchText.split('\n\n').map((p, i) => (
+          <p key={i} className="teleprompter-paragraph">{p}</p>
+        ))}
+      </div>
+      <div className="teleprompter-controls">
+        <div style={{ background: 'rgba(255,255,255,0.1)', padding: '0.5rem 1.5rem', borderRadius: '2rem', fontSize: '2rem', color: 'white', fontFamily: 'monospace' }}>
+          {formatTime(timer)}
+        </div>
+        <button onClick={toggleTimer} className="btn-glass" style={{ width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {isTimerRunning ? <Pause size={24} /> : <Play size={24} />}
+        </button>
+        <button onClick={resetTimer} className="btn-glass" style={{ width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <RotateCcw size={24} />
+        </button>
+      </div>
+    </div>,
+    document.body
+  );
 
   return (
     <>
-      <div className="qa-list" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
-        {displayQuestions.map((q, i) => {
-          const isOpen = openIndex === i;
-          return (
-            <div key={i} className="qa-item" style={{ animationDelay: `${i * 0.15}s` }}>
-              <div className="qa-header" onClick={() => setOpenIndex(isOpen ? null : i)}>
-                <div className="qa-icon" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)' }}><HelpCircle size={20} /></div>
-                <div className="qa-question-content"><div className="qa-category" style={{ color: 'var(--text-muted)' }}>{q.category}</div><h3 className="qa-question" style={{ color: 'var(--text-main)' }}>{q.question}</h3></div>
-                <div className={`qa-chevron ${isOpen ? 'open' : ''}`} style={{ color: 'var(--text-muted)' }}><ChevronDown size={20} /></div>
-              </div>
-              {isOpen && <div className="qa-body"><div className="qa-answer-box" style={{ background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.2)' }}><div className="qa-answer-title" style={{ color: 'var(--success)' }}><CheckCircle2 size={16} /> Suggestion de réponse (Éditable)</div><textarea className="qa-answer-textarea" style={{ color: 'var(--text-main)' }} defaultValue={q.suggested_answer} /></div><div className="qa-advice" style={{ color: 'var(--text-muted)' }}><Lightbulb size={16} color="var(--warning)" style={{flexShrink:0}}/> {q.advice}</div></div>}
+      {isTeleprompterOpen && <Teleprompter />}
+      <div className="interview-tab-container">
+        <DashboardCard
+          title="Pitch de 3 minutes"
+          icon={<Mic size={24} />}
+          loading={globalStatus === 'PROCESSING' && !pitchResult}
+          loadingText="Génération de votre pitch..."
+          error={!pitchResult && (globalStatus === 'COMPLETED' || globalStatus === 'FAILED')}
+          errorText="Le pitch n'a pas pu être généré."
+          featureId="pitch_3_min"
+          headerAction={pitchResult && (
+            <button className="btn-primary" onClick={handleTeleprompterOpen}>
+              <Play size={16} style={{ marginRight: '0.5rem' }} /> Mode Téléprompteur
+            </button>
+          )}
+        >
+          {pitchResult && (
+            <div className="pitch-grid">
+              <div className="pitch-card"><h4>Accroche</h4><textarea className="pitch-textarea" value={editablePitch.accroche} onChange={e => handlePitchChange('accroche', e.target.value)} /></div>
+              <div className="pitch-card"><h4>Preuve & Impact</h4><textarea className="pitch-textarea" value={editablePitch.preuve} onChange={e => handlePitchChange('preuve', e.target.value)} /></div>
+              <div className="pitch-card"><h4>Valeur Ajoutée</h4><textarea className="pitch-textarea" value={editablePitch.valeur} onChange={e => handlePitchChange('valeur', e.target.value)} /></div>
+              <div className="pitch-card"><h4>Projection</h4><textarea className="pitch-textarea" value={editablePitch.projection} onChange={e => handlePitchChange('projection', e.target.value)} /></div>
             </div>
-          );
-        })}
+          )}
+        </DashboardCard>
+
+        <DashboardCard
+          title="Questionnaire d'Entretien"
+          icon={<MessageSquare size={24} />}
+          loading={globalStatus === 'PROCESSING' && !questionsResult}
+          loadingText="Génération des questions..."
+          error={!questionsResult && (globalStatus === 'COMPLETED' || globalStatus === 'FAILED')}
+          errorText="Le questionnaire n'a pas pu être généré."
+          featureId="interview_questions"
+        >
+          {questionsResult && <QAList questions={questionsResult} />}
+        </DashboardCard>
       </div>
-      <div style={{ marginTop: '1.5rem', padding: '1.5rem', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
-        <FeedbackWidget feature="interview_qa" question="Ces questions d'entraînement sont-elles pertinentes ?" />
-      </div>
+      {/* [FIX] Ajout des styles de la scrollbar directement ici pour garantir la visibilité */}
+      <style>{`
+        .teleprompter-text-container { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.2) rgba(255,255,255,0.05); } /* For Firefox */
+        .teleprompter-text-container::-webkit-scrollbar { width: 8px !important; display: block !important; } /* For Chrome/Safari */
+        .teleprompter-text-container::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 4px; }
+        .teleprompter-text-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+        .teleprompter-text-container::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+      `}</style>
     </>
   );
 };

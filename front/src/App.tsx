@@ -45,6 +45,7 @@ function AppContent() {
   const {
     isAuthenticated, setIsAuthenticated,
     currentStep, setCurrentStep,
+    cvResult, gapResult, actionPlanResult,
     researchResult, salaryResult,
     careerGpsResult, careerRadarResult, jobDecoderResult,
     pitchResult, questionsResult,
@@ -110,7 +111,8 @@ function AppContent() {
     { id: 0, title: "Import" }, { id: 1, title: t('profile_title') },
     { id: 2, title: t('target_title') }, { id: 3, title: t('education_title') },
     { id: 4, title: t('experience_title') }, { id: 5, title: t('qualities_title') },
-    { id: 6, title: t('express_yourself') }, { id: 7, title: t('clarification_title') }
+    { id: 6, title: t('express_yourself') }, { id: 7, title: t('clarification_title') },
+    { id: 8, title: "Résultats" }
   ];
 
   // --- Handlers transmis aux composants enfants ---
@@ -222,10 +224,14 @@ function AppContent() {
       if (location.pathname === '/') navigate('/candidate', { replace: true });
       loadProfile();
       const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        const user = JSON.parse(storedUser);
-        const isExpired = user.subscription_status === 'expired' || (user.subscription_expiration_date && new Date(user.subscription_expiration_date) < new Date());
-        setIsFrozen(isExpired);
+      if (storedUser && storedUser !== "undefined" && storedUser !== "null") {
+        try {
+          const user = JSON.parse(storedUser);
+          const isExpired = user.subscription_status === 'expired' || (user.subscription_expiration_date && new Date(user.subscription_expiration_date) < new Date());
+          setIsFrozen(isExpired);
+        } catch (e) {
+          console.warn("Could not parse user subscription", e);
+        }
       }
     } else if (localStorage.getItem('token')) {
       setIsAuthenticated(true);
@@ -264,8 +270,8 @@ function AppContent() {
         <div className="step-wrapper">
           <StepTarget data={cvData || {}} onChange={handleChange} />
           {globalStatus === "FAILED" && (<div className="error-box"><AlertCircle size={16}/><span>{t('error_msg')} {error}</span><button className="btn-link" onClick={handleNextStep}>{t('btn_retry')}</button></div>)}
-          {/* [FIX] Bouton Suivant aligné à droite */}
-          <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={handleNextStep} disabled={globalStatus === "STARTING"}>{t('btn_validate_launch')}</button></div>
+          {/* [UX FIX] Le bouton est maintenant un simple "Suivant", le lancement de l'analyse est transparent */}
+          <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={handleNextStep} disabled={globalStatus === "STARTING"}>{t('btn_next')}</button></div>
         </div>);
       case 3: return (
         <div className="step-wrapper">
@@ -297,16 +303,8 @@ function AppContent() {
           <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={(e) => { if (isFrozen) { e.preventDefault(); setShowPaywall(true); } else { handleNextStep(); } }} disabled={["STARTING", "PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus)}>{["STARTING", "PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus) ? t('btn_launching') : t('btn_launch_full_analysis')}</button></div>
         </div>);
       case 8: return (
-        <div className="dashboard-layout" style={{ width: '100%' }}>
-          {/* [FIX] Ajout de la barre de navigation manquante pour débloquer les autres vues */}
-          <div className="dashboard-tabs" style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem', flexWrap: 'wrap' }}>
-            <button className="btn-outline" onClick={() => setActiveTab('overview')} style={activeTab === 'overview' ? {background: '#3b82f6', color: 'white', borderColor: '#3b82f6'} : {}}>Vue d'ensemble</button>
-            <button className="btn-outline" onClick={() => setActiveTab('cv')} style={activeTab === 'cv' ? {background: '#3b82f6', color: 'white', borderColor: '#3b82f6'} : {}}>CV & Documents</button>
-            <button className="btn-outline" onClick={() => setActiveTab('interview')} style={activeTab === 'interview' ? {background: '#3b82f6', color: 'white', borderColor: '#3b82f6'} : {}}>Entretien</button>
-            <button className="btn-outline" onClick={() => setActiveTab('market')} style={activeTab === 'market' ? {background: '#3b82f6', color: 'white', borderColor: '#3b82f6'} : {}}>Marché</button>
-            <button className="btn-outline" onClick={() => setActiveTab('career')} style={activeTab === 'career' ? {background: '#3b82f6', color: 'white', borderColor: '#3b82f6'} : {}}>Carrière (Premium)</button>
-          </div>
-          <TabProvider initialCvData={cvData} initialResearchResult={researchResult} initialSalaryResult={salaryResult} initialCareerGpsResult={careerGpsResult} initialCareerRadarResult={careerRadarResult} initialJobDecoderResult={jobDecoderResult} initialPitchResult={pitchResult} initialQuestionsResult={questionsResult} initialHiddenMarketResult={hiddenMarketResult} initialRecruiterResult={recruiterResult} initialRealityResult={realityResult} initialFlawCoachingResult={flawCoachingResult} initialGlobalStatus={globalStatus} onSetCurrentStep={setCurrentStep} onTriggerResearch={triggerResearch}>
+        <div className="step-wrapper dashboard-wrapper">
+          <TabProvider initialCvData={cvData} initialCvResult={cvResult} initialGapResult={gapResult} initialActionPlanResult={actionPlanResult} initialResearchResult={researchResult} initialSalaryResult={salaryResult} initialCareerGpsResult={careerGpsResult} initialCareerRadarResult={careerRadarResult} initialJobDecoderResult={jobDecoderResult} initialPitchResult={pitchResult} initialQuestionsResult={questionsResult} initialHiddenMarketResult={hiddenMarketResult} initialRecruiterResult={recruiterResult} initialRealityResult={realityResult} initialFlawCoachingResult={flawCoachingResult} initialGlobalStatus={globalStatus} onSetCurrentStep={setCurrentStep} onTriggerResearch={triggerResearch}>
             <DashboardView />
           </TabProvider>
         </div>);
@@ -324,37 +322,72 @@ function AppContent() {
   if (showAdmin) return (
     <div className="app-container"><main className="main-content" style={{ paddingTop: '2rem' }}><button onClick={() => setShowAdmin(false)} className="btn-outline" style={{ marginBottom: '2rem' }}>← Retour</button><AdminFeedbacks /></main></div>);
 
+  // [FIX] Sécurisation du parsing JSON du nom d'utilisateur pour éviter la page blanche au login
+  let parsedUserName = undefined;
+  if (isAuthenticated) {
+    try {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser && storedUser !== "undefined" && storedUser !== "null") {
+        parsedUserName = JSON.parse(storedUser).name || "Mon Compte";
+      }
+    } catch (e) {
+      parsedUserName = "Mon Compte";
+    }
+  }
+
   return (
     <div className="app-container">
-      <Header darkMode={darkMode} setDarkMode={setDarkMode} showLogin={!isAuthenticated} userName={isAuthenticated ? (JSON.parse(localStorage.getItem('user') || '{}').name || "Mon Compte") : undefined} onOpenProfile={() => { localStorage.removeItem('token'); localStorage.removeItem('user'); resetDashboard(); setIsAuthenticated(false); navigate('/', { replace: true }); }} onLanguageChange={handleLanguageChange} />
+      <Header darkMode={darkMode} setDarkMode={setDarkMode} showLogin={!isAuthenticated} userName={parsedUserName} onOpenProfile={() => { localStorage.removeItem('token'); localStorage.removeItem('user'); resetDashboard(); setIsAuthenticated(false); navigate('/', { replace: true }); }} onLanguageChange={handleLanguageChange} />
       <main className="main-content">
         {showLanding && !isAuthenticated ? (<LandingPage onStart={() => setShowLanding(false)} onShowCGU={() => setShowCGU(true)} onShowPrivacy={() => setShowPrivacy(true)} onShowLegal={() => setShowLegal(true)} />) : 
          !isAuthenticated ? (<Login onLogin={() => setIsAuthenticated(true)} />) : 
-         currentStep < 8 ? (
-          <>
-            <div className="stepper-container">
+          (<div style={{ paddingTop: '100px', paddingBottom: '2rem', width: '100%', maxWidth: '1200px', margin: '0 auto', paddingLeft: '1rem', paddingRight: '1rem', boxSizing: 'border-box' }}>
+            {/* [FIX] Ajout d'un padding-top de 100px pour descendre sous le Header et centrage global de l'interface */}
+            {/* [FIX] Forcer la largeur à 100% et injecter un padding fantôme à droite pour éviter la coupure au scroll */}
+            <div className="stepper-container custom-stepper" style={{ display: 'flex', alignItems: 'flex-start', overflowX: 'auto', padding: '1.5rem 1rem', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px solid var(--border-color)', margin: '0 auto 2rem auto', gap: '0.25rem', width: '100%', boxSizing: 'border-box' }}>
               {CAREER_EDGE_STEPS.map((step, index) => (
                 <React.Fragment key={step.id}>
-                  <div className={`stepper-item ${currentStep === step.id ? 'current' : currentStep > step.id ? 'completed' : ''}`} onClick={() => currentStep > step.id && setCurrentStep(step.id)}>
-                    <div className="stepper-circle">{currentStep > step.id ? <CheckCircle2 size={16} /> : step.id}</div>
-                    <span className="stepper-title">{step.title}</span>
+                  <div 
+                    className={`stepper-item ${currentStep === step.id ? 'current' : currentStep > step.id ? 'completed' : ''}`} 
+                    onClick={() => currentStep > step.id && setCurrentStep(step.id)}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: currentStep > step.id ? 'pointer' : 'default', flex: 1, minWidth: '70px', flexShrink: 0, opacity: currentStep < step.id ? 0.5 : 1 }}
+                  >
+                    <div 
+                      className="stepper-circle" 
+                      style={{ width: '36px', height: '36px', borderRadius: '50%', background: currentStep > step.id ? '#10b981' : currentStep === step.id ? 'var(--primary)' : 'var(--bg-secondary)', color: currentStep >= step.id ? 'white' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.5rem', fontWeight: 'bold', boxShadow: currentStep === step.id ? '0 0 0 4px rgba(59, 130, 246, 0.2)' : 'none', transition: 'all 0.3s ease', flexShrink: 0 }}
+                    >
+                      {currentStep > step.id ? <CheckCircle2 size={18} /> : step.id}
+                    </div>
+                    <span 
+                      className="stepper-title" 
+                      style={{ fontSize: '0.7rem', textAlign: 'center', color: currentStep === step.id ? 'var(--primary)' : 'var(--text-main)', fontWeight: currentStep === step.id ? 700 : 500, whiteSpace: 'normal', maxWidth: '100px', lineHeight: 1.2 }}
+                    >
+                      {step.title}
+                    </span>
                   </div>
-                  {index < CAREER_EDGE_STEPS.length - 1 && (<div className={`stepper-line ${currentStep > step.id ? 'completed' : ''}`}></div>)}
+                  {index < CAREER_EDGE_STEPS.length - 1 && (
+                    <div 
+                      className={`stepper-line ${currentStep > step.id ? 'completed' : ''}`} 
+                      style={{ flex: 1, height: '3px', background: currentStep > step.id ? '#10b981' : 'var(--border-color)', minWidth: '15px', borderRadius: '2px', transition: 'background 0.3s ease', marginTop: '16px' }}
+                    ></div>
+                  )}
                 </React.Fragment>
               ))}
             </div>
-            {/* [FIX] Contrainte de la largeur maximale pour éviter l'effet "trop étiré" des champs */}
-            <div className="card-container" style={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>{renderStepContent()}</div>
-          </>
-         ) : (
-           renderStepContent()
-         )}
+            <style>{`
+              .custom-stepper { scrollbar-width: none; } /* Cache la scrollbar sur Firefox */
+              .custom-stepper::-webkit-scrollbar { display: none; } /* Cache la scrollbar Chrome/Safari */
+              .custom-stepper::after { content: ''; min-width: 1.5rem; display: block; flex-shrink: 0; } /* Élément fantôme pour forcer le padding droit */
+              .custom-stepper::before { display: none !important; } /* Nettoie la ligne absolue obsolète d'index.css */
+            `}</style>
+            <div className="card-container">{renderStepContent()}</div>
+          </div>)}
       </main>
 
       {isFrozen && isAuthenticated && !showLanding && !LegalComponent && !showAdmin && (
         <div className="frozen-banner"><Lock size={20} /> Accès expiré. La génération IA est bloquée.<button onClick={() => setShowPaywall(true)} className="btn-reactivate">Réactiver (30€)</button></div>)}
 
-      <div className="toast-container">{toasts.map(t => (<div key={t.id} className="toast-notification"><LucideBell size={16} /> {t.text}<button onClick={() => removeToast(t.id)}><LucideX size={14}/></button></div>))}</div>
+      <div className="toast-container">{(toasts || []).map(t => (<div key={t.id} className="toast-notification"><LucideBell size={16} /> {t.text}<button onClick={() => removeToast(t.id)}><LucideX size={14}/></button></div>))}</div>
 
       {showPaywall && (
         <div className="modal-overlay">

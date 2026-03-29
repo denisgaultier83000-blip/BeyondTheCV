@@ -11,6 +11,8 @@ interface DashboardContextType {
   isPilotLoading: boolean;
   researchResult: any;
   salaryResult: any;
+  cvResult: any;
+  gapResult: any;
   careerGpsResult: any;
   careerRadarResult: any;
   jobDecoderResult: any;
@@ -20,6 +22,7 @@ interface DashboardContextType {
   recruiterResult: any;
   realityResult: any;
   flawCoachingResult: any;
+  actionPlanResult: any;
   globalStatus: string;
   cvData: any;
   setCurrentStep: (step: number) => void;
@@ -30,6 +33,8 @@ interface DashboardContextType {
 interface DashboardProviderProps {
   children: ReactNode;
   initialResearchResult?: any;
+  initialCvResult?: any;
+  initialGapResult?: any;
   initialSalaryResult?: any;
   initialCareerGpsResult?: any;
   initialCareerRadarResult?: any;
@@ -40,6 +45,7 @@ interface DashboardProviderProps {
   initialRecruiterResult?: any;
   initialRealityResult?: any;
   initialFlawCoachingResult?: any;
+  initialActionPlanResult?: any;
   initialGlobalStatus?: string;
   onSetCurrentStep?: (step: number) => void;
   onTriggerResearch?: () => Promise<void>;
@@ -53,6 +59,8 @@ const DashboardContext = createContext<DashboardContextType | null>(null);
 export const DashboardProvider = ({
   children,
   initialCvData = null,
+  initialCvResult = null,
+  initialGapResult = null,
   initialResearchResult = null,
   initialSalaryResult = null,
   initialCareerGpsResult = null,
@@ -64,6 +72,7 @@ export const DashboardProvider = ({
   initialRecruiterResult = null,
   initialRealityResult = null,
   initialFlawCoachingResult = null,
+  initialActionPlanResult = null,
   initialGlobalStatus = 'IDLE',
   onSetCurrentStep = () => {},
   onTriggerResearch = async () => {}
@@ -118,6 +127,8 @@ export const DashboardProvider = ({
       pilotData, fetchPilotData,
       isPilotLoading,
       cvData: initialCvData,
+      cvResult: initialCvResult,
+      gapResult: initialGapResult,
       researchResult: initialResearchResult,
       salaryResult: initialSalaryResult,
       careerGpsResult: initialCareerGpsResult,
@@ -129,6 +140,7 @@ export const DashboardProvider = ({
       recruiterResult: initialRecruiterResult,
       realityResult: initialRealityResult,
       flawCoachingResult: initialFlawCoachingResult,
+      actionPlanResult: initialActionPlanResult,
       globalStatus: initialGlobalStatus,
       setCurrentStep: onSetCurrentStep,
       triggerResearch: onTriggerResearch

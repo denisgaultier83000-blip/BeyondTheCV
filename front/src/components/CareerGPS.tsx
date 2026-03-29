@@ -41,27 +41,7 @@ interface CareerGPSProps {
 }
 
 export function CareerGPS({ data, loading, error }: CareerGPSProps) {
-  const [selectedRouteIndex, setSelectedRouteIndex] = useState<number>(-1); // -1 = Main Route
-
-  if (loading) {
-    return (
-      <div className="result-card" style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: 0, color: 'var(--primary)' }}>
-            <Map size={24} /> GPS de Carrière
-          </h3>
-        </div>
-        <div className="skeleton-pulse" style={{ width: '100%', height: '60px', borderRadius: '8px', marginBottom: '2rem' }}></div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
-          <div className="skeleton-pulse" style={{ width: '100%', height: '300px', borderRadius: '8px' }}></div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div className="skeleton-pulse" style={{ width: '100%', height: '140px', borderRadius: '8px' }}></div>
-              <div className="skeleton-pulse" style={{ width: '100%', height: '140px', borderRadius: '8px' }}></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const [selectedRouteIndex, setSelectedRouteIndex] = useState<number>(-1);
 
   if (error) {
     return (
@@ -72,7 +52,7 @@ export function CareerGPS({ data, loading, error }: CareerGPSProps) {
     );
   }
 
-  if (!data) return null;
+  if (loading || !data) return null; // Le parent DashboardCard gère le loading/error
 
   // Defensive Coding
   const gpsData = (data as any).career_gps_result || data;
@@ -102,16 +82,7 @@ export function CareerGPS({ data, loading, error }: CareerGPSProps) {
   const probabilityColor = activeRoute.probability >= 80 ? '#10b981' : activeRoute.probability >= 60 ? '#f59e0b' : '#ef4444';
 
   return (
-    <div className="result-card" style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: 0, color: 'var(--primary)' }}>
-          <Map size={24} /> GPS de Carrière
-        </h3>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: '#16a34a', fontWeight: 600, background: '#dcfce7', padding: '0.25rem 0.75rem', borderRadius: '1rem' }}>
-          <Navigation size={16} /> En route
-        </div>
-      </div>
-
+    <>
       {/* 1. Carte de Navigation (Header visuel) */}
       <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginBottom: '2rem', position: 'relative', overflow: 'hidden' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1 }}>
@@ -241,8 +212,6 @@ export function CareerGPS({ data, loading, error }: CareerGPSProps) {
           </div>
         </div>
       )}
-
-      <FeedbackWidget feature="career_gps" question="Cette feuille de route vous semble-t-elle réaliste et applicable ?" />
-    </div>
+    </>
   );
 }

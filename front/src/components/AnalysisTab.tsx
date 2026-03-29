@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building, Globe, RefreshCw, Shield, User, Newspaper, LineChart, Wallet, Star } from 'lucide-react';
+import { Building, Globe, RefreshCw, Shield, User, Newspaper, LineChart, Wallet, Star, Loader2, AlertTriangle } from 'lucide-react';
 import { FeedbackWidget } from './FeedbackWidget';
 
 export const AnalysisTab = ({ researchResult, salaryResult, onRefresh, isRefreshing }: { researchResult: any, salaryResult: any, onRefresh?: () => void, isRefreshing?: boolean }) => {
@@ -27,29 +27,74 @@ export const AnalysisTab = ({ researchResult, salaryResult, onRefresh, isRefresh
         </button>
       </div>
       <div>
-        {subTab === 'company' ? <CompanyReportSection data={researchResult} /> : <MarketReportSection data={researchResult} salaryData={salaryResult} />}
+        {subTab === 'company' 
+          ? <CompanyReportSection data={researchResult} loading={!researchResult} /> 
+          : <MarketReportSection data={researchResult} salaryData={salaryResult} loading={!researchResult || !salaryResult} />}
       </div>
     </div>
   );
 };
 
-const CompanyReportSection = ({ data }: { data: any }) => {
-  const companyName = data?.company || "Entreprise Ciblée";
-  const overview = data?.company_report?.identity_dna || data?.synthesis?.overview || "L'analyse IA de l'entreprise est en cours...";
-  const culture = data?.company_report?.culture_environment || data?.synthesis?.culture || "Données culturelles en attente.";
-  const challenges = data?.company_report?.usp || data?.synthesis?.challenges || "Données stratégiques en attente.";
-  const newsLinks = data?.company_report?.news_links || [];
+const CompanyReportSection = ({ data, loading }: { data: any, loading?: boolean }) => {
+  // Gestion du cas de plantage IA
+  if (data?.error) {
+    return (
+      <div className="analysis-grid">
+         <div className="analysis-card full-width" style={{ textAlign: 'center', padding: '4rem', border: '1px solid rgba(239, 68, 68, 0.2)', background: 'rgba(239, 68, 68, 0.05)' }}>
+            <AlertTriangle size={40} color="var(--danger-text)" style={{ margin: '0 auto 1rem' }} />
+            <h3 style={{ color: 'var(--danger-text)', margin: 0, marginBottom: '0.5rem' }}>Échec de l'exploration</h3>
+            <p style={{ color: 'var(--text-main)', margin: 0 }}>Le moteur d'intelligence artificielle n'a pas pu générer le rapport. Veuillez cliquer sur "Mettre à jour les données".</p>
+         </div>
+      </div>
+    );
+  }
+
+  // Gestion de l'attente (Les fameuses 15 secondes de l'API)
+  if (loading) {
+    return (
+      <div className="analysis-grid">
+         <div className="analysis-card full-width" style={{ textAlign: 'center', padding: '4rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+            <Loader2 className="spin" size={40} color="#3b82f6" />
+            <h3 style={{ color: 'var(--text-main)', margin: 0 }}>Exploration du Web en cours...</h3>
+            <p style={{ color: 'var(--text-muted)', margin: 0, maxWidth: '500px', lineHeight: '1.6' }}>L'Intelligence Artificielle parcourt actuellement le web pour trouver les dernières actualités et données financières de l'entreprise. Cette opération prend environ 12 à 15 secondes.</p>
+         </div>
+      </div>
+    );
+  }
+
+  // [FIX CRITIQUE] Extraction robuste de l'objet racine (gère l'encapsulation IA)
+  const root = data?.company_report ? data : (data?.data || data?.result || data || {});
+  const companyReport = root.company_report || {};
   
-  let adviceList = data?.synthesis?.advice || [];
-  if (adviceList.length === 0 && data?.company_report) {
-      if (data.company_report.hot_news) adviceList.push(data.company_report.hot_news);
-      if (data.company_report.team_structure) adviceList.push(data.company_report.team_structure);
+  const companyName = root.company || "Entreprise Ciblée";
+  const overview = companyReport.identity_dna || root.synthesis?.overview || "L'analyse IA de l'entreprise est en cours...";
+  const ceoName = companyReport.ceo_name || "Non spécifié";
+  const keyFigures = companyReport.key_figures || "Non spécifiés";
+  const financialHealth = companyReport.financial_health || "Données financières non disponibles.";
+  const culture = companyReport.culture_environment || root.synthesis?.culture || "Données culturelles en attente.";
+  const challenges = companyReport.usp || root.synthesis?.challenges || "Données stratégiques en attente.";
+  const newsLinks = companyReport.news_links || [];
+  
+  let adviceList = root.synthesis?.advice || [];
+  if (adviceList.length === 0 && companyReport) {
+      if (companyReport.hot_news) adviceList.push(companyReport.hot_news);
+      if (companyReport.team_structure) adviceList.push(companyReport.team_structure);
   }
   if (adviceList.length === 0) adviceList.push("Soyez vous-même et mettez en avant vos forces.");
 
   return (
     <div className="analysis-grid">
-      <div className="analysis-card"><h3 className="analysis-card-title"><Building size={20} color="#3b82f6" /> Identité & ADN : {companyName}</h3><div className="analysis-card-content"><p>{overview}</p></div></div>
+      <div className="analysis-card">
+        <h3 className="analysis-card-title"><Building size={20} color="#3b82f6" /> Identité & Chiffres Clés : {companyName}</h3>
+        <div className="analysis-card-content">
+          <div style={{ marginBottom: '1rem', padding: '1rem', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '0.5rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+            <div style={{ marginBottom: '0.5rem', color: 'var(--text-main)' }}><strong>Dirigeant / CEO :</strong> {ceoName}</div>
+            <div style={{ color: 'var(--text-main)' }}><strong>Chiffres Clés :</strong> {keyFigures}</div>
+          </div>
+          <p>{overview}</p>
+        </div>
+      </div>
+      <div className="analysis-card"><h3 className="analysis-card-title"><LineChart size={20} color="#10b981" /> Santé Financière</h3><div className="analysis-card-content"><p>{financialHealth}</p></div></div>
       <div className="analysis-card"><h3 className="analysis-card-title"><User size={20} color="#10b981" /> Culture & Environnement</h3><div className="analysis-card-content"><p>{culture}</p></div></div>
       <div className="analysis-card"><h3 className="analysis-card-title"><Shield size={20} color="#8b5cf6" /> Enjeux & Défis</h3><div className="analysis-card-content"><p>{challenges}</p></div></div>
       <div className="analysis-card"><h3 className="analysis-card-title"><Newspaper size={20} color="#f59e0b" /> Structure & Actualités</h3>
@@ -63,7 +108,7 @@ const CompanyReportSection = ({ data }: { data: any }) => {
           <h3 className="analysis-card-title"><Newspaper size={20} color="#3b82f6" /> Liens d'Actualités & Revue de Presse</h3>
           <div className="analysis-card-content">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', marginTop: '0.5rem' }}>
-              {newsLinks.map((news: any, i: number) => (
+              {newsLinks.filter((n: any) => n && n.url).map((news: any, i: number) => (
                 <a key={i} href={news.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', flexDirection: 'column', padding: '1.25rem', background: 'var(--bg-secondary)', borderRadius: '0.75rem', textDecoration: 'none', border: '1px solid var(--border-color)', transition: 'all 0.2s', color: 'var(--text-main)' }}>
                   <div style={{ fontSize: '0.8rem', color: '#3b82f6', fontWeight: 600, marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '0.25rem 0.5rem', borderRadius: '0.25rem' }}>{news.source}</span>
@@ -87,7 +132,31 @@ const CompanyReportSection = ({ data }: { data: any }) => {
   );
 };
 
-const MarketReportSection = ({ data, salaryData }: { data: any, salaryData: any }) => {
+const MarketReportSection = ({ data, salaryData, loading }: { data: any, salaryData: any, loading?: boolean }) => {
+  if (data?.error || salaryData?.error) {
+    return (
+      <div className="analysis-grid">
+         <div className="analysis-card full-width" style={{ textAlign: 'center', padding: '4rem', border: '1px solid rgba(239, 68, 68, 0.2)', background: 'rgba(239, 68, 68, 0.05)' }}>
+            <AlertTriangle size={40} color="var(--danger-text)" style={{ margin: '0 auto 1rem' }} />
+            <h3 style={{ color: 'var(--danger-text)', margin: 0, marginBottom: '0.5rem' }}>Échec de l'analyse marché</h3>
+            <p style={{ color: 'var(--text-main)', margin: 0 }}>Impossible de récupérer les données salariales actuelles.</p>
+         </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="analysis-grid">
+         <div className="analysis-card full-width" style={{ textAlign: 'center', padding: '4rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+            <Loader2 className="spin" size={40} color="#10b981" />
+            <h3 style={{ color: 'var(--text-main)', margin: 0 }}>Analyse du marché en cours...</h3>
+            <p style={{ color: 'var(--text-muted)', margin: 0, maxWidth: '500px', lineHeight: '1.6' }}>Collecte des données salariales et des dynamiques de recrutement pour votre secteur. Veuillez patienter quelques secondes.</p>
+         </div>
+      </div>
+    );
+  }
+
   const low = salaryData?.salary_range?.low ? `${salaryData.salary_range.low}k€` : "55k€";
   const mid = salaryData?.salary_range?.mid ? `${salaryData.salary_range.mid}k€` : "62k€";
   const high = salaryData?.salary_range?.high ? `${salaryData.salary_range.high}k€` : "70k€+";

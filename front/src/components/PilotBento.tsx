@@ -41,9 +41,6 @@ export const PilotBento = ({
   const getScoreColor = (score: number) => score >= 80 ? 'var(--success, #10b981)' : score >= 60 ? 'var(--warning, #f59e0b)' : 'var(--danger-text, #ef4444)';
   const currentColor = getScoreColor(animatedScore);
   
-  // Mock Archétype (Reality Check)
-  const archetype = "The Innovator";
-
   return (
     <div className="bento-grid">
       {/* 1. Score d'adéquation (Jauge) */}
@@ -134,21 +131,6 @@ export const PilotBento = ({
           </button>
         </div>
       )}
-
-      {/* 3. Carte LinkedIn (Reality Check) INTÉGRÉE */}
-      <div className="bento-card col-span-3" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-secondary)' }}>
-        <div>
-          <div className="bento-header" style={{ marginBottom: '0.25rem' }}><Linkedin size={20} color="#60a5fa" /> Reality Check LinkedIn</div>
-          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Partagez votre archétype professionnel</div>
-          <h2 style={{ fontSize: '1.8rem', margin: 0, fontWeight: 800, color: 'var(--text-main)' }}>
-            💡 {archetype}
-          </h2>
-        </div>
-        <button style={{ background: '#0077b5', color: 'white', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '0.5rem', fontWeight: 'bold', cursor: 'pointer', zIndex: 2 }}>
-          Copier le Post
-        </button>
-        <div style={{ position: 'absolute', top: -30, right: -20, opacity: 0.05, color: 'var(--text-main)' }}><Trophy size={180} /></div>
-      </div>
     </div>
   );
 };

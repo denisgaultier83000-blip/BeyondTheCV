@@ -72,11 +72,11 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* Real Expectations */}
-          <div style={{ background: '#f0fdf4', padding: '1.5rem', borderRadius: '1rem', border: '1px solid #bbf7d0' }}>
-            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#166534', margin: '0 0 1rem 0' }}>
+          <div style={{ background: 'rgba(34, 197, 94, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--success)', margin: '0 0 1rem 0' }}>
               <Target size={18} /> Les vraies attentes (Non écrites)
             </h4>
-            <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#14532d', lineHeight: '1.6' }}>
+            <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-main)', lineHeight: '1.6' }}>
               {realExpectations.map((exp: string, idx: number) => (
                 <li key={idx} style={{ marginBottom: '0.5rem' }} dangerouslySetInnerHTML={formatMarkdown(exp)} />
               ))}
@@ -85,11 +85,11 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
 
           {/* Red Flags */}
           {redFlags.length > 0 && (
-            <div style={{ background: '#fff1f2', padding: '1.5rem', borderRadius: '1rem', border: '1px solid #fecdd3' }}>
-              <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#be123c', margin: '0 0 1rem 0' }}>
+            <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--danger-text)', margin: '0 0 1rem 0' }}>
                 <ShieldAlert size={18} /> Signaux d'alerte (Red Flags)
               </h4>
-              <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#881337', lineHeight: '1.6' }}>
+              <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-main)', lineHeight: '1.6' }}>
                 {redFlags.map((flag: string, idx: number) => (
                   <li key={idx} style={{ marginBottom: '0.5rem' }} dangerouslySetInnerHTML={formatMarkdown(flag)} />
                 ))}

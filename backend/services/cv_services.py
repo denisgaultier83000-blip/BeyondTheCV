@@ -245,7 +245,7 @@ async def generate_interview_questions(data, quality='smart'):
     
     OUTPUT LANGUAGE: {target_lang}
     """
-    result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are an expert interviewer. Output ONLY JSON. Language: {target_lang}.")
+    result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a ruthless but constructive Executive Recruiter. Generate high-level, challenging interview questions. Output ONLY JSON. Language: {target_lang}.")
     if "error" in result:
         return []
     return result.get('questions', [])
@@ -364,6 +364,27 @@ async def coach_flaw(request: FlawCoachRequest):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Flaw coaching failed: {str(e)}")
+
+@router.post("/coach-keyword")
+async def coach_keyword(request: dict = Body(...), current_user: dict = Depends(require_active_subscription)):
+    """Génère un conseil pour intégrer un mot-clé manquant."""
+    keyword = request.get("keyword")
+    cv_data = request.get("cv_data")
+    if not keyword or not cv_data:
+        raise HTTPException(status_code=400, detail="Keyword and cv_data are required.")
+
+    target_lang = normalize_language(cv_data.get('target_language', 'fr'))
+    prompt_template = load_prompt(get_prompt_path("keyword_coach.md"))
+
+    prompt = f"""
+    {prompt_template}
+
+    MOT-CLÉ MANQUANT : "{keyword}"
+    CV DU CANDIDAT :
+    {json.dumps(_sanitize_data_for_ai(cv_data), default=str)}
+    """
+    result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a Career Coach. Output STRICT JSON in {target_lang}.")
+    return result
 
 def run_compliance_check(data, lang, quality='smart'):
     # Pas de check complexe pour l'instant, on renvoie la donnée telle quelle ou une correction simple
@@ -485,23 +506,29 @@ async def generate_document(request: GenerateRequest, current_user: dict = Depen
                 optimized_data = data
                 analysis_data = None
 
+            # [FIX CRITIQUE] Aplatissement des informations personnelles pour le LaTeX
+            # Le compilateur cherche `first_name` à la racine, pas dans `personal_info`
+            if "personal_info" in optimized_data and isinstance(optimized_data["personal_info"], dict):
+                for k, v in optimized_data["personal_info"].items():
+                    if not optimized_data.get(k):  # Ne remplace que si la clé est absente à la racine
+                        optimized_data[k] = v
+
             # Normalisation des langues
             langs = optimized_data.get('languages')
+            langs_str = ""
             if langs and isinstance(langs, list):
                 formatted_langs = [f"{lang_item.get('language', lang_item.get('name'))} ({lang_item.get('level')})" if isinstance(lang_item, dict) and lang_item.get('level') else lang_item.get('language', lang_item.get('name')) if isinstance(lang_item, dict) else lang_item for lang_item in langs]
                 if formatted_langs:
                     langs_str = ", ".join([item for item in formatted_langs if item])
                     
-                    # [FIX] Logique de formatage des skills pour le template LaTeX
-                    current_skills_data = optimized_data.get('skills', [])
-                    
-                    # S'assurer que les skills sont une chaîne de caractères
-                    if isinstance(current_skills_data, list):
-                        skills_text = ", ".join(current_skills_data)
-                    else:
-                        skills_text = str(current_skills_data)
-                    
-                    optimized_data['skills'] = {"technical": skills_text, "languages": langs_str}
+            # [FIX CRITIQUE] Formatage des skills sécurisé et sorti de la condition des langues
+            current_skills_data = optimized_data.get('skills', [])
+            if isinstance(current_skills_data, list):
+                skills_text = ", ".join([str(s) for s in current_skills_data])
+            else:
+                skills_text = str(current_skills_data)
+            
+            optimized_data['skills'] = {"technical": skills_text, "languages": langs_str}
 
             if request.preview and request.renderer == "json":
                 return JSONResponse(content=optimized_data)
@@ -661,6 +688,22 @@ async def render_final_cv(cv_final_data: CVFinal, preview: bool = Query(False), 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Render error: {e}")
 
+async def process_action_plan_in_background(task_id: str, cv_dict: dict):
+    """Génère la To-Do list (Plan d'Action) en tâche de fond"""
+    target_lang = normalize_language(cv_dict.get('target_language', 'French'))
+    try:
+        prompt_template = load_prompt(get_prompt_path("action_plan.md"))
+    except:
+        prompt_template = "Génère un plan d'action JSON."
+        
+    prompt = f"{prompt_template}\n\nPROFIL:\n{json.dumps(_sanitize_data_for_ai(cv_dict, strict=True), default=str)}\n\nOUTPUT LANGUAGE: {target_lang}"
+    
+    try:
+        result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are a Career Coach.")
+        await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+    except Exception as e:
+        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
+
 async def orchestrate_dashboard_tasks(tasks_map: dict, cv_dict: dict):
     """
     Enterprise-grade Orchestrator:
@@ -712,6 +755,7 @@ async def orchestrate_dashboard_tasks(tasks_map: dict, cv_dict: dict):
 
     if "career_gps" in tasks_map: fire("career_gps", process_career_gps_in_background(tasks_map["career_gps"], cv_dict))
     if "one_liner" in tasks_map: fire("one_liner", process_oneliner_in_background(tasks_map["one_liner"], cv_dict))
+    if "action_plan" in tasks_map: fire("action_plan", process_action_plan_in_background(tasks_map["action_plan"], cv_dict))
         
     # TÂCHES FUSIONNÉES : Market Strategy
     strategy_tasks = {k: tasks_map[k] for k in ["job_decoder", "risk_analysis", "hidden_market"] if k in tasks_map}
@@ -751,6 +795,7 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
         tasks_map["reality_check"] = str(uuid.uuid4())
         tasks_map["profile_validation"] = str(uuid.uuid4())
         tasks_map["flaw_coaching"] = str(uuid.uuid4())
+        tasks_map["action_plan"] = str(uuid.uuid4())
         
         # [CRITIQUE] Toujours renvoyer une tâche market_research pour que le Frontend puisse l'afficher
         has_research_data = isinstance(data.research_data, dict) and len(data.research_data) > 0
