@@ -1,6 +1,16 @@
 
 import os
-from db_services import get_postgres_connection
+import psycopg2
+import database # [FIX EXPERT] On importe le module entier, pas la variable isolée.
+
+def get_postgres_connection():
+    """Creates a direct synchronous connection to PostgreSQL using the correct URL."""
+    # [FIX EXPERT] Lecture dynamique de la variable depuis le module.
+    # Cela garantit qu'on lit bien l'URL générée dans le lifespan, et non le 'None' initial.
+    if not database.DATABASE_URL:
+        # This provides a clearer error if the URL is missing for any reason.
+        raise ConnectionError("[DB MIGRATION] DATABASE_URL is not set. Cannot connect.")
+    return psycopg2.connect(database.DATABASE_URL)
 
 def create_tables():
     """Create all required tables in PostgreSQL."""
@@ -8,6 +18,7 @@ def create_tables():
     cur = None
     
     try:
+        # This now calls the corrected function within this file.
         conn = get_postgres_connection()
         cur = conn.cursor()
 
@@ -155,7 +166,8 @@ def create_tables():
 
     except Exception as e:
         print(f"\n❌ Error creating tables: {e}")
-        conn.rollback()
+        if conn:
+            conn.rollback()
         return False
     finally:
         if cur:
@@ -169,6 +181,7 @@ def insert_default_subscription_plans():
     cur = None
     
     try:
+        # This also calls the corrected function.
         conn = get_postgres_connection()
         cur = conn.cursor()
         
@@ -192,7 +205,8 @@ def insert_default_subscription_plans():
         return True
     except Exception as e:
         print(f"❌ Error inserting subscription plans: {e}")
-        conn.rollback()
+        if conn:
+            conn.rollback()
         return False
     finally:
         if cur:
@@ -202,6 +216,7 @@ def insert_default_subscription_plans():
 
 def verify_connection():
     """Verify PostgreSQL connection."""
+    # This also calls the corrected function.
     try:
         conn = get_postgres_connection()
         cur = conn.cursor()

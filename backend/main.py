@@ -36,7 +36,8 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from typing import Dict, List
 
-from database import init_db
+from database import init_db, db, get_database_url
+import database as database_module
 
 # [CONFIG] Chargement de la configuration globale de l'application
 def load_app_config():
@@ -94,20 +95,7 @@ async def lifespan(app: FastAPI):
         os.makedirs(os.path.join(os.path.dirname(__file__), "data"), exist_ok=True)
         print("Backend directories initialized.")
 
-        # [DEBUG] Vérification des dépendances critiques
-        try:
-            result = subprocess.run(["pip", "freeze"], capture_output=True, text=True)
-            installed = result.stdout.lower()
-            missing = [p for p in ["pypdf", "fastapi", "psycopg2-binary"] if p not in installed]
-            if missing: 
-                print(f"⚠️ MISSING PACKAGES: {missing}", flush=True)
-                print("🔧 Attempting AUTO-FIX (pip install)...", flush=True)
-                subprocess.run(["pip", "install", *missing], check=True)
-                print("✅ Packages installed. Ready.", flush=True)
-            else:
-                print("✅ Critical packages verified (pypdf, fastapi, psycopg2-binary).", flush=True)
-        except Exception as e: 
-            print(f"⚠️ Auto-install failed: {e}", flush=True)
+        print("✅ Critical packages verification skipped (handled by Dockerfile).", flush=True)
 
         # [LOG] Check active AI Provider
         gemini_key = os.getenv("GEMINI_API_KEY")
@@ -130,12 +118,26 @@ async def lifespan(app: FastAPI):
             if not os.path.exists(os.path.join(template_dir, template)):
                 print(f"WARNING: Required template '{template}' not found in {template_dir}")
 
-        # Initialisation de la DB
+        # [FIX LIFECYCLE] Initialisation de la base de données au bon moment.
+        # L'URL de la base de données (qui peut nécessiter un appel réseau à Secret Manager)
+        # est maintenant calculée ici, et non plus à l'import du module.
         try:
+            # 1. Calculer l'URL de manière sécurisée après le démarrage de l'app.
+            db_url = get_database_url()
+            
+            # 2. Configurer l'instance et le module de base de données avec l'URL obtenue.
+            database_module.DATABASE_URL = db_url
+            db.database_url = db_url
+            
+            # [DEBUG DB] Log ajouté pour confirmer l'URL injectée juste avant la connexion
+            print(f"[DEBUG DB] DATABASE_URL utilisée pour la connexion: {db.database_url}", flush=True)
+            
+            # 3. Lancer les migrations maintenant que la connexion est possible.
             init_db()
             print("[DB] Database initialized successfully.", flush=True)
         except Exception as e:
             print(f"[DB CRITICAL] Database initialization failed: {e}", flush=True)
+            raise # Il est crucial de ne pas laisser l'application démarrer avec une DB cassée.
         
         # [LOG] Network Info - Affiche l'IP réelle pour configurer le Frontend
         current_ip = get_local_ip()
@@ -246,13 +248,19 @@ cors_origins = [
     "http://localhost:5173",  # Frontend URL (Vite)
     "http://127.0.0.1:3000",
     "https://www.beyondthecv.app", # Allow production domain (www)
-    "https://beyondthecv.app"      # Allow production domain (apex)
+    "https://beyondthecv.app",     # Allow production domain (apex)
+    "https://beyondthecv.vercel.app" # Remplacez par l'URL exacte de votre projet sur Vercel
 ]
+
+# [BONNE PRATIQUE] Ajout dynamique si l'URL est passée via l'environnement
+if os.getenv("FRONTEND_URL"):
+    cors_origins.append(os.getenv("FRONTEND_URL"))
 
 # Configuration CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app", # [FIX EXPERT] Autorise dynamiquement toutes les URLs de preview Vercel
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -290,9 +298,11 @@ def health_check():
     return {"status": "online", "ip": get_local_ip(), "message": "Backend is reachable"}
 
 if __name__ == "__main__":
+    import uvicorn
+    import os
+    port = int(os.environ.get("PORT", 8080))
     current_ip = get_local_ip()
     print("🚀 BACKEND IS STARTING...", flush=True)
-    print(f"📡 Network Access: http://{current_ip}:8000", flush=True)
-    print("🏠 Local Access:   http://127.0.0.1:8000", flush=True)
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    print(f"📡 Network Access: http://{current_ip}:{port}", flush=True)
+    print(f"🏠 Local Access:   http://127.0.0.1:{port}", flush=True)
+    uvicorn.run(app, host="0.0.0.0", port=port)

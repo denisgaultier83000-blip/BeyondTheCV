@@ -6,11 +6,11 @@ import psycopg2
 import json
 import os
 import sys
-from dotenv import load_dotenv
+
+# [FIX EXPERT] Centralisation de la configuration de la base de données.
+from database import DATABASE_URL
 
 def verify_db():
-    load_dotenv()
-    DATABASE_URL = os.getenv("DATABASE_URL", "")
     if not DATABASE_URL:
         print("❌ Variable DATABASE_URL introuvable.")
         return

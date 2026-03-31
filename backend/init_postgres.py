@@ -5,11 +5,11 @@ Creates all required tables and indexes for BeyondTheCV
 """
 import psycopg2
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
-DATABASE_URL = os.getenv("DATABASE_URL", "")
-
+# [FIX EXPERT] Importe DATABASE_URL depuis le module centralisé
+# pour garantir une source de vérité unique pour la connexion.
+# (Résout le crash si exécuté sur Cloud Run)
+from database import DATABASE_URL
 
 def get_postgres_connection():
     return psycopg2.connect(DATABASE_URL)

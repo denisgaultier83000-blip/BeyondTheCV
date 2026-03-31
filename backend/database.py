@@ -1,4 +1,5 @@
 import os
+import json
 from contextlib import asynccontextmanager, contextmanager
 from dotenv import load_dotenv
 import asyncio
@@ -6,10 +7,56 @@ import asyncio
 # Load environment variables
 load_dotenv()
 
-# Déterminer le type de base de données
-DATABASE_URL = os.getenv("DATABASE_URL", "")
+def get_database_url():
+    """
+    Construit l'URL de connexion à la base de données.
+    Utilise Secret Manager si DATABASE_SECRET_NAME est défini (Cloud Run).
+    Sinon, se replie sur DATABASE_URL (Local).
+    """
+    # [DEBUG EXPERT] Affichage brut et inconditionnel de la variable pour lever le doute
+    raw_secret = os.getenv("DATABASE_SECRET_NAME")
+    print(f"[DEBUG DB] os.getenv('DATABASE_SECRET_NAME') retourne : {repr(raw_secret)}", flush=True)
 
-print("[DB] PostgreSQL mode strictly enforced", flush=True)
+    secret_name = os.getenv("DATABASE_SECRET_NAME")
+    
+    if secret_name:
+        print(f"[DB] Configuration Cloud Run détectée. Récupération du secret: {secret_name}", flush=True)
+        try:
+            from google.cloud import secretmanager
+            import google.auth
+            
+            # Initialisation du client Secret Manager
+            client = secretmanager.SecretManagerServiceClient()
+            _, project_id = google.auth.default()
+            project_id = project_id or os.getenv("GOOGLE_CLOUD_PROJECT")
+            
+            # Construction du chemin du secret (si le nom court est fourni)
+            if "/" not in secret_name:
+                name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
+            else:
+                name = secret_name
+                
+            response = client.access_secret_version(request={"name": name})
+            secret_payload = response.payload.data.decode("UTF-8")
+            
+            # Analyse du JSON contenant les credentials
+            credentials = json.loads(secret_payload)
+            user = credentials.get("username", credentials.get("user", ""))
+            password = credentials.get("password", "")
+            
+            # Construction de la chaîne de connexion pour Cloud SQL Auth Proxy
+            return f"postgresql://{user}:{password}@/beyondthecv_app_db?host=/cloudsql/beyondthecv:europe-west1:postgresql-db"
+        except Exception as e:
+            print(f"[CRITICAL] Erreur lors de la récupération des secrets : {e}", flush=True)
+            # [FIX EXPERT] Forcer un crash explicite au lieu d'un échec silencieux.
+            # Si la récupération du secret échoue, l'application ne doit PAS continuer avec une URL vide.
+            # En levant l'exception, le log Cloud Run montrera la VRAIE cause de l'échec (permission, secret introuvable, etc.).
+            raise RuntimeError("CRITICAL: Failed to configure database from Secret Manager. Check logs above for the root cause.") from e
+
+    # Fallback pour le développement local
+    return os.getenv("DATABASE_URL", "")
+
+DATABASE_URL = None # [FIX LIFECYCLE] L'URL est maintenant calculée et assignée dans le lifespan de main.py pour éviter les I/O à l'import.
 try:
     import psycopg2
     print("[DB] Module 'psycopg2' loaded successfully.", flush=True)
@@ -28,7 +75,7 @@ except ImportError:
 class Database:
     def __init__(self):
         self.db_type = "postgres"
-        self.database_url = DATABASE_URL
+        self.database_url = None # Sera configuré par le lifespan dans main.py
         
         # [FIX EXPERT] L'initialisation ne doit pas se faire lors de l'import du module.
         # Elle est désormais déléguée exclusivement au gestionnaire 'lifespan' de FastAPI (main.py).
@@ -50,6 +97,8 @@ class Database:
     @asynccontextmanager
     async def get_connection(self):
         """Get async database connection."""
+        if not self.database_url:
+            raise RuntimeError("Database not configured. Lifespan may have failed.")
         if asyncpg:
             # Use asyncpg for PostgreSQL async connections
             conn = await asyncpg.connect(self.database_url)
@@ -69,6 +118,8 @@ class Database:
     @contextmanager
     def get_sync_connection(self):
         """Get synchronous database connection."""
+        if not self.database_url:
+            raise RuntimeError("Database not configured. Lifespan may have failed.")
         conn = psycopg2.connect(self.database_url)
         try:
             yield conn

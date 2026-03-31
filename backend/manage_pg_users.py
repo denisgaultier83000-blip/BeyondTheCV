@@ -13,7 +13,6 @@ import json
 import uuid
 from datetime import datetime
 from dotenv import load_dotenv
-from passlib.context import CryptContext
 
 # Tenter d'importer psycopg2
 try:
@@ -23,17 +22,21 @@ except ImportError:
     print("❌ Erreur: Le module 'psycopg2' est requis. Installez-le avec 'pip install psycopg2-binary'.")
     sys.exit(1)
 
-# Configuration
-load_dotenv()
-PG_DB_URL = os.getenv("DATABASE_URL")
+# [FIX EXPERT] Centralisation de la configuration de la base de données.
+# Au lieu de lire la variable d'environnement ici (ce qui échoue sur Cloud Run),
+# on importe la variable DATABASE_URL déjà configurée depuis le module central `database`.
+# Cela garantit que ce script utilise la même source de vérité que le reste de l'application.
+from database import DATABASE_URL as PG_DB_URL
+from passlib.context import CryptContext
+
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 def get_connection():
     if not PG_DB_URL:
-        print("❌ Variable d'environnement DATABASE_URL manquante dans le .env.")
+        print("❌ La variable DATABASE_URL n'a pas pu être configurée (vérifiez database.py et .env).")
         sys.exit(1)
     try:
-        return psycopg2.connect(PG_DB_URL)
+        return psycopg2.connect(PG_DB_URL) # Cette ligne est maintenant sûre.
     except Exception as e:
         print(f"❌ Impossible de se connecter à PostgreSQL : {e}")
         sys.exit(1)

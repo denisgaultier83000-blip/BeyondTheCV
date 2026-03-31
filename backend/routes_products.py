@@ -7,6 +7,11 @@ import os
 import uuid
 from datetime import datetime, timezone
 
+try:
+    from google.cloud import storage
+except ImportError:
+    storage = None
+
 from db_schemas import (
     ProductCreate, ProductResponse, ProductListResponse,
     SubscriptionExtensionCreate, SubscriptionExtensionResponse,

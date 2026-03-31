@@ -4,15 +4,14 @@ Script pour insérer des utilisateurs de test dans PostgreSQL
 avec des profils complets pour tester toutes les fonctionnalités
 """
 import psycopg2
-import os
-from dotenv import load_dotenv
 from datetime import datetime, timedelta
 import json
 from security import get_password_hash
 
-load_dotenv()
-DATABASE_URL = os.getenv("DATABASE_URL", "")
-
+# [FIX EXPERT] Centralisation de la configuration de la base de données.
+# Au lieu de lire la variable d'environnement ici (ce qui échoue sur Cloud Run),
+# on importe la variable DATABASE_URL déjà configurée depuis le module central `database`.
+from database import DATABASE_URL
 
 def get_postgres_connection():
     return psycopg2.connect(DATABASE_URL)

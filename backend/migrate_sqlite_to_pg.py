@@ -1,7 +1,6 @@
 import sqlite3
 import os
 import sys
-from dotenv import load_dotenv
 
 # Tenter d'importer psycopg2
 try:
@@ -10,11 +9,10 @@ except ImportError:
     print("Erreur: Le module 'psycopg2' est requis. Installez-le avec 'pip install psycopg2-binary'.")
     sys.exit(1)
 
-# Charger les variables d'environnement (.env)
-load_dotenv()
-
 SQLITE_DB_PATH = os.path.join(os.path.dirname(__file__), "storage.db")
-PG_DB_URL = os.getenv("DATABASE_URL")
+
+# [FIX EXPERT] Centralisation de la configuration de la base de données.
+from database import DATABASE_URL as PG_DB_URL
 
 def migrate_data():
     """

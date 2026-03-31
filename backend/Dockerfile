@@ -15,8 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 
 # Installation dans le répertoire utilisateur pour faciliter la copie
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --user --no-warn-script-location -r requirements.txt
+RUN pip install --user --no-warn-script-location -r requirements.txt
 
 # Etape 2 : Image finale (Runtime)
 FROM python:3.11-slim
@@ -47,6 +46,8 @@ COPY . .
 # Création des dossiers nécessaires
 RUN mkdir -p temp output ai/prompts
 
-EXPOSE 8000
+EXPOSE 8080
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Lancement via le script main.py pour qu'il puisse récupérer le port
+# dynamiquement depuis la variable d'environnement $PORT injectée par Cloud Run.
+CMD ["python", "main.py"]

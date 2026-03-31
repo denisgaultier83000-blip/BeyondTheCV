@@ -1,38 +1,28 @@
 """
 Database services for managing products, evaluations, and subscriptions.
 """
-import psycopg2
-from psycopg2 import pool
 from psycopg2.extras import RealDictCursor, Json
 from contextlib import contextmanager
-import os
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict, Any
-from dotenv import load_dotenv
 
-load_dotenv()
-DATABASE_URL = os.getenv("DATABASE_URL", "")
+# [FIX EXPERT] Importe l'instance de base de données centralisée au lieu de créer une nouvelle connexion.
+# Cela résout le bug de démarrage sur Cloud Run car la connexion n'est plus initialisée
+# au moment de l'import avec une variable d'environnement vide.
+from database import db
 
-try:
-    db_pool = pool.ThreadedConnectionPool(1, 20, DATABASE_URL)
-except Exception as e:
-    print(f"[DB CRITICAL] Error initializing connection pool: {e}")
-    db_pool = None
-
-def get_postgres_connection():
-    """Fournit une connexion brute et directe à PostgreSQL (utilisée par les migrations)."""
-    return psycopg2.connect(DATABASE_URL)
+# [REMOVED] La fonction get_postgres_connection() et le pool de connexion (db_pool) sont supprimés.
+# Toute la gestion de la connexion est maintenant déléguée à l'objet `db` importé,
+# ce qui garantit une configuration unique et correcte pour tous les environnements.
 
 @contextmanager
 def get_db_connection():
-    """Fournit une connexion depuis le pool et la restitue automatiquement."""
-    if not db_pool:
-        raise Exception("Database pool not initialized")
-    conn = db_pool.getconn()
-    try:
+    """
+    Fournit une connexion depuis le gestionnaire de connexion centralisé.
+    Ceci remplace l'ancien pool de connexions local qui causait le crash au démarrage.
+    """
+    with db.get_sync_connection() as conn:
         yield conn
-    finally:
-        db_pool.putconn(conn)
 
 # ==================== PRODUCTS ====================
 

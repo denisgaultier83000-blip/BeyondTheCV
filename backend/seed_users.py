@@ -1,15 +1,15 @@
 import asyncio
 import json
 from passlib.context import CryptContext
-import os
 import uuid
 from datetime import datetime
 import psycopg2
 
-from database import init_db
+# [FIX EXPERT] Importe DATABASE_URL depuis le module centralisé
+# pour garantir une source de vérité unique pour la connexion.
+from database import init_db, DATABASE_URL
 
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
-DATABASE_URL = os.getenv("DATABASE_URL", "")
 
 def seed_test_users():
     # 1. Force l'initialisation de la base de données et de ses tables (users, etc.)
