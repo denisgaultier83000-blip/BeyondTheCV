@@ -1,0 +1,23 @@
+server {
+    # Cette directive sera remplacée par la variable d'environnement PORT au démarrage.
+    # Nginx écoutera sur 0.0.0.0:${PORT}
+    listen PORT_PLACEHOLDER;
+
+    # Racine standard et fichier d'index pour les applications web.
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Indispensable pour les Single Page Applications (SPA) comme React, Vue, Angular.
+    # Si une URL comme /mon-profil n'est pas un fichier ou un dossier, Nginx renvoie index.html.
+    # Le routeur côté client (React Router) prend alors le relais.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Optionnel mais recommandé : Améliorer le cache pour les assets statiques.
+    # Les navigateurs mettront en cache ces fichiers pour une durée d'un an.
+    location ~* \.(?:css|js|jpg|jpeg|gif|png|svg|ico|webp)$ {
+        expires 1y;
+        add_header Cache-Control "public";
+    }
+}

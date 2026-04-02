@@ -17,7 +17,7 @@ services:
       dockerfile: Dockerfile
     user: root
     ports:
-      - "8000:8000"
+      - "8080:8080"
     env_file:
       - .env
     environment:
@@ -26,14 +26,14 @@ services:
     depends_on:
       - db
     # On retire le mode --reload pour des performances et une stabilité maximales
-    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
     networks:
       - app-network
 
   frontend:
     build:
       context: ./front
-      dockerfile: Dockerfile.prod
+      dockerfile: Dockerfile # On confirme que c'est bien le fichier par défaut
     ports:
       # Nginx expose l'application sur le port web standard (80)
       - "80:80"

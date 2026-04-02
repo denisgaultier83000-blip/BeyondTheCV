@@ -16,8 +16,23 @@ FROM nginx:alpine
 # Copie des fichiers ultra-légers compilés depuis l'étape 1
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Configuration pour que React Router gère bien le rafraîchissement des pages (SPA) sans erreur 404
-RUN echo 'server { listen 80; location / { root /usr/share/nginx/html; index index.html; try_files $uri $uri/ /index.html; } }' > /etc/nginx/conf.d/default.conf
+# [FIX EXPERT ABSOLU] Le piège de envsubst est contourné.
+# On place le fichier SANS utiliser le dossier /templates/ automatique,
+# car ce système détruit la variable Nginx $uri et fait crasher le serveur.
+COPY nginx.conf.template /etc/nginx/conf.d/default.conf
 
-EXPOSE 80
+# On définit 80 par défaut pour que votre docker-compose.prod.yml actuel fonctionne toujours.
+# Sur Google Cloud Run, cette variable sera automatiquement écrasée par la valeur requise (ex: 8080).
+ENV PORT=80
+ 
+# [FIX ULTIME] Utilisation d'un script d'entrée (entrypoint) pour la robustesse.
+# Cela sépare proprement la phase de configuration (le 'sed') de la phase d'exécution (le lancement de Nginx).
+# C'est la méthode la plus fiable pour s'assurer que les variables d'environnement sont correctement appliquées.
+COPY entrypoint.sh /usr/local/bin/
+
+# [BLINDAGE] On supprime les retours chariots Windows (\r) qui font crasher Linux silencieusement
+RUN sed -i 's/\r$//' /usr/local/bin/entrypoint.sh && chmod +x /usr/local/bin/entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+ 
+# Le CMD est maintenant la commande que l'entrypoint va exécuter.
 CMD ["nginx", "-g", "daemon off;"]

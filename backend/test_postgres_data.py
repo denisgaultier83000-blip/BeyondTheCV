@@ -11,7 +11,7 @@ import time
 print("⏳ Attente du démarrage du backend...")
 time.sleep(3)
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = "http://localhost:8080"
 
 def test_api_endpoint(endpoint, description):
     """Test un endpoint API"""

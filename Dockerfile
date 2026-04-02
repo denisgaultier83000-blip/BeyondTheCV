@@ -40,8 +40,9 @@ RUN useradd -m appuser && \
 USER appuser
 
 # Exposition du port par défaut de FastAPI
-EXPOSE 8000
+EXPOSE 8080
 
 # Commande de démarrage
-# Note: En prod, on n'utilise pas --reload
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# [FIX EXPERT] On utilise sh -c pour interpréter dynamiquement la variable $PORT
+# injectée par Cloud Run. En local, cela retombera automatiquement sur 8080.
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}"]

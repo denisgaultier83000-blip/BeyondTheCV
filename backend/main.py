@@ -142,6 +142,7 @@ async def lifespan(app: FastAPI):
         # [LOG] Network Info - Affiche l'IP réelle pour configurer le Frontend
         current_ip = get_local_ip()
         is_docker = os.path.exists("/.dockerenv")
+        port = int(os.environ.get("PORT", 8080))
 
         print("----------------------------------------------------------------", flush=True)
         print("🚀 BACKEND READY", flush=True)
@@ -149,10 +150,10 @@ async def lifespan(app: FastAPI):
         if is_docker:
             print("🐳 Docker Environment Detected", flush=True)
             print(f"   Container IP: {current_ip} (Internal)", flush=True)
-            print("   Host Access:  http://localhost:8000 (If ports are mapped)", flush=True)
+            print(f"   Host Access:  http://localhost:{port} (If ports are mapped)", flush=True)
         else:
-            print(f"📡 Network Access: http://{current_ip}:8000", flush=True)
-            print("🏠 Local Access:   http://127.0.0.1:8000", flush=True)
+            print(f"📡 Network Access: http://{current_ip}:{port}", flush=True)
+            print(f"🏠 Local Access:   http://127.0.0.1:{port}", flush=True)
         print("----------------------------------------------------------------", flush=True)
         
         # Lancement du nettoyage au démarrage
@@ -249,7 +250,7 @@ cors_origins = [
     "http://127.0.0.1:3000",
     "https://www.beyondthecv.app", # Allow production domain (www)
     "https://beyondthecv.app",     # Allow production domain (apex)
-    "https://beyondthecv.vercel.app" # Remplacez par l'URL exacte de votre projet sur Vercel
+    "https://beyond-the-cv-front.vercel.app"
 ]
 
 # [BONNE PRATIQUE] Ajout dynamique si l'URL est passée via l'environnement
