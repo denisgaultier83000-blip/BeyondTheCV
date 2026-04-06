@@ -211,9 +211,20 @@ async def analyze_free_text_content(text, quality='fast'):
     return await ai_service.generate_valid_json(prompt, provider="gemini", system_instruction="You are a CV parser API. Output STRICT JSON.")
 
 async def optimize_cv_data(data, target_lang='French', quality='smart'):
+    # [FIX] Extraction des mots-clés et clarifications pour forcer l'IA à les utiliser
+    clarifications = data.get('clarifications', [])
+    free_text = data.get('free_text', '')
+    
+    clarifications_str = "\n".join([f"- {c.get('question', '')} : {c.get('answer', '')}" for c in clarifications if isinstance(c, dict) and c.get('answer')])
+    
+    instructions_candidat = ""
+    if free_text or clarifications_str:
+        instructions_candidat = f"\n⚠️ INSTRUCTIONS SPÉCIFIQUES DU CANDIDAT (MOTS-CLÉS & PRÉCISIONS À INTÉGRER IMPÉRATIVEMENT DANS LES EXPÉRIENCES OU COMPÉTENCES) :\n{free_text}\n{clarifications_str}\nTu dois absolument tisser ces éléments dans le contenu du CV.\n"
+
     prompt = f"""
     Optimize this CV data for ATS in {target_lang}. Improve wording and keywords.
     ⚠️ IMPÉRATIF DE CORRECTION : Le texte fourni est un brouillon brut. Tu DOIS corriger scrupuleusement toutes les fautes d'orthographe, de frappe, ajouter les accents manquants et corriger la typographie (mettre des majuscules aux noms, prénoms, noms d'entreprises et débuts de phrases). Le résultat doit avoir une rigueur typographique absolue.
+    {instructions_candidat}
     
     DATA:
     {json.dumps(_sanitize_data_for_ai(data), default=str)}
@@ -507,10 +518,12 @@ async def generate_document(request: GenerateRequest, current_user: dict = Depen
                 analysis_data = None
 
             # [FIX CRITIQUE] Aplatissement des informations personnelles pour le LaTeX
-            # Le compilateur cherche `first_name` à la racine, pas dans `personal_info`
-            if "personal_info" in optimized_data and isinstance(optimized_data["personal_info"], dict):
-                for k, v in optimized_data["personal_info"].items():
-                    if not optimized_data.get(k):  # Ne remplace que si la clé est absente à la racine
+            # On force l'écrasement avec les VRAIES données utilisateur (data) 
+            # pour écraser définitivement toute hallucination de l'IA (ex: "Prénom Nom")
+            real_personal_info = data.get("personal_info", {})
+            if isinstance(real_personal_info, dict):
+                for k, v in real_personal_info.items():
+                    if v and str(v).strip():  # Si la vraie donnée existe, on l'impose à la racine
                         optimized_data[k] = v
 
             # Normalisation des langues
