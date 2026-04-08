@@ -119,7 +119,8 @@ export const InterviewTab = () => {
           <p key={i} className="teleprompter-paragraph">{p}</p>
         ))}
       </div>
-      <div className="teleprompter-controls">
+      {/* [FIX] Ajout du positionnement en inline pour écraser le CSS de DashboardView et garantir la visibilité */}
+      <div className="teleprompter-controls" style={{ position: 'absolute', bottom: '5rem', display: 'flex', gap: '1rem', zIndex: 100000 }}>
         <div style={{ background: 'rgba(255,255,255,0.1)', padding: '0.5rem 1.5rem', borderRadius: '2rem', fontSize: '2rem', color: 'white', fontFamily: 'monospace' }}>
           {formatTime(timer)}
         </div>

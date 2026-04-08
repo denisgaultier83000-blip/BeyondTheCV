@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
 from models import UserLogin, UserRegister
 from security import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user, verify_password, get_password_hash
 from database import db
@@ -117,30 +118,30 @@ async def _fetch_premium_status(user_id):
 
 # --- Routes ---
 
-@router.post("/api/login")
-async def login(request: UserLogin):
+@router.post("/api/auth/token")
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     try:
         async with db.get_connection() as conn:
             # Requête propre et directe
-            cursor = await db.execute(conn, "SELECT * FROM users WHERE email = ?", (request.email,))
+            cursor = await db.execute(conn, "SELECT * FROM users WHERE email = ?", (form_data.username,))
             row = await cursor.fetchone()
 
         if not row:
-            print(f"[AUTH ERROR] Échec : Email introuvable en base ({request.email})", flush=True)
-            raise HTTPException(status_code=401, detail="L'email n'existe pas dans la base de données.")
+            print(f"[AUTH ERROR] Échec : Email introuvable en base ({form_data.username})", flush=True)
+            raise HTTPException(status_code=401, detail="Identifiants incorrects.")
             
         # [FIX] Sécurisation absolue : on garantit un dictionnaire peu importe le driver (psycopg2/asyncpg)
         user_dict = dict(row) if not isinstance(row, dict) else row
             
         try:
-            is_valid = verify_password(request.password, user_dict.get("hashed_password", ""))
+            is_valid = verify_password(form_data.password, user_dict.get("hashed_password", ""))
         except Exception as hash_err:
             print(f"[AUTH ERROR] Erreur de vérification du hash: {hash_err}", flush=True)
             is_valid = False
             
         if not is_valid:
-            print(f"[AUTH ERROR] Échec : Mot de passe incorrect pour ({request.email})", flush=True)
-            raise HTTPException(status_code=401, detail="Le mot de passe est incorrect.")
+            print(f"[AUTH ERROR] Échec : Mot de passe incorrect pour ({form_data.username})", flush=True)
+            raise HTTPException(status_code=401, detail="Identifiants incorrects.")
 
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
@@ -149,7 +150,8 @@ async def login(request: UserLogin):
         )
 
         return {
-            "token": access_token,
+            "access_token": access_token,
+            "token_type": "bearer",
             "user": {
                 "id": str(user_dict.get("id", "")),
                 "name": f"{user_dict.get('first_name', '')} {user_dict.get('last_name', '')}".strip(),
@@ -165,7 +167,7 @@ async def login(request: UserLogin):
         print(f"[AUTH ERROR CRITICAL] {e}", flush=True)
         raise HTTPException(status_code=500, detail=f"Erreur interne : {str(e)}")
 
-@router.post("/api/register")
+@router.post("/api/auth/register")
 async def register(user: UserRegister):
     print(f"[AUTH] Register attempt for: {user.email}", flush=True)
     email = user.email
@@ -190,7 +192,7 @@ async def register(user: UserRegister):
         raise he
     except Exception as e:
         print(f"[AUTH] CRITICAL ERROR during register: {e}", flush=True)
-        raise HTTPException(status_code=500, detail="Internal Server Error during registration.")
+        raise HTTPException(status_code=500, detail=f"Database Error: [{type(e).__name__}] {str(e)}")
 
 @router.get("/api/user/status")
 async def get_user_status(current_user: dict = Depends(get_current_user)):

@@ -27,7 +27,7 @@ export function HiddenMarket({ data, loading, error }: HiddenMarketProps) {
   }
 
   // Résolution robuste (Support de l'encapsulation IA)
-  const hidden_market = data?.hidden_market || data;
+  const hidden_market: any = data && 'hidden_market' in data ? data.hidden_market : data;
   if (loading || !hidden_market || Object.keys(hidden_market).length === 0) return null;
 
   const outreach = hidden_market.outreach_message || { subject: "", body: "" };

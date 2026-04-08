@@ -22,7 +22,7 @@ export const DashboardView = () => {
   const { t } = useTranslation();
   const { 
     activeTab, setActiveTab, pilotData, isPilotLoading, cvData, fetchPilotData,
-    researchResult, salaryResult, careerGpsResult, careerRadarResult, resetDashboard, setCurrentStep,
+    researchResult, salaryResult, careerGpsResult, careerRadarResult, setCurrentStep,
     jobDecoderResult, hiddenMarketResult, recruiterResult, realityResult, flawCoachingResult,
     globalStatus, triggerResearch,
     pitchResult, questionsResult, cvResult, gapResult, actionPlanResult
@@ -119,10 +119,6 @@ export const DashboardView = () => {
               <div className="bento-card col-span-3" style={{ background: 'var(--bg-card)' }}>
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                    <div className="bento-header" style={{ marginBottom: '0.5rem' }}><Activity size={20} color="var(--primary)"/> Centre de Suivi des Analyses</div>
-                   {/* [NOUVEAU] Bouton Réinitialiser, accessible et logique */}
-                   <button className="btn-ghost" onClick={() => resetDashboard(() => setCurrentStep(0))} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                     <RotateCcw size={16} /> Réinitialiser
-                   </button>
                  </div>
                  <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: '0 0 1.5rem 0' }}>Suivez la génération de vos outils en temps réel et cliquez pour y accéder.</p>
                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>

@@ -90,7 +90,6 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
   const [diagnosticData, setDiagnosticData] = useState<any>(null);
   const [isLoadingDiagnostic, setIsLoadingDiagnostic] = useState(false);
   const [isGeneratingDashboard, setIsGeneratingDashboard] = useState(false);
-  const [completenessTaskId, setCompletenessTaskId] = useState<string | null>(null);
   
   const [premiumLoading, setPremiumLoading] = useState({
     radar: false,
@@ -939,41 +938,22 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
         launchBackgroundResearch();
     }
 
-    // [OPTIMISATION] Trigger background completeness analysis when leaving Step 5
-    if (currentStep === 5) {
-        const payload = formatPayload(form);
-        fetchWithRetry(`${API_BASE_URL}/api/cv/analyze-completeness`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-        }).then(res => res.json()).then(data => {
-            if (data.task_id) {
-                console.log("[Completeness] Background task started from Step 5:", data.task_id);
-                setCompletenessTaskId(data.task_id);
-            }
-        }).catch(e => console.error("Failed to start background completeness analysis", e));
-    }
-
     // Before going to Clarification, check completeness at step 6 (Free Text) -> 7 (Clarification)
     if (currentStep === 6) {
         setIsAnalyzingCompleteness(true);
         try {
-            let finalResult;
-            if (completenessTaskId) {
-                console.log("[Completeness] Waiting for background task started at Step 5...");
-                finalResult = await pollTaskResult(completenessTaskId);
-            } else {
-                // Fallback si la tâche n'a pas pu démarrer à l'étape 5
-                const payload = formatPayload(form);
-                const response = await fetchWithRetry(`${API_BASE_URL}/api/cv/analyze-completeness`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload),
-                });
-                if (!response.ok) throw new Error(`Server error: ${response.status}`);
-                const initialRes = await response.json();
-                finalResult = initialRes.task_id ? await pollTaskResult(initialRes.task_id) : initialRes;
-            }
+            // [FIX CRITIQUE] L'analyse DOIT être lancée ici pour inclure le texte libre (free_text)
+            // saisi par l'utilisateur à l'étape 6.
+            const payload = formatPayload(form);
+            const response = await fetchWithRetry(`${API_BASE_URL}/api/cv/analyze-completeness`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            
+            if (!response.ok) throw new Error(`Server error: ${response.status}`);
+            const initialRes = await response.json();
+            const finalResult = initialRes.task_id ? await pollTaskResult(initialRes.task_id) : initialRes;
 
             if (finalResult.clarifications && finalResult.clarifications.length > 0) {
                 // [FIX] Normalisation des questions pour l'affichage (String -> Object)
@@ -1309,7 +1289,6 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
           )}
 
           {showSalaryModal && salaryData && (
-            // @ts-ignore - Bypass type checking for lang property
             <SalaryModal 
                 data={{
                     ...salaryData,

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import ScoreGauge from "./ScoreGauge";
 import { useTranslation } from "react-i18next";
 import { Mic, User, Briefcase, Star, Target, Printer, ArrowLeft, Lightbulb, Play, Pause, RotateCcw, X, MonitorPlay } from 'lucide-react';
@@ -21,6 +21,7 @@ interface PitchEditorProps {
 const Teleprompter = ({ text, onClose }: { text: string, onClose: () => void }) => {
   const [timeLeft, setTimeLeft] = useState(180); // 3 minutes = 180s
   const [isActive, setIsActive] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let interval: any = null;
@@ -32,38 +33,50 @@ const Teleprompter = ({ text, onClose }: { text: string, onClose: () => void }) 
     return () => clearInterval(interval);
   }, [isActive, timeLeft]);
 
+  // Ajout de l'auto-scroll fluide quand le téléprompteur est actif
+  useEffect(() => {
+    let scrollInterval: any = null;
+    if (isActive) {
+      scrollInterval = setInterval(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollTop += 1;
+        }
+      }, 35); // Vitesse de défilement de l'auto-scroll
+    }
+    return () => clearInterval(scrollInterval);
+  }, [isActive]);
+
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  return (
-    <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: '#0f172a', zIndex: 99999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-      <button onClick={onClose} title="Fermer le téléprompteur" style={{ position: 'absolute', top: '2rem', right: '2rem', background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', width: '50px', height: '50px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100000, transition: 'background 0.2s' }}>
+  return createPortal(
+    <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: '#0f172a', zIndex: 99999, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <button onClick={onClose} title="Fermer le téléprompteur" style={{ position: 'absolute', top: '0.5rem', right: '2rem', background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', width: '50px', height: '50px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100000, transition: 'background 0.2s' }}>
         <X size={28} />
       </button>
       
-      <div style={{ position: 'absolute', top: '2rem', background: 'rgba(255,255,255,0.1)', padding: '0.75rem 2rem', borderRadius: '50px', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', gap: '1.5rem', zIndex: 100000 }}>
-        <span style={{ fontSize: '2rem', fontFamily: 'monospace', color: timeLeft <= 30 ? '#ef4444' : 'white', fontWeight: 'bold', width: '100px', textAlign: 'center' }}>
+      <div style={{ position: 'absolute', top: '0.5rem', background: 'rgba(255,255,255,0.15)', padding: '1rem 2.5rem', borderRadius: '50px', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', gap: '2rem', zIndex: 100000, boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
+        <span style={{ fontSize: '2.5rem', fontFamily: 'monospace', color: timeLeft <= 30 ? '#ef4444' : 'white', fontWeight: 'bold', width: '120px', textAlign: 'center', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
           {formatTime(timeLeft)}
         </span>
-        <div style={{ width: '2px', height: '30px', background: 'rgba(255,255,255,0.2)' }}></div>
-        <button onClick={() => setIsActive(!isActive)} style={{ background: isActive ? 'rgba(255,255,255,0.2)' : '#3b82f6', border: 'none', color: 'white', width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: '0.2s' }}>
-          {isActive ? <Pause size={24} /> : <Play size={24} style={{ marginLeft: '4px' }} />}
+        <div style={{ width: '2px', height: '40px', background: 'rgba(255,255,255,0.3)' }}></div>
+        <button onClick={() => setIsActive(!isActive)} style={{ background: isActive ? 'rgba(255,255,255,0.2)' : '#3b82f6', border: 'none', color: 'white', width: '56px', height: '56px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: '0.2s', boxShadow: '0 4px 15px rgba(0,0,0,0.4)' }}>
+          {isActive ? <Pause size={28} /> : <Play size={28} style={{ marginLeft: '4px' }} />}
         </button>
-        <button onClick={() => { setIsActive(false); setTimeLeft(180); }} style={{ background: 'transparent', border: '2px solid rgba(255,255,255,0.3)', color: 'white', width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: '0.2s' }}>
-          <RotateCcw size={20} />
+        <button onClick={() => { setIsActive(false); setTimeLeft(180); if (scrollRef.current) scrollRef.current.scrollTop = 0; }} style={{ background: 'transparent', border: '2px solid rgba(255,255,255,0.4)', color: 'white', width: '56px', height: '56px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: '0.2s' }}>
+          <RotateCcw size={24} />
         </button>
       </div>
 
-        <div style={{ width: '100%', maxWidth: '900px', height: '70vh', overflowY: 'auto', textAlign: 'center', marginTop: '2rem', paddingBottom: '6rem' }}>
+      <div ref={scrollRef} style={{ width: '100%', maxWidth: '900px', flex: 1, overflowY: 'auto', textAlign: 'center', paddingTop: '12rem', paddingBottom: '50vh', scrollBehavior: 'smooth' }}>
         {text.split('\n').map((para, idx) => para.trim() ? (
-          <p key={idx} style={{ color: 'rgba(255,255,255,0.7)', fontSize: '2.2rem', lineHeight: 1.6, marginBottom: '2.5rem', fontWeight: 600 }}>{para}</p>
+          <p key={idx} style={{ color: 'rgba(255,255,255,0.85)', fontSize: '2.5rem', lineHeight: 1.6, marginBottom: '3rem', fontWeight: 600, textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>{para}</p>
         ) : null)}
       </div>
-      </div>,
-      document.body
+      </div>, document.body
   );
 };
 

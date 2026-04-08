@@ -1,5 +1,6 @@
 import os
 import json
+import urllib.parse
 from contextlib import asynccontextmanager, contextmanager
 from dotenv import load_dotenv
 import asyncio
@@ -19,6 +20,10 @@ def get_database_url():
 
     secret_name = os.getenv("DATABASE_SECRET_NAME")
     
+    # [FIX EXPERT] Sécurité : Empêcher le fallback local si on est déployé sur Cloud Run
+    if os.getenv("K_SERVICE") and not secret_name:
+        raise RuntimeError("CRITICAL: Déploiement Cloud Run détecté, mais 'DATABASE_SECRET_NAME' est manquant. Ajoutez la variable d'environnement.")
+
     if secret_name:
         print(f"[DB] Configuration Cloud Run détectée. Récupération du secret: {secret_name}", flush=True)
         try:
@@ -41,11 +46,14 @@ def get_database_url():
             
             # Analyse du JSON contenant les credentials
             credentials = json.loads(secret_payload)
-            user = credentials.get("username", credentials.get("user", ""))
-            password = credentials.get("password", "")
+            # [FIX EXPERT] Encodage URL obligatoire pour protéger les caractères spéciaux (@, ?, /, #)
+            user = urllib.parse.quote(credentials.get("username", credentials.get("user", "")), safe="")
+            password = urllib.parse.quote(credentials.get("password", ""), safe="")
+            dbname = urllib.parse.quote(credentials.get("dbname", credentials.get("database", "beyondthecv")), safe="")
+            instance = credentials.get("instance_connection_name", "beyondthecv:europe-west1:btcv-prod-db-france")
             
             # Construction de la chaîne de connexion pour Cloud SQL Auth Proxy
-            return f"postgresql://{user}:{password}@/beyondthecv_app_db?host=/cloudsql/beyondthecv:europe-west1:postgresql-db"
+            return f"postgresql://{user}:{password}@/{dbname}?host=/cloudsql/{instance}"
         except Exception as e:
             print(f"[CRITICAL] Erreur lors de la récupération des secrets : {e}", flush=True)
             # [FIX EXPERT] Forcer un crash explicite au lieu d'un échec silencieux.
@@ -54,7 +62,10 @@ def get_database_url():
             raise RuntimeError("CRITICAL: Failed to configure database from Secret Manager. Check logs above for the root cause.") from e
 
     # Fallback pour le développement local
-    return os.getenv("DATABASE_URL", "")
+    fallback_url = os.getenv("DATABASE_URL", "")
+    if not fallback_url:
+        print("[WARNING] Ni DATABASE_SECRET_NAME ni DATABASE_URL ne sont définis. Tentative de connexion par défaut (localhost).", flush=True)
+    return fallback_url
 
 DATABASE_URL = None # [FIX LIFECYCLE] L'URL est maintenant calculée et assignée dans le lifespan de main.py pour éviter les I/O à l'import.
 try:
@@ -87,8 +98,10 @@ class Database:
             from migrations import create_tables, insert_default_subscription_plans
             
             print("[DB] Running PostgreSQL migrations...", flush=True)
-            create_tables()
-            insert_default_subscription_plans()
+            if not create_tables():
+                raise RuntimeError("Échec de la création des tables PostgreSQL.")
+            if not insert_default_subscription_plans():
+                raise RuntimeError("Échec de l'insertion des plans d'abonnement par défaut.")
             print("[DB] PostgreSQL migrations completed successfully", flush=True)
         except Exception as e:
             print(f"[DB] Error initializing PostgreSQL: {e}", flush=True)

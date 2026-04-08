@@ -21,7 +21,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           {/* La Landing Page doit être publique */}
           <Route path="/" element={<App />} />
           
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<Login onLogin={() => window.location.href = '/candidate'} />} />
           
           {/* Page de paiement intermédiaire */}
           <Route path="/payment" element={

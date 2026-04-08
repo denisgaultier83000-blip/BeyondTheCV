@@ -33,10 +33,10 @@ services:
   frontend:
     build:
       context: ./front
-      dockerfile: Dockerfile # On confirme que c'est bien le fichier par défaut
+      dockerfile: Dockerfile
     ports:
-      # Nginx expose l'application sur le port web standard (80)
-      - "80:80"
+      # Nginx écoute désormais sur 8080 (Standard Cloud Run)
+      - "80:8080"
     depends_on:
       - backend
     networks:

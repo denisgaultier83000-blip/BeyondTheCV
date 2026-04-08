@@ -48,7 +48,7 @@ export default function Dashboard({
 
   const { t } = useTranslation();
 
-  const ActionCard = ({ icon, title, desc, onClick, disabled, ready }: { icon: React.ReactNode, title: string, desc: string, onClick?: () => void, disabled?: boolean, ready?: any }) => (
+  const ActionCard = ({ icon, title, desc, onClick, disabled, ready }: { icon: React.ReactElement, title: string, desc: string, onClick?: () => void, disabled?: boolean, ready?: any }) => (
     <button 
       onClick={onClick} 
       disabled={disabled}

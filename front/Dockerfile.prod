@@ -8,6 +8,10 @@ RUN npm install
 
 # Copie du code source et compilation (nécessite le .env pour VITE_API_URL)
 COPY . .
+
+# [FIX DE L'EXPERT] Définition stricte et persistante de l'URL pour Vite
+ENV VITE_API_URL=https://beyondthecv-backend-service-746792482004.europe-west1.run.app
+
 RUN npm run build
 
 # Étape 2 : Serveur Web de Production (Nginx)

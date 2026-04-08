@@ -108,7 +108,7 @@ export function useDashboardLogic() {
         setPilotData({
           matchScore: data.matchScore ?? data.match_score ?? 0,
           summary: data.summary ?? data.match_summary ?? 'Analyse IA terminée.',
-          strengths: safeStrengths.map(s => typeof s === 'string' ? s : JSON.stringify(s)),
+          strengths: safeStrengths.map((s: any) => typeof s === 'string' ? s : JSON.stringify(s)),
           gapsMatrix: safeGaps.map((item: any) => ({ 
             skill: typeof item === 'string' ? item : (item.skill || item.name || JSON.stringify(item)), 
             impact: (typeof item === 'object' && item.impact) ? item.impact : 'High',

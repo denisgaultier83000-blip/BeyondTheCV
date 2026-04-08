@@ -6,7 +6,7 @@ import { KeywordCoachModal } from './KeywordCoachModal';
 import { API_BASE_URL } from '../config';
 
 export const CVTab = ({ data }: { data: any }) => {
-  const { cvData, cvResult, gapResult, updateFormData } = useDashboard();
+  const { cvData, cvResult, gapResult } = useDashboard();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,6 +19,7 @@ export const CVTab = ({ data }: { data: any }) => {
 
   const [addedKeywords, setAddedKeywords] = useState<string[]>([]);
   const [coachingKeyword, setCoachingKeyword] = useState<string | null>(null);
+  const [extraContent, setExtraContent] = useState<string[]>([]); // [FIX] Stockage des textes édités
 
   const pointsPerKeyword = missingKeywords.length > 0 ? Math.ceil((100 - baseScore) / missingKeywords.length) : 0;
   const currentScore = Math.min(100, baseScore + (addedKeywords.length * pointsPerKeyword));
@@ -28,20 +29,45 @@ export const CVTab = ({ data }: { data: any }) => {
     // [FIX CRITIQUE] On utilise les données optimisées par l'IA si elles existent
     // On fusionne pour s'assurer d'avoir les skills à jour ajoutés manuellement
     const payloadData = { ...(cvResult?.optimized_data || cvResult || cvData) };
-    payloadData.skills = cvData.skills; // On force l'injection des skills modifiés manuellement
-
-    // [FIX CRITIQUE] On écrase les "hallucinations" de l'IA (Prénom / Nom) 
-    // par les vraies données personnelles saisies en direct dans le formulaire.
-    if (cvData.personal_info) {
-        payloadData.first_name = cvData.personal_info.first_name || payloadData.first_name;
-        payloadData.last_name = cvData.personal_info.last_name || payloadData.last_name;
-        payloadData.email = cvData.personal_info.email || payloadData.email;
-        payloadData.phone = cvData.personal_info.phone || payloadData.phone;
-        payloadData.linkedin = cvData.personal_info.linkedin || payloadData.linkedin;
-        payloadData.city = cvData.personal_info.city || payloadData.city;
-        payloadData.country = cvData.personal_info.country || payloadData.country;
+    
+    // [FIX CRITIQUE] On injecte les skills saisis ET les mots-clés acceptés via le coach
+    // On s'assure que skills reste un tableau (Array) car le template LaTeX du backend itère dessus.
+    let currentSkills = payloadData.skills || cvData?.skills || [];
+    if (typeof currentSkills === 'string') {
+        currentSkills = currentSkills.split(',').map((s: string) => s.trim());
     }
-    payloadData.current_role = cvData.current_role || payloadData.current_role;
+    if (addedKeywords.length > 0) {
+        currentSkills = Array.from(new Set([...currentSkills, ...addedKeywords])).filter(Boolean);
+    }
+    payloadData.skills = currentSkills;
+
+    // [FIX CRITIQUE] Utilisation de "?" (Optional chaining) pour ne pas planter si cvData est null au 1er rendu
+    payloadData.first_name = cvData?.first_name || cvData?.personal_info?.first_name || payloadData.first_name;
+    payloadData.last_name = cvData?.last_name || cvData?.personal_info?.last_name || payloadData.last_name;
+    payloadData.email = cvData?.email || cvData?.personal_info?.email || payloadData.email;
+    payloadData.phone = cvData?.phone || cvData?.personal_info?.phone || payloadData.phone;
+    payloadData.linkedin = cvData?.linkedin || cvData?.personal_info?.linkedin || payloadData.linkedin;
+    payloadData.city = cvData?.city || cvData?.personal_info?.city || payloadData.city;
+    payloadData.country = cvData?.country || cvData?.personal_info?.country || payloadData.country;
+    payloadData.current_role = cvData?.current_role || payloadData.current_role;
+
+    // [FIX CRITIQUE] Le backend a impérativement besoin de l'objet `personal_info` pour le rendu PDF.
+    // Au lieu de le supprimer, on le met à jour avec les valeurs racines correctes.
+    payloadData.personal_info = {
+        ...(payloadData.personal_info || {}),
+        first_name: payloadData.first_name,
+        last_name: payloadData.last_name,
+        email: payloadData.email,
+        phone: payloadData.phone,
+        linkedin: payloadData.linkedin,
+        city: payloadData.city,
+        country: payloadData.country
+    };
+
+    // [FIX] On ajoute le texte reformulé généré par le KeywordCoachModal dans la section profil (bio)
+    if (extraContent.length > 0) {
+        payloadData.bio = (payloadData.bio ? payloadData.bio + "\n\n" : "") + extraContent.join("\n\n");
+    }
 
     if (!payloadData) {
       setError("Les données du candidat ne sont pas disponibles pour générer le CV.");
@@ -91,17 +117,18 @@ export const CVTab = ({ data }: { data: any }) => {
       if (!addedKeywords.includes(coachingKeyword)) {
         setAddedKeywords(prev => [...prev, coachingKeyword]);
       }
-      // Ici, vous pourriez décider d'ajouter `newText` à une expérience spécifique.
-      // Pour l'instant, on se contente de marquer le mot-clé comme ajouté.
-      // Une logique plus complexe pourrait être d'ouvrir une autre modale pour choisir l'expérience à modifier.
+        // [FIX] On sauvegarde le texte édité pour l'injecter dans le PDF
+        if (newText && newText.trim()) {
+          setExtraContent(prev => [...prev, newText.trim()]);
+        }
     }
-    setTimeout(generatePreview, 100); // On rafraîchit le CV
   };
 
   useEffect(() => {
     generatePreview();
-  // [FIX] On régénère le PDF dès que l'IA a fini d'optimiser le CV (cvResult)
-  }, [cvResult]);
+  // [FIX] Ajout des dépendances manquantes. React déclenchera generatePreview naturellement après mise à jour.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cvResult, addedKeywords, extraContent]);
 
   // [FIX] Cleanup séparé pour éviter les fuites mémoire
   useEffect(() => {

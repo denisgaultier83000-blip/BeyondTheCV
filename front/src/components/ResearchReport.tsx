@@ -94,7 +94,7 @@ export function ResearchReport({ data, companyName }: ResearchReportProps) {
             <Lightbulb size={18}/> Conseils pour l'entretien
           </h4>
           <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#14532d', fontSize: '0.9rem' }}>
-            {advice.map((item, idx) => (
+          {advice.map((item: any, idx: number) => (
               <li key={idx} style={{ marginBottom: '0.25rem' }}>{item}</li>
             ))}
           </ul>

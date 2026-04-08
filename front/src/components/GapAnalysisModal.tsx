@@ -18,6 +18,7 @@ const GapAnalysisModal: React.FC<GapAnalysisModalProps> = ({ data, onClose }) =>
   // [FIX] Gestion des clés traduites par l'IA (Hallucination)
   const payload = data.gap_analysis || data;
   const key_needs_from_job = payload.key_needs_from_job || payload.besoins_cles || payload.exigences || [];
+  const matching_skills = payload.matching_skills || payload.acquired_skills || payload.competences_acquises || payload.points_forts || payload.validated_skills || [];
   const missing_gaps = payload.missing_gaps || payload.lacunes || payload.ecarts || [];
   const recommended_adjustments = payload.recommended_adjustments || payload.recommandations || payload.actions || [];
   const match_score = payload.match_score || payload.score_adequation || payload.score;
@@ -140,6 +141,13 @@ const GapAnalysisModal: React.FC<GapAnalysisModalProps> = ({ data, onClose }) =>
             </ul>
             </div>}
 
+          {Array.isArray(matching_skills) && matching_skills.length > 0 && <div style={{ background: 'rgba(34, 197, 94, 0.05)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+          <h3 style={{...sectionTitleStyle, color: 'var(--success)'}}>{t('gap_matching', 'Vos compétences en adéquation')}</h3>
+            <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
+                  {matching_skills.map((item: any, i: number) => <li key={i} style={{ marginBottom: '0.5rem', display: 'flex', gap: '0.5rem', color: 'var(--text-main)' }}><span style={{color: 'var(--success)'}}>✓</span> {renderItem(item)}</li>)}
+            </ul>
+            </div>}
+
           {Array.isArray(missing_gaps) && missing_gaps.length > 0 && <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
           <h3 style={{...sectionTitleStyle, color: 'var(--danger-text)'}}>{t('gap_missing')}</h3>
             <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
@@ -147,10 +155,10 @@ const GapAnalysisModal: React.FC<GapAnalysisModalProps> = ({ data, onClose }) =>
             </ul>
             </div>}
 
-          {Array.isArray(recommended_adjustments) && recommended_adjustments.length > 0 && <div style={{ background: 'rgba(34, 197, 94, 0.05)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
-          <h3 style={{...sectionTitleStyle, color: 'var(--success)'}}>{t('gap_reco')}</h3>
+          {Array.isArray(recommended_adjustments) && recommended_adjustments.length > 0 && <div style={{ background: 'rgba(139, 92, 246, 0.05)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
+          <h3 style={{...sectionTitleStyle, color: '#8b5cf6'}}>{t('gap_reco')}</h3>
             <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
-                  {recommended_adjustments.map((item: any, i: number) => <li key={i} style={{ marginBottom: '0.5rem', display: 'flex', gap: '0.5rem', color: 'var(--text-main)' }}><span style={{color: 'var(--success)'}}>➜</span> {renderItem(item)}</li>)}
+                  {recommended_adjustments.map((item: any, i: number) => <li key={i} style={{ marginBottom: '0.5rem', display: 'flex', gap: '0.5rem', color: 'var(--text-main)' }}><span style={{color: '#8b5cf6'}}>➜</span> {renderItem(item)}</li>)}
             </ul>
             </div>}
 

@@ -4,9 +4,10 @@ import { useTranslation } from 'react-i18next';
 interface SalaryModalProps {
   data: any;
   onClose: () => void;
+  lang?: string;
 }
 
-const SalaryModal: React.FC<SalaryModalProps> = ({ data, onClose }) => {
+const SalaryModal: React.FC<SalaryModalProps> = ({ data, onClose, lang }) => {
   if (!data) return null;
   const { t } = useTranslation();
 
@@ -44,7 +45,7 @@ const SalaryModal: React.FC<SalaryModalProps> = ({ data, onClose }) => {
 
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: '1rem', marginBottom: '2rem' }}>
             <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '0.5rem', fontWeight: 500 }}>{t.salary_min}</div>
+                <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '0.5rem', fontWeight: 500 }}>{t('salary_min', 'Fourchette basse')}</div>
                 <div style={{ fontSize: '1.25rem', fontWeight: 600, color: '#334155', background: '#f1f5f9', padding: '0.5rem 1rem', borderRadius: '0.5rem' }}>
                     {formatCurrency(min)}
                 </div>

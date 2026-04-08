@@ -17,6 +17,7 @@ import { CGU } from './components/CGU';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { LegalNotice } from './components/LegalNotice';
 import { LoadingScreen } from './components/LoadingScreen';
+import DocumentsModal from './components/DocumentsModal';
 import { API_BASE_URL } from './config';
 import { authenticatedFetch } from './utils/auth';
 import './index.css';
@@ -36,6 +37,7 @@ function AppContent() {
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [isImportLoading, setIsImportLoading] = useState(false);
   const [darkMode, setDarkMode] = useState<boolean>(() => localStorage.getItem('theme') === 'dark');
+  const [showDocsModal, setShowDocsModal] = useState(false);
 
   // Ref pour éviter de déclencher l'auto-sauvegarde au montage initial de la page
   const initialLoadRef = useRef(true);
@@ -261,45 +263,45 @@ function AppContent() {
           <StepProfile data={cvData || {}} onChange={handleChange} />
           {/* [FIX] Alignement propre avec le bouton reset poussé à gauche (marginRight: 'auto') et les autres à droite */}
           <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem', gap: '1rem', alignItems: 'center' }}>
-            <button className="btn-ghost" onClick={resetDashboard} style={{ marginRight: 'auto' }}><RotateCcw size={16} style={{ marginRight: '0.5rem' }}/>{t('btn_reset')}</button>
+            <button className="btn-ghost" onClick={() => resetDashboard()} style={{ marginRight: 'auto' }}><RotateCcw size={16} style={{ marginRight: '0.5rem' }}/>{t('btn_reset')}</button>
             <button className="btn-secondary" onClick={loadProfile}><RefreshCw size={16} style={{ marginRight: '0.5rem' }}/>Synchroniser</button>
-            <button className="btn-primary" onClick={handleNextStep}>{t('btn_next')}</button>
+            <button className="btn-primary" onClick={() => handleNextStep()}>{t('btn_next')}</button>
           </div>
         </div>);
       case 2: return (
         <div className="step-wrapper">
           <StepTarget data={cvData || {}} onChange={handleChange} />
-          {globalStatus === "FAILED" && (<div className="error-box"><AlertCircle size={16}/><span>{t('error_msg')} {error}</span><button className="btn-link" onClick={handleNextStep}>{t('btn_retry')}</button></div>)}
+          {globalStatus === "FAILED" && (<div className="error-box"><AlertCircle size={16}/><span>{t('error_msg')} {error}</span><button className="btn-link" onClick={() => handleNextStep()}>{t('btn_retry')}</button></div>)}
           {/* [UX FIX] Le bouton est maintenant un simple "Suivant", le lancement de l'analyse est transparent */}
-          <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={handleNextStep} disabled={globalStatus === "STARTING"}>{t('btn_next')}</button></div>
+          <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={() => handleNextStep()} disabled={globalStatus === "STARTING"}>{t('btn_next')}</button></div>
         </div>);
       case 3: return (
         <div className="step-wrapper">
           <StepEducation list={cvData?.educations || []} onAdd={() => handleAddList('educations', { degree: '', school: '', year: '' })} onRemove={(id) => handleRemoveList('educations', id)} onUpdate={(id, field, val) => handleUpdateList('educations', id, field, val)} />
-          <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={handleNextStep}>{t('btn_next')}</button></div>
+          <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={() => handleNextStep()}>{t('btn_next')}</button></div>
         </div>);
       case 4: return (
         <div className="step-wrapper">
           <StepExperience list={cvData?.experiences || []} onAdd={() => handleAddList('experiences', { role: '', company: '', description: '' })} onRemove={(id) => handleRemoveList('experiences', id)} onUpdate={(id, field, val) => handleUpdateList('experiences', id, field, val)} />
-          <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={handleNextStep}>{t('btn_next')}</button></div>
+          <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={() => handleNextStep()}>{t('btn_next')}</button></div>
         </div>);
       case 5: return (
         <div className="step-wrapper">
           <StepQualitiesFlaws data={cvData || {}} onChange={handleChange} successes={[]} onAddSuccess={() => {}} onUpdateSuccess={() => {}} failures={[]} onAddFailure={() => {}} onUpdateFailure={() => {}} />
-          <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={handleNextStep}>{t('btn_next')}</button></div>
+          <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={() => handleNextStep()}>{t('btn_next')}</button></div>
         </div>);
       case 6:
         if (["PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus)) return <LoadingScreen title="Création de votre profil stratégique..." description="Analyse de vos expériences et exigences du marché..." />;
         return (
           <div className="step-wrapper">
             <StepFreeText data={cvData || {}} onChange={handleChange} />
-            {globalStatus === "FAILED" && (<div className="error-box"><AlertCircle size={16}/><span>{t('generation_error_msg')} {error}</span><button className="btn-link" onClick={handleNextStep}>{t('btn_retry')}</button></div>)}
+            {globalStatus === "FAILED" && (<div className="error-box"><AlertCircle size={16}/><span>{t('generation_error_msg')} {error}</span><button className="btn-link" onClick={() => handleNextStep()}>{t('btn_retry')}</button></div>)}
             <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={(e) => { if (isFrozen) { e.preventDefault(); setShowPaywall(true); } else { handleNextStep(); } }} disabled={["PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus)}>{["PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus) ? t('generating') : t('btn_generate_questions')}</button></div>
           </div>);
       case 7: return (
         <div className="step-wrapper">
           <StepClarification clarifications={cvData?.clarifications || []} onAnswer={(id: any, val: any) => handleChange("clarifications", (cvData?.clarifications || []).map((c: any) => c.id === id ? { ...c, answer: val } : c))} />
-          {globalStatus === "FAILED" && (<div className="error-box"><AlertCircle size={16}/><span>{t('error_msg')} {error}</span><button className="btn-link" onClick={handleNextStep}>{t('btn_retry')}</button></div>)}
+          {globalStatus === "FAILED" && (<div className="error-box"><AlertCircle size={16}/><span>{t('error_msg')} {error}</span><button className="btn-link" onClick={() => handleNextStep()}>{t('btn_retry')}</button></div>)}
           <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={(e) => { if (isFrozen) { e.preventDefault(); setShowPaywall(true); } else { handleNextStep(); } }} disabled={["STARTING", "PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus)}>{["STARTING", "PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus) ? t('btn_launching') : t('btn_launch_full_analysis')}</button></div>
         </div>);
       case 8: return (
@@ -328,19 +330,25 @@ function AppContent() {
     try {
       const storedUser = localStorage.getItem('user');
       if (storedUser && storedUser !== "undefined" && storedUser !== "null") {
-        parsedUserName = JSON.parse(storedUser).name || "Mon Compte";
+          const u = JSON.parse(storedUser);
+          parsedUserName = u.first_name || u.name || "Candidat";
       }
     } catch (e) {
-      parsedUserName = "Mon Compte";
+        parsedUserName = "Candidat";
     }
+      if (cvData?.first_name) {
+        parsedUserName = cvData.first_name;
+      }
   }
 
   return (
     <div className="app-container">
       {/* @ts-ignore - Ignore type differences between Header props and what is passed */}
-      <Header darkMode={darkMode} setDarkMode={setDarkMode} showLogin={!isAuthenticated} userName={parsedUserName} onOpenProfile={() => { localStorage.removeItem('token'); localStorage.removeItem('user'); resetDashboard(); setIsAuthenticated(false); navigate('/', { replace: true }); }} onLanguageChange={handleLanguageChange} />
+      <Header darkMode={darkMode} setDarkMode={setDarkMode} showLogin={!isAuthenticated} userName={parsedUserName} onOpenProfile={() => setShowDocsModal(true)} onLogout={() => { localStorage.removeItem('token'); localStorage.removeItem('user'); resetDashboard(); setIsAuthenticated(false); navigate('/', { replace: true }); }} onLanguageChange={handleLanguageChange} />
       <main className="main-content">
-        {showLanding && !isAuthenticated ? (<LandingPage onStart={() => setShowLanding(false)} onShowCGU={() => setShowCGU(true)} onShowPrivacy={() => setShowPrivacy(true)} onShowLegal={() => setShowLegal(true)} />) : 
+        {showLanding && !isAuthenticated ? (
+          <LandingPage onStart={() => setShowLanding(false)} onShowCGU={() => setShowCGU(true)} onShowPrivacy={() => setShowPrivacy(true)} onShowLegal={() => setShowLegal(true)} />
+        ) : 
          !isAuthenticated ? (
             // @ts-ignore - Login component might be missing the onLogin prop declaration
             <Login onLogin={() => setIsAuthenticated(true)} />) : 
@@ -404,6 +412,8 @@ function AppContent() {
               </div>
            </div>
         </div>)}
+
+      {showDocsModal && <DocumentsModal onClose={() => setShowDocsModal(false)} />}
 
       {/* [FIX] Alignement centré et aéré du Footer réglementaire */}
       <footer className="app-footer" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.5rem', padding: '2rem', flexWrap: 'wrap', opacity: 0.8, marginTop: 'auto' }}>

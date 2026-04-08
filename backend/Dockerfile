@@ -48,6 +48,5 @@ RUN mkdir -p temp output ai/prompts
 
 EXPOSE 8080
 
-# Lancement via le script main.py pour qu'il puisse récupérer le port
-# dynamiquement depuis la variable d'environnement $PORT injectée par Cloud Run.
-CMD ["python", "main.py"]
+# Utilisation de "sh -c" pour garantir l'interprétation de la variable $PORT injectée par Cloud Run
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}"]

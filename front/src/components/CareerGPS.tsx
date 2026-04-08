@@ -113,7 +113,7 @@ export function CareerGPS({ data, loading, error }: CareerGPSProps) {
             <Flag size={18} color={probabilityColor} /> {activeRouteName} ({activeRoute.probability || 0}% succès)
           </h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {(activeRoute.steps || []).map((step, idx) => (
+            {(activeRoute.steps || []).map((step: any, idx: number) => (
               <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', position: 'relative' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold', zIndex: 1 }}>{idx + 1}</div>
@@ -199,7 +199,7 @@ export function CareerGPS({ data, loading, error }: CareerGPSProps) {
                 <div style={{ fontSize: '0.8rem', fontWeight: 700, color: selectedRouteIndex === -1 ? 'var(--primary)' : 'var(--text-muted)' }}>ROUTE OPTIMALE</div>
                 <div style={{ fontWeight: 600, color: 'var(--text-main)', margin: '0.25rem 0' }}>{mainRoute.estimated_time || "Direct"}</div>
             </div>
-            {alts.map((alt, i) => (
+            {alts.map((alt: any, i: number) => (
               <div key={i} onClick={() => setSelectedRouteIndex(i)} style={{ cursor: 'pointer', background: selectedRouteIndex === i ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-secondary)', padding: '0.75rem', borderRadius: '0.5rem', border: `1px solid ${selectedRouteIndex === i ? 'var(--primary)' : 'var(--border-color)'}`, transition: 'all 0.2s' }}>
                 <div style={{ fontSize: '0.8rem', fontWeight: 700, color: selectedRouteIndex === i ? 'var(--primary)' : 'var(--text-muted)', textTransform: 'uppercase' }}>{alt.name}</div>
                 <div style={{ fontWeight: 600, color: 'var(--text-main)', margin: '0.25rem 0' }}>{alt.role}</div>

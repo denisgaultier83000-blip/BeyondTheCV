@@ -137,7 +137,7 @@ async def lifespan(app: FastAPI):
             print("[DB] Database initialized successfully.", flush=True)
         except Exception as e:
             print(f"[DB CRITICAL] Database initialization failed: {e}", flush=True)
-            raise # Il est crucial de ne pas laisser l'application démarrer avec une DB cassée.
+            raise RuntimeError("FATAL: Database initialization failed") from e
         
         # [LOG] Network Info - Affiche l'IP réelle pour configurer le Frontend
         current_ip = get_local_ip()
@@ -159,7 +159,9 @@ async def lifespan(app: FastAPI):
         # Lancement du nettoyage au démarrage
         cleanup_system()
     except Exception as e:
-        print(f"Error initializing directories: {e}", flush=True)
+        print(f"[FATAL STARTUP ERROR] {e}", flush=True)
+        # [FIX EXPERT] On re-lève l'exception globale pour FORCER le crash de FastAPI.
+        raise
     yield
 
 # --- Rate Limiting (Anti-Abuse) ---
@@ -230,7 +232,14 @@ async def log_requests(request: Request, call_next):
         print(f"[CRITICAL] Uncaught Exception in {request.url.path}: {e}", flush=True)
         import traceback
         traceback.print_exc()
-        return JSONResponse(status_code=500, content={"detail": "Internal Server Error", "error": str(e)})
+        response = JSONResponse(status_code=500, content={"detail": "Internal Server Error", "error": str(e)})
+
+    # [FIX EXPERT] Injection MANUELLE et FORCÉE des headers CORS sur TOUTES les réponses.
+    # Cela empêche le navigateur de masquer une vraie erreur 500 derrière un faux problème CORS.
+    origin = request.headers.get("origin")
+    if origin:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
 
     process_time = (time.time() - start_time) * 1000
     try:
@@ -250,7 +259,8 @@ cors_origins = [
     "http://127.0.0.1:3000",
     "https://www.beyondthecv.app", # Allow production domain (www)
     "https://beyondthecv.app",     # Allow production domain (apex)
-    "https://beyond-the-cv-front.vercel.app"
+    "https://beyond-the-cv-front.vercel.app",
+    "https://beyondthecv-frontend-service-746792482004.europe-west1.run.app"
 ]
 
 # [BONNE PRATIQUE] Ajout dynamique si l'URL est passée via l'environnement
@@ -261,12 +271,33 @@ if os.getenv("FRONTEND_URL"):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
-    allow_origin_regex=r"https://.*\.vercel\.app", # [FIX EXPERT] Autorise dynamiquement toutes les URLs de preview Vercel
+    allow_origin_regex=r"^(https://.*\.vercel\.app|https://.*\.run\.app)$", # [FIX EXPERT] Syntaxe regex sécurisée pour Starlette
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["Content-Length", "Content-Disposition", "X-CV-Analysis"], # CRUCIAL pour la barre de progression et le score
 )
+
+# [FIX EXPERT] Middleware Ninja pour forcer l'interception des requêtes OPTIONS (Preflight)
+@app.middleware("http")
+async def force_cors_preflight(request: Request, call_next):
+    if request.method == "OPTIONS":
+        origin = request.headers.get("origin")
+        if origin:
+            # [FIX EXPERT] Les navigateurs rejettent l'étoile '*' si Credentials=true.
+            # On doit renvoyer la chaîne exacte demandée par le navigateur.
+            req_headers = request.headers.get("Access-Control-Request-Headers", "Content-Type, Authorization")
+            return JSONResponse(
+                status_code=200,
+                content={"message": "Preflight OK"},
+                headers={
+                    "Access-Control-Allow-Origin": origin,
+                    "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE, PATCH",
+                    "Access-Control-Allow-Headers": req_headers,
+                    "Access-Control-Allow-Credentials": "true",
+                }
+            )
+    return await call_next(request)
 
 # [ROBUSTESSE] Chargement défensif des routeurs
 # Si un fichier plante (ex: erreur de syntaxe ou d'import), l'API démarre quand même.
