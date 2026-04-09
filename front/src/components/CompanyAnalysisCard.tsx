@@ -51,25 +51,31 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
                 <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>Lecture Rapide</h4>
                 <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-muted)' }}>{overview}</p>
               </div>
-              <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
-                <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>Segments d'Activité</h4>
-                <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.95rem', color: 'var(--text-muted)' }}>
-                  {segments.length > 0 ? segments.map((s: string, i: number) => <li key={i}>{s}</li>) : <li>Non spécifié</li>}
-                </ul>
-              </div>
-              <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
-                <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>Clients & Géographie</h4>
-                <div style={{ fontSize: '0.95rem', color: 'var(--text-muted)' }}>
-                  <strong>Clients:</strong> {clients.join(', ') || 'Non spécifié'}<br/>
-                  <strong>Présence:</strong> {geographic.join(', ') || 'Non spécifié'}
+              {segments.length > 0 && (
+                <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
+                  <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>Segments d'Activité</h4>
+                  <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.95rem', color: 'var(--text-muted)' }}>
+                    {segments.map((s: string, i: number) => <li key={i}>{s}</li>)}
+                  </ul>
                 </div>
-              </div>
-              <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
-                <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>Dynamique Actuelle</h4>
-                <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.95rem', color: 'var(--text-muted)' }}>
-                  {dynamics.length > 0 ? dynamics.map((d: string, i: number) => <li key={i}>{d}</li>) : <li>Non spécifié</li>}
-                </ul>
-              </div>
+              )}
+              {(clients.length > 0 || geographic.length > 0) && (
+                <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
+                  <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>Clients & Géographie</h4>
+                  <div style={{ fontSize: '0.95rem', color: 'var(--text-muted)' }}>
+                    {clients.length > 0 && <><strong style={{ color: 'var(--text-main)' }}>Clients:</strong> {clients.join(', ')}<br/></>}
+                    {geographic.length > 0 && <><strong style={{ color: 'var(--text-main)' }}>Présence:</strong> {geographic.join(', ')}</>}
+                  </div>
+                </div>
+              )}
+              {dynamics.length > 0 && (
+                <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
+                  <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>Dynamique Actuelle</h4>
+                  <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.95rem', color: 'var(--text-muted)' }}>
+                    {dynamics.map((d: string, i: number) => <li key={i}>{d}</li>)}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
 

@@ -115,13 +115,13 @@ export const InterviewTab = () => {
       <button onClick={handleTeleprompterClose} className="teleprompter-close" style={{ top: '2rem', left: '2rem', right: 'auto', width: 'auto', padding: '0 1.5rem', borderRadius: '2rem', gap: '0.5rem', fontWeight: 'bold' }}>
         <ArrowLeft size={20} /> Retour
       </button>
-      <div className="teleprompter-text-container">
+      <div className="teleprompter-text-container" style={{ paddingBottom: '8rem' }}>
         {fullPitchText.split('\n\n').map((p, i) => (
           <p key={i} className="teleprompter-paragraph">{p}</p>
         ))}
       </div>
       {/* [FIX] Ajout du positionnement en inline pour écraser le CSS de DashboardView et garantir la visibilité */}
-      <div className="teleprompter-controls" style={{ position: 'absolute', bottom: '5rem', display: 'flex', gap: '1rem', zIndex: 100000 }}>
+      <div className="teleprompter-controls" style={{ position: 'fixed', bottom: '2rem', display: 'flex', gap: '1rem', zIndex: 100000 }}>
         <div style={{ background: 'rgba(255,255,255,0.1)', padding: '0.5rem 1.5rem', borderRadius: '2rem', fontSize: '2rem', color: 'white', fontFamily: 'monospace' }}>
           {formatTime(timer)}
         </div>
