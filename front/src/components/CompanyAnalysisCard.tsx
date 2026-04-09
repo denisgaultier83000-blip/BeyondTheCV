@@ -13,19 +13,31 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
   const report = data?.company_report || data?.synthesis || {};
   
   const overview = report.overview || report.identity_dna || "L'analyse IA de l'entreprise est en cours...";
-  const challenges = report.key_challenges || [report.usp || report.challenges || "Données stratégiques en attente."];
   
-  const segments = report.business_segments || [];
-  const dynamics = report.current_dynamics || [];
-  const clients = report.client_types || [];
-  const geographic = report.geographic_presence || [];
+  // Filtrage robuste pour supprimer les valeurs "Non spécifié" ou vides
+  const filterEmpty = (arr: any[]) => arr?.filter(item => item && item.trim() !== "" && !item.toLowerCase().includes("non spécifié")) || [];
   
-  const expectations = report.recruiter_expectations || [];
-  const positioning = report.positioning_strategy || "";
-  const catchphrases = report.catchphrases || [];
-  const smartQuestions = report.smart_questions || [];
+  const challenges = filterEmpty(report.key_challenges || [report.usp, report.challenges]);
+  const segments = filterEmpty(report.business_segments);
+  const dynamics = filterEmpty(report.current_dynamics);
+  const clients = filterEmpty(report.client_types);
+  const geographic = filterEmpty(report.geographic_presence);
+  const expectations = filterEmpty(report.recruiter_expectations);
   
-  const newsLinks = report.news_links || [];
+  const positioning = (report.positioning_strategy && !report.positioning_strategy.toLowerCase().includes("non spécifié")) ? report.positioning_strategy : null;
+  const catchphrases = filterEmpty(report.catchphrases);
+  const smartQuestions = filterEmpty(report.smart_questions);
+  
+  // [FIX] Fallback Presse en dur : Si l'IA échoue, on génère un lien automatique de recherche
+  let newsLinks = report.news_links || [];
+  if (!Array.isArray(newsLinks) || newsLinks.length === 0) {
+      newsLinks = [{
+          title: `Rechercher les actualités récentes de ${companyName}`,
+          url: `https://news.google.com/search?q=${encodeURIComponent(companyName)}`,
+          source: "Google News",
+          date: "Recherche dynamique"
+      }];
+  }
 
   return (
     <DashboardCard
@@ -80,60 +92,74 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
           </div>
 
           {/* Section 2 : Stratégie d'Entretien */}
-          <div>
+          {(expectations.length > 0 || positioning || challenges.length > 0) && (
+           <div>
             <h3 style={{ fontSize: '1.2rem', color: 'var(--text-main)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Target size={20} color="#10b981" /> 2. Stratégie d'Entretien
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
-              <div style={{ background: 'rgba(16, 185, 129, 0.05)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-                <h4 style={{ margin: '0 0 0.5rem 0', color: '#10b981' }}>Ce que le recruteur va chercher</h4>
-                <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.95rem', color: 'var(--text-main)' }}>
-                  {expectations.length > 0 ? expectations.map((e: string, i: number) => <li key={i}>{e}</li>) : <li>Non spécifié</li>}
-                </ul>
-              </div>
-              <div style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
-                <h4 style={{ margin: '0 0 0.5rem 0', color: '#3b82f6' }}>Comment se positionner</h4>
-                <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-main)', whiteSpace: 'pre-wrap' }}>{positioning || "Non spécifié"}</p>
-              </div>
-              <div style={{ background: 'rgba(245, 158, 11, 0.05)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid rgba(245, 158, 11, 0.2)', gridColumn: '1 / -1' }}>
-                <h4 style={{ margin: '0 0 0.5rem 0', color: '#f59e0b' }}>Enjeux Clés & Défis</h4>
-                <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.95rem', color: 'var(--text-main)' }}>
-                  {challenges.map((c: string, i: number) => <li key={i}>{c}</li>)}
-                </ul>
-              </div>
+              {expectations.length > 0 && (
+                <div style={{ background: 'rgba(16, 185, 129, 0.05)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                  <h4 style={{ margin: '0 0 0.5rem 0', color: '#10b981' }}>Ce que le recruteur va chercher</h4>
+                  <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.95rem', color: 'var(--text-main)' }}>
+                    {expectations.map((e: string, i: number) => <li key={i}>{e}</li>)}
+                  </ul>
+                </div>
+              )}
+              {positioning && (
+                <div style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                  <h4 style={{ margin: '0 0 0.5rem 0', color: '#3b82f6' }}>Comment se positionner</h4>
+                  <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-main)', whiteSpace: 'pre-wrap' }}>{positioning}</p>
+                </div>
+              )}
+              {challenges.length > 0 && (
+                <div style={{ background: 'rgba(245, 158, 11, 0.05)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid rgba(245, 158, 11, 0.2)', gridColumn: '1 / -1' }}>
+                  <h4 style={{ margin: '0 0 0.5rem 0', color: '#f59e0b' }}>Enjeux Clés & Défis</h4>
+                  <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.95rem', color: 'var(--text-main)' }}>
+                    {challenges.map((c: string, i: number) => <li key={i}>{c}</li>)}
+                  </ul>
+                </div>
+              )}
             </div>
-          </div>
+           </div>
+          )}
 
           {/* Section 3 : Boîte à outils (Phrases & Questions) */}
-          <div>
+          {(catchphrases.length > 0 || smartQuestions.length > 0) && (
+           <div>
             <h3 style={{ fontSize: '1.2rem', color: 'var(--text-main)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <MessageCircle size={20} color="#8b5cf6" /> 3. Boîte à Outils
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
-              <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
-                <h4 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)' }}>Exemples de phrases efficaces</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {catchphrases.length > 0 ? catchphrases.map((phrase: string, i: number) => (
-                    <div key={i} style={{ padding: '0.75rem', background: 'var(--bg-card)', borderLeft: '3px solid #8b5cf6', borderRadius: '0 0.5rem 0.5rem 0', fontSize: '0.9rem', color: 'var(--text-main)', fontStyle: 'italic' }}>
-                      "{phrase}"
-                    </div>
-                  )) : <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Non spécifié</p>}
+              {catchphrases.length > 0 && (
+                <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
+                  <h4 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)' }}>Exemples de phrases efficaces</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {catchphrases.map((phrase: string, i: number) => (
+                      <div key={i} style={{ padding: '0.75rem', background: 'var(--bg-card)', borderLeft: '3px solid #8b5cf6', borderRadius: '0 0.5rem 0.5rem 0', fontSize: '0.9rem', color: 'var(--text-main)', fontStyle: 'italic' }}>
+                        "{phrase}"
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
-                <h4 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <HelpCircle size={16} /> Questions intelligentes à poser
-                </h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {smartQuestions.length > 0 ? smartQuestions.map((q: string, i: number) => (
-                    <div key={i} style={{ padding: '0.75rem', background: 'var(--bg-card)', borderLeft: '3px solid #f43f5e', borderRadius: '0 0.5rem 0.5rem 0', fontSize: '0.9rem', color: 'var(--text-main)' }}>
-                      {q}
-                    </div>
-                  )) : <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Non spécifié</p>}
+              )}
+              {smartQuestions.length > 0 && (
+                <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
+                  <h4 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <HelpCircle size={16} /> Questions intelligentes à poser
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {smartQuestions.map((q: string, i: number) => (
+                      <div key={i} style={{ padding: '0.75rem', background: 'var(--bg-card)', borderLeft: '3px solid #f43f5e', borderRadius: '0 0.5rem 0.5rem 0', fontSize: '0.9rem', color: 'var(--text-main)' }}>
+                        {q}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
-          </div>
+           </div>
+          )}
 
           {/* Section 4 : Actualités */}
           {newsLinks.length > 0 && (

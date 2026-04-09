@@ -73,7 +73,17 @@ const CompanyReportSection = ({ data, loading }: { data: any, loading?: boolean 
   const financialHealth = companyReport.financial_health || "Données financières non disponibles.";
   const culture = companyReport.culture_environment || root.synthesis?.culture || "Données culturelles en attente.";
   const challenges = companyReport.usp || root.synthesis?.challenges || "Données stratégiques en attente.";
-  const newsLinks = companyReport.news_links || [];
+  
+  // [FIX CRITIQUE] Fallback Presse en dur : Si l'IA échoue, on génère un lien automatique pour ne pas avoir un écran vide
+  let newsLinks = companyReport.news_links || [];
+  if (!Array.isArray(newsLinks) || newsLinks.length === 0) {
+      newsLinks = [{
+          title: `Rechercher les actualités récentes de ${companyName}`,
+          url: `https://news.google.com/search?q=${encodeURIComponent(companyName)}`,
+          source: "Google News",
+          date: "Recherche dynamique"
+      }];
+  }
   
   let adviceList = root.synthesis?.advice || [];
   if (adviceList.length === 0 && companyReport) {
@@ -87,14 +97,19 @@ const CompanyReportSection = ({ data, loading }: { data: any, loading?: boolean 
       <div className="analysis-card">
         <h3 className="analysis-card-title"><Building size={20} color="#3b82f6" /> Identité & Chiffres Clés : {companyName}</h3>
         <div className="analysis-card-content">
-          <div style={{ marginBottom: '1rem', padding: '1rem', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '0.5rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
-            <div style={{ marginBottom: '0.5rem', color: 'var(--text-main)' }}><strong>Dirigeant / CEO :</strong> {ceoName}</div>
-            <div style={{ color: 'var(--text-main)' }}><strong>Chiffres Clés :</strong> {keyFigures}</div>
-          </div>
+          {(!ceoName.toLowerCase().includes("non spécifié") || !keyFigures.toLowerCase().includes("non spécifié")) && (
+            <div style={{ marginBottom: '1rem', padding: '1rem', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '0.5rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+              {!ceoName.toLowerCase().includes("non spécifié") && <div style={{ marginBottom: '0.5rem', color: 'var(--text-main)' }}><strong>Dirigeant / CEO :</strong> {ceoName}</div>}
+              {!keyFigures.toLowerCase().includes("non spécifié") && <div style={{ color: 'var(--text-main)' }}><strong>Chiffres Clés :</strong> {keyFigures}</div>}
+            </div>
+          )}
           <p>{overview}</p>
         </div>
       </div>
-      <div className="analysis-card"><h3 className="analysis-card-title"><LineChart size={20} color="#10b981" /> Santé Financière</h3><div className="analysis-card-content"><p>{financialHealth}</p></div></div>
+      {/* [FIX CRITIQUE] Masquage des sections "Non spécifié" */}
+      {!financialHealth.toLowerCase().includes("non spécifié") && !financialHealth.toLowerCase().includes("non disponible") && (
+        <div className="analysis-card"><h3 className="analysis-card-title"><LineChart size={20} color="#10b981" /> Santé Financière</h3><div className="analysis-card-content"><p>{financialHealth}</p></div></div>
+      )}
       <div className="analysis-card"><h3 className="analysis-card-title"><User size={20} color="#10b981" /> Culture & Environnement</h3><div className="analysis-card-content"><p>{culture}</p></div></div>
       <div className="analysis-card"><h3 className="analysis-card-title"><Shield size={20} color="#8b5cf6" /> Enjeux & Défis</h3><div className="analysis-card-content"><p>{challenges}</p></div></div>
       <div className="analysis-card"><h3 className="analysis-card-title"><Newspaper size={20} color="#f59e0b" /> Structure & Actualités</h3>

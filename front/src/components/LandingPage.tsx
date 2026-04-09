@@ -24,8 +24,7 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
           padding: 8rem 2rem 6rem 2rem;
           text-align: center;
           border-radius: 0 0 3rem 3rem;
-          margin-top: -100px; /* Compense le padding du layout principal de l'App */
-          padding-top: 230px; /* [FIX] Augmenté de 50px pour descendre le texte sous le header */
+          margin-top: 60px; /* [FIX CRITIQUE] Repousse la page sous le header fixe */
         }
         .lp-hero-title {
           font-size: clamp(2.5rem, 5vw, 4.5rem);

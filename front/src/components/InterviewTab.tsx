@@ -110,18 +110,19 @@ export const InterviewTab = () => {
 
   // [FIX] Utilisation de createPortal pour échapper aux contraintes CSS parentes et corriger le scrolling
   const Teleprompter = () => createPortal(
-    <div className="teleprompter-overlay" style={{ zIndex: 999999 }}>
-      {/* [FIX] Bouton Retour explicite et toujours visible */}
-      <button onClick={handleTeleprompterClose} className="teleprompter-close" style={{ top: '2rem', left: '2rem', right: 'auto', width: 'auto', padding: '0 1.5rem', borderRadius: '2rem', gap: '0.5rem', fontWeight: 'bold' }}>
+    // [FIX CRITIQUE] top: 0 et bottom: 0 au lieu de 100vh pour empêcher les bugs de barres mobiles de masquer le chronomètre
+    <div className="teleprompter-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'var(--bg-main)', zIndex: 999999, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <button onClick={handleTeleprompterClose} className="teleprompter-close" style={{ position: 'absolute', top: '2rem', left: '2rem', width: 'auto', padding: '0 1.5rem', borderRadius: '2rem', gap: '0.5rem', fontWeight: 'bold', zIndex: 10 }}>
         <ArrowLeft size={20} /> Retour
       </button>
-      <div className="teleprompter-text-container" style={{ paddingBottom: '8rem' }}>
+      {/* [FIX] Zone de texte indépendante qui scrolle sans impacter les contrôles */}
+      <div className="teleprompter-text-container" style={{ flex: 1, overflowY: 'auto', padding: '6rem 2rem 2rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         {fullPitchText.split('\n\n').map((p, i) => (
-          <p key={i} className="teleprompter-paragraph">{p}</p>
+          <p key={i} className="teleprompter-paragraph" style={{ maxWidth: '800px', width: '100%', fontSize: '1.5rem', lineHeight: 1.8, marginBottom: '2rem' }}>{p}</p>
         ))}
       </div>
-      {/* [FIX] Ajout du positionnement en inline pour écraser le CSS de DashboardView et garantir la visibilité */}
-      <div className="teleprompter-controls" style={{ position: 'fixed', bottom: '2rem', display: 'flex', gap: '1rem', zIndex: 100000 }}>
+      {/* [FIX] Contrôles fixés en bas du Flexbox, ils ne passeront jamais sous l'écran */}
+      <div className="teleprompter-controls" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'center', gap: '1rem', background: 'linear-gradient(to top, var(--bg-main) 60%, transparent)', zIndex: 100000 }}>
         <div style={{ background: 'rgba(255,255,255,0.1)', padding: '0.5rem 1.5rem', borderRadius: '2rem', fontSize: '2rem', color: 'white', fontFamily: 'monospace' }}>
           {formatTime(timer)}
         </div>

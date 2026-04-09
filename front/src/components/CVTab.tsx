@@ -87,8 +87,7 @@ export const CVTab = ({ data }: { data: any }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'Generate CV (ATS)',
-          data: payloadData,
+          ...payloadData,
           skip_ai: true, // [FIX CRITIQUE] Empêche l'API de relancer l'IA (15s) et génère directement le PDF
           preview: true,
           renderer: 'pdf'
