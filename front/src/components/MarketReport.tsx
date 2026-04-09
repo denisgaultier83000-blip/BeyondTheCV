@@ -10,9 +10,14 @@ interface MarketData {
     };
     key_data?: { label: string; value: string }[];
     company_report?: {
+        overview?: string;
         identity_dna: string;
         financial_health: string;
         usp: string;
+        key_challenges?: string[];
+        business_segments?: string[];
+        current_dynamics?: string[];
+        client_types?: string[];
         culture_environment: string;
         team_structure: string;
         hot_news: string;
@@ -69,7 +74,12 @@ export default function MarketReport({ data, onBack }: Props) {
                     <h2>Synthèse Entreprise</h2>
                     <div style={{ marginBottom: 20 }}>
                         <h3>🏢 Vue d'ensemble</h3>
-                        <p>{data.company_report?.identity_dna || data.synthesis?.overview}</p>
+                        <p>{data.company_report?.overview || data.company_report?.identity_dna || data.synthesis?.overview}</p>
+                    </div>
+                    <div style={{ marginBottom: 20 }}>
+                        <h3>🧩 Activités & Clients</h3>
+                        <p><strong>Segments :</strong> {data.company_report?.business_segments?.join(', ')}</p>
+                        <p><strong>Clients :</strong> {data.company_report?.client_types?.join(', ')}</p>
                     </div>
                     <div style={{ marginBottom: 20 }}>
                         <h3>🤝 Culture & Valeurs</h3>
@@ -77,7 +87,8 @@ export default function MarketReport({ data, onBack }: Props) {
                     </div>
                     <div style={{ marginBottom: 20 }}>
                         <h3>⚠️ Enjeux & Challenges</h3>
-                        <p>{data.company_report?.usp || data.synthesis?.challenges}</p>
+                        <p>{data.company_report?.key_challenges?.join('\n') || data.company_report?.usp || data.synthesis?.challenges}</p>
+                        <p><strong>Dynamique :</strong> {data.company_report?.current_dynamics?.join(', ')}</p>
                     </div>
                     <div>
                         <h3>💡 Conseils & Infos</h3>

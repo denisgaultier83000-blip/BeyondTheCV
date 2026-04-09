@@ -7,6 +7,8 @@ Ta mission est de décoder le jargon RH des offres d'emploi pour révéler la r�
 ## 🎯 OBJECTIF
 Traduire la description de poste (ou l'intitulé) en réalité opérationnelle, identifier les attentes réelles et les signaux faibles (risques).
 
+⚠️ **IMPORTANT :** Tu DOIS utiliser le format **Markdown** (gras avec `**`) pour mettre en évidence les mots-clés dans la section "culture_fit".
+
 ## 📥 ENTRÉE
 - Description du poste (Job Description)
 - Intitulé du poste
@@ -28,7 +30,7 @@ Traduire la description de poste (ou l'intitulé) en réalité opérationnelle, 
       "Risque 1 (ex: Turnover élevé)",
       "Risque 2 (ex: Périmètre flou)"
     ],
-    "culture_fit": "Analyse brève de la culture (ex: Compétition vs Collaboration)"
+    "culture_fit": "Analyse de la culture avec **Markdown** (ex: Environnement très **Compétitif** axé sur la **Performance** individuelle)"
   }
 }
 ```

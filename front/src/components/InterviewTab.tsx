@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useDashboard } from './DashboardContext';
 import { Mic, MessageSquare, X, Play, Pause, RotateCcw, ChevronDown, BrainCircuit, Lightbulb, ArrowLeft } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
+import { SituationSimulator } from './SituationSimulator';
 
 // Ce sous-composant peut être extrait dans son propre fichier s'il grandit
 const QAList = ({ questions }: { questions: any }) => {
@@ -173,6 +174,15 @@ export const InterviewTab = () => {
           featureId="interview_questions"
         >
           {questionsResult && <QAList questions={questionsResult} />}
+        </DashboardCard>
+
+        {/* MODULE MISE EN SITUATION */}
+        <DashboardCard
+          title="Simulations de Cas (Mises en situation)"
+          icon={<BrainCircuit size={24} />}
+          featureId="situation_simulator"
+        >
+          <SituationSimulator />
         </DashboardCard>
       </div>
       {/* [FIX] Ajout des styles de la scrollbar directement ici pour garantir la visibilité */}

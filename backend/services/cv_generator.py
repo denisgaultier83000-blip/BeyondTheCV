@@ -68,6 +68,11 @@ class SimulationRequest(BaseModel):
     simulation_action: str
     provider: Optional[str] = None
 
+class SituationSimulationRequest(BaseModel):
+    scenario_id: str
+    scenario_context: Dict[str, Any]
+    user_answer: str
+
 class PersonalInfo(BaseModel):
     first_name: Optional[str] = Field(None, description="Prénom du candidat")
     last_name: Optional[str] = Field(None, description="Nom de famille")
@@ -275,6 +280,33 @@ async def simulate_career(request: SimulationRequest, current_user: dict = Depen
         return clean_ai_json_response(result_str)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Simulation failed: {str(e)}")
+
+@router.post("/simulate-situation")
+async def simulate_situation(request: SituationSimulationRequest, current_user: dict = Depends(require_active_subscription)):
+    """
+    Analyse la réponse d'un candidat face à une mise en situation professionnelle complexe.
+    """
+    prompt_template = load_prompt(get_prompt_path("mise_en_situation.md"))
+    
+    final_prompt = f"""
+    {prompt_template}
+    
+    SCENARIO CONTEXT:
+    {json.dumps(request.scenario_context, indent=2, ensure_ascii=False, default=str)}
+    
+    USER ANSWER:
+    {request.user_answer}
+    """
+    
+    try:
+        result_str = await ai_service.generate(
+            final_prompt, 
+            provider="openai", 
+            system_instruction="Tu es un Recruteur Expert et Coach de Carrière."
+        )
+        return {"feedback": clean_ai_json_response(result_str)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Situation simulation failed: {str(e)}")
 
 @router.post("/generate-clarifications")
 async def generate_clarifications(data: FullCVData, current_user: dict = Depends(require_active_subscription)):
