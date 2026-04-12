@@ -1,0 +1,91 @@
+name: Backend CI/CD
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+      # Déclenche aussi sur les changements du workflow lui-même
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+
+jobs:
+  test:
+    name: Run Pytest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip' # Optimisation: met les dépendances en cache pour accélérer la CI
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-mock
+
+    - name: Run Tests
+      # Variables d'environnement fictives pour ne pas faire planter les tests qui les requièrent
+      env:
+        DATABASE_URL: "sqlite:///:memory:" 
+        OPENAI_API_KEY: "dummy_key"
+        GEMINI_API_KEY: "dummy_key"
+      run: |
+        pytest ../tests/backend/ -v
+
+  deploy:
+    name: Deploy to Google Cloud Run
+    # Ce job ne s'exécute que si le job 'test' a réussi
+    needs: test
+    # Ce job ne s'exécute que sur un push vers la branche 'main'
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    # Permissions nécessaires pour l'authentification OIDC
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Authenticate to Google Cloud
+      id: auth
+      uses: 'google-github-actions/auth@v2'
+      with:
+        workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+        service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+    - name: Deploy to Cloud Run
+      id: deploy
+      uses: 'google-github-actions/deploy-cloudrun@v2'
+      with:
+        # Le nom de votre service Cloud Run
+        service: 'beyondthecv-backend-service'
+        # La région où se trouve votre service
+        region: 'europe-west1'
+        # Le chemin vers le code source contenant le Dockerfile
+        source: ./backend
+        # Passe le NOM du secret à la variable d'environnement DATABASE_SECRET_NAME
+        # Ton code database.py s'attend au nom, pas à la valeur, c'est la bonne méthode.
+        env_vars:
+          DATABASE_SECRET_NAME: 'YOUR_DB_SECRET_NAME' # Remplace par le nom de ton secret DB
+        # Monte la VALEUR des secrets directement dans les variables d'environnement
+        secrets:
+          # Format: NOM_VARIABLE_ENV: NOM_SECRET_DANS_GCP:latest
+          OPENAI_API_KEY: 'YOUR_OPENAI_SECRET:latest'
+          GEMINI_API_KEY: 'YOUR_GEMINI_SECRET:latest'
+          SERPER_API_KEY: 'YOUR_SERPER_SECRET:latest'
