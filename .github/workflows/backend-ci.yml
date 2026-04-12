@@ -81,11 +81,10 @@ jobs:
         source: ./backend
         # Passe le NOM du secret à la variable d'environnement DATABASE_SECRET_NAME
         # Ton code database.py s'attend au nom, pas à la valeur, c'est la bonne méthode.
-        env_vars:
-          DATABASE_SECRET_NAME: 'YOUR_DB_SECRET_NAME' # Remplace par le nom de ton secret DB
+        env_vars: |-
+          DATABASE_SECRET_NAME=db-credentials
         # Monte la VALEUR des secrets directement dans les variables d'environnement
-        secrets:
-          # Format: NOM_VARIABLE_ENV: NOM_SECRET_DANS_GCP:latest
-          OPENAI_API_KEY: 'YOUR_OPENAI_SECRET:latest'
-          GEMINI_API_KEY: 'YOUR_GEMINI_SECRET:latest'
-          SERPER_API_KEY: 'YOUR_SERPER_SECRET:latest'
+        secrets: |-
+          OPENAI_API_KEY=openai-api-key:latest
+          GEMINI_API_KEY=gemini-api-key:latest
+          SERPER_API_KEY=serper-api-key:latest
