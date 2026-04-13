@@ -35,10 +35,10 @@ jobs:
 
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Set up Python 3.11
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
         cache: 'pip'
@@ -53,13 +53,18 @@ jobs:
 
     - name: Run Tests
       env:
+        # [FIX] Indique à Python où trouver les modules. Empêche l'exit code 2.
+        PYTHONPATH: backend
+        
         # Utilise la base de données du conteneur de service
         DATABASE_URL: "postgresql://user:password@localhost:5432/test_db"
         OPENAI_API_KEY: "dummy_key"
         GEMINI_API_KEY: "dummy_key"
       run: |
-        # Exécute les tests depuis la racine du projet
-        pytest tests/backend/ -v
+        # Affiche le contenu du répertoire courant pour faciliter le débogage dans les logs
+        ls -la
+        # Laisse Pytest découvrir automatiquement tous les dossiers et fichiers de tests
+        pytest -v
 
   deploy:
     name: Deploy to Google Cloud Run
@@ -76,7 +81,7 @@ jobs:
 
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Authenticate to Google Cloud
       id: auth
