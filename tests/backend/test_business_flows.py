@@ -141,7 +141,7 @@ def test_generate_action_gap_analysis(test_client: TestClient, mock_ai_service):
     """Vérifie que l'action 'Gap Analysis' appelle la bonne logique."""
     mock_ai_service.return_value = '{"match_score": 90, "missing_gaps": ["GraphQL"]}'
     payload = {"action": "Gap Analysis", "data": {"target_job": "Dev"}}
-    response = test_client.post("/api/generate", json=payload)
+    response = test_client.post("/api/cv/generate", json=payload)
     assert response.status_code == 200
     assert response.json()["match_score"] == 90
 
@@ -153,7 +153,7 @@ def test_generate_action_questionnaire(test_client: TestClient, mock_ai_service)
         '{"questions_to_ask": [{"question": "Challenges?", "strategy": "Shows interest"}]}'
     ]
     payload = {"action": "Print Questionnaire", "data": {}}
-    response = test_client.post("/api/generate", json=payload)
+    response = test_client.post("/api/cv/generate", json=payload)
     assert response.status_code == 200
     assert mock_ai_service.await_count == 2
     assert len(response.json()["questions"]) == 2

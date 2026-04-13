@@ -34,7 +34,7 @@ def test_get_dashboard_summary(test_client: TestClient, mock_ai_service: MagicMo
         "target_job": "Data Scientist"
     }
 
-    response = test_client.post("/api/dashboard/summary", json=cv_data)
+    response = test_client.post("/api/cv/dashboard/summary", json=cv_data)
 
     assert response.status_code == 200
     data = response.json()

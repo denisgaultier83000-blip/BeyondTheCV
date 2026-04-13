@@ -16,10 +16,10 @@ def test_login_success(test_client: TestClient, mock_db, mocker):
     # Mock de la vérification de mot de passe (toujours vrai ici)
     mocker.patch("services.auth.verify_password", return_value=True)
     
-    response = test_client.post("/api/login", json={"email": "valid@test.com", "password": "password123"})
+    response = test_client.post("/api/auth/token", data={"username": "valid@test.com", "password": "password123"})
     
     assert response.status_code == 200
-    assert "token" in response.json()
+    assert "access_token" in response.json()
     assert response.json()["user"]["email"] == "valid@test.com"
 
 # --- Test 6: Login Échec ---
@@ -31,7 +31,7 @@ def test_login_failure(test_client: TestClient, mock_db, mocker):
     # Mais le mot de passe est faux
     mocker.patch("services.auth.verify_password", return_value=False)
     
-    response = test_client.post("/api/login", json={"email": "valid@test.com", "password": "wrongpassword"})
+    response = test_client.post("/api/auth/token", data={"username": "valid@test.com", "password": "wrongpassword"})
     assert response.status_code == 401
 
 # --- Test 1 (Nouveau): Échec de l'inscription si l'email existe ---
@@ -47,7 +47,7 @@ def test_register_failure_email_exists(test_client: TestClient, mock_db):
         "last_name": "Doe"
     }
     
-    response = test_client.post("/api/register", json=payload)
+    response = test_client.post("/api/auth/register", json=payload)
     
     assert response.status_code == 400
     assert response.json()["detail"] == "Email already registered"

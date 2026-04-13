@@ -41,4 +41,4 @@ def test_stripe_webhook_success(test_client: TestClient, mock_db, mocker):
     
     assert response.status_code == 200
     
-    mock_db['execute'].assert_awaited_with(ANY, "UPDATE users SET is_premium = 1 WHERE id = ?", ("user_to_upgrade",))
+    mock_db['execute'].assert_awaited_with(ANY, "UPDATE users SET is_premium = TRUE WHERE id = ?", ("user_to_upgrade",))

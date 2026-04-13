@@ -12,6 +12,15 @@ except ImportError:
     from fastapi import FastAPI
     app = FastAPI()
 
+# --- MOCK GLOBAL DE L'AUTHENTIFICATION ---
+# Force un faux utilisateur connecté pour tous les tests afin d'éviter les erreurs 401
+try:
+    from security import get_current_user
+    async def mock_get_current_user():
+        return {"id": "test-user-id", "email": "test@example.com", "first_name": "Test", "last_name": "User", "is_premium": True}
+    app.dependency_overrides[get_current_user] = mock_get_current_user
+except ImportError:
+    pass
 
 @pytest.fixture(scope="module")
 def test_client():
