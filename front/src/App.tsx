@@ -277,12 +277,12 @@ function AppContent() {
         </div>);
       case 3: return (
         <div className="step-wrapper">
-          <StepEducation list={cvData?.educations || []} onAdd={() => handleAddList('educations', { degree: '', school: '', year: '' })} onRemove={(id) => handleRemoveList('educations', id)} onUpdate={(id, field, val) => handleUpdateList('educations', id, field, val)} />
+          <StepEducation list={cvData?.educations || []} onAdd={() => handleAddList('educations', { degree: '', school: '', year: '' })} onRemove={(id: number) => handleRemoveList('educations', id)} onUpdate={(id: number, field: string, val: any) => handleUpdateList('educations', id, field, val)} />
           <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={() => handleNextStep()}>{t('btn_next')}</button></div>
         </div>);
       case 4: return (
         <div className="step-wrapper">
-          <StepExperience list={cvData?.experiences || []} onAdd={() => handleAddList('experiences', { role: '', company: '', description: '' })} onRemove={(id) => handleRemoveList('experiences', id)} onUpdate={(id, field, val) => handleUpdateList('experiences', id, field, val)} />
+          <StepExperience list={cvData?.experiences || []} onAdd={() => handleAddList('experiences', { role: '', company: '', description: '' })} onRemove={(id: number) => handleRemoveList('experiences', id)} onUpdate={(id: number, field: string, val: any) => handleUpdateList('experiences', id, field, val)} />
           <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={() => handleNextStep()}>{t('btn_next')}</button></div>
         </div>);
       case 5: return (
@@ -343,7 +343,6 @@ function AppContent() {
 
   return (
     <div className="app-container">
-      {/* @ts-ignore - Ignore type differences between Header props and what is passed */}
       <Header darkMode={darkMode} setDarkMode={setDarkMode} showLogin={!isAuthenticated} userName={parsedUserName} onOpenProfile={() => setShowDocsModal(true)} onLogout={() => { localStorage.removeItem('token'); localStorage.removeItem('user'); resetDashboard(); setIsAuthenticated(false); navigate('/', { replace: true }); }} onLanguageChange={handleLanguageChange} />
       <main className="main-content">
         {showLanding && !isAuthenticated ? (

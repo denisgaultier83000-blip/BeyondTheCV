@@ -2,13 +2,13 @@ name: Backend CI/CD
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
     paths:
       - 'backend/**'
       # Déclenche aussi sur les changements du workflow lui-même
       - '.github/workflows/backend-ci.yml'
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
     paths:
       - 'backend/**'
 
@@ -16,9 +16,22 @@ jobs:
   test:
     name: Run Pytest
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./backend
+    services:
+      # Ajoute un conteneur de service PostgreSQL pour les tests
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        # Option pour attendre que PostgreSQL soit prêt
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
     - name: Checkout Repository
@@ -28,29 +41,32 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-        cache: 'pip' # Optimisation: met les dépendances en cache pour accélérer la CI
+        cache: 'pip'
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        # psycopg2-binary est plus fiable en CI que psycopg2
+        pip install psycopg2-binary
+        pip install -r backend/requirements.txt
         pip install pytest pytest-mock
 
     - name: Run Tests
-      # Variables d'environnement fictives pour ne pas faire planter les tests qui les requièrent
       env:
-        DATABASE_URL: "sqlite:///:memory:" 
+        # Utilise la base de données du conteneur de service
+        DATABASE_URL: "postgresql://user:password@localhost:5432/test_db"
         OPENAI_API_KEY: "dummy_key"
         GEMINI_API_KEY: "dummy_key"
       run: |
-        pytest ../tests/backend/ -v
+        # Exécute les tests depuis la racine du projet
+        pytest tests/backend/ -v
 
   deploy:
     name: Deploy to Google Cloud Run
     # Ce job ne s'exécute que si le job 'test' a réussi
     needs: test
     # Ce job ne s'exécute que sur un push vers la branche 'main'
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
 
     # Permissions nécessaires pour l'authentification OIDC

@@ -23,6 +23,8 @@ interface HeaderProps {
   onOpenProfile?: () => void;
   onLogout?: () => void;
   onLanguageChange?: (lang: string) => void;
+  isAuthenticated?: boolean;
+  targetLanguage?: string;
 }
 
 export default function Header({

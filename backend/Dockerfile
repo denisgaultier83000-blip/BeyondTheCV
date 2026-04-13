@@ -1,52 +1,29 @@
-# syntax=docker/dockerfile:1
-# Etape 1 : Builder (Compilation des dépendances)
-FROM python:3.11-slim as builder
-
-WORKDIR /app
-
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
-
-# Installation des outils de compilation uniquement dans le builder
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY requirements.txt .
-
-# Installation dans le répertoire utilisateur pour faciliter la copie
-RUN pip install --user --no-warn-script-location -r requirements.txt
-
-# Etape 2 : Image finale (Runtime)
+# Étape 1 : Image Python légère et officielle
 FROM python:3.11-slim
 
-WORKDIR /app
+# Étape 2 : Variables d'environnement pour optimiser Python
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PORT=8080
 
-# Ajout du chemin des binaires Python utilisateur
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PATH=/root/.local/bin:$PATH
-
-# Installation des dépendances système Runtime (LaTeX)
-# Cette étape est longue mais sera bien mise en cache car elle est avant les COPY
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    texlive-latex-base \
-    texlive-fonts-recommended \
-    texlive-latex-extra \
-    lmodern \
-    cm-super \
+# Étape 3 : Installation des dépendances système (si besoin pour PostgreSQL ou LaTeX)
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    texlive-xetex \
     && rm -rf /var/lib/apt/lists/*
 
-# Copie des dépendances Python depuis le builder
-COPY --from=builder /root/.local /root/.local
+# Étape 4 : Création du dossier de travail
+WORKDIR /app
 
-# Copie du code source
+# Étape 5 : Installation des dépendances Python
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Étape 6 : Copie du code source
 COPY . .
 
-# Création des dossiers nécessaires
-RUN mkdir -p temp output ai/prompts
+# Étape 7 : Exposition du port et lancement de Uvicorn
+EXPOSE $PORT
 
-EXPOSE 8080
-
-# Utilisation de "sh -c" pour garantir l'interprétation de la variable $PORT injectée par Cloud Run
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}"]
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT}"]
