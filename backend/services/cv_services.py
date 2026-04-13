@@ -499,7 +499,7 @@ async def start_cv_generation(background_tasks: BackgroundTasks, data: dict = Bo
     background_tasks.add_task(process_cv_draft_in_background, task_id, data)
     return {"task_id": task_id, "status": "PENDING"}
 
-@router.post("/format-cv-data")
+@router.post("/generate")
 async def generate_document(request: GenerateRequest, current_user: dict = Depends(require_active_subscription)):
     action = request.action
     data = request.data
@@ -810,10 +810,10 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
         tasks_map["flaw_coaching"] = str(uuid.uuid4())
         tasks_map["action_plan"] = str(uuid.uuid4())
         
-        # [CRITIQUE] Toujours renvoyer une tâche market_research pour que le Frontend puisse l'afficher
-        has_research_data = isinstance(data.research_data, dict) and len(data.research_data) > 0
         if data.target_company or data.target_industry:
             tasks_map["market_research"] = str(uuid.uuid4())
+
+    has_research_data = isinstance(data.research_data, dict) and len(data.research_data) > 0
 
     try:
         async with db.get_connection() as conn:

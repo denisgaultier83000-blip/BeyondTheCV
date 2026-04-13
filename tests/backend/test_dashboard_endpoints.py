@@ -40,11 +40,11 @@ def test_get_dashboard_summary(test_client: TestClient, mock_ai_service: MagicMo
     data = response.json()
 
     # Vérification des données agrégées dans la réponse
-    assert data["match_score"] == 85
-    assert data["match_summary"] == "Votre profil correspond à 85% des attentes. 1 compétences sont à renforcer."
-    assert data["key_strengths"] == ["Force 1", "Force 2"]
-    assert data["skills_to_bridge"] == ["Compétence A"]
-    assert data["application_strategy"] == ["Stratégie 1", "Stratégie 2"]
+    assert data["matchScore"] == 85
+    assert data["summary"] == "Votre profil correspond à 85% des attentes du poste visé. 1 compétences sont à renforcer."
+    assert data["strengths"] == ["Force 1", "Force 2"]
+    assert data["gapsMatrix"][0]["skill"] == "Compétence A"
+    assert data["recommendedStrategy"] == "Stratégie 1 Stratégie 2"
     
     # Vérification que les services ont bien été appelés
     mock_run_gap.assert_awaited_once()
