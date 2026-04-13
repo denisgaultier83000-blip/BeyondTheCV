@@ -16,9 +16,13 @@ except ImportError:
 # Force un faux utilisateur connecté pour tous les tests afin d'éviter les erreurs 401
 try:
     from security import get_current_user
+    from services.cv_services import require_active_subscription
     async def mock_get_current_user():
         return {"id": "test-user-id", "email": "test@example.com", "first_name": "Test", "last_name": "User", "is_premium": True}
+    async def mock_require_active_subscription():
+        return {"id": "test-user-id", "email": "test@example.com", "is_premium": True}
     app.dependency_overrides[get_current_user] = mock_get_current_user
+    app.dependency_overrides[require_active_subscription] = mock_require_active_subscription
 except ImportError:
     pass
 
