@@ -499,7 +499,7 @@ async def start_cv_generation(background_tasks: BackgroundTasks, data: dict = Bo
     background_tasks.add_task(process_cv_draft_in_background, task_id, data)
     return {"task_id": task_id, "status": "PENDING"}
 
-@router.post("/generate")
+@router.post("/format-cv-data")
 async def generate_document(request: GenerateRequest, current_user: dict = Depends(require_active_subscription)):
     action = request.action
     data = request.data

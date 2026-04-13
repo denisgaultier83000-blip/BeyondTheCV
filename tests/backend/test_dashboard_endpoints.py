@@ -10,7 +10,7 @@ def test_get_dashboard_summary(test_client: TestClient, mock_ai_service: MagicMo
     """
     # Mock de la fonction interne `run_gap_analysis_and_get_result`
     mock_run_gap = mocker.patch(
-        'services.cv_generator.run_gap_analysis_and_get_result',
+        'services.cv_services.run_gap_analysis_and_get_result',
         new_callable=mocker.AsyncMock
     )
     
