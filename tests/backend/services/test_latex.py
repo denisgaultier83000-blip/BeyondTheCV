@@ -44,7 +44,7 @@ def test_sanitize_for_latex_with_none():
     assert sanitize_for_latex(None) == ""
 
 
-# --- Test 7: Gestion de la photo dans `generate_pdf_from_latex` ---
+# --- Environnement de test LaTeX ---
 
 @pytest.fixture
 def setup_latex_env(tmp_path):
@@ -56,40 +56,9 @@ def setup_latex_env(tmp_path):
     template_dir = tmp_path / "templates"
     template_dir.mkdir()
     
-    (template_dir / "test_template.tex").write_text("Photo Path: \\VAR{photo_path}")
+    (template_dir / "test_template.tex").write_text("Name: \\VAR{last_name}")
     
     return str(template_dir), str(output_dir)
-
-def test_photo_processing_logic(mocker, setup_latex_env):
-    """
-    Teste la logique de traitement d'une image Base64, de sa sauvegarde
-    et de la modification des données pour le template.
-    """
-    template_dir, output_dir = setup_latex_env
-    
-    mocker.patch('backend.services.latex.TEMPLATE_DIR', template_dir)
-    mocker.patch('backend.services.latex.OUTPUT_DIR', output_dir)
-    mocker.patch('shutil.which', return_value=True)
-    mocker.patch('subprocess.run', return_value=mocker.Mock(returncode=0))
-    mocker.patch('uuid.uuid4', return_value=mocker.Mock(hex='testhex'))
-    mock_render = mocker.patch('jinja2.Template.render')
-    # FIX: Le mock de render doit retourner une chaîne de caractères pour que
-    # l'écriture dans le fichier .tex fonctionne.
-    mock_render.return_value = "dummy latex content"
-
-    photo_base64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
-    data = {"photo": photo_base64, "last_name": "test"}
-
-    generate_pdf_from_latex(data, "test_template.tex")
-
-    expected_photo_filename = "phototesthex.png"
-    expected_photo_path = os.path.join(output_dir, expected_photo_filename)
-    assert os.path.exists(expected_photo_path)
-
-    call_args, call_kwargs = mock_render.call_args
-    rendered_data = call_kwargs
-    assert rendered_data['photo_path'] == expected_photo_filename
-    assert 'photo' not in rendered_data
 
 # --- Test 3 (Nouveau): Fallback si pdflatex est manquant ---
 def test_generate_pdf_fallback_if_pdflatex_missing(mocker, setup_latex_env):

@@ -2,7 +2,7 @@
 Pydantic models for database operations.
 Includes schemas for users, products, evaluations, and subscriptions.
 """
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from enum import Enum
@@ -48,8 +48,7 @@ class UserResponse(UserBase):
     subscription_extension_count: int = 0
     is_active: bool = True
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # --- Product Models ---
 class ProductBase(BaseModel):
@@ -84,8 +83,7 @@ class ProductResponse(ProductBase):
     last_printed_at: Optional[datetime] = None
     is_archived: bool = False
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ProductListResponse(BaseModel):
     """Simplified product list response for web display."""
@@ -96,8 +94,7 @@ class ProductListResponse(BaseModel):
     downloaded_count: int
     printed_count: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # --- Subscription Plan Models ---
 class SubscriptionPlanBase(BaseModel):
@@ -116,8 +113,7 @@ class SubscriptionPlanResponse(SubscriptionPlanCreate):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # --- Subscription Extension Models ---
 class SubscriptionExtensionCreate(BaseModel):
@@ -137,8 +133,7 @@ class SubscriptionExtensionResponse(BaseModel):
     notes: Optional[str] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # --- Feedback Models ---
 class FeedbackBase(BaseModel):
@@ -157,8 +152,7 @@ class FeedbackResponse(FeedbackBase):
     sentiment: Optional[str] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # --- Task Models ---
 class TaskCreate(BaseModel):
@@ -185,5 +179,4 @@ class TaskResponse(BaseModel):
     error_message: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

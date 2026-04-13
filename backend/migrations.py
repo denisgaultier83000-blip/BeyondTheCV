@@ -10,6 +10,8 @@ def get_postgres_connection():
     if not database.DATABASE_URL:
         # This provides a clearer error if the URL is missing for any reason.
         raise ConnectionError("[DB MIGRATION] DATABASE_URL is not set. Cannot connect.")
+    if "sqlite" in database.DATABASE_URL:
+        raise ConnectionError(f"[DB MIGRATION] SQLite n'est plus supporté. Veuillez configurer une DATABASE_URL PostgreSQL dans votre .env. Actuel: {database.DATABASE_URL}")
     return psycopg2.connect(database.DATABASE_URL)
 
 def create_tables():
@@ -168,7 +170,7 @@ def create_tables():
         print(f"\n❌ Error creating tables: {e}")
         if conn:
             conn.rollback()
-        return False
+        raise e # Relève l'erreur pour que Pytest affiche la vraie cause
     finally:
         if cur:
             cur.close()
@@ -207,7 +209,7 @@ def insert_default_subscription_plans():
         print(f"❌ Error inserting subscription plans: {e}")
         if conn:
             conn.rollback()
-        return False
+        raise e
     finally:
         if cur:
             cur.close()

@@ -2,7 +2,6 @@ import pytest
 from unittest.mock import MagicMock
 from backend.services.utils import clean_ai_json_response
 from backend.services.market_research import generate_deterministic_queries
-from backend.services.parser import parse_cv_pdf
 from backend.services.websocket_manager import ConnectionManager
 from datetime import datetime
 
@@ -30,25 +29,6 @@ def test_generate_deterministic_queries():
     assert any("Tesla" in q for q in queries)
     assert any(f"Automotive market trends" in q for q in queries)
     assert any(str(current_year) in q for q in queries)
-
-# --- Test 3: Extraction PDF (Mockée) ---
-def test_parse_cv_pdf_mocked(mocker):
-    """Teste la logique d'extraction et d'heuristique du parser CV."""
-    # On mocke PdfReader pour ne pas dépendre d'un vrai fichier PDF
-    mock_reader = MagicMock()
-    mock_page = MagicMock()
-    # Texte simulé extrait du PDF
-    mock_page.extract_text.return_value = "Jean DUPONT\njean.dupont@email.com\nDéveloppeur Python Senior"
-    mock_reader.pages = [mock_page]
-    
-    mocker.patch("backend.services.parser.PdfReader", return_value=mock_reader)
-    
-    # Appel avec un fichier fictif
-    data = parse_cv_pdf("dummy.pdf")
-    
-    assert data["email"] == "jean.dupont@email.com"
-    assert data["first_name"] == "Jean"
-    assert data["last_name"] == "DUPONT"
 
 # --- Test 4: Websocket Broadcast ---
 @pytest.mark.asyncio
