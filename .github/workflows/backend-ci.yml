@@ -13,6 +13,10 @@ on:
     paths:
       - 'backend/**'
 
+env:
+  # Désactive l'avertissement de dépréciation Node.js en forçant la v24
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   test:
     name: Run Pytest
@@ -55,8 +59,8 @@ jobs:
 
     - name: Run Tests
       env:
-        # [FIX] Indique à Python où trouver les modules. Empêche l'exit code 2.
-        PYTHONPATH: backend
+        # [FIX] Ajoute la racine du projet (.) ET le dossier backend pour corriger tous les imports
+        PYTHONPATH: ".:backend"
         
         # Utilise la base de données du conteneur de service
         DATABASE_URL: "postgresql://user:password@localhost:5432/test_db"
