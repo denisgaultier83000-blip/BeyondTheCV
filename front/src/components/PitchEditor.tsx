@@ -53,7 +53,8 @@ const Teleprompter = ({ text, onClose }: { text: string, onClose: () => void }) 
   };
 
   return createPortal(
-    <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: '#0f172a', zIndex: 99999, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+    {/* [FIX EXPERT] Forçage d'un fond NOIR solide et absolu pour isoler totalement le téléprompteur du Dashboard */}
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000000', zIndex: 999999, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <button onClick={onClose} title="Fermer le téléprompteur" style={{ position: 'absolute', top: '0.5rem', right: '2rem', background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', width: '50px', height: '50px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100000, transition: 'background 0.2s' }}>
         <X size={28} />
       </button>

@@ -23,6 +23,7 @@ import { CareerRealityCheck } from "../components/CareerRealityCheck"; // [NEW] 
 import { CompanyAnalysisCard } from "../components/CompanyAnalysisCard";
 import { MarketAnalysisCard } from "../components/MarketAnalysisCard";
 import FlawCoaching from "../components/FlawCoaching";
+import { ToDoListCard } from "../components/ToDoListCard";
 import { Search, Plus, Building } from "lucide-react";
 import {
   StepProfile,
@@ -79,6 +80,7 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
   const [realityResult, setRealityResult] = useState<any>(null); // [NEW] State pour Reality Check
   const [showGapAnalysisModal, setShowGapAnalysisModal] = useState(false);
   const [cvMode, setCvMode] = useState<"ATS" | "Human" | null>(null);
+  const [actionPlanResult, setActionPlanResult] = useState<any>(null); // [NEW] State pour la To-Do List
   const [isPrinting, setIsPrinting] = useState(false);
   const [showDocuments, setShowDocuments] = useState(false);
   const [salaryData, setSalaryData] = useState<any>(null);
@@ -98,7 +100,8 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
     recruiter: false,
     gps: false,
     reality: false,
-    research: false
+    research: false,
+    actionPlan: false
   });
 
   // [NEW] État pour gérer les erreurs individuelles des cartes premium
@@ -109,7 +112,8 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
     recruiter: false,
     gps: false,
     reality: false,
-    research: false
+    research: false,
+    actionPlan: false
   });
 
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
@@ -511,10 +515,10 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
     const currentUser = getUser();
     if (!currentUser) return;
     const dataToSave = {
-      form, experiences, educations, researchData, salaryData, pitchData, gapAnalysis, questionsList, radarResult, decoderResult, hiddenMarketResult, recruiterResult, gpsResult, realityResult, flawCoachingResult
+      form, experiences, educations, researchData, salaryData, pitchData, gapAnalysis, questionsList, radarResult, decoderResult, hiddenMarketResult, recruiterResult, gpsResult, realityResult, flawCoachingResult, actionPlanResult
     };
     localStorage.setItem(`candidateForm_${currentUser.email}`, JSON.stringify(dataToSave));
-  }, [form, experiences, educations, researchData, salaryData, pitchData, gapAnalysis, questionsList, radarResult, decoderResult, hiddenMarketResult, recruiterResult, gpsResult, realityResult, flawCoachingResult]);
+  }, [form, experiences, educations, researchData, salaryData, pitchData, gapAnalysis, questionsList, radarResult, decoderResult, hiddenMarketResult, recruiterResult, gpsResult, realityResult, flawCoachingResult, actionPlanResult]);
 
   // [NOUVEAU] Sauvegarde silencieuse en Base de données (Fire-and-Forget)
   const saveProgressToDB = async () => {
@@ -522,7 +526,7 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
     if (!currentUser) return;
     
     const dataToSave = {
-      form, experiences, educations, researchData, salaryData, pitchData, gapAnalysis, questionsList, radarResult, decoderResult, hiddenMarketResult, recruiterResult, gpsResult, realityResult, flawCoachingResult
+      form, experiences, educations, researchData, salaryData, pitchData, gapAnalysis, questionsList, radarResult, decoderResult, hiddenMarketResult, recruiterResult, gpsResult, realityResult, flawCoachingResult, actionPlanResult
     };
 
     try {
@@ -839,7 +843,8 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
           recruiter: false,
           gps: false,
           reality: false,
-          research: false
+              research: false,
+              actionPlan: false
       });
 
       const poll = async (taskId: string, setter: (data: any) => void, loadingKey?: string, label?: string) => {
@@ -1369,6 +1374,11 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
                     targetJob={form.target_role_primary || ''}
                     onAction={handleActionWrapper}
                   />
+
+                {/* [NEW] Module Plan d'Action / To-Do List */}
+                {(actionPlanResult || premiumLoading.actionPlan || premiumErrors.actionPlan) && (
+                  <ToDoListCard data={actionPlanResult} loading={premiumLoading.actionPlan} error={premiumErrors.actionPlan} />
+                )}
 
                 {/* [FIX] Les composants premium ne s'affichent QUE si le candidat a fourni les données nécessaires */}
                 {form.target_company ? (

@@ -3,10 +3,15 @@ from fastapi.testclient import TestClient
 from unittest.mock import ANY
 
 # --- Test 2 (Nouveau): Génération de document DOCX ---
-def test_generate_docx_document(test_client: TestClient, mock_db, mocker):
+def test_generate_docx_document(test_client: TestClient, mock_db, mocker, tmp_path):
     """Vérifie la génération d'un document Word via l'API."""
+    # Création d'un vrai fichier temporaire pour satisfaire FileResponse de FastAPI
+    fake_docx = tmp_path / "fake_cv.docx"
+    fake_docx.write_text("dummy")
+    fake_path = str(fake_docx)
+
     # Mock de la fonction de génération docx pour ne pas créer de vrai fichier
-    mock_generate_docx = mocker.patch("services.cv_services.generate_cv_docx", return_value="/tmp/fake_cv.docx")
+    mock_generate_docx = mocker.patch("services.cv_services.generate_cv_docx", return_value=fake_path)
     mocker.patch("os.path.basename", return_value="fake_cv.docx")
     
     # Mock de la réponse de l'IA
@@ -25,4 +30,4 @@ def test_generate_docx_document(test_client: TestClient, mock_db, mocker):
     
     mock_generate_docx.assert_called_once()
     
-    mock_db['execute'].assert_awaited_with(ANY, ANY, (ANY, "test-user-id", "fake_cv.docx", "/tmp/fake_cv.docx", "CV_WORD", ANY, ANY))
+    mock_db['execute'].assert_awaited_with(ANY, ANY, (ANY, "test-user-id", "fake_cv.docx", fake_path, "CV_WORD", ANY, ANY))

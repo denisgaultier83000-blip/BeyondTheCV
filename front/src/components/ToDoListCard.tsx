@@ -53,7 +53,7 @@ export function ToDoListCard({ data, loading, error }: { data: any, loading?: bo
           </div>
 
           {/* Checklist */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {actions.map((item, idx) => {
               const isChecked = checkedItems.includes(idx);
               return (

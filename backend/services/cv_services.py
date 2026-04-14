@@ -684,7 +684,8 @@ async def render_final_cv(cv_final_data: CVFinal, preview: bool = Query(False), 
                 else:
                     latex_data["skills"]["text"] = ", ".join([str(list(i.values())[0]) for i in items])
         
-        safe_last = "".join(c for c in cv_final_data.last_name if c.isalnum()) or "Candidat"
+        # [FIX EXPERT] Sécurisation contre la valeur 'None' si le nom de famille n'est pas fourni (évite le crash TypeError)
+        safe_last = "".join(c for c in (cv_final_data.last_name or "") if c.isalnum()) or "Candidat"
         filename = f"CV_{safe_last.capitalize()}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
         generated_path = generate_pdf_from_latex(latex_data, "cv_ats.tex")
         

@@ -6,17 +6,28 @@ from datetime import datetime
 import psycopg2
 
 # [FIX EXPERT] Importe DATABASE_URL depuis le module centralisé
-# pour garantir une source de vérité unique pour la connexion.
-from database import init_db, DATABASE_URL
+# pour garantir une source de vérité unique pour la connexion. On importe
+# l'instance `db` et la fonction `get_database_url` pour configurer la connexion
+# avant toute opération, car ce script est autonome.
+from database import db, get_database_url, init_db
 
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 def seed_test_users():
-    # 1. Force l'initialisation de la base de données et de ses tables (users, etc.)
+    # 1. Configuration de la base de données AVANT toute utilisation
+    db_url = get_database_url()
+    if not db_url:
+        print("❌ CRITICAL: DATABASE_URL n'est pas défini. Vérifiez votre fichier .env.")
+        return
+    
+    # On configure l'instance partagée de la base de données
+    db.database_url = db_url
+
+    # 2. Force l'initialisation de la base de données et de ses tables (users, etc.)
     init_db()
 
-    # 2. Connexion stricte à PostgreSQL
-    conn = psycopg2.connect(DATABASE_URL)
+    # 3. Connexion stricte à PostgreSQL
+    conn = psycopg2.connect(db_url)
     cursor = conn.cursor()
     
     # La table 'users' est déjà gérée par database.py. On crée juste user_profiles si nécessaire.
@@ -28,7 +39,7 @@ def seed_test_users():
         )
     """)
     
-    # 2. Création des 10 utilisateurs (test1@test.com à test10@test.com)
+    # 4. Création des 10 utilisateurs (test1@test.com à test10@test.com)
     for i in range(1, 11):
         email = f"test{i}@test.com"
         hashed_pw = pwd_context.hash(f"test{i}") # Le mot de passe est test1, test2...
@@ -135,10 +146,10 @@ def seed_test_users():
                     {"id": 1, "degree": "Diplôme d'Ingénieur en Mathématiques Appliquées", "school": "Polytechnique", "year": "2018"}
                 ]
             
-        cursor.execute("INSERT INTO user_profiles (user_id, profile_data) VALUES (%s, %s)", (user_id, json.dumps(mock_data)))
+            cursor.execute("INSERT INTO user_profiles (user_id, profile_data) VALUES (%s, %s)", (user_id, json.dumps(mock_data)))
             print(f"✅ Utilisateur {email} créé (Mdp: test{i} | Rôle: {target_role})")
-    except psycopg2.IntegrityError as e:
-        conn.rollback()
+        except psycopg2.IntegrityError as e:
+            conn.rollback()
             print(f"⚠️ L'utilisateur {email} existe déjà ou erreur : {e}")
             
     conn.commit()

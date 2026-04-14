@@ -36,19 +36,23 @@ def generate_deterministic_queries(company: str, industry: str) -> list:
     current_year = datetime.now().year
     queries = []
     
+    # [FIX EXPERT] Ajout d'un contexte fort pour forcer le moteur de recherche à ignorer les homonymes célèbres
+    safe_industry = industry if industry and industry.lower() != "unknown" else ""
+    company_context = f'"{company}" (entreprise OR company OR society OR {safe_industry})' if safe_industry else f'"{company}" (entreprise OR company OR society)'
+    
     # [FIX] Ne rechercher l'entreprise que si elle est renseignée
     if company and company.strip() and company.lower() != "unknown":
         queries.extend([
-            f"{company} strategic plan {current_year}",
-            f"{company} financial results revenue {current_year - 1}",
-            f"{company} corporate culture values",
-            f"{company} CEO founder leadership team background",
-            f"{company} number of employees size locations HQ",
-            f"{company} main competitors market share",
-            f"{company} interview process questions candidates",
-            f"{company} key products and services",
-            f'"{company}" (actualité OR news OR article OR presse) {current_year}',
-            f"{company} employee reviews glassdoor culture"
+            f"{company_context} strategic plan {current_year}",
+            f"{company_context} financial results revenue {current_year - 1}",
+            f"{company_context} corporate culture values",
+            f"{company_context} CEO founder leadership team background",
+            f"{company_context} number of employees size locations HQ",
+            f"{company_context} main competitors market share",
+            f"{company_context} interview process questions candidates",
+            f"{company_context} key products and services",
+            f'{company_context} (actualité OR news OR article OR presse) {current_year}',
+            f"{company_context} employee reviews glassdoor culture"
         ])
         
     if industry and industry.strip() and industry.lower() != "unknown":
@@ -72,16 +76,12 @@ async def generate_ai_search_plan(company: str, industry: str, role: str, countr
             print("[Planner] Warning: Prompt file 'marche_plan_de_recherche.md' not found.", flush=True)
             return []
 
-        # Construction du prompt contextuel
-        final_prompt = f"""
-        {prompt_template}
-        
-        CONTEXTE ACTUEL :
-        Entreprise : {company}
-        Secteur : {industry}
-        Poste visé : {role}
-        Pays : {country}
-        """
+        # [FIX EXPERT] Architecture 100% découplée. Le Python ne fait que remplacer les variables.
+        # On utilise .replace() plutôt que .format() pour ignorer les accolades du JSON.
+        final_prompt = prompt_template.replace("{company}", company or "Non spécifiée") \
+                                      .replace("{industry}", industry or "Non spécifié") \
+                                      .replace("{role}", role or "Candidat") \
+                                      .replace("{country}", country or "Non spécifié")
         
         res_str = await ai_service.generate(final_prompt, provider="gemini", system_instruction="You are a Strategic Search Planner. Output STRICT JSON.")
         res_json = clean_ai_json_response(res_str)
@@ -106,19 +106,10 @@ async def _analyze_search_results(results: list, company: str, provider: str = N
     external_prompt = load_prompt("marche_analyse.md")
     
     if external_prompt:
-        prompt = f"""
-        {external_prompt}
-        
-        SEARCH RESULTS:
-        {json.dumps(results[:15], default=str)}
-        
-        OUTPUT STRICT JSON:
-        {{
-            "key_points": ["Fact 1", "Fact 2", ...],
-            "synthesis_notes": "Brief summary of the data found."
-        }}
-        Respond in {lang}.
-        """
+        # [FIX EXPERT] Découplage total
+        prompt = external_prompt.replace("{company}", company or "Non spécifiée") \
+                                .replace("{results}", json.dumps(results[:15], default=str)) \
+                                .replace("{lang}", lang)
     else:
         prompt = f"""
         Analyze these search results for company '{company}'.
@@ -155,27 +146,31 @@ def _enforce_schema(data: dict) -> dict:
     if not isinstance(company, dict):
         company = {}
     
+    # [FIX EXPERT] On conserve TOUTES les clés générées par le prompt (smart_questions, catchphrases...)
+    # et on applique des valeurs par défaut uniquement pour les clés UI obligatoires manquantes.
+    safe_market = market.copy()
+    safe_market.setdefault("tension_index", market.get("indice_tension", "Non spécifié."))
+    safe_market.setdefault("tension_score", market.get("score_tension", 85))
+    safe_market.setdefault("salary_barometer", market.get("barometre_salaires", market.get("salaires", "Non spécifié.")))
+    safe_market.setdefault("competitive_landscape", market.get("paysage_concurrentiel", "Non spécifié."))
+    safe_market.setdefault("trends", market.get("tendances", "Non spécifié."))
+    safe_market.setdefault("recruitment_dynamics", market.get("dynamique_recrutement", "Non spécifié."))
+    safe_market.setdefault("major_disruptions", market.get("perturbations", "Non spécifié."))
+    safe_market.setdefault("top_skills", market.get("competences_cles", {"hard": [], "soft": []}))
+
+    safe_company = company.copy()
+    safe_company.setdefault("key_figures", company.get("chiffres_cles", "Non spécifié."))
+    safe_company.setdefault("leadership", company.get("ceo_name", company.get("dirigeants", "Non spécifié.")))
+    safe_company.setdefault("identity_dna", company.get("identite_adn", company.get("identite", "Non spécifié.")))
+    safe_company.setdefault("financial_health", company.get("sante_financiere", "Non spécifié."))
+    safe_company.setdefault("usp", company.get("proposition_valeur", "Non spécifié."))
+    safe_company.setdefault("culture_environment", company.get("culture_environnement", company.get("culture", "Non spécifié.")))
+    safe_company.setdefault("team_structure", company.get("equipe", "Non spécifié."))
+    safe_company.setdefault("hot_news", company.get("actualites", "Aucune actualité récente."))
+
     return {
-        "market_report": {
-            "tension_index": market.get("tension_index", market.get("indice_tension", "Non spécifié.")),
-            "tension_score": market.get("tension_score", market.get("score_tension", 85)),
-            "salary_barometer": market.get("salary_barometer", market.get("barometre_salaires", market.get("salaires", "Non spécifié."))),
-            "competitive_landscape": market.get("competitive_landscape", market.get("paysage_concurrentiel", "Non spécifié.")),
-            "trends": market.get("trends", market.get("tendances", "Non spécifié.")),
-            "recruitment_dynamics": market.get("recruitment_dynamics", market.get("dynamique_recrutement", "Non spécifié.")),
-            "major_disruptions": market.get("major_disruptions", market.get("perturbations", "Non spécifié.")),
-            "top_skills": market.get("top_skills", market.get("competences_cles", {"hard": [], "soft": []}))
-        },
-        "company_report": {
-            "key_figures": company.get("key_figures", company.get("chiffres_cles", "Non spécifié.")),
-            "leadership": company.get("leadership", company.get("dirigeants", "Non spécifié.")),
-            "identity_dna": company.get("identity_dna", company.get("identite_adn", company.get("identite", "Non spécifié."))),
-            "financial_health": company.get("financial_health", company.get("sante_financiere", "Non spécifié.")),
-            "usp": company.get("usp", company.get("proposition_valeur", "Non spécifié.")),
-            "culture_environment": company.get("culture_environment", company.get("culture_environnement", company.get("culture", "Non spécifié."))),
-            "team_structure": company.get("team_structure", company.get("equipe", "Non spécifié.")),
-            "hot_news": company.get("hot_news", company.get("actualites", "Aucune actualité récente."))
-        }
+        "market_report": safe_market,
+        "company_report": safe_company
     }
 
 async def perform_market_research(data: dict, task_id: str = None) -> dict:
@@ -298,56 +293,16 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
     # Tentative de chargement du prompt externe pour permettre la personnalisation
     external_prompt = load_prompt("marche_synthese.md")
     
-    # [CRITIQUE FIX] On centralise la contrainte de format JSON pour être SÛR qu'elle s'applique
-    # même si le fichier externe "marche_synthese.md" contient un vieux schéma incomplet.
-    json_structure_requirement = f"""
-    OUTPUT STRICT JSON:
-    {{
-        "market_report": {{
-            "tension_score": 75,
-            "tension_index": "Ratio offres/candidats (Pénurie vs Sélection).",
-            "salary_barometer": "Fourchettes salaires & avantages.",
-            "competitive_landscape": "Leaders, Challengers, Startups.",
-            "trends": "Innovations (IA, Eco, etc.).",
-            "recruitment_dynamics": "Création vs Destruction d'emplois.",
-            "major_disruptions": "Réglementations, crises ou ruptures technologiques imminentes.",
-            "top_skills": {{ "hard": ["5 Hard Skills"], "soft": ["3 Soft Skills"] }}
-        }},
-        "company_report": {{
-            "key_figures": "Année création, nombre employés, siège social.",
-            "leadership": "Nom du CEO/Fondateur, son profil/background rapide.",
-            "identity_dna": "Vision, mission, valeurs réelles.",
-            "financial_health": "CA, croissance, mode (Conquête/Gestion).",
-            "usp": "Positionnement unique vs concurrents.",
-            "culture_environment": "Management, télétravail, ambiance.",
-            "team_structure": "Taille dept, profils types.",
-            "hot_news": "Lancements, partenariats, nominations."
-        }}
-    }}
-    
-    ⚠️ IMPORTANT: You MUST keep the EXACT JSON keys shown above in English ("market_report", "key_figures", "leadership", "major_disruptions", etc.). Do NOT translate the keys. Write the content values in {target_lang}.
-    """
-
     if external_prompt:
         no_company_warning = "" if company else "L'utilisateur n'a pas spécifié d'entreprise. Remplis TOUS les champs de 'company_report' EXACTEMENT avec la mention 'Non renseigné'."
-        # Si le fichier existe, on l'utilise en injectant le contexte
-        final_prompt = f"""
-        {external_prompt}
-        
-        ---
-        CONTEXTE DE RECHERCHE (Données brutes) :
-        {search_context}
-        
-        CIBLE :
-        Entreprise: {company or 'Non spécifiée'}
-        {no_company_warning}
-        Industrie: {industry}
-        Contexte Géographique: {target_country}
-        Rôle visé: {role}
-        Langue du rapport: {target_lang}
-        
-        {json_structure_requirement}
-        """
+        # [FIX EXPERT] Découplage total. Le fichier markdown contient toute la structure JSON et le contexte.
+        final_prompt = external_prompt.replace("{search_context}", search_context) \
+                                      .replace("{company}", company or "Non spécifiée") \
+                                      .replace("{no_company_warning}", no_company_warning) \
+                                      .replace("{industry}", industry or "Non spécifié") \
+                                      .replace("{target_country}", target_country or "Global") \
+                                      .replace("{role}", role or "Non spécifié") \
+                                      .replace("{target_lang}", target_lang)
     else:
         # Fallback robuste si le fichier est manquant
         final_prompt = f"""

@@ -123,20 +123,22 @@ export default function DiagnosticDashboard({ data, candidateName, targetJob, on
         Analyse basée sur : {data.analysis_stats.skills_detected} compétences détectées • {data.analysis_stats.requirements_analyzed} exigences du poste analysées • {data.analysis_stats.gaps_identified} écarts identifiés
       </div>
 
-      {/* Boutons d'action */}
-      <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '2rem', display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-        <button onClick={() => onAction("Review CV")} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FileDown size={16} /> Éditer mon CV
-        </button>
-        <button onClick={() => onAction("Pitch")} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FileDown size={16} /> Pitch
-        </button>
-        <button onClick={() => onAction("Questionnaire")} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FileDown size={16} /> Questionnaire
-        </button>
-        <button onClick={() => onAction("Flaw Coaching")} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Sparkles size={16} /> Parades aux Défauts
-        </button>
+      {/* [FIX EXPERT] Alignement vertical en liste (de haut en bas) au lieu de cartes horizontales */}
+      <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '350px' }}>
+          <button onClick={() => onAction("Review CV")} className="btn-secondary" style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+            <FileDown size={16} /> Éditer mon CV
+          </button>
+          <button onClick={() => onAction("Pitch")} className="btn-secondary" style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+            <FileDown size={16} /> Pitch
+          </button>
+          <button onClick={() => onAction("Questionnaire")} className="btn-secondary" style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+            <FileDown size={16} /> Questionnaire
+          </button>
+          <button onClick={() => onAction("Flaw Coaching")} className="btn-secondary" style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+            <Sparkles size={16} /> Parades aux Défauts
+          </button>
+        </div>
       </div>
     </div>
   );
