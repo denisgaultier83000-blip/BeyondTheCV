@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
-import { BrainCircuit, Eye, Edit3, CheckCircle2, AlertTriangle, Lightbulb, MessageSquare, ArrowLeft, Target, ChevronDown, ChevronUp, Loader2, Send } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { BrainCircuit, Eye, Edit3, CheckCircle2, AlertTriangle, Lightbulb, MessageSquare, ArrowLeft, Target, ChevronDown, ChevronUp, Loader2, Send, Users, ListChecks, Shield } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
+import { useDashboard } from './DashboardContext'; // [NEW] Importer le hook
+import scenariosData from './scenarios.json';
 
 // --- TYPES ---
+
 interface ModelAnswer {
   diagnostic: string;
   human: string;
@@ -12,16 +15,16 @@ interface ModelAnswer {
   follow_up: string;
 }
 
-interface Scenario {
+interface ScenarioItem {
   id: string;
   title: string;
   description: string;
-  category: 'Management' | 'Crise' | 'Communication' | 'Stratégie' | 'Éthique';
-  level: 'Junior' | 'Intermédiaire' | 'Senior';
-  recruiter_expectations: string[];
-  model_answer: ModelAnswer;
-  tips: string[];
-  phrases: string[];
+}
+
+interface ScenarioCategory {
+  category: string;
+  icon: string;
+  scenarios: ScenarioItem[];
 }
 
 interface AIFeedback {
@@ -33,67 +36,19 @@ interface AIFeedback {
   improved_answer: string;
 }
 
-// --- STATIC SCENARIOS (MVP) ---
-const SCENARIOS: Scenario[] = [
-  {
-    id: "sc_1",
-    title: "Démission critique",
-    description: "Un membre clé de votre équipe annonce sa démission surprise en plein milieu d'un projet stratégique dont le livrable est attendu dans 3 semaines. Comment réagissez-vous ?",
-    category: "Management",
-    level: "Intermédiaire",
-    recruiter_expectations: [
-      "Capacité à gérer le stress et l'urgence",
-      "Empathie envers le démissionnaire (ne pas brûler les ponts)",
-      "Réorganisation rapide et pragmatique",
-      "Communication transparente avec le reste de l'équipe"
-    ],
-    model_answer: {
-      diagnostic: "Évaluer l'impact réel du départ (tâches critiques, transfert de connaissances) sans paniquer.",
-      human: "Féliciter le collaborateur pour sa nouvelle opportunité et comprendre ses motivations pour identifier d'éventuels problèmes de rétention globaux.",
-      action: "Organiser un plan de transition strict sur ses dernières semaines. Redistribuer les tâches critiques en interne et, si nécessaire, négocier un délai avec les parties prenantes.",
-      follow_up: "Organiser un point avec le reste de l'équipe pour rassurer et maintenir la motivation, puis lancer le processus de remplacement."
-    },
-    tips: [
-      "Ne montrez pas de rancœur envers le collaborateur.",
-      "Ne promettez pas aux clients/direction que 'rien ne changera' sans avoir évalué la charge.",
-      "Transformez cette crise en opportunité de responsabiliser d'autres membres de l'équipe."
-    ],
-    phrases: [
-      "Ma priorité absolue est double : sécuriser le transfert de compétences et maintenir la dynamique de l'équipe.",
-      "Je ferais preuve de transparence avec les parties prenantes sur les éventuels ajustements de périmètre."
-    ]
-  },
-  {
-    id: "sc_2",
-    title: "Client furieux",
-    description: "Un client majeur menace de rompre son contrat suite à un bug de production critique qui a bloqué ses ventes pendant 4 heures. Il exige de vous parler immédiatement.",
-    category: "Crise",
-    level: "Senior",
-    recruiter_expectations: [
-      "Prise de responsabilité (ne pas blâmer l'équipe dev)",
-      "Écoute active et désamorçage de conflit",
-      "Orientation solution immédiate",
-      "Mise en place de mesures préventives"
-    ],
-    model_answer: {
-      diagnostic: "Récupérer un maximum de faits techniques avant l'appel (cause, statut actuel, impact estimé).",
-      human: "Laisser le client exprimer sa frustration sans l'interrompre. Présenter des excuses factuelles, claires et sans justification défensive.",
-      action: "Expliquer ce qui a été fait pour résoudre le problème dans l'immédiat et proposer une compensation commerciale ou technique si justifié.",
-      follow_up: "S'engager à fournir un rapport post-mortem (RCA) sous 48h avec les mesures préventives mises en place pour que cela ne se reproduise plus."
-    },
-    tips: [
-      "Évitez de dire 'Je comprends' si vous n'avez pas de solution, dites plutôt 'Je prends la mesure de l'impact'.",
-      "Ne cherchez pas de coupables en externe, vous représentez l'entreprise."
-    ],
-    phrases: [
-      "Je l'appellerais immédiatement pour accuser réception du problème, avant même d'avoir toutes les réponses techniques.",
-      "L'objectif n'est pas de nous justifier, mais de restaurer la confiance via un plan d'action préventif clair."
-    ]
-  }
-];
+const iconMap: { [key: string]: React.ElementType } = {
+  AlertTriangle,
+  Users,
+  MessageSquare,
+  ListChecks,
+  BrainCircuit,
+  Shield
+};
 
 export function SituationSimulator() {
-  const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
+  const { cvData } = useDashboard(); // [NEW] Récupérer les données du candidat
+  const [scenarios, setScenarios] = useState<ScenarioCategory[]>([]);
+  const [selectedScenario, setSelectedScenario] = useState<ScenarioItem | null>(null);
   const [mode, setMode] = useState<'passive' | 'active' | null>(null);
   const [userAnswer, setUserAnswer] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -107,6 +62,10 @@ export function SituationSimulator() {
     setAiFeedback(null);
     setShowPassiveModel(false);
   };
+
+  useEffect(() => {
+    setScenarios(scenariosData);
+  }, []);
 
   const handleSubmit = async () => {
     if (!userAnswer.trim() || !selectedScenario) return;
@@ -122,6 +81,7 @@ export function SituationSimulator() {
         body: JSON.stringify({ 
           scenario_id: selectedScenario.id,
           scenario_context: selectedScenario,
+          candidate_profile: cvData, // [NEW] Envoyer le profil complet
           user_answer: userAnswer 
         }),
       });
@@ -155,31 +115,29 @@ export function SituationSimulator() {
   // --- VUE LISTE ---
   if (!selectedScenario) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        <div style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
-          <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <BrainCircuit size={20} /> Entraînement aux Mises en Situation
-          </h3>
-          <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-            Sélectionnez un scénario réaliste fréquemment posé en entretien. Vous pourrez soit lire la méthode recommandée, soit vous entraîner avec notre IA.
-          </p>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-          {SCENARIOS.map(sc => (
-            <div key={sc.id} onClick={() => setSelectedScenario(sc)} style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column' }} onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--primary)'} onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                <span style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)', padding: '0.25rem 0.75rem', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: 600 }}>{sc.category}</span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>Niveau : {sc.level}</span>
-              </div>
-              <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '1.1rem', color: 'var(--text-main)' }}>{sc.title}</h4>
-              <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: '1.5', flex: 1 }}>{sc.description}</p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', fontSize: '0.9rem', fontWeight: 500, marginTop: 'auto' }}>
-                Choisir ce scénario &rarr;
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        {scenarios.map((category) => {
+          const Icon = iconMap[category.icon] || BrainCircuit;
+          return (
+            <div key={category.category}>
+              <h3 style={{ margin: '0 0 1.5rem 0', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.25rem' }}>
+                <Icon size={24} color="var(--primary)" />
+                {category.category}
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+                {category.scenarios.map(sc => (
+                  <div key={sc.id} onClick={() => setSelectedScenario(sc)} style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column' }} onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--primary)'} onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}>
+                    <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '1.1rem', color: 'var(--text-main)' }}>{sc.title}</h4>
+                    <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: '1.5', flex: 1 }}>{sc.description}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', fontSize: '0.9rem', fontWeight: 500, marginTop: '1.5rem' }}>
+                      S'entraîner sur ce cas &rarr;
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
     );
   }
@@ -193,10 +151,6 @@ export function SituationSimulator() {
         <button onClick={reset} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', marginBottom: '1rem', fontSize: '0.9rem', padding: 0 }}>
           <ArrowLeft size={16} /> Changer de scénario
         </button>
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-          <span style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: '0.25rem 0.75rem', borderRadius: '1rem', fontSize: '0.8rem', color: 'var(--text-main)' }}>{selectedScenario.category}</span>
-          <span style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: '0.25rem 0.75rem', borderRadius: '1rem', fontSize: '0.8rem', color: 'var(--text-main)' }}>{selectedScenario.level}</span>
-        </div>
         <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '1.25rem', color: 'var(--text-main)' }}>{selectedScenario.title}</h3>
         <p style={{ margin: 0, fontSize: '1rem', color: 'var(--text-main)', lineHeight: '1.6', fontStyle: 'italic' }}>"{selectedScenario.description}"</p>
       </div>
@@ -222,9 +176,10 @@ export function SituationSimulator() {
       {mode === 'passive' && (
         <div style={{ animation: 'fadeIn 0.3s ease-out', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div style={{ background: 'rgba(34, 197, 94, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
-            <h4 style={{ margin: '0 0 1rem 0', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Target size={18} /> Ce que le recruteur évalue secrètement</h4>
+            <h4 style={{ margin: '0 0 1rem 0', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Target size={18} /> Ce que le recruteur évalue</h4>
             <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-main)', fontSize: '0.95rem', lineHeight: '1.6' }}>
-              {selectedScenario.recruiter_expectations.map((exp, i) => <li key={i} style={{ marginBottom: '0.5rem' }}>{exp}</li>)}
+              {/* Placeholder for dynamic expectations */}
+              <li style={{ marginBottom: '0.5rem' }}>Capacité à gérer le stress et l'urgence</li>
             </ul>
           </div>
 
@@ -236,25 +191,23 @@ export function SituationSimulator() {
             
             {showPassiveModel && (
               <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
-                <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>1. Diagnostic</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>{selectedScenario.model_answer.diagnostic}</p></div>
-                <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>2. Humain</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>{selectedScenario.model_answer.human}</p></div>
-                <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>3. Action</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>{selectedScenario.model_answer.action}</p></div>
-                <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>4. Suivi</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>{selectedScenario.model_answer.follow_up}</p></div>
+                {/* Placeholder for model answer */}
+                <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>1. Diagnostic</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>Évaluer l'impact réel.</p></div>
               </div>
             )}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
             <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', borderLeft: '4px solid #f59e0b' }}>
-              <h4 style={{ margin: '0 0 1rem 0', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Lightbulb size={18} /> Conseils / Pièges</h4>
+              <h4 style={{ margin: '0 0 1rem 0', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Lightbulb size={18} /> Conseils</h4>
               <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: '1.5' }}>
-                {selectedScenario.tips.map((tip, i) => <li key={i} style={{ marginBottom: '0.5rem' }}>{tip}</li>)}
+                <li style={{ marginBottom: '0.5rem' }}>Ne montrez pas de rancœur.</li>
               </ul>
             </div>
             <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', borderLeft: '4px solid #8b5cf6' }}>
-              <h4 style={{ margin: '0 0 1rem 0', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><MessageSquare size={18} /> Phrases prêtes à l'emploi</h4>
+              <h4 style={{ margin: '0 0 1rem 0', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><MessageSquare size={18} /> Phrases clés</h4>
               <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: '1.5', fontStyle: 'italic' }}>
-                {selectedScenario.phrases.map((phrase, i) => <li key={i} style={{ marginBottom: '0.5rem' }}>"{phrase}"</li>)}
+                <li style={{ marginBottom: '0.5rem' }}>"Ma priorité est de sécuriser le transfert de compétences."</li>
               </ul>
             </div>
           </div>

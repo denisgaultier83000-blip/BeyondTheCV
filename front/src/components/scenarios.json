@@ -1,0 +1,138 @@
+[
+  {
+    "category": "Gestion de crise / pression",
+    "icon": "AlertTriangle",
+    "scenarios": [
+      {
+        "id": "crisis_01",
+        "title": "Client stratégique mécontent",
+        "description": "Un client stratégique menace de rompre un contrat suite à un retard important de votre équipe."
+      },
+      {
+        "id": "crisis_02",
+        "title": "Pression de la direction",
+        "description": "Un projet critique accumule les retards et la direction vous demande des résultats immédiats."
+      },
+      {
+        "id": "crisis_03",
+        "title": "Erreur d'équipe impactante",
+        "description": "Une erreur importante a été commise par votre équipe et impacte un livrable client."
+      },
+      {
+        "id": "crisis_04",
+        "title": "Urgences multiples",
+        "description": "Vous devez gérer plusieurs urgences simultanées avec des ressources limitées."
+      }
+    ]
+  },
+  {
+    "category": "Management / leadership",
+    "icon": "Users",
+    "scenarios": [
+      {
+        "id": "mgmt_01",
+        "title": "Collaborateur négatif",
+        "description": "Un membre clé de votre équipe adopte une attitude négative et impacte les autres."
+      },
+      {
+        "id": "mgmt_02",
+        "title": "Conflit interne",
+        "description": "Deux collaborateurs sont en conflit ouvert et cela perturbe le travail collectif."
+      },
+      {
+        "id": "mgmt_03",
+        "title": "Insubordination passive",
+        "description": "Un collaborateur performant refuse de suivre les consignes."
+      },
+      {
+        "id": "mgmt_04",
+        "title": "Démotivation de l'équipe",
+        "description": "Votre équipe perd en motivation après plusieurs échecs."
+      }
+    ]
+  },
+  {
+    "category": "Communication",
+    "icon": "MessageSquare",
+    "scenarios": [
+      {
+        "id": "comm_01",
+        "title": "Annoncer une mauvaise nouvelle",
+        "description": "Vous devez annoncer une mauvaise nouvelle à un client important."
+      },
+      {
+        "id": "comm_02",
+        "title": "Convaincre sa hiérarchie",
+        "description": "Vous devez convaincre votre hiérarchie d’une décision stratégique."
+      },
+      {
+        "id": "comm_03",
+        "title": "Vulgarisation complexe",
+        "description": "Vous devez expliquer un sujet complexe à un interlocuteur non technique."
+      }
+    ]
+  },
+  {
+    "category": "Organisation / priorisation",
+    "icon": "ListChecks",
+    "scenarios": [
+      {
+        "id": "orga_01",
+        "title": "Surcharge de demandes",
+        "description": "Vous recevez plusieurs demandes urgentes en même temps avec des délais incompatibles."
+      },
+      {
+        "id": "orga_02",
+        "title": "Ressources insuffisantes",
+        "description": "Vous devez gérer un projet avec des ressources insuffisantes."
+      },
+      {
+        "id": "orga_03",
+        "title": "Dérive de projet",
+        "description": "Un projet dérive progressivement sans alerte claire."
+      }
+    ]
+  },
+  {
+    "category": "Prise de décision",
+    "icon": "BrainCircuit",
+    "scenarios": [
+      {
+        "id": "decision_01",
+        "title": "Décision sous incertitude",
+        "description": "Vous devez prendre une décision importante avec des informations incomplètes."
+      },
+      {
+        "id": "decision_02",
+        "title": "Arbitrage stratégique",
+        "description": "Deux options stratégiques s’opposent avec des risques différents."
+      },
+      {
+        "id": "decision_03",
+        "title": "Court terme vs Long terme",
+        "description": "Vous devez arbitrer entre performance court terme et qualité long terme."
+      }
+    ]
+  },
+  {
+    "category": "Posture professionnelle / éthique",
+    "icon": "Shield",
+    "scenarios": [
+      {
+        "id": "posture_01",
+        "title": "Erreur non signalée",
+        "description": "Vous constatez une erreur importante qui n’a pas été signalée."
+      },
+      {
+        "id": "posture_02",
+        "title": "Demande client non-conforme",
+        "description": "Un client vous demande quelque chose qui va à l’encontre des règles internes."
+      },
+      {
+        "id": "posture_03",
+        "title": "Reconnaître son erreur",
+        "description": "Vous réalisez que vous avez fait une erreur impactante."
+      }
+    ]
+  }
+]
