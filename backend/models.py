@@ -1,5 +1,5 @@
 from typing import List, Optional, Union, Dict, Any
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 import uuid
 
 class Experience(BaseModel):
@@ -25,55 +25,6 @@ class Failure(BaseModel):
     description: str = ""
     lesson: str = ""
 
-class CandidateProfile(BaseModel):
-    # Personal Info
-    first_name: str = ""
-    last_name: str = ""
-    email: str = ""
-    phone: str = ""
-    linkedin: str = ""
-    language: str = "en"
-
-    # Location & Mobility
-    residence_country: str = ""
-    city: str = ""
-    target_country: str = ""
-    remote_preference: str = ""
-    availability: str = ""
-
-    # Professional Identity
-    current_role: str = ""
-    current_company: str = ""
-    target_role_primary: str = ""
-    contract_type: str = ""
-    bio: str = ""
-    
-    # Skills & Traits
-    skills: List[str] = [] # [COHÉRENCE] Toujours un tableau pour éviter les bugs downstream
-    qualities: List[str] = []
-    flaws: List[str] = []
-    interests: List[str] = []
-
-    # Lists
-    experiences: List[Experience] = []
-    educations: List[Education] = []
-    successes: List[Achievement] = []
-    failures: List[Failure] = []
-
-    # Unstructured Data
-    free_text: str = ""
-    
-    # Generated Content (Optional, for printing/export)
-    questions_list: Optional[List[Dict[str, Any]]] = None
-
-    @field_validator('skills', mode='before')
-    @classmethod
-    def parse_skills(cls, v):
-        # Transforme silencieusement une chaîne brute en liste si l'IA ou le Frontend envoie du texte
-        if isinstance(v, str):
-            return [s.strip() for s in v.split(',') if s.strip()]
-        return v if isinstance(v, list) else []
-
 # --- Auth Models ---
 class UserLogin(BaseModel):
     email: str
@@ -94,6 +45,80 @@ class UserRegister(BaseModel):
     @classmethod
     def email_to_lower_and_strip(cls, v: str) -> str:
         return v.lower().strip()
+
+# --- CV Generator & AI Services Models ---
+
+class ExperienceRequest(BaseModel):
+    role: str = Field(..., description="Intitulé du poste")
+    company: str = Field(..., description="Nom de l'entreprise")
+    description: str = Field(..., description="Description brute des tâches effectuées")
+    provider: Optional[str] = Field(None, description="Choix du modèle IA: 'openai' ou 'gemini'")
+    target_language: Optional[str] = "fr"
+
+class SummaryRequest(BaseModel):
+    target_job: str
+    skills: List[str]
+    years_of_experience: int
+    provider: Optional[str] = None
+    target_language: Optional[str] = "fr"
+
+class SkillExtractionRequest(BaseModel):
+    raw_text: str
+    provider: Optional[str] = None
+    target_language: Optional[str] = "fr"
+
+class SimulationRequest(BaseModel):
+    candidate_data: Dict[str, Any]
+    simulation_action: str
+    provider: Optional[str] = None
+
+class SituationSimulationRequest(BaseModel):
+    scenario_id: str
+    scenario_context: Dict[str, Any]
+    candidate_profile: Dict[str, Any]
+    user_answer: str
+
+class PersonalInfo(BaseModel):
+    first_name: Optional[str] = Field(None, description="Prénom du candidat")
+    last_name: Optional[str] = Field(None, description="Nom de famille")
+    email: Optional[str] = Field(None, description="Email professionnel", pattern=r"^(?:[^@\s]+@[^@\s]+\.[^@\s]+)?$")
+    phone: Optional[str] = Field(None, description="Numéro de téléphone", pattern=r"^(?:\+?[0-9\s\-\(\).]{6,25})?$")
+    address: Optional[str] = Field(None, description="Adresse postale (facultative)")
+    city: Optional[str] = Field(None, description="Ville de résidence")
+    country: Optional[str] = Field(None, description="Pays de résidence")
+    linkedin: Optional[str] = Field(None, description="URL profil LinkedIn")
+    bio: Optional[str] = Field(None, description="Résumé ou Bio")
+
+class FullCVData(BaseModel):
+    """Modèle représentant les données complètes du candidat collectées via le formulaire."""
+    personal_info: PersonalInfo = Field(default_factory=PersonalInfo)
+    experiences: Any = []
+    educations: Any = []
+    skills: Any = []
+    work_style: Any = []
+    relational_style: Any = []
+    professional_approach: Any = []
+    qualities: Any = []
+    flaws: Any = []
+    interests: Any = []
+    languages: Any = []
+    clarifications: Any = []
+    target_job: Optional[str] = ""
+    target_company: Optional[str] = None
+    target_industry: Optional[str] = None
+    job_description: Optional[str] = Field(None, description="Description brute de l'offre d'emploi")
+    research_data: Optional[Dict[str, Any]] = Field(None, description="Données de recherche marché et entreprise")
+    gap_analysis: Optional[Dict[str, Any]] = Field(None, description="Données en cache de l'analyse d'écarts")
+    target_country: Optional[str] = Field(None, description="Pays visé pour l'analyse de marché")
+    remote_preference: Optional[str] = Field(None, description="full, hybrid, onsite")
+    availability: Optional[str] = Field(None, description="Disponibilité du candidat")
+    contract_type: Optional[str] = Field(None, description="Type de contrat visé (CDI, Freelance...)")
+    provider: Optional[str] = None
+    target_language: Optional[str] = "French"
+    is_partial_start: bool = False
+    design_variant: Optional[str] = Field("1", description="Variante de design du CV (1, 2, 3)")
+    preview: bool = Field(False, description="Mode prévisualisation")
+    renderer: Optional[str] = Field("pdf", description="Format de sortie: 'pdf' ou 'json'")
 
 # --- Request Models ---
 class GenerateRequest(BaseModel):

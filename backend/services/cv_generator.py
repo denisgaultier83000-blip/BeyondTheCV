@@ -1,12 +1,20 @@
 from fastapi import APIRouter, HTTPException, Body, BackgroundTasks, Depends
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
 import uuid
 import json
 import asyncio
 from datetime import datetime, timezone
 from database import db
+
+# [REFACTOR] Import des modèles depuis le fichier centralisé
+from models import (
+    ExperienceRequest,
+    SummaryRequest,
+    SkillExtractionRequest,
+    SimulationRequest,
+    SituationSimulationRequest,
+    FullCVData,
+)
 
 # Import du service IA (situé dans le même dossier backend/services/)
 # L'import relatif '.' fonctionne car les deux fichiers sont dans le même package
@@ -45,86 +53,6 @@ router = APIRouter(
     prefix="/api/cv",
     tags=["CV Generator"]
 )
-
-# --- Modèles de données (Schemas) ---
-
-class ExperienceRequest(BaseModel):
-    role: str = Field(..., description="Intitulé du poste")
-    company: str = Field(..., description="Nom de l'entreprise")
-    description: str = Field(..., description="Description brute des tâches effectuées")
-    provider: Optional[str] = Field(None, description="Choix du modèle IA: 'openai' ou 'gemini'")
-    target_language: Optional[str] = "fr"
-
-class SummaryRequest(BaseModel):
-    target_job: str
-    skills: List[str]
-    years_of_experience: int
-    provider: Optional[str] = None
-    target_language: Optional[str] = "fr"
-
-class SkillExtractionRequest(BaseModel):
-    raw_text: str
-    provider: Optional[str] = None
-    target_language: Optional[str] = "fr"
-
-class SimulationRequest(BaseModel):
-    candidate_data: Dict[str, Any]
-    simulation_action: str
-    provider: Optional[str] = None
-
-class SituationSimulationRequest(BaseModel):
-    scenario_id: str
-    scenario_context: Dict[str, Any]
-    user_answer: str
-
-class PersonalInfo(BaseModel):
-    first_name: Optional[str] = Field(None, description="Prénom du candidat")
-    last_name: Optional[str] = Field(None, description="Nom de famille")
-    email: Optional[str] = Field(None, description="Email professionnel", pattern=r"^(?:[^@\s]+@[^@\s]+\.[^@\s]+)?$")
-    phone: Optional[str] = Field(None, description="Numéro de téléphone", pattern=r"^(?:\+?[0-9\s\-\(\).]{6,25})?$")
-    address: Optional[str] = Field(None, description="Adresse postale (facultative)")
-    city: Optional[str] = Field(None, description="Ville de résidence")
-    country: Optional[str] = Field(None, description="Pays de résidence")
-    linkedin: Optional[str] = Field(None, description="URL profil LinkedIn")
-    bio: Optional[str] = Field(None, description="Résumé ou Bio")
-
-class FullCVData(BaseModel):
-    """Modèle représentant les données collectées"""
-    personal_info: PersonalInfo = Field(default_factory=PersonalInfo)
-    experiences: Any = []
-    educations: Any = []
-    skills: Any = []
-    work_style: Any = []
-    relational_style: Any = []
-    professional_approach: Any = []
-    qualities: Any = []
-    flaws: Any = []
-    interests: Any = []
-    languages: Any = []
-    clarifications: Any = []
-    target_job: Optional[str] = ""
-    target_company: Optional[str] = None
-    target_industry: Optional[str] = None
-    job_description: Optional[str] = Field(None, description="Description brute de l'offre d'emploi")
-    research_data: Optional[Dict[str, Any]] = Field(None, description="Données de recherche marché et entreprise")
-    gap_analysis: Optional[Dict[str, Any]] = Field(None, description="Données en cache de l'analyse d'écarts")
-    target_country: Optional[str] = Field(None, description="Pays visé pour l'analyse de marché")
-    remote_preference: Optional[str] = Field(None, description="full, hybrid, onsite")
-    availability: Optional[str] = Field(None, description="Disponibilité du candidat")
-    contract_type: Optional[str] = Field(None, description="Type de contrat visé (CDI, Freelance...)")
-    provider: Optional[str] = None
-    target_language: Optional[str] = "French"
-    # Flag pour indiquer si c'est un démarrage partiel (Page 2) ou complet (Page 8)
-    is_partial_start: bool = False
-    # Options de génération
-    design_variant: Optional[str] = Field("1", description="Variante de design du CV (1, 2, 3)")
-    preview: bool = Field(False, description="Mode prévisualisation")
-    renderer: Optional[str] = Field("pdf", description="Format de sortie: 'pdf' ou 'json'")
-
-class FeedbackRequest(BaseModel):
-    feature: str = Field(..., description="Nom de la fonctionnalité évaluée (ex: 'parade_defauts')")
-    is_positive: bool = Field(..., description="True pour pouce en l'air (👍), False pour pouce vers le bas (👎)")
-    comments: Optional[str] = Field(None, description="Commentaire optionnel")
 
 def _sanitize_for_prompt(data: dict) -> dict:
     """Retire les données binaires et non-essentielles avant l'injection dans les prompts."""
@@ -298,6 +226,9 @@ async def simulate_situation(request: SituationSimulationRequest, current_user: 
     
     SCENARIO CONTEXT:
     {json.dumps(request.scenario_context, indent=2, ensure_ascii=False, default=str)}
+
+    CANDIDATE PROFILE:
+    {json.dumps(_sanitize_for_prompt(request.candidate_profile), indent=2, ensure_ascii=False, default=str)}
     
     USER ANSWER:
     {request.user_answer}
