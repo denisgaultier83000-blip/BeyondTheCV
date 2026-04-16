@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { API_BASE_URL } from "../config";
 import { useTranslation } from "react-i18next";
+import { authenticatedFetch } from "../utils/auth";
 
 interface Document {
   id: string;
@@ -25,7 +26,7 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
 
   const fetchDocuments = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/cv/documents`);
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/documents`);
       if (!response.ok) throw new Error(t('error_fetch_documents', "Failed to fetch documents"));
       const data = await response.json();
       
@@ -44,7 +45,7 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
 
   const handleDownload = async (docId: string, filename: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/documents/download/${docId}`);
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/documents/download/${docId}`);
       if (!response.ok) throw new Error(t('error_download_failed', "Download failed"));
       
       const blob = await response.blob();
@@ -66,7 +67,7 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
     if (!window.confirm(t('confirm_delete_doc', "Êtes-vous sûr de vouloir supprimer ce document ?"))) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/documents/${docId}`, {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/documents/${docId}`, {
         method: "DELETE",
       });
       if (!response.ok) throw new Error(t('error_delete_failed', "Delete failed"));

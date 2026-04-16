@@ -10,7 +10,9 @@ ENV PYTHONUNBUFFERED=1 \
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
-    texlive-xetex \
+    texlive-latex-base \
+    texlive-latex-extra \
+    texlive-fonts-recommended \
     && rm -rf /var/lib/apt/lists/*
 
 # Étape 4 : Création du dossier de travail

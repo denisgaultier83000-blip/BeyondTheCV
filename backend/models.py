@@ -97,8 +97,8 @@ class UserRegister(BaseModel):
 
 # --- Request Models ---
 class GenerateRequest(BaseModel):
-    action: str
-    data: Dict[str, Any]
+    action: str = "CV"
+    data: Dict[str, Any] = Field(default_factory=dict)
     renderer: str = "latex"
     preview: bool = False
     skip_ai: bool = False
@@ -137,22 +137,22 @@ class DocumentMetadata(BaseModel):
 class CVItem(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     enabled: bool = True
-    fields: Dict[str, Any]
+    fields: Dict[str, Any] = Field(default_factory=dict)
 
 class CVSection(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     type: str
     title: str
     enabled: bool = True
-    items: List[CVItem]
+    items: List[CVItem] = Field(default_factory=list)
 
 class CVFinal(BaseModel):
-    first_name: str = ""
-    last_name: str = ""
-    email: str = ""
-    phone: str = ""
+    first_name: Optional[str] = ""
+    last_name: Optional[str] = ""
+    email: Optional[str] = ""
+    phone: Optional[str] = ""
     linkedin: Optional[str] = None
     city: Optional[str] = None
     country: Optional[str] = None
     current_role: Optional[str] = None
-    sections: List[CVSection]
+    sections: List[CVSection] = Field(default_factory=list)

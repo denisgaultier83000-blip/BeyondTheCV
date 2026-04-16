@@ -823,3 +823,62 @@ async def process_market_strategy_in_background(task_ids: dict, data: dict):
     except Exception as e:
         for tid in task_ids.values():
             await asyncio.to_thread(update_task_status_sync, tid, "FAILED", {"error": str(e)})
+
+async def orchestrate_dashboard_tasks(tasks_map: dict, cv_dict: dict):
+    """
+    Enterprise-grade Orchestrator:
+    Éxécute les tâches d'arrière-plan par "Vagues" (Batching) de priorité.
+    Cela empêche de saturer les limites de requêtes par minute (RPM) de l'API IA,
+    tout en garantissant que les infos les plus importantes chargent en premier.
+    """
+    print("\n[ORCHESTRATOR] 🌊 Dispatching tasks to Semaphore Queue...", flush=True)
+    
+    def fire(task_key, coro):
+        async def safe_coro():
+            try:
+                await coro
+            except Exception as e:
+                print(f"[ORCHESTRATOR ERROR] Crash critique intercepté sur '{task_key}' : {e}", flush=True)
+                
+                # [ROBUSTESSE] Récupération des IDs pour forcer le statut FAILED en DB et libérer le Frontend
+                tids = []
+                if isinstance(task_key, str) and task_key in tasks_map:
+                    tids.append(tasks_map[task_key])
+                elif isinstance(task_key, dict):  # Cas des tâches fusionnées (Market Strategy)
+                    tids.extend(task_key.values())
+                    
+                for tid in tids:
+                    try:
+                        await asyncio.to_thread(update_task_status_sync, tid, "FAILED", {"error": f"Orchestrator safety fallback: {str(e)}"})
+                    except Exception as db_err:
+                        print(f"[ORCHESTRATOR DB ERROR] Impossible de MAJ le statut pour {tid}: {db_err}", flush=True)
+                        
+        asyncio.create_task(safe_coro())
+
+    if "profile_validation" in tasks_map: fire("profile_validation", process_profile_validation_in_background(tasks_map["profile_validation"], cv_dict))
+    if "cv_analysis" in tasks_map: fire("cv_analysis", process_cv_analysis_in_background(tasks_map["cv_analysis"], cv_dict))
+    if "gap_analysis" in tasks_map: fire("gap_analysis", process_gap_analysis_in_background(tasks_map["gap_analysis"], cv_dict))
+    
+    await asyncio.sleep(0.5) # Micro-délai pour garantir la priorité
+
+    if "pitch" in tasks_map: fire("pitch", process_pitch_in_background(tasks_map["pitch"], cv_dict))
+    if "recruiter_view" in tasks_map: fire("recruiter_view", process_recruiter_view_in_background(tasks_map["recruiter_view"], cv_dict))
+    if "reality_check" in tasks_map: fire("reality_check", process_reality_check_in_background(tasks_map["reality_check"], cv_dict))
+    if "flaw_coaching" in tasks_map: fire("flaw_coaching", process_flaw_coaching_in_background(tasks_map["flaw_coaching"], cv_dict))
+
+    await asyncio.sleep(0.5)
+
+    if "career_radar" in tasks_map: fire("career_radar", process_career_radar_in_background(tasks_map["career_radar"], cv_dict))
+    if "questions" in tasks_map: fire("questions", process_questions_in_background(tasks_map["questions"], cv_dict))
+
+    await asyncio.sleep(0.5)
+
+    if "career_gps" in tasks_map: fire("career_gps", process_career_gps_in_background(tasks_map["career_gps"], cv_dict))
+    if "one_liner" in tasks_map: fire("one_liner", process_oneliner_in_background(tasks_map["one_liner"], cv_dict))
+    if "action_plan" in tasks_map: fire("action_plan", process_action_plan_in_background(tasks_map["action_plan"], cv_dict))
+        
+    # TÂCHES FUSIONNÉES : Market Strategy
+    strategy_tasks = {k: tasks_map[k] for k in ["job_decoder", "risk_analysis", "hidden_market"] if k in tasks_map}
+    if strategy_tasks: fire(strategy_tasks, process_market_strategy_in_background(strategy_tasks, cv_dict))
+
+    print("[ORCHESTRATOR] ✅ All tasks queued successfully. Semaphore is handling the flow.", flush=True)

@@ -119,9 +119,9 @@ function AppContent() {
 
   // --- Handlers transmis aux composants enfants ---
   const handleChange = (key: string, value: any) => setFormData((prev: any) => ({ ...(prev || {}), [key]: value }));
-  const handleUpdateList = (listName: string, id: number, field: string, val: any) => setFormData((prev: any) => ({ ...(prev || {}), [listName]: (prev?.[listName] || []).map((item: any) => item.id === id ? { ...item, [field]: val } : item) }));
+  const handleUpdateList = (listName: string, id: string | number, field: string, val: any) => setFormData((prev: any) => ({ ...(prev || {}), [listName]: (prev?.[listName] || []).map((item: any) => item.id === id ? { ...item, [field]: val } : item) }));
   const handleAddList = (listName: string, defaultItem: any) => setFormData((prev: any) => ({ ...(prev || {}), [listName]: [...(prev?.[listName] || []), { ...defaultItem, id: Date.now() }] }));
-  const handleRemoveList = (listName: string, id: number) => setFormData((prev: any) => ({ ...(prev || {}), [listName]: (prev?.[listName] || []).filter((item: any) => item.id !== id) }));
+  const handleRemoveList = (listName: string, id: string | number) => setFormData((prev: any) => ({ ...(prev || {}), [listName]: (prev?.[listName] || []).filter((item: any) => item.id !== id) }));
   const handleLanguageChange = (lang: string) => i18n.changeLanguage(lang);
 
   // --- Fonction de Sauvegarde Silencieuse (Auto-Save) ---
@@ -343,14 +343,23 @@ function AppContent() {
 
   return (
     <div className="app-container">
-      <Header darkMode={darkMode} setDarkMode={setDarkMode} showLogin={!isAuthenticated} userName={parsedUserName} onOpenProfile={() => setShowDocsModal(true)} onLogout={() => { localStorage.removeItem('token'); localStorage.removeItem('user'); resetDashboard(); setIsAuthenticated(false); navigate('/', { replace: true }); }} onLanguageChange={handleLanguageChange} />
+      <Header 
+        darkMode={darkMode} 
+        setDarkMode={setDarkMode} 
+        isAuthenticated={isAuthenticated}
+        userName={parsedUserName} 
+        onOpenProfile={() => setShowDocsModal(true)} 
+        onLogout={() => { localStorage.removeItem('token'); localStorage.removeItem('user'); resetDashboard(); setIsAuthenticated(false); navigate('/', { replace: true }); }} 
+        onLanguageChange={handleLanguageChange} 
+        steps={CAREER_EDGE_STEPS}
+        currentStep={currentStep}
+      />
       <main className="main-content">
         {showLanding && !isAuthenticated ? (
           <LandingPage onStart={() => setShowLanding(false)} onShowCGU={() => setShowCGU(true)} onShowPrivacy={() => setShowPrivacy(true)} onShowLegal={() => setShowLegal(true)} />
         ) : 
-         !isAuthenticated ? (
-            // @ts-ignore - Login component might be missing the onLogin prop declaration
-            <Login onLogin={() => setIsAuthenticated(true)} />) : 
+         !isAuthenticated ?
+            (<Login onLoginSuccess={() => setIsAuthenticated(true)} />) : 
           (<div style={{ paddingTop: '100px', paddingBottom: '2rem', width: '100%', maxWidth: '1200px', margin: '0 auto', paddingLeft: '1rem', paddingRight: '1rem', boxSizing: 'border-box' }}>
             {/* [FIX] Ajout d'un padding-top de 100px pour descendre sous le Header et centrage global de l'interface */}
             {/* [FIX] Forcer la largeur à 100% et injecter un padding fantôme à droite pour éviter la coupure au scroll */}

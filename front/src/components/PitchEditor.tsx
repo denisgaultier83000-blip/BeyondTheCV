@@ -22,6 +22,14 @@ const Teleprompter = ({ text, onClose }: { text: string, onClose: () => void }) 
   const [timeLeft, setTimeLeft] = useState(180); // 3 minutes = 180s
   const [isActive, setIsActive] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const animationFrameId = useRef<number>(); // To hold the requestAnimationFrame ID
+  const [mounted, setMounted] = useState(false);
+
+  // [FIX] Sécurisation du Portal : on s'assure d'être côté client avant d'attaquer document.body
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   useEffect(() => {
     let interval: any = null;
@@ -33,17 +41,26 @@ const Teleprompter = ({ text, onClose }: { text: string, onClose: () => void }) 
     return () => clearInterval(interval);
   }, [isActive, timeLeft]);
 
-  // Ajout de l'auto-scroll fluide quand le téléprompteur est actif
+  // [FIX] Remplacement de setInterval par requestAnimationFrame pour un défilement fluide
   useEffect(() => {
-    let scrollInterval: any = null;
+    const scrollSpeed = 0.8; // Pixels per frame. Ajuster pour la vitesse.
+
+    const scrollStep = () => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTop += scrollSpeed;
+      }
+      animationFrameId.current = requestAnimationFrame(scrollStep);
+    };
+
     if (isActive) {
-      scrollInterval = setInterval(() => {
-        if (scrollRef.current) {
-          scrollRef.current.scrollTop += 1;
-        }
-      }, 35); // Vitesse de défilement de l'auto-scroll
+      animationFrameId.current = requestAnimationFrame(scrollStep);
     }
-    return () => clearInterval(scrollInterval);
+
+    return () => {
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+      }
+    };
   }, [isActive]);
 
   const formatTime = (seconds: number) => {
@@ -59,7 +76,7 @@ const Teleprompter = ({ text, onClose }: { text: string, onClose: () => void }) 
         <X size={28} />
       </button>
       
-      <div style={{ position: 'absolute', top: '0.5rem', background: 'rgba(255,255,255,0.15)', padding: '1rem 2.5rem', borderRadius: '50px', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', gap: '2rem', zIndex: 100000, boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
+      <div style={{ position: 'absolute', top: '1.5rem', left: '50%', transform: 'translateX(-50%)', background: 'rgba(255,255,255,0.15)', padding: '1rem 2.5rem', borderRadius: '50px', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', gap: '2rem', zIndex: 100000, boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
         <span style={{ fontSize: '2.5rem', fontFamily: 'monospace', color: timeLeft <= 30 ? '#ef4444' : 'white', fontWeight: 'bold', width: '120px', textAlign: 'center', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
           {formatTime(timeLeft)}
         </span>
@@ -72,9 +89,10 @@ const Teleprompter = ({ text, onClose }: { text: string, onClose: () => void }) 
         </button>
       </div>
 
-      <div ref={scrollRef} style={{ width: '100%', maxWidth: '900px', flex: 1, overflowY: 'auto', textAlign: 'center', paddingTop: '12rem', paddingBottom: '50vh', scrollBehavior: 'smooth' }}>
+      <div ref={scrollRef} style={{ width: '100%', maxWidth: '800px', flex: 1, overflowY: 'auto', textAlign: 'center', paddingTop: '15rem', paddingBottom: '50vh', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <style>{`div::-webkit-scrollbar { display: none; }`}</style>
         {text.split('\n').map((para, idx) => para.trim() ? (
-          <p key={idx} style={{ color: 'rgba(255,255,255,0.85)', fontSize: '2.5rem', lineHeight: 1.6, marginBottom: '3rem', fontWeight: 600, textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>{para}</p>
+          <p key={idx} style={{ color: '#FFFFFF', fontSize: '3.5rem', lineHeight: 1.5, marginBottom: '4rem', fontWeight: 700, fontFamily: 'system-ui, -apple-system, sans-serif', textShadow: '0 4px 8px rgba(0,0,0,0.8)', letterSpacing: '-0.02em' }}>{para}</p>
         ) : null)}
       </div>
       </div>, document.body

@@ -907,85 +907,87 @@ async def get_analysis_status(task_id: str):
 async def get_dashboard_summary(data: FullCVData, current_user: dict = Depends(require_active_subscription)):
     # [FIX] Le bloc try...except doit englober toute la fonction pour intercepter les erreurs IA
     try:
-        cv_dict = data.model_dump()
-    except AttributeError:
-        cv_dict = data.dict()
-    target_lang = normalize_language(cv_dict.get('target_language', 'French'))
-    cv_lean_dict = _sanitize_data_for_ai(cv_dict, strict=True)
-    
-    cached_gap = cv_dict.get('gap_analysis')
-    has_cached_gap = bool(cached_gap and isinstance(cached_gap, dict) and cached_gap.get('match_score'))
-    gap_analysis_task = asyncio.sleep(0) if has_cached_gap else run_gap_analysis_and_get_result(cv_lean_dict)
-
-    key_strengths_prompt = f"""
-    Analyse ce profil et résume-le en 3 forces clés percutantes.
-    Exemple: "Leadership opérationnel", "Gestion du risque", "Prise de décision en environnement critique".
-    Ne retourne QUE le JSON.
-    
-    PROFIL: {json.dumps(cv_lean_dict, default=str)}
-    
-    OUTPUT LANGUAGE: {target_lang}
-    FORMAT JSON STRICT: {{"key_strengths": ["Force 1", "Force 2", "Force 3"]}}
-    """
-    key_strengths_task = ai_service.generate(key_strengths_prompt, provider="gemini", system_instruction=f"Tu es un expert en branding personnel. Langue: {target_lang}.")
-
-    application_strategy_prompt = f"""
-    Analyse ce profil et le poste visé. Propose une stratégie de candidature en 3 points prioritaires.
-    Exemple: "Cibler les entreprises industrielles", "Valoriser l'expérience opérationnelle".
-    ATTENTION: Si le profil contient des failles de FOND critiques (défauts professionnels suicidaires comme "fainéant", "menteur", agressivité), 
-    le point n°1 de la stratégie DOIT ÊTRE un recadrage bienveillant mais ferme.
-    ⚠️ RÈGLE D'OR : IGNORE TOTALEMENT les erreurs de forme (absence de majuscules, fautes de frappe, accents manquants, mots en majuscules). Le texte brut est un brouillon informel adressé au coach et sera formaté automatiquement plus tard. Ne fais JAMAIS de remarques sur la typographie.
-    Ne retourne QUE le JSON.
-    
-    PROFIL: {json.dumps(cv_lean_dict, default=str)}
-    
-    OUTPUT LANGUAGE: {target_lang}
-    FORMAT JSON STRICT: {{"application_strategy": ["Priorité 1", "Priorité 2", "Priorité 3"]}}
-    """
-    application_strategy_task = ai_service.generate(application_strategy_prompt, provider="gemini", system_instruction=f"Tu es un coach de carrière stratégique. Langue: {target_lang}.")
-
-    results = await asyncio.gather(gap_analysis_task, key_strengths_task, application_strategy_task)
-    
-    if has_cached_gap:
-        gap_analysis_result = cached_gap
-    else:
-        raw_gap = results[0]
-        gap_analysis_result = {}
-        if raw_gap:
-            if isinstance(raw_gap, dict):
-                gap_analysis_result = raw_gap
-            else:
-                gap_analysis_result = clean_ai_json_response(raw_gap)
-            
-    key_strengths_result = clean_ai_json_response(results[1])
-    application_strategy_result = clean_ai_json_response(results[2])
-
-    match_score = gap_analysis_result.get("match_score")
-    if match_score is None:
-        match_score = 0
+        try:
+            cv_dict = data.model_dump()
+        except AttributeError:
+            cv_dict = data.dict()
+        target_lang = normalize_language(cv_dict.get('target_language', 'French'))
+        cv_lean_dict = _sanitize_data_for_ai(cv_dict, strict=True)
         
-    strategy_list = application_strategy_result.get("application_strategy", [])
-    recommended_strategy = " ".join(strategy_list) if isinstance(strategy_list, list) else str(strategy_list)
-    
-    raw_gaps = gap_analysis_result.get("missing_gaps", [])
-    gaps_matrix = [{"skill": gap, "impact": "Bloquant pour les ATS", "action": "À développer ou justifier"} for gap in raw_gaps]
+        cached_gap = cv_dict.get('gap_analysis')
+        has_cached_gap = bool(cached_gap and isinstance(cached_gap, dict) and cached_gap.get('match_score'))
+        gap_analysis_task = asyncio.sleep(0) if has_cached_gap else run_gap_analysis_and_get_result(cv_lean_dict)
 
-    return {
-        "matchScore": match_score,
-        "summary": f"Votre profil correspond à {match_score}% des attentes du poste visé. {len(raw_gaps)} compétences sont à renforcer.",
-        "strengths": key_strengths_result.get("key_strengths", []),
-        "gapsMatrix": gaps_matrix,
-        "recommendedStrategy": recommended_strategy,
-        "analysis_stats": {
-            "skills_detected": len(cv_dict.get('skills', [])) + len(cv_dict.get('work_style', [])) + len(cv_dict.get('relational_style', [])) + len(cv_dict.get('professional_approach', [])),
-            "requirements_analyzed": len(gap_analysis_result.get("key_needs_from_job", [])),
-            "gaps_identified": len(gap_analysis_result.get("missing_gaps", []))
+        key_strengths_prompt = f"""
+        Analyse ce profil et résume-le en 3 forces clés percutantes.
+        Exemple: "Leadership opérationnel", "Gestion du risque", "Prise de décision en environnement critique".
+        Ne retourne QUE le JSON.
+        
+        PROFIL: {json.dumps(cv_lean_dict, default=str)}
+        
+        OUTPUT LANGUAGE: {target_lang}
+        FORMAT JSON STRICT: {{"key_strengths": ["Force 1", "Force 2", "Force 3"]}}
+        """
+        key_strengths_task = ai_service.generate(key_strengths_prompt, provider="gemini", system_instruction=f"Tu es un expert en branding personnel. Langue: {target_lang}.")
+
+        application_strategy_prompt = f"""
+        Analyse ce profil et le poste visé. Propose une stratégie de candidature en 3 points prioritaires.
+        Exemple: "Cibler les entreprises industrielles", "Valoriser l'expérience opérationnelle".
+        ATTENTION: Si le profil contient des failles de FOND critiques (défauts professionnels suicidaires comme "fainéant", "menteur", agressivité), 
+        le point n°1 de la stratégie DOIT ÊTRE un recadrage bienveillant mais ferme.
+        ⚠️ RÈGLE D'OR : IGNORE TOTALEMENT les erreurs de forme (absence de majuscules, fautes de frappe, accents manquants, mots en majuscules). Le texte brut est un brouillon informel adressé au coach et sera formaté automatiquement plus tard. Ne fais JAMAIS de remarques sur la typographie.
+        Ne retourne QUE le JSON.
+        
+        PROFIL: {json.dumps(cv_lean_dict, default=str)}
+        
+        OUTPUT LANGUAGE: {target_lang}
+        FORMAT JSON STRICT: {{"application_strategy": ["Priorité 1", "Priorité 2", "Priorité 3"]}}
+        """
+        application_strategy_task = ai_service.generate(application_strategy_prompt, provider="gemini", system_instruction=f"Tu es un coach de carrière stratégique. Langue: {target_lang}.")
+
+        results = await asyncio.gather(gap_analysis_task, key_strengths_task, application_strategy_task)
+        
+        if has_cached_gap:
+            gap_analysis_result = cached_gap
+        else:
+            raw_gap = results[0]
+            gap_analysis_result = {}
+            if raw_gap:
+                if isinstance(raw_gap, dict):
+                    gap_analysis_result = raw_gap
+                else:
+                    gap_analysis_result = clean_ai_json_response(raw_gap)
+                
+        key_strengths_result = clean_ai_json_response(results[1])
+        application_strategy_result = clean_ai_json_response(results[2])
+
+        match_score = gap_analysis_result.get("match_score")
+        if match_score is None:
+            match_score = 0
+            
+        strategy_list = application_strategy_result.get("application_strategy", [])
+        recommended_strategy = " ".join(strategy_list) if isinstance(strategy_list, list) else str(strategy_list)
+        
+        raw_gaps = gap_analysis_result.get("missing_gaps", [])
+        gaps_matrix = [{"skill": gap, "impact": "Bloquant pour les ATS", "action": "À développer ou justifier"} for gap in raw_gaps]
+
+        return {
+            "matchScore": match_score,
+            "summary": f"Votre profil correspond à {match_score}% des attentes du poste visé. {len(raw_gaps)} compétences sont à renforcer.",
+            "strengths": key_strengths_result.get("key_strengths", []),
+            "gapsMatrix": gaps_matrix,
+            "recommendedStrategy": recommended_strategy,
+            "analysis_stats": {
+                "skills_detected": len(cv_dict.get('skills', [])) + len(cv_dict.get('work_style', [])) + len(cv_dict.get('relational_style', [])) + len(cv_dict.get('professional_approach', [])),
+                "requirements_analyzed": len(gap_analysis_result.get("key_needs_from_job", [])),
+                "gaps_identified": len(gap_analysis_result.get("missing_gaps", []))
+            }
         }
-    }
-    try:
-        pass
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Dashboard summary failed: {e}")
+        error_msg = str(e).lower()
+        if "timeout" in error_msg:
+            raise HTTPException(status_code=504, detail="Le réseau est trop lent ou bloque l'accès aux intelligences artificielles (Timeout). Vérifiez votre connexion internet.")
+        raise HTTPException(status_code=500, detail=f"Erreur lors du diagnostic IA : {str(e)}")
 
 @router.post("/feedback")
 async def submit_feedback(request: FeedbackRequest):

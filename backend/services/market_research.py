@@ -43,6 +43,7 @@ def generate_deterministic_queries(company: str, industry: str) -> list:
     # [FIX] Ne rechercher l'entreprise que si elle est renseignée
     if company and company.strip() and company.lower() != "unknown":
         queries.extend([
+            f'{company_context} (actualité OR news OR article OR presse) {current_year}',
             f"{company_context} strategic plan {current_year}",
             f"{company_context} financial results revenue {current_year - 1}",
             f"{company_context} corporate culture values",
@@ -51,7 +52,6 @@ def generate_deterministic_queries(company: str, industry: str) -> list:
             f"{company_context} main competitors market share",
             f"{company_context} interview process questions candidates",
             f"{company_context} key products and services",
-            f'{company_context} (actualité OR news OR article OR presse) {current_year}',
             f"{company_context} employee reviews glassdoor culture"
         ])
         
@@ -108,15 +108,16 @@ async def _analyze_search_results(results: list, company: str, provider: str = N
     if external_prompt:
         # [FIX EXPERT] Découplage total
         prompt = external_prompt.replace("{company}", company or "Non spécifiée") \
-                                .replace("{results}", json.dumps(results[:15], default=str)) \
-                                .replace("{lang}", lang)
+                                .replace("{results}", json.dumps(results[:20], default=str)) \
+                                .replace("{lang}", lang) \
+                                .replace("{current_date}", datetime.now().strftime("%Y-%m-%d"))
     else:
         prompt = f"""
         Analyze these search results for company '{company}'.
         Extract key facts: Financials, Strategy, Culture, Competitors, Products, News, Recruitment Process.
         
         SEARCH RESULTS:
-        {json.dumps(results[:15], default=str)}
+        {json.dumps(results[:20], default=str)}
         
         OUTPUT STRICT JSON:
         {{
@@ -232,7 +233,7 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
                 return None
 
         # [OPTIMISATION MAJEURE] Exécution des requêtes Serper en PARALLÈLE
-        search_tasks = [_safe_search(q) for q in queries[:9]]
+        search_tasks = [_safe_search(q) for q in queries[:12]]
         search_results = await asyncio.gather(*search_tasks)
 
         for res in search_results:
@@ -302,16 +303,40 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
                                       .replace("{industry}", industry or "Non spécifié") \
                                       .replace("{target_country}", target_country or "Global") \
                                       .replace("{role}", role or "Non spécifié") \
-                                      .replace("{target_lang}", target_lang)
+                                      .replace("{target_lang}", target_lang) \
+                                      .replace("{current_date}", datetime.now().strftime("%Y-%m-%d"))
     else:
         # Fallback robuste si le fichier est manquant
         final_prompt = f"""
         Generate two distinct strategic reports for a candidate applying to {company} ({industry}) as {role}.
         Language: {target_lang}
+        Current Date: {datetime.now().strftime("%Y-%m-%d")}
         
         SEARCH CONTEXT: {search_context}
         
-        {json_structure_requirement}
+        OUTPUT STRICT JSON:
+        {{
+            "market_report": {{
+                "tension_index": "...",
+                "tension_score": 85,
+                "salary_barometer": "...",
+                "competitive_landscape": "...",
+                "trends": "...",
+                "recruitment_dynamics": "...",
+                "major_disruptions": "...",
+                "top_skills": {{"hard": [], "soft": []}}
+            }},
+            "company_report": {{
+                "key_figures": "...",
+                "leadership": "...",
+                "identity_dna": "...",
+                "financial_health": "...",
+                "usp": "...",
+                "culture_environment": "...",
+                "team_structure": "...",
+                "hot_news": "..."
+            }}
+        }}
         """
     
     # [ROBUSTESSE] Boucle de tentative pour l'IA (Retry pattern)

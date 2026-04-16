@@ -8,30 +8,6 @@ from database import db
 
 router = APIRouter(tags=["Authentication"])
 
-# --- Helpers PostgreSQL ---
-
-async def _fetch_user_by_email(email):
-    """Récupère un utilisateur par email."""
-    try:
-        async with db.get_connection() as conn:
-            cursor = await db.execute(conn, "SELECT * FROM users WHERE email = ?", (email,))
-            row = await cursor.fetchone()
-            return dict(row) if row else None
-    except Exception as e:
-        print(f"[DB ERROR] _fetch_user_by_email: {e}", flush=True)
-        raise e
-
-async def _check_email_exists(email):
-    """Vérifie si un email existe déjà."""
-    try:
-        async with db.get_connection() as conn:
-            cursor = await db.execute(conn, "SELECT id FROM users WHERE email = ?", (email,))
-            row = await cursor.fetchone()
-            return row is not None
-    except Exception as e:
-        print(f"[DB ERROR] _check_email_exists: {e}", flush=True)
-        raise e
-
 async def _insert_user(uid, email, hashed_pw, first, last, created):
     """Insère un nouvel utilisateur."""
     try:
@@ -43,78 +19,6 @@ async def _insert_user(uid, email, hashed_pw, first, last, created):
     except Exception as e:
         print(f"[DB ERROR] _insert_user: {e}", flush=True)
         raise e
-
-async def _fetch_user_profile(user_id):
-    """Récupère le profil complet de l'utilisateur incluant les dernières métadonnées."""
-    try:
-        async with db.get_connection() as conn:
-            # Récupérer les informations de base de l'utilisateur
-            cursor = await db.execute(conn, "SELECT * FROM users WHERE id = ?", (user_id,))
-            user_row = await cursor.fetchone()
-            
-            if not user_row:
-                return None
-                
-            # Récupérer le produit le plus récent avec métadonnées
-            cursor = await db.execute(conn, """
-                SELECT metadata FROM products 
-                WHERE user_id = ? AND metadata IS NOT NULL 
-                ORDER BY created_at DESC 
-                LIMIT 1
-            """, (user_id,))
-            
-            product_row = await cursor.fetchone()
-            
-            # Construire le profil complet
-            profile = dict(user_row)
-            
-            # Ajouter les métadonnées du dernier produit si elles existent
-            # Sécurité via dict() pour garantir l'accès par clé (compatible SQLite aiosqlite.Row)
-            if product_row and dict(product_row).get('metadata'):
-                metadata = dict(product_row).get('metadata')
-                if isinstance(metadata, str):
-                    import json
-                    metadata = json.loads(metadata)
-                profile['profile_data'] = {
-                    'sector': metadata.get('sector'),
-                    'job_title': metadata.get('job_title'),
-                    'experience_years': metadata.get('experience_years'),
-                    'successes': metadata.get('successes', []),
-                    'failures': metadata.get('failures', []),
-                    'qualities': metadata.get('qualities', []),
-                    'hobbies': metadata.get('hobbies', []),
-                    'languages': metadata.get('languages', []),
-                    'certifications': metadata.get('certifications', [])
-                }
-            else:
-                profile['profile_data'] = {
-                    'sector': None,
-                    'job_title': None,
-                    'experience_years': None,
-                    'successes': [],
-                    'failures': [],
-                    'qualities': [],
-                    'hobbies': [],
-                    'languages': [],
-                    'certifications': []
-                }
-            
-            return profile
-            
-    except Exception as e:
-        print(f"[DB ERROR] _fetch_user_profile: {e}", flush=True)
-        raise e
-
-async def _fetch_premium_status(user_id):
-    """Récupère le statut premium d'un utilisateur."""
-    try:
-        async with db.get_connection() as conn:
-            cursor = await db.execute(conn, "SELECT is_premium FROM users WHERE id = ?", (user_id,))
-            row = await cursor.fetchone()
-            return bool(dict(row).get("is_premium", False)) if row else False
-    except Exception as e:
-        print(f"[DB ERROR] _fetch_premium_status: {e}", flush=True)
-        return False
 
 # --- Routes ---
 
@@ -170,14 +74,17 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 @router.post("/api/auth/register")
 async def register(user: UserRegister):
     print(f"[AUTH] Register attempt for: {user.email}", flush=True)
-    email = user.email
+    email = user.email.lower().strip()
 
     print("[AUTH] Hashing password...", flush=True)
     hashed_pw = get_password_hash(user.password)
 
     try:
         # Vérification si l'email existe déjà
-        exists = await _check_email_exists(email)
+        async with db.get_connection() as conn:
+            cursor = await db.execute(conn, "SELECT id FROM users WHERE email = ?", (email,))
+            exists = await cursor.fetchone()
+
         if exists:
             raise HTTPException(status_code=400, detail="Email already registered")
 
@@ -197,60 +104,3 @@ async def register(user: UserRegister):
 @router.get("/api/user/status")
 async def get_user_status(current_user: dict = Depends(get_current_user)):
     """Vérifie le statut Premium de l'utilisateur."""
-    user_id = current_user["id"]
-
-    # Mock user bypass
-    if user_id == "1" or user_id == "test-user-id":
-        return {"is_premium": True}
-
-    try:
-        is_premium = await _fetch_premium_status(user_id)
-        return {"is_premium": is_premium}
-    except Exception as e:
-        print(f"[AUTH ERROR] get_user_status: {e}", flush=True)
-        # En cas d'erreur DB, on retourne false par sécurité plutôt que de crasher
-        return {"is_premium": False}
-@router.get("/api/user/profile")
-async def get_user_profile(current_user: dict = Depends(get_current_user)):
-    """Récupère le profil complet de l'utilisateur connecté."""
-    user_id = current_user["id"]
-    
-    # Mock user bypass
-    if user_id == "1" or user_id == "test-user-id":
-        return {
-            "id": "1",
-            "email": "test@test.com",
-            "first_name": "Test",
-            "last_name": "User",
-            "is_premium": True,
-            "profile_data": {
-                "sector": "Test",
-                "job_title": "Test Developer",
-                "experience_years": 5,
-                "successes": ["Test success"],
-                "failures": ["Test failure"],
-                "qualities": ["Test quality"],
-                "hobbies": ["Test hobby"],
-                "languages": ["Test language"],
-                "certifications": ["Test cert"]
-            }
-        }
-    
-    try:
-        profile = await _fetch_user_profile(user_id)
-        if not profile:
-            raise HTTPException(status_code=404, detail="User not found")
-            
-        return {
-            "id": profile["id"],
-            "email": profile["email"],
-            "first_name": profile["first_name"],
-            "last_name": profile["last_name"],
-            "is_premium": bool(profile.get("is_premium", False)),
-            "profile_data": profile["profile_data"]
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"[AUTH ERROR] get_user_profile: {e}", flush=True)
-        raise HTTPException(status_code=500, detail="Internal Server Error")

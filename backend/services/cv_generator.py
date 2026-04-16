@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Body, BackgroundTasks, Depends
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 import uuid
@@ -11,6 +12,9 @@ from database import db
 # L'import relatif '.' fonctionne car les deux fichiers sont dans le même package
 from .ai_generator import ai_service
 
+
+# Import du moteur de rendu PDF LaTeX
+from .latex import generate_pdf_from_latex
 
 # Import des tâches unifiées
 from .tasks import (
@@ -76,8 +80,8 @@ class SituationSimulationRequest(BaseModel):
 class PersonalInfo(BaseModel):
     first_name: Optional[str] = Field(None, description="Prénom du candidat")
     last_name: Optional[str] = Field(None, description="Nom de famille")
-    email: Optional[str] = Field(None, description="Email professionnel", pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-    phone: Optional[str] = Field(None, description="Numéro de téléphone", pattern=r"^\+?[0-9\s\-\(\).]{6,25}$")
+    email: Optional[str] = Field(None, description="Email professionnel", pattern=r"^(?:[^@\s]+@[^@\s]+\.[^@\s]+)?$")
+    phone: Optional[str] = Field(None, description="Numéro de téléphone", pattern=r"^(?:\+?[0-9\s\-\(\).]{6,25})?$")
     address: Optional[str] = Field(None, description="Adresse postale (facultative)")
     city: Optional[str] = Field(None, description="Ville de résidence")
     country: Optional[str] = Field(None, description="Pays de résidence")
@@ -103,6 +107,7 @@ class FullCVData(BaseModel):
     target_industry: Optional[str] = None
     job_description: Optional[str] = Field(None, description="Description brute de l'offre d'emploi")
     research_data: Optional[Dict[str, Any]] = Field(None, description="Données de recherche marché et entreprise")
+    gap_analysis: Optional[Dict[str, Any]] = Field(None, description="Données en cache de l'analyse d'écarts")
     target_country: Optional[str] = Field(None, description="Pays visé pour l'analyse de marché")
     remote_preference: Optional[str] = Field(None, description="full, hybrid, onsite")
     availability: Optional[str] = Field(None, description="Disponibilité du candidat")
@@ -328,7 +333,7 @@ async def generate_clarifications(data: FullCVData, current_user: dict = Depends
     return clean_ai_json_response(res)
 
 @router.post("/generate")
-async def generate_cv(data: FullCVData):
+async def generate_cv(data: FullCVData, current_user: dict = Depends(get_current_user)):
     """
     Génère le CV (PDF ou JSON) à partir des données fournies.
     Gère la mise en forme des compétences et le choix du design.
@@ -370,9 +375,23 @@ async def generate_cv(data: FullCVData):
     else:
         cv_data['skills'] = {"technical": "", "languages": langs_str}
 
-    # Pour le débogage ou si le renderer est JSON
-    # Note: Pour le PDF, il faudrait appeler ici le service de génération PDF (ex: latex_renderer.generate_pdf(cv_data))
-    # Comme le code de rendu PDF n'est pas fourni, on renvoie le JSON structuré qui permet au moins de vérifier les données.
+    # Génération du fichier PDF via LaTeX
+    if data.renderer == "pdf":
+        # Sélection du template : ATS (1) ou Humain (2, 3...)
+        template_name = "cv_ats.tex" if data.design_variant == "1" else "cv_human.tex"
+        try:
+            pdf_path = generate_pdf_from_latex(cv_data, template_name)
+            # Retourne le binaire PDF directement au frontend
+            if pdf_path.endswith(".pdf"):
+                return FileResponse(pdf_path, media_type="application/pdf", filename="CV_Generated.pdf")
+            else:
+                raise HTTPException(status_code=500, detail="pdflatex n'est pas installé ou la compilation a échoué. Le PDF n'a pas pu être généré.")
+        except Exception as e:
+            print(f"[PDF ERROR] {e}", flush=True)
+            if isinstance(e, HTTPException):
+                raise e
+            raise HTTPException(status_code=500, detail=f"Erreur de génération PDF: {str(e)}")
+
     return cv_data
 
 @router.post("/start-analysis")
@@ -703,7 +722,7 @@ async def get_my_profile(current_user: dict = Depends(get_current_user)):
         return {"first_name": current_user.get("first_name", ""), "last_name": current_user.get("last_name", ""), "email": current_user.get("email", "")}
 
 @router.get("/documents")
-async def get_my_documents():
+async def get_my_documents(current_user: dict = Depends(get_current_user)):
     """
     Bouchon (Mock) pour afficher des documents dans la modale du candidat.
     """

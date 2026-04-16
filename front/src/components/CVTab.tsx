@@ -4,12 +4,14 @@ import { FileText, Download, Loader2, RefreshCw, AlertTriangle, Target, CheckCir
 import { authenticatedFetch } from '../utils/auth';
 import { KeywordCoachModal } from './KeywordCoachModal';
 import { API_BASE_URL } from '../config';
+import PdfPreviewer from './PdfPreviewer';
 
 export const CVTab = ({ data }: { data: any }) => {
   const { cvData, cvResult, gapResult } = useDashboard();
+  const [previewBody, setPreviewBody] = useState<any>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [loadingPreview, setLoadingPreview] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
 
   // Logique interactive des mots-clés
   const payload = gapResult || data || {};
@@ -25,7 +27,7 @@ export const CVTab = ({ data }: { data: any }) => {
   const currentScore = Math.min(100, baseScore + (addedKeywords.length * pointsPerKeyword));
   const scoreColor = currentScore >= 80 ? '#10b981' : currentScore >= 50 ? '#f59e0b' : '#ef4444';
 
-  const generatePreview = async () => {
+  const preparePreviewData = () => {
     // [FIX CRITIQUE] On utilise les données optimisées par l'IA si elles existent
     // On fusionne pour s'assurer d'avoir les skills à jour ajoutés manuellement
     const payloadData = { ...(cvResult?.optimized_data || cvResult || cvData) };
@@ -70,44 +72,16 @@ export const CVTab = ({ data }: { data: any }) => {
     }
 
     if (!payloadData) {
-      setError("Les données du candidat ne sont pas disponibles pour générer le CV.");
-      setLoadingPreview(false);
       return;
     }
 
-    setLoadingPreview(true);
-    setError(null);
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
-    }
-
-    try {
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...payloadData,
-          skip_ai: true, // [FIX CRITIQUE] Empêche l'API de relancer l'IA (15s) et génère directement le PDF
-          preview: true,
-          renderer: 'pdf'
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(`La génération du PDF a échoué: ${errorData}`);
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      setPreviewUrl(url);
-    } catch (err: any) {
-      console.error("Erreur de génération de l'aperçu:", err);
-      setError(err.message || "Une erreur inconnue est survenue.");
-    } finally {
-      setLoadingPreview(false);
-    }
+    setPreviewBody({
+      ...payloadData,
+      skip_ai: true,
+      preview: true,
+      renderer: 'pdf'
+    });
+    setRefreshTrigger(prev => prev + 1);
   };
 
   const handleApplyKeyword = (newText: string) => {
@@ -124,20 +98,11 @@ export const CVTab = ({ data }: { data: any }) => {
   };
 
   useEffect(() => {
-    generatePreview();
+    preparePreviewData();
   // [FIX] Ajout des dépendances manquantes. React déclenchera generatePreview naturellement après mise à jour.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cvResult, addedKeywords, extraContent]);
 
-  // [FIX] Cleanup séparé pour éviter les fuites mémoire
-  useEffect(() => {
-    // Cleanup function pour révoquer l'URL du blob quand le composant est démonté
-    return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
-    };
-  }, [previewUrl]); 
 
   return (
     <>
@@ -153,7 +118,7 @@ export const CVTab = ({ data }: { data: any }) => {
           {/* D'autres boutons pourraient venir ici */}
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
-          <button className="btn-secondary" onClick={generatePreview} disabled={loadingPreview}>
+          <button className="btn-secondary" onClick={() => setRefreshTrigger(prev => prev + 1)} disabled={loadingPreview || !previewBody}>
             {loadingPreview ? <Loader2 size={16} className="spin" /> : <RefreshCw size={16} />}
             Rafraîchir
           </button>
@@ -204,21 +169,17 @@ export const CVTab = ({ data }: { data: any }) => {
             <span>Aperçu du Document</span>
           </div>
           <div className="preview-document" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: '800px', padding: 0 }}>
-            {loadingPreview ? (
-              <div className="pdf-placeholder">
-                <Loader2 size={32} className="spin" />
-                <p style={{ marginTop: '1rem' }}>Génération de votre CV...</p>
-              </div>
-            ) : error ? (
-              <div className="pdf-placeholder" style={{ borderColor: 'var(--danger-text)', color: 'var(--danger-text)' }}>
-                <AlertTriangle size={32} />
-                <p style={{ marginTop: '1rem', maxWidth: '80%' }}>{error}</p>
-              </div>
-            ) : previewUrl ? (
-              <iframe src={previewUrl} style={{ width: '100%', height: '100%', flex: 1, minHeight: '800px', border: 'none', borderRadius: '0 0 1rem 1rem', background: '#525659' }} title="Aperçu du CV" />
-            ) : (
-              <div className="pdf-placeholder">Aperçu non disponible.</div>
-            )}
+          {previewBody ? (
+            <PdfPreviewer 
+              fetchUrl={`${API_BASE_URL}/api/cv/generate`}
+              requestBody={previewBody}
+              refreshTrigger={refreshTrigger}
+              onSuccess={(url) => setPreviewUrl(url)}
+              onLoadingChange={(isLoading) => setLoadingPreview(isLoading)}
+            />
+          ) : (
+            <div className="pdf-placeholder">En attente des données...</div>
+          )}
           </div>
         </div>
       </div>

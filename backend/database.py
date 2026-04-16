@@ -120,13 +120,19 @@ class Database:
             finally:
                 await conn.close()
         else:
-            # Fallback: use psycopg2 if asyncpg not available
-            # This is not ideal for async but will work
-            conn = psycopg2.connect(self.database_url)
+            # [FIX ROBUSTESSE] Encapsulation de la connexion synchrone dans un try/except
+            # pour intercepter les erreurs de bas niveau (ex: socket cassé) avant qu'elles ne fassent crasher le processus.
+            conn = None
             try:
+                conn = await asyncio.to_thread(psycopg2.connect, self.database_url)
                 yield conn
+            except Exception as e:
+                print(f"[DB CRITICAL] Failed to connect with psycopg2 fallback: {e}", flush=True)
+                raise  # On relève l'exception pour que l'appelant puisse la gérer.
             finally:
-                conn.close()
+                if conn:
+                    # La fermeture de la connexion est aussi une opération bloquante.
+                    await asyncio.to_thread(conn.close)
 
     @contextmanager
     def get_sync_connection(self):

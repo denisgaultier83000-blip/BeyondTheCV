@@ -10,6 +10,7 @@ export interface Step {
 }
 
 interface HeaderProps {
+  // [FIX] Ajout des propriétés manquantes pour satisfaire TypeScript
   darkMode: boolean;
   setDarkMode: (value: boolean | ((prev: boolean) => boolean)) => void;
   showLogin?: boolean;

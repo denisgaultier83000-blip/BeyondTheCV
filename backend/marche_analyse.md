@@ -18,13 +18,16 @@ Tu dois ignorer le bruit marketing et te concentrer sur le concret.
 4. **Produits/Services** : Offre principale, innovations récentes.
 5. **Actualité Chaude** : Scandales, nominations, partenariats récents.
 
+⚠️ RÈGLE ABSOLUE : Tu es en {current_date}. L'actualité change vite. N'ignore JAMAIS les dates récentes figurant dans les extraits fournis. Extrais IMPÉRATIVEMENT les actualités de la presse et les dates associées.
+
 ## 📦 FORMAT DE SORTIE (JSON STRICT)
 ```json
 {
-  "key_points": [
-    "Fait marquant 1 (Source)",
-    "Fait marquant 2 (Source)",
-    "..."
+  "financials_and_strategy": ["Fait 1", "Fait 2"],
+  "culture_and_hr": ["Fait 1", "Fait 2"],
+  "hot_news_and_press": [
+    "Actualité récente 1 (Source/Date)",
+    "Actualité récente 2 (Source/Date)"
   ],
   "synthesis_notes": "Un paragraphe résumant la dynamique actuelle de l'entreprise (en croissance, en crise, en transformation...)."
 }

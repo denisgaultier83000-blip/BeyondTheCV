@@ -24,9 +24,9 @@ def sanitize_for_latex(data):
             '{': r'\{', '}': r'\}', '~': r'\textasciitilde{}',
             '^': r'\textasciicircum{}', '\\': r'\textbackslash{}'
         }
-        # Remplacement des sauts de ligne par la commande LaTeX
-        # On nettoie d'abord les retours chariot Windows (\r)
-        clean_str = data.replace('\r', '')
+        # Nettoyage des caractères de contrôle invisibles (comme \x00, \x08) qui font crasher pdflatex
+        clean_str = "".join(c for c in data if c.isprintable() or c in ['\n', '\r'])
+        clean_str = clean_str.replace('\r', '')
         text = ''.join(chars.get(c, c) for c in clean_str)
         return text.replace('\n', r' \newline ')
     elif isinstance(data, (int, float)):

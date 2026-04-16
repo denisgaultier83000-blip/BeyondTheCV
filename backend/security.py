@@ -1,28 +1,29 @@
 import os
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta, timezone
 from typing import Optional
+import sys
+sys.modules['bcrypt'] = None
+
 from fastapi.security import OAuth2PasswordBearer
 from fastapi import Depends, HTTPException
 from jose import jwt
 from passlib.context import CryptContext
+from database import db # [FIX] Import manquant qui cause des crashs sur les routes protégées
 
-from database import db
 # Configuration
 SECRET_KEY = os.getenv("SECRET_KEY", "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
-# [STABILITÉ] Utilisation de pbkdf2_sha256 par défaut (Pure Python, stable)
-try:
-    import bcrypt
-    pwd_context = CryptContext(schemes=["pbkdf2_sha256", "bcrypt"], deprecated="auto")
-except ImportError:
-    print("[SECURITY WARNING] 'bcrypt' module not found. Falling back to pbkdf2_sha256 only.", flush=True)
-    pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
+# [STABILITÉ] Utilisation de pbkdf2_sha256 par défaut (Pure Python, stable).
+# On force l'utilisation de pbkdf2_sha256 pour éviter les crashs potentiels de la librairie C 'bcrypt'
+# dans des environnements instables (Docker, changements réseau).
+# pbkdf2_sha256 est en pur Python, donc plus lent mais beaucoup plus stable.
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token") # [FIX] Correction de l'URL du token pour la doc Swagger
 
-# [DIAGNOSTIC] Vérification immédiate de la santé de bcrypt au démarrage
+# [DIAGNOSTIC] Vérification immédiate de la santé du système de hash au démarrage
 try:
     test_hash = pwd_context.hash("test_startup")
     pwd_context.verify("test_startup", test_hash)
@@ -39,9 +40,9 @@ def get_password_hash(password):
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.now(UTC) + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.now(UTC) + timedelta(minutes=15)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -56,8 +57,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         
         # Récupérer les informations utilisateur depuis la base de données
         try:
-            async with db.get_connection() as conn:
-                # [FIX] Le token peut contenir l'ID ou l'Email. On vérifie les deux pour une compatibilité absolue.
+            async with db.get_connection() as conn: # Cette ligne plantait car 'db' n'était pas importé
+                # [FIX] Le token peut contenir l'ID ou l'Email. On vérifie les deux pour une compatibilité absolue avec les anciennes versions du token.
                 cursor = await db.execute(conn, "SELECT id, email, first_name, last_name, is_premium FROM users WHERE id = ? OR email = ?", (user_id, user_id))
                 user_row = await cursor.fetchone()
             

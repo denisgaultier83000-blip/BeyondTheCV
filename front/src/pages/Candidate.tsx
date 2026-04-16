@@ -38,6 +38,7 @@ import {
 import { useAiActions } from "../hooks/useAiActions";
 import { isAuthenticated, authenticatedFetch, getUser } from "../utils/auth";
 import AuthScreen from "../components/AuthScreen";
+import CVPreview from "../components/CVPreview";
 import { useTranslation } from "react-i18next"; // [NEW] Remplacer l'import statique
 import { LoadingScreen } from "../components/LoadingScreen";
 
@@ -69,7 +70,7 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
   const isMounted = useRef(true); // [FIX] Sécurité pour éviter les updates sur composant démonté
   const [researchModalMode, setResearchModalMode] = useState<'company' | 'market'>('company');
   
-  const [view, setView] = useState<'stepper' | 'dashboard' | 'review'>((location.state as any)?.view || 'stepper');
+  const [view, setView] = useState<'stepper' | 'dashboard' | 'review' | 'cv_preview'>((location.state as any)?.view || 'stepper');
   const [gapAnalysis, setGapAnalysis] = useState<any>(null);
   const [validationResult, setValidationResult] = useState<any>(null); // [NEW] State Validation
   const [radarResult, setRadarResult] = useState<any>(null); // [NEW] State pour le Radar
@@ -80,6 +81,7 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
   const [realityResult, setRealityResult] = useState<any>(null); // [NEW] State pour Reality Check
   const [showGapAnalysisModal, setShowGapAnalysisModal] = useState(false);
   const [cvMode, setCvMode] = useState<"ATS" | "Human" | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [actionPlanResult, setActionPlanResult] = useState<any>(null); // [NEW] State pour la To-Do List
   const [isPrinting, setIsPrinting] = useState(false);
   const [showDocuments, setShowDocuments] = useState(false);
@@ -257,8 +259,6 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
             linkedin: optionalString(formData.linkedin),
             city: formData.city,
             country: formData.residence_country,
-            birth_date: formData.birth_date,
-            photo: optionalString(formData.photo),
             bio: formData.bio,
             address: "" // Champ requis par le modèle mais souvent vide
         },
@@ -301,9 +301,46 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
           setDebugData({ ...form, experiences, educations });
           setShowDebug(true);
       } else if (action === "Review CV") {
-          // [FIX] Bascule vers la vue de revue pour voir l'aperçu et les templates
-          setCvMode("Human"); // Par défaut
-          setView('review');
+          // [FIX] Lancement de la génération et affichage de l'aperçu PDF
+          setShowResearchOverlay(true);
+          setLoadingMessage("Génération de l'aperçu du CV...");
+          try {
+              const payload = {
+                  ...formatPayload(form),
+                  renderer: 'pdf',
+                  preview: true,
+                  design_variant: "1" // ou cvMode si vous voulez le rendre dynamique
+              };
+              const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/generate`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload)
+              });
+
+              if (!response.ok) {
+                  const errorText = await response.text();
+                  throw new Error(`La génération du PDF a échoué: ${errorText}`);
+              }
+
+              // Sécurité : Vérifier qu'on reçoit bien un fichier PDF et non du JSON
+              const contentType = response.headers.get('content-type');
+              if (contentType && contentType.includes('application/json')) {
+                  const jsonData = await response.json();
+                  throw new Error(jsonData.detail || "Erreur serveur : Le backend a renvoyé du texte au lieu d'un PDF.");
+              }
+
+              const blob = await response.blob();
+              const fileURL = URL.createObjectURL(blob);
+              
+              setPdfUrl(fileURL);
+              setView('cv_preview');
+
+          } catch (e: any) {
+              console.error("Failed to generate CV preview", e);
+              setToast({ type: "error", message: e.message || "Could not generate CV preview." });
+          } finally {
+              if (isMounted.current) { setShowResearchOverlay(false); setLoadingMessage(""); }
+          }
       } else if (action === "Company Research" || action === "Market Research") { // [FIX] Câblage du bouton Market
           await handleDashboardResearch();
       } else if (action === "View Company Report") {
@@ -1353,6 +1390,8 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
                 data={flawCoachingResult}
                 onBack={() => setShowFlawCoaching(false)}
             />
+          ) : view === 'cv_preview' ? (
+            <CVPreview pdfUrl={pdfUrl} onBack={() => setView('dashboard')} />
           ) : view === 'dashboard' ? ( // [FIX] Refonte de la logique d'affichage du dashboard
             <>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
