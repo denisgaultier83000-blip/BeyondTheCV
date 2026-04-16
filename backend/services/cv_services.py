@@ -8,11 +8,10 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks,
 from fastapi.responses import JSONResponse, FileResponse
 from starlette.background import BackgroundTask
 from pypdf import PdfReader
-from pydantic import BaseModel, Field, model_validator
 from typing import Optional, List, Dict, Any
 
 from database import db
-from models import GenerateRequest, CVFinal, FeedbackRequest
+from models import GenerateRequest, CVFinal, FeedbackRequest, ExperienceRequest, SkillExtractionRequest, FullCVData
 from security import get_current_user
 # [FIX] Utilisation du service unifié au lieu d'imports inexistants
 from .ai_generator import ai_service
@@ -42,89 +41,6 @@ from .utils import clean_ai_json_response, normalize_language, load_prompt
 from .tasks import get_prompt_path
 
 router = APIRouter(prefix="/api/cv", tags=["CV Generator"])
-
-class FlawCoachRequest(BaseModel):
-    flaw: str
-    target_job: Optional[str] = "Candidat"
-    target_language: Optional[str] = "fr"
-
-class PersonalInfo(BaseModel):
-    first_name: Optional[str] = Field(None, description="Prénom du candidat")
-    last_name: Optional[str] = Field(None, description="Nom de famille")
-    email: Optional[str] = Field(None, description="Email professionnel")
-    phone: Optional[str] = Field(None, description="Numéro de téléphone")
-    address: Optional[str] = Field(None, description="Adresse postale (facultative)")
-    city: Optional[str] = Field(None, description="Ville de résidence")
-    country: Optional[str] = Field(None, description="Pays de résidence")
-    linkedin: Optional[str] = Field(None, description="URL profil LinkedIn")
-    bio: Optional[str] = Field(None, description="Résumé ou Bio")
-
-class FullCVData(BaseModel):
-    personal_info: PersonalInfo = Field(default_factory=PersonalInfo)
-    experiences: Any = []
-    educations: Any = []
-    skills: Any = []
-    work_style: Any = []
-    relational_style: Any = []
-    professional_approach: Any = []
-    qualities: Any = []
-    flaws: Any = []
-    interests: Any = []
-    languages: Any = []
-    clarifications: Any = []
-    target_job: Optional[str] = ""
-    target_company: Optional[str] = None
-    target_industry: Optional[str] = None
-    job_description: Optional[str] = Field(None, description="Description brute de l'offre d'emploi")
-    research_data: Optional[Dict[str, Any]] = Field(None, description="Données de recherche marché et entreprise")
-    gap_analysis: Optional[Dict[str, Any]] = Field(None, description="Cached gap analysis pour éviter le recalcul")
-    pitch_data: Optional[Dict[str, Any]] = None
-    target_country: Optional[str] = Field(None, description="Pays visé pour l'analyse de marché")
-    remote_preference: Optional[str] = Field(None, description="full, hybrid, onsite")
-    availability: Optional[str] = Field(None, description="Disponibilité du candidat")
-    contract_type: Optional[str] = Field(None, description="Type de contrat visé (CDI, Freelance...)")
-    free_text: Optional[str] = Field(None, description="Texte libre du candidat (Étape 6)")
-    current_role: Optional[str] = None
-    current_company: Optional[str] = None
-    target_role_primary: Optional[str] = None
-    provider: Optional[str] = None
-    target_language: Optional[str] = "French"
-    is_partial_start: bool = False
-    design_variant: Optional[str] = Field("1", description="Variante de design du CV (1, 2, 3)")
-    preview: bool = Field(False, description="Mode prévisualisation")
-    renderer: Optional[str] = Field("pdf", description="Format de sortie: 'pdf' ou 'json'")
-
-    @model_validator(mode='before')
-    @classmethod
-    def extract_form_data(cls, values):
-        # [FIX CRITIQUE] Empêche la perte de données si le frontend envoie un objet imbriqué "form"
-        if isinstance(values, dict) and 'form' in values and isinstance(values['form'], dict):
-            form_data = values.pop('form')
-            if 'personal_info' not in values:
-                values['personal_info'] = {}
-            
-            personal_keys = ['first_name', 'last_name', 'email', 'phone', 'address', 'city', 'country', 'linkedin', 'bio']
-            for k, v in form_data.items():
-                if k in personal_keys:
-                    values['personal_info'][k] = v
-                elif k not in values:
-                    values[k] = v
-        return values
-
-# --- Modèles rapatriés de cv_generator.py ---
-class ExperienceRequest(BaseModel):
-    role: str = Field(..., description="Intitulé du poste")
-    company: str = Field(..., description="Nom de l'entreprise")
-    description: str = Field(..., description="Description brute des tâches effectuées")
-    target_language: Optional[str] = "fr"
-
-class SkillExtractionRequest(BaseModel):
-    raw_text: str
-    target_language: Optional[str] = "fr"
-
-class SimulationRequest(BaseModel):
-    candidate_data: Dict[str, Any]
-    simulation_action: str
 
 def _remove_file_safe(path: str):
     """Supprime un fichier temporaire après son envoi sans crasher en cas d'erreur."""
@@ -420,33 +336,6 @@ async def extract_skills(request: SkillExtractionRequest, current_user: dict = D
         response = await ai_service.generate(prompt=prompt, provider="gemini", system_instruction="Tu es un assistant de tri de CV.")
         skills_list = [s.strip() for s in response.split(',') if s.strip()]
         return {"skills": skills_list}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur IA: {str(e)}")
-
-@router.post("/simulate-career")
-async def simulate_career(request: SimulationRequest, current_user: dict = Depends(require_active_subscription)):
-    target_lang = normalize_language(request.candidate_data.get('target_language', 'French'))
-    prompt_template = load_prompt(get_prompt_path("career_simulator.md"))
-    
-    final_prompt = f"""
-    {prompt_template}
-    
-    PROFIL ACTUEL :
-    {json.dumps(_sanitize_data_for_ai(request.candidate_data, strict=True), default=str)}
-    
-    ACTION SIMULÉE :
-    {request.simulation_action}
-    
-    INSTRUCTIONS DE FORMATAGE STRICT (JSON) :
-    Tu dois renvoyer un objet JSON contenant au minimum ces deux clés :
-    - "feasibility_score": Un nombre entier entre 0 et 10 représentant la faisabilité réaliste.
-    - "analysis": L'analyse détaillée des risques, opportunités et de la marche à suivre (avec des retours à la ligne \\n).
-    
-    OUTPUT LANGUAGE: {target_lang}
-    """
-    try:
-        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are a Career Simulator Engine. Output STRICT JSON.")
-        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Simulation failed: {str(e)}")
 

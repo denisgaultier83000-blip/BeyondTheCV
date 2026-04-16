@@ -319,6 +319,8 @@ def include_safe_router(module_name, from_services=True):
 include_safe_router("auth")
 include_safe_router("cv_services")
 include_safe_router("dashboard")
+include_safe_router("profile")
+include_safe_router("simulation_service")
 include_safe_router("documents")
 include_safe_router("payment")
 # New routes for products, evaluations, and subscriptions
