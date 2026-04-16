@@ -221,7 +221,7 @@ async def _run_questions_logic(task_id: str, candidate_data: dict):
         target_job = candidate_data.get('target_job', 'Poste visé')
         prompt_template = load_prompt(get_prompt_path("interview_questions.md"))
         
-        prompt = f"""
+        final_prompt = f"""
         {prompt_template}
         
         CONTEXTE CANDIDAT :
@@ -236,7 +236,7 @@ async def _run_questions_logic(task_id: str, candidate_data: dict):
         OUTPUT LANGUAGE: {target_lang}
         """
         
-        result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are an expert interviewer. Output ONLY JSON. Language: {target_lang}.")
+        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction=f"You are an expert interviewer. Output ONLY JSON. Language: {target_lang}.")
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:

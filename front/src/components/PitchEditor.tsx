@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import ScoreGauge from "./ScoreGauge";
 import { useTranslation } from "react-i18next";
-import { Mic, User, Briefcase, Star, Target, Printer, ArrowLeft, Lightbulb, Play, Pause, RotateCcw, X, MonitorPlay } from 'lucide-react';
-import { createPortal } from 'react-dom';
+import { Mic, User, Briefcase, Star, Target, Printer, ArrowLeft, MonitorPlay } from 'lucide-react';
 
 interface PitchData {
   accroche: string;
@@ -18,91 +17,13 @@ interface PitchEditorProps {
 }
 
 // --- COMPOSANT TÉLÉPROMPTEUR INTÉGRÉ (Sorti du composant parent pour éviter les re-renders mortels) ---
-const Teleprompter = ({ text, onClose }: { text: string, onClose: () => void }) => {
-  const [timeLeft, setTimeLeft] = useState(180); // 3 minutes = 180s
-  const [isActive, setIsActive] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const animationFrameId = useRef<number>(); // To hold the requestAnimationFrame ID
-  const [mounted, setMounted] = useState(false);
-
-  // [FIX] Sécurisation du Portal : on s'assure d'être côté client avant d'attaquer document.body
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
-
-  useEffect(() => {
-    let interval: any = null;
-    if (isActive && timeLeft > 0) {
-      interval = setInterval(() => setTimeLeft(t => t - 1), 1000);
-    } else if (timeLeft === 0) {
-      setIsActive(false);
-    }
-    return () => clearInterval(interval);
-  }, [isActive, timeLeft]);
-
-  // [FIX] Remplacement de setInterval par requestAnimationFrame pour un défilement fluide
-  useEffect(() => {
-    const scrollSpeed = 0.8; // Pixels per frame. Ajuster pour la vitesse.
-
-    const scrollStep = () => {
-      if (scrollRef.current) {
-        scrollRef.current.scrollTop += scrollSpeed;
-      }
-      animationFrameId.current = requestAnimationFrame(scrollStep);
-    };
-
-    if (isActive) {
-      animationFrameId.current = requestAnimationFrame(scrollStep);
-    }
-
-    return () => {
-      if (animationFrameId.current) {
-        cancelAnimationFrame(animationFrameId.current);
-      }
-    };
-  }, [isActive]);
-
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
-
-  return createPortal(
-    {/* [FIX EXPERT] Forçage d'un fond NOIR solide et absolu pour isoler totalement le téléprompteur du Dashboard */}
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000000', zIndex: 999999, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <button onClick={onClose} title="Fermer le téléprompteur" style={{ position: 'absolute', top: '0.5rem', right: '2rem', background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', width: '50px', height: '50px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100000, transition: 'background 0.2s' }}>
-        <X size={28} />
-      </button>
-      
-      <div style={{ position: 'absolute', top: '1.5rem', left: '50%', transform: 'translateX(-50%)', background: 'rgba(255,255,255,0.15)', padding: '1rem 2.5rem', borderRadius: '50px', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', gap: '2rem', zIndex: 100000, boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
-        <span style={{ fontSize: '2.5rem', fontFamily: 'monospace', color: timeLeft <= 30 ? '#ef4444' : 'white', fontWeight: 'bold', width: '120px', textAlign: 'center', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
-          {formatTime(timeLeft)}
-        </span>
-        <div style={{ width: '2px', height: '40px', background: 'rgba(255,255,255,0.3)' }}></div>
-        <button onClick={() => setIsActive(!isActive)} style={{ background: isActive ? 'rgba(255,255,255,0.2)' : '#3b82f6', border: 'none', color: 'white', width: '56px', height: '56px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: '0.2s', boxShadow: '0 4px 15px rgba(0,0,0,0.4)' }}>
-          {isActive ? <Pause size={28} /> : <Play size={28} style={{ marginLeft: '4px' }} />}
-        </button>
-        <button onClick={() => { setIsActive(false); setTimeLeft(180); if (scrollRef.current) scrollRef.current.scrollTop = 0; }} style={{ background: 'transparent', border: '2px solid rgba(255,255,255,0.4)', color: 'white', width: '56px', height: '56px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: '0.2s' }}>
-          <RotateCcw size={24} />
-        </button>
-      </div>
-
-      <div ref={scrollRef} style={{ width: '100%', maxWidth: '800px', flex: 1, overflowY: 'auto', textAlign: 'center', paddingTop: '15rem', paddingBottom: '50vh', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-        <style>{`div::-webkit-scrollbar { display: none; }`}</style>
-        {text.split('\n').map((para, idx) => para.trim() ? (
-          <p key={idx} style={{ color: '#FFFFFF', fontSize: '3.5rem', lineHeight: 1.5, marginBottom: '4rem', fontWeight: 700, fontFamily: 'system-ui, -apple-system, sans-serif', textShadow: '0 4px 8px rgba(0,0,0,0.8)', letterSpacing: '-0.02em' }}>{para}</p>
-        ) : null)}
-      </div>
-      </div>, document.body
-  );
-};
+export const Teleprompter = ({ text, darkMode, onClose }: { text: string, darkMode: boolean, onClose: () => void }) => null;
 
 export default function PitchEditor({ data: initialData, onBack }: PitchEditorProps) {
   const { t } = useTranslation();
   const [pitch, setPitch] = useState<PitchData>(initialData);
   const [showTeleprompter, setShowTeleprompter] = useState(false);
+  const isDark = document.body.classList.contains('dark-mode'); // On lit la valeur une seule fois
 
   const handleChange = (key: keyof PitchData, value: string) => {
     setPitch(prev => ({ ...prev, [key]: value }));
@@ -218,7 +139,7 @@ export default function PitchEditor({ data: initialData, onBack }: PitchEditorPr
       </div>
       
       {/* Affichage conditionnel du Téléprompteur */}
-      {showTeleprompter && <Teleprompter text={`${pitch.accroche}\n\n${pitch.preuve}\n\n${pitch.valeur}\n\n${pitch.projection}`} onClose={() => setShowTeleprompter(false)} />}
+      {showTeleprompter && <Teleprompter text={`${pitch.accroche}\n\n${pitch.preuve}\n\n${pitch.valeur}\n\n${pitch.projection}`} darkMode={isDark} onClose={() => setShowTeleprompter(false)} />}
     </div>
   );
 }
