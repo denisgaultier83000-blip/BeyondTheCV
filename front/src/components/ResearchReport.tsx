@@ -1,5 +1,5 @@
 import React from 'react';
-import { Building, Target, Lightbulb, TrendingUp } from 'lucide-react';
+import { Building, Target, Lightbulb, TrendingUp, Users, DollarSign } from 'lucide-react';
 
 interface ResearchData {
   // Support Backend V1 & V2
@@ -29,24 +29,22 @@ interface ResearchReportProps {
 }
 
 export function ResearchReport({ data, companyName }: ResearchReportProps) {
-  console.log("📊 ResearchReport Data Received:", data); // [DEBUG] Vérifier la structure dans la console F12
   if (!data) return null;
 
-  // Normalisation des données (gestion des variantes de structure JSON)
-  const brief = data.brief || data.synthesis || {};
   const companyReport = data.company_report || {};
   const marketReport = data.market_report || {};
   
-  // Logique de fallback en cascade pour trouver du contenu à afficher
-  const overview = brief.overview || data.overview || companyReport.identity_dna || marketReport.salary_barometer || "Analyse indisponible.";
-  const culture = brief.culture || data.culture || companyReport.culture_environment || marketReport.recruitment_dynamics || "Non spécifié.";
-  const challenges = brief.challenges || data.challenges || companyReport.usp || marketReport.competitive_landscape || "Non spécifié.";
+  const overview = companyReport.identity_dna || "Analyse de l'entreprise indisponible.";
+  const culture = companyReport.culture_environment || "Non spécifié.";
+  const challenges = companyReport.usp || "Non spécifié.";
+  const team = companyReport.team_structure || "Non spécifié.";
+  const finance = companyReport.financial_health || "Non spécifié.";
+  const figures = companyReport.key_figures || "Non spécifié.";
   
-  // Pour les conseils, on essaie de trouver une liste ou on en crée une
-  let advice = brief.advice || data.advice || [];
+  let advice = data.advice || [];
   if (!advice || advice.length === 0) {
-      if (companyReport.hot_news) advice.push(`Actu: ${companyReport.hot_news}`);
-      if (marketReport.trends) advice.push(`Tendance: ${marketReport.trends}`);
+      if (marketReport.trends && !marketReport.trends.includes("Non spécifié")) advice.push(`Tendance marché : ${marketReport.trends}`);
+      if (companyReport.leadership && !companyReport.leadership.includes("Non spécifié")) advice.push(`Leadership : ${companyReport.leadership}`);
   }
   
   const keyPoints = data.key_points || data.key_data || [];
@@ -61,39 +59,49 @@ export function ResearchReport({ data, companyName }: ResearchReportProps) {
         </div>
         <div>
           <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b' }}>Rapport Stratégique : {companyName || 'Entreprise Cible'}</h3>
-          <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Analyse de marché & Culture</span>
+          <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Synthèse globale (Entreprise & Marché)</span>
         </div>
       </div>
 
       {/* Vue d'ensemble */}
       <div className="report-section">
         <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0', color: '#334155' }}>
-          <Target size={18} color="#475569"/> Vue d'ensemble
+          <Target size={18} color="#475569"/> ADN & Positionnement
         </h4>
         <p style={{ margin: 0, fontSize: '0.95rem', color: '#475569', lineHeight: '1.6' }}>{overview}</p>
       </div>
 
-      {/* Grille Culture & Défis */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+      {/* Grille Informations */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
         <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
-          <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#0f172a' }}>🧬 Culture & Valeurs</h4>
-          <p style={{ fontSize: '0.85rem', color: '#475569', margin: 0 }}>{culture}</p>
+          <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Users size={16}/> Culture & Équipe</h4>
+          <p style={{ fontSize: '0.85rem', color: '#475569', margin: '0 0 0.5rem 0' }}><strong>Culture:</strong> {culture}</p>
+          <p style={{ fontSize: '0.85rem', color: '#475569', margin: 0 }}><strong>Structure:</strong> {team}</p>
         </div>
+        
         <div style={{ background: '#fff7ed', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #ffedd5' }}>
           <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#9a3412', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <TrendingUp size={16}/> Enjeux & Défis
           </h4>
           <p style={{ fontSize: '0.85rem', color: '#9a3412', margin: 0 }}>{challenges}</p>
         </div>
+
+        <div style={{ background: '#f0fdf4', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #bbf7d0' }}>
+          <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#166534', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <DollarSign size={16}/> Santé Financière
+          </h4>
+          <p style={{ fontSize: '0.85rem', color: '#14532d', margin: '0 0 0.5rem 0' }}><strong>Chiffres:</strong> {figures}</p>
+          <p style={{ fontSize: '0.85rem', color: '#14532d', margin: 0 }}><strong>Dynamique:</strong> {finance}</p>
+        </div>
       </div>
 
       {/* Conseils Stratégiques */}
       {advice.length > 0 && (
-        <div style={{ background: '#f0fdf4', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #bbf7d0' }}>
-          <h4 style={{ margin: '0 0 0.75rem 0', color: '#166534', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Lightbulb size={18}/> Conseils pour l'entretien
+        <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+          <h4 style={{ margin: '0 0 0.75rem 0', color: '#334155', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Lightbulb size={18}/> Insights Additionnels
           </h4>
-          <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#14532d', fontSize: '0.9rem' }}>
+          <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#475569', fontSize: '0.9rem' }}>
           {advice.map((item: any, idx: number) => (
               <li key={idx} style={{ marginBottom: '0.25rem' }}>{item}</li>
             ))}

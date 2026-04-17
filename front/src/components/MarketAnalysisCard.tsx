@@ -1,5 +1,5 @@
 import React from 'react';
-import { Globe, Wallet, Activity, Zap, Loader2, XCircle } from 'lucide-react';
+import { Globe, Wallet, Activity, Zap, Loader2, XCircle, Target, Award } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 
 interface MarketAnalysisCardProps {
@@ -66,6 +66,8 @@ export function MarketAnalysisCard({ data, salaryData, loading, error }: MarketA
   const comment = salaryData?.commentary || report.salary_barometer || report.barometre_salaires || report.salaires || "Baromètre non disponible";
   const dynamics = report.recruitment_dynamics || report.dynamique_recrutement || report.trends || report.tendances || "Données de marché en attente...";
   const disruptions = report.major_disruptions || report.perturbations || "Recherche des disruptions en cours...";
+  const landscape = report.competitive_landscape || report.paysage_concurrentiel || "Analyse des concurrents en cours...";
+  const skills = report.top_skills || report.competences_cles || { hard: [], soft: [] };
 
   return (
     <DashboardCard
@@ -120,6 +122,37 @@ export function MarketAnalysisCard({ data, salaryData, loading, error }: MarketA
             {comment}
           </p>
         </div>
+
+        {/* NOUVEAU : Paysage Concurrentiel */}
+        <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', gridColumn: '1 / -1' }}>
+          <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 0, marginBottom: '1rem', color: 'var(--text-main)' }}>
+            <Target size={18} color="#8b5cf6" /> Paysage Concurrentiel & Acteurs Clés
+          </h4>
+          <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>{landscape}</p>
+        </div>
+
+        {/* NOUVEAU : Compétences les plus demandées */}
+        {(skills.hard?.length > 0 || skills.soft?.length > 0) && (
+          <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0, color: 'var(--text-main)' }}>
+              <Award size={18} color="#3b82f6" /> Compétences les plus prisées sur ce marché
+            </h4>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem' }}>
+              {skills.hard?.length > 0 && (
+                <div style={{ flex: 1, minWidth: '250px' }}>
+                  <strong style={{ fontSize: '0.85rem', color: 'var(--text-main)', display: 'block', marginBottom: '0.5rem' }}>Hard Skills :</strong>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>{skills.hard.map((s: string, i: number) => <span key={i} style={{ fontSize: '0.75rem', background: 'rgba(59, 130, 246, 0.1)', color: '#2563eb', padding: '0.25rem 0.75rem', borderRadius: '1rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>{s}</span>)}</div>
+                </div>
+              )}
+              {skills.soft?.length > 0 && (
+                <div style={{ flex: 1, minWidth: '250px' }}>
+                  <strong style={{ fontSize: '0.85rem', color: 'var(--text-main)', display: 'block', marginBottom: '0.5rem' }}>Soft Skills :</strong>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>{skills.soft.map((s: string, i: number) => <span key={i} style={{ fontSize: '0.75rem', background: 'rgba(139, 92, 246, 0.1)', color: '#7c3aed', padding: '0.25rem 0.75rem', borderRadius: '1rem', border: '1px solid rgba(139, 92, 246, 0.2)' }}>{s}</span>)}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
       </div>
     </DashboardCard>

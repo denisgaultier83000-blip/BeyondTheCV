@@ -36,23 +36,23 @@ def generate_deterministic_queries(company: str, industry: str) -> list:
     current_year = datetime.now().year
     queries = []
     
-    # [FIX EXPERT] Ajout d'un contexte fort pour forcer le moteur de recherche à ignorer les homonymes célèbres
-    safe_industry = industry if industry and industry.lower() != "unknown" else ""
-    company_context = f'"{company}" (entreprise OR company OR society OR {safe_industry})' if safe_industry else f'"{company}" (entreprise OR company OR society)'
+    # [OPTIMISATION] Requêtes plus naturelles pour Google. Les opérateurs booléens complexes étouffent l'algorithme sémantique.
+    company_context = f'"{company}"'
     
     # [FIX] Ne rechercher l'entreprise que si elle est renseignée
     if company and company.strip() and company.lower() != "unknown":
         queries.extend([
-            f'{company_context} (actualité OR news OR article OR presse) {current_year}',
-            f"{company_context} strategic plan {current_year}",
-            f"{company_context} financial results revenue {current_year - 1}",
-            f"{company_context} corporate culture values",
-            f"{company_context} CEO founder leadership team background",
-            f"{company_context} number of employees size locations HQ",
-            f"{company_context} main competitors market share",
-            f"{company_context} interview process questions candidates",
-            f"{company_context} key products and services",
-            f"{company_context} employee reviews glassdoor culture"
+            f"{company_context} actualités presse {current_year}", # [FIX] Garde cette requête générale
+            f"{company_context} articles de presse {current_year}", # [FIX] Ajout requête spécifique
+            f"{company_context} communiqués de presse {current_year}", # [FIX] Ajout requête spécifique
+            f"{company_context} plan stratégique vision",
+            f"{company_context} résultats financiers chiffre d'affaires",
+            f"{company_context} valeurs culture d'entreprise",
+            f"{company_context} recrutement process RH",
+            f"{company_context} dirigeants CEO",
+            f"{company_context} concurrents parts de marché",
+            f"{company_context} avis employés",
+            f"{company_context} rapport ESG RSE durabilité {current_year}" # [NEW] Pour plus de détails sur la culture et les valeurs
         ])
         
     if industry and industry.strip() and industry.lower() != "unknown":
@@ -108,7 +108,7 @@ async def _analyze_search_results(results: list, company: str, provider: str = N
     if external_prompt:
         # [FIX EXPERT] Découplage total
         prompt = external_prompt.replace("{company}", company or "Non spécifiée") \
-                                .replace("{results}", json.dumps(results[:20], default=str)) \
+                                .replace("{results}", json.dumps(results[:40], default=str)) \
                                 .replace("{lang}", lang) \
                                 .replace("{current_date}", datetime.now().strftime("%Y-%m-%d"))
     else:
@@ -117,7 +117,7 @@ async def _analyze_search_results(results: list, company: str, provider: str = N
         Extract key facts: Financials, Strategy, Culture, Competitors, Products, News, Recruitment Process.
         
         SEARCH RESULTS:
-        {json.dumps(results[:20], default=str)}
+        {json.dumps(results[:40], default=str)}
         
         OUTPUT STRICT JSON:
         {{
@@ -138,36 +138,38 @@ def _enforce_schema(data: dict) -> dict:
     if not isinstance(data, dict):
         data = {}
         
-    # [FIX] Fallback multi-clés pour contrer les hallucinations de l'IA
-    market = data.get("market_report") or data.get("rapport_marche") or data.get("market_analysis") or data.get("analyse_marche") or data.get("synthesis") or data
+    # [FIX EXPERT] Désencapsulation profonde. Si l'IA renvoie {"data": {"market_report": {...}}} au lieu de l'objet direct
+    root = data.get("data") or data.get("result") or data.get("response") or data.get("synthesis") or data
+    if not isinstance(root, dict):
+        root = data
+        
+    market = root.get("market_report") or root.get("rapport_marche") or root.get("market_analysis") or root.get("analyse_marche") or root
     if not isinstance(market, dict):
         market = {}
     
-    company = data.get("company_report") or data.get("rapport_entreprise") or data.get("entreprise") or data.get("synthesis") or data
+    company = root.get("company_report") or root.get("rapport_entreprise") or root.get("entreprise") or root
     if not isinstance(company, dict):
         company = {}
     
-    # [FIX EXPERT] On conserve TOUTES les clés générées par le prompt (smart_questions, catchphrases...)
-    # et on applique des valeurs par défaut uniquement pour les clés UI obligatoires manquantes.
     safe_market = market.copy()
-    safe_market.setdefault("tension_index", market.get("indice_tension", "Non spécifié."))
-    safe_market.setdefault("tension_score", market.get("score_tension", 85))
-    safe_market.setdefault("salary_barometer", market.get("barometre_salaires", market.get("salaires", "Non spécifié.")))
-    safe_market.setdefault("competitive_landscape", market.get("paysage_concurrentiel", "Non spécifié."))
-    safe_market.setdefault("trends", market.get("tendances", "Non spécifié."))
-    safe_market.setdefault("recruitment_dynamics", market.get("dynamique_recrutement", "Non spécifié."))
-    safe_market.setdefault("major_disruptions", market.get("perturbations", "Non spécifié."))
-    safe_market.setdefault("top_skills", market.get("competences_cles", {"hard": [], "soft": []}))
+    safe_market["tension_index"] = market.get("tension_index") or market.get("indice_tension") or "Non spécifié."
+    safe_market["tension_score"] = market.get("tension_score") or market.get("score_tension") or 85
+    safe_market["salary_barometer"] = market.get("salary_barometer") or market.get("barometre_salaires") or market.get("salaires") or "Non spécifié."
+    safe_market["competitive_landscape"] = market.get("competitive_landscape") or market.get("paysage_concurrentiel") or "Non spécifié."
+    safe_market["trends"] = market.get("trends") or market.get("tendances") or "Non spécifié."
+    safe_market["recruitment_dynamics"] = market.get("recruitment_dynamics") or market.get("dynamique_recrutement") or "Non spécifié."
+    safe_market["major_disruptions"] = market.get("major_disruptions") or market.get("perturbations") or "Non spécifié."
+    safe_market["top_skills"] = market.get("top_skills") or market.get("competences_cles") or {"hard": [], "soft": []}
 
     safe_company = company.copy()
-    safe_company.setdefault("key_figures", company.get("chiffres_cles", "Non spécifié."))
-    safe_company.setdefault("leadership", company.get("ceo_name", company.get("dirigeants", "Non spécifié.")))
-    safe_company.setdefault("identity_dna", company.get("identite_adn", company.get("identite", "Non spécifié.")))
-    safe_company.setdefault("financial_health", company.get("sante_financiere", "Non spécifié."))
-    safe_company.setdefault("usp", company.get("proposition_valeur", "Non spécifié."))
-    safe_company.setdefault("culture_environment", company.get("culture_environnement", company.get("culture", "Non spécifié.")))
-    safe_company.setdefault("team_structure", company.get("equipe", "Non spécifié."))
-    safe_company.setdefault("hot_news", company.get("actualites", "Aucune actualité récente."))
+    safe_company["key_figures"] = company.get("key_figures") or company.get("chiffres_cles") or "Non spécifié."
+    safe_company["leadership"] = company.get("leadership") or company.get("dirigeants") or company.get("ceo_name") or "Non spécifié."
+    safe_company["identity_dna"] = company.get("identity_dna") or company.get("identite_adn") or company.get("identite") or "Non spécifié."
+    safe_company["financial_health"] = company.get("financial_health") or company.get("sante_financiere") or "Non spécifié."
+    safe_company["usp"] = company.get("usp") or company.get("proposition_valeur") or company.get("enjeux_defis") or company.get("enjeux") or "Non spécifié."
+    safe_company["culture_environment"] = company.get("culture_environment") or company.get("culture_environnement") or company.get("culture") or "Non spécifié."
+    safe_company["team_structure"] = company.get("team_structure") or company.get("equipe") or company.get("structure_equipe") or "Non spécifié."
+    safe_company["news_links"] = company.get("news_links") or company.get("actualites") or []
 
     return {
         "market_report": safe_market,
@@ -232,8 +234,13 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
                 print(f"   [ERROR] Search failed for query '{q}': {e}", flush=True)
                 return None
 
-        # [OPTIMISATION MAJEURE] Exécution des requêtes Serper en PARALLÈLE
-        search_tasks = [_safe_search(q) for q in queries[:12]]
+        # [FIX EXPERT] Limiter la concurrence pour éviter l'erreur 429 de Serper.dev
+        sem = asyncio.Semaphore(5)
+        async def _safe_search_with_sem(q):
+            async with sem:
+                return await _safe_search(q)
+
+        search_tasks = [_safe_search_with_sem(q) for q in queries[:20]]
         search_results = await asyncio.gather(*search_tasks)
 
         for res in search_results:
@@ -253,6 +260,19 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
                                 "date": item.get("date", "Recent")
                             })
                             seen_links.add(item["link"])
+                            
+                # [FIX EXPERT] Extraction spécifique des articles de presse et actualités
+                for news_key in ["news", "topStories"]:
+                    if news_key in res:
+                        for item in res[news_key]:
+                            if item.get("link") and item["link"] not in seen_links:
+                                raw_results.append({
+                                    "title": f"[PRESSE] {item.get('title')}",
+                                    "snippet": item.get("snippet", item.get("source", "Actualité")),
+                                    "link": item.get("link"),
+                                    "date": item.get("date", "Récemment")
+                                })
+                                seen_links.add(item["link"])
                 
         if api_key_invalid:
             print("[PIPELINE] 🛑 Serper API key is invalid or expired. Aborting web search.", flush=True)
@@ -279,13 +299,21 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
     search_context = ""
     if raw_results:
         if task_id:
-            await manager.broadcast(task_id, f"📊 Analyse de {len(raw_results)} sources...")
-        analysis = await _analyze_search_results(raw_results, company, provider, target_lang)
-        search_context = json.dumps(analysis, default=str)
+            await manager.broadcast(task_id, f"📊 Formatage de {len(raw_results)} sources pour synthèse...")
+        # [FIX EXPERT] Suppression du goulot d'étranglement (Data Loss).
+        # On sépare les articles de presse et les résultats organiques pour garantir un mix parfait à l'IA.
+        press_results = [r for r in raw_results if "[PRESSE]" in r.get('title', '')]
+        organic_results = [r for r in raw_results if "[PRESSE]" not in r.get('title', '')]
+        balanced_results = press_results[:15] + organic_results[:25]
+        
+        context_lines = []
+        for i, r in enumerate(balanced_results):
+            context_lines.append(f"Source [{i+1}] : {r.get('title', 'Sans titre')}\nLien: {r.get('link', '')}\nDate: {r.get('date', 'Récemment')}\nExtrait: {r.get('snippet', '')}\n")
+        search_context = "\n".join(context_lines)
     else:
         if task_id:
             await manager.broadcast(task_id, "⚠️ Pas de résultats web, utilisation des connaissances générales...")
-        search_context = "NO WEB RESULTS AVAILABLE. USE YOUR GENERAL KNOWLEDGE ABOUT THIS COMPANY/INDUSTRY."
+        search_context = "AUCUN RÉSULTAT WEB RÉCENT. UTILISE TES CONNAISSANCES GÉNÉRALES."
 
     # --- ÉTAPE 5 : RÉDACTION DU RAPPORT FINAL ---
     if task_id:
@@ -305,6 +333,10 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
                                       .replace("{role}", role or "Non spécifié") \
                                       .replace("{target_lang}", target_lang) \
                                       .replace("{current_date}", datetime.now().strftime("%Y-%m-%d"))
+                                      
+        # [FIX EXPERT] Injection forcée du contexte de recherche
+        if search_context and "Source [1]" not in final_prompt:
+            final_prompt += f"\n\n### RÉSULTATS WEB BRUTS (CONTEXTE RAG OBLIGATOIRE) ###\n{search_context}"
     else:
         # Fallback robuste si le fichier est manquant
         final_prompt = f"""
@@ -312,51 +344,68 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
         Language: {target_lang}
         Current Date: {datetime.now().strftime("%Y-%m-%d")}
         
-        SEARCH CONTEXT: {search_context}
+        SEARCH CONTEXT (WEB RESULTS):
+        {search_context}
+        
+        INSTRUCTIONS: Use the search context to extract real facts, links, and figures.
         
         OUTPUT STRICT JSON:
         {{
             "market_report": {{
-                "tension_index": "...",
+                "tension_index": "[String (ex: Forte demande)]",
                 "tension_score": 85,
-                "salary_barometer": "...",
-                "competitive_landscape": "...",
-                "trends": "...",
-                "recruitment_dynamics": "...",
-                "major_disruptions": "...",
+                "salary_barometer": "[String]",
+                "competitive_landscape": "[String]",
+                "trends": "[String]",
+                "recruitment_dynamics": "[String]",
+                "major_disruptions": "[String]",
                 "top_skills": {{"hard": [], "soft": []}}
             }},
             "company_report": {{
-                "key_figures": "...",
-                "leadership": "...",
-                "identity_dna": "...",
-                "financial_health": "...",
-                "usp": "...",
-                "culture_environment": "...",
-                "team_structure": "...",
-                "hot_news": "..."
+                "key_figures": "[String (CA, employés...)]",
+                "leadership": "[String]",
+                "identity_dna": "[String]",
+                "financial_health": "[String]",
+                "usp": "[String (Enjeux & Défis / Proposition de valeur)]",
+                "culture_environment": "[String]",
+                "team_structure": "[String]",
+                "news_links": [
+                    {
+                        "title": "[Article title]",
+                        "url": "https://...",
+                        "source": "[Media name]",
+                        "date": "[Date]"
+                    }
+                ]
             }}
         }}
         """
     
-    # [ROBUSTESSE] Boucle de tentative pour l'IA (Retry pattern)
+    # [ROBUSTESSE] Utilisation de generate_valid_json pour bénéficier du Retry automatique (Tenacity)
     final_synthesis = {}
-    for attempt in range(2): # 2 essais max
-        try:
-            res_str = await ai_service.generate(final_prompt, provider="openai", system_instruction=f"You are a Career Coach. Output in {target_lang}.")
-            parsed = clean_ai_json_response(res_str)
-            if parsed and ("market_report" in parsed or "company_report" in parsed): # [FIX] Validation sur le nouveau format
-                final_synthesis = parsed
-                break
-        except Exception as e:
-            print(f"[AI RETRY] Synthesis failed attempt {attempt+1}: {e}")
-            await asyncio.sleep(1)
+    try:
+        parsed = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction=f"You are a Strategic Corporate Analyst. Output STRICT JSON in {target_lang}.")
+        if "error" not in parsed:
+            final_synthesis = parsed
+        else:
+            print(f"[PIPELINE ERROR] AI JSON error: {parsed['error']}", flush=True)
+    except Exception as e:
+        print(f"[AI ERROR] Final synthesis failed: {e}")
 
     # [ROBUSTESSE] Application stricte du schéma pour éviter le crash du frontend
     safe_synthesis = _enforce_schema(final_synthesis)
 
-    # Formatage des sources pour l'affichage
-    display_sources = [f"{r['title']} ({r['link']})" for r in raw_results[:5]]
+    # [FIX EXPERT] Tri intelligent : on remonte les articles de presse en priorité absolue
+    # et on augmente la limite visible pour l'utilisateur final.
+    press_sources = [r for r in raw_results if "[PRESSE]" in r.get('title', '')]
+    other_sources = [r for r in raw_results if "[PRESSE]" not in r.get('title', '')]
+    
+    best_sources = (press_sources + other_sources)[:10] # Top 10 des sources
+    
+    display_sources = []
+    for r in best_sources:
+        clean_title = r.get('title', '').replace('[PRESSE] ', '') # Nettoyage visuel
+        display_sources.append(f"{clean_title} ({r.get('link', '')})")
 
     return {
         "company": company,

@@ -26,31 +26,33 @@ Ton analyse doit être orientée "action" : que dire, quelles questions poser, c
 - **LANGUE :** La sortie doit être en `{target_lang}`.
 
 ## 📦 SORTIE ATTENDUE (JSON STRICT)
+⚠️ IMPÉRATIF : Le JSON ci-dessous n'est qu'un modèle. Tu DOIS remplacer toutes les descriptions entre crochets `[...]` par tes véritables analyses sourcées.
 ```json
 {
   "market_report": {
-    "tension_index": "Analyse de la tension du marché pour ce type de poste.",
-    "salary_barometer": "Estimation de la fourchette salariale et des avantages courants.",
-    "competitive_landscape": "Qui sont les leaders, les challengers et les startups innovantes du secteur ?",
-    "trends": "Quelles sont les 2-3 innovations ou tendances qui transforment ce marché ?",
-    "recruitment_dynamics": "Les entreprises du secteur recrutent-elles massivement, ou sont-elles en phase de stabilisation ?"
+    "tension_index": "[Analyse de la tension du marché pour ce type de poste.]",
+    "tension_score": 85,
+    "salary_barometer": "[Estimation de la fourchette salariale et des avantages courants.]",
+    "competitive_landscape": "[Qui sont les leaders, les challengers et les startups innovantes du secteur ?]",
+    "trends": "[Quelles sont les 2-3 innovations ou tendances qui transforment ce marché ?]",
+    "recruitment_dynamics": "[Les entreprises du secteur recrutent-elles massivement, ou sont-elles en phase de stabilisation ?]",
+    "major_disruptions": "[Quelles sont les perturbations majeures ou risques ?]",
+    "top_skills": {"hard": ["Compétence 1"], "soft": ["Compétence 2"]}
   },
   "company_report": {
-    "overview": "En 3 phrases, quel est le positionnement de l'entreprise, sa taille et sa dynamique récente ?",
-    "key_figures": "Extraire les chiffres clés les plus importants (CA, employés, date de création).",
-    "culture_environment": "Quelle est la culture d'entreprise perçue ? (ex: 'Très orientée produit, avec des équipes agiles autonomes' vs 'Structure très hiérarchique et processée').",
-    "key_challenges": "Quels sont les 3 défis majeurs (business, humain, stratégique) que l'entreprise semble affronter ?",
-    "positioning_strategy": "Comment le candidat doit-il se positionner ? Quels aspects de son profil doit-il mettre en avant ? Quel angle de discours adopter ?",
-    "smart_questions": [
-        "Générer une question intelligente sur la stratégie de l'entreprise.",
-        "Générer une question pertinente sur les défis du poste."
-    ],
+    "key_figures": "[Extraire les chiffres clés les plus importants (CA, employés, date de création).]",
+    "leadership": "[Dirigeants et équipe de direction.]",
+    "identity_dna": "[Quel est le positionnement de l'entreprise, sa mission et son ADN ?]",
+    "financial_health": "[Quelle est la santé financière (Croissance, Levées de fonds...) ?]",
+    "usp": "[Quels sont les enjeux, les défis majeurs et la proposition de valeur ?]",
+    "culture_environment": "[Quelle est la culture d'entreprise perçue ? (ex: 'Très orientée produit').]",
+    "team_structure": "[Comment sont structurées les équipes ?]",
     "news_links": [
       {
-        "title": "Titre de l'article",
+        "title": "[Titre exact de l'article]",
         "url": "https://lien-vers-article.com",
-        "source": "Nom du média (ex: Les Echos, Le Figaro, L'Usine Nouvelle)",
-        "date": "Mois Année"
+        "source": "[Nom du média (ex: Les Echos, Le Figaro, L'Usine Nouvelle)]",
+        "date": "[Mois Année]"
       }
     ]
   }

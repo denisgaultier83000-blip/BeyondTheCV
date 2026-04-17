@@ -724,8 +724,9 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
         raise HTTPException(status_code=500, detail="Database insert error")
     
     if "market_research" in tasks_map:
-        if has_research_data:
-            # Renvoyer instantanément les données en cache au Dashboard
+        # [FIX EXPERT] On court-circuite le cache si l'utilisateur relance explicitement l'analyse (is_partial_start)
+        # Cela force l'IA à refaire une recherche web fraîche.
+        if has_research_data and not data.is_partial_start:
             background_tasks.add_task(update_task_status_sync, tasks_map["market_research"], "SUCCESS", data.research_data)
         elif data.target_company or data.target_industry:
             research_payload = {
