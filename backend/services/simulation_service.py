@@ -18,11 +18,9 @@ router = APIRouter(
 def _sanitize_for_prompt(data: dict) -> dict:
     """Retire les données binaires et non-essentielles avant l'injection dans les prompts."""
     safe_data = data.copy() if isinstance(data, dict) else {}
-    if 'photo' in safe_data:
-        del safe_data['photo']
     if 'personal_info' in safe_data and isinstance(safe_data['personal_info'], dict):
         safe_data['personal_info'] = safe_data['personal_info'].copy()
-        for pii_key in ['photo', 'email', 'phone', 'address', 'linkedin', 'birth_date']:
+        for pii_key in ['email', 'phone', 'address', 'linkedin', 'birth_date']:
             if pii_key in safe_data['personal_info']:
                 del safe_data['personal_info'][pii_key]
     return safe_data

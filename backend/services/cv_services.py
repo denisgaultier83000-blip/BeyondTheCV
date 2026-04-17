@@ -37,6 +37,8 @@ from .tasks import (
     process_oneliner_in_background,
     process_market_strategy_in_background,
     run_gap_analysis_and_get_result,
+    orchestrate_dashboard_tasks,
+    process_action_plan_in_background,
 )
 from .utils import clean_ai_json_response, normalize_language, load_prompt
 from .tasks import get_prompt_path
@@ -59,13 +61,9 @@ def _remove_file_safe(path: str):
 def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
     """Supprime les données lourdes et inutiles pour l'IA (ex: Base64) pour économiser des tokens et de la latence."""
     clean_data = data.copy() if isinstance(data, dict) else {}
-    if 'photo' in clean_data:
-        del clean_data['photo']
         
     if 'personal_info' in clean_data and isinstance(clean_data['personal_info'], dict):
         clean_data['personal_info'] = clean_data['personal_info'].copy()
-        if 'photo' in clean_data['personal_info']:
-            del clean_data['personal_info']['photo']
             
         if strict:
             # Suppression des PII inutiles pour l'analyse stratégique
@@ -163,15 +161,25 @@ async def generate_interview_questions(data, quality='smart'):
     hobbies = data.get('interests', [])
     flaws = data.get('flaws', [])
     
+    target_job = data.get('target_job', 'Poste visé')
+    target_company = data.get('target_company', 'Entreprise cible')
+    job_desc = data.get('job_description', '')
+    
+    job_context = f"Poste visé : {target_job} chez {target_company}"
+    if job_desc and len(job_desc) > 50:
+        job_context += f"\nDESCRIPTION DE L'OFFRE (CRITIQUE POUR CRÉER LES 4 MISES EN SITUATION) :\n{job_desc}"
+        
     prompt_template = load_prompt(get_prompt_path("interview_questions.md"))
     prompt = f"""
     {prompt_template}
+    
+    CONTEXTE CIBLE :
+    {job_context}
     
     CONTEXTE CANDIDAT :
     Adresse : {address}, {city}
     Hobbies : {hobbies}
     Défauts identifiés par le candidat : {flaws}
-    Poste visé : {data.get('target_job')}
     
     DONNÉES :
     {json.dumps(_sanitize_data_for_ai(data), indent=2)}
@@ -297,27 +305,6 @@ async def coach_flaw(request: FlawCoachRequest):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Flaw coaching failed: {str(e)}")
-
-@router.post("/coach-keyword")
-async def coach_keyword(request: dict = Body(...), current_user: dict = Depends(require_active_subscription)):
-    """Génère un conseil pour intégrer un mot-clé manquant."""
-    keyword = request.get("keyword")
-    cv_data = request.get("cv_data")
-    if not keyword or not cv_data:
-        raise HTTPException(status_code=400, detail="Keyword and cv_data are required.")
-
-    target_lang = normalize_language(cv_data.get('target_language', 'fr'))
-    prompt_template = load_prompt(get_prompt_path("keyword_coach.md"))
-
-    prompt = f"""
-    {prompt_template}
-
-    MOT-CLÉ MANQUANT : "{keyword}"
-    CV DU CANDIDAT :
-    {json.dumps(_sanitize_data_for_ai(cv_data), default=str)}
-    """
-    result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a Career Coach. Output STRICT JSON in {target_lang}.")
-    return result
 
 def run_compliance_check(data, lang, quality='smart'):
     # Pas de check complexe pour l'instant, on renvoie la donnée telle quelle ou une correction simple
@@ -555,7 +542,7 @@ async def generate_document(request: GenerateRequest, current_user: dict = Depen
 async def render_final_cv(cv_final_data: CVFinal, preview: bool = Query(False), current_user: dict = Depends(get_current_user)):
     try:
         # Transformation simplifiée pour LaTeX (logique extraite de main.py)
-        latex_data = cv_final_data.dict(include={'first_name', 'last_name', 'email', 'phone', 'linkedin', 'city', 'country', 'photo', 'current_role'})
+        latex_data = cv_final_data.dict(include={'first_name', 'last_name', 'email', 'phone', 'linkedin', 'city', 'country', 'current_role'})
         for section in cv_final_data.sections:
             if not section.enabled:
                 continue
@@ -596,81 +583,6 @@ async def render_final_cv(cv_final_data: CVFinal, preview: bool = Query(False), 
             
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Render error: {e}")
-
-async def process_action_plan_in_background(task_id: str, cv_dict: dict):
-    """Génère la To-Do list (Plan d'Action) en tâche de fond"""
-    target_lang = normalize_language(cv_dict.get('target_language', 'French'))
-    try:
-        prompt_template = load_prompt(get_prompt_path("action_plan.md"))
-    except:
-        prompt_template = "Génère un plan d'action JSON."
-        
-    prompt = f"{prompt_template}\n\nPROFIL:\n{json.dumps(_sanitize_data_for_ai(cv_dict, strict=True), default=str)}\n\nOUTPUT LANGUAGE: {target_lang}"
-    
-    try:
-        result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are a Career Coach.")
-        await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
-    except Exception as e:
-        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
-
-async def orchestrate_dashboard_tasks(tasks_map: dict, cv_dict: dict):
-    """
-    Enterprise-grade Orchestrator:
-    Éxécute les tâches d'arrière-plan par "Vagues" (Batching) de priorité.
-    Cela empêche de saturer les limites de requêtes par minute (RPM) de l'API IA,
-    tout en garantissant que les infos les plus importantes chargent en premier.
-    """
-    print("\n[ORCHESTRATOR] 🌊 Dispatching tasks to Semaphore Queue...", flush=True)
-    
-    def fire(task_key, coro):
-        async def safe_coro():
-            try:
-                await coro
-            except Exception as e:
-                print(f"[ORCHESTRATOR ERROR] Crash critique intercepté sur '{task_key}' : {e}", flush=True)
-                
-                # [ROBUSTESSE] Récupération des IDs pour forcer le statut FAILED en DB et libérer le Frontend
-                tids = []
-                if isinstance(task_key, str) and task_key in tasks_map:
-                    tids.append(tasks_map[task_key])
-                elif isinstance(task_key, dict):  # Cas des tâches fusionnées (Market Strategy)
-                    tids.extend(task_key.values())
-                    
-                for tid in tids:
-                    try:
-                        await asyncio.to_thread(update_task_status_sync, tid, "FAILED", {"error": f"Orchestrator safety fallback: {str(e)}"})
-                    except Exception as db_err:
-                        print(f"[ORCHESTRATOR DB ERROR] Impossible de MAJ le statut pour {tid}: {db_err}", flush=True)
-                        
-        asyncio.create_task(safe_coro())
-
-    if "profile_validation" in tasks_map: fire("profile_validation", process_profile_validation_in_background(tasks_map["profile_validation"], cv_dict))
-    if "cv_analysis" in tasks_map: fire("cv_analysis", process_cv_analysis_in_background(tasks_map["cv_analysis"], cv_dict))
-    if "gap_analysis" in tasks_map: fire("gap_analysis", process_gap_analysis_in_background(tasks_map["gap_analysis"], cv_dict))
-    
-    await asyncio.sleep(0.5) # Micro-délai pour garantir la priorité
-
-    if "pitch" in tasks_map: fire("pitch", process_pitch_in_background(tasks_map["pitch"], cv_dict))
-    if "recruiter_view" in tasks_map: fire("recruiter_view", process_recruiter_view_in_background(tasks_map["recruiter_view"], cv_dict))
-    if "reality_check" in tasks_map: fire("reality_check", process_reality_check_in_background(tasks_map["reality_check"], cv_dict))
-    if "flaw_coaching" in tasks_map: fire("flaw_coaching", process_flaw_coaching_in_background(tasks_map["flaw_coaching"], cv_dict))
-
-    await asyncio.sleep(0.5)
-
-    if "career_radar" in tasks_map: fire("career_radar", process_career_radar_in_background(tasks_map["career_radar"], cv_dict))
-    if "questions" in tasks_map: fire("questions", process_questions_in_background(tasks_map["questions"], cv_dict))
-
-    await asyncio.sleep(0.5)
-
-    if "career_gps" in tasks_map: fire("career_gps", process_career_gps_in_background(tasks_map["career_gps"], cv_dict))
-    if "one_liner" in tasks_map: fire("one_liner", process_oneliner_in_background(tasks_map["one_liner"], cv_dict))
-    if "action_plan" in tasks_map: fire("action_plan", process_action_plan_in_background(tasks_map["action_plan"], cv_dict))
-        
-    # TÂCHES FUSIONNÉES : Market Strategy
-    strategy_tasks = {k: tasks_map[k] for k in ["job_decoder", "risk_analysis", "hidden_market"] if k in tasks_map}
-    if strategy_tasks: fire(strategy_tasks, process_market_strategy_in_background(strategy_tasks, cv_dict))
-
-    print("[ORCHESTRATOR] ✅ All tasks queued successfully. Semaphore is handling the flow.", flush=True)
 
 @router.post("/start-analysis")
 async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, current_user: dict = Depends(require_active_subscription)):

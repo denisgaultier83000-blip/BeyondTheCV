@@ -824,6 +824,35 @@ async def process_market_strategy_in_background(task_ids: dict, data: dict):
         for tid in task_ids.values():
             await asyncio.to_thread(update_task_status_sync, tid, "FAILED", {"error": str(e)})
 
+async def process_action_plan_in_background(task_id: str, cv_dict: dict):
+    """Génère la To-Do list (Plan d'Action) en tâche de fond"""
+    print(f"[Task {task_id}] 📋 Starting Action Plan (Async)...")
+    await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
+    try:
+        target_lang = normalize_language(cv_dict.get('target_language', 'French'))
+        try:
+            prompt_template = load_prompt(get_prompt_path("action_plan.md"))
+        except:
+            prompt_template = "Génère un plan d'action JSON."
+            
+        # Nettoyage manuel (RGPD/Poids) pour rendre la tâche autonome
+        safe_data = cv_dict.copy() if isinstance(cv_dict, dict) else {}
+        if 'personal_info' in safe_data and isinstance(safe_data['personal_info'], dict):
+            safe_data['personal_info'] = safe_data['personal_info'].copy()
+            for key in ['email', 'phone', 'address', 'linkedin', 'city']:
+                safe_data['personal_info'].pop(key, None)
+        safe_data.pop('research_data', None)
+            
+        prompt = f"{prompt_template}\n\nPROFIL:\n{json.dumps(safe_data, ensure_ascii=False, default=str)}\n\nOUTPUT LANGUAGE: {target_lang}"
+        
+        result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are a Career Coach.")
+        if "error" in result:
+            await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
+        else:
+            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+    except Exception as e:
+        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
+
 async def orchestrate_dashboard_tasks(tasks_map: dict, cv_dict: dict):
     """
     Enterprise-grade Orchestrator:

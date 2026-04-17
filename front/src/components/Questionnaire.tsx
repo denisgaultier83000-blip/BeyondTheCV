@@ -4,29 +4,36 @@ import { HelpCircle, MessageSquare, Printer, ArrowLeft, CheckCircle2, Lightbulb 
 
 interface QuestionnaireProps {
   questions: any[];
-  onBack: () => void;
-  onPrint: (questions: any[]) => void;
+  onBack?: () => void;
+  onPrint?: (questions: any[]) => void;
   onUpdate?: (index: number, field: string, value: any) => void; // [NEW] Prop pour l'édition
   loading?: boolean;
+  hideHeader?: boolean;
 }
 
-export default function Questionnaire({ questions, onBack, onPrint, onUpdate, loading }: QuestionnaireProps) {
+export default function Questionnaire({ questions, onBack, onPrint, onUpdate, loading, hideHeader }: QuestionnaireProps) {
   const { t } = useTranslation();
 
   return (
-    <div className="step-content" style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <button onClick={onBack} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <ArrowLeft size={16} /> {t('back_productions') || 'Retour'}
-        </button>
-        <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-main)' }}>
-          <MessageSquare size={28} color="var(--primary)" />
-          {t('card_interview_title') || 'Questionnaire d\'Entretien'}
-        </h2>
-        <button onClick={() => onPrint(questions)} className="btn-primary" disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Printer size={16} /> {loading ? t('generating') : (t('print') || 'Imprimer')}
-        </button>
-      </div>
+    <div className={hideHeader ? "" : "step-content"} style={{ maxWidth: '1200px', margin: '0 auto', padding: hideHeader ? '0' : '20px' }}>
+      {!hideHeader && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+          {onBack ? (
+            <button onClick={onBack} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <ArrowLeft size={16} /> {t('back_productions') || 'Retour'}
+            </button>
+          ) : <div />}
+          <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-main)' }}>
+            <MessageSquare size={28} color="var(--primary)" />
+            {t('card_interview_title') || 'Questionnaire d\'Entretien'}
+          </h2>
+          {onPrint ? (
+            <button onClick={() => onPrint(questions)} className="btn-primary" disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Printer size={16} /> {loading ? t('generating') : (t('print') || 'Imprimer')}
+            </button>
+          ) : <div />}
+        </div>
+      )}
 
       <style>{`
         @keyframes slideUpFade { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -88,7 +95,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                 </div>
                 {/* [FIX] Textarea éditable pour la réponse */}
                 <textarea 
-                  value={q.suggested_answer || ""} 
+                  defaultValue={q.suggested_answer || ""} 
                   onChange={(e) => onUpdate && onUpdate(idx, "suggested_answer", e.target.value)}
                   style={{ 
                       width: "100%", 

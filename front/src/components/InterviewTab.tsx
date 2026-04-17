@@ -4,7 +4,7 @@ import { useDashboard } from './DashboardContext';
 import { Mic, MessageSquare, Play, Pause, RotateCcw, BrainCircuit, ArrowLeft } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 import { SituationSimulator } from './SituationSimulator';
-import { QAList } from './QAList';
+import Questionnaire from './Questionnaire';
 
 export const InterviewTab = () => {
   const { pitchResult, questionsResult, globalStatus } = useDashboard();
@@ -131,7 +131,7 @@ export const InterviewTab = () => {
           errorText="Le questionnaire n'a pas pu être généré."
           featureId="interview_questions"
         >
-          {questionsResult && <QAList questions={questionsResult} />}
+          {questionsResult && <Questionnaire questions={Array.isArray(questionsResult) ? questionsResult : (questionsResult.questions || [])} hideHeader={true} />}
         </DashboardCard>
 
         {/* MODULE MISE EN SITUATION */}
