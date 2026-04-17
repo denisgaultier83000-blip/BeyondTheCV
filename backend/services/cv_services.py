@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse, FileResponse
 from starlette.background import BackgroundTask
 from pypdf import PdfReader
 from typing import Optional, List, Dict, Any
+from pydantic import BaseModel
 
 from database import db
 from models import GenerateRequest, CVFinal, FeedbackRequest, ExperienceRequest, SkillExtractionRequest, FullCVData
@@ -41,6 +42,11 @@ from .utils import clean_ai_json_response, normalize_language, load_prompt
 from .tasks import get_prompt_path
 
 router = APIRouter(prefix="/api/cv", tags=["CV Generator"])
+
+class FlawCoachRequest(BaseModel):
+    flaw: str
+    target_job: Optional[str] = "Candidat"
+    target_language: Optional[str] = "fr"
 
 def _remove_file_safe(path: str):
     """Supprime un fichier temporaire après son envoi sans crasher en cas d'erreur."""
@@ -879,3 +885,17 @@ async def get_dashboard_summary(data: FullCVData, current_user: dict = Depends(r
         raise HTTPException(status_code=500, detail=f"Erreur lors du diagnostic IA : {str(e)}")
 
 @router.post("/feedback")
+async def submit_feedback(request: FeedbackRequest):
+    """
+    Enregistre les retours utilisateurs (pouces levés/baissés) sur les générations IA.
+    Note: Cette route ne requiert pas get_current_user car le frontend utilise un fetch standard sans token JWT.
+    """
+    try:
+        async with db.get_connection() as conn:
+            await db.execute(conn, 
+                "INSERT INTO feedbacks (feature, is_positive, comments, created_at) VALUES (?, ?, ?, ?)", 
+                (request.feature, request.is_positive, request.comments, datetime.now()))
+        return {"status": "success", "message": "Feedback enregistré avec succès"}
+    except Exception as e:
+        print(f"[FEEDBACK ERROR] {e}", flush=True)
+        raise HTTPException(status_code=500, detail="Erreur lors de l'enregistrement du feedback")

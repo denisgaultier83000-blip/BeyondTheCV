@@ -76,10 +76,11 @@ export const CVTab = ({ data }: { data: any }) => {
     }
 
     setPreviewBody({
-      ...payloadData,
+      action: "CV",
+      data: payloadData,
       skip_ai: true,
       preview: true,
-      renderer: 'pdf'
+      renderer: 'latex'
     });
     setRefreshTrigger(prev => prev + 1);
   };

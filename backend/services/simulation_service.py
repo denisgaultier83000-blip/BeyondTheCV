@@ -27,33 +27,6 @@ def _sanitize_for_prompt(data: dict) -> dict:
                 del safe_data['personal_info'][pii_key]
     return safe_data
 
-class FlawCoachRequest(BaseModel):
-    flaw: str
-    target_job: Optional[str] = "Candidat"
-    target_language: Optional[str] = "fr"
-
-@router.post("/coach-flaw")
-async def coach_flaw(request: FlawCoachRequest, current_user: dict = Depends(get_current_user)):
-    """Transforme un défaut brut en argument d'entretien."""
-    target_lang = normalize_language(request.target_language)
-    prompt_template = load_prompt("flaw_coach.md")
-    
-    final_prompt = f"""
-    {prompt_template}
-    
-    DÉFAUT DU CANDIDAT : "{request.flaw}"
-    POSTE VISÉ : "{request.target_job}"
-    
-    Adapte la réponse au poste visé si pertinent (ex: pour un manager, la délégation est clé ; pour un dev, la rigueur).
-    OUTPUT LANGUAGE: {target_lang}
-    """
-    
-    try:
-        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an Interview Coach.")
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Flaw coaching failed: {str(e)}")
-
 @router.post("/coach-keyword")
 async def coach_keyword(request: dict = Body(...), current_user: dict = Depends(get_current_user)):
     """Génère un conseil pour intégrer un mot-clé manquant."""
