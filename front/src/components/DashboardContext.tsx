@@ -23,6 +23,7 @@ interface DashboardContextType {
   realityResult: any;
   flawCoachingResult: any;
   actionPlanResult: any;
+  customScenariosResult: any;
   globalStatus: string;
   cvData: any;
   setCurrentStep: (step: number) => void;
@@ -46,6 +47,7 @@ interface DashboardProviderProps {
   initialRealityResult?: any;
   initialFlawCoachingResult?: any;
   initialActionPlanResult?: any;
+  initialCustomScenariosResult?: any;
   initialGlobalStatus?: string;
   onSetCurrentStep?: (step: number) => void;
   onTriggerResearch?: () => Promise<void>;
@@ -73,6 +75,7 @@ export const DashboardProvider = ({
   initialRealityResult = null,
   initialFlawCoachingResult = null,
   initialActionPlanResult = null,
+  initialCustomScenariosResult = null,
   initialGlobalStatus = 'IDLE',
   onSetCurrentStep = () => {},
   onTriggerResearch = async () => {}
@@ -141,6 +144,7 @@ export const DashboardProvider = ({
       realityResult: initialRealityResult,
       flawCoachingResult: initialFlawCoachingResult,
       actionPlanResult: initialActionPlanResult,
+      customScenariosResult: initialCustomScenariosResult,
       globalStatus: initialGlobalStatus,
       setCurrentStep: onSetCurrentStep,
       triggerResearch: onTriggerResearch

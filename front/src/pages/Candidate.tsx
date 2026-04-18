@@ -83,6 +83,7 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
   const [cvMode, setCvMode] = useState<"ATS" | "Human" | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [actionPlanResult, setActionPlanResult] = useState<any>(null); // [NEW] State pour la To-Do List
+  const [customScenariosResult, setCustomScenariosResult] = useState<any>(null); // [NEW] State pour les scénarios custom
   const [isPrinting, setIsPrinting] = useState(false);
   const [showDocuments, setShowDocuments] = useState(false);
   const [salaryData, setSalaryData] = useState<any>(null);
@@ -499,6 +500,7 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
             if (parsed.gpsResult) setGpsResult(parsed.gpsResult);
             if (parsed.realityResult) setRealityResult(parsed.realityResult);
             if (parsed.flawCoachingResult) setFlawCoachingResult(parsed.flawCoachingResult);
+            if (parsed.customScenariosResult) setCustomScenariosResult(parsed.customScenariosResult);
 
             setToast({ type: "success", message: `Profil de ${currentUser.email} chargé depuis la base de données.` });
             profileLoadedFromDB = true;
@@ -535,6 +537,7 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
           if (parsed.gpsResult) setGpsResult(parsed.gpsResult);
           if (parsed.realityResult) setRealityResult(parsed.realityResult);
           if (parsed.flawCoachingResult) setFlawCoachingResult(parsed.flawCoachingResult);
+          if (parsed.customScenariosResult) setCustomScenariosResult(parsed.customScenariosResult);
           
           setToast({ type: "info", message: `Session locale restaurée pour ${currentUser.email}` });
         } catch (e) {
@@ -552,10 +555,10 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
     const currentUser = getUser();
     if (!currentUser) return;
     const dataToSave = {
-      form, experiences, educations, researchData, salaryData, pitchData, gapAnalysis, questionsList, radarResult, decoderResult, hiddenMarketResult, recruiterResult, gpsResult, realityResult, flawCoachingResult, actionPlanResult
+      form, experiences, educations, researchData, salaryData, pitchData, gapAnalysis, questionsList, radarResult, decoderResult, hiddenMarketResult, recruiterResult, gpsResult, realityResult, flawCoachingResult, actionPlanResult, customScenariosResult
     };
     localStorage.setItem(`candidateForm_${currentUser.email}`, JSON.stringify(dataToSave));
-  }, [form, experiences, educations, researchData, salaryData, pitchData, gapAnalysis, questionsList, radarResult, decoderResult, hiddenMarketResult, recruiterResult, gpsResult, realityResult, flawCoachingResult, actionPlanResult]);
+  }, [form, experiences, educations, researchData, salaryData, pitchData, gapAnalysis, questionsList, radarResult, decoderResult, hiddenMarketResult, recruiterResult, gpsResult, realityResult, flawCoachingResult, actionPlanResult, customScenariosResult]);
 
   // [NOUVEAU] Sauvegarde silencieuse en Base de données (Fire-and-Forget)
   const saveProgressToDB = async () => {
@@ -563,7 +566,7 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
     if (!currentUser) return;
     
     const dataToSave = {
-      form, experiences, educations, researchData, salaryData, pitchData, gapAnalysis, questionsList, radarResult, decoderResult, hiddenMarketResult, recruiterResult, gpsResult, realityResult, flawCoachingResult, actionPlanResult
+      form, experiences, educations, researchData, salaryData, pitchData, gapAnalysis, questionsList, radarResult, decoderResult, hiddenMarketResult, recruiterResult, gpsResult, realityResult, flawCoachingResult, actionPlanResult, customScenariosResult
     };
 
     try {
@@ -918,6 +921,7 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
       if (tasks.career_gps) promises.push(poll(tasks.career_gps, setGpsResult, 'gps', "GPS Carrière"));
       if (tasks.reality_check) promises.push(poll(tasks.reality_check, setRealityResult, 'reality', "Reality Check"));
       if (tasks.flaw_coaching) promises.push(poll(tasks.flaw_coaching, setFlawCoachingResult, undefined, "Parades Défauts"));
+      if (tasks.custom_scenarios) promises.push(poll(tasks.custom_scenarios, setCustomScenariosResult, undefined, "Mises en Situation"));
       
       // On attend que tout soit fini (ou échoué)
       await Promise.all(promises);

@@ -617,6 +617,7 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
         tasks_map["profile_validation"] = str(uuid.uuid4())
         tasks_map["flaw_coaching"] = str(uuid.uuid4())
         tasks_map["action_plan"] = str(uuid.uuid4())
+        tasks_map["custom_scenarios"] = str(uuid.uuid4())
         
         if data.target_company or data.target_industry:
             tasks_map["market_research"] = str(uuid.uuid4())

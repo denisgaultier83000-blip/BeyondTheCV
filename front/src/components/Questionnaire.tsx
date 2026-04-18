@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HelpCircle, MessageSquare, Printer, ArrowLeft, CheckCircle2, Lightbulb } from 'lucide-react';
+import { HelpCircle, MessageSquare, Printer, ArrowLeft, CheckCircle2, Lightbulb, Eye, EyeOff } from 'lucide-react';
 
 interface QuestionnaireProps {
   questions: any[];
@@ -13,6 +13,11 @@ interface QuestionnaireProps {
 
 export default function Questionnaire({ questions, onBack, onPrint, onUpdate, loading, hideHeader }: QuestionnaireProps) {
   const { t } = useTranslation();
+  const [revealed, setRevealed] = useState<Record<number, boolean>>({});
+
+  const toggleReveal = (idx: number) => {
+    setRevealed(prev => ({ ...prev, [idx]: !prev[idx] }));
+  };
 
   return (
     <div className={hideHeader ? "" : "step-content"} style={{ maxWidth: '1200px', margin: '0 auto', padding: hideHeader ? '0' : '20px' }}>
@@ -37,12 +42,15 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
 
       <style>{`
         @keyframes slideUpFade { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .staggered-card { animation: slideUpFade 0.5s ease-out forwards; opacity: 0; }
       `}</style>
 
       {/* Affichage pleine largeur (1fr) pour plus de lisibilité avec animation en cascade */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
-        {questions.map((q, idx) => (
+        {questions.map((q, idx) => {
+          const isRevealed = revealed[idx];
+          return (
           <div key={idx} className="staggered-card" style={{ 
             background: 'var(--bg-card)', 
             borderRadius: '16px', 
@@ -87,11 +95,24 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
               </div>
             </div>
 
-            {q.suggested_answer && (
-              <div style={{ background: '#f0fdf4', padding: '1rem', borderRadius: '8px', border: '1px solid #bbf7d0', fontSize: '0.9rem', color: '#166534' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', fontWeight: '600' }}>
-                  <CheckCircle2 size={16} /> 
-                  <span>Suggestion de réponse (Éditable)</span>
+            {q.suggested_answer && !isRevealed && (
+              <div style={{ marginTop: '0.5rem' }}>
+                <button onClick={() => toggleReveal(idx)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
+                  <Eye size={16} /> Afficher la suggestion et les conseils
+                </button>
+              </div>
+            )}
+
+            {q.suggested_answer && isRevealed && (
+              <div style={{ background: '#f0fdf4', padding: '1rem', borderRadius: '8px', border: '1px solid #bbf7d0', fontSize: '0.9rem', color: '#166534', animation: 'fadeIn 0.3s ease-out' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '600' }}>
+                    <CheckCircle2 size={16} /> 
+                    <span>Suggestion de réponse (Éditable)</span>
+                  </div>
+                  <button onClick={() => toggleReveal(idx)} style={{ background: 'transparent', border: 'none', color: '#166534', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', opacity: 0.8 }} onMouseOver={e => e.currentTarget.style.opacity = '1'} onMouseOut={e => e.currentTarget.style.opacity = '0.8'}>
+                    <EyeOff size={14} /> Masquer
+                  </button>
                 </div>
                 {/* [FIX] Textarea éditable pour la réponse */}
                 <textarea 
@@ -114,14 +135,14 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
               </div>
             )}
             
-            {q.advice && (
-               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', gap: '0.5rem', marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px dashed var(--border-color)' }}>
+            {q.advice && isRevealed && (
+               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', gap: '0.5rem', marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px dashed var(--border-color)', animation: 'fadeIn 0.3s ease-out' }}>
                  <Lightbulb size={16} style={{ flexShrink: 0, color: '#eab308' }} /> 
                  <span>{q.advice}</span>
                </div>
             )}
           </div>
-        ))}
+        )})}
       </div>
     </div>
   );

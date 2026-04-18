@@ -53,6 +53,7 @@ function AppContent() {
     pitchResult, questionsResult,
     hiddenMarketResult, recruiterResult, realityResult, flawCoachingResult,
     globalStatus, error,
+    customScenariosResult,
     handleNextStep,
     cvData,
     setFormData,
@@ -306,7 +307,7 @@ function AppContent() {
         </div>);
       case 8: return (
         <div className="step-wrapper dashboard-wrapper">
-          <TabProvider initialCvData={cvData} initialCvResult={cvResult} initialGapResult={gapResult} initialActionPlanResult={actionPlanResult} initialResearchResult={researchResult} initialSalaryResult={salaryResult} initialCareerGpsResult={careerGpsResult} initialCareerRadarResult={careerRadarResult} initialJobDecoderResult={jobDecoderResult} initialPitchResult={pitchResult} initialQuestionsResult={questionsResult} initialHiddenMarketResult={hiddenMarketResult} initialRecruiterResult={recruiterResult} initialRealityResult={realityResult} initialFlawCoachingResult={flawCoachingResult} initialGlobalStatus={globalStatus} onSetCurrentStep={setCurrentStep} onTriggerResearch={triggerResearch}>
+          <TabProvider initialCvData={cvData} initialCvResult={cvResult} initialGapResult={gapResult} initialActionPlanResult={actionPlanResult} initialResearchResult={researchResult} initialSalaryResult={salaryResult} initialCareerGpsResult={careerGpsResult} initialCareerRadarResult={careerRadarResult} initialJobDecoderResult={jobDecoderResult} initialPitchResult={pitchResult} initialQuestionsResult={questionsResult} initialHiddenMarketResult={hiddenMarketResult} initialRecruiterResult={recruiterResult} initialRealityResult={realityResult} initialFlawCoachingResult={flawCoachingResult} initialCustomScenariosResult={customScenariosResult} initialGlobalStatus={globalStatus} onSetCurrentStep={setCurrentStep} onTriggerResearch={triggerResearch}>
             <DashboardView />
           </TabProvider>
         </div>);

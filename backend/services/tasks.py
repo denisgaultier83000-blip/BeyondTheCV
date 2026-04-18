@@ -853,6 +853,38 @@ async def process_action_plan_in_background(task_id: str, cv_dict: dict):
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
 
+async def process_custom_scenarios_in_background(task_id: str, data: dict):
+    """Génère les Mises en Situation (Scénarios) ultra-personnalisées en tâche de fond"""
+    print(f"[Task {task_id}] 🎭 Starting Custom Scenarios (Async)...")
+    await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
+    try:
+        target_lang = normalize_language(data.get('target_language', 'French'))
+        target_job = data.get('target_job') or data.get('target_role_primary', 'Candidat')
+        job_desc = data.get('job_description', '')
+        
+        prompt_template = load_prompt(get_prompt_path("custom_scenarios.md"))
+        
+        context_job = f"Poste visé : {target_job}"
+        if job_desc and len(job_desc) > 50:
+            context_job += f"\nDESCRIPTION DE L'OFFRE :\n{job_desc}"
+            
+        final_prompt = f"""
+        {prompt_template}
+        
+        CIBLE :
+        {context_job}
+        
+        PROFIL CANDIDAT :
+        {json.dumps(data, indent=2, ensure_ascii=False, default=str)}
+        
+        OUTPUT LANGUAGE: {target_lang}
+        """
+        
+        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an Expert HR Scenario Designer.")
+        await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS" if "error" not in result else "FAILED", result)
+    except Exception as e:
+        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
+
 async def orchestrate_dashboard_tasks(tasks_map: dict, cv_dict: dict):
     """
     Enterprise-grade Orchestrator:
@@ -894,6 +926,7 @@ async def orchestrate_dashboard_tasks(tasks_map: dict, cv_dict: dict):
     if "recruiter_view" in tasks_map: fire("recruiter_view", process_recruiter_view_in_background(tasks_map["recruiter_view"], cv_dict))
     if "reality_check" in tasks_map: fire("reality_check", process_reality_check_in_background(tasks_map["reality_check"], cv_dict))
     if "flaw_coaching" in tasks_map: fire("flaw_coaching", process_flaw_coaching_in_background(tasks_map["flaw_coaching"], cv_dict))
+    if "custom_scenarios" in tasks_map: fire("custom_scenarios", process_custom_scenarios_in_background(tasks_map["custom_scenarios"], cv_dict))
 
     await asyncio.sleep(0.5)
 

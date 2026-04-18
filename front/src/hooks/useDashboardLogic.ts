@@ -74,6 +74,7 @@ export function useDashboardLogic() {
   const [realityResult, setRealityResult] = useState<any>(() => JSON.parse(localStorage.getItem("realityResult") || "null"));
   const [flawCoachingResult, setFlawCoachingResult] = useState<any>(() => JSON.parse(localStorage.getItem("flawCoachingResult") || "null"));
   const [actionPlanResult, setActionPlanResult] = useState<any>(() => JSON.parse(localStorage.getItem("actionPlanResult") || "null"));
+  const [customScenariosResult, setCustomScenariosResult] = useState<any>(() => JSON.parse(localStorage.getItem("customScenariosResult") || "null"));
   
   const [globalStatus, setGlobalStatus] = useState<"IDLE" | "STARTING" | "PROCESSING" | "COMPLETED" | "FAILED">("IDLE");
   const [error, setError] = useState<string | null>(null);
@@ -154,7 +155,8 @@ export function useDashboardLogic() {
     if (realityResult) localStorage.setItem("realityResult", JSON.stringify(realityResult));
     if (flawCoachingResult) localStorage.setItem("flawCoachingResult", JSON.stringify(flawCoachingResult));
     if (actionPlanResult) localStorage.setItem("actionPlanResult", JSON.stringify(actionPlanResult));
-  }, [formData, currentStep, taskIds, cvResult, gapResult, researchResult, salaryResult, careerGpsResult, careerRadarResult, jobDecoderResult, pitchResult, questionsResult, hiddenMarketResult, recruiterResult, realityResult, flawCoachingResult, actionPlanResult]);
+    if (customScenariosResult) localStorage.setItem("customScenariosResult", JSON.stringify(customScenariosResult));
+  }, [formData, currentStep, taskIds, cvResult, gapResult, researchResult, salaryResult, careerGpsResult, careerRadarResult, jobDecoderResult, pitchResult, questionsResult, hiddenMarketResult, recruiterResult, realityResult, flawCoachingResult, actionPlanResult, customScenariosResult]);
 
   // --- GESTION DU FORMULAIRE ---
   const updateFormData = (key: string, value: any) => {
@@ -194,6 +196,7 @@ export function useDashboardLogic() {
     setRealityResult(null);
     setFlawCoachingResult(null);
     setActionPlanResult(null);
+    setCustomScenariosResult(null);
     setGlobalStatus("IDLE");
     setActiveTab('overview');
     setPilotData(null);
@@ -377,6 +380,7 @@ export function useDashboardLogic() {
   useTaskPolling(taskIds?.reality_check, setRealityResult);
   useTaskPolling(taskIds?.flaw_coaching, setFlawCoachingResult);
   useTaskPolling(taskIds?.action_plan, setActionPlanResult);
+  useTaskPolling(taskIds?.custom_scenarios, setCustomScenariosResult);
 
   // Effect pour la conversion de devise
   useEffect(() => {
@@ -439,6 +443,7 @@ export function useDashboardLogic() {
     careerGpsResult, careerRadarResult, jobDecoderResult, pitchResult, questionsResult,
     hiddenMarketResult, recruiterResult, realityResult, flawCoachingResult,
     actionPlanResult, globalStatus, error,
+    customScenariosResult,
     handleNextStep,
     cvData: formData,
     updateFormData,

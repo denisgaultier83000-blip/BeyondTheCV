@@ -22,6 +22,7 @@ interface HeaderProps {
   goToStep?: (stepId: number) => void;
   userName?: string;
   onOpenProfile?: () => void;
+  onOpenRewards?: () => void;
   onLogout?: () => void;
   onLanguageChange?: (lang: string) => void;
   isAuthenticated?: boolean;
@@ -40,6 +41,7 @@ export default function Header({
   goToStep = () => {},
   userName,
   onOpenProfile,
+  onOpenRewards,
   onLogout,
   onLanguageChange
 }: HeaderProps) {
@@ -106,6 +108,14 @@ export default function Header({
                     onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                   >
                     📄 Mes Productions
+                  </button>
+                  <button 
+                    onClick={() => { setDropdownOpen(false); onOpenRewards?.(); }} 
+                    style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', textAlign: 'left', cursor: 'pointer', color: 'var(--text-main)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    🏆 Mes Récompenses
                   </button>
                   <button 
                     onClick={() => { setDropdownOpen(false); onLogout?.(); }} 
