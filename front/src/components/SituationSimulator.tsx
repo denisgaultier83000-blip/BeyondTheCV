@@ -108,29 +108,16 @@ export function SituationSimulator() {
       const data = await response.json();
       setAiFeedback(data.feedback);
       const scId = selectedScenario.id || selectedScenario.title;
-      updateFormData("simulatorScores", { ...scores, [scId]: Number(data.feedback.score) });
-
+      
+      if (updateFormData) {
+        updateFormData("simulatorScores", { ...scores, [scId]: Number(data.feedback.score) });
+      }
     } catch (error) {
-      console.warn("Backend not ready or failed, using mock fallback...", error);
-      // FALLBACK MOCK (Pour tester l'UI en attendant l'endpoint)
-      setTimeout(() => {
-        setAiFeedback({
-          score: 75,
-          strengths: ["Bonne prise d'initiative", "Approche pragmatique orientée solution"],
-          weaknesses: ["Manque d'empathie explicite au début", "Le suivi post-crise est ignoré"],
-          analysis: {
-            diagnostic: "Vous avez bien cerné l'urgence, mais oublié d'évaluer l'impact complet avant d'agir.",
-            human: "Il manque une phase de réassurance verbale. L'humain doit précéder l'opérationnel.",
-            action: "L'action proposée est très solide et directement applicable.",
-            follow_up: "Aucune mention de la prévention pour éviter que le problème ne se reproduise."
-          },
-          recommendations: ["Commencez toujours par accuser réception du problème émotionnel/humain.", "Ajoutez une phrase sur le post-mortem ou le reporting final."],
-          improved_answer: "Je commencerais par rassurer l'équipe et écouter le client. Ensuite, je mettrais en place votre solution de contournement, tout en planifiant un point de suivi dans 48h pour valider la résolution définitive."
-        });
-        const scId = selectedScenario.id || selectedScenario.title;
-        updateFormData("simulatorScores", { ...scores, [scId]: 75 });
-        setIsSubmitting(false);
-      }, 1500);
+      console.error("Erreur lors de l'analyse IA :", error);
+      // Le mock a été supprimé pour ne plus écraser la vraie note (ex: 4/10) en cas d'erreur de rendu.
+      alert("Une erreur de communication avec le serveur est survenue.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

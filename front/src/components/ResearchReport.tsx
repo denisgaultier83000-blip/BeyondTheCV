@@ -1,5 +1,5 @@
 import React from 'react';
-import { Building, Target, Lightbulb, TrendingUp, Users, DollarSign } from 'lucide-react';
+import { Building, Target, Lightbulb, TrendingUp, Users, DollarSign, Newspaper } from 'lucide-react';
 
 interface ResearchData {
   // Support Backend V1 & V2
@@ -104,6 +104,24 @@ export function ResearchReport({ data, companyName }: ResearchReportProps) {
           <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#475569', fontSize: '0.9rem' }}>
           {advice.map((item: any, idx: number) => (
               <li key={idx} style={{ marginBottom: '0.25rem' }}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Articles de Presse / Actualités */}
+      {data.essential_articles && data.essential_articles.length > 0 && (
+        <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+          <h4 style={{ margin: '0 0 0.75rem 0', color: '#334155', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Newspaper size={18}/> Actualités & Articles Clés
+          </h4>
+          <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#475569', fontSize: '0.9rem' }}>
+            {data.essential_articles.map((article, idx) => (
+              <li key={idx} style={{ marginBottom: '0.5rem' }}>
+                <a href={article.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 500 }}>
+                  {article.title}
+                </a>
+              </li>
             ))}
           </ul>
         </div>
