@@ -20,7 +20,8 @@ interface MarketData {
         client_types?: string[];
         culture_environment: string;
         team_structure: string;
-        hot_news: string;
+        hot_news?: string;
+        news_links?: { title: string; url: string; source?: string }[];
     };
     market_report?: {
         tension_score: number;
@@ -100,6 +101,15 @@ export default function MarketReport({ data, onBack }: Props) {
                             <ul>
                                 {data.company_report.team_structure && <li><strong>Équipes :</strong> {data.company_report.team_structure}</li>}
                                 {data.company_report.hot_news && <li><strong>Actu :</strong> {data.company_report.hot_news}</li>}
+                                {data.company_report.news_links && data.company_report.news_links.length > 0 && (
+                                    <li><strong>Articles :</strong> 
+                                        <ul style={{ marginTop: '0.5rem' }}>
+                                            {data.company_report.news_links.map((link: any, i: number) => (
+                                                <li key={i}><a href={link.url} target="_blank" rel="noopener noreferrer">{link.title}</a></li>
+                                            ))}
+                                        </ul>
+                                    </li>
+                                )}
                             </ul>
                         ) : null}
                     </div>

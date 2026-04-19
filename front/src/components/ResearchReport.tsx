@@ -41,6 +41,9 @@ export function ResearchReport({ data, companyName }: ResearchReportProps) {
   const finance = companyReport.financial_health || "Non spécifié.";
   const figures = companyReport.key_figures || "Non spécifié.";
   
+  // Rétrocompatibilité : on cherche d'abord le nouveau format, puis l'ancien
+  const newsLinks = companyReport.news_links || data.essential_articles || [];
+
   let advice = data.advice || [];
   if (!advice || advice.length === 0) {
       if (marketReport.trends && !marketReport.trends.includes("Non spécifié")) advice.push(`Tendance marché : ${marketReport.trends}`);
@@ -110,17 +113,18 @@ export function ResearchReport({ data, companyName }: ResearchReportProps) {
       )}
 
       {/* Articles de Presse / Actualités */}
-      {data.essential_articles && data.essential_articles.length > 0 && (
+      {newsLinks.length > 0 && (
         <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
           <h4 style={{ margin: '0 0 0.75rem 0', color: '#334155', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Newspaper size={18}/> Actualités & Articles Clés
           </h4>
           <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#475569', fontSize: '0.9rem' }}>
-            {data.essential_articles.map((article, idx) => (
+            {newsLinks.map((article: any, idx: number) => (
               <li key={idx} style={{ marginBottom: '0.5rem' }}>
                 <a href={article.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 500 }}>
                   {article.title}
                 </a>
+                {article.source && <span style={{ color: '#94a3b8', fontSize: '0.8rem', marginLeft: '0.5rem' }}>({article.source})</span>}
               </li>
             ))}
           </ul>

@@ -29,6 +29,7 @@ interface DashboardContextType {
   setCurrentStep: (step: number) => void;
   triggerResearch: () => Promise<void>;
   fetchPilotData: () => Promise<void>;
+  updateFormData?: (key: string, value: any) => void;
 }
 
 interface DashboardProviderProps {
@@ -52,6 +53,7 @@ interface DashboardProviderProps {
   onSetCurrentStep?: (step: number) => void;
   onTriggerResearch?: () => Promise<void>;
   initialCvData?: any;
+  onUpdateFormData?: (key: string, value: any) => void;
 }
 
 // --- INITIALISATION DU CONTEXTE ---
@@ -78,7 +80,8 @@ export const DashboardProvider = ({
   initialCustomScenariosResult = null,
   initialGlobalStatus = 'IDLE',
   onSetCurrentStep = () => {},
-  onTriggerResearch = async () => {}
+  onTriggerResearch = async () => {},
+  onUpdateFormData
 }: DashboardProviderProps) => {
   // État de navigation interne
   const [activeTab, setActiveTab] = useState<string>('overview');
@@ -147,7 +150,8 @@ export const DashboardProvider = ({
       customScenariosResult: initialCustomScenariosResult,
       globalStatus: initialGlobalStatus,
       setCurrentStep: onSetCurrentStep,
-      triggerResearch: onTriggerResearch
+      triggerResearch: onTriggerResearch,
+      updateFormData: onUpdateFormData
     }}>
       {children}
     </DashboardContext.Provider>

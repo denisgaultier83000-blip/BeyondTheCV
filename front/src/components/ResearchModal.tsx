@@ -98,7 +98,17 @@ const ResearchModal: React.FC<ResearchModalProps> = ({ data, mode = 'company', o
                     </div>
                   <div style={{ background: 'rgba(225, 29, 72, 0.05)', border: '1px solid rgba(225, 29, 72, 0.2)', padding: '1rem', borderRadius: '8px' }}>
                       <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--danger-text)' }}>{t('company_news', 'Dernières actualités')}</h4>
-                        <p style={{...textStyle, fontSize: '0.85rem'}}>{company_report.hot_news}</p>
+                        {company_report.news_links && company_report.news_links.length > 0 ? (
+                          <ul style={{ margin: 0, paddingLeft: '1.2rem', ...textStyle, fontSize: '0.85rem' }}>
+                            {company_report.news_links.map((link: any, i: number) => (
+                              <li key={i} style={{ marginBottom: '0.25rem' }}>
+                                <a href={link.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--danger-text)', textDecoration: 'none' }}>{link.title}</a>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p style={{...textStyle, fontSize: '0.85rem'}}>{company_report.hot_news || "Aucune actualité récente."}</p>
+                        )}
                     </div>
                 </div>
             </>

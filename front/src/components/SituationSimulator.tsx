@@ -57,8 +57,15 @@ export function SituationSimulator() {
   const [isGeneratingMore, setIsGeneratingMore] = useState(false);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
 
-  // On lit les scores directement depuis les données du profil (sauvegardées en DB)
-  const scores = cvData?.simulatorScores || {};
+  // État local pour un retour visuel instantané (Optimistic UI update)
+  const [localScores, setLocalScores] = useState<Record<string, number>>({});
+
+  // Synchronisation avec les données du serveur au chargement
+  useEffect(() => {
+    if (cvData?.simulatorScores) {
+      setLocalScores(cvData.simulatorScores);
+    }
+  }, [cvData?.simulatorScores]);
 
   // Utilitaire pour déterminer le thème de la carte en fonction du score
   const getScoreTheme = (score100?: number) => {
@@ -109,8 +116,11 @@ export function SituationSimulator() {
       setAiFeedback(data.feedback);
       const scId = selectedScenario.id || selectedScenario.title;
       
+      // Mise à jour optimiste pour que la bordure change instantanément en UI
+      setLocalScores(prev => ({ ...prev, [scId]: Number(data.feedback.score) }));
+
       if (updateFormData) {
-        updateFormData("simulatorScores", { ...scores, [scId]: Number(data.feedback.score) });
+        updateFormData("simulatorScores", { ...localScores, [scId]: Number(data.feedback.score) });
       }
     } catch (error) {
       console.error("Erreur lors de l'analyse IA :", error);
@@ -140,7 +150,7 @@ export function SituationSimulator() {
     // On considère un scénario comme maîtrisé si le score est supérieur à 50
     return category.scenarios.every(sc => {
       const scId = sc.id || sc.title;
-      return scores[scId] !== undefined && scores[scId] >= 50;
+      return localScores[scId] !== undefined && localScores[scId] >= 50;
     });
   };
 
@@ -168,12 +178,20 @@ export function SituationSimulator() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
               {category.scenarios.map(sc => {
                 const scId = sc.id || sc.title;
-                const score = scores[scId];
+                const score = localScores[scId];
                 const isDone = score !== undefined;
                 const theme = getScoreTheme(score);
                 const isHovered = hoveredCard === scId;
                 const scoreSur10 = score !== undefined ? (score / 10).toFixed(1) : null;
                 
+                // --- NOUVEAU : Pré-calcul propre pour imposer le style au navigateur ---
+                const currentBorderColor = isDone ? theme.border : (isHovered ? 'var(--primary)' : 'var(--border-color)');
+                const currentBorderWidth = isDone ? '2px' : '1px';
+                const dynamicBorder = `${currentBorderWidth} solid ${currentBorderColor}`;
+                const dynamicBoxShadow = isHovered 
+                  ? (isDone ? `0 10px 15px -3px ${theme.border}40` : '0 10px 15px -3px rgba(0,0,0,0.05)') 
+                  : 'none';
+
                 return (
                   <div 
                     key={scId} 
@@ -182,9 +200,7 @@ export function SituationSimulator() {
                       background: isDone ? theme.bg : 'var(--bg-card)', 
                       padding: '1.5rem', 
                       borderRadius: '1rem', 
-                      borderWidth: isDone ? '2px' : '1px',
-                      borderStyle: 'solid',
-                      borderColor: isHovered ? (isDone ? theme.border : 'var(--primary)') : (isDone ? theme.border : 'var(--border-color)'),
+                      border: dynamicBorder,
                       cursor: 'pointer', 
                       transition: 'all 0.2s ease', 
                       display: 'flex', 
@@ -192,7 +208,7 @@ export function SituationSimulator() {
                       position: 'relative', 
                       overflow: 'hidden',
                       transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
-                      boxShadow: isHovered ? (isDone ? `0 10px 15px -3px ${theme.border}40` : '0 10px 15px -3px rgba(0,0,0,0.05)') : 'none'
+                      boxShadow: dynamicBoxShadow
                     }} 
                     onMouseEnter={() => setHoveredCard(scId)}
                     onMouseLeave={() => setHoveredCard(null)}
