@@ -21,6 +21,7 @@ import random
 import os
 import subprocess
 import json
+import re
 
 # [FIX] Forcer l'IPv4 pour résoudre les timeouts (60s) de l'API Google Gemini sous Docker
 old_getaddrinfo = socket.getaddrinfo
@@ -220,6 +221,21 @@ async def rate_limiter(request: Request):
 
 app = FastAPI(title="BeyondTheCV API", lifespan=lifespan)
 
+# --- CORS CONFIGURATION ---
+cors_origins = [
+    "http://localhost:3000",  # Frontend URL (React/Next.js)
+    "http://localhost:5173",  # Frontend URL (Vite)
+    "http://127.0.0.1:3000",
+    "https://www.beyondthecv.app", # Allow production domain (www)
+    "https://beyondthecv.app",     # Allow production domain (apex)
+    "https://beyond-the-cv-front.vercel.app",
+    "https://beyondthecv-frontend-service-746792482004.europe-west1.run.app"
+]
+
+# [BONNE PRATIQUE] Ajout dynamique si l'URL est passée via l'environnement
+if os.getenv("FRONTEND_URL"):
+    cors_origins.append(os.getenv("FRONTEND_URL"))
+
 # [DEBUG] Middleware pour tracer les requêtes entrantes (Confirme la connexion réseau)
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -237,7 +253,7 @@ async def log_requests(request: Request, call_next):
     # [FIX EXPERT] Injection MANUELLE et FORCÉE des headers CORS sur TOUTES les réponses.
     # Cela empêche le navigateur de masquer une vraie erreur 500 derrière un faux problème CORS.
     origin = request.headers.get("origin")
-    if origin:
+        if origin and (origin in cors_origins or re.match(r"^(https://.*\.vercel\.app|https://.*\.run\.app)$", origin)):
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
 
@@ -251,21 +267,6 @@ async def log_requests(request: Request, call_next):
 
 # Note: rate_limiter dependency can be added globally or per router
 # app = FastAPI(..., dependencies=[Depends(rate_limiter)])
-
-# --- CORS CONFIGURATION ---
-cors_origins = [
-    "http://localhost:3000",  # Frontend URL (React/Next.js)
-    "http://localhost:5173",  # Frontend URL (Vite)
-    "http://127.0.0.1:3000",
-    "https://www.beyondthecv.app", # Allow production domain (www)
-    "https://beyondthecv.app",     # Allow production domain (apex)
-    "https://beyond-the-cv-front.vercel.app",
-    "https://beyondthecv-frontend-service-746792482004.europe-west1.run.app"
-]
-
-# [BONNE PRATIQUE] Ajout dynamique si l'URL est passée via l'environnement
-if os.getenv("FRONTEND_URL"):
-    cors_origins.append(os.getenv("FRONTEND_URL"))
 
 # Configuration CORS
 app.add_middleware(
@@ -283,7 +284,7 @@ app.add_middleware(
 async def force_cors_preflight(request: Request, call_next):
     if request.method == "OPTIONS":
         origin = request.headers.get("origin")
-        if origin:
+        if origin and (origin in cors_origins or re.match(r"^(https://.*\.vercel\.app|https://.*\.run\.app)$", origin)):
             # [FIX EXPERT] Les navigateurs rejettent l'étoile '*' si Credentials=true.
             # On doit renvoyer la chaîne exacte demandée par le navigateur.
             req_headers = request.headers.get("Access-Control-Request-Headers", "Content-Type, Authorization")

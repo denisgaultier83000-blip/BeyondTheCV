@@ -196,50 +196,54 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
           const feedback = feedbacks[idx];
           const isRecordingThis = isRecording === idx;
           const isSubmittingThis = isSubmitting === idx;
+          const isDone = !!feedback;
+          const theme = getScoreTheme(feedback?.score);
+          const showFeedback = showFeedbackDetails[idx];
+          const isHovered = hoveredCard === idx;
 
           return (
           <div key={idx} className="staggered-card" style={{ 
-            background: 'var(--bg-card)', 
+            background: isDone && !showFeedback ? theme.bg : 'var(--bg-card)', 
             borderRadius: '16px', 
             padding: '1.5rem', 
-            border: '1px solid var(--border-color)',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            border: isDone && !showFeedback ? `2px solid ${theme.border}` : '1px solid var(--border-color)',
+            boxShadow: isHovered ? (isDone && !showFeedback ? `0 10px 15px -3px ${theme.border}40` : '0 10px 15px -3px rgba(0,0,0,0.05)') : '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
             display: 'flex',
             flexDirection: 'column',
             gap: '1rem',
-            transition: 'transform 0.2s ease-in-out',
+            transition: 'all 0.2s ease-in-out',
             cursor: 'default',
-            animationDelay: `${idx * 0.1}s` /* Apparition au fil de l'eau */
+            animationDelay: `${idx * 0.1}s`,
+            transform: isHovered ? 'translateY(-2px)' : 'translateY(0)'
           }}
-          onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-          onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          onMouseEnter={() => setHoveredCard(idx)}
+          onMouseLeave={() => setHoveredCard(null)}
           >
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
-              <div style={{ 
-                background: '#eff6ff', 
-                padding: '0.6rem', 
-                borderRadius: '10px', 
-                color: 'var(--primary)',
-                flexShrink: 0
-              }}>
-                <HelpCircle size={22} />
-              </div>
-              <div>
-                <span style={{ 
-                  fontSize: '0.7rem', 
-                  textTransform: 'uppercase', 
-                  fontWeight: '700', 
-                  color: 'var(--text-muted)',
-                  marginBottom: '0.25rem',
-                  display: 'block',
-                  letterSpacing: '0.05em'
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                <div style={{ 
+                  background: isDone ? theme.border + '20' : '#eff6ff', 
+                  padding: '0.6rem', 
+                  borderRadius: '10px', 
+                  color: isDone ? theme.border : 'var(--primary)',
+                  flexShrink: 0
                 }}>
-                  {q.category || 'Question'}
-                </span>
-                <h3 style={{ margin: 0, fontSize: '1.05rem', lineHeight: '1.5', color: 'var(--text-main)', fontWeight: '600' }}>
-                  {q.question}
-                </h3>
+                  <HelpCircle size={22} />
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '0.25rem', display: 'block', letterSpacing: '0.05em' }}>
+                    {q.category || 'Question'}
+                  </span>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', lineHeight: '1.5', color: 'var(--text-main)', fontWeight: '600' }}>
+                    {q.question}
+                  </h3>
+                </div>
               </div>
+              {isDone && !showFeedback && (
+                 <div style={{ background: theme.border, color: 'white', padding: '0.35rem 0.85rem', borderRadius: '2rem', fontWeight: 'bold', fontSize: '1rem', whiteSpace: 'nowrap', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+                   {(feedback.score / 10).toFixed(1)} / 10
+                 </div>
+              )}
             </div>
 
             {/* BOUTONS D'ACTION (Si ni révélé, ni en mode actif, ni feedback) */}
