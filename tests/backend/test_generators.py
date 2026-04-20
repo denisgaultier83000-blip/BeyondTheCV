@@ -30,4 +30,4 @@ def test_generate_docx_document(test_client: TestClient, mock_db, mocker, tmp_pa
     
     mock_generate_docx.assert_called_once()
     
-    mock_db['execute'].assert_awaited_with(ANY, ANY, (ANY, "test-user-id", "fake_cv.docx", fake_path, "CV_WORD", ANY, ANY))
+    mock_db['execute'].assert_awaited_with(ANY, ANY, (ANY, "test-user-id", ANY, fake_path, "CV_WORD", ANY, ANY))

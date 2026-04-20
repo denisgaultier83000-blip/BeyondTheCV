@@ -46,7 +46,7 @@ def test_optimize_experience_ai_error(test_client: TestClient, mock_ai_service: 
 
 def test_generate_cv_with_skill_formatting(test_client: TestClient):
     """
-    Teste POST /api/cv/format-cv-data et valide la transformation des compétences.
+    Teste POST /api/cv/generate (en mode preview JSON) et valide la transformation des compétences.
     (Combine les tests 3 et 10)
     """
     cv_data = {
@@ -56,7 +56,15 @@ def test_generate_cv_with_skill_formatting(test_client: TestClient):
         "languages": [{"language": "Français", "level": "Natif"}, {"language": "Anglais", "level": "C1"}]
     }
 
-    response = test_client.post("/api/cv/format-cv-data", json=cv_data)
+    payload = {
+        "action": "CV JSON",
+        "data": cv_data,
+        "preview": True,
+        "renderer": "json",
+        "skip_ai": True
+    }
+
+    response = test_client.post("/api/cv/generate", json=payload)
     
     assert response.status_code == 200
     response_data = response.json()
