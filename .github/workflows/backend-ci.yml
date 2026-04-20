@@ -62,8 +62,6 @@ jobs:
         # [FIX] Ajoute la racine du projet (.) ET le dossier backend pour corriger tous les imports
         PYTHONPATH: ".:backend"
         
-        # Utilise la base de données du conteneur de service
-        DATABASE_URL: "postgresql://user:password@localhost:5432/test_db"
         # Utilise l'IP explicite 127.0.0.1 pour éviter les bugs de résolution IPv6
         DATABASE_URL: "postgresql://user:password@127.0.0.1:5432/test_db"
         OPENAI_API_KEY: "dummy_key"
