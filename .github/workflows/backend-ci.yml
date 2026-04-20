@@ -70,7 +70,7 @@ jobs:
         # Affiche le contenu du répertoire courant pour faciliter le débogage dans les logs
         ls -la
         # Laisse Pytest découvrir automatiquement tous les dossiers et fichiers de tests
-        pytest -v
+        pytest -v -W ignore::DeprecationWarning
 
   deploy:
     name: Deploy to Google Cloud Run
