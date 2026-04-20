@@ -115,3 +115,6 @@ jobs:
           OPENAI_API_KEY=openai-api-key:latest
           GEMINI_API_KEY=gemini-api-key:latest
           SERPER_API_KEY=serper-api-key:latest
+        # [FIX] Force la suppression des anciennes variables texte pour autoriser la création des secrets
+        flags: |-
+          --remove-env-vars=OPENAI_API_KEY,GEMINI_API_KEY,SERPER_API_KEY
