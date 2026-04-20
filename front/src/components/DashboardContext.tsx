@@ -83,6 +83,22 @@ export const DashboardProvider = ({
   onTriggerResearch = async () => {},
   onUpdateFormData
 }: DashboardProviderProps) => {
+  // État local pour conserver les modifications en temps réel (Optimistic UI global)
+  const [localCvData, setLocalCvData] = useState<any>(initialCvData);
+
+  // Synchronisation au cas où le parent recharge entièrement la page depuis la BDD
+  useEffect(() => {
+    setLocalCvData(initialCvData);
+  }, [initialCvData]);
+
+  // Intercepteur pour mettre à jour le contexte instantanément sans attendre le serveur
+  const handleUpdateFormData = useCallback((key: string, value: any) => {
+    setLocalCvData((prev: any) => ({ ...prev, [key]: value }));
+    if (onUpdateFormData) {
+      onUpdateFormData(key, value);
+    }
+  }, [onUpdateFormData]);
+
   // État de navigation interne
   const [activeTab, setActiveTab] = useState<string>('overview');
 
@@ -132,7 +148,7 @@ export const DashboardProvider = ({
       activeTab, setActiveTab,
       pilotData, fetchPilotData,
       isPilotLoading,
-      cvData: initialCvData,
+      cvData: localCvData,
       cvResult: initialCvResult,
       gapResult: initialGapResult,
       researchResult: initialResearchResult,
@@ -151,7 +167,7 @@ export const DashboardProvider = ({
       globalStatus: initialGlobalStatus,
       setCurrentStep: onSetCurrentStep,
       triggerResearch: onTriggerResearch,
-      updateFormData: onUpdateFormData
+      updateFormData: handleUpdateFormData
     }}>
       {children}
     </DashboardContext.Provider>

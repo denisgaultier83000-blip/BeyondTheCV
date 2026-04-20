@@ -50,6 +50,12 @@ class FlawCoachRequest(BaseModel):
     target_job: Optional[str] = "Candidat"
     target_language: Optional[str] = "fr"
 
+class InterviewAnswerRequest(BaseModel):
+    question: str
+    category: Optional[str] = "Question d'entretien"
+    suggested_framework: Optional[str] = ""
+    user_answer: str
+
 def _remove_file_safe(path: str):
     """Supprime un fichier temporaire après son envoi sans crasher en cas d'erreur."""
     try:
@@ -305,6 +311,32 @@ async def coach_flaw(request: FlawCoachRequest):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Flaw coaching failed: {str(e)}")
+
+@router.post("/evaluate-interview-answer")
+async def evaluate_interview_answer(request: InterviewAnswerRequest, current_user: dict = Depends(require_active_subscription)):
+    """Évalue une réponse donnée par le candidat à une question d'entretien (Micro ou Texte)."""
+    prompt_template = load_prompt(get_prompt_path("evaluate_interview_answer.md"))
+    
+    final_prompt = f"""
+    {prompt_template}
+    
+    QUESTION POSÉE : "{request.question}"
+    CATÉGORIE / ATTENTE : "{request.category}"
+    CADRE ATTENDU / SUGGESTION : "{request.suggested_framework}"
+    
+    RÉPONSE DU CANDIDAT :
+    "{request.user_answer}"
+    """
+    
+    try:
+        result = await ai_service.generate_valid_json(
+            final_prompt, 
+            provider="openai", 
+            system_instruction="You are an Expert Interview Coach. Output STRICT JSON."
+        )
+        return {"feedback": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur lors de l'évaluation de la réponse: {str(e)}")
 
 def run_compliance_check(data, lang, quality='smart'):
     # Pas de check complexe pour l'instant, on renvoie la donnée telle quelle ou une correction simple

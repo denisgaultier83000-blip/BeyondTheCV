@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { BrainCircuit, Eye, Edit3, CheckCircle2, AlertTriangle, Lightbulb, MessageSquare, ArrowLeft, Target, ChevronDown, ChevronUp, Loader2, Send, Users, ListChecks, Shield, Award, RefreshCw, X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { BrainCircuit, Eye, Edit3, CheckCircle2, AlertTriangle, Lightbulb, MessageSquare, ArrowLeft, Target, ChevronDown, ChevronUp, Loader2, Send, Users, ListChecks, Shield, Award, RefreshCw, X, Mic, MicOff } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
@@ -56,9 +56,11 @@ export function SituationSimulator() {
   const [showPassiveModel, setShowPassiveModel] = useState(false);
   const [isGeneratingMore, setIsGeneratingMore] = useState(false);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
-  // État local pour un retour visuel instantané (Optimistic UI update)
-  const [localScores, setLocalScores] = useState<Record<string, number>>({});
+  // État local initialisé avec les données du contexte (évite la perte de couleur au changement d'onglet)
+  const [localScores, setLocalScores] = useState<Record<string, number>>(cvData?.simulatorScores || {});
 
   // Synchronisation avec les données du serveur au chargement
   useEffect(() => {
@@ -76,12 +78,88 @@ export function SituationSimulator() {
   };
 
   const reset = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsRecording(false);
+    }
     setSelectedScenario(null);
     setMode(null);
     setUserAnswer("");
     setAiFeedback(null);
     setShowPassiveModel(false);
   };
+
+  // --- GESTION DE LA RECONNAISSANCE VOCALE (Speech-to-Text) ---
+  const toggleRecording = () => {
+    if (isRecording) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsRecording(false);
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("La reconnaissance vocale n'est pas supportée par votre navigateur actuel. Nous vous recommandons d'utiliser Google Chrome ou Microsoft Edge.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'fr-FR';
+    recognition.continuous = true;
+    recognition.interimResults = true; // Permet de voir le texte s'afficher pendant qu'on parle
+
+    // On capture le texte déjà présent pour ne pas l'écraser si le candidat a déjà écrit un bout
+    let baselineAnswer = userAnswer;
+
+    recognition.onresult = (event: any) => {
+      let interimTranscript = '';
+      let finalTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+      
+      if (finalTranscript) {
+         baselineAnswer += (baselineAnswer && !baselineAnswer.endsWith(' ') ? ' ' : '') + finalTranscript;
+         setUserAnswer(baselineAnswer + interimTranscript);
+      } else {
+         setUserAnswer(baselineAnswer + (baselineAnswer && !baselineAnswer.endsWith(' ') ? ' ' : '') + interimTranscript);
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("Erreur de reconnaissance vocale :", event.error);
+      setIsRecording(false);
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    try {
+      recognition.start();
+      recognitionRef.current = recognition;
+      setIsRecording(true);
+    } catch (e) {
+      console.error(e);
+      setIsRecording(false);
+    }
+  };
+
+  // Nettoyage au démontage du composant pour couper le micro si l'utilisateur quitte la page
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     // Si l'IA a généré des scénarios personnalisés, on les utilise. Sinon, fallback statique.
@@ -325,12 +403,23 @@ export function SituationSimulator() {
               {/* MODE ACTIF */}
               {mode === 'active' && !aiFeedback && (
                 <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
-                    <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '0.75rem', borderRadius: '0.5rem', color: 'var(--primary)' }}><Edit3 size={24} /></div>
-                    <div>
-                      <h4 style={{ margin: '0 0 0.25rem 0', color: 'var(--text-main)', fontSize: '1.1rem' }}>À vous de jouer</h4>
-                      <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>Rédigez votre réponse comme si vous parliez au recruteur. Soyez concret et structuré (max ~10 lignes).</p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                      <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '0.75rem', borderRadius: '0.5rem', color: 'var(--primary)' }}><Edit3 size={24} /></div>
+                      <div>
+                        <h4 style={{ margin: '0 0 0.25rem 0', color: 'var(--text-main)', fontSize: '1.1rem' }}>À vous de jouer</h4>
+                        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>Répondez à voix haute (micro) ou rédigez votre réponse. Soyez concret et structuré.</p>
+                      </div>
                     </div>
+                    <button 
+                      onClick={toggleRecording}
+                      className={`btn-${isRecording ? 'primary' : 'secondary'}`} 
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: isRecording ? '#ef4444' : undefined, borderColor: isRecording ? '#ef4444' : undefined, color: isRecording ? 'white' : undefined, animation: isRecording ? 'pulse-record 1.5s infinite' : 'none' }}
+                      title="Répondre à la voix"
+                    >
+                      {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
+                      {isRecording ? "Arrêter l'enregistrement" : "Répondre à la voix"}
+                    </button>
                   </div>
                   
                   <textarea 
@@ -431,6 +520,11 @@ export function SituationSimulator() {
       <style>{`
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse-record {
+          0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+          70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
       `}</style>
     </div>
   );
