@@ -53,6 +53,11 @@ export const CVTab = ({ data }: { data: any }) => {
     payloadData.country = cvData?.country || cvData?.personal_info?.country || payloadData.country;
     payloadData.current_role = cvData?.current_role || payloadData.current_role;
 
+    // [FIX] S'assurer que le prénom et le nom commencent par une majuscule pour le CV
+    const capitalize = (str: string) => str ? str.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : "";
+    payloadData.first_name = capitalize(payloadData.first_name);
+    payloadData.last_name = capitalize(payloadData.last_name);
+
     // [FIX CRITIQUE] Le backend a impérativement besoin de l'objet `personal_info` pour le rendu PDF.
     // Au lieu de le supprimer, on le met à jour avec les valeurs racines correctes.
     payloadData.personal_info = {

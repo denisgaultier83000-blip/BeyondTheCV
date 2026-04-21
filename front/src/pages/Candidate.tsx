@@ -250,11 +250,14 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
     // Helper pour traiter les champs optionnels vides (évite erreur regex Pydantic sur email/phone)
     const optionalString = (val: any) => (val && typeof val === 'string' && val.trim() !== "") ? val : null;
 
+    // Helper pour forcer la majuscule sur chaque mot d'un nom/prénom
+    const capitalize = (str: string) => str ? str.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : "";
+
     // Construction explicite du payload pour correspondre au modèle Pydantic FullCVData
     return {
         personal_info: {
-            first_name: formData.first_name,
-            last_name: formData.last_name,
+            first_name: capitalize(formData.first_name),
+            last_name: capitalize(formData.last_name),
             email: optionalString(formData.email),
             phone: optionalString(formData.phone),
             linkedin: optionalString(formData.linkedin),
@@ -302,46 +305,9 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
           setDebugData({ ...form, experiences, educations });
           setShowDebug(true);
       } else if (action === "Review CV") {
-          // [FIX] Lancement de la génération et affichage de l'aperçu PDF
-          setShowResearchOverlay(true);
-          setLoadingMessage("Génération de l'aperçu du CV...");
-          try {
-              const payload = {
-                  ...formatPayload(form),
-                  renderer: 'pdf',
-                  preview: true,
-                  design_variant: "1" // ou cvMode si vous voulez le rendre dynamique
-              };
-              const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/generate`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(payload)
-              });
-
-              if (!response.ok) {
-                  const errorText = await response.text();
-                  throw new Error(`La génération du PDF a échoué: ${errorText}`);
-              }
-
-              // Sécurité : Vérifier qu'on reçoit bien un fichier PDF et non du JSON
-              const contentType = response.headers.get('content-type');
-              if (contentType && contentType.includes('application/json')) {
-                  const jsonData = await response.json();
-                  throw new Error(jsonData.detail || "Erreur serveur : Le backend a renvoyé du texte au lieu d'un PDF.");
-              }
-
-              const blob = await response.blob();
-              const fileURL = URL.createObjectURL(blob);
-              
-              setPdfUrl(fileURL);
-              setView('cv_preview');
-
-          } catch (e: any) {
-              console.error("Failed to generate CV preview", e);
-              setToast({ type: "error", message: e.message || "Could not generate CV preview." });
-          } finally {
-              if (isMounted.current) { setShowResearchOverlay(false); setLoadingMessage(""); }
-          }
+          // [REFACTOR] Redirection directe vers la vue 'review' (StepReview) 
+          // qui gère déjà l'édition à gauche et l'affichage du PDF à droite de manière robuste.
+          setView('review');
       } else if (action === "Company Research" || action === "Market Research") { // [FIX] Câblage du bouton Market
           await handleDashboardResearch();
       } else if (action === "View Company Report") {
@@ -872,7 +838,8 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
           recruiter: !!tasks.recruiter_view,
           gps: !!tasks.career_gps,
           reality: !!tasks.reality_check,
-          research: !!tasks.market_research
+          research: !!tasks.market_research,
+          actionPlan: !!tasks.action_plan
       });
       
       // Reset errors
@@ -1182,6 +1149,8 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
   }
 
   const currentUser = getUser();
+  
+  const capitalizeName = (str: string) => str ? str.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : "";
 
   return (
     <div className={`page-container candidate-page ${darkMode ? "dark-mode" : ""} ${view === 'stepper' ? 'has-stepper-header' : ''}`}>
@@ -1292,7 +1261,7 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
         steps={STEPS}
         currentStep={currentStep}
         goToStep={goToStep}
-        userName={currentUser?.name || form.first_name || "Candidat"}
+        userName={capitalizeName(currentUser?.name || form.first_name || "Candidat")}
         onOpenProfile={() => setShowDocuments(true)} // @ts-ignore
         targetLanguage={i18n.language}
         onLanguageChange={handleLanguageChange}

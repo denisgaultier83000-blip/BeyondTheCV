@@ -37,7 +37,7 @@ export const InterviewTab = () => {
   const Teleprompter = () => {
     const [timer, setTimer] = useState(180);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
-    const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     useEffect(() => {
       if (isTimerRunning) {

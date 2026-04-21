@@ -3,10 +3,10 @@ import { Mail, Lock, User, ArrowRight, Loader2, AlertCircle } from 'lucide-react
 import { API_BASE_URL } from '../config';
 
 interface LoginProps {
-  onLogin: () => void;
+  onLoginSuccess: () => void;
 }
 
-export default function Login({ onLogin }: LoginProps) {
+export default function Login({ onLoginSuccess }: LoginProps) {
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +72,7 @@ export default function Login({ onLogin }: LoginProps) {
         subscription_status: 'active' // Remplacé par la vraie valeur venant du backend idéalement
       }));
 
-      onLogin(); // Notifie App.tsx du succès
+      onLoginSuccess(); // Notifie App.tsx du succès
 
     } catch (err: any) {
       setError(err.message);
