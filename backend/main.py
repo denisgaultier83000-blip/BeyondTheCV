@@ -253,7 +253,7 @@ async def log_requests(request: Request, call_next):
     # [FIX EXPERT] Injection MANUELLE et FORCÉE des headers CORS sur TOUTES les réponses.
     # Cela empêche le navigateur de masquer une vraie erreur 500 derrière un faux problème CORS.
     origin = request.headers.get("origin")
-        if origin and (origin in cors_origins or re.match(r"^(https://.*\.vercel\.app|https://.*\.run\.app)$", origin)):
+    if origin and (origin in cors_origins or re.match(r"^(https://.*\.vercel\.app|https://.*\.run\.app)$", origin)):
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
 
