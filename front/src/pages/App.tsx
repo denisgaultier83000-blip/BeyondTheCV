@@ -17,7 +17,7 @@ export default function AppRouter() {
       <ErrorBoundary>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login onLogin={() => window.location.href = '/candidate'} />} />
+          <Route path="/login" element={<Login onLoginSuccess={() => window.location.href = '/candidate'} />} />
           <Route
             path="/candidate"
             element={

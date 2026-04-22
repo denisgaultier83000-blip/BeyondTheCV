@@ -889,6 +889,7 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
       if (tasks.reality_check) promises.push(poll(tasks.reality_check, setRealityResult, 'reality', "Reality Check"));
       if (tasks.flaw_coaching) promises.push(poll(tasks.flaw_coaching, setFlawCoachingResult, undefined, "Parades Défauts"));
       if (tasks.custom_scenarios) promises.push(poll(tasks.custom_scenarios, setCustomScenariosResult, undefined, "Mises en Situation"));
+      if (tasks.action_plan) promises.push(poll(tasks.action_plan, setActionPlanResult, 'actionPlan', "Plan d'Action"));
       
       // On attend que tout soit fini (ou échoué)
       await Promise.all(promises);
