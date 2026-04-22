@@ -50,6 +50,10 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
         <Search size={24} /> Décodeur d'Annonce
       </h3>
 
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '-0.5rem', marginBottom: '1.5rem' }}>
+        Traduction du jargon RH en réalité opérationnelle pour déjouer les pièges de l'offre.
+      </p>
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
         {/* Reality Check (Jargon translation) */}
         <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>

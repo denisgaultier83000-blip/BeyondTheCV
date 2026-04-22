@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ThumbsUp, ThumbsDown, Sparkles } from 'lucide-react';
 import { API_BASE_URL } from '../config';
+import { authenticatedFetch } from '../utils/auth';
 
 interface FeedbackWidgetProps {
   feature: string;
@@ -31,7 +32,7 @@ export function FeedbackWidget({
     }
     setStatus('submitting');
     try {
-      const response = await fetch(`${API_BASE_URL}/api/cv/feedback`, {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/feedback`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

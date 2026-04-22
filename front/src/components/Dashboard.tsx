@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { 
   FileText, User, MessageSquare, Mic, 
   BarChart3, Target, Sparkles, Briefcase, Wallet, Linkedin,
-  Compass, Map, Search
+  Compass, Map, Search, Dumbbell, ShieldAlert
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -241,6 +241,35 @@ export default function Dashboard({
           </div>
         </div>
 
+        {/* --- SECTION 4 : S'ENTRAINER --- */}
+        <div className="section-card-new">
+          <div className="section-header-new">
+            <div className="section-icon-new">
+              <Dumbbell size={20} />
+            </div>
+            <h2 className="section-title-new">{t('tab_training', "S'entrainer")}</h2>
+          </div>
+          
+          <div className="action-cards-container-new">
+            <ActionCard 
+              icon={<ShieldAlert />} 
+              title="Mises en situation" 
+              desc="Gérez des scénarios de crise et décisions complexes adaptés à votre poste."
+              onClick={() => onAction && onAction("Training Scenarios")}
+              disabled={loading}
+              ready={true}
+            />
+            <ActionCard 
+              icon={<MessageSquare />} 
+              title="Entraînement ciblé" 
+              desc="Pratiquez la méthode STAR sur des thèmes précis (Conflit, Négociation...)."
+              onClick={() => onAction && onAction("Training Targeted")}
+              disabled={loading}
+              ready={true}
+            />
+          </div>
+        </div>
+
       </div>
 
       <style>{`
@@ -256,7 +285,7 @@ export default function Dashboard({
         }
         @media (min-width: 1024px) {
           .dashboard-grid-new {
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
           }
         }
         .section-card-new {

@@ -36,7 +36,7 @@ export function HiddenMarket({ data, loading, error }: HiddenMarketProps) {
 
   return (
     <>
-      <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
         Stratégie pour accéder aux offres non publiées (qui représentent jusqu'à 80% du marché).
       </p>
 

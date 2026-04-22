@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDashboard } from './DashboardContext';
-import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass, Mic, Search, Eye, Navigation, Network, Loader2, RotateCcw, CheckSquare } from 'lucide-react';
+import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass, Mic, Search, Eye, Navigation, Network, Loader2, RotateCcw, CheckSquare, Dumbbell, ArrowUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PilotBento } from './PilotBento';
 import { GapAnalysisFull } from './GapAnalysisFull';
@@ -17,6 +17,7 @@ import { RecruiterView } from './RecruiterView';
 import { DashboardCard } from './DashboardCard';
 import FlawCoaching from './FlawCoaching';
 import { ToDoListCard } from './ToDoListCard';
+import TrainingTab from './TrainingTab';
 
 export const DashboardView = () => {
   const { t } = useTranslation();
@@ -30,6 +31,7 @@ export const DashboardView = () => {
 
   // --- GESTION DES NOTIFICATIONS ---
   const [viewedTabs, setViewedTabs] = useState<string[]>(['overview']);
+  const [showBackToTop, setShowBackToTop] = useState(false);
 
   const handleTabChange = (tab: string, anchor?: string) => {
     setActiveTab(tab);
@@ -38,11 +40,44 @@ export const DashboardView = () => {
     }
     if (anchor) {
       setTimeout(() => {
-        document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const el = document.getElementById(anchor);
+        if (el) {
+          const y = el.getBoundingClientRect().top + window.scrollY - 100;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        }
       }, 100);
     } else {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 300);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const subMenus: Record<string, {label: string, id: string}[]> = {
+    interview: [
+      { label: 'Pitch', id: 'pitch_section' },
+      { label: 'Questionnaire', id: 'questionnaire_section' },
+      { label: 'Mises en situation', id: 'mes_section' },
+      { label: 'Parades aux Défauts', id: 'flaws_section' }
+    ],
+    market: [
+      { label: 'Gap Analysis', id: 'gap_section' },
+      { label: 'Entreprise & Marché', id: 'analysis_section' },
+      { label: 'Décodeur d\'Annonce', id: 'decoder_section' }
+    ],
+    career: [
+      { label: 'Vue Recruteur', id: 'recruiter_section' },
+      { label: 'GPS de Carrière', id: 'gps_section' },
+      { label: 'Radar de Carrière', id: 'radar_section' },
+      { label: 'Marché Caché', id: 'hidden_section' },
+      { label: 'Simulateur', id: 'simulator_section' }
+    ]
   };
 
   const isProcessing = globalStatus === "PROCESSING" || globalStatus === "STARTING";
@@ -106,7 +141,27 @@ export const DashboardView = () => {
         <button className={`tab-btn ${activeTab === 'actions' ? 'active' : ''}`} onClick={() => handleTabChange('actions')} style={{ position: 'relative' }}>
           <CheckSquare size={18} /> Actions {actionsUnseen && <span className="notification-dot"></span>}
         </button>
+        <button className={`tab-btn ${activeTab === 'training' ? 'active' : ''}`} onClick={() => handleTabChange('training')}>
+          <Dumbbell size={18} /> S'entrainer
+        </button>
       </div>
+
+      {/* SOUS-MENUS */}
+      {subMenus[activeTab] && (
+        <div className="sub-tabs-navigation">
+          {subMenus[activeTab].map((sub) => (
+            <button key={sub.id} className="sub-tab-btn" onClick={() => {
+              const el = document.getElementById(sub.id);
+              if (el) {
+                const y = el.getBoundingClientRect().top + window.scrollY - 120;
+                window.scrollTo({ top: y, behavior: 'smooth' });
+              }
+            }}>
+              {sub.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Contenu de l'onglet actif */}
       <div className="tab-content">
@@ -177,35 +232,49 @@ export const DashboardView = () => {
         {activeTab === 'interview' && (
            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
              <InterviewTab />
-             <FlawCoaching data={flawCoachingResult} inline={true} loading={isProcessing && !flawCoachingResult} />
+             <div id="flaws_section">
+               <FlawCoaching data={flawCoachingResult} inline={true} loading={isProcessing && !flawCoachingResult} />
+             </div>
            </div>
         )}
 
         {activeTab === 'market' && (
            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-             {/* [FIX] On injecte enfin les vraies données détaillées du Gap Analysis */}
-             <GapAnalysisFull data={gapResult || pilotData} loading={isProcessing && !gapResult} onBack={() => handleTabChange('overview')} />
-             <AnalysisTab researchResult={researchResult} salaryResult={salaryResult} onRefresh={triggerResearch} isRefreshing={globalStatus === "PROCESSING"} />
-             <JobDecoder data={jobDecoderResult} loading={isProcessing && !jobDecoderResult} />
+             <div id="gap_section">
+               <GapAnalysisFull data={gapResult || pilotData} loading={isProcessing && !gapResult} onBack={() => handleTabChange('overview')} />
+             </div>
+             <div id="analysis_section">
+               <AnalysisTab researchResult={researchResult} salaryResult={salaryResult} onRefresh={triggerResearch} isRefreshing={globalStatus === "PROCESSING"} />
+             </div>
+             <div id="decoder_section">
+               <JobDecoder data={jobDecoderResult} loading={isProcessing && !jobDecoderResult} />
+             </div>
            </div>
         )}
 
         {activeTab === 'career' && (
            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-             {/* [FIX] Uniformisation de l'affichage des cartes Premium */}
-             <RecruiterView data={recruiterResult} loading={isProcessing && !recruiterResult} />
-             <DashboardCard title="GPS de Carrière" icon={<Navigation size={24} />} featureId="career_gps" loading={isProcessing && !careerGpsResult} error={!isProcessing && !careerGpsResult}>
-               <CareerGPS data={careerGpsResult} />
-             </DashboardCard>
-             <DashboardCard title="Radar de Carrière" icon={<Compass size={24} />} featureId="career_radar" loading={isProcessing && !careerRadarResult} error={!isProcessing && !careerRadarResult}>
-               <CareerRadar data={careerRadarResult} />
-             </DashboardCard>
-             <DashboardCard title="Marché Caché & Réseau" icon={<Network size={24} />} featureId="hidden_market" loading={isProcessing && !hiddenMarketResult} error={!isProcessing && !hiddenMarketResult}>
-               <HiddenMarket data={hiddenMarketResult} />
-             </DashboardCard>
-
-             {/* [FIX] Le simulateur utilise déjà le DashboardCard en interne, on retire la duplication */}
-             <CareerSimulator candidateData={cvData} />
+             <div id="recruiter_section">
+               <RecruiterView data={recruiterResult} loading={isProcessing && !recruiterResult} />
+             </div>
+             <div id="gps_section">
+               <DashboardCard title="GPS de Carrière" icon={<Navigation size={24} />} featureId="career_gps" loading={isProcessing && !careerGpsResult} error={!isProcessing && !careerGpsResult}>
+                 <CareerGPS data={careerGpsResult} />
+               </DashboardCard>
+             </div>
+             <div id="radar_section">
+               <DashboardCard title="Radar de Carrière" icon={<Compass size={24} />} featureId="career_radar" loading={isProcessing && !careerRadarResult} error={!isProcessing && !careerRadarResult}>
+                 <CareerRadar data={careerRadarResult} />
+               </DashboardCard>
+             </div>
+             <div id="hidden_section">
+               <DashboardCard title="Marché Caché & Réseau" icon={<Network size={24} />} featureId="hidden_market" loading={isProcessing && !hiddenMarketResult} error={!isProcessing && !hiddenMarketResult}>
+                 <HiddenMarket data={hiddenMarketResult} />
+               </DashboardCard>
+             </div>
+             <div id="simulator_section">
+               <CareerSimulator candidateData={cvData} />
+             </div>
            </div>
         )}
 
@@ -214,7 +283,24 @@ export const DashboardView = () => {
              <ToDoListCard data={actionPlanResult} loading={isProcessing && !actionPlanResult} />
            </div>
         )}
+
+        {activeTab === 'training' && (
+           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+             <TrainingTab />
+           </div>
+        )}
       </div>
+
+      {/* BOUTON RETOUR EN HAUT */}
+      {showBackToTop && (
+        <button 
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          style={{ position: 'fixed', bottom: '2rem', right: '2rem', width: '50px', height: '50px', borderRadius: '50%', background: 'var(--primary)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 10px 15px -3px rgba(59, 130, 246, 0.4)', zIndex: 1000, transition: 'all 0.2s' }}
+          title="Revenir en haut"
+        >
+          <ArrowUp size={24} />
+        </button>
+      )}
 
       <style>{`
         .dashboard-wrapper { display: flex; flex-direction: column; gap: 2rem; width: 100%; }
@@ -223,6 +309,10 @@ export const DashboardView = () => {
         .tab-btn { display: flex; align-items: center; gap: 0.5rem; background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 0.75rem 1.25rem; cursor: pointer; font-weight: 600; color: var(--text-muted); border-radius: 0.75rem; transition: all 0.2s; white-space: nowrap; }
         .tab-btn:hover { background: var(--bg-card); color: var(--text-main); border-color: var(--primary); }
         .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+        
+        .sub-tabs-navigation { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; padding: 0.5rem 0; }
+        .sub-tab-btn { background: transparent; border: 1px solid var(--border-color); padding: 0.4rem 1rem; border-radius: 2rem; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: all 0.2s; }
+        .sub-tab-btn:hover { background: var(--bg-secondary); color: var(--primary); border-color: var(--primary); }
         
         /* BENTO GRID CSS */
         .bento-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; grid-auto-rows: minmax(150px, auto); }

@@ -237,14 +237,13 @@ export function SituationSimulator() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', animation: 'fadeIn 0.3s ease-out' }}>
       {/* --- VUE LISTE TOUJOURS VISIBLE --- */}
-      {scenarios.map((category) => {
-        const Icon = iconMap[category.icon] || BrainCircuit;
+      {scenarios.map((category, index) => {
         const mastered = isCategoryMastered(category);
         return (
           <div key={category.category}>
             <h3 style={{ margin: '0 0 1.5rem 0', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.25rem', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <Icon size={24} color={mastered ? "#10b981" : "var(--primary)"} />
+                <span style={{ color: mastered ? "#10b981" : "var(--primary)", fontWeight: "bold" }}>MES {index + 1})</span>
                 {category.category}
               </div>
               {mastered && (
@@ -389,7 +388,10 @@ export function SituationSimulator() {
                     
                     {showPassiveModel && (
                       <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
-                        <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>1. Diagnostic</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>Évaluer l'impact réel.</p></div>
+                        <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>1. Diagnostic</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>Évaluer l'impact réel et l'urgence de la situation.</p></div>
+                        <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>2. Humain</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>Communiquer avec les parties prenantes, rassurer et déléguer efficacement.</p></div>
+                        <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>3. Action</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>Prendre les mesures correctives immédiates et proportionnées.</p></div>
+                        <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>4. Suivi</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>Mettre en place des actions préventives pour l'avenir.</p></div>
                       </div>
                     )}
                   </div>

@@ -48,6 +48,9 @@ export const CareerRadar: React.FC<CareerRadarProps> = ({ data, loading, error }
 
   return (
     <>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+        Découvrez des trajectoires de carrière alternatives et des opportunités de pivot inattendues.
+      </p>
       <div className="radar-grid">
         {data.trajectories.map((traj, idx) => {
           const colors = getScoreColor(traj.match_percent);

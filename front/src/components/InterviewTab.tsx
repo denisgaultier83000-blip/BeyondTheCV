@@ -98,6 +98,7 @@ export const InterviewTab = () => {
     <>
       {isTeleprompterOpen && <Teleprompter />}
       <div className="interview-tab-container">
+        <div id="pitch_section">
         <DashboardCard
           title="Pitch de 3 minutes"
           icon={<Mic size={24} />}
@@ -121,7 +122,9 @@ export const InterviewTab = () => {
             </div>
           )}
         </DashboardCard>
+        </div>
 
+        <div id="questionnaire_section">
         <DashboardCard
           title="Questionnaire d'Entretien"
           icon={<MessageSquare size={24} />}
@@ -133,15 +136,18 @@ export const InterviewTab = () => {
         >
           {questionsResult && <Questionnaire questions={Array.isArray(questionsResult) ? questionsResult : (questionsResult.questions || [])} hideHeader={true} />}
         </DashboardCard>
+        </div>
 
         {/* MODULE MISE EN SITUATION */}
+        <div id="mes_section">
         <DashboardCard
-          title="Simulations de Cas (Mises en situation)"
+          title="Mises en situation"
           icon={<BrainCircuit size={24} />}
           featureId="situation_simulator"
         >
           <SituationSimulator />
         </DashboardCard>
+        </div>
       </div>
     </>
   );

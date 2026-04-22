@@ -92,6 +92,18 @@ export const StepImport = ({ onUpload, loading, lang = 'en' }: { onUpload?: (fil
 export const StepProfile = ({ data, onChange, errors, lang = 'en' }: StepProps) => {
   const { t } = useTranslation();
 
+  // Formate le prénom : "jean-pierre" devient "Jean-Pierre"
+  const formatFirstName = (val: string) => {
+    if (!val) return "";
+    return val.replace(/(?:^|[\s-])\S/g, (match) => match.toUpperCase());
+  };
+
+  // Formate le nom : "dupont" devient "DUPONT" (Standard CV)
+  const formatLastName = (val: string) => {
+    if (!val) return "";
+    return val.toUpperCase();
+  };
+
   return (
   <div className="step-content">
     <h2>{t('profile_title')}</h2>
@@ -99,11 +111,11 @@ export const StepProfile = ({ data, onChange, errors, lang = 'en' }: StepProps) 
     <div className="row">
       <div className="col form-group">
         <label>{t('first_name')}</label>
-        <input value={data.first_name || ""} onChange={e => onChange("first_name", e.target.value)} placeholder={t('placeholder_firstname')} style={{ width: "100%", borderColor: errors?.first_name ? "#ef4444" : undefined }} />
+        <input value={data.first_name || ""} onChange={e => onChange("first_name", formatFirstName(e.target.value))} placeholder={t('placeholder_firstname')} style={{ width: "100%", borderColor: errors?.first_name ? "#ef4444" : undefined }} />
       </div>
       <div className="col form-group">
         <label>{t('last_name')}</label>
-        <input value={data.last_name || ""} onChange={e => onChange("last_name", e.target.value)} placeholder={t('placeholder_lastname')} style={{ width: "100%", borderColor: errors?.last_name ? "#ef4444" : undefined }} />
+        <input value={data.last_name || ""} onChange={e => onChange("last_name", formatLastName(e.target.value))} placeholder={t('placeholder_lastname')} style={{ width: "100%", borderColor: errors?.last_name ? "#ef4444" : undefined }} />
       </div>
     </div>
     <div className="row">
@@ -520,7 +532,7 @@ export const StepQualitiesFlaws = ({ data, onChange, lang = 'en' }: any) => {
       </p>
       
       <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: 15 }}>
-          {(t('flaws_list', { returnObjects: true, defaultValue: ['Impatient', 'Trop exigeant', 'Difficulté à déléguer', 'Tendance à tout contrôler', 'Manque de diplomatie', 'Difficulté à dire non', 'Obstiné'] }) as string[]).map((f: string) => {
+          {(t('flaws_list', { returnObjects: true, defaultValue: ['Impatient', 'Trop exigeant', 'Difficulté à déléguer', 'Tendance à tout contrôler', 'Manque de diplomatie', 'Difficulté à dire non', 'Obstiné', 'Tendance à se disperser', 'Sensible au stress', 'Idéaliste', 'Difficulté à demander de l\'aide'] }) as string[]).map((f: string) => {
               const isSelected = (data.flaws || []).includes(f);
               return (
                   <button 

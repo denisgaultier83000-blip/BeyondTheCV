@@ -253,6 +253,13 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
     // Helper pour forcer la majuscule sur chaque mot d'un nom/prénom
     const capitalize = (str: string) => str ? str.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : "";
 
+    // [FIX] Nettoyage des tableaux (Évite l'erreur 422 Unprocessable Entity à l'étape 2)
+    const cleanExperiences = experiences.filter((exp: any) => (exp.role && exp.role.trim() !== "") || (exp.company && exp.company.trim() !== ""));
+    const cleanEducations = educations.filter((edu: any) => (edu.degree && edu.degree.trim() !== "") || (edu.school && edu.school.trim() !== ""));
+    const cleanLanguages = Array.isArray(formData.languages) 
+        ? formData.languages.map((l: any) => typeof l === 'string' ? { language: l, level: '' } : l).filter((l: any) => l.language && l.language.trim() !== "")
+        : [];
+
     // Construction explicite du payload pour correspondre au modèle Pydantic FullCVData
     return {
         personal_info: {
@@ -266,8 +273,8 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
             bio: formData.bio,
             address: "" // Champ requis par le modèle mais souvent vide
         },
-        experiences: experiences,
-        educations: educations,
+        experiences: cleanExperiences,
+        educations: cleanEducations,
         skills: skillsArray,
         work_style: formData.work_style || [],
         relational_style: formData.relational_style || [],
@@ -275,9 +282,7 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
         qualities: formData.qualities || [],
         flaws: formData.flaws || [],
         interests: formData.interests || [],
-        languages: Array.isArray(formData.languages) 
-            ? formData.languages.map((l: any) => typeof l === 'string' ? { language: l, level: '' } : l)
-            : [],
+        languages: cleanLanguages,
         clarifications: clarifications,
         gap_analysis: gapAnalysis, // [FIX] Transmission du cache pour éviter le recalcul du score
         target_job: formData.target_role_primary, // [FIX] Mapping du nom de champ
@@ -933,9 +938,14 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
 
   // [FIX] Fonction robuste pour parser les valeurs de salaire (gère "45k", "45 000", 45000)
   const parseSalaryValue = (value: any): number => {
-      if (typeof value === 'number') return value;
+      if (typeof value === 'number') {
+          return value > 1000 ? Math.round(value / 1000) : value;
+      }
       if (typeof value === 'string') {
-          const num = parseInt(value.replace(/k/ig, '000').replace(/[\s€$]/g, ''), 10);
+          let num = parseInt(value.replace(/k/ig, '000').replace(/[\s€$]/g, ''), 10);
+          if (!isNaN(num) && num > 1000) {
+              num = Math.round(num / 1000);
+          }
           return isNaN(num) ? 0 : num;
       }
       return 0;

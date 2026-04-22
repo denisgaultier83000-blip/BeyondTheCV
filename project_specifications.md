@@ -110,6 +110,18 @@ Les données sont stockées dans un JSON global au fil de la saisie.
   - Missing / Gaps.
   - Recommended adjustments.
 
+### E. Onglet S'entrainer (Module Interactif)
+Cet onglet permet au candidat de s'entraîner activement en répondant à des questions et en recevant un feedback instantané de l'IA.
+
+1. **Mises en situation sur mesure :**
+   - L'IA génère des scénarios de crise adaptés au poste (basé sur `custom_scenarios.md`).
+   - Le candidat saisit ou dicte sa réponse.
+   - L'IA évalue la réponse (structure, pertinence, sang-froid) et propose une version améliorée (basé sur `mise_en_situation.md`).
+2. **Entraînement sur questions ciblées :**
+   - Le candidat choisit un thème (ex: "Gestion de conflit", "Négociation").
+   - L'IA génère des questions sur ce thème (basé sur `custom_question_generator.md`).
+   - Le candidat répond et l'IA évalue la réponse en s'appuyant sur la méthode STAR (basé sur `evaluate_interview_answer.md`).
+
 ---
 
 ## 5. FONCTIONNALITÉS AVANCÉES & FUTURES (MODULES PREMIUM)

@@ -83,6 +83,9 @@ export function CareerGPS({ data, loading, error }: CareerGPSProps) {
 
   return (
     <>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+        Votre feuille de route pas-à-pas pour atteindre votre poste cible.
+      </p>
       {/* 1. Carte de Navigation (Header visuel) */}
       <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginBottom: '2rem', position: 'relative', overflow: 'hidden' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1 }}>
