@@ -56,6 +56,21 @@ class InterviewAnswerRequest(BaseModel):
     suggested_framework: Optional[str] = ""
     user_answer: str
 
+class CustomQuestionRequest(BaseModel):
+    theme: str
+    question_type: str
+    count: Optional[int] = 1
+    target_job: Optional[str] = "Candidat"
+    target_company: Optional[str] = "Entreprise cible"
+
+class TrainingEvaluateRequest(BaseModel):
+    theme: str
+    question_type: str
+    question_text: str
+    user_answer: str
+    target_job: Optional[str] = "Candidat"
+    target_company: Optional[str] = "Entreprise cible"
+
 def _remove_file_safe(path: str):
     """Supprime un fichier temporaire après son envoi sans crasher en cas d'erreur."""
     try:
@@ -337,6 +352,73 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
         return {"feedback": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'évaluation de la réponse: {str(e)}")
+
+@router.post("/training/generate-question")
+async def generate_training_question(request: CustomQuestionRequest, current_user: dict = Depends(require_active_subscription)):
+    """Génère une question ciblée d'entraînement basée sur un thème."""
+    prompt_template = load_prompt(get_prompt_path("custom_question_generator.md"))
+    
+    final_prompt = prompt_template.replace("{{THEME}}", request.theme) \
+                                  .replace("{{TYPE}}", request.question_type) \
+                                  .replace("{{COUNT}}", str(request.count)) \
+                                  .replace("{{TARGET_JOB}}", request.target_job) \
+                                  .replace("{{TARGET_COMPANY}}", request.target_company)
+                                  
+    try:
+        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="Tu es un Coach de Carrière expert.")
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur de génération : {str(e)}")
+
+@router.post("/training/evaluate")
+async def evaluate_training_answer(request: TrainingEvaluateRequest, current_user: dict = Depends(require_active_subscription)):
+    """Évalue la réponse à l'entraînement, renvoie le feedback et le sauvegarde en DB."""
+    prompt_template = load_prompt(get_prompt_path("evaluate_interview_answer.md"))
+    
+    final_prompt = f"""
+    {prompt_template}
+    
+    QUESTION POSÉE : "{request.question_text}"
+    CATÉGORIE / ATTENTE : "{request.theme} - {request.question_type}"
+    RÉPONSE DU CANDIDAT :
+    "{request.user_answer}"
+    """
+    
+    try:
+        feedback = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an Expert Interview Coach. Output STRICT JSON.")
+        
+        # Sauvegarde de la session en base de données pour calculer les moyennes plus tard
+        session_id = str(uuid.uuid4())
+        async with db.get_connection() as conn:
+            await db.execute(conn, """
+                INSERT INTO training_sessions (id, user_id, theme, question_type, question_text, user_answer, score, strengths, weaknesses, improved_answer, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (session_id, current_user["id"], request.theme, request.question_type, request.question_text, request.user_answer, feedback.get("score", 0), json.dumps(feedback.get("strengths", [])), json.dumps(feedback.get("weaknesses", [])), feedback.get("improved_answer", ""), datetime.now()))
+            
+        return {"feedback": feedback}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur d'évaluation : {str(e)}")
+
+@router.get("/training/stats")
+async def get_training_stats(current_user: dict = Depends(require_active_subscription)):
+    """Récupère les statistiques de l'utilisateur pour l'onglet d'entraînement."""
+    async with db.get_connection() as conn:
+        cursor = await db.execute(conn, "SELECT score, theme FROM training_sessions WHERE user_id = ? ORDER BY created_at ASC", (current_user["id"],))
+        rows = await cursor.fetchall()
+        
+    if not rows:
+        return {"global_score": 0, "total_sessions": 0}
+        
+    total_weighted_score, total_weight = 0, 0
+    
+    for i, row in enumerate(rows):
+        score = row[0] if isinstance(row, tuple) else row["score"]
+        weight = 1 + (i * 0.05) # Les réponses plus récentes pèsent plus lourd (+5% par session)
+        total_weighted_score += score * weight
+        total_weight += weight
+        
+    global_score = min(100, max(0, round(total_weighted_score / total_weight))) if total_weight > 0 else 0
+    return {"global_score": global_score, "total_sessions": len(rows)}
 
 def run_compliance_check(data, lang, quality='smart'):
     # Pas de check complexe pour l'instant, on renvoie la donnée telle quelle ou une correction simple
