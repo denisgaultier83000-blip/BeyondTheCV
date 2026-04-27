@@ -85,16 +85,16 @@ export const DashboardView = () => {
   // Liste de tous les livrables avec leur état
   const deliverableItems = [
     { name: "CV & ATS", tab: "cv", data: cvResult, icon: <FileText size={18}/> },
-    { name: "Pitch de 3 minutes", tab: "interview", data: pitchResult, icon: <Mic size={18}/> },
-    { name: "Questions d'Entretien", tab: "interview", data: questionsResult, icon: <MessageSquare size={18}/> },
-    { name: "Parades aux Défauts", tab: "interview", data: flawCoachingResult, icon: <AlertTriangle size={18}/> },
-    { name: "Analyse d'Écarts (Gap)", tab: "market", data: gapResult, icon: <Target size={18}/> },
-    { name: "Rapport Entreprise & Marché", tab: "market", data: researchResult, icon: <Globe size={18}/> },
-    { name: "Décodeur d'Annonce", tab: "market", data: jobDecoderResult, icon: <Search size={18}/> },
-    { name: "Vue Recruteur", tab: "career", data: recruiterResult, icon: <Eye size={18}/> },
-    { name: "GPS de Carrière", tab: "career", data: careerGpsResult, icon: <Navigation size={18}/> },
-    { name: "Radar de Carrière", tab: "career", data: careerRadarResult, icon: <Compass size={18}/> },
-    { name: "Marché Caché", tab: "career", data: hiddenMarketResult, icon: <Network size={18}/> },
+    { name: "Pitch de 3 minutes", tab: "interview", anchor: "pitch_section", data: pitchResult, icon: <Mic size={18}/> },
+    { name: "Questions d'Entretien", tab: "interview", anchor: "questionnaire_section", data: questionsResult, icon: <MessageSquare size={18}/> },
+    { name: "Parades aux Défauts", tab: "interview", anchor: "flaws_section", data: flawCoachingResult, icon: <AlertTriangle size={18}/> },
+    { name: "Analyse d'Écarts (Gap)", tab: "market", anchor: "gap_section", data: gapResult, icon: <Target size={18}/> },
+    { name: "Rapport Entreprise & Marché", tab: "market", anchor: "analysis_section", data: researchResult, icon: <Globe size={18}/> },
+    { name: "Décodeur d'Annonce", tab: "market", anchor: "decoder_section", data: jobDecoderResult, icon: <Search size={18}/> },
+    { name: "Vue Recruteur", tab: "career", anchor: "recruiter_section", data: recruiterResult, icon: <Eye size={18}/> },
+    { name: "GPS de Carrière", tab: "career", anchor: "gps_section", data: careerGpsResult, icon: <Navigation size={18}/> },
+    { name: "Radar de Carrière", tab: "career", anchor: "radar_section", data: careerRadarResult, icon: <Compass size={18}/> },
+    { name: "Marché Caché", tab: "career", anchor: "hidden_section", data: hiddenMarketResult, icon: <Network size={18}/> },
     { name: "To-Do List d'Action", tab: "actions", data: actionPlanResult, icon: <CheckSquare size={18}/> }
   ];
 

@@ -243,7 +243,7 @@ export function SituationSimulator() {
           <div key={category.category}>
             <h3 style={{ margin: '0 0 1.5rem 0', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.25rem', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <span style={{ color: mastered ? "#10b981" : "var(--primary)", fontWeight: "bold" }}>MES {index + 1})</span>
+                <span style={{ color: mastered ? "#10b981" : "var(--primary)", fontWeight: "bold" }}>{index + 1})</span>
                 {category.category}
               </div>
               {mastered && (

@@ -1,60 +1,54 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Mic, 
-  MicOff,
-  Send, 
   Activity, 
   Target, 
   Award, 
-  CheckCircle2, 
-  AlertTriangle, 
   RefreshCw,
   BrainCircuit,
   MessageSquare,
-  Settings2
+  Settings2,
+  History,
 } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
-import ScoreGauge from './ScoreGauge';
+import Questionnaire from './Questionnaire';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
+import { useDashboard } from './DashboardContext';
 
 export default function TrainingTab() {
+  const { cvData, updateFormData } = useDashboard();
   const [score, setScore] = useState(0);
   const [totalSessions, setTotalSessions] = useState(0);
   const [themeScores, setThemeScores] = useState<Record<string, number>>({});
   const [selectedTheme, setSelectedTheme] = useState('Gestion de crise');
   const [selectedType, setSelectedType] = useState('MES');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [question, setQuestion] = useState<any>(null);
-  const [answer, setAnswer] = useState('');
-  const [isEvaluating, setIsEvaluating] = useState(false);
-  const [feedback, setFeedback] = useState<any>(null);
 
   const themes = ['Management', 'Gestion de crise', 'Négociation', 'Leadership', 'Communication'];
   const types = [{ id: 'Classique', label: 'Questions Classiques' }, { id: 'MES', label: 'Mises en Situation' }];
 
+  // Méthode de rafraîchissement des stats globales extraite pour pouvoir être appelée par le Questionnaire
+  const fetchStats = async () => {
+    try {
+      const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/stats`);
+      if (res.ok) {
+        const data = await res.json();
+        setScore(data.global_score);
+        setTotalSessions(data.total_sessions);
+        setThemeScores(data.theme_scores || {});
+      }
+    } catch (err) {
+      console.error("Erreur récupération stats", err);
+    }
+  };
+
   // Charger les statistiques globales au montage
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/stats`);
-        if (res.ok) {
-          const data = await res.json();
-          setScore(data.global_score);
-          setTotalSessions(data.total_sessions);
-          setThemeScores(data.theme_scores || {});
-        }
-      } catch (err) {
-        console.error("Erreur récupération stats", err);
-      }
-    };
     fetchStats();
   }, []);
 
   const handleGenerate = async () => {
     setIsGenerating(true);
-    setFeedback(null);
-    setAnswer('');
     
     try {
       const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/generate-question`, {
@@ -64,39 +58,23 @@ export default function TrainingTab() {
       });
       const data = await res.json();
       if (data.questions && data.questions.length > 0) {
-        setQuestion(data.questions[0]);
+        const newQ = {
+          id: Date.now().toString(),
+          category: selectedTheme,
+          type: selectedType,
+          question: data.questions[0].text,
+          advice: data.questions[0].advice
+        };
+        // On ajoute la nouvelle question à la liste (conservée dans le dashboard)
+        const updatedQuestions = [...(cvData?.trainingQuestions || []), newQ];
+        if (updateFormData) {
+          updateFormData("trainingQuestions", updatedQuestions);
+        }
       }
     } catch (err) {
       console.error("Erreur génération question", err);
     } finally {
       setIsGenerating(false);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!answer.trim()) return;
-    setIsEvaluating(true);
-    
-    try {
-      const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/evaluate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          theme: selectedTheme,
-          question_type: selectedType,
-          question_text: question.text,
-          user_answer: answer
-        })
-      });
-      const data = await res.json();
-      setFeedback(data.feedback);
-      setScore(prev => Math.min(100, Math.round((prev * totalSessions + data.feedback.score) / (totalSessions + 1))));
-      setTotalSessions(prev => prev + 1);
-      setThemeScores(prev => ({ ...prev, [selectedTheme]: data.feedback.score })); // MAJ optimiste du radar
-    } catch (err) {
-      console.error("Erreur évaluation", err);
-    } finally {
-      setIsEvaluating(false);
     }
   };
 
@@ -230,82 +208,26 @@ export default function TrainingTab() {
         </div>
       </DashboardCard>
 
-      {/* --- ZONE D'INTERACTION --- */}
-      {question && (
-        <div style={{ background: 'var(--bg-card)', borderRadius: '1rem', border: '1px solid var(--border-color)', overflow: 'hidden', animation: 'fadeIn 0.4s ease-out', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}>
-          <div style={{ padding: '2rem', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-              <div style={{ background: 'var(--primary)', padding: '1rem', borderRadius: '1rem', color: 'white' }}>
-                {selectedType === 'MES' ? <BrainCircuit size={28} /> : <MessageSquare size={28} />}
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.5rem' }}>{selectedTheme}</div>
-                <h3 style={{ margin: 0, fontSize: '1.3rem', color: 'var(--text-main)', lineHeight: 1.4 }}>{question.text}</h3>
-                <p style={{ margin: '1rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Target size={16} /> Objectif du recruteur : {question.advice}
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div style={{ padding: '2rem' }}>
-            <textarea 
-              value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
-              placeholder="Rédigez votre réponse ici de manière structurée..."
-              rows={6}
-              disabled={isEvaluating}
-              style={{ width: '100%', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', background: 'var(--bg-body)', color: 'var(--text-main)', fontSize: '1rem', fontFamily: 'inherit', resize: 'vertical', outline: 'none', marginBottom: '1.5rem' }}
-            />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-              <button 
-                onClick={handleSubmit}
-                disabled={isEvaluating || !answer.trim()}
-                className="btn-primary"
-                style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 2rem' }}
-              >
-                {isEvaluating ? <RefreshCw className="spin" size={18} /> : <Send size={18} />}
-                {isEvaluating ? "Analyse en cours..." : "Soumettre & Évaluer"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* --- FEEDBACK IA --- */}
-      {feedback && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem', animation: 'fadeIn 0.5s ease-out' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-             <ScoreGauge score={feedback.score / 10} label="Impact de la réponse" critique={feedback.score >= 80 ? "Excellente réponse !" : "Réponse à optimiser."} />
-             
-             <div style={{ background: 'rgba(34, 197, 94, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
-               <h4 style={{ margin: '0 0 1rem 0', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={18} /> Ce qui fonctionne bien</h4>
-               <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-main)', fontSize: '0.9rem', lineHeight: '1.5' }}>
-                 {feedback.strengths?.map((s: string, i: number) => <li key={i} style={{ marginBottom: '0.5rem' }}>{s}</li>)}
-               </ul>
-             </div>
-             
-             <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-               <h4 style={{ margin: '0 0 1rem 0', color: 'var(--danger-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><AlertTriangle size={18} /> Axes d'amélioration</h4>
-               <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-main)', fontSize: '0.9rem', lineHeight: '1.5' }}>
-                 {feedback.weaknesses?.map((w: string, i: number) => <li key={i} style={{ marginBottom: '0.5rem' }}>{w}</li>)}
-               </ul>
-             </div>
-          </div>
-
-          <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '1rem', border: '1px solid var(--border-color)', borderLeft: '4px solid #8b5cf6', height: 'fit-content' }}>
-             <h4 style={{ margin: '0 0 1rem 0', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
-               <Award size={20} /> Réponse idéale suggérée (STAR)
-             </h4>
-             <p style={{ margin: 0, color: 'var(--text-main)', fontSize: '1rem', lineHeight: 1.6, fontStyle: 'italic', padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '0.5rem' }}>
-               "{feedback.improved_answer}"
-             </p>
-          </div>
-        </div>
+      {/* --- HISTORIQUE D'ENTRAÎNEMENT --- */}
+      {cvData?.trainingQuestions && cvData.trainingQuestions.length > 0 && (
+        <DashboardCard title="Historique d'Entraînement" icon={<History size={24} />}>
+           <Questionnaire 
+             questions={[...cvData.trainingQuestions].reverse()} 
+             hideHeader={true} 
+             storageKeyPrefix="training" 
+             evalEndpoint="/api/cv/training/evaluate"
+             onEvaluateSuccess={fetchStats}
+           />
+        </DashboardCard>
       )}
 
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse-record {
+          0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+          70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
       `}</style>
     </div>
   );

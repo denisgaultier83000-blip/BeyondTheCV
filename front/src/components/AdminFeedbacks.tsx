@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ThumbsUp, ThumbsDown, MessageSquare, Activity, BarChart3, ArrowLeft } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { useNavigate } from 'react-router-dom';
+import { authenticatedFetch } from '../utils/auth';
 
 interface Feedback {
   id: number;
@@ -21,7 +22,7 @@ export default function AdminFeedbacks() {
   useEffect(() => {
     const fetchFeedbacks = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/cv/feedbacks`);
+        const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/feedbacks`);
         if (!response.ok) throw new Error("Erreur lors de la récupération des feedbacks");
         const data = await response.json();
         setFeedbacks(data.feedbacks || []);

@@ -198,7 +198,7 @@ export const StepTarget = ({ data, onChange, errors, loading, lang = 'en' }: Ste
     </div>
     <div className="row">
       <div className="col form-group">
-        <label>{t('target_company')}</label>
+        <label>{t('target_company')} <span style={{ fontWeight: 'normal', fontSize: '0.85em', color: 'var(--text-muted)' }}>(Optionnel)</span></label>
         <input disabled={loading} value={data.target_company || ""} onChange={e => onChange("target_company", e.target.value)} placeholder={t('placeholder_target_company')} style={{ width: "100%", opacity: loading ? 0.6 : 1 }} />
       </div>
       <div className="col form-group">

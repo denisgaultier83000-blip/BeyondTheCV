@@ -13,35 +13,43 @@ interface QuestionnaireProps {
   onUpdate?: (index: number, field: string, value: any) => void;
   loading?: boolean;
   hideHeader?: boolean;
+  storageKeyPrefix?: string; // "interview" ou "training"
+  evalEndpoint?: string; // Route API spécifique si besoin
+  onEvaluateSuccess?: () => void;
 }
 
-export default function Questionnaire({ questions, onBack, onPrint, onUpdate, loading, hideHeader }: QuestionnaireProps) {
+export default function Questionnaire({ questions, onBack, onPrint, onUpdate, loading, hideHeader, storageKeyPrefix = "interview", evalEndpoint, onEvaluateSuccess }: QuestionnaireProps) {
   const { t } = useTranslation();
-  const [revealed, setRevealed] = useState<Record<number, boolean>>({});
   
   // --- GESTION DE LA PERSISTANCE (GLOBAL STATE) ---
   let dashboard: any = null;
   try { dashboard = useDashboard(); } catch(e) {} // Évite le crash si utilisé hors du Dashboard
   const cvData = dashboard?.cvData;
   const updateFormData = dashboard?.updateFormData;
+  
+  const userAnswersKey = `${storageKeyPrefix}UserAnswers`;
+  const feedbacksKey = `${storageKeyPrefix}Feedbacks`;
 
   // Nouveaux états pour le mode interactif (Entraînement)
-  const [activeMode, setActiveMode] = useState<Record<number, boolean>>({});
-  const [userAnswers, setUserAnswers] = useState<Record<number, string>>(cvData?.interviewUserAnswers || {});
-  const [isRecording, setIsRecording] = useState<number | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState<number | null>(null);
-  const [feedbacks, setFeedbacks] = useState<Record<number, any>>(cvData?.interviewFeedbacks || {});
-  const [showFeedbackDetails, setShowFeedbackDetails] = useState<Record<number, boolean>>({});
-  const [hoveredCard, setHoveredCard] = useState<number | null>(null);
+  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
+  const [activeMode, setActiveMode] = useState<Record<string, boolean>>({});
+  const [userAnswers, setUserAnswers] = useState<Record<string, string>>(cvData?.[userAnswersKey] || {});
+  const [isRecording, setIsRecording] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
+  const [feedbacks, setFeedbacks] = useState<Record<string, any>>(cvData?.[feedbacksKey] || {});
+  const [showFeedbackDetails, setShowFeedbackDetails] = useState<Record<string, boolean>>({});
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
 
-  useEffect(() => {
-    if (cvData?.interviewUserAnswers) setUserAnswers(cvData.interviewUserAnswers);
-    if (cvData?.interviewFeedbacks) setFeedbacks(cvData.interviewFeedbacks);
-  }, [cvData?.interviewUserAnswers, cvData?.interviewFeedbacks]);
+  const getKey = (q: any, idx: number): string => q.id || idx.toString();
 
-  const toggleReveal = (idx: number) => {
-    setRevealed(prev => ({ ...prev, [idx]: !prev[idx] }));
+  useEffect(() => {
+    if (cvData?.[userAnswersKey]) setUserAnswers(cvData[userAnswersKey]);
+    if (cvData?.[feedbacksKey]) setFeedbacks(cvData[feedbacksKey]);
+  }, [cvData?.[userAnswersKey], cvData?.[feedbacksKey], userAnswersKey, feedbacksKey]);
+
+  const toggleReveal = (qKey: string) => {
+    setRevealed(prev => ({ ...prev, [qKey]: !prev[qKey] }));
   };
   
   const getScoreTheme = (score100?: number) => {
@@ -51,19 +59,19 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
     return { border: '#ef4444', bg: 'rgba(239, 68, 68, 0.05)', text: '#ef4444' };
   };
 
-  const handleRetry = (idx: number) => {
-    const newF = {...feedbacks}; delete newF[idx];
-    const newA = {...userAnswers}; delete newA[idx];
+  const handleRetry = (qKey: string) => {
+    const newF = {...feedbacks}; delete newF[qKey];
+    const newA = {...userAnswers}; delete newA[qKey];
     setFeedbacks(newF); setUserAnswers(newA);
-    if (updateFormData) { updateFormData("interviewFeedbacks", newF); updateFormData("interviewUserAnswers", newA); }
+    if (updateFormData) { updateFormData(feedbacksKey, newF); updateFormData(userAnswersKey, newA); }
     
-    setActiveMode(prev => ({...prev, [idx]: true}));
-    setShowFeedbackDetails(prev => ({...prev, [idx]: false}));
+    setActiveMode(prev => ({...prev, [qKey]: true}));
+    setShowFeedbackDetails(prev => ({...prev, [qKey]: false}));
   };
 
   // --- GESTION DE LA RECONNAISSANCE VOCALE ---
-  const toggleRecording = (idx: number) => {
-    if (isRecording === idx) {
+  const toggleRecording = (qKey: string) => {
+    if (isRecording === qKey) {
       if (recognitionRef.current) recognitionRef.current.stop();
       setIsRecording(null);
       return;
@@ -82,7 +90,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
     recognition.continuous = true;
     recognition.interimResults = true;
 
-    let baselineAnswer = userAnswers[idx] || "";
+    let baselineAnswer = userAnswers[qKey] || "";
 
     recognition.onresult = (event: any) => {
       let interimTranscript = '';
@@ -93,9 +101,9 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
       }
       if (finalTranscript) {
          baselineAnswer += (baselineAnswer && !baselineAnswer.endsWith(' ') ? ' ' : '') + finalTranscript;
-         setUserAnswers(prev => ({ ...prev, [idx]: baselineAnswer + interimTranscript }));
+         setUserAnswers(prev => ({ ...prev, [qKey]: baselineAnswer + interimTranscript }));
       } else {
-         setUserAnswers(prev => ({ ...prev, [idx]: baselineAnswer + (baselineAnswer && !baselineAnswer.endsWith(' ') ? ' ' : '') + interimTranscript }));
+         setUserAnswers(prev => ({ ...prev, [qKey]: baselineAnswer + (baselineAnswer && !baselineAnswer.endsWith(' ') ? ' ' : '') + interimTranscript }));
       }
     };
 
@@ -105,7 +113,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
     try {
       recognition.start();
       recognitionRef.current = recognition;
-      setIsRecording(idx);
+      setIsRecording(qKey);
     } catch (e) {
       setIsRecording(null);
     }
@@ -118,36 +126,41 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
   }, []);
 
   // --- SOUMISSION DE LA RÉPONSE À L'IA ---
-  const handleSubmit = async (idx: number, q: any) => {
-    const answer = userAnswers[idx];
+  const handleSubmit = async (qKey: string, q: any) => {
+    const answer = userAnswers[qKey];
     if (!answer) return;
     
-    setIsSubmitting(idx);
+    setIsSubmitting(qKey);
     try {
-      // L'appel nécessite une nouvelle route backend pour corriger la réponse
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/evaluate-interview-answer`, {
+      const response = await authenticatedFetch(`${API_BASE_URL}${evalEndpoint || '/api/cv/evaluate-interview-answer'}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
             question: q.question, 
             category: q.category, 
             suggested_framework: q.suggested_answer,
-            user_answer: answer 
+            user_answer: answer,
+            // Ajouts spécifiques pour garantir la compatibilité avec la route d'entraînement
+            theme: q.category,
+            question_type: q.type,
+            question_text: q.question
         }),
       });
       
       if (!response.ok) throw new Error("API call failed");
       const data = await response.json();
-      const newFeedbacks = { ...feedbacks, [idx]: data.feedback };
+      const newFeedbacks = { ...feedbacks, [qKey]: data.feedback };
       setFeedbacks(newFeedbacks);
       
       // Sauvegarde persistante du résultat et de la réponse
       if (updateFormData) {
-          updateFormData("interviewFeedbacks", newFeedbacks);
-          updateFormData("interviewUserAnswers", { ...userAnswers, [idx]: answer });
+          updateFormData(feedbacksKey, newFeedbacks);
+          updateFormData(userAnswersKey, { ...userAnswers, [qKey]: answer });
       }
-      setShowFeedbackDetails(prev => ({ ...prev, [idx]: true }));
-      setActiveMode(prev => ({ ...prev, [idx]: false }));
+      setShowFeedbackDetails(prev => ({ ...prev, [qKey]: true }));
+      setActiveMode(prev => ({ ...prev, [qKey]: false }));
+      
+      if (onEvaluateSuccess) onEvaluateSuccess();
     } catch (error) {
       console.error(error);
       alert("Erreur lors de l'évaluation par l'IA. La route backend doit être configurée.");
@@ -191,15 +204,16 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
       {/* Affichage pleine largeur (1fr) pour plus de lisibilité avec animation en cascade */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
         {questions.map((q, idx) => {
-          const isRevealed = revealed[idx];
-          const isActive = activeMode[idx];
-          const feedback = feedbacks[idx];
-          const isRecordingThis = isRecording === idx;
-          const isSubmittingThis = isSubmitting === idx;
+          const qKey = getKey(q, idx);
+          const isRevealed = revealed[qKey];
+          const isActive = activeMode[qKey];
+          const feedback = feedbacks[qKey];
+          const isRecordingThis = isRecording === qKey;
+          const isSubmittingThis = isSubmitting === qKey;
           const isDone = !!feedback;
           const theme = getScoreTheme(feedback?.score);
-          const showFeedback = showFeedbackDetails[idx];
-          const isHovered = hoveredCard === idx;
+          const showFeedback = showFeedbackDetails[qKey];
+          const isHovered = hoveredCard === qKey;
 
           return (
           <div key={idx} className="staggered-card" style={{ 
@@ -216,7 +230,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
             animationDelay: `${idx * 0.1}s`,
             transform: isHovered ? 'translateY(-2px)' : 'translateY(0)'
           }}
-          onMouseEnter={() => setHoveredCard(idx)}
+          onMouseEnter={() => setHoveredCard(qKey)}
           onMouseLeave={() => setHoveredCard(null)}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem' }}>
@@ -249,10 +263,10 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
             {/* BOUTONS D'ACTION (Si ni révélé, ni en mode actif, ni feedback) */}
             {!isRevealed && !isActive && !feedback && (
               <div style={{ marginTop: '0.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                <button onClick={() => toggleReveal(idx)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
+                <button onClick={() => toggleReveal(qKey)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
                   <Eye size={16} /> Mode Lecture (Voir la suggestion)
                 </button>
-                <button onClick={() => setActiveMode(prev => ({...prev, [idx]: true}))} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem', background: '#8b5cf6', borderColor: '#8b5cf6', boxShadow: '0 4px 6px -1px rgba(139, 92, 246, 0.2)' }}>
+                <button onClick={() => setActiveMode(prev => ({...prev, [qKey]: true}))} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem', background: '#8b5cf6', borderColor: '#8b5cf6', boxShadow: '0 4px 6px -1px rgba(139, 92, 246, 0.2)' }}>
                   <Edit3 size={16} /> S'entraîner (Micro / Texte)
                 </button>
               </div>
@@ -262,10 +276,10 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
             {isDone && !showFeedback && (
               <div style={{ marginTop: '0.5rem', display: 'inline-block' }}>
                 <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-                  <span onClick={() => setShowFeedbackDetails(prev => ({...prev, [idx]: true}))} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: theme.border, fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer', transition: 'opacity 0.2s' }} onMouseOver={e => e.currentTarget.style.opacity = '0.7'} onMouseOut={e => e.currentTarget.style.opacity = '1'}>
+                  <span onClick={() => setShowFeedbackDetails(prev => ({...prev, [qKey]: true}))} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: theme.border, fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer', transition: 'opacity 0.2s' }} onMouseOver={e => e.currentTarget.style.opacity = '0.7'} onMouseOut={e => e.currentTarget.style.opacity = '1'}>
                     <Eye size={16} /> Voir mon évaluation
                   </span>
-                  <span onClick={() => handleRetry(idx)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 500, cursor: 'pointer', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-main)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}>
+                  <span onClick={() => handleRetry(qKey)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 500, cursor: 'pointer', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-main)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}>
                     <RefreshCw size={16} /> Refaire cette question
                   </span>
                 </div>
@@ -280,7 +294,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                       <Edit3 size={18} color="#8b5cf6" /> Rédigez ou dictez votre réponse
                     </div>
                     <button 
-                      onClick={() => toggleRecording(idx)}
+                      onClick={() => toggleRecording(qKey)}
                       className={`btn-${isRecordingThis ? 'primary' : 'secondary'}`} 
                       style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem', background: isRecordingThis ? '#ef4444' : undefined, borderColor: isRecordingThis ? '#ef4444' : undefined, color: isRecordingThis ? 'white' : undefined, animation: isRecordingThis ? 'pulse-record 1.5s infinite' : 'none' }}
                     >
@@ -290,9 +304,9 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                  </div>
                  
                  <textarea 
-                    value={userAnswers[idx] || ""}
-                    onChange={(e) => setUserAnswers(prev => ({ ...prev, [idx]: e.target.value }))}
-                    onBlur={() => updateFormData && updateFormData("interviewUserAnswers", { ...userAnswers })}
+                    value={userAnswers[qKey] || ""}
+                    onChange={(e) => setUserAnswers(prev => ({ ...prev, [qKey]: e.target.value }))}
+                    onBlur={() => updateFormData && updateFormData(userAnswersKey, { ...userAnswers })}
                     placeholder="Commencez à parler ou tapez votre réponse ici..."
                     rows={4}
                     disabled={isSubmittingThis}
@@ -300,8 +314,8 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                  />
 
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <button onClick={() => setActiveMode(prev => ({...prev, [idx]: false}))} className="btn-ghost" style={{ fontSize: '0.85rem' }} disabled={isSubmittingThis}>Annuler</button>
-                    <button onClick={() => handleSubmit(idx, q)} disabled={!(userAnswers[idx] || "").trim() || isSubmittingThis} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
+                    <button onClick={() => setActiveMode(prev => ({...prev, [qKey]: false}))} className="btn-ghost" style={{ fontSize: '0.85rem' }} disabled={isSubmittingThis}>Annuler</button>
+                    <button onClick={() => handleSubmit(qKey, q)} disabled={!(userAnswers[qKey] || "").trim() || isSubmittingThis} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
                       {isSubmittingThis ? <><Loader2 size={16} className="spin" /> Analyse IA en cours...</> : <><Send size={16} /> Analyser ma réponse</>}
                     </button>
                  </div>
@@ -319,7 +333,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                          {feedback.score >= 80 ? "Excellente réponse, très bien structurée." : feedback.score >= 50 ? "Bonne base, mais manque de structure ou de pragmatisme." : "Réponse à retravailler, les attentes du recruteur ne sont pas couvertes."}
                        </p>
                     </div>
-                    <button onClick={() => setShowFeedbackDetails(prev => ({...prev, [idx]: false}))} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }} title="Fermer"><EyeOff size={16} /> Masquer</button>
+                    <button onClick={() => setShowFeedbackDetails(prev => ({...prev, [qKey]: false}))} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }} title="Fermer"><EyeOff size={16} /> Masquer</button>
                  </div>
                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
                     <div style={{ background: 'rgba(34, 197, 94, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
@@ -337,7 +351,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                  </div>
                  
                  <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'center' }}>
-                    <button onClick={() => handleRetry(idx)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.75rem 2rem' }}>
+                    <button onClick={() => handleRetry(qKey)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.75rem 2rem' }}>
                       <RefreshCw size={16} /> Recommencer l'exercice
                     </button>
                  </div>
@@ -352,7 +366,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                     <CheckCircle2 size={16} /> 
                     <span>Suggestion de réponse (Éditable)</span>
                   </div>
-                  <button onClick={() => toggleReveal(idx)} style={{ background: 'transparent', border: 'none', color: '#166534', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', opacity: 0.8 }} onMouseOver={e => e.currentTarget.style.opacity = '1'} onMouseOut={e => e.currentTarget.style.opacity = '0.8'}>
+                  <button onClick={() => toggleReveal(qKey)} style={{ background: 'transparent', border: 'none', color: '#166534', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', opacity: 0.8 }} onMouseOver={e => e.currentTarget.style.opacity = '1'} onMouseOut={e => e.currentTarget.style.opacity = '0.8'}>
                     <EyeOff size={14} /> Masquer
                   </button>
                 </div>
