@@ -61,22 +61,22 @@ export const DashboardView = () => {
 
   const subMenus: Record<string, {label: string, id: string}[]> = {
     interview: [
-      { label: 'Pitch', id: 'pitch_section' },
-      { label: 'Questionnaire', id: 'questionnaire_section' },
-      { label: 'Mises en situation', id: 'mes_section' },
-      { label: 'Parades aux Défauts', id: 'flaws_section' }
+      { label: t('submenu_pitch', 'Pitch'), id: 'pitch_section' },
+      { label: t('submenu_questionnaire', 'Questionnaire'), id: 'questionnaire_section' },
+      { label: t('submenu_mes', 'Mises en situation'), id: 'mes_section' },
+      { label: t('submenu_flaws', 'Parades aux Défauts'), id: 'flaws_section' }
     ],
     market: [
-      { label: 'Gap Analysis', id: 'gap_section' },
-      { label: 'Entreprise & Marché', id: 'analysis_section' },
-      { label: 'Décodeur d\'Annonce', id: 'decoder_section' }
+      { label: t('submenu_gap', 'Gap Analysis'), id: 'gap_section' },
+      { label: t('submenu_market', 'Entreprise & Marché'), id: 'analysis_section' },
+      { label: t('submenu_decoder', 'Décodeur d\'Annonce'), id: 'decoder_section' }
     ],
     career: [
-      { label: 'Vue Recruteur', id: 'recruiter_section' },
-      { label: 'GPS de Carrière', id: 'gps_section' },
-      { label: 'Radar de Carrière', id: 'radar_section' },
-      { label: 'Marché Caché', id: 'hidden_section' },
-      { label: 'Simulateur', id: 'simulator_section' }
+      { label: t('submenu_recruiter', 'Vue Recruteur'), id: 'recruiter_section' },
+      { label: t('submenu_gps', 'GPS de Carrière'), id: 'gps_section' },
+      { label: t('submenu_radar', 'Radar de Carrière'), id: 'radar_section' },
+      { label: t('submenu_hidden', 'Marché Caché'), id: 'hidden_section' },
+      { label: t('submenu_simulator', 'Simulateur'), id: 'simulator_section' }
     ]
   };
 
@@ -84,18 +84,18 @@ export const DashboardView = () => {
 
   // Liste de tous les livrables avec leur état
   const deliverableItems = [
-    { name: "CV & ATS", tab: "cv", data: cvResult, icon: <FileText size={18}/> },
-    { name: "Pitch de 3 minutes", tab: "interview", anchor: "pitch_section", data: pitchResult, icon: <Mic size={18}/> },
-    { name: "Questions d'Entretien", tab: "interview", anchor: "questionnaire_section", data: questionsResult, icon: <MessageSquare size={18}/> },
-    { name: "Parades aux Défauts", tab: "interview", anchor: "flaws_section", data: flawCoachingResult, icon: <AlertTriangle size={18}/> },
-    { name: "Analyse d'Écarts (Gap)", tab: "market", anchor: "gap_section", data: gapResult, icon: <Target size={18}/> },
-    { name: "Rapport Entreprise & Marché", tab: "market", anchor: "analysis_section", data: researchResult, icon: <Globe size={18}/> },
-    { name: "Décodeur d'Annonce", tab: "market", anchor: "decoder_section", data: jobDecoderResult, icon: <Search size={18}/> },
-    { name: "Vue Recruteur", tab: "career", anchor: "recruiter_section", data: recruiterResult, icon: <Eye size={18}/> },
-    { name: "GPS de Carrière", tab: "career", anchor: "gps_section", data: careerGpsResult, icon: <Navigation size={18}/> },
-    { name: "Radar de Carrière", tab: "career", anchor: "radar_section", data: careerRadarResult, icon: <Compass size={18}/> },
-    { name: "Marché Caché", tab: "career", anchor: "hidden_section", data: hiddenMarketResult, icon: <Network size={18}/> },
-    { name: "To-Do List d'Action", tab: "actions", data: actionPlanResult, icon: <CheckSquare size={18}/> }
+    { name: t('deliv_cv', "CV & ATS"), tab: "cv", data: cvResult, icon: <FileText size={18}/> },
+    { name: t('deliv_pitch', "Pitch de 3 minutes"), tab: "interview", anchor: "pitch_section", data: pitchResult, icon: <Mic size={18}/> },
+    { name: t('deliv_questions', "Questions d'Entretien"), tab: "interview", anchor: "questionnaire_section", data: questionsResult, icon: <MessageSquare size={18}/> },
+    { name: t('deliv_flaws', "Parades aux Défauts"), tab: "interview", anchor: "flaws_section", data: flawCoachingResult, icon: <AlertTriangle size={18}/> },
+    { name: t('deliv_gap', "Analyse d'Écarts (Gap)"), tab: "market", anchor: "gap_section", data: gapResult, icon: <Target size={18}/> },
+    { name: t('deliv_market', "Rapport Entreprise & Marché"), tab: "market", anchor: "analysis_section", data: researchResult, icon: <Globe size={18}/> },
+    { name: t('deliv_decoder', "Décodeur d'Annonce"), tab: "market", anchor: "decoder_section", data: jobDecoderResult, icon: <Search size={18}/> },
+    { name: t('deliv_recruiter', "Vue Recruteur"), tab: "career", anchor: "recruiter_section", data: recruiterResult, icon: <Eye size={18}/> },
+    { name: t('deliv_gps', "GPS de Carrière"), tab: "career", anchor: "gps_section", data: careerGpsResult, icon: <Navigation size={18}/> },
+    { name: t('deliv_radar', "Radar de Carrière"), tab: "career", anchor: "radar_section", data: careerRadarResult, icon: <Compass size={18}/> },
+    { name: t('deliv_hidden', "Marché Caché"), tab: "career", anchor: "hidden_section", data: hiddenMarketResult, icon: <Network size={18}/> },
+    { name: t('deliv_todo', "To-Do List d'Action"), tab: "actions", data: actionPlanResult, icon: <CheckSquare size={18}/> }
   ];
 
   // Calcul des pastilles par onglet
@@ -124,25 +124,25 @@ export const DashboardView = () => {
     <div className="dashboard-wrapper">
       <div className="tabs-navigation">
         <button className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => handleTabChange('overview')}>
-          <Activity size={18} /> Vue d'ensemble
+          <Activity size={18} /> {t('tab_overview', "Vue d'ensemble")}
         </button>
         <button className={`tab-btn ${activeTab === 'cv' ? 'active' : ''}`} onClick={() => handleTabChange('cv')} style={{ position: 'relative' }}>
-          <FileText size={18} /> CV & ATS {cvUnseen && <span className="notification-dot"></span>}
+          <FileText size={18} /> {t('tab_cv_ats', "CV & ATS")} {cvUnseen && <span className="notification-dot"></span>}
         </button>
         <button className={`tab-btn ${activeTab === 'interview' ? 'active' : ''}`} onClick={() => handleTabChange('interview')} style={{ position: 'relative' }}>
-          <MessageSquare size={18} /> Entretien {interviewUnseen && <span className="notification-dot"></span>}
+          <MessageSquare size={18} /> {t('tab_interview_short', "Entretien")} {interviewUnseen && <span className="notification-dot"></span>}
         </button>
         <button className={`tab-btn ${activeTab === 'market' ? 'active' : ''}`} onClick={() => handleTabChange('market')} style={{ position: 'relative' }}>
-          <Globe size={18} /> Marché & Offre {marketUnseen && <span className="notification-dot"></span>}
+          <Globe size={18} /> {t('tab_market_offer', "Marché & Offre")} {marketUnseen && <span className="notification-dot"></span>}
         </button>
         <button className={`tab-btn ${activeTab === 'career' ? 'active' : ''}`} onClick={() => handleTabChange('career')} style={{ position: 'relative' }}>
-          <Compass size={18} /> Stratégie & Trajectoires {careerUnseen && <span className="notification-dot"></span>}
+          <Compass size={18} /> {t('tab_strategy', "Stratégie & Trajectoires")} {careerUnseen && <span className="notification-dot"></span>}
         </button>
         <button className={`tab-btn ${activeTab === 'actions' ? 'active' : ''}`} onClick={() => handleTabChange('actions')} style={{ position: 'relative' }}>
-          <CheckSquare size={18} /> Actions {actionsUnseen && <span className="notification-dot"></span>}
+          <CheckSquare size={18} /> {t('tab_actions', "Actions")} {actionsUnseen && <span className="notification-dot"></span>}
         </button>
         <button className={`tab-btn ${activeTab === 'training' ? 'active' : ''}`} onClick={() => handleTabChange('training')}>
-          <Dumbbell size={18} /> S'entrainer
+          <Dumbbell size={18} /> {t('tab_training', "S'entrainer")}
         </button>
       </div>
 
@@ -173,9 +173,9 @@ export const DashboardView = () => {
                   seront cliquables immédiatement sans attendre la synthèse IA. */}
               <div className="bento-card col-span-3" style={{ background: 'var(--bg-card)' }}>
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                   <div className="bento-header" style={{ marginBottom: '0.5rem' }}><Activity size={20} color="var(--primary)"/> Centre de Suivi des Analyses</div>
+                   <div className="bento-header" style={{ marginBottom: '0.5rem' }}><Activity size={20} color="var(--primary)"/> {t('hub_title', 'Centre de Suivi des Analyses')}</div>
                  </div>
-                 <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: '0 0 1.5rem 0' }}>Suivez la génération de vos outils en temps réel et cliquez pour y accéder.</p>
+                 <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: '0 0 1.5rem 0' }}>{t('hub_desc', 'Suivez la génération de vos outils en temps réel et cliquez pour y accéder.')}</p>
                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
                     {deliverableItems.map((item, idx) => {
                        const isReady = !!item.data;
@@ -188,13 +188,13 @@ export const DashboardView = () => {
                                 <span style={{ fontSize: '0.95rem' }}>{item.name}</span>
                              </div>
                              {isNew ? (
-                                <span style={{ background: '#ef4444', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, animation: 'pulse-new 2s infinite' }}>NEW</span>
+                                <span style={{ background: '#ef4444', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, animation: 'pulse-new 2s infinite' }}>{t('badge_new', 'NEW')}</span>
                              ) : isReady ? (
-                                <span style={{ background: '#dcfce7', color: '#16a34a', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700 }}>PRÊT</span>
+                                <span style={{ background: '#dcfce7', color: '#16a34a', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700 }}>{t('badge_ready', 'PRÊT')}</span>
                              ) : isPending ? (
                                 <Loader2 size={16} className="spin" color="var(--text-muted)" />
                              ) : (
-                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>En attente</span>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t('badge_pending', 'En attente')}</span>
                              )}
                           </div>
                        );
@@ -296,7 +296,7 @@ export const DashboardView = () => {
         <button 
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           style={{ position: 'fixed', bottom: '2rem', right: '2rem', width: '50px', height: '50px', borderRadius: '50%', background: 'var(--primary)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 10px 15px -3px rgba(59, 130, 246, 0.4)', zIndex: 1000, transition: 'all 0.2s' }}
-          title="Revenir en haut"
+          title={t('btn_back_to_top', 'Revenir en haut')}
         >
           <ArrowUp size={24} />
         </button>

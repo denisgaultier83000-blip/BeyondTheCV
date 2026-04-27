@@ -118,8 +118,8 @@ export default function Dashboard({
           <div className="action-cards-container-new">
             <ActionCard 
               icon={<FileText />} 
-              title="Créer / Éditer mon CV" 
-              desc="Générez et prévisualisez votre CV au format unique (optimisé ATS & Recruteur)."
+              title={t('card_cv_create_title', 'Créer / Éditer mon CV')} 
+              desc={t('card_cv_create_desc', 'Générez et prévisualisez votre CV au format unique (optimisé ATS & Recruteur).')}
               onClick={() => onAction && onAction("Review CV")}
               disabled={loading}
               ready={true}
@@ -155,8 +155,8 @@ export default function Dashboard({
             />
             <ActionCard 
               icon={<Sparkles />} 
-              title="Parades aux Défauts" 
-              desc="Transformez vos points de vigilance en arguments de force pour l'entretien."
+              title={t('card_flaw_title', 'Parades aux Défauts')} 
+              desc={t('card_flaw_desc', 'Transformez vos points de vigilance en arguments de force pour l\'entretien.')}
               onClick={() => onAction && onAction("Flaw Coaching")}
               disabled={loading}
               ready={!!flawCoachingResult}
@@ -208,32 +208,32 @@ export default function Dashboard({
             />
             <ActionCard 
               icon={<Search />} 
-              title="Décodeur d'annonce" 
-              desc="Lisez entre les lignes et décodez le vrai jargon RH."
+              title={t('card_decoder_title', 'Décodeur d\'annonce')} 
+              desc={t('card_decoder_desc', 'Lisez entre les lignes et décodez le vrai jargon RH.')}
               onClick={() => onAction && onAction("Job Decoder")}
               disabled={loading}
               ready={jobDecoderData}
             />
             <ActionCard 
               icon={<Compass />} 
-              title="Career GPS" 
-              desc="Votre feuille de route pas-à-pas vers ce poste."
+              title={t('card_gps_title', 'Career GPS')} 
+              desc={t('card_gps_desc', 'Votre feuille de route pas-à-pas vers ce poste.')}
               onClick={() => onAction && onAction("Career GPS")}
               disabled={loading}
               ready={careerGpsData}
             />
             <ActionCard 
               icon={<Map />} 
-              title="Career Radar" 
-              desc="Découvrez des trajectoires de carrière alternatives."
+              title={t('card_radar_title', 'Career Radar')} 
+              desc={t('card_radar_desc', 'Découvrez des trajectoires de carrière alternatives.')}
               onClick={() => onAction && onAction("Career Radar")}
               disabled={loading}
               ready={careerRadarData}
             />
             <ActionCard 
               icon={<Linkedin />} 
-              title="Badge LinkedIn" 
-              desc="Partagez votre archétype pour challenger votre réseau (Reality Check)."
+              title={t('card_linkedin_title', 'Badge LinkedIn')} 
+              desc={t('card_linkedin_desc', 'Partagez votre archétype pour challenger votre réseau (Reality Check).')}
               onClick={() => onAction && onAction("Reality Check")}
               disabled={loading}
               ready={true}
@@ -253,16 +253,16 @@ export default function Dashboard({
           <div className="action-cards-container-new">
             <ActionCard 
               icon={<ShieldAlert />} 
-              title="Mises en situation" 
-              desc="Gérez des scénarios de crise et décisions complexes adaptés à votre poste."
+              title={t('card_mes_title', 'Mises en situation')} 
+              desc={t('card_mes_desc', 'Gérez des scénarios de crise et décisions complexes adaptés à votre poste.')}
               onClick={() => onAction && onAction("Training Scenarios")}
               disabled={loading}
               ready={true}
             />
             <ActionCard 
               icon={<MessageSquare />} 
-              title="Entraînement ciblé" 
-              desc="Pratiquez la méthode STAR sur des thèmes précis (Conflit, Négociation...)."
+              title={t('card_targeted_title', 'Entraînement ciblé')} 
+              desc={t('card_targeted_desc', 'Pratiquez la méthode STAR sur des thèmes précis (Conflit, Négociation...).')}
               onClick={() => onAction && onAction("Training Targeted")}
               disabled={loading}
               ready={true}

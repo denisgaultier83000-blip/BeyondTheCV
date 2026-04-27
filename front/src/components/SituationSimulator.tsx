@@ -4,6 +4,7 @@ import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
 import { useDashboard } from './DashboardContext'; // [NEW] Importer le hook
+import { useTranslation } from 'react-i18next';
 import scenariosData from './scenarios.json';
 
 // --- TYPES ---
@@ -47,6 +48,7 @@ const iconMap: { [key: string]: React.ElementType } = {
 
 export function SituationSimulator() {
   const { cvData, customScenariosResult, updateFormData } = useDashboard(); 
+  const { t } = useTranslation();
   const [scenarios, setScenarios] = useState<ScenarioCategory[]>([]);
   const [selectedScenario, setSelectedScenario] = useState<ScenarioItem | null>(null);
   const [mode, setMode] = useState<'passive' | 'active' | null>(null);
@@ -101,7 +103,7 @@ export function SituationSimulator() {
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("La reconnaissance vocale n'est pas supportée par votre navigateur actuel. Nous vous recommandons d'utiliser Google Chrome ou Microsoft Edge.");
+      alert(t('sim_mic_unsupported', "La reconnaissance vocale n'est pas supportée par votre navigateur actuel."));
       return;
     }
 
@@ -203,7 +205,7 @@ export function SituationSimulator() {
     } catch (error) {
       console.error("Erreur lors de l'analyse IA :", error);
       // Le mock a été supprimé pour ne plus écraser la vraie note (ex: 4/10) en cas d'erreur de rendu.
-      alert("Une erreur de communication avec le serveur est survenue.");
+      alert(t('sim_api_error', "Une erreur de communication avec le serveur est survenue."));
     } finally {
       setIsSubmitting(false);
     }
@@ -215,7 +217,7 @@ export function SituationSimulator() {
       // Point d'accroche pour la future route de regénération
       // await authenticatedFetch(`${API_BASE_URL}/api/cv/generate-extra-scenarios`, { method: 'POST', ... });
       setTimeout(() => {
-        alert("Fonctionnalité en cours de raccordement. L'IA générera bientôt de nouveaux cas à la volée !");
+        alert(t('sim_wip_feature', "Fonctionnalité en cours de raccordement. L'IA générera bientôt de nouveaux cas à la volée !"));
         setIsGeneratingMore(false);
       }, 1000);
     } catch (e) {
@@ -248,7 +250,7 @@ export function SituationSimulator() {
               </div>
               {mastered && (
                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '0.4rem 0.75rem', borderRadius: '2rem', fontWeight: 600 }}>
-                  <Award size={16} /> Badge Obtenu
+                  <Award size={16} /> {t('sim_badge_earned', 'Badge Obtenu')}
                 </span>
               )}
             </h3>
@@ -301,7 +303,7 @@ export function SituationSimulator() {
                     <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: '1.5', flex: 1 }}>{sc.description}</p>
                     <div style={{ marginTop: '1.5rem', display: 'inline-block' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isDone ? 'var(--text-muted)' : 'var(--primary)', fontSize: '0.9rem', fontWeight: 500, transition: 'color 0.2s' }}>
-                        {isDone ? 'Refaire ce cas' : 'S\'entraîner sur ce cas'} &rarr;
+                        {isDone ? t('sim_retry_case', 'Refaire ce cas') : t('sim_train_case', "S'entraîner sur ce cas")} &rarr;
                       </span>
                     </div>
                   </div>
@@ -315,11 +317,11 @@ export function SituationSimulator() {
       {allMastered && (
         <div style={{ marginTop: '1rem', padding: '2rem', background: 'var(--bg-secondary)', borderRadius: '1rem', textAlign: 'center', border: '1px dashed var(--primary)' }}>
           <Award size={48} color="#10b981" style={{ margin: '0 auto 1rem' }} />
-          <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>Félicitations, vous maîtrisez tous les scénarios !</h3>
-          <p style={{ margin: '0 0 1.5rem 0', color: 'var(--text-muted)' }}>Vous êtes prêt pour affronter les cas pratiques de cet entretien.</p>
+          <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>{t('sim_congrats_title', 'Félicitations, vous maîtrisez tous les scénarios !')}</h3>
+          <p style={{ margin: '0 0 1.5rem 0', color: 'var(--text-muted)' }}>{t('sim_congrats_desc', 'Vous êtes prêt pour affronter les cas pratiques de cet entretien.')}</p>
           <button onClick={handleGenerateMore} disabled={isGeneratingMore} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
             {isGeneratingMore ? <Loader2 size={18} className="spin" /> : <RefreshCw size={18} />}
-            Générer de nouveaux cas complexes (IA)
+            {t('sim_generate_more', 'Générer de nouveaux cas complexes (IA)')}
           </button>
         </div>
       )}
@@ -358,14 +360,14 @@ export function SituationSimulator() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.5rem' }}>
                   <button onClick={() => setMode('passive')} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: '2rem', borderRadius: '1rem', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }} onMouseOver={e => e.currentTarget.style.borderColor = 'var(--primary)'} onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border-color)'}>
                     <Eye size={32} color="var(--primary)" />
-                    <span style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-main)' }}>Mode Lecture</span>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Découvrir la structure attendue</span>
+                    <span style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-main)' }}>{t('sim_read_mode', 'Mode Lecture')}</span>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{t('sim_read_mode_desc', 'Découvrir la structure attendue')}</span>
                   </button>
                   
                   <button onClick={() => setMode('active')} style={{ background: 'var(--primary)', border: 'none', padding: '2rem', borderRadius: '1rem', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', boxShadow: '0 10px 15px -3px rgba(59, 130, 246, 0.3)' }} onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
                     <Edit3 size={32} color="white" />
-                    <span style={{ fontSize: '1.1rem', fontWeight: 600, color: 'white' }}>Je m'entraîne (IA)</span>
-                    <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)' }}>Rédigez votre réponse pour un feedback expert</span>
+                    <span style={{ fontSize: '1.1rem', fontWeight: 600, color: 'white' }}>{t('sim_active_mode', "Je m'entraîne (IA)")}</span>
+                    <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)' }}>{t('sim_active_mode_desc', 'Rédigez votre réponse pour un feedback expert')}</span>
                   </button>
                 </div>
               )}
@@ -374,30 +376,30 @@ export function SituationSimulator() {
               {mode === 'passive' && (
                 <div style={{ animation: 'fadeIn 0.3s ease-out', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                   <div style={{ background: 'rgba(34, 197, 94, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
-                    <h4 style={{ margin: '0 0 1rem 0', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Target size={18} /> Ce que le recruteur évalue</h4>
+                    <h4 style={{ margin: '0 0 1rem 0', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Target size={18} /> {t('sim_eval_criteria', 'Ce que le recruteur évalue')}</h4>
                     <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-main)', fontSize: '0.95rem', lineHeight: '1.6' }}>
-                      <li style={{ marginBottom: '0.5rem' }}>Capacité à gérer le stress et l'urgence</li>
+                      <li style={{ marginBottom: '0.5rem' }}>{t('sim_eval_stress', "Capacité à gérer le stress et l'urgence")}</li>
                     </ul>
                   </div>
 
                   <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
                     <button onClick={() => setShowPassiveModel(!showPassiveModel)} style={{ width: '100%', background: 'transparent', border: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', padding: 0, color: 'var(--text-main)', fontWeight: 600, fontSize: '1.1rem' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><BrainCircuit size={20} color="var(--primary)"/> Déroulé de la Réponse Idéale</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><BrainCircuit size={20} color="var(--primary)"/> {t('sim_ideal_response', 'Déroulé de la Réponse Idéale')}</span>
                       {showPassiveModel ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                     </button>
                     
                     {showPassiveModel && (
                       <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
-                        <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>1. Diagnostic</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>Évaluer l'impact réel et l'urgence de la situation.</p></div>
-                        <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>2. Humain</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>Communiquer avec les parties prenantes, rassurer et déléguer efficacement.</p></div>
-                        <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>3. Action</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>Prendre les mesures correctives immédiates et proportionnées.</p></div>
-                        <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>4. Suivi</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>Mettre en place des actions préventives pour l'avenir.</p></div>
+                        <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>{t('sim_diag_title', '1. Diagnostic')}</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>{t('sim_diag_desc', "Évaluer l'impact réel et l'urgence de la situation.")}</p></div>
+                        <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>{t('sim_human_title', '2. Humain')}</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>{t('sim_human_desc', "Communiquer avec les parties prenantes, rassurer et déléguer efficacement.")}</p></div>
+                        <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>{t('sim_action_title', '3. Action')}</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>{t('sim_action_desc', "Prendre les mesures correctives immédiates et proportionnées.")}</p></div>
+                        <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>{t('sim_followup_title', '4. Suivi')}</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>{t('sim_followup_desc', "Mettre en place des actions préventives pour l'avenir.")}</p></div>
                       </div>
                     )}
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
-                    <button onClick={reset} className="btn-secondary" style={{ padding: '0.75rem 2rem' }}>Fermer</button>
+                    <button onClick={reset} className="btn-secondary" style={{ padding: '0.75rem 2rem' }}>{t('sim_close', 'Fermer')}</button>
                   </div>
                 </div>
               )}
@@ -409,8 +411,8 @@ export function SituationSimulator() {
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
                       <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '0.75rem', borderRadius: '0.5rem', color: 'var(--primary)' }}><Edit3 size={24} /></div>
                       <div>
-                        <h4 style={{ margin: '0 0 0.25rem 0', color: 'var(--text-main)', fontSize: '1.1rem' }}>À vous de jouer</h4>
-                        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>Répondez à voix haute (micro) ou rédigez votre réponse. Soyez concret et structuré.</p>
+                        <h4 style={{ margin: '0 0 0.25rem 0', color: 'var(--text-main)', fontSize: '1.1rem' }}>{t('sim_your_turn', 'À vous de jouer')}</h4>
+                        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>{t('sim_your_turn_desc', 'Répondez à voix haute (micro) ou rédigez votre réponse. Soyez concret et structuré.')}</p>
                       </div>
                     </div>
                     <button 
@@ -420,23 +422,23 @@ export function SituationSimulator() {
                       title="Répondre à la voix"
                     >
                       {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
-                      {isRecording ? "Arrêter l'enregistrement" : "Répondre à la voix"}
+                      {isRecording ? t('q_stop_recording', "Arrêter") : t('q_voice_answer', "Répondre à la voix")}
                     </button>
                   </div>
                   
                   <textarea 
                     value={userAnswer}
                     onChange={e => setUserAnswer(e.target.value)}
-                    placeholder="Ex: Ma première action serait de..."
+                    placeholder={t('sim_answer_placeholder', "Ex: Ma première action serait de...")}
                     rows={6}
                     disabled={isSubmitting}
                     style={{ width: '100%', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '0.75rem', padding: '1rem', color: 'var(--text-main)', fontFamily: 'inherit', fontSize: '0.95rem', resize: 'vertical', outline: 'none', transition: 'border-color 0.2s', marginBottom: '1rem' }}
                   />
                   
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                    <button onClick={reset} disabled={isSubmitting} className="btn-ghost">Annuler</button>
+                    <button onClick={reset} disabled={isSubmitting} className="btn-ghost">{t('sim_btn_cancel', 'Annuler')}</button>
                     <button onClick={handleSubmit} disabled={!userAnswer.trim() || isSubmitting} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      {isSubmitting ? <><Loader2 size={18} className="spin" /> Analyse IA en cours...</> : <><Send size={18} /> Analyser ma réponse</>}
+                      {isSubmitting ? <><Loader2 size={18} className="spin" /> {t('sim_ai_analyzing', 'Analyse IA en cours...')}</> : <><Send size={18} /> {t('sim_analyze_answer', 'Analyser ma réponse')}</>}
                     </button>
                   </div>
                 </div>
@@ -448,11 +450,11 @@ export function SituationSimulator() {
                   
                   {/* Score & Verdict Rapide */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
-                    <ScoreGauge score={aiFeedback.score / 10} label="Score de Réponse" />
+                    <ScoreGauge score={aiFeedback.score / 10} label={t('sim_score_label', 'Score de Réponse')} />
                     <div style={{ flex: 1 }}>
-                       <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>Diagnostic IA</h4>
+                       <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>{t('sim_ai_diagnostic', 'Diagnostic IA')}</h4>
                        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-                         {aiFeedback.score >= 80 ? "Excellente réponse, très bien structurée." : aiFeedback.score >= 50 ? "Bonne base, mais manque de structure ou de pragmatisme." : "Réponse à retravailler, les attentes du recruteur ne sont pas couvertes."}
+                         {aiFeedback.score >= 80 ? t('sim_diag_excellent', "Excellente réponse, très bien structurée.") : aiFeedback.score >= 50 ? t('sim_diag_good', "Bonne base, mais manque de structure ou de pragmatisme.") : t('sim_diag_poor', "Réponse à retravailler, les attentes du recruteur ne sont pas couvertes.")}
                        </p>
                     </div>
                   </div>
@@ -460,13 +462,13 @@ export function SituationSimulator() {
                   {/* Forces / Faiblesses */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
                     <div style={{ background: 'rgba(34, 197, 94, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
-                      <h4 style={{ margin: '0 0 1rem 0', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={18} /> Ce qui fonctionne bien</h4>
+                      <h4 style={{ margin: '0 0 1rem 0', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={18} /> {t('sim_strengths', 'Ce qui fonctionne bien')}</h4>
                       <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-main)', fontSize: '0.9rem', lineHeight: '1.5' }}>
                         {aiFeedback.strengths.map((s, i) => <li key={i} style={{ marginBottom: '0.5rem' }}>{s}</li>)}
                       </ul>
                     </div>
                     <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                      <h4 style={{ margin: '0 0 1rem 0', color: 'var(--danger-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><AlertTriangle size={18} /> Ce qu'il manque</h4>
+                      <h4 style={{ margin: '0 0 1rem 0', color: 'var(--danger-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><AlertTriangle size={18} /> {t('sim_weaknesses', "Ce qu'il manque")}</h4>
                       <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-main)', fontSize: '0.9rem', lineHeight: '1.5' }}>
                         {aiFeedback.weaknesses.map((w, i) => <li key={i} style={{ marginBottom: '0.5rem' }}>{w}</li>)}
                       </ul>
@@ -475,22 +477,22 @@ export function SituationSimulator() {
 
                   {/* Analyse étape par étape */}
                   <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
-                    <h4 style={{ margin: '0 0 1.5rem 0', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Target size={18} color="var(--primary)" /> Analyse Structurelle</h4>
+                    <h4 style={{ margin: '0 0 1.5rem 0', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Target size={18} color="var(--primary)" /> {t('sim_structural_analysis', 'Analyse Structurelle')}</h4>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                       <div style={{ background: 'var(--bg-card)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
-                        <strong style={{ fontSize: '0.8rem', color: 'var(--primary)', textTransform: 'uppercase' }}>Diagnostic</strong>
+                        <strong style={{ fontSize: '0.8rem', color: 'var(--primary)', textTransform: 'uppercase' }}>{t('sim_step_diag', 'Diagnostic')}</strong>
                         <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-main)' }}>{aiFeedback.analysis.diagnostic}</p>
                       </div>
                       <div style={{ background: 'var(--bg-card)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
-                        <strong style={{ fontSize: '0.8rem', color: 'var(--primary)', textTransform: 'uppercase' }}>Humain</strong>
+                        <strong style={{ fontSize: '0.8rem', color: 'var(--primary)', textTransform: 'uppercase' }}>{t('sim_step_human', 'Humain')}</strong>
                         <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-main)' }}>{aiFeedback.analysis.human}</p>
                       </div>
                       <div style={{ background: 'var(--bg-card)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
-                        <strong style={{ fontSize: '0.8rem', color: 'var(--primary)', textTransform: 'uppercase' }}>Action</strong>
+                        <strong style={{ fontSize: '0.8rem', color: 'var(--primary)', textTransform: 'uppercase' }}>{t('sim_step_action', 'Action')}</strong>
                         <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-main)' }}>{aiFeedback.analysis.action}</p>
                       </div>
                       <div style={{ background: 'var(--bg-card)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
-                        <strong style={{ fontSize: '0.8rem', color: 'var(--primary)', textTransform: 'uppercase' }}>Suivi</strong>
+                        <strong style={{ fontSize: '0.8rem', color: 'var(--primary)', textTransform: 'uppercase' }}>{t('sim_step_followup', 'Suivi')}</strong>
                         <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-main)' }}>{aiFeedback.analysis.follow_up}</p>
                       </div>
                     </div>
@@ -498,7 +500,7 @@ export function SituationSimulator() {
 
                   {/* Réponse Améliorée */}
                   <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', borderLeft: '4px solid #8b5cf6' }}>
-                    <h4 style={{ margin: '0 0 0.5rem 0', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Lightbulb size={18} /> Proposition de réponse optimisée</h4>
+                    <h4 style={{ margin: '0 0 0.5rem 0', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Lightbulb size={18} /> {t('sim_optimized_proposal', 'Proposition de réponse optimisée')}</h4>
                     <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-main)', lineHeight: '1.6', fontStyle: 'italic' }}>
                       "{aiFeedback.improved_answer}"
                     </p>
@@ -506,10 +508,10 @@ export function SituationSimulator() {
 
                   <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '1rem' }}>
                     <button onClick={() => { setAiFeedback(null); setUserAnswer(""); }} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Edit3 size={16} /> Réessayer
+                      <Edit3 size={16} /> {t('sim_retry', 'Réessayer')}
                     </button>
                     <button onClick={reset} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      Valider et retourner aux scénarios
+                      {t('sim_validate_return', 'Valider et retourner aux scénarios')}
                     </button>
                   </div>
                 </div>

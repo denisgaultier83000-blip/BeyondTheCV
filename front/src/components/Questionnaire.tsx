@@ -245,9 +245,17 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                   <HelpCircle size={22} />
                 </div>
                 <div>
-                  <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '0.25rem', display: 'block', letterSpacing: '0.05em' }}>
-                    {q.category || 'Question'}
-                  </span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.35rem', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
+                      {q.category || 'Question'}
+                    </span>
+                    {q.trap_type && (
+                      <span style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '0.15rem 0.5rem', borderRadius: '1rem', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                        {q.trap_type}
+                      </span>
+                    )}
+                    {q.difficulty && <span style={{ fontSize: '0.8rem', letterSpacing: '0.05em' }} title="Difficulté">{q.difficulty}</span>}
+                  </div>
                   <h3 style={{ margin: 0, fontSize: '1.05rem', lineHeight: '1.5', color: 'var(--text-main)', fontWeight: '600' }}>
                     {q.question}
                   </h3>
@@ -264,10 +272,10 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
             {!isRevealed && !isActive && !feedback && (
               <div style={{ marginTop: '0.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                 <button onClick={() => toggleReveal(qKey)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
-                  <Eye size={16} /> Mode Lecture (Voir la suggestion)
+                  <Eye size={16} /> {t('q_read_mode', 'Mode Lecture (Voir la suggestion)')}
                 </button>
                 <button onClick={() => setActiveMode(prev => ({...prev, [qKey]: true}))} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem', background: '#8b5cf6', borderColor: '#8b5cf6', boxShadow: '0 4px 6px -1px rgba(139, 92, 246, 0.2)' }}>
-                  <Edit3 size={16} /> S'entraîner (Micro / Texte)
+                  <Edit3 size={16} /> {t('q_practice_mode', "S'entraîner (Micro / Texte)")}
                 </button>
               </div>
             )}
@@ -277,10 +285,10 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
               <div style={{ marginTop: '0.5rem', display: 'inline-block' }}>
                 <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
                   <span onClick={() => setShowFeedbackDetails(prev => ({...prev, [qKey]: true}))} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: theme.border, fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer', transition: 'opacity 0.2s' }} onMouseOver={e => e.currentTarget.style.opacity = '0.7'} onMouseOut={e => e.currentTarget.style.opacity = '1'}>
-                    <Eye size={16} /> Voir mon évaluation
+                    <Eye size={16} /> {t('q_view_eval', 'Voir mon évaluation')}
                   </span>
                   <span onClick={() => handleRetry(qKey)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 500, cursor: 'pointer', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--text-main)'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}>
-                    <RefreshCw size={16} /> Refaire cette question
+                    <RefreshCw size={16} /> {t('q_retry', 'Refaire cette question')}
                   </span>
                 </div>
               </div>
@@ -291,7 +299,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
               <div style={{ marginTop: '1rem', background: '#f8fafc', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e2e8f0', animation: 'fadeIn 0.3s ease-out' }}>
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                     <div style={{ fontSize: '0.95rem', color: 'var(--text-main)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Edit3 size={18} color="#8b5cf6" /> Rédigez ou dictez votre réponse
+                      <Edit3 size={18} color="#8b5cf6" /> {t('q_write_dictate', 'Rédigez ou dictez votre réponse')}
                     </div>
                     <button 
                       onClick={() => toggleRecording(qKey)}
@@ -299,7 +307,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                       style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem', background: isRecordingThis ? '#ef4444' : undefined, borderColor: isRecordingThis ? '#ef4444' : undefined, color: isRecordingThis ? 'white' : undefined, animation: isRecordingThis ? 'pulse-record 1.5s infinite' : 'none' }}
                     >
                       {isRecordingThis ? <MicOff size={16} /> : <Mic size={16} />}
-                      {isRecordingThis ? "Arrêter" : "Répondre à la voix"}
+                      {isRecordingThis ? t('q_stop_recording', "Arrêter") : t('q_voice_answer', "Répondre à la voix")}
                     </button>
                  </div>
                  
@@ -307,16 +315,16 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                     value={userAnswers[qKey] || ""}
                     onChange={(e) => setUserAnswers(prev => ({ ...prev, [qKey]: e.target.value }))}
                     onBlur={() => updateFormData && updateFormData(userAnswersKey, { ...userAnswers })}
-                    placeholder="Commencez à parler ou tapez votre réponse ici..."
+                    placeholder={t('q_answer_placeholder', "Commencez à parler ou tapez votre réponse ici...")}
                     rows={4}
                     disabled={isSubmittingThis}
                     style={{ width: '100%', background: 'white', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0.75rem', fontFamily: 'inherit', fontSize: '0.95rem', resize: 'vertical', outline: 'none', marginBottom: '1rem' }}
                  />
 
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <button onClick={() => setActiveMode(prev => ({...prev, [qKey]: false}))} className="btn-ghost" style={{ fontSize: '0.85rem' }} disabled={isSubmittingThis}>Annuler</button>
+                    <button onClick={() => setActiveMode(prev => ({...prev, [qKey]: false}))} className="btn-ghost" style={{ fontSize: '0.85rem' }} disabled={isSubmittingThis}>{t('btn_cancel', 'Annuler')}</button>
                     <button onClick={() => handleSubmit(qKey, q)} disabled={!(userAnswers[qKey] || "").trim() || isSubmittingThis} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
-                      {isSubmittingThis ? <><Loader2 size={16} className="spin" /> Analyse IA en cours...</> : <><Send size={16} /> Analyser ma réponse</>}
+                      {isSubmittingThis ? <><Loader2 size={16} className="spin" /> {t('q_ai_analyzing', 'Analyse IA en cours...')}</> : <><Send size={16} /> {t('q_analyze_answer', 'Analyser ma réponse')}</>}
                     </button>
                  </div>
               </div>
@@ -326,33 +334,33 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
             {isDone && showFeedback && (
               <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', animation: 'fadeIn 0.4s ease-out' }}>
                  <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', position: 'relative' }}>
-                    <ScoreGauge score={feedback.score / 10} label="Impact de la réponse" />
+                    <ScoreGauge score={feedback.score / 10} label={t('q_impact_score', "Impact de la réponse")} />
                     <div style={{ flex: 1 }}>
-                       <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>Diagnostic IA</h4>
+                       <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>{t('q_ai_diagnostic', 'Diagnostic IA')}</h4>
                        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-                         {feedback.score >= 80 ? "Excellente réponse, très bien structurée." : feedback.score >= 50 ? "Bonne base, mais manque de structure ou de pragmatisme." : "Réponse à retravailler, les attentes du recruteur ne sont pas couvertes."}
+                         {feedback.score >= 80 ? t('q_diag_excellent', "Excellente réponse, très bien structurée.") : feedback.score >= 50 ? t('q_diag_good', "Bonne base, mais manque de structure ou de pragmatisme.") : t('q_diag_poor', "Réponse à retravailler, les attentes du recruteur ne sont pas couvertes.")}
                        </p>
                     </div>
-                    <button onClick={() => setShowFeedbackDetails(prev => ({...prev, [qKey]: false}))} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }} title="Fermer"><EyeOff size={16} /> Masquer</button>
+                    <button onClick={() => setShowFeedbackDetails(prev => ({...prev, [qKey]: false}))} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }} title="Fermer"><EyeOff size={16} /> {t('q_hide', 'Masquer')}</button>
                  </div>
                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
                     <div style={{ background: 'rgba(34, 197, 94, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
-                      <h4 style={{ margin: '0 0 1rem 0', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={18} /> Ce qui fonctionne bien</h4>
+                      <h4 style={{ margin: '0 0 1rem 0', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={18} /> {t('q_strengths', 'Ce qui fonctionne bien')}</h4>
                       <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-main)', fontSize: '0.9rem', lineHeight: '1.5' }}>{feedback.strengths?.map((s: string, i: number) => <li key={i} style={{ marginBottom: '0.5rem' }}>{s}</li>)}</ul>
                     </div>
                     <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                      <h4 style={{ margin: '0 0 1rem 0', color: 'var(--danger-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><AlertTriangle size={18} /> Ce qu'il manque</h4>
+                      <h4 style={{ margin: '0 0 1rem 0', color: 'var(--danger-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><AlertTriangle size={18} /> {t('q_weaknesses', "Ce qu'il manque")}</h4>
                       <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-main)', fontSize: '0.9rem', lineHeight: '1.5' }}>{feedback.weaknesses?.map((w: string, i: number) => <li key={i} style={{ marginBottom: '0.5rem' }}>{w}</li>)}</ul>
                     </div>
                  </div>
                  <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', borderLeft: '4px solid #8b5cf6' }}>
-                    <h4 style={{ margin: '0 0 0.5rem 0', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Lightbulb size={18} /> Proposition de réponse optimisée (Méthode STAR)</h4>
+                    <h4 style={{ margin: '0 0 0.5rem 0', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Lightbulb size={18} /> {t('q_optimized_answer', 'Proposition de réponse optimisée (Méthode STAR)')}</h4>
                     <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-main)', fontStyle: 'italic', lineHeight: '1.6' }}>"{feedback.improved_answer}"</p>
                  </div>
                  
                  <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'center' }}>
                     <button onClick={() => handleRetry(qKey)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.75rem 2rem' }}>
-                      <RefreshCw size={16} /> Recommencer l'exercice
+                      <RefreshCw size={16} /> {t('q_restart_exercise', "Recommencer l'exercice")}
                     </button>
                  </div>
               </div>
@@ -364,10 +372,10 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '600' }}>
                     <CheckCircle2 size={16} /> 
-                    <span>Suggestion de réponse (Éditable)</span>
+                    <span>{t('q_suggested_answer', 'Suggestion de réponse (Éditable)')}</span>
                   </div>
                   <button onClick={() => toggleReveal(qKey)} style={{ background: 'transparent', border: 'none', color: '#166534', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', opacity: 0.8 }} onMouseOver={e => e.currentTarget.style.opacity = '1'} onMouseOut={e => e.currentTarget.style.opacity = '0.8'}>
-                    <EyeOff size={14} /> Masquer
+                    <EyeOff size={14} /> {t('q_hide', 'Masquer')}
                   </button>
                 </div>
                 {/* [FIX] Textarea éditable pour la réponse */}
@@ -386,7 +394,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                       minHeight: "80px",
                       outline: "none"
                   }}
-                  placeholder="Rédigez votre réponse ici..."
+                  placeholder={t('q_write_answer_here', "Rédigez votre réponse ici...")}
                 />
               </div>
             )}

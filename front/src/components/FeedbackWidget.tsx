@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ThumbsUp, ThumbsDown, Sparkles } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
+import { useTranslation } from 'react-i18next';
 
 interface FeedbackWidgetProps {
   feature: string;
@@ -13,17 +14,21 @@ interface FeedbackWidgetProps {
 export function FeedbackWidget({ 
   feature, 
   jobType = "unknown",
-  question = "Cette analyse vous est-elle utile ?",
-  negativeBullets = [
-    "L'analyse manque de précision ou de contexte ?",
-    "Les informations sont inexactes ou hors sujet ?",
-    "Les recommandations ne sont pas applicables ?"
-  ]
+  question,
+  negativeBullets
 }: FeedbackWidgetProps) {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [showNegativeForm, setShowNegativeForm] = useState(false);
   const [comments, setComments] = useState('');
   const [selectedBullets, setSelectedBullets] = useState<string[]>([]);
+
+  const activeQuestion = question || t('feedback_default_q', "Cette analyse vous est-elle utile ?");
+  const activeBullets = negativeBullets || [
+    t('feedback_bullet_1', "L'analyse manque de précision ou de contexte ?"),
+    t('feedback_bullet_2', "Les informations sont inexactes ou hors sujet ?"),
+    t('feedback_bullet_3', "Les recommandations ne sont pas applicables ?")
+  ];
 
   const handleFeedback = async (isPositive: boolean, submittedComments?: string) => {
     if (!isPositive && !showNegativeForm) {
@@ -62,17 +67,17 @@ export function FeedbackWidget({
       
       {status === 'success' ? (
         <p style={{ color: '#15803d', margin: 0, fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Sparkles size={18} /> Merci pour votre retour !
+          <Sparkles size={18} /> {t('feedback_thanks', 'Merci pour votre retour !')}
         </p>
       ) : showNegativeForm ? (
         <div style={{ width: '100%', maxWidth: '500px', background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', textAlign: 'left' }}>
           <p style={{ margin: '0 0 1rem 0', fontWeight: 600, color: 'var(--text-main)' }}>
-            Comment pouvons-nous améliorer cette analyse ?
+            {t('feedback_improve', 'Comment pouvons-nous améliorer cette analyse ?')}
           </p>
           
           {/* Puces cliquables (Tags) */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
-            {negativeBullets.map((bullet, idx) => {
+            {activeBullets.map((bullet, idx) => {
               const isSelected = selectedBullets.includes(bullet);
               return (
                 <button
@@ -95,7 +100,7 @@ export function FeedbackWidget({
           <textarea 
             value={comments}
             onChange={(e) => setComments(e.target.value)}
-            placeholder="Précisez votre retour (optionnel)..."
+            placeholder={t('feedback_placeholder', "Précisez votre retour (optionnel)...")}
             style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-main)', marginBottom: '1rem', minHeight: '80px', fontFamily: 'inherit', resize: 'vertical' }}
           />
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
@@ -108,7 +113,7 @@ export function FeedbackWidget({
               }}
               style={{ padding: '0.5rem 1rem', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '0.5rem', cursor: 'pointer', color: 'var(--text-muted)', fontWeight: 500 }}
             >
-              Annuler
+              {t('btn_cancel', 'Annuler')}
             </button>
             <button 
               type="button"
@@ -122,14 +127,14 @@ export function FeedbackWidget({
               disabled={status === 'submitting'}
               style={{ padding: '0.5rem 1rem', background: '#ef4444', border: 'none', borderRadius: '0.5rem', cursor: status === 'submitting' ? 'wait' : 'pointer', color: 'white', fontWeight: 500 }}
             >
-              Envoyer le retour
+              {t('btn_send_feedback', 'Envoyer le retour')}
             </button>
           </div>
         </div>
       ) : (
         <>
           <p style={{ margin: 0, color: 'var(--text-main)', fontWeight: '500', fontSize: '1.1rem', textAlign: 'center' }}>
-            {question}
+            {activeQuestion}
           </p>
           <div style={{ display: 'flex', gap: '1rem' }}>
             <button 
@@ -138,7 +143,7 @@ export function FeedbackWidget({
               disabled={status === 'submitting'}
               style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', cursor: status === 'submitting' ? 'wait' : 'pointer', color: 'var(--text-main)', transition: 'all 0.2s', fontWeight: '500' }}
             >
-              <ThumbsUp size={18} /> Oui
+              <ThumbsUp size={18} /> {t('btn_yes', 'Oui')}
             </button>
             <button 
               type="button"
@@ -146,7 +151,7 @@ export function FeedbackWidget({
               disabled={status === 'submitting'}
               style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', cursor: status === 'submitting' ? 'wait' : 'pointer', color: 'var(--text-main)', transition: 'all 0.2s', fontWeight: '500' }}
             >
-              <ThumbsDown size={18} /> Non
+              <ThumbsDown size={18} /> {t('btn_no', 'Non')}
             </button>
           </div>
         </>
@@ -154,7 +159,7 @@ export function FeedbackWidget({
       
       {status === 'error' && (
         <p style={{ color: '#b91c1c', margin: 0, fontSize: '0.9rem', textAlign: 'center' }}>
-          Une erreur est survenue lors de l'envoi de votre avis.
+          {t('feedback_error', "Une erreur est survenue lors de l'envoi de votre avis.")}
         </p>
       )}
     </div>

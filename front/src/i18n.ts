@@ -4,17 +4,17 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import HttpApi from 'i18next-http-backend';
 
 i18n
+  // Charge les traductions depuis une API en premier
+  .use(HttpApi)
   // Détecte la langue de l'utilisateur (via le navigateur, localStorage, etc.)
   .use(LanguageDetector)
   // Passe l'instance i18n à react-i18next
   .use(initReactI18next)
-  // Charge les traductions depuis une API (ici, les fichiers dans /public/locales)
-  .use(HttpApi)
   .init({
-    // Langue par défaut si la détection échoue
-    fallbackLng: 'en',
-    // Langues supportées
-    supportedLngs: ['en', 'fr', 'es', 'de', 'it', 'pt', 'zh', 'ja', 'ru', 'ar'],
+    // Langue par défaut orientée France
+    fallbackLng: 'fr',
+    // On restreint à l'anglais et au français pour garantir la stabilité
+    supportedLngs: ['en', 'fr'],
     // Options pour le backend de chargement
     backend: {
       // Chemin vers les fichiers de traduction que nous allons créer
@@ -22,8 +22,8 @@ i18n
     },
     // Options de détection de langue
     detection: {
-      order: ['queryString', 'cookie', 'localStorage', 'navigator', 'htmlTag'],
-      caches: ['cookie', 'localStorage'],
+      order: ['localStorage', 'navigator'],
+      caches: ['localStorage'],
     },
     // Désactive l'échappement des valeurs (React le fait déjà pour se protéger du XSS)
     interpolation: {

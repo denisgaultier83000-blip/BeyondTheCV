@@ -5,9 +5,11 @@ import { authenticatedFetch } from '../utils/auth';
 import { KeywordCoachModal } from './KeywordCoachModal';
 import { API_BASE_URL } from '../config';
 import PdfPreviewer from './PdfPreviewer';
+import { useTranslation } from 'react-i18next';
 
 export const CVTab = ({ data }: { data: any }) => {
   const { cvData, cvResult, gapResult } = useDashboard();
+  const { t } = useTranslation();
   const [previewBody, setPreviewBody] = useState<any>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -119,17 +121,16 @@ export const CVTab = ({ data }: { data: any }) => {
       <div className="cv-header">
         <div className="cv-type-selector">
           <button className="cv-type-btn active">
-            <FileText size={16} /> CV Optimisé ATS
+            <FileText size={16} /> {t('cv_ats_optimized', 'CV Optimisé ATS')}
           </button>
           {/* D'autres boutons pourraient venir ici */}
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button className="btn-secondary" onClick={() => setRefreshTrigger(prev => prev + 1)} disabled={loadingPreview || !previewBody}>
-            {loadingPreview ? <Loader2 size={16} className="spin" /> : <RefreshCw size={16} />}
-            Rafraîchir
+            {loadingPreview ? <Loader2 size={16} className="spin" /> : <RefreshCw size={16} />} {t('cv_refresh', 'Rafraîchir')}
           </button>
           <button className="btn-primary" onClick={() => { if(previewUrl) window.open(previewUrl, '_blank')}} disabled={!previewUrl}>
-            <Download size={16} /> Télécharger
+            <Download size={16} /> {t('cv_download', 'Télécharger')}
           </button>
         </div>
       </div>
@@ -140,21 +141,21 @@ export const CVTab = ({ data }: { data: any }) => {
         <div className="cv-controls" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
             <h4 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
-              <Target size={20} color={scoreColor} /> Score ATS
+              <Target size={20} color={scoreColor} /> {t('cv_ats_score', 'Score ATS')}
             </h4>
             
             <div style={{ width: '100%', height: '10px', background: '#e2e8f0', borderRadius: '5px', overflow: 'hidden', marginBottom: '0.5rem' }}>
                 <div style={{ width: `${currentScore}%`, height: '100%', background: scoreColor, transition: 'width 0.5s ease-out, background 0.5s ease-in-out' }}></div>
             </div>
             <div style={{ fontSize: '0.95rem', color: scoreColor, fontWeight: 700 }}>
-              {currentScore}/100 - {currentScore >= 80 ? "Excellent" : currentScore >= 50 ? "Moyen" : "À améliorer"}
+              {currentScore}/100 - {currentScore >= 80 ? t('score_excellent', "Excellent") : currentScore >= 50 ? t('score_average', "Moyen") : t('score_improve', "À améliorer")}
             </div>
           </div>
 
           {missingKeywords.length > 0 && (
             <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                <h5 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: 'var(--danger-text)' }}>Mots-clés manquants</h5>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Cliquez sur un mot-clé pour l'ajouter à votre CV et augmenter votre score.</p>
+                <h5 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: 'var(--danger-text)' }}>{t('cv_missing_keywords', 'Mots-clés manquants')}</h5>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>{t('cv_click_keyword', 'Cliquez sur un mot-clé pour l\'ajouter à votre CV et augmenter votre score.')}</p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                     {missingKeywords.map((kw: string, i: number) => {
                         const isAdded = addedKeywords.includes(kw);
@@ -172,7 +173,7 @@ export const CVTab = ({ data }: { data: any }) => {
         {/* Colonne Droite : Le PDF */}
         <div className="cv-preview">
           <div className="preview-header">
-            <span>Aperçu du Document</span>
+            <span>{t('cv_preview_doc', 'Aperçu du Document')}</span>
           </div>
           <div className="preview-document" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: '800px', padding: 0 }}>
           {previewBody ? (
@@ -184,7 +185,7 @@ export const CVTab = ({ data }: { data: any }) => {
               onLoadingChange={(isLoading) => setLoadingPreview(isLoading)}
             />
           ) : (
-            <div className="pdf-placeholder">En attente des données...</div>
+            <div className="pdf-placeholder">{t('cv_waiting_data', 'En attente des données...')}</div>
           )}
           </div>
         </div>

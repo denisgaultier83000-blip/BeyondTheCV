@@ -2,12 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useDashboard } from './DashboardContext';
 import { Mic, MessageSquare, Play, Pause, RotateCcw, BrainCircuit, ArrowLeft } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { DashboardCard } from './DashboardCard';
 import { SituationSimulator } from './SituationSimulator';
 import Questionnaire from './Questionnaire';
+import Flashcards from './Flashcards';
 
 export const InterviewTab = () => {
   const { pitchResult, questionsResult, globalStatus } = useDashboard();
+  const { t } = useTranslation();
   const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false);
   const [isDark] = useState(() => document.body.classList.contains('dark-mode'));
 
@@ -69,7 +72,7 @@ export const InterviewTab = () => {
     return createPortal(
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: bgColor, zIndex: 999999, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <button onClick={() => setIsTeleprompterOpen(false)} style={{ position: 'absolute', top: '2rem', left: '2rem', background: controlBg, color: textColor, border: 'none', padding: '0.75rem 1.5rem', borderRadius: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', cursor: 'pointer', zIndex: 10 }}>
-          <ArrowLeft size={20} /> Retour
+          <ArrowLeft size={20} /> {t('btn_back', 'Retour')}
         </button>
         
         <div id="teleprompter-scroll-container" style={{ flex: 1, overflowY: 'auto', padding: '8rem 2rem 15rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', scrollbarWidth: 'thin' }}>
@@ -100,25 +103,25 @@ export const InterviewTab = () => {
       <div className="interview-tab-container">
         <div id="pitch_section">
         <DashboardCard
-          title="Pitch de 3 minutes"
+          title={t('deliv_pitch', "Pitch de 3 minutes")}
           icon={<Mic size={24} />}
           loading={globalStatus === 'PROCESSING' && !pitchResult}
-          loadingText="Génération de votre pitch..."
+          loadingText={t('pitch_loading', "Génération de votre pitch...")}
           error={!pitchResult && (globalStatus === 'COMPLETED' || globalStatus === 'FAILED')}
-          errorText="Le pitch n'a pas pu être généré."
+          errorText={t('pitch_error', "Le pitch n'a pas pu être généré.")}
           featureId="pitch_3_min"
           headerAction={pitchResult && (
             <button className="btn-primary" onClick={() => setIsTeleprompterOpen(true)}>
-              <Play size={16} style={{ marginRight: '0.5rem' }} /> Mode Téléprompteur
+              <Play size={16} style={{ marginRight: '0.5rem' }} /> {t('teleprompter_mode', 'Mode Téléprompteur')}
             </button>
           )}
         >
           {pitchResult && (
             <div className="pitch-grid">
-              <div className="pitch-card"><h4>Accroche</h4><textarea className="pitch-textarea" value={editablePitch.accroche} onChange={e => handlePitchChange('accroche', e.target.value)} /></div>
-              <div className="pitch-card"><h4>Preuve & Impact</h4><textarea className="pitch-textarea" value={editablePitch.preuve} onChange={e => handlePitchChange('preuve', e.target.value)} /></div>
-              <div className="pitch-card"><h4>Valeur Ajoutée</h4><textarea className="pitch-textarea" value={editablePitch.valeur} onChange={e => handlePitchChange('valeur', e.target.value)} /></div>
-              <div className="pitch-card"><h4>Projection</h4><textarea className="pitch-textarea" value={editablePitch.projection} onChange={e => handlePitchChange('projection', e.target.value)} /></div>
+              <div className="pitch-card"><h4>{t('pitch_hook', 'Accroche')}</h4><textarea className="pitch-textarea" value={editablePitch.accroche} onChange={e => handlePitchChange('accroche', e.target.value)} /></div>
+              <div className="pitch-card"><h4>{t('pitch_proof', 'Preuve & Impact')}</h4><textarea className="pitch-textarea" value={editablePitch.preuve} onChange={e => handlePitchChange('preuve', e.target.value)} /></div>
+              <div className="pitch-card"><h4>{t('pitch_value', 'Valeur Ajoutée')}</h4><textarea className="pitch-textarea" value={editablePitch.valeur} onChange={e => handlePitchChange('valeur', e.target.value)} /></div>
+              <div className="pitch-card"><h4>{t('pitch_projection', 'Projection')}</h4><textarea className="pitch-textarea" value={editablePitch.projection} onChange={e => handlePitchChange('projection', e.target.value)} /></div>
             </div>
           )}
         </DashboardCard>
@@ -126,12 +129,12 @@ export const InterviewTab = () => {
 
         <div id="questionnaire_section">
         <DashboardCard
-          title="Questionnaire d'Entretien"
+          title={t('deliv_questions', "Questionnaire d'Entretien")}
           icon={<MessageSquare size={24} />}
           loading={globalStatus === 'PROCESSING' && !questionsResult}
-          loadingText="Génération des questions..."
+          loadingText={t('questions_loading', "Génération des questions...")}
           error={!questionsResult && (globalStatus === 'COMPLETED' || globalStatus === 'FAILED')}
-          errorText="Le questionnaire n'a pas pu être généré."
+          errorText={t('questions_error', "Le questionnaire n'a pas pu être généré.")}
           featureId="interview_questions"
         >
           {questionsResult && <Questionnaire questions={Array.isArray(questionsResult) ? questionsResult : (questionsResult.questions || [])} hideHeader={true} />}
@@ -141,7 +144,7 @@ export const InterviewTab = () => {
         {/* MODULE MISE EN SITUATION */}
         <div id="mes_section">
         <DashboardCard
-          title="Mises en situation"
+          title={t('submenu_mes', "Mises en situation")}
           icon={<BrainCircuit size={24} />}
           featureId="situation_simulator"
         >

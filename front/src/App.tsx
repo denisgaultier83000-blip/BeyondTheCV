@@ -111,11 +111,11 @@ function AppContent() {
   };
 
   const CAREER_EDGE_STEPS: Step[] = [
-    { id: 0, title: "Import" }, { id: 1, title: t('profile_title') },
+    { id: 0, title: t('step_import', "Import") }, { id: 1, title: t('profile_title') },
     { id: 2, title: t('target_title') }, { id: 3, title: t('education_title') },
     { id: 4, title: t('experience_title') }, { id: 5, title: t('qualities_title') },
     { id: 6, title: t('express_yourself') }, { id: 7, title: t('clarification_title') },
-    { id: 8, title: "Résultats" }
+    { id: 8, title: t('step_results', "Résultats") }
   ];
 
   // --- Handlers transmis aux composants enfants ---
@@ -250,14 +250,14 @@ function AppContent() {
 
   // --- RENDU DES ÉTAPES ---
   const renderStepContent = () => {
-    if (isProfileLoading) return <LoadingScreen title="Chargement de votre profil..." description="Récupération de vos données sécurisées..." />;
+    if (isProfileLoading) return <LoadingScreen title={t('loading_profile_title', "Chargement de votre profil...")} description={t('loading_profile_desc', "Récupération de vos données sécurisées...")} />;
 
     switch(currentStep) {
       case 0: return (
         <div className="step-wrapper">
           <StepImport onUpload={handleLinkedInImport} loading={isImportLoading} />
           {/* [FIX] Bouton secondaire repoussé à droite */}
-          <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-outline" onClick={() => setCurrentStep(1)}>Ou remplir manuellement</button></div>
+          <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-outline" onClick={() => setCurrentStep(1)}>{t('or_fill_manually', 'Ou remplir manuellement')}</button></div>
         </div>);
       case 1: return (
         <div className="step-wrapper">
@@ -265,7 +265,7 @@ function AppContent() {
           {/* [FIX] Alignement propre avec le bouton reset poussé à gauche (marginRight: 'auto') et les autres à droite */}
           <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem', gap: '1rem', alignItems: 'center' }}>
             <button className="btn-ghost" onClick={() => resetDashboard()} style={{ marginRight: 'auto' }}><RotateCcw size={16} style={{ marginRight: '0.5rem' }}/>{t('btn_reset')}</button>
-            <button className="btn-secondary" onClick={loadProfile}><RefreshCw size={16} style={{ marginRight: '0.5rem' }}/>Synchroniser</button>
+            <button className="btn-secondary" onClick={loadProfile}><RefreshCw size={16} style={{ marginRight: '0.5rem' }}/>{t('btn_sync', 'Synchroniser')}</button>
             <button className="btn-primary" onClick={() => handleNextStep()}>{t('btn_next')}</button>
           </div>
         </div>);
@@ -292,7 +292,7 @@ function AppContent() {
           <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={() => handleNextStep()}>{t('btn_next')}</button></div>
         </div>);
       case 6:
-        if (["PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus)) return <LoadingScreen title="Création de votre profil stratégique..." description="Analyse de vos expériences et exigences du marché..." />;
+        if (["PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus)) return <LoadingScreen title={t('loading_strat_title', "Création de votre profil stratégique...")} description={t('loading_strat_desc', "Analyse de vos expériences et exigences du marché...")} />;
         return (
           <div className="step-wrapper">
             <StepFreeText data={cvData || {}} onChange={handleChange} />
@@ -332,10 +332,10 @@ function AppContent() {
       const storedUser = localStorage.getItem('user');
       if (storedUser && storedUser !== "undefined" && storedUser !== "null") {
           const u = JSON.parse(storedUser);
-          parsedUserName = u.first_name || u.name || "Candidat";
+          parsedUserName = u.first_name || u.name || t('default_candidate_name', "Candidat");
       }
     } catch (e) {
-        parsedUserName = "Candidat";
+        parsedUserName = t('default_candidate_name', "Candidat");
     }
       if (cvData?.first_name) {
         parsedUserName = cvData.first_name;
@@ -405,7 +405,7 @@ function AppContent() {
       </main>
 
       {isFrozen && isAuthenticated && !showLanding && !LegalComponent && !showAdmin && (
-        <div className="frozen-banner"><Lock size={20} /> Accès expiré. La génération IA est bloquée.<button onClick={() => setShowPaywall(true)} className="btn-reactivate">Réactiver (30€)</button></div>)}
+        <div className="frozen-banner"><Lock size={20} /> {t('frozen_banner_text', 'Accès expiré. La génération IA est bloquée.')}<button onClick={() => setShowPaywall(true)} className="btn-reactivate">{t('btn_reactivate', 'Réactiver (30€)')}</button></div>)}
 
       <div className="toast-container">{(toasts || []).map(t => (<div key={t.id} className="toast-notification"><LucideBell size={16} /> {t.text}<button onClick={() => removeToast(t.id)}><LucideX size={14}/></button></div>))}</div>
 
@@ -413,11 +413,11 @@ function AppContent() {
         <div className="modal-overlay">
            <div className="modal-content">
               <div className="modal-icon"><Lock size={40} color="#3b82f6" /></div>
-              <h2>Période d'accès expirée</h2>
-              <p>Vos 3 mois d'accès illimité sont terminés. Rassurez-vous, votre historique est sauvegardé.</p>
+              <h2>{t('paywall_title', 'Période d\'accès expirée')}</h2>
+              <p>{t('paywall_desc', 'Vos 3 mois d\'accès illimité sont terminés. Rassurez-vous, votre historique est sauvegardé.')}</p>
               <div className="modal-actions">
-                 <button onClick={() => setShowPaywall(false)} className="btn-outline">Plus tard</button>
-                 <button onClick={() => window.location.href = '/payment?plan=renewal'} className="btn-primary">Débloquer pour 30 €</button>
+                 <button onClick={() => setShowPaywall(false)} className="btn-outline">{t('btn_later', 'Plus tard')}</button>
+                 <button onClick={() => window.location.href = '/payment?plan=renewal'} className="btn-primary">{t('btn_unlock', 'Débloquer pour 30 €')}</button>
               </div>
            </div>
         </div>)}
@@ -426,10 +426,10 @@ function AppContent() {
 
       {/* [FIX] Alignement centré et aéré du Footer réglementaire */}
       <footer className="app-footer" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.5rem', padding: '2rem', flexWrap: 'wrap', opacity: 0.8, marginTop: 'auto' }}>
-        <button className="btn-ghost" onClick={() => setShowAdmin(true)}>Accès Administrateur</button><span>|</span>
-        <button className="btn-ghost" onClick={() => setShowLegal(true)}>Mentions Légales</button><span>|</span>
-        <button className="btn-ghost" onClick={() => setShowCGU(true)}>CGU</button><span>|</span>
-        <button className="btn-ghost" onClick={() => setShowPrivacy(true)}>Politique de Confidentialité</button>
+        <button className="btn-ghost" onClick={() => setShowAdmin(true)}>{t('footer_admin', 'Accès Administrateur')}</button><span>|</span>
+        <button className="btn-ghost" onClick={() => setShowLegal(true)}>{t('footer_legal', 'Mentions Légales')}</button><span>|</span>
+        <button className="btn-ghost" onClick={() => setShowCGU(true)}>{t('footer_cgu', 'CGU')}</button><span>|</span>
+        <button className="btn-ghost" onClick={() => setShowPrivacy(true)}>{t('footer_privacy', 'Politique de Confidentialité')}</button>
       </footer>
     </div>
   );

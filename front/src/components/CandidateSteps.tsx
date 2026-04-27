@@ -58,32 +58,32 @@ export const StepImport = ({ onUpload, loading, lang = 'en' }: { onUpload?: (fil
     <div className="step-content">
       <div style={{ textAlign: "center", marginBottom: "2rem" }}>
         <Linkedin size={48} color="#0a66c2" style={{ marginBottom: "1rem" }} />
-        <h2>Importez votre profil LinkedIn</h2>
+        <h2>{t('import_linkedin_title', 'Importez votre profil LinkedIn')}</h2>
         <p style={{ color: "var(--text-muted)", fontSize: "1rem", maxWidth: "600px", margin: "0 auto" }}>
-          Pour garantir une analyse parfaite de votre profil, nous utilisons exclusivement le format standard de LinkedIn. Téléchargez votre profil en 3 clics.
+          {t('import_linkedin_desc', 'Pour garantir une analyse parfaite de votre profil, nous utilisons exclusivement le format standard de LinkedIn. Téléchargez votre profil en 3 clics.')}
         </p>
       </div>
 
       <div style={{ display: "flex", gap: "1.5rem", justifyContent: "center", marginBottom: "2rem" }}>
         <div style={{ background: "var(--bg-secondary)", padding: "1rem 1.5rem", borderRadius: "0.5rem", flex: 1, maxWidth: "250px", textAlign: "center" }}>
-          <div style={{ fontWeight: "bold", color: "var(--primary)", marginBottom: "0.5rem" }}>Étape 1</div>
-          <div style={{ fontSize: "0.9rem", color: "var(--text-main)" }}>Allez sur votre profil LinkedIn.</div>
+          <div style={{ fontWeight: "bold", color: "var(--primary)", marginBottom: "0.5rem" }}>{t('step_1', 'Étape 1')}</div>
+          <div style={{ fontSize: "0.9rem", color: "var(--text-main)" }}>{t('import_step1_desc', 'Allez sur votre profil LinkedIn.')}</div>
         </div>
         <div style={{ background: "var(--bg-secondary)", padding: "1rem 1.5rem", borderRadius: "0.5rem", flex: 1, maxWidth: "250px", textAlign: "center" }}>
-          <div style={{ fontWeight: "bold", color: "var(--primary)", marginBottom: "0.5rem" }}>Étape 2</div>
-          <div style={{ fontSize: "0.9rem", color: "var(--text-main)" }}>Cliquez sur le bouton <b>"Plus"</b>.</div>
+          <div style={{ fontWeight: "bold", color: "var(--primary)", marginBottom: "0.5rem" }}>{t('step_2', 'Étape 2')}</div>
+          <div style={{ fontSize: "0.9rem", color: "var(--text-main)" }}>{t('import_step2_desc', 'Cliquez sur le bouton')} <b>{t('import_btn_more', '"Plus"')}</b>.</div>
         </div>
         <div style={{ background: "var(--bg-secondary)", padding: "1rem 1.5rem", borderRadius: "0.5rem", flex: 1, maxWidth: "250px", textAlign: "center" }}>
-          <div style={{ fontWeight: "bold", color: "var(--primary)", marginBottom: "0.5rem" }}>Étape 3</div>
-          <div style={{ fontSize: "0.9rem", color: "var(--text-main)" }}>Choisissez <b>"Enregistrer au format PDF"</b>.</div>
+          <div style={{ fontWeight: "bold", color: "var(--primary)", marginBottom: "0.5rem" }}>{t('step_3', 'Étape 3')}</div>
+          <div style={{ fontSize: "0.9rem", color: "var(--text-main)" }}>{t('import_step3_desc', 'Choisissez')} <b>{t('import_btn_pdf', '"Enregistrer au format PDF"')}</b>.</div>
         </div>
       </div>
 
       <div onClick={() => !loading && fileInputRef.current?.click()} style={{ border: "2px dashed #0a66c2", background: "rgba(10, 102, 194, 0.05)", padding: "3rem", textAlign: "center", borderRadius: "1rem", cursor: loading ? "not-allowed" : "pointer", transition: "all 0.2s" }}>
         <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf" style={{ display: "none" }} />
         {loading ? <Loader2 size={32} className="spin" color="#0a66c2" /> : <UploadCloud size={32} color="#0a66c2" />}
-        <h3 style={{ marginTop: "1rem", color: "#0a66c2" }}>{loading ? "Analyse en cours..." : "Cliquez ici pour charger votre PDF LinkedIn"}</h3>
-        <p style={{ color: "var(--text-muted)", margin: 0, fontSize: "0.9rem" }}>Format accepté : .pdf uniquement</p>
+        <h3 style={{ marginTop: "1rem", color: "#0a66c2" }}>{loading ? t('analysis_in_progress', "Analyse en cours...") : t('import_upload_btn', "Cliquez ici pour charger votre PDF LinkedIn")}</h3>
+        <p style={{ color: "var(--text-muted)", margin: 0, fontSize: "0.9rem" }}>{t('import_format_accepted', "Format accepté : .pdf uniquement")}</p>
       </div>
     </div>
   );
@@ -166,7 +166,8 @@ export const StepProfile = ({ data, onChange, errors, lang = 'en' }: StepProps) 
 };
 
 export const StepTarget = ({ data, onChange, errors, loading, lang = 'en' }: StepProps) => {
-  const { t } = useTranslation();
+  // Extraction de i18n et t sans doublon (correction du crash React)
+  const { t, i18n } = useTranslation();
   return (
   <div className="step-content">
     <h2>{t('target_title')}</h2>
@@ -215,15 +216,18 @@ export const StepTarget = ({ data, onChange, errors, loading, lang = 'en' }: Ste
     <div className="row" style={{ marginTop: 20 }}>
       <div className="col form-group">
         <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>{t('target_language_label', "Langue de rédaction de l'IA (CV, Pitch, Analyses)")}</label>
-        <select disabled={loading} value={data.target_language || lang || "fr"} onChange={e => onChange("target_language", e.target.value)} style={{ width: "100%", opacity: loading ? 0.6 : 1, border: "1px solid var(--primary)", background: "var(--bg-card)", color: "var(--text-main)" }}>
+        <select 
+          disabled={loading} 
+          value={data.target_language || i18n.resolvedLanguage?.substring(0, 2) || "fr"} 
+          onChange={e => onChange("target_language", e.target.value)} 
+          style={{ width: "100%", opacity: loading ? 0.6 : 1, border: "1px solid var(--primary)", background: "var(--bg-card)", color: "var(--text-main)" }}
+        >
           <option value="fr">Français 🇫🇷</option>
           <option value="en">English 🇬🇧</option>
-          <option value="es">Español 🇪🇸</option>
-          <option value="de">Deutsch 🇩🇪</option>
-          <option value="it">Italiano 🇮🇹</option>
-          <option value="pt">Português 🇵🇹</option>
         </select>
-        <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "4px", marginBottom: 0 }}>L'IA générera tous vos documents dans cette langue, indépendamment de la langue de l'interface.</p>
+        <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "4px", marginBottom: 0 }}>
+          {t('target_language_hint', "L'IA générera tous vos documents dans cette langue.")}
+        </p>
       </div>
     </div>
 
@@ -351,7 +355,7 @@ export const StepExperience = ({ list, onAdd, onRemove, onUpdate, lang = 'en', o
                   onChange={e => onUpdate(exp.id, "end_date", e.target.checked ? "Aujourd'hui" : "")}
                   style={{ margin: 0, width: "auto", cursor: "pointer" }}
                 />
-                {t('present_date', "Jusqu'à aujourd'hui")}
+modif                {t('today', "Aujourd'hui")}
               </label>
             </div>
           </div>
@@ -378,21 +382,21 @@ export const StepExperience = ({ list, onAdd, onRemove, onUpdate, lang = 'en', o
 
           {/* SUCCÈS */}
           <div style={{ marginTop: 15, padding: 15, background: "rgba(16, 185, 129, 0.1)", borderRadius: 8, border: "1px solid var(--success)" }}>
-            <label style={{ color: "var(--success)", fontWeight: "bold", marginBottom: 10, display: "block" }}>🏆 Succès marquant</label>
+            <label style={{ color: "var(--success)", fontWeight: "bold", marginBottom: 10, display: "block" }}>{t('success_mark_title', '🏆 Succès marquant')}</label>
             <div style={{ display: "grid", gap: 10 }}>
-              <input placeholder="Contexte (ex: Projet en retard...)" value={exp.success_context || ""} onChange={e => onUpdate(exp.id, "success_context", e.target.value)} style={{ width: "100%" }} />
-              <input placeholder="Action (ex: J'ai réorganisé le planning...)" value={exp.success_action || ""} onChange={e => onUpdate(exp.id, "success_action", e.target.value)} style={{ width: "100%" }} />
-              <input placeholder="Résultats (ex: Livré à temps, +15% perf...)" value={exp.success_result || ""} onChange={e => onUpdate(exp.id, "success_result", e.target.value)} style={{ width: "100%" }} />
+              <input placeholder={t('success_context_placeholder', "Contexte (ex: Projet en retard...)")} value={exp.success_context || ""} onChange={e => onUpdate(exp.id, "success_context", e.target.value)} style={{ width: "100%" }} />
+              <input placeholder={t('success_action_placeholder', "Action (ex: J'ai réorganisé le planning...)")} value={exp.success_action || ""} onChange={e => onUpdate(exp.id, "success_action", e.target.value)} style={{ width: "100%" }} />
+              <input placeholder={t('success_result_placeholder', "Résultats (ex: Livré à temps, +15% perf...)")} value={exp.success_result || ""} onChange={e => onUpdate(exp.id, "success_result", e.target.value)} style={{ width: "100%" }} />
             </div>
           </div>
 
           {/* ÉCHECS */}
           <div style={{ marginTop: 15, padding: 15, background: "rgba(239, 68, 68, 0.1)", borderRadius: 8, border: "1px solid var(--danger-text)" }}>
-            <label style={{ color: "var(--danger-text)", fontWeight: "bold", marginBottom: 10, display: "block" }}>📉 Challenge / Échec surmonté</label>
+            <label style={{ color: "var(--danger-text)", fontWeight: "bold", marginBottom: 10, display: "block" }}>{t('failure_mark_title', '📉 Challenge / Échec surmonté')}</label>
             <div style={{ display: "grid", gap: 10 }}>
-              <input placeholder="Contexte (ex: Erreur de communication...)" value={exp.failure_context || ""} onChange={e => onUpdate(exp.id, "failure_context", e.target.value)} style={{ width: "100%" }} />
-              <input placeholder="Action (ex: J'ai organisé un point hebdo...)" value={exp.failure_action || ""} onChange={e => onUpdate(exp.id, "failure_action", e.target.value)} style={{ width: "100%" }} />
-              <input placeholder="Enseignements (ex: Importance du feedback...)" value={exp.failure_lesson || ""} onChange={e => onUpdate(exp.id, "failure_lesson", e.target.value)} style={{ width: "100%" }} />
+              <input placeholder={t('failure_context_placeholder', "Contexte (ex: Erreur de communication...)")} value={exp.failure_context || ""} onChange={e => onUpdate(exp.id, "failure_context", e.target.value)} style={{ width: "100%" }} />
+              <input placeholder={t('failure_action_placeholder', "Action (ex: J'ai organisé un point hebdo...)")} value={exp.failure_action || ""} onChange={e => onUpdate(exp.id, "failure_action", e.target.value)} style={{ width: "100%" }} />
+              <input placeholder={t('failure_lesson_placeholder', "Enseignements (ex: Importance du feedback...)")} value={exp.failure_lesson || ""} onChange={e => onUpdate(exp.id, "failure_lesson", e.target.value)} style={{ width: "100%" }} />
             </div>
           </div>
         </div>
@@ -432,13 +436,13 @@ export const StepQualitiesFlaws = ({ data, onChange, lang = 'en' }: any) => {
   // --- LANGUAGES CONFIGURATION ---
   const languagesList = ["English", "Français", "Español", "Deutsch", "Italiano", "Português", "中文", "日本語", "Русский", "العربية"];
   const levels = [
-    { code: "A1", label: "A1", desc: "A1 - Débutant : Comprend des phrases très simples." },
-    { code: "A2", label: "A2", desc: "A2 - Élémentaire : Comprend des expressions fréquentes." },
-    { code: "B1", label: "B1", desc: "B1 - Intermédiaire : Peut se débrouiller en voyage." },
-    { code: "B2", label: "B2", desc: "B2 - Avancé : Comprend l'essentiel de sujets complexes." },
-    { code: "C1", label: "C1", desc: "C1 - Autonome : S'exprime spontanément et couramment." },
-    { code: "C2", label: "C2", desc: "C2 - Maîtrise : Comprend tout sans effort." },
-    { code: "Native", label: "Native", desc: "Langue maternelle" }
+    { code: "A1", label: "A1", desc: t('lang_a1', "A1 - Débutant : Comprend des phrases très simples.") },
+    { code: "A2", label: "A2", desc: t('lang_a2', "A2 - Élémentaire : Comprend des expressions fréquentes.") },
+    { code: "B1", label: "B1", desc: t('lang_b1', "B1 - Intermédiaire : Peut se débrouiller en voyage.") },
+    { code: "B2", label: "B2", desc: t('lang_b2', "B2 - Avancé : Comprend l'essentiel de sujets complexes.") },
+    { code: "C1", label: "C1", desc: t('lang_c1', "C1 - Autonome : S'exprime spontanément et couramment.") },
+    { code: "C2", label: "C2", desc: t('lang_c2', "C2 - Maîtrise : Comprend tout sans effort.") },
+    { code: "Native", label: "Native", desc: t('lang_native', "Langue maternelle") }
   ];
 
   const handleAddLanguage = () => {
@@ -475,12 +479,12 @@ export const StepQualitiesFlaws = ({ data, onChange, lang = 'en' }: any) => {
       return (
         <div key={cat.id} style={{ marginBottom: 25 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
-            <label style={{ fontSize: "1.1em", fontWeight: "bold" }}>{cat.title}</label>
+            <label style={{ fontSize: "1.1em", fontWeight: "bold" }}>{t(`profile_cat_${cat.id}_title`, cat.title)}</label>
             <span style={{ fontSize: "0.9em", color: selected.length === 3 ? "var(--success)" : "var(--text-muted)" }}>
-              {selected.length} / 3 sélectionnés
+              {selected.length} / 3 {t('selected', 'sélectionnés')}
             </span>
           </div>
-          <p style={{ fontSize: "0.9em", color: "var(--text-muted)", marginBottom: 10 }}>{cat.desc}</p>
+          <p style={{ fontSize: "0.9em", color: "var(--text-muted)", marginBottom: 10 }}>{t(`profile_cat_${cat.id}_desc`, cat.desc)}</p>
           
           <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
             {cat.traits.map(trait => {
@@ -528,7 +532,7 @@ export const StepQualitiesFlaws = ({ data, onChange, lang = 'en' }: any) => {
     <div style={{ marginTop: 30, marginBottom: 30 }}>
       <h3 style={{ margin: "0 0 10px 0" }}>{t('flaws_title', 'Points de vigilance (Défauts)')}</h3>
       <p style={{ fontSize: "0.9em", color: "var(--text-muted)", marginBottom: 15 }}>
-        Choisissez des défauts réalistes. L'objectif n'est pas d'être parfait, mais crédible en entretien.
+        {t('flaws_desc', "Choisissez des défauts réalistes. L'objectif n'est pas d'être parfait, mais crédible en entretien.")}
       </p>
       
       <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: 15 }}>
@@ -565,7 +569,7 @@ export const StepQualitiesFlaws = ({ data, onChange, lang = 'en' }: any) => {
 
       {(data.flaws || []).length > 0 && (
         <div style={{ fontSize: "0.9em", color: "var(--primary)", background: "rgba(59, 130, 246, 0.1)", padding: "10px", borderRadius: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
-          <Sparkles size={16} /> L'IA préparera les parades stratégiques pour vos défauts dans le Dashboard final.
+          <Sparkles size={16} /> {t('flaws_ai_hint', "L'IA préparera les parades stratégiques pour vos défauts dans le Dashboard final.")}
         </div>
       )}
     </div>
@@ -829,7 +833,7 @@ export const StepReview = (props: any) => {
             
             {/* Badge Format Unique */}
             <div style={{ background: "var(--bg-card)", color: "var(--primary)", padding: "4px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: "bold", border: "1px solid var(--primary)" }}>
-              Format Unique (Optimisé)
+              {t('unique_format_badge', 'Format Unique (Optimisé)')}
             </div>
 
             <button 
@@ -849,16 +853,16 @@ export const StepReview = (props: any) => {
               {/* JAUGE ATS & MOTS CLES INTERACTIFS */}
               <div style={{ marginBottom: cvAnalysis?.score_analysis ? '1.5rem' : '0', paddingBottom: cvAnalysis?.score_analysis ? '1.5rem' : '0', borderBottom: cvAnalysis?.score_analysis ? '1px dashed var(--border-color)' : 'none' }}>
                   <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Target size={16} color={scoreColor} /> Score d'Adéquation ATS
+                      <Target size={16} color={scoreColor} /> {t('ats_score_title', "Score d'Adéquation ATS")}
                   </h4>
                   <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.5rem' }}>
                       <div style={{ width: `${animatedScore}%`, height: '100%', background: scoreColor, transition: 'width 0.1s linear, background 0.5s ease-in-out' }}></div>
                   </div>
-                  <div style={{ fontSize: '0.85rem', color: scoreColor, fontWeight: 600 }}>{animatedScore}/100 - {animatedScore >= 80 ? "Excellent" : animatedScore >= 50 ? "Moyen" : "À améliorer"}</div>
+                  <div style={{ fontSize: '0.85rem', color: scoreColor, fontWeight: 600 }}>{animatedScore}/100 - {animatedScore >= 80 ? t('score_excellent', "Excellent") : animatedScore >= 50 ? t('score_average', "Moyen") : t('score_improve', "À améliorer")}</div>
 
                   {missingKeywords.length > 0 && (
                       <div style={{ marginTop: '1rem', background: 'var(--bg-card)', padding: '1rem', borderRadius: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                          <h5 style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: 'var(--danger-text)' }}>Mots-clés manquants</h5>
+                          <h5 style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: 'var(--danger-text)' }}>{t('missing_keywords', 'Mots-clés manquants')}</h5>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                               {missingKeywords.map((kw: string, i: number) => {
                                   const isAdded = addedKeywords.includes(kw);
@@ -886,12 +890,12 @@ export const StepReview = (props: any) => {
                 {cvAnalysis.score_analysis && (
                     <ScoreGauge 
                         score={cvAnalysis.score_analysis.global_score} 
-                        label="📄 Lisibilité Recruteur" 
+                        label={t('recruiter_readability', "📄 Lisibilité Recruteur")} 
                         critique={cvAnalysis.score_analysis.critique}
                         metrics={[
-                            { label: "Lecture", value: cvAnalysis.score_analysis.readability },
-                            { label: "Valeur", value: cvAnalysis.score_analysis.perceived_value },
-                            { label: "Bruit", value: cvAnalysis.score_analysis.noise_level }
+                            { label: t('metric_reading', "Lecture"), value: cvAnalysis.score_analysis.readability },
+                            { label: t('metric_value', "Valeur"), value: cvAnalysis.score_analysis.perceived_value },
+                            { label: t('metric_noise', "Bruit"), value: cvAnalysis.score_analysis.noise_level }
                         ]}
                     />
                 )}
@@ -899,7 +903,7 @@ export const StepReview = (props: any) => {
                 {/* Cross Analysis: Wahou Effect */}
                 {cvAnalysis?.score_analysis && pitchData?.analysis && Math.abs(cvAnalysis.score_analysis.global_score - pitchData.analysis.global_score) > 1.5 && (
                     <div style={{ fontSize: "12px", padding: "8px", background: "#fff7ed", border: "1px solid #fdba74", borderRadius: "6px", color: "#c2410c" }}>
-                        ⚠️ <b>Écart détecté :</b> {cvAnalysis.score_analysis.global_score > pitchData.analysis.global_score ? "Ton CV est clair, mais ton pitch dilue ta valeur." : "Ton pitch est convaincant, mais ton CV ne le reflète pas."}
+                        ⚠️ <b>{t('gap_detected_warning', "Écart détecté :")}</b> {cvAnalysis.score_analysis.global_score > pitchData.analysis.global_score ? t('gap_cv_better_pitch', "Ton CV est clair, mais ton pitch dilue ta valeur.") : t('gap_pitch_better_cv', "Ton pitch est convaincant, mais ton CV ne le reflète pas.")}
                     </div>
                 )}
                  </>
