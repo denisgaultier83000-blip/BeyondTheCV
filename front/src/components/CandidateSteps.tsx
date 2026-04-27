@@ -355,7 +355,7 @@ export const StepExperience = ({ list, onAdd, onRemove, onUpdate, lang = 'en', o
                   onChange={e => onUpdate(exp.id, "end_date", e.target.checked ? "Aujourd'hui" : "")}
                   style={{ margin: 0, width: "auto", cursor: "pointer" }}
                 />
-modif                {t('today', "Aujourd'hui")}
+                {t('today', "Aujourd'hui")}
               </label>
             </div>
           </div>

@@ -1,5 +1,6 @@
 name: Deploy to Production
 
+# On ne déploie en production QUE lorsqu'on fusionne du code validé sur la branche principale
 on:
   push:
     branches:
@@ -17,6 +18,6 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd /chemin/absolu/vers/ton/dossier/BeyondTheCV
-            git pull origin main
+            git pull origin master
             docker compose down
             docker compose up --build -d
