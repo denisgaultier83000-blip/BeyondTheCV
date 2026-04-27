@@ -4,9 +4,10 @@ import { API_BASE_URL } from '../config';
 
 interface LoginProps {
   onLoginSuccess?: () => void;
+  onLogin?: () => void;
 }
 
-export default function Login({ onLoginSuccess }: LoginProps) {
+export default function Login({ onLoginSuccess, onLogin }: LoginProps) {
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +74,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       }));
 
       if (onLoginSuccess) onLoginSuccess(); // Notifie App.tsx du succès
+      if (onLogin) onLogin(); // Notifie main.tsx du succès
 
     } catch (err: any) {
       setError(err.message);
