@@ -1,5 +1,4 @@
 name: Backend CI/CD
-# [DEBUG] Forçage d'un nouveau commit pour relancer la CI
 
 on:
   push:
@@ -26,9 +25,9 @@ jobs:
       postgres:
         image: postgres:13
         env:
-          POSTGRES_USER: user
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: test_db
+          POSTGRES_USER: ${POSTGRES_USER}
+          POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+          POSTGRES_DB: ${POSTGRES_DB}
         ports:
           - 5432:5432
         # Option pour attendre que PostgreSQL soit prêt
@@ -63,9 +62,9 @@ jobs:
         PYTHONPATH: ".:backend"
         
         # Utilise l'IP explicite 127.0.0.1 pour éviter les bugs de résolution IPv6
-        DATABASE_URL: "postgresql://user:password@127.0.0.1:5432/test_db"
-        OPENAI_API_KEY: "dummy_key"
-        GEMINI_API_KEY: "dummy_key"
+        DATABASE_URL: "postgresql:// ${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
+        OPENAI_API_KEY: ${OPENAI_API_KEY}
+        GEMINI_API_KEY: ${GEMINI_API_KEY}
       run: |
         # Affiche le contenu du répertoire courant pour faciliter le débogage dans les logs
         ls -la
