@@ -23,5 +23,5 @@ jobs:
           echo "Déploiement en cours..."
           # Docker Compose va automatiquement trouver et utiliser le fichier .env
           # --remove-orphans nettoie les conteneurs des services supprimés
-          docker compose -f docker-compose.prod.yml down
-          docker compose -f docker-compose.prod.yml up --build -d --remove-orphans
+          docker compose --env-file ../.env -f docker-compose.prod.yml down
+          docker compose --env-file ../.env -f docker-compose.prod.yml up --build -d --remove-orphans
