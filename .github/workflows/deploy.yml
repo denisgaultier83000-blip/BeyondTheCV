@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - master
+  # [OPT OPTIMISATION] Permet de lancer le workflow manuellement depuis l'interface GitHub
+  workflow_dispatch:
 
 jobs:
   deploy:
