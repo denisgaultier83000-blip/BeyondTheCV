@@ -9,8 +9,9 @@ RUN npm install
 # Copie du code source et compilation (nécessite le .env pour VITE_API_URL)
 COPY . .
 
-# [FIX DE L'EXPERT] On grave la variable dans l'OS du conteneur (Priorité absolue pour Vite)
-ENV VITE_API_URL=https://beyondthecv-backend-service-746792482004.europe-west1.run.app
+# Si aucune valeur n'est passée, il utilisera l'URL par défaut (pratique pour le dev local)
+ARG VITE_API_URL=http://localhost:8000
+ENV VITE_API_URL=$VITE_API_URL
 
 RUN npm run build
 
@@ -22,7 +23,7 @@ COPY --from=build /app/dist /usr/share/nginx/html
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Cloud Run utilise le port 8080 par défaut
-EXPOSE 8080
+# [FIX] On remet le port standard 80 pour Nginx sur un VPS classique
+EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]

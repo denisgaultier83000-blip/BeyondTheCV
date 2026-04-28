@@ -34,9 +34,12 @@ services:
     build:
       context: ./front
       dockerfile: Dockerfile
+      args:
+        # Injecte l'URL de l'API depuis la variable d'environnement du serveur au moment du build
+        - VITE_API_URL=${VITE_API_URL}
     ports:
-      # Nginx écoute désormais sur 8080 (Standard Cloud Run)
-      - "80:8080"
+      # [FIX] Nginx écoute sur le port standard 80 à l'intérieur du conteneur (VPS classique)
+      - "80:80"
     depends_on:
       - backend
     networks:
