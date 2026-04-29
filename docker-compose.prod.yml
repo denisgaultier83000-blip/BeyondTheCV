@@ -20,6 +20,7 @@ services:
     env_file:
       - ../.env
     environment:
+      # On force l'utilisation de la base de données locale (Option A) en ignorant le .env
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     depends_on:
       - db
