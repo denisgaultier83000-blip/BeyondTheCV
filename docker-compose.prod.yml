@@ -1,53 +1,63 @@
 services:
+
   db:
     image: postgres:15-alpine
-    restart: always
+    container_name: db-prod
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-appuser}
+      POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_prod:/var/lib/postgresql/data
     networks:
-      - app-network
+      - internal
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
-    env_file:
-      - ../.env
+    image: ghcr.io/denisgaultier83000-blip/backend:${VERSION}
+    container_name: backend-prod
+    restart: unless-stopped
+
     environment:
-      # On force l'utilisation de la base de données locale (Option A) en ignorant le .env
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+
     depends_on:
       - db
-    # On retire le mode --reload pour des performances et une stabilité maximales
-    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+
     networks:
-      - app-network
+      - internal
+      - web
+
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.backend-prod.rule=Host(`api.beyondthecv.app`)
+      - traefik.http.routers.backend-prod.entrypoints=websecure
+      - traefik.http.routers.backend-prod.tls.certresolver=le
+      - traefik.http.services.backend-prod.loadbalancer.server.port=8080
 
   frontend:
-    build:
-      context: ./front
-      dockerfile: Dockerfile
-      args:
-        # Injecte l'URL de l'API depuis la variable d'environnement du serveur au moment du build
-        - VITE_API_URL=${VITE_API_URL}
-    ports:
-      # [FIX] Nginx écoute sur le port standard 80 à l'intérieur du conteneur (VPS classique)
-      - "80:80"
-    depends_on:
-      - backend
+    image: ghcr.io/denisgaultier83000-blip/frontend:${VERSION}
+    container_name: frontend-prod
+    restart: unless-stopped
+
     networks:
-      - app-network
+      - web
+
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.front-prod.rule=Host(`beyondthecv.app`)
+      - traefik.http.routers.front-prod.entrypoints=websecure
+      - traefik.http.routers.front-prod.tls.certresolver=le
+      - traefik.http.services.front-prod.loadbalancer.server.port=80
 
 networks:
-  app-network:
+  internal:
     driver: bridge
+  web:
+    external: true
 
 volumes:
-  postgres_data:
-    # Volume Docker sécurisé pour les données PostgreSQL
+  postgres_data_prod:

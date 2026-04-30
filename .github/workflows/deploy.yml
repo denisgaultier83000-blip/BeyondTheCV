@@ -1,27 +1,27 @@
-name: Deploy to Production
+- name: Deploy
+  uses: appleboy/ssh-action@v1.0.3
+  with:
+    host: ${{ secrets.VPS_IP }}
+    username: ${{ secrets.VPS_USER }}
+    key: ${{ secrets.VPS_SSH_KEY }}
+    script: |
+      cd /app
 
-# On ne déploie en production QUE lorsqu'on fusionne du code validé sur la branche principale
-on:
-  push:
-    branches:
-      - master
-  # [OPT OPTIMISATION] Permet de lancer le workflow manuellement depuis l'interface GitHub
-  workflow_dispatch:
+      bash -c '
+      ENV_FILE=$(mktemp)
 
-jobs:
-  deploy:
-    # On cible le runner auto-hébergé qui tourne sur le VPS
-    runs-on: self-hosted
-    steps:
-      # Étape 1: Récupération du code de la branche master
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      cat <<EOF > $ENV_FILE
+VERSION=${{ env.VERSION }}
+POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+JWT_SECRET=${{ secrets.JWT_SECRET }}
+EOF
 
-      # Étape 2: Déploiement direct avec Docker Compose
-      - name: Deploy Application
-        run: |
-          echo "Déploiement en cours..."
-          # Docker Compose va automatiquement trouver et utiliser le fichier .env
-          # --remove-orphans nettoie les conteneurs des services supprimés
-          docker compose --env-file ../.env -f docker-compose.prod.yml down
-          docker compose --env-file ../.env -f docker-compose.prod.yml up --build -d --remove-orphans
+      docker compose --env-file $ENV_FILE pull
+      docker compose --env-file $ENV_FILE up -d
+
+      rm $ENV_FILE
+      '

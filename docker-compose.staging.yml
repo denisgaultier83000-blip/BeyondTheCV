@@ -1,0 +1,63 @@
+services:
+
+  db:
+    image: postgres:15-alpine
+    container_name: db-staging
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}_staging
+    volumes:
+      - postgres_data_staging:/var/lib/postgresql/data
+    networks:
+      - internal
+
+  backend:
+    image: ghcr.io/denisgaultier83000-blip/backend:${VERSION}
+    container_name: backend-staging
+    restart: unless-stopped
+
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}_staging
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+
+    depends_on:
+      - db
+
+    networks:
+      - internal
+      - web
+
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.backend-staging.rule=Host(`api-staging.beyondthecv.app`)
+      - traefik.http.routers.backend-staging.entrypoints=websecure
+      - traefik.http.routers.backend-staging.tls.certresolver=le
+      - traefik.http.services.backend-staging.loadbalancer.server.port=8080
+
+  frontend:
+    image: ghcr.io/denisgaultier83000-blip/frontend:${VERSION}
+    container_name: frontend-staging
+    restart: unless-stopped
+
+    networks:
+      - web
+
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.front-staging.rule=Host(`staging.beyondthecv.app`)
+      - traefik.http.routers.front-staging.entrypoints=websecure
+      - traefik.http.routers.front-staging.tls.certresolver=le
+      - traefik.http.services.front-staging.loadbalancer.server.port=80
+
+networks:
+  internal:
+    driver: bridge
+  web:
+    external: true
+
+volumes:
+  postgres_data_staging:
