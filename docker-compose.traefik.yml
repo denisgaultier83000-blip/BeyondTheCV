@@ -1,32 +1,64 @@
 services:
-  traefik:
-    image: traefik:v3
-    command:
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
 
-      - --entrypoints.web.address=:80
-      - --entrypoints.websecure.address=:443
-
-      - --certificatesresolvers.le.acme.httpchallenge=true
-      - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
-      - --certificatesresolvers.le.acme.email=mail@mail.com
-      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
-
-    ports:
-      - "80:80"
-      - "443:443"
-
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - traefik_cert:/letsencrypt
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+
+    depends_on:
+      - db
+
+    networks:
+      - internal
+      - web
+
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.backend.rule=Host(`api.mondomaine.com`)
+      - traefik.http.routers.backend.entrypoints=websecure
+      - traefik.http.routers.backend.tls.certresolver=le
+      - traefik.http.services.backend.loadbalancer.server.port=8080
+
+  frontend:
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: https://api.mondomaine.com
+
+    restart: unless-stopped
 
     networks:
       - web
 
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.frontend.rule=Host(`mondomaine.com`)
+      - traefik.http.routers.frontend.entrypoints=websecure
+      - traefik.http.routers.frontend.tls.certresolver=le
+      - traefik.http.services.frontend.loadbalancer.server.port=80
+
 networks:
+  internal:
+    driver: bridge
   web:
     external: true
 
 volumes:
-  traefik_cert:
+  postgres_data:
