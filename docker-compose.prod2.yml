@@ -40,7 +40,7 @@ services:
       context: ./front
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: https://api.mondomaine.com
+        VITE_API_URL=${VITE_API_URL}
 
     restart: unless-stopped
 
@@ -49,10 +49,11 @@ services:
 
     labels:
       - traefik.enable=true
-      - traefik.http.routers.company.rule=Host(`tactic-edge.app`)
-      - traefik.http.routers.btcv.rule=Host(`beyondthecv.app`)
-      - traefik.http.routers.btcv-api.rule=Host(`api.beyondthecv.app`)
-      
+      - traefik.http.routers.frontend.rule=Host(`tactic-edge.app`)
+      - traefik.http.routers.frontend.entrypoints=websecure
+      - traefik.http.routers.frontend.tls.certresolver=le
+      - traefik.http.services.frontend.loadbalancer.server.port=80
+
 networks:
   internal:
     driver: bridge
