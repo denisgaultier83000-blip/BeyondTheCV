@@ -79,7 +79,7 @@ services:
       - "traefik.http.routers.btcv-front-staging.tls.certresolver=le"
       - "traefik.http.routers.btcv-front-staging.service=btcv-front-staging"
 
-      - "traefik.http.services.btcv-front-staging.loadbalancer.server.port=80"
+      - "traefik.http.services.btcv-front-staging.loadbalancer.server.port=8080"
 
 networks:
   btcv-staging-internal:
