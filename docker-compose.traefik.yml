@@ -1,13 +1,9 @@
 services:
   traefik:
-    image: traefik:v3.1
+    # [FIX ULTIME] Passage à la v3.6 qui corrige le bug de compatibilité API avec Docker v29
+    image: traefik:v3.6
     container_name: traefik
     restart: unless-stopped
-
-    environment:
-      # [FIX EXPERT] Force Traefik à utiliser une API Docker moderne (>= 1.40)
-      # pour éviter le crash sur les nouvelles versions du moteur Docker (v27+)
-      - DOCKER_API_VERSION=1.41
 
     command:
       - --api.dashboard=false
