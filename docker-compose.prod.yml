@@ -1,21 +1,29 @@
 services:
-
   db:
     image: postgres:15-alpine
-    container_name: db-prod
+    container_name: btcv-db-prod
     restart: unless-stopped
+
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+
     volumes:
-      - postgres_data_prod:/var/lib/postgresql/data
+      - btcv_postgres_data_prod:/var/lib/postgresql/data
+
     networks:
-      - internal
+      - btcv-prod-internal
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
-    image: ghcr.io/denisgaultier83000-blip/backend:${VERSION}
-    container_name: backend-prod
+    image: ghcr.io/denisgaultier83000-blip/beyondthecv-backend:${VERSION}
+    container_name: btcv-backend-prod
     restart: unless-stopped
 
     environment:
@@ -23,24 +31,30 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       JWT_SECRET: ${JWT_SECRET}
+      ENVIRONMENT: production
 
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
     networks:
-      - internal
+      - btcv-prod-internal
       - web
 
     labels:
       - traefik.enable=true
-      - traefik.http.routers.backend-prod.rule=Host(`api.beyondthecv.app`)
-      - traefik.http.routers.backend-prod.entrypoints=websecure
-      - traefik.http.routers.backend-prod.tls.certresolver=le
-      - traefik.http.services.backend-prod.loadbalancer.server.port=8080
+      - traefik.docker.network=web
+
+      - traefik.http.routers.btcv-api-prod.rule=Host(`api.beyondthecv.app`)
+      - traefik.http.routers.btcv-api-prod.entrypoints=websecure
+      - traefik.http.routers.btcv-api-prod.tls.certresolver=le
+      - traefik.http.routers.btcv-api-prod.service=btcv-api-prod
+
+      - traefik.http.services.btcv-api-prod.loadbalancer.server.port=8080
 
   frontend:
-    image: ghcr.io/denisgaultier83000-blip/frontend:${VERSION}
-    container_name: frontend-prod
+    image: ghcr.io/denisgaultier83000-blip/beyondthecv-frontend:${VERSION}
+    container_name: btcv-frontend-prod
     restart: unless-stopped
 
     networks:
@@ -48,16 +62,20 @@ services:
 
     labels:
       - traefik.enable=true
-      - traefik.http.routers.front-prod.rule=Host(`beyondthecv.app`)
-      - traefik.http.routers.front-prod.entrypoints=websecure
-      - traefik.http.routers.front-prod.tls.certresolver=le
-      - traefik.http.services.front-prod.loadbalancer.server.port=80
+      - traefik.docker.network=web
+
+      - traefik.http.routers.btcv-front-prod.rule=Host(`beyondthecv.app`) || Host(`www.beyondthecv.app`)
+      - traefik.http.routers.btcv-front-prod.entrypoints=websecure
+      - traefik.http.routers.btcv-front-prod.tls.certresolver=le
+      - traefik.http.routers.btcv-front-prod.service=btcv-front-prod
+
+      - traefik.http.services.btcv-front-prod.loadbalancer.server.port=80
 
 networks:
-  internal:
+  btcv-prod-internal:
     driver: bridge
   web:
     external: true
 
 volumes:
-  postgres_data_prod:
+  btcv_postgres_data_prod:

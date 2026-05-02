@@ -1,21 +1,29 @@
 services:
-
   db:
     image: postgres:15-alpine
-    container_name: db-staging
+    container_name: btcv-db-staging
     restart: unless-stopped
+
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}_staging
+
     volumes:
-      - postgres_data_staging:/var/lib/postgresql/data
+      - btcv_postgres_data_staging:/var/lib/postgresql/data
+
     networks:
-      - internal
+      - btcv-staging-internal
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}_staging"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
-    image: ghcr.io/denisgaultier83000-blip/backend:${VERSION}
-    container_name: backend-staging
+    image: ghcr.io/denisgaultier83000-blip/beyondthecv-backend:${VERSION}
+    container_name: btcv-backend-staging
     restart: unless-stopped
 
     environment:
@@ -23,24 +31,30 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       JWT_SECRET: ${JWT_SECRET}
+      ENVIRONMENT: staging
 
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
     networks:
-      - internal
+      - btcv-staging-internal
       - web
 
     labels:
       - traefik.enable=true
-      - traefik.http.routers.backend-staging.rule=Host(`api-staging.beyondthecv.app`)
-      - traefik.http.routers.backend-staging.entrypoints=websecure
-      - traefik.http.routers.backend-staging.tls.certresolver=le
-      - traefik.http.services.backend-staging.loadbalancer.server.port=8080
+      - traefik.docker.network=web
+
+      - traefik.http.routers.btcv-api-staging.rule=Host(`api-staging.beyondthecv.app`)
+      - traefik.http.routers.btcv-api-staging.entrypoints=websecure
+      - traefik.http.routers.btcv-api-staging.tls.certresolver=le
+      - traefik.http.routers.btcv-api-staging.service=btcv-api-staging
+
+      - traefik.http.services.btcv-api-staging.loadbalancer.server.port=8080
 
   frontend:
-    image: ghcr.io/denisgaultier83000-blip/frontend:${VERSION}
-    container_name: frontend-staging
+    image: ghcr.io/denisgaultier83000-blip/beyondthecv-frontend:${VERSION}
+    container_name: btcv-frontend-staging
     restart: unless-stopped
 
     networks:
@@ -48,16 +62,20 @@ services:
 
     labels:
       - traefik.enable=true
-      - traefik.http.routers.front-staging.rule=Host(`staging.beyondthecv.app`)
-      - traefik.http.routers.front-staging.entrypoints=websecure
-      - traefik.http.routers.front-staging.tls.certresolver=le
-      - traefik.http.services.front-staging.loadbalancer.server.port=80
+      - traefik.docker.network=web
+
+      - traefik.http.routers.btcv-front-staging.rule=Host(`staging.beyondthecv.app`)
+      - traefik.http.routers.btcv-front-staging.entrypoints=websecure
+      - traefik.http.routers.btcv-front-staging.tls.certresolver=le
+      - traefik.http.routers.btcv-front-staging.service=btcv-front-staging
+
+      - traefik.http.services.btcv-front-staging.loadbalancer.server.port=80
 
 networks:
-  internal:
+  btcv-staging-internal:
     driver: bridge
   web:
     external: true
 
 volumes:
-  postgres_data_staging:
+  btcv_postgres_data_staging:

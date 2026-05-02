@@ -1,17 +1,16 @@
 - name: Deploy
-  uses: appleboy/ssh-action@v1.0.3
-  with:
-    host: ${{ secrets.VPS_IP }}
-    username: ${{ secrets.VPS_USER }}
-    key: ${{ secrets.VPS_SSH_KEY }}
-    script: |
-      cd /app
+uses: appleboy/ssh-action@v1.0.3
+with:
+host: ${{ secrets.VPS_IP }}
+username: ${{ secrets.VPS_USER }}
+key: ${{ secrets.VPS_SSH_KEY }}
+script: |
+cd /app/beyondthecv
 
-      bash -c '
-      ENV_FILE=$(mktemp)
+ENV_FILE=$(mktemp)
 
-      cat <<EOF > $ENV_FILE
-VERSION=${{ env.VERSION }}
+cat <<EOF > "$ENV_FILE"
+VERSION=${{ github.ref_name }}
 POSTGRES_USER=${{ secrets.POSTGRES_USER }}
 POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
 POSTGRES_DB=${{ secrets.POSTGRES_DB }}
@@ -20,8 +19,7 @@ GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
 JWT_SECRET=${{ secrets.JWT_SECRET }}
 EOF
 
-      docker compose --env-file $ENV_FILE pull
-      docker compose --env-file $ENV_FILE up -d
+docker compose -f docker-compose.prod.yml --env-file "$ENV_FILE" pull
+docker compose -f docker-compose.prod.yml --env-file "$ENV_FILE" up -d
 
-      rm $ENV_FILE
-      '
+rm "$ENV_FILE"
