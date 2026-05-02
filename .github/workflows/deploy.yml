@@ -1,29 +1,41 @@
-- name: Deploy
-uses: appleboy/ssh-action@v1.0.3
-with:
-host: ${{ secrets.VPS_IP }}
-username: ${{ secrets.VPS_USER }}
-key: ${{ secrets.VPS_SSH_KEY }}
-script: |
-cd /app/beyondthecv
+name: Deploy to VPS
 
- # Le VPS récupère la dernière version du code source
- git fetch origin
- git reset --hard origin/${{ github.ref_name }}
+on:
+  push:
+    branches:
+      - master
+      - staging
 
-ENV_FILE=$(mktemp)
-
-cat <<EOF > "$ENV_FILE"
-VERSION=${{ github.ref_name }}
-POSTGRES_USER=${{ secrets.POSTGRES_USER }}
-POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-POSTGRES_DB=${{ secrets.POSTGRES_DB }}
-OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
-JWT_SECRET=${{ secrets.JWT_SECRET }}
-EOF
-
-docker compose -f docker-compose.prod.yml --env-file "$ENV_FILE" pull
-docker compose -f docker-compose.prod.yml --env-file "$ENV_FILE" up -d
-
-rm "$ENV_FILE"
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /app/beyondthecv
+            
+            # Le VPS récupère la dernière version du code source
+            git fetch origin
+            git reset --hard origin/${{ github.ref_name }}
+            
+            ENV_FILE=$(mktemp)
+            
+            cat <<EOF > "$ENV_FILE"
+            VERSION=${{ github.ref_name }}
+            POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            EOF
+            
+            docker compose -f docker-compose.prod.yml --env-file "$ENV_FILE" pull
+            docker compose -f docker-compose.prod.yml --env-file "$ENV_FILE" up -d
+            
+            rm "$ENV_FILE"
