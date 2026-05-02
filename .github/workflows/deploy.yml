@@ -87,7 +87,7 @@ jobs:
               -p "$PROJECT_NAME" \
               -f "$COMPOSE_FILE" \
               --env-file "$ENV_FILE" \
-              up -d --remove-orphans
+              up -d --force-recreate --remove-orphans
 
             rm -f "$ENV_FILE"
 
