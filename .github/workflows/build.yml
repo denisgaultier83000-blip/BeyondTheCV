@@ -7,6 +7,10 @@ on:
       - staging
   workflow_dispatch:
 
+env:
+  # Désactive l'avertissement de dépréciation Node.js dans GitHub Actions
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 permissions:
   contents: read
   packages: write
