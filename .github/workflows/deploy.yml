@@ -1,7 +1,10 @@
 name: Deploy to VPS
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Build and Push Docker Images"]
+    types:
+      - completed
     branches:
       - master
       - staging
@@ -10,19 +13,32 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Ne s'exécute que si le workflow de build a réussi, ou si lancé manuellement
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - name: Deploy on VPS
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          # Transfert sécurisé pour éviter l'évaluation par bash sur le VPS
+          DB_USER: ${{ secrets.POSTGRES_USER }}
+          DB_PASS: ${{ secrets.POSTGRES_PASSWORD }}
+          DB_NAME: ${{ secrets.POSTGRES_DB }}
+          OAI_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEM_KEY: ${{ secrets.GEMINI_API_KEY }}
+          JWT_SEC: ${{ secrets.JWT_SECRET }}
         with:
           host: ${{ secrets.VPS_IP }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          envs: DB_USER,DB_PASS,DB_NAME,OAI_KEY,GEM_KEY,JWT_SEC
           script: |
             set -e
 
             APP_DIR="/app/beyondthecv"
-            BRANCH="${{ github.ref_name }}"
+            
+            # Gère la différence entre workflow_run (auto) et workflow_dispatch (manuel)
+            BRANCH="${{ github.event.workflow_run.head_branch || github.ref_name }}"
 
             cd "$APP_DIR"
 
@@ -33,10 +49,14 @@ jobs:
 
             if [ "$BRANCH" = "staging" ]; then
               COMPOSE_FILE="docker-compose.staging.yml"
+              PROJECT_NAME="btcv-staging"
               ENVIRONMENT="staging"
+              API_URL="https://api-staging.beyondthecv.app"
             elif [ "$BRANCH" = "master" ]; then
               COMPOSE_FILE="docker-compose.prod.yml"
+              PROJECT_NAME="btcv-prod"
               ENVIRONMENT="production"
+              API_URL="https://api.beyondthecv.app"
             else
               echo "Unsupported branch: $BRANCH"
               exit 1
@@ -47,20 +67,27 @@ jobs:
             cat <<EOF > "$ENV_FILE"
             VERSION=$BRANCH
             ENVIRONMENT=$ENVIRONMENT
-
-            POSTGRES_USER=${{ secrets.POSTGRES_USER }}
-            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-            POSTGRES_DB=${{ secrets.POSTGRES_DB }}
-
-            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            POSTGRES_USER=$DB_USER
+            POSTGRES_PASSWORD=$DB_PASS
+            POSTGRES_DB=$DB_NAME
+            OPENAI_API_KEY=$OAI_KEY
+            GEMINI_API_KEY=$GEM_KEY
+            JWT_SECRET=$JWT_SEC
             EOF
 
             docker network inspect web >/dev/null 2>&1 || docker network create web
 
-            docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" build
-            docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --remove-orphans
+            docker compose \
+              -p "$PROJECT_NAME" \
+              -f "$COMPOSE_FILE" \
+              --env-file "$ENV_FILE" \
+              pull
+
+            docker compose \
+              -p "$PROJECT_NAME" \
+              -f "$COMPOSE_FILE" \
+              --env-file "$ENV_FILE" \
+              up -d --remove-orphans
 
             rm -f "$ENV_FILE"
 

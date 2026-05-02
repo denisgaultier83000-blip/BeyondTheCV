@@ -41,35 +41,45 @@ services:
       - btcv-staging-internal
       - web
 
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
     labels:
-      - traefik.enable=true
-      - traefik.docker.network=web
+      - "traefik.enable=true"
+      - "traefik.docker.network=web"
 
-      - traefik.http.routers.btcv-api-staging.rule=Host(`api-staging.beyondthecv.app`)
-      - traefik.http.routers.btcv-api-staging.entrypoints=websecure
-      - traefik.http.routers.btcv-api-staging.tls.certresolver=le
-      - traefik.http.routers.btcv-api-staging.service=btcv-api-staging
+      - "traefik.http.routers.btcv-api-staging.rule=Host(`api-staging.beyondthecv.app`)"
+      - "traefik.http.routers.btcv-api-staging.entrypoints=websecure"
+      - "traefik.http.routers.btcv-api-staging.tls.certresolver=le"
+      - "traefik.http.routers.btcv-api-staging.service=btcv-api-staging"
 
-      - traefik.http.services.btcv-api-staging.loadbalancer.server.port=8080
+      - "traefik.http.services.btcv-api-staging.loadbalancer.server.port=8080"
 
   frontend:
     image: ghcr.io/denisgaultier83000-blip/beyondthecv-frontend:${VERSION}
     container_name: btcv-frontend-staging
     restart: unless-stopped
 
+    environment:
+      ENVIRONMENT: staging
+
     networks:
       - web
 
     labels:
-      - traefik.enable=true
-      - traefik.docker.network=web
+      - "traefik.enable=true"
+      - "traefik.docker.network=web"
 
-      - traefik.http.routers.btcv-front-staging.rule=Host(`staging.beyondthecv.app`)
-      - traefik.http.routers.btcv-front-staging.entrypoints=websecure
-      - traefik.http.routers.btcv-front-staging.tls.certresolver=le
-      - traefik.http.routers.btcv-front-staging.service=btcv-front-staging
+      - "traefik.http.routers.btcv-front-staging.rule=Host(`staging.beyondthecv.app`)"
+      - "traefik.http.routers.btcv-front-staging.entrypoints=websecure"
+      - "traefik.http.routers.btcv-front-staging.tls.certresolver=le"
+      - "traefik.http.routers.btcv-front-staging.service=btcv-front-staging"
 
-      - traefik.http.services.btcv-front-staging.loadbalancer.server.port=80
+      - "traefik.http.services.btcv-front-staging.loadbalancer.server.port=80"
 
 networks:
   btcv-staging-internal:
