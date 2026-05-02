@@ -199,12 +199,12 @@ export const StepTarget = ({ data, onChange, errors, loading, lang = 'en' }: Ste
     </div>
     <div className="row">
       <div className="col form-group">
-        <label>{t('target_company')} <span style={{ fontWeight: 'normal', fontSize: '0.85em', color: 'var(--text-muted)' }}>(Optionnel)</span></label>
-        <input disabled={loading} value={data.target_company || ""} onChange={e => onChange("target_company", e.target.value)} placeholder={t('placeholder_target_company')} style={{ width: "100%", opacity: loading ? 0.6 : 1 }} />
+        <label>{t('target_company')}</label>
+        <input disabled={loading} value={data.target_company || ""} onChange={e => onChange("target_company", e.target.value)} placeholder={t('placeholder_target_company')} style={{ width: "100%", borderColor: errors?.target_company ? "#ef4444" : undefined, opacity: loading ? 0.6 : 1 }} />
       </div>
       <div className="col form-group">
         <label>{t('target_industry')}</label>
-        <input disabled={loading} value={data.target_industry || ""} onChange={e => onChange("target_industry", e.target.value)} placeholder={t('placeholder_target_industry')} style={{ width: "100%", opacity: loading ? 0.6 : 1 }} />
+        <input disabled={loading} value={data.target_industry || ""} onChange={e => onChange("target_industry", e.target.value)} placeholder={t('placeholder_target_industry')} style={{ width: "100%", borderColor: errors?.target_industry ? "#ef4444" : undefined, opacity: loading ? 0.6 : 1 }} />
       </div>
     </div>
     <div className="form-group">

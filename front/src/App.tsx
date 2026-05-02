@@ -38,6 +38,7 @@ function AppContent() {
   const [isImportLoading, setIsImportLoading] = useState(false);
   const [darkMode, setDarkMode] = useState<boolean>(() => localStorage.getItem('theme') === 'dark');
   const [showDocsModal, setShowDocsModal] = useState(false);
+  const [stepErrors, setStepErrors] = useState<Record<string, boolean>>({});
 
   // Ref pour éviter de déclencher l'auto-sauvegarde au montage initial de la page
   const initialLoadRef = useRef(true);
@@ -271,10 +272,25 @@ function AppContent() {
         </div>);
       case 2: return (
         <div className="step-wrapper">
-          <StepTarget data={cvData || {}} onChange={handleChange} />
+          <StepTarget data={cvData || {}} onChange={(key, val) => {
+            handleChange(key, val);
+            // Retire la bordure rouge dès que l'utilisateur commence à taper
+            if (stepErrors[key]) setStepErrors(prev => ({ ...prev, [key]: false }));
+          }} errors={stepErrors} loading={globalStatus === "STARTING"} />
           {globalStatus === "FAILED" && (<div className="error-box"><AlertCircle size={16}/><span>{t('error_msg')} {error}</span><button className="btn-link" onClick={() => handleNextStep()}>{t('btn_retry')}</button></div>)}
           {/* [UX FIX] Le bouton est maintenant un simple "Suivant", le lancement de l'analyse est transparent */}
-          <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={() => handleNextStep()} disabled={globalStatus === "STARTING"}>{t('btn_next')}</button></div>
+          <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>
+            <button className="btn-primary" onClick={() => {
+              const company = cvData?.target_company?.trim();
+              const industry = cvData?.target_industry?.trim();
+              if (!company && !industry) {
+                setStepErrors({ target_company: true, target_industry: true });
+                setToasts(prev => [...prev, { id: Date.now(), text: "Veuillez spécifier au moins une entreprise cible ou un secteur d'activité." }]);
+                return; // Bloque la requête vers le backend
+              }
+              handleNextStep();
+            }} disabled={globalStatus === "STARTING"}>{t('btn_next')}</button>
+          </div>
         </div>);
       case 3: return (
         <div className="step-wrapper">

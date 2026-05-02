@@ -122,7 +122,9 @@ export const DashboardView = () => {
 
   return (
     <div className="dashboard-wrapper">
-      <div className="tabs-navigation">
+      {/* GROUPE NAVIGATION : Onglets + Sous-menus collés */}
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div className={`tabs-navigation ${subMenus[activeTab] ? 'has-sub' : ''}`}>
         <button className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => handleTabChange('overview')}>
           <Activity size={18} /> {t('tab_overview', "Vue d'ensemble")}
         </button>
@@ -162,6 +164,7 @@ export const DashboardView = () => {
           ))}
         </div>
       )}
+      </div>
 
       {/* Contenu de l'onglet actif */}
       <div className="tab-content">
@@ -305,14 +308,16 @@ export const DashboardView = () => {
       <style>{`
         .dashboard-wrapper { display: flex; flex-direction: column; gap: 2rem; width: 100%; }
         
-        .tabs-navigation { display: flex; gap: 0.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 1rem; overflow-x: auto; }
-        .tab-btn { display: flex; align-items: center; gap: 0.5rem; background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 0.75rem 1.25rem; cursor: pointer; font-weight: 600; color: var(--text-muted); border-radius: 0.75rem; transition: all 0.2s; white-space: nowrap; }
+        .tabs-navigation { display: flex; gap: 0.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0; overflow-x: auto; align-items: flex-end; scrollbar-width: none; -ms-overflow-style: none; }
+        .tabs-navigation::-webkit-scrollbar { display: none; }
+        .tabs-navigation.has-sub { border-bottom: 2px solid var(--primary); }
+        .tab-btn { display: flex; align-items: center; gap: 0.5rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-bottom: none; padding: 0.75rem 1.25rem; cursor: pointer; font-weight: 600; color: var(--text-muted); border-radius: 0.75rem 0.75rem 0 0; transition: all 0.2s; white-space: nowrap; margin-bottom: -2px; z-index: 1; }
         .tab-btn:hover { background: var(--bg-card); color: var(--text-main); border-color: var(--primary); }
-        .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+        .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); border-bottom: 2px solid var(--primary); z-index: 10; }
         
-        .sub-tabs-navigation { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; padding: 0.5rem 0; }
-        .sub-tab-btn { background: transparent; border: 1px solid var(--border-color); padding: 0.4rem 1rem; border-radius: 2rem; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: all 0.2s; }
-        .sub-tab-btn:hover { background: var(--bg-secondary); color: var(--primary); border-color: var(--primary); }
+        .sub-tabs-navigation { display: flex; gap: 0.75rem; flex-wrap: wrap; padding: 1rem 1.5rem; background: rgba(59, 130, 246, 0.05); border: 2px solid var(--primary); border-top: none; border-radius: 0 0 1rem 1rem; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.05); }
+        .sub-tab-btn { background: var(--bg-card); border: 1px solid rgba(59, 130, 246, 0.3); padding: 0.5rem 1.25rem; border-radius: 2rem; font-size: 0.85rem; font-weight: 600; color: var(--primary); cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .sub-tab-btn:hover { background: var(--primary); color: white; border-color: var(--primary); transform: translateY(-1px); box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2); }
         
         /* BENTO GRID CSS */
         .bento-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; grid-auto-rows: minmax(150px, auto); }

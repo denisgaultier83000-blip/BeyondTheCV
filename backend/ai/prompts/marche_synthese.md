@@ -13,6 +13,8 @@ Pays : {target_country}
 CONTEXTE DE RECHERCHE (Données brutes) :
 {search_context}
 
+⚠️ RÈGLE DE SECOURS (SANS ENTREPRISE) : Si la cible est "Non spécifiée", "Unknown" ou vide, le bloc `company_report` ne doit pas halluciner. Il doit brosser le "Portrait-Robot" d'une entreprise leader type de ce secteur (enjeux standards, culture moyenne du secteur). Les `news_links` doivent alors cibler l'actualité globale du secteur.
+
 ## 🎯 OBJECTIF
 Produire un rapport final qui donne au candidat un avantage décisif.
 Ton analyse doit être orientée "action" : que dire, quelles questions poser, comment se positionner.

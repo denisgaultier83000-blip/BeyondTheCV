@@ -32,6 +32,8 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       JWT_SECRET: ${JWT_SECRET}
       ENVIRONMENT: production
+      # Injection dynamique pour les CORS
+      FRONTEND_URL: "https://beyondthecv.app"
 
     depends_on:
       db:
