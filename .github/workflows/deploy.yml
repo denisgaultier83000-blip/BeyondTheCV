@@ -7,6 +7,10 @@ key: ${{ secrets.VPS_SSH_KEY }}
 script: |
 cd /app/beyondthecv
 
+ # Le VPS récupère la dernière version du code source
+ git fetch origin
+ git reset --hard origin/${{ github.ref_name }}
+
 ENV_FILE=$(mktemp)
 
 cat <<EOF > "$ENV_FILE"
