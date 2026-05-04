@@ -18,6 +18,7 @@ jobs:
 
     steps:
       - name: Sanitize Inputs
+        id: sanitize
         # [FIX EXPERT] Nettoie l'IP pour éviter que l'action SSH ne tente de se connecter à un serveur fantôme à cause d'un saut de ligne
         env:
           RAW_IP: ${{ secrets.VPS_HOST }}
@@ -29,7 +30,7 @@ jobs:
             exit 1
           fi
           
-          echo "CLEAN_IP=$CLEAN_IP" >> $GITHUB_ENV
+          echo "clean_ip=$CLEAN_IP" >> $GITHUB_OUTPUT
 
       - name: Deploy on VPS
         uses: appleboy/ssh-action@v1.0.3
@@ -42,7 +43,7 @@ jobs:
           GEM_KEY: ${{ secrets.GEMINI_API_KEY }}
           JWT_SEC: ${{ secrets.JWT_SECRET }}
         with:
-          host: ${{ env.CLEAN_IP }}
+          host: ${{ steps.sanitize.outputs.clean_ip }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           envs: DB_USER,DB_PASS,DB_NAME,OAI_KEY,GEM_KEY,JWT_SEC
