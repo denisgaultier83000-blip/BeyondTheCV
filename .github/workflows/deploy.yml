@@ -13,6 +13,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # [FIX EXPERT] Charge dynamiquement le contexte d'environnement pour déverrouiller l'accès aux secrets liés
+    environment: ${{ github.event.workflow_run.head_branch == 'master' && 'production' || 'staging' }}
     # Ne s'exécute que si le workflow de build a réussi, ou si lancé manuellement
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
