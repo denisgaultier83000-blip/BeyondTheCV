@@ -21,12 +21,12 @@ jobs:
         id: sanitize
         # [FIX EXPERT] Nettoie l'IP pour éviter que l'action SSH ne tente de se connecter à un serveur fantôme à cause d'un saut de ligne
         env:
-          RAW_IP: ${{ secrets.VPS_HOST }}
+          RAW_IP: ${{ secrets.SERVER_HOST }}
         run: |
           CLEAN_IP=$(echo "$RAW_IP" | tr -d '\n\r ')
           
           if [ -z "$CLEAN_IP" ]; then
-            echo "::error::Le secret VPS_HOST est manquant ou vide. Le déploiement est annulé."
+            echo "::error::Le secret SERVER_HOST est manquant ou vide. Le déploiement est annulé."
             exit 1
           fi
           
@@ -42,18 +42,20 @@ jobs:
           OAI_KEY: ${{ secrets.OPENAI_API_KEY }}
           GEM_KEY: ${{ secrets.GEMINI_API_KEY }}
           JWT_SEC: ${{ secrets.JWT_SECRET }}
+          # [FIX EXPERT] On passe la branche cible en environnement pour éviter toute injection Shell
+          TARGET_BRANCH: ${{ github.event.workflow_run.head_branch || github.ref_name }}
         with:
           host: ${{ steps.sanitize.outputs.clean_ip }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: DB_USER,DB_PASS,DB_NAME,OAI_KEY,GEM_KEY,JWT_SEC
+          envs: DB_USER,DB_PASS,DB_NAME,OAI_KEY,GEM_KEY,JWT_SEC,TARGET_BRANCH
           script: |
             set -e
 
             APP_DIR="/app/beyondthecv"
             
-            # Gère la différence entre workflow_run (auto) et workflow_dispatch (manuel)
-            BRANCH="${{ github.event.workflow_run.head_branch || github.ref_name }}"
+            # Gère la différence entre workflows, récupéré de manière sécurisée sans interpolation directe
+            BRANCH="$TARGET_BRANCH"
 
             cd "$APP_DIR"
 
@@ -79,16 +81,23 @@ jobs:
 
             ENV_FILE=$(mktemp)
 
+            # [FIX EXPERT] Échappe les '$' en '$$' pour empêcher Docker Compose de les interpréter
+            # comme des variables d'environnement manquantes (et donc de les supprimer silencieusement).
+            SAFE_DB_PASS="${DB_PASS//\$/\$\$}"
+            SAFE_JWT_SEC="${JWT_SEC//\$/\$\$}"
+            SAFE_OAI_KEY="${OAI_KEY//\$/\$\$}"
+            SAFE_GEM_KEY="${GEM_KEY//\$/\$\$}"
+
             cat <<EOF > "$ENV_FILE"
-            VERSION=$BRANCH
-            ENVIRONMENT=$ENVIRONMENT
-            API_HOST=$API_HOST
-            POSTGRES_USER=$DB_USER
-            POSTGRES_PASSWORD=$DB_PASS
-            POSTGRES_DB=$DB_NAME
-            OPENAI_API_KEY=$OAI_KEY
-            GEMINI_API_KEY=$GEM_KEY
-            JWT_SECRET=$JWT_SEC
+            VERSION='$BRANCH'
+            ENVIRONMENT='$ENVIRONMENT'
+            API_HOST='$API_HOST'
+            POSTGRES_USER='$DB_USER'
+            POSTGRES_PASSWORD='$SAFE_DB_PASS'
+            POSTGRES_DB='$DB_NAME'
+            OPENAI_API_KEY='$SAFE_OAI_KEY'
+            GEMINI_API_KEY='$SAFE_GEM_KEY'
+            JWT_SECRET='$SAFE_JWT_SEC'
             EOF
 
             docker network inspect web >/dev/null 2>&1 || docker network create web
