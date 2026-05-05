@@ -251,13 +251,6 @@ async def log_requests(request: Request, call_next):
         traceback.print_exc()
         response = JSONResponse(status_code=500, content={"detail": "Internal Server Error", "error": str(e)})
 
-    # [FIX EXPERT] Injection MANUELLE et FORCÉE des headers CORS sur TOUTES les réponses.
-    # Cela empêche le navigateur de masquer une vraie erreur 500 derrière un faux problème CORS.
-    origin = request.headers.get("origin")
-    if origin and (origin in cors_origins or re.match(r"^(https://.*\.vercel\.app|https://.*\.run\.app)$", origin)):
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-
     process_time = (time.time() - start_time) * 1000
     try:
         client_ip = request.client.host if request.client else "unknown"
@@ -279,27 +272,6 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["Content-Length", "Content-Disposition", "X-CV-Analysis"], # CRUCIAL pour la barre de progression et le score
 )
-
-# [FIX EXPERT] Middleware Ninja pour forcer l'interception des requêtes OPTIONS (Preflight)
-@app.middleware("http")
-async def force_cors_preflight(request: Request, call_next):
-    if request.method == "OPTIONS":
-        origin = request.headers.get("origin")
-        if origin and (origin in cors_origins or re.match(r"^(https://.*\.vercel\.app|https://.*\.run\.app)$", origin)):
-            # [FIX EXPERT] Les navigateurs rejettent l'étoile '*' si Credentials=true.
-            # On doit renvoyer la chaîne exacte demandée par le navigateur.
-            req_headers = request.headers.get("Access-Control-Request-Headers", "Content-Type, Authorization")
-            return JSONResponse(
-                status_code=200,
-                content={"message": "Preflight OK"},
-                headers={
-                    "Access-Control-Allow-Origin": origin,
-                    "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE, PATCH",
-                    "Access-Control-Allow-Headers": req_headers,
-                    "Access-Control-Allow-Credentials": "true",
-                }
-            )
-    return await call_next(request)
 
 # [ROBUSTESSE] Chargement défensif des routeurs
 # Si un fichier plante (ex: erreur de syntaxe ou d'import), l'API démarre quand même.
