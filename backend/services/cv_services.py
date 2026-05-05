@@ -913,17 +913,49 @@ async def get_dashboard_summary(data: FullCVData, current_user: dict = Depends(r
         raise HTTPException(status_code=500, detail=f"Erreur lors du diagnostic IA : {str(e)}")
 
 @router.post("/feedback")
+@router.post("/feedbacks")
 async def submit_feedback(request: FeedbackRequest):
     """
     Enregistre les retours utilisateurs (pouces levés/baissés) sur les générations IA.
     Note: Cette route ne requiert pas get_current_user car le frontend utilise un fetch standard sans token JWT.
     """
     try:
+        # [FIX EXPERT] Consolidation des différents champs possibles venant du front pour éviter les commentaires vides (NULL)
+        actual_comments = request.comments or request.feedback or request.reason
         async with db.get_connection() as conn:
             await db.execute(conn, 
                 "INSERT INTO feedbacks (feature, is_positive, comments, created_at) VALUES (?, ?, ?, ?)", 
-                (request.feature, request.is_positive, request.comments, datetime.now()))
+                (request.feature, request.is_positive, actual_comments, datetime.now()))
         return {"status": "success", "message": "Feedback enregistré avec succès"}
     except Exception as e:
         print(f"[FEEDBACK ERROR] {e}", flush=True)
         raise HTTPException(status_code=500, detail="Erreur lors de l'enregistrement du feedback")
+
+@router.get("/feedbacks")
+async def get_feedbacks(current_user: dict = Depends(get_current_user)):
+    """
+    [FIX EXPERT] Route manquante : Récupère tous les feedbacks pour l'interface Admin.
+    Sans cette route, le composant AdminFeedbacks.tsx recevait une erreur 404 Not Found.
+    """
+    try:
+        async with db.get_connection() as conn:
+            cursor = await db.execute(conn, "SELECT id, feature, is_positive, comments, created_at FROM feedbacks ORDER BY created_at DESC")
+            rows = await cursor.fetchall()
+            
+        feedbacks_list = []
+        for row in rows:
+            if isinstance(row, tuple):
+                feedbacks_list.append({
+                    "id": row[0],
+                    "feature": row[1],
+                    "is_positive": bool(row[2]),
+                    "comments": row[3],
+                    "created_at": row[4].isoformat() if hasattr(row[4], 'isoformat') else str(row[4])
+                })
+            else:
+                feedbacks_list.append(dict(row))
+                
+        return {"feedbacks": feedbacks_list}
+    except Exception as e:
+        print(f"[GET FEEDBACKS ERROR] {e}", flush=True)
+        raise HTTPException(status_code=500, detail="Erreur lors de la récupération des feedbacks")
