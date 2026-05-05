@@ -228,6 +228,7 @@ cors_origins = [
     "http://127.0.0.1:3000",
     "https://www.beyondthecv.app", # Allow production domain (www)
     "https://beyondthecv.app",     # Allow production domain (apex)
+    "https://staging.beyondthecv.app", # [FIX EXPERT] Autoriser le domaine de staging
     "https://beyond-the-cv-front.vercel.app",
     "https://beyondthecv-frontend-service-746792482004.europe-west1.run.app"
 ]

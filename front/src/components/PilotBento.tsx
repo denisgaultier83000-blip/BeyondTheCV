@@ -44,7 +44,7 @@ export const PilotBento = ({
   return (
     <div className="bento-grid">
       {/* 1. Score d'adéquation (Jauge) */}
-      <div className="bento-card row-span-2" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+      <div className="bento-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
         <div className="bento-header"><Activity size={20} /> Score d'adéquation</div>
         <div style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0' }}>
           <Gauge score={animatedScore} color={currentColor} trackColor="var(--border-color, #e2e8f0)" />
@@ -72,9 +72,9 @@ export const PilotBento = ({
       </div>
 
       {/* 3. NOUVEAU: Gaps Prioritaires (Auparavant oublié dans le rendu) */}
-      <div className="bento-card">
+      <div className="bento-card col-span-3">
         <div className="bento-header"><AlertTriangle size={20} color="var(--danger-text, #ef4444)" /> Gaps Prioritaires</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
           {displayData.gapsMatrix && displayData.gapsMatrix.length > 0 ? displayData.gapsMatrix.slice(0, 3).map((gap: any, i: number) => (
             <div key={i} style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
               <strong style={{ color: 'var(--danger-text)' }}>{gap.skill}</strong> <br/>
@@ -85,7 +85,7 @@ export const PilotBento = ({
       </div>
 
       {/* 4. NOUVEAU: Stratégie de Candidature (Auparavant oublié dans le rendu) */}
-      <div className="bento-card col-span-2">
+      <div className="bento-card col-span-3">
         <div className="bento-header"><Target size={20} color="var(--primary, #3b82f6)" /> Stratégie de Candidature</div>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', whiteSpace: 'pre-wrap', margin: 0, lineHeight: 1.6 }}>
           {displayData.recommendedStrategy || "Analyse de la stratégie en cours..."}
@@ -94,7 +94,7 @@ export const PilotBento = ({
       
       {/* CARTE BENTO : CAREER GPS (Premium Insight) */}
       {careerGpsData?.route && (
-        <div className="bento-card col-span-2" style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #172554 100%)', color: 'white', border: '1px solid #1e40af' }}>
+        <div className="bento-card col-span-3" style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #172554 100%)', color: 'white', border: '1px solid #1e40af' }}>
           <div className="bento-header" style={{ color: '#93c5fd' }}>
             <Navigation size={20} /> GPS de Carrière
           </div>

@@ -13,12 +13,29 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     # [FIX EXPERT] Prépare le terrain pour les Environnements GitHub Secrets si tu les utilises un jour
     environment: ${{ github.event.workflow_run.head_branch == 'master' && 'production' || (github.ref_name == 'master' && 'production' || 'staging') }}
+
     # Ne s'exécute que si le workflow de build a réussi, ou si lancé manuellement
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
+      - name: Sanitize Inputs
+        id: sanitize
+        # [FIX EXPERT] Nettoie l'IP pour éviter que l'action SSH ne tente de se connecter à un serveur fantôme à cause d'un saut de ligne
+        env:
+          RAW_IP: ${{ secrets.SERVER_HOST }}
+        run: |
+          CLEAN_IP=$(echo "$RAW_IP" | tr -d '\n\r ')
+          
+          if [ -z "$CLEAN_IP" ]; then
+            echo "::error::Le secret SERVER_HOST est manquant ou vide. Le déploiement est annulé."
+            exit 1
+          fi
+          
+          echo "clean_ip=$CLEAN_IP" >> $GITHUB_OUTPUT
+
       - name: Deploy on VPS
         uses: appleboy/ssh-action@v1.0.3
         env:
@@ -29,6 +46,7 @@ jobs:
           OAI_KEY: ${{ secrets.OPENAI_API_KEY }}
           GEM_KEY: ${{ secrets.GEMINI_API_KEY }}
           JWT_SEC: ${{ secrets.JWT_SECRET }}
+
           # [FIX EXPERT] Sécurisation de la variable de branche pour éviter les injections bash sur ton serveur
           TARGET_BRANCH: ${{ github.event.workflow_run.head_branch || github.ref_name }}
         with:
@@ -41,7 +59,6 @@ jobs:
 
             APP_DIR="/app/beyondthecv"
             
-            # [FIX EXPERT] Appel de la branche depuis l'environnement
             BRANCH="$TARGET_BRANCH"
 
             cd "$APP_DIR"
@@ -55,12 +72,12 @@ jobs:
               COMPOSE_FILE="docker-compose.staging.yml"
               PROJECT_NAME="btcv-staging"
               ENVIRONMENT="staging"
-              API_URL="https://api-staging.beyondthecv.app"
+              API_HOST="api-staging.beyondthecv.app"
             elif [ "$BRANCH" = "master" ]; then
               COMPOSE_FILE="docker-compose.prod.yml"
               PROJECT_NAME="btcv-prod"
               ENVIRONMENT="production"
-              API_URL="https://api.beyondthecv.app"
+              API_HOST="api.beyondthecv.app"
             else
               echo "Unsupported branch: $BRANCH"
               exit 1
@@ -68,7 +85,6 @@ jobs:
 
             ENV_FILE=$(mktemp)
 
-            # [FIX EXPERT] Échappe les '$' en '$$' pour que Docker Compose ne détruise pas tes secrets
             SAFE_DB_PASS="${DB_PASS//\$/\$\$}"
             SAFE_JWT_SEC="${JWT_SEC//\$/\$\$}"
             SAFE_OAI_KEY="${OAI_KEY//\$/\$\$}"
@@ -77,6 +93,7 @@ jobs:
             cat <<EOF > "$ENV_FILE"
             VERSION='$BRANCH'
             ENVIRONMENT='$ENVIRONMENT'
+            API_HOST='$API_HOST'
             POSTGRES_USER='$DB_USER'
             POSTGRES_PASSWORD='$SAFE_DB_PASS'
             POSTGRES_DB='$DB_NAME'
@@ -97,7 +114,7 @@ jobs:
               -p "$PROJECT_NAME" \
               -f "$COMPOSE_FILE" \
               --env-file "$ENV_FILE" \
-              up -d --remove-orphans
+              up -d --force-recreate --remove-orphans
 
             rm -f "$ENV_FILE"
 

@@ -47,6 +47,8 @@ export const CandidateProfileSchema = z.object({
   current_role: z.string().optional(),
   current_company: z.string().optional(),
   target_role_primary: z.string().min(1, "Target role is required"),
+  target_company: z.string().optional(),
+  target_industry: z.string().optional(),
   contract_type: z.string().optional(),
   bio: z.string().optional(),
 
@@ -56,6 +58,9 @@ export const CandidateProfileSchema = z.object({
   flaws: z.array(z.string()).optional(),
   interests: z.array(z.string()).optional(),
   free_text: z.string().optional(),
+}).refine(data => data.target_company?.trim() || data.target_industry?.trim(), {
+  message: "Either target_company or target_industry must be provided",
+  path: ["target_industry"]
 });
 
 export type CandidateProfile = z.infer<typeof CandidateProfileSchema>;
