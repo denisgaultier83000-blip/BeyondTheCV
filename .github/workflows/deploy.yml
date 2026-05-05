@@ -13,8 +13,10 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # [FIX EXPERT] Charge dynamiquement le contexte d'environnement pour déverrouiller l'accès aux secrets liés
-    environment: ${{ github.event.workflow_run.head_branch == 'master' && 'production' || 'staging' }}
+
+    # [FIX EXPERT] Prépare le terrain pour les Environnements GitHub Secrets si tu les utilises un jour
+    environment: ${{ github.event.workflow_run.head_branch == 'master' && 'production' || (github.ref_name == 'master' && 'production' || 'staging') }}
+
     # Ne s'exécute que si le workflow de build a réussi, ou si lancé manuellement
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
@@ -44,10 +46,11 @@ jobs:
           OAI_KEY: ${{ secrets.OPENAI_API_KEY }}
           GEM_KEY: ${{ secrets.GEMINI_API_KEY }}
           JWT_SEC: ${{ secrets.JWT_SECRET }}
-          # [FIX EXPERT] On passe la branche cible en environnement pour éviter toute injection Shell
+
+          # [FIX EXPERT] Sécurisation de la variable de branche pour éviter les injections bash sur ton serveur
           TARGET_BRANCH: ${{ github.event.workflow_run.head_branch || github.ref_name }}
         with:
-          host: ${{ steps.sanitize.outputs.clean_ip }}
+          host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           envs: DB_USER,DB_PASS,DB_NAME,OAI_KEY,GEM_KEY,JWT_SEC,TARGET_BRANCH
@@ -56,7 +59,6 @@ jobs:
 
             APP_DIR="/app/beyondthecv"
             
-            # Gère la différence entre workflows, récupéré de manière sécurisée sans interpolation directe
             BRANCH="$TARGET_BRANCH"
 
             cd "$APP_DIR"
@@ -83,8 +85,6 @@ jobs:
 
             ENV_FILE=$(mktemp)
 
-            # [FIX EXPERT] Échappe les '$' en '$$' pour empêcher Docker Compose de les interpréter
-            # comme des variables d'environnement manquantes (et donc de les supprimer silencieusement).
             SAFE_DB_PASS="${DB_PASS//\$/\$\$}"
             SAFE_JWT_SEC="${JWT_SEC//\$/\$\$}"
             SAFE_OAI_KEY="${OAI_KEY//\$/\$\$}"
