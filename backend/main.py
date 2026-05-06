@@ -230,12 +230,14 @@ cors_origins = [
     "https://beyondthecv.app",     # Allow production domain (apex)
     "https://staging.beyondthecv.app", # [FIX EXPERT] Autoriser le domaine de staging
     "https://beyond-the-cv-front.vercel.app",
-    "https://beyondthecv-frontend-service-746792482004.europe-west1.run.app"
+    "https://beyondthecv-frontend-service-746792482004.europe-west1.run.app",
+    "https://staging.beyondthecv.app" # Autoriser le domaine de staging
 ]
 
-# [BONNE PRATIQUE] Ajout dynamique si l'URL est passée via l'environnement
-if os.getenv("FRONTEND_URL"):
-    cors_origins.append(os.getenv("FRONTEND_URL"))
+# Ajout dynamique via variable d’environnement
+frontend_env = os.getenv("FRONTEND_URL")
+if frontend_env and frontend_env not in cors_origins:
+    cors_origins.append(frontend_env)
 
 # [DEBUG] Middleware pour tracer les requêtes entrantes (Confirme la connexion réseau)
 @app.middleware("http")
