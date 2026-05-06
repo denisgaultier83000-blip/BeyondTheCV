@@ -92,6 +92,19 @@ def create_tables():
         print("✅ Table 'products' created")
 
         cur.execute("""
+            CREATE TABLE IF NOT EXISTS documents (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                filename TEXT NOT NULL,
+                path TEXT,
+                type TEXT,
+                media_type TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        print("✅ Table 'documents' created")
+
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS subscription_plans (
                 id TEXT PRIMARY KEY,
                 plan_name TEXT NOT NULL,

@@ -45,6 +45,13 @@ from .tasks import get_prompt_path
 
 router = APIRouter(prefix="/api/cv", tags=["CV Generator"])
 
+# [FIX EXPERT - POINT 3] Redéfinition robuste du payload de Feedback pour éviter les erreurs 422 Unprocessable Entity
+class FeedbackPayload(BaseModel):
+    feature: str
+    is_positive: bool = True
+    comments: Optional[str] = None
+    job_type: Optional[str] = None
+
 class FlawCoachRequest(BaseModel):
     flaw: str
     target_job: Optional[str] = "Candidat"
@@ -538,6 +545,18 @@ async def generate_document(request: GenerateRequest, current_user: dict = Depen
                 skills_text = str(current_skills_data)
             
             optimized_data['skills'] = {"technical": skills_text, "languages": langs_str}
+            
+            # [FIX EXPERT - POINT 10] Injection des traductions dynamiques pour le template LaTeX (Titres des sections)
+            # Détection robuste de la langue (gère 'fr', 'french', 'fr-FR', etc.)
+            is_french = str(target_lang).lower() in ['fr', 'french', 'fr-fr']
+            optimized_data['translations'] = {
+                'profile': 'Profil' if is_french else 'Profile',
+                'experience': 'Expérience Professionnelle' if is_french else 'Professional Experience',
+                'education': 'Formation' if is_french else 'Education',
+                'skills': 'Compétences' if is_french else 'Skills',
+                'technical': 'Techniques' if is_french else 'Technical',
+                'languages': 'Langues' if is_french else 'Languages'
+            }
 
             if request.preview and request.renderer == "json":
                 return JSONResponse(content=optimized_data)

@@ -24,7 +24,7 @@ Ton analyse doit être orientée "action" : que dire, quelles questions poser, c
 - Ne jamais faire une fiche Wikipédia
 - Toujours transformer l’information en conseil concret
 - Toujours raisonner comme un recruteur
-- **REVUE DE PRESSE & SOURCES FIABLES :** Interdiction ABSOLUE de créer un lien de recherche générique (ex: https://news.google.com/...). Pour chaque résultat brut fourni dans `{search_context}`, tu dois analyser son `titre` et son `snippet` (description) pour juger de sa pertinence. Extraire un article UNIQUEMENT s'il y a une vraie URL, s'il provient d'une **source fiable et reconnue** (presse économique, sites institutionnels), et si son contenu est d'une **grande pertinence stratégique** (fusion, acquisition, levée de fonds, changement de direction, innovation majeure). Le champ `url` DOIT être un lien direct, et le champ `source` DOIT identifier clairement le nom du média. Bannis les actualités sans valeur ajoutée, les forums ou les sources douteuses. Sinon, renvoie STRICTEMENT un tableau vide : "news_links": [].
+- **REVUE DE PRESSE & SOURCES FIABLES :** Ne sois pas excessivement sévère au point d'ignorer les vraies actualités d'entreprises majeures (ex: Naval Group). Pour chaque résultat brut fourni dans `{search_context}`, extrais les articles s'ils possèdent une URL valide et proviennent de sources d'information (presse nationale, régionale, spécialisée, ou presse d'entreprise/institutionnelle). Le champ `url` DOIT être un lien direct, et le champ `source` DOIT identifier clairement le média. Interdiction absolue d'inventer des liens. Si aucune actualité réelle n'est présente, renvoie "news_links": [].
 - **LANGUE :** La sortie doit être en `{target_lang}`.
 
 ## 📦 SORTIE ATTENDUE (JSON STRICT)

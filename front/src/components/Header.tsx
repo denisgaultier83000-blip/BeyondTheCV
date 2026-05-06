@@ -105,7 +105,7 @@ export default function Header({
                     onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
                     onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                   >
-                    📄 Mes Productions
+                    📄 Mes documents
                   </button>
                   <button 
                     onClick={() => { setDropdownOpen(false); onLogout?.(); }} 

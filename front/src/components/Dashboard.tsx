@@ -69,6 +69,7 @@ export default function Dashboard({
 
   // Helper pour savoir si on a une entreprise cible définie
   const hasCompany = !!data.target_company;
+  const hasJobDesc = !!(data.job_description && data.job_description.trim().length > 0);
 
   return (
     <div className="dashboard-container-new">
@@ -209,10 +210,10 @@ export default function Dashboard({
             <ActionCard 
               icon={<Search />} 
               title={t('card_decoder_title', 'Décodeur d\'annonce')} 
-              desc={t('card_decoder_desc', 'Lisez entre les lignes et décodez le vrai jargon RH.')}
+              desc={hasJobDesc ? t('card_decoder_desc', 'Lisez entre les lignes et décodez le vrai jargon RH.') : t('card_decoder_disabled', 'Annonce non renseignée. Ajoutez l\'annonce dans votre profil pour l\'analyser.')}
               onClick={() => onAction && onAction("Job Decoder")}
-              disabled={loading}
-              ready={jobDecoderData}
+              disabled={loading || !hasJobDesc}
+              ready={jobDecoderData && hasJobDesc}
             />
             <ActionCard 
               icon={<Compass />} 

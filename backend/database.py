@@ -5,8 +5,13 @@ from contextlib import asynccontextmanager, contextmanager
 from dotenv import load_dotenv
 import asyncio
 
-# Load environment variables
-load_dotenv()
+# Chargement robuste du .env (Docker vs Local)
+current_dir = os.path.dirname(__file__)
+env_paths = [os.path.join(current_dir, '.env'), os.path.join(current_dir, '..', '.env')]
+for path in env_paths:
+    if os.path.exists(path):
+        load_dotenv(dotenv_path=path)
+        break
 
 def get_database_url():
     """

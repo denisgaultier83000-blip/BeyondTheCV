@@ -49,8 +49,13 @@ export default function InterviewPrepPanel({
             <div key={q.id} style={{ padding: 10, border: "1px solid #eee", borderRadius: 10, marginTop: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
                 <div style={{ fontWeight: 700 }}>{q.question}</div>
-                <div style={{ fontSize: 12, opacity: 0.8, whiteSpace: "nowrap" }}>
-                  {q.probabilityScore}/100
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", whiteSpace: "nowrap" }}>
+                  <div style={{ fontSize: 14, color: "#f59e0b" }}>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <span key={i} style={{ color: i < Math.ceil((q.probabilityScore || 0) / 20) ? "#f59e0b" : "#e5e7eb" }}>★</span>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>(1-Facile, 5-Difficile)</div>
                 </div>
               </div>
               <div style={{ fontSize: 12, opacity: 0.85, marginTop: 6 }}>{q.whyThisQuestion}</div>

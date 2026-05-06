@@ -137,7 +137,12 @@ export const InterviewTab = () => {
           errorText={t('questions_error', "Le questionnaire n'a pas pu être généré.")}
           featureId="interview_questions"
         >
-          {questionsResult && <Questionnaire questions={Array.isArray(questionsResult) ? questionsResult : (questionsResult.questions || [])} hideHeader={true} />}
+          {questionsResult && (
+            <>
+              <Questionnaire questions={Array.isArray(questionsResult) ? questionsResult : (questionsResult.questions || [])} hideHeader={true} />
+              <div style={{ textAlign: "right", fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.5rem", fontStyle: "italic" }}>* Légende : ★ (1-Facile) à ★★★★★ (5-Très Difficile)</div>
+            </>
+          )}
         </DashboardCard>
         </div>
 

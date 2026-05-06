@@ -15,6 +15,7 @@ Générer EXACTEMENT 10 questions d'entretien d'une extrême pertinence, adapté
 - **Curiosité :** Utilise les hobbies du candidat ou pose une question inattendue pour tester son agilité mentale.
 - **Classiques :** Inclure systématiquement des questions de parcours (réussites, échecs, trous dans le CV).
 - **Défauts :** Inclure SYSTEMATIQUEMENT la question : "Quels sont vos trois principaux défauts ?".
+  * **PRÉTENTIONS SALARIALES :** Si tu poses une question sur le salaire attendu, **N'INVENTE AUCUN MONTANT CHIFFRÉ** dans la `suggested_answer` (ex: fuis les montants comme 120k€ ou 150k€). Formule une réponse stratégique axée sur la valeur apportée ou utilise la balise `[Insérez la fourchette haute du marché]`.
   * Sélectionner les 3 défauts les MOINS préjudiciables parmi la liste fournie par le candidat.
   * Si la liste est vide, proposer 3 faux défauts stratégiques classiques (ex: Trop exigeant, Impatient).
   Indique toujours que le candidat en est conscient et travaille dessus d'une manière très professionnelle.
