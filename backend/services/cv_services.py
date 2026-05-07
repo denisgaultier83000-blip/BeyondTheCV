@@ -940,26 +940,37 @@ async def submit_feedback(request: FeedbackPayload, current_user: dict = Depends
     try:
         # [FIX EXPERT] Consolidation des différents champs possibles venant du front pour éviter les commentaires vides (NULL)
         actual_comments = request.comments
-        async with db.get_connection() as conn:
-            # [MIGRATION AUTOMATIQUE] S'assure que la table et la colonne existent pour ne pas crasher
-            try:
-                # Tentative 1 : Syntaxe PostgreSQL (Pour Staging / Cloud Run)
+        
+        # [MIGRATION ISOLÉE 1] Création de la table (Transaction séparée pour ne pas corrompre Postgres)
+        try:
+            async with db.get_connection() as conn:
                 await db.execute(conn, "CREATE TABLE IF NOT EXISTS feedbacks (id SERIAL PRIMARY KEY, user_id TEXT, feature TEXT, feedback BOOLEAN, reason TEXT, job_type TEXT, created_at TIMESTAMP)")
-            except Exception:
-                try:
-                    # Tentative 2 : Fallback syntaxe SQLite (Pour le développement local)
-                    await db.execute(conn, "CREATE TABLE IF NOT EXISTS feedbacks (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, feature TEXT, feedback BOOLEAN, reason TEXT, job_type TEXT, created_at TIMESTAMP)")
-                except Exception:
-                    pass
-
+        except Exception:
             try:
-                await db.execute(conn, "ALTER TABLE feedbacks ADD COLUMN user_id TEXT")
+                async with db.get_connection() as conn:
+                    await db.execute(conn, "CREATE TABLE IF NOT EXISTS feedbacks (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, feature TEXT, feedback BOOLEAN, reason TEXT, job_type TEXT, created_at TIMESTAMP)")
             except Exception:
                 pass
-                
+
+        # [MIGRATION ISOLÉE 2] Ajout de la colonne user_id
+        try:
+            async with db.get_connection() as conn:
+                await db.execute(conn, "ALTER TABLE feedbacks ADD COLUMN user_id TEXT")
+        except Exception:
+            pass
+
+        # INSERTION FINALE (Transaction saine)
+        try:
+            async with db.get_connection() as conn:
             await db.execute(conn, 
                 "INSERT INTO feedbacks (user_id, feature, feedback, reason, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)", 
                 (current_user.get("id"), request.feature, request.is_positive, actual_comments, request.job_type, datetime.now()))
+        except Exception as e_insert:
+            # Fallback absolu si la base utilise l'ancien schéma (is_positive, comments)
+            async with db.get_connection() as conn:
+                await db.execute(conn, 
+                    "INSERT INTO feedbacks (user_id, feature, is_positive, comments, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)", 
+                    (current_user.get("id"), request.feature, request.is_positive, actual_comments, request.job_type, datetime.now()))
 
         return {"status": "success", "message": "Feedback enregistré avec succès"}
     except Exception as e:
@@ -973,13 +984,15 @@ async def get_feedbacks(current_user: dict = Depends(get_current_user)):
     Sans cette route, le composant AdminFeedbacks.tsx recevait une erreur 404 Not Found.
     """
     try:
-        async with db.get_connection() as conn:
-            # [MIGRATION AUTOMATIQUE] S'assure que la colonne existe avant de faire le JOIN
-            try:
+        # [MIGRATION ISOLÉE] S'assure que la colonne existe avant le SELECT
+        try:
+            async with db.get_connection() as conn:
                 await db.execute(conn, "ALTER TABLE feedbacks ADD COLUMN user_id TEXT")
-            except Exception:
-                pass
-                
+        except Exception:
+            pass
+            
+        try:
+            async with db.get_connection() as conn:
             cursor = await db.execute(conn, """
                 SELECT f.id, f.feature, f.feedback as is_positive, f.reason as comments, f.created_at, u.email as user_email 
                 FROM feedbacks f 
@@ -987,6 +1000,15 @@ async def get_feedbacks(current_user: dict = Depends(get_current_user)):
                 ORDER BY f.created_at DESC
             """)
             rows = await cursor.fetchall()
+        except Exception:
+            async with db.get_connection() as conn:
+                cursor = await db.execute(conn, """
+                    SELECT f.id, f.feature, f.is_positive, f.comments, f.created_at, u.email as user_email 
+                    FROM feedbacks f 
+                    LEFT JOIN users u ON f.user_id = u.id 
+                    ORDER BY f.created_at DESC
+                """)
+                rows = await cursor.fetchall()
             
         feedbacks_list = []
         for row in rows:
