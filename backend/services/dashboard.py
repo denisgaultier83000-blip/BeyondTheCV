@@ -5,7 +5,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, WebSocke
 from fastapi.responses import JSONResponse
 
 from database import db
-from models import ResearchRequest, DisambiguationRequest, FeedbackRequest
+from models import ResearchRequest, DisambiguationRequest
 # [FIX] Import relatif cohérent
 from .ai_generator import ai_service
 # [FIX] Utilisation de l'import relatif pour éviter les conflits de path
@@ -73,20 +73,6 @@ async def analyze_completeness(request: Request):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/api/feedback")
-async def submit_feedback(request: FeedbackRequest):
-    try:
-        now = datetime.now()
-        async with db.get_connection() as conn:
-            await db.execute(conn, 
-                "INSERT INTO feedbacks (user_id, feature, feedback, reason, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-                ("anonymous", request.feature, request.feedback, request.reason, request.job_type, now))
-            # [FIX] Suppression de `await conn.commit()`
-        return {"status": "success"}
-    except Exception as e:
-        print(f"[FEEDBACK ERROR] {e}")
-        raise HTTPException(status_code=500, detail="Failed to save feedback")
 
 @router.post("/api/research/disambiguate")
 async def disambiguate_company_endpoint(request: DisambiguationRequest):

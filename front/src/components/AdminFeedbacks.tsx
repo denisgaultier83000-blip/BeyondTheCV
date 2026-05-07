@@ -10,6 +10,7 @@ interface Feedback {
   is_positive: boolean;
   comments: string | null;
   created_at: string;
+  user_email?: string | null;
 }
 
 export default function AdminFeedbacks() {
@@ -117,6 +118,7 @@ export default function AdminFeedbacks() {
           <thead style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
             <tr>
               <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 600 }}>Date</th>
+              <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 600 }}>Utilisateur</th>
               <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 600 }}>Fonctionnalité</th>
               <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 600 }}>Vote</th>
               <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 600 }}>Commentaire</th>
@@ -129,6 +131,7 @@ export default function AdminFeedbacks() {
               filteredFeedbacks.map((f) => (
                 <tr key={f.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.2s' }}>
                   <td style={{ padding: '1rem', color: 'var(--text-main)', fontSize: '0.9rem' }}>{new Date(f.created_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                  <td style={{ padding: '1rem', color: 'var(--text-main)', fontSize: '0.9rem' }}>{f.user_email || <span style={{ fontStyle: 'italic', opacity: 0.5 }}>Anonyme</span>}</td>
                   <td style={{ padding: '1rem' }}><span style={{ background: 'var(--bg-secondary)', padding: '0.25rem 0.75rem', borderRadius: '1rem', fontSize: '0.85rem', fontWeight: 500, color: 'var(--primary)' }}>{f.feature}</span></td>
                   <td style={{ padding: '1rem' }}>
                     {f.is_positive 

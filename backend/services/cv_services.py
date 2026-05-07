@@ -933,18 +933,17 @@ async def get_dashboard_summary(data: FullCVData, current_user: dict = Depends(r
 
 @router.post("/feedback")
 @router.post("/feedbacks")
-async def submit_feedback(request: FeedbackPayload):
+async def submit_feedback(request: FeedbackPayload, current_user: dict = Depends(get_current_user)):
     """
     Enregistre les retours utilisateurs (pouces levés/baissés) sur les générations IA.
-    Note: Cette route ne requiert pas get_current_user car le frontend utilise un fetch standard sans token JWT.
     """
     try:
         # [FIX EXPERT] Consolidation des différents champs possibles venant du front pour éviter les commentaires vides (NULL)
         actual_comments = request.comments
         async with db.get_connection() as conn:
             await db.execute(conn, 
-                "INSERT INTO feedbacks (user_id, feature, is_positive, comments, created_at) VALUES (?, ?, ?, ?, ?)", 
-                ("anonymous", request.feature, request.is_positive, actual_comments, datetime.now()))
+                "INSERT INTO feedbacks (user_id, feature, feedback, reason, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)", 
+                (current_user["id"], request.feature, request.is_positive, actual_comments, request.job_type, datetime.now()))
         return {"status": "success", "message": "Feedback enregistré avec succès"}
     except Exception as e:
         print(f"[FEEDBACK ERROR] {e}", flush=True)
@@ -958,7 +957,12 @@ async def get_feedbacks(current_user: dict = Depends(get_current_user)):
     """
     try:
         async with db.get_connection() as conn:
-            cursor = await db.execute(conn, "SELECT id, feature, is_positive, comments, created_at FROM feedbacks ORDER BY created_at DESC")
+            cursor = await db.execute(conn, """
+                SELECT f.id, f.feature, f.feedback as is_positive, f.reason as comments, f.created_at, u.email as user_email 
+                FROM feedbacks f 
+                LEFT JOIN users u ON f.user_id = u.id 
+                ORDER BY f.created_at DESC
+            """)
             rows = await cursor.fetchall()
             
         feedbacks_list = []
@@ -969,7 +973,8 @@ async def get_feedbacks(current_user: dict = Depends(get_current_user)):
                     "feature": row[1],
                     "is_positive": bool(row[2]),
                     "comments": row[3],
-                    "created_at": row[4].isoformat() if hasattr(row[4], 'isoformat') else str(row[4])
+                    "created_at": row[4].isoformat() if hasattr(row[4], 'isoformat') else str(row[4]),
+                    "user_email": row[5]
                 })
             else:
                 feedbacks_list.append(dict(row))
