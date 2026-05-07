@@ -15,8 +15,8 @@ export const API_ROUTES = {
     DELETE: (id: string) => `${API_BASE_URL}/api/documents/${id}`,
   },
   FEEDBACKS: {
-    LIST: `${API_BASE_URL}/api/feedbacks`,
-    CREATE: `${API_BASE_URL}/api/feedbacks`,
+    LIST: `${API_BASE_URL}/api/cv/feedbacks`,
+    CREATE: `${API_BASE_URL}/api/cv/feedback`,
   },
   SIMULATOR: {
     SITUATION: `${API_BASE_URL}/api/cv/simulate-situation`,

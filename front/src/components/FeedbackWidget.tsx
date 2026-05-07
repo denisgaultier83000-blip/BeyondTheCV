@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ThumbsUp, ThumbsDown, Sparkles } from 'lucide-react';
 import { authenticatedFetch } from '../utils/auth';
 import { useTranslation } from 'react-i18next';
@@ -29,6 +29,14 @@ export function FeedbackWidget({
     t('feedback_bullet_2', "Les informations sont inexactes ou hors sujet ?"),
     t('feedback_bullet_3', "Les recommandations ne sont pas applicables ?")
   ];
+
+  // [FIX] Réinitialisation complète du widget si la fonctionnalité ciblée (feature) change
+  useEffect(() => {
+    setStatus('idle');
+    setShowNegativeForm(false);
+    setComments('');
+    setSelectedBullets([]);
+  }, [feature]);
 
   const handleFeedback = async (isPositive: boolean, submittedComments?: string) => {
     if (!isPositive && !showNegativeForm) {
@@ -83,7 +91,10 @@ export function FeedbackWidget({
                 <button
                   type="button"
                   key={idx}
-                  onClick={() => setSelectedBullets(prev => prev.includes(bullet) ? prev.filter(b => b !== bullet) : [...prev, bullet])}
+              onClick={() => {
+                setSelectedBullets(prev => prev.includes(bullet) ? prev.filter(b => b !== bullet) : [...prev, bullet]);
+                if (status === 'error') setStatus('idle'); // [FIX] Disparition de l'erreur à la modification
+              }}
                   style={{
                     padding: '0.4rem 0.75rem', borderRadius: '2rem', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left',
                     border: `1px solid ${isSelected ? 'var(--danger-text)' : 'var(--border-color)'}`,
@@ -99,7 +110,10 @@ export function FeedbackWidget({
           
           <textarea 
             value={comments}
-            onChange={(e) => setComments(e.target.value)}
+            onChange={(e) => {
+              setComments(e.target.value);
+              if (status === 'error') setStatus('idle'); // [FIX] Disparition de l'erreur à la modification
+            }}
             placeholder={t('feedback_placeholder', "Précisez votre retour (optionnel)...")}
             style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-main)', marginBottom: '1rem', minHeight: '80px', fontFamily: 'inherit', resize: 'vertical' }}
           />
@@ -110,6 +124,7 @@ export function FeedbackWidget({
                 setShowNegativeForm(false);
                 setSelectedBullets([]);
                 setComments('');
+                setStatus('idle'); // [FIX] Nettoyage de l'état d'erreur en cas d'annulation
               }}
               style={{ padding: '0.5rem 1rem', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '0.5rem', cursor: 'pointer', color: 'var(--text-muted)', fontWeight: 500 }}
             >
