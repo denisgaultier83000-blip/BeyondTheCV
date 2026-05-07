@@ -172,27 +172,29 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
   return (
     <div className={hideHeader ? "" : "step-content"} style={{ maxWidth: '1200px', margin: '0 auto', padding: hideHeader ? '0' : '20px' }}>
       {!hideHeader && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-          {onBack ? (
-            <button onClick={onBack} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <ArrowLeft size={16} /> {t('back_productions') || 'Retour'}
-            </button>
-          ) : <div />}
-          <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-main)' }}>
-            <MessageSquare size={28} color="var(--primary)" />
-            {t('card_interview_title') || 'Questionnaire d\'Entretien'}
-          </h2>
-          {onPrint ? (
-            <button onClick={() => onPrint(questions)} className="btn-primary" disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Printer size={16} /> {loading ? t('generating') : (t('print') || 'Imprimer')}
-            </button>
-          ) : <div />}
-        </div>
-        
-        <div style={{ background: 'var(--bg-card)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-          <Lightbulb size={20} color="#eab308" style={{ flexShrink: 0 }} />
-          <span><strong>Indicateur de difficulté :</strong> De ⭐ (Question d'introduction abordable) à ⭐⭐⭐⭐⭐ (Mise en situation extrêmement complexe ou question piège redoutable).</span>
-        </div>
+        <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+            {onBack ? (
+              <button onClick={onBack} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <ArrowLeft size={16} /> {t('back_productions') || 'Retour'}
+              </button>
+            ) : <div />}
+            <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-main)' }}>
+              <MessageSquare size={28} color="var(--primary)" />
+              {t('card_interview_title') || 'Questionnaire d\'Entretien'}
+            </h2>
+            {onPrint ? (
+              <button onClick={() => onPrint(questions)} className="btn-primary" disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Printer size={16} /> {loading ? t('generating') : (t('print') || 'Imprimer')}
+              </button>
+            ) : <div />}
+          </div>
+          
+          <div style={{ background: 'var(--bg-card)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+            <Lightbulb size={20} color="#eab308" style={{ flexShrink: 0 }} />
+            <span><strong>Indicateur de difficulté :</strong> De ⭐ (Question d'introduction abordable) à ⭐⭐⭐⭐⭐ (Mise en situation extrêmement complexe ou question piège redoutable).</span>
+          </div>
+        </>
       )}
 
       <style>{`
