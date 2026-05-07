@@ -358,6 +358,11 @@ function AppContent() {
       }
   }
 
+  // [FIX] S'assurer que le prénom commence toujours par une majuscule dans le Header
+  if (parsedUserName && typeof parsedUserName === 'string') {
+    parsedUserName = parsedUserName.charAt(0).toUpperCase() + parsedUserName.slice(1);
+  }
+
   return (
     <div className="app-container">
       <Header 
