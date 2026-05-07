@@ -55,6 +55,11 @@ export const CVTab = ({ data }: { data: any }) => {
     payloadData.country = cvData?.country || cvData?.personal_info?.country || payloadData.country;
     payloadData.current_role = cvData?.current_role || payloadData.current_role;
 
+    // [FIX] Nettoyage automatique de l'URL LinkedIn pour ne garder que le pseudo
+    if (payloadData.linkedin) {
+        payloadData.linkedin = payloadData.linkedin.replace(/^(https?:\/\/)?(www\.)?linkedin\.com\/in\//i, '').replace(/\/$/, '');
+    }
+
     // [FIX] S'assurer que le prénom et le nom commencent par une majuscule pour le CV
     const capitalize = (str: string) => str ? str.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : "";
     payloadData.first_name = capitalize(payloadData.first_name);

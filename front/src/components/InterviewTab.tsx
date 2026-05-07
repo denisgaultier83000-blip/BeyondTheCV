@@ -139,8 +139,10 @@ export const InterviewTab = () => {
         >
           {questionsResult && (
             <>
+              <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "1.5rem", fontStyle: "italic", background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
+                * Légende : ★ (1-Facile) à ★★★★★ (5-Très Difficile)
+              </div>
               <Questionnaire questions={Array.isArray(questionsResult) ? questionsResult : (questionsResult.questions || [])} hideHeader={true} />
-              <div style={{ textAlign: "right", fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.5rem", fontStyle: "italic" }}>* Légende : ★ (1-Facile) à ★★★★★ (5-Très Difficile)</div>
             </>
           )}
         </DashboardCard>

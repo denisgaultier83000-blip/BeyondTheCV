@@ -10,13 +10,13 @@ export const API_ROUTES = {
     PARSE_LINKEDIN: `${API_BASE_URL}/api/cv/parse-linkedin`,
   },
   DOCUMENTS: {
-    LIST: `${API_BASE_URL}/api/cv/documents`,
-    DOWNLOAD: (id: string) => `${API_BASE_URL}/api/cv/documents/download/${id}`,
-    DELETE: (id: string) => `${API_BASE_URL}/api/cv/documents/${id}`,
+    LIST: `${API_BASE_URL}/api/documents`,
+    DOWNLOAD: (id: string) => `${API_BASE_URL}/api/documents/download/${id}`,
+    DELETE: (id: string) => `${API_BASE_URL}/api/documents/${id}`,
   },
   FEEDBACKS: {
     LIST: `${API_BASE_URL}/api/cv/feedbacks`,
-    CREATE: `${API_BASE_URL}/api/cv/feedback`,
+    CREATE: `${API_BASE_URL}/api/cv/feedbacks`,
   },
   SIMULATOR: {
     SITUATION: `${API_BASE_URL}/api/cv/simulate-situation`,
