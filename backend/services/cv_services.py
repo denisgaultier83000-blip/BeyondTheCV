@@ -943,9 +943,15 @@ async def submit_feedback(request: FeedbackPayload, current_user: dict = Depends
         async with db.get_connection() as conn:
             # [MIGRATION AUTOMATIQUE] S'assure que la table et la colonne existent pour ne pas crasher
             try:
-                await db.execute(conn, "CREATE TABLE IF NOT EXISTS feedbacks (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, feature TEXT, feedback BOOLEAN, reason TEXT, job_type TEXT, created_at TIMESTAMP)")
+                # Tentative 1 : Syntaxe PostgreSQL (Pour Staging / Cloud Run)
+                await db.execute(conn, "CREATE TABLE IF NOT EXISTS feedbacks (id SERIAL PRIMARY KEY, user_id TEXT, feature TEXT, feedback BOOLEAN, reason TEXT, job_type TEXT, created_at TIMESTAMP)")
             except Exception:
-                pass
+                try:
+                    # Tentative 2 : Fallback syntaxe SQLite (Pour le développement local)
+                    await db.execute(conn, "CREATE TABLE IF NOT EXISTS feedbacks (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, feature TEXT, feedback BOOLEAN, reason TEXT, job_type TEXT, created_at TIMESTAMP)")
+                except Exception:
+                    pass
+
             try:
                 await db.execute(conn, "ALTER TABLE feedbacks ADD COLUMN user_id TEXT")
             except Exception:
@@ -953,8 +959,8 @@ async def submit_feedback(request: FeedbackPayload, current_user: dict = Depends
                 
             await db.execute(conn, 
                 "INSERT INTO feedbacks (user_id, feature, feedback, reason, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)", 
-                (current_user.get("id"), request.feature, int(request.is_positive), actual_comments, request.job_type, datetime.now()))
-                # Utilisation de int() et .get() pour sécuriser l'insertion SQLite
+                (current_user.get("id"), request.feature, request.is_positive, actual_comments, request.job_type, datetime.now()))
+
         return {"status": "success", "message": "Feedback enregistré avec succès"}
     except Exception as e:
         print(f"[FEEDBACK ERROR] {e}", flush=True)
