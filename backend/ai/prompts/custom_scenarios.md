@@ -11,6 +11,7 @@ Générer EXACTEMENT 3 thèmes de Mises en Situation (MES), contenant chacun EXA
 - **Complexité :** Il ne doit pas y avoir de solution facile ou évidente. Le candidat doit devoir faire des compromis (ex: Qualité vs Délai, Client vs Équipe).
 - **Icônes autorisées :** Pour chaque thème, choisis une icône parmi cette liste exacte : `AlertTriangle`, `Users`, `MessageSquare`, `ListChecks`, `BrainCircuit`, `Shield`.
 - **Format de l'ID :** Génère un identifiant unique court pour chaque scénario (ex: `crisis_01`).
+- **LANGUE :** Les scénarios générés doivent impérativement être rédigés dans la langue du poste ciblé. Ne mélange pas les langues.
 
 ## 📦 FORMAT DE SORTIE (JSON STRICT)
 ```json
