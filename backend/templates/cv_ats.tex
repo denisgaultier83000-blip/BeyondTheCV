@@ -45,9 +45,10 @@
 \section*{\VAR{translations.education}}
 \BLOCK{for edu in educations}
 \noindent
-% [FIX EXPERT - POINT 7] Même protection d'alignement pour l'éducation
-\parbox[t]{0.75\textwidth}{\textbf{\VAR{edu.degree}}\\\textit{\VAR{edu.school}}}%
-\parbox[t]{0.25\textwidth}{\raggedleft \VAR{edu.year}}
+\parbox[t]{0.75\textwidth}{\textbf{\VAR{edu.degree}}}%
+\parbox[t]{0.25\textwidth}{\raggedleft \VAR{edu.year}}\par
+\vspace{1pt}
+\noindent\textit{\VAR{edu.school}}
 \vspace{5pt}
 \BLOCK{endfor}
 

@@ -10,7 +10,7 @@ Pays : {country}
 OUTPUT STRICT JSON:
 {
     "queries": [
-        "\"{company}\" actualités financières {current_year}",
+        "\"{company}\" actualités OR news OR presse {current_year}",
         "\"{company}\" stratégie {current_year} OR plan de développement",
         "\"{company}\" culture d'entreprise OR valeurs OR avis employés",
         "interview questions for {role} at \"{company}\"",

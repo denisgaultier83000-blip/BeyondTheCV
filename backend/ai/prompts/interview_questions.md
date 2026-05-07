@@ -12,7 +12,8 @@ Générer EXACTEMENT 10 questions d'entretien, en mêlant des questions ultra-pe
 - **Variété :** Couvre le parcours, la personnalité (inclure systématiquement une question sur les défauts), la stratégie, les mises en situation, et la motivation générale.
 - **Qualité des réponses :** Les réponses suggérées doivent être concrètes et utiliser la méthode STAR quand c'est pertinent. Pour les questions "classiques", montre comment le candidat peut se démarquer de la masse avec une réponse percutante.
 - **Format :** La sortie doit être un JSON valide.
-- **ÉVALUER LA DIFFICULTÉ ET LE PIÈGE :** Assigne à chaque question un niveau de difficulté (1 à 3 étoiles : ⭐, ⭐⭐, ⭐⭐⭐) et un tag décrivant le type de piège ou l'objectif caché (ex: "Test de Résilience", "Mise en situation", "Question Classique", "Question Piège").
+- **ÉVALUER LA DIFFICULTÉ ET LE PIÈGE :** Assigne à chaque question un niveau de difficulté de 1 à 5 étoiles (⭐ = Très Facile, ⭐⭐⭐⭐⭐ = Très Difficile) et un tag décrivant le type de piège ou l'objectif caché.
+- **LANGUE IMPÉRATIVE :** Tu DOIS générer l'ensemble des questions, réponses et conseils EXACTEMENT dans la langue cible du poste ou du CV. Interdiction absolue de mélanger l'anglais et le français.
 
 ## 📦 FORMAT DE SORTIE (JSON STRICT)
 ```json
@@ -21,7 +22,7 @@ Générer EXACTEMENT 10 questions d'entretien, en mêlant des questions ultra-pe
         {
             "category": "Curiosité | Parcours | Personnalité | Motivation | Mise en situation",
             "question": "La question posée par le recruteur.",
-            "difficulty": "⭐ | ⭐⭐ | ⭐⭐⭐",
+            "difficulty": "⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐",
             "trap_type": "Label court (ex: 'Question Piège', 'Test de Résilience', 'Question Classique')",
             "suggested_answer": "Une proposition de réponse complète, argumentée et formulée à la 1ère personne.",
             "advice": "Le conseil du coach expliquant ce que le recruteur cherche à évaluer."

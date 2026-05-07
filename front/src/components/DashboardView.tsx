@@ -82,6 +82,18 @@ export const DashboardView = () => {
 
   const isProcessing = globalStatus === "PROCESSING" || globalStatus === "STARTING";
 
+  // Vérification stricte de la disponibilité des données pour éviter les "faux positifs" sur des objets/tableaux vides
+  const isDataReady = (data: any) => {
+    if (!data) return false;
+    if (Array.isArray(data)) return data.length > 0;
+    if (typeof data === 'object') {
+      const keys = Object.keys(data);
+      if (keys.length === 0) return false;
+      return Object.values(data).some(val => val !== null && val !== undefined);
+    }
+    return true;
+  };
+
   // Liste de tous les livrables avec leur état
   const deliverableItems = [
     { name: t('deliv_cv', "CV & ATS"), tab: "cv", data: cvResult, icon: <FileText size={18}/> },
@@ -101,7 +113,7 @@ export const DashboardView = () => {
   // Calcul des pastilles par onglet
   const hasUnseen = (tabName: string, items: any[]) => {
     if (viewedTabs.includes(tabName)) return false;
-    return items.some(item => !!item);
+    return items.some(item => isDataReady(item));
   };
 
   const cvUnseen = hasUnseen('cv', [cvResult]);
@@ -181,7 +193,7 @@ export const DashboardView = () => {
                  <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: '0 0 1.5rem 0' }}>{t('hub_desc', 'Suivez la génération de vos outils en temps réel et cliquez pour y accéder.')}</p>
                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
                     {deliverableItems.map((item, idx) => {
-                       const isReady = !!item.data;
+                       const isReady = isDataReady(item.data);
                        const isPending = isProcessing && !isReady;
                        const isNew = isReady && !viewedTabs.includes(item.tab);
                        return (

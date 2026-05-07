@@ -188,6 +188,11 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
             </button>
           ) : <div />}
         </div>
+        
+        <div style={{ background: 'var(--bg-card)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+          <Lightbulb size={20} color="#eab308" style={{ flexShrink: 0 }} />
+          <span><strong>Indicateur de difficulté :</strong> De ⭐ (Question d'introduction abordable) à ⭐⭐⭐⭐⭐ (Mise en situation extrêmement complexe ou question piège redoutable).</span>
+        </div>
       )}
 
       <style>{`
