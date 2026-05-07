@@ -178,7 +178,7 @@ export default function Dashboard({
             <ActionCard 
               icon={<Briefcase />} 
               title={t('card_company_title')} 
-              desc={hasCompany ? t('card_company_desc') : "Renseignez le nom de l'entreprise cible dans votre profil pour débloquer ce rapport."}
+              desc={hasCompany ? t('card_company_desc') : t('card_company_disabled', "Renseignez le nom de l'entreprise cible dans votre profil pour débloquer ce rapport.")}
               onClick={() => onAction && onAction(researchData && hasCompany ? "View Company Report" : "Company Research")}
               disabled={loading || isResearching || !hasCompany}
               ready={researchData && hasCompany}

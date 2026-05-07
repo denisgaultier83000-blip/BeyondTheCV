@@ -1,6 +1,7 @@
 import React from 'react';
 import { Building, Newspaper, ExternalLink, Globe2, Target, Users, TrendingUp, BookOpen } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
+import { useTranslation } from 'react-i18next';
 
 interface CompanyAnalysisCardProps {
   data: any;
@@ -9,10 +10,11 @@ interface CompanyAnalysisCardProps {
 }
 
 export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCardProps) {
-  const companyName = data?.company || "Entreprise Ciblée";
+  const { t } = useTranslation();
+  const companyName = data?.company || t('default_target_company', "Entreprise Ciblée");
   const report = data?.company_report || data?.synthesis || {};
   
-  const dna = report.identity_dna || report.overview || "L'analyse IA de l'entreprise est en cours...";
+  const dna = report.identity_dna || report.overview || t('company_dna_loading', "L'analyse IA de l'entreprise est en cours...");
   const figures = report.key_figures;
   const finance = report.financial_health;
   const leadership = report.leadership;
@@ -36,14 +38,14 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
 
   return (
     <DashboardCard
-      title={`Dossier d'Intelligence : ${companyName}`}
+      title={`${t('strategic_dossier', 'Dossier Stratégique')} : ${companyName}`}
       icon={<Building size={24} />}
       loading={loading}
-      loadingText="Analyse approfondie et stratégique en cours..."
+      loadingText={t('company_loading_text', "Analyse approfondie et stratégique en cours...")}
       error={error}
-      errorText="Impossible de charger les données de l'entreprise."
+      errorText={t('company_error_text', "Impossible de charger les données de l'entreprise.")}
       featureId="company_report"
-      feedbackQuestion="Ce dossier de préparation vous donne-t-il un avantage ?"
+      feedbackQuestion={t('company_feedback_q', "Ce dossier de préparation vous donne-t-il un avantage ?")}
     >
       {data && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', width: '100%' }}>
