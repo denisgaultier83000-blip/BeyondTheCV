@@ -20,6 +20,7 @@ interface ScenarioItem {
   id: string;
   title: string;
   description: string;
+  ideal_response_flow?: ModelAnswer;
 }
 
 interface ScenarioCategory {
@@ -390,10 +391,10 @@ export function SituationSimulator() {
                     
                     {showPassiveModel && (
                       <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
-                        <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>{t('sim_diag_title', '1. Diagnostic')}</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>{t('sim_diag_desc', "Évaluer l'impact réel et l'urgence de la situation.")}</p></div>
-                        <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>{t('sim_human_title', '2. Humain')}</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>{t('sim_human_desc', "Communiquer avec les parties prenantes, rassurer et déléguer efficacement.")}</p></div>
-                        <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>{t('sim_action_title', '3. Action')}</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>{t('sim_action_desc', "Prendre les mesures correctives immédiates et proportionnées.")}</p></div>
-                        <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>{t('sim_followup_title', '4. Suivi')}</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>{t('sim_followup_desc', "Mettre en place des actions préventives pour l'avenir.")}</p></div>
+                        <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>{t('sim_diag_title', '1. Diagnostic')}</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>{selectedScenario.ideal_response_flow?.diagnostic || t('sim_diag_desc', "Évaluer l'impact réel et l'urgence de la situation.")}</p></div>
+                        <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>{t('sim_human_title', '2. Humain')}</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>{selectedScenario.ideal_response_flow?.human || t('sim_human_desc', "Communiquer avec les parties prenantes, rassurer et déléguer efficacement.")}</p></div>
+                        <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>{t('sim_action_title', '3. Action')}</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>{selectedScenario.ideal_response_flow?.action || t('sim_action_desc', "Prendre les mesures correctives immédiates et proportionnées.")}</p></div>
+                        <div><strong style={{ color: 'var(--primary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>{t('sim_followup_title', '4. Suivi')}</strong><p style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)' }}>{selectedScenario.ideal_response_flow?.follow_up || t('sim_followup_desc', "Mettre en place des actions préventives pour l'avenir.")}</p></div>
                       </div>
                     )}
                   </div>

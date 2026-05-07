@@ -48,7 +48,7 @@ export default function Dashboard({
 
   const { t } = useTranslation();
 
-  const ActionCard = ({ icon, title, desc, onClick, disabled, ready }: { icon: React.ReactElement, title: string, desc: string, onClick?: () => void, disabled?: boolean, ready?: any }) => (
+  const ActionCard = ({ icon, title, desc, onClick, disabled, ready }: { icon: React.ReactElement, title: string, desc: React.ReactNode, onClick?: () => void, disabled?: boolean, ready?: any }) => (
     <button 
       onClick={onClick} 
       disabled={disabled}
@@ -210,7 +210,7 @@ export default function Dashboard({
             <ActionCard 
               icon={<Search />} 
               title={t('card_decoder_title', 'Décodeur d\'annonce')} 
-              desc={hasJobDesc ? t('card_decoder_desc', 'Lisez entre les lignes et décodez le vrai jargon RH.') : t('card_decoder_disabled', 'Annonce non renseignée. Ajoutez l\'annonce dans votre profil pour l\'analyser.')}
+              desc={hasJobDesc ? t('card_decoder_desc', 'Lisez entre les lignes et décodez le vrai jargon RH.') : <span style={{ color: 'var(--danger-text)', fontWeight: 600 }}>{t('card_decoder_disabled', 'Annonce non renseignée. Ajoutez l\'annonce dans votre profil pour l\'analyser.')}</span>}
               onClick={() => onAction && onAction("Job Decoder")}
               disabled={loading || !hasJobDesc}
               ready={jobDecoderData && hasJobDesc}

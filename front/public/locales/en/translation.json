@@ -431,7 +431,6 @@
   "rv_verdict_invite": "Invite",
   "rv_verdict_reject": "Reject",
   "rv_verdict_keep": "Keep on hold",
-  "rv_under_review": "Under review"
   "rv_under_review": "Under review",
   "job_decoder_title": "Job Decoder",
   "job_decoder_error": "An error occurred while decoding the ad. Please verify you provided a job description.",
