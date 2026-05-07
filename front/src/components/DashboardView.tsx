@@ -94,6 +94,8 @@ export const DashboardView = () => {
     return true;
   };
 
+  const hasJobDesc = !!(cvData?.job_description && cvData.job_description.trim().length > 0);
+
   // Liste de tous les livrables avec leur état
   const deliverableItems = [
     { name: t('deliv_cv', "CV & ATS"), tab: "cv", data: cvResult, icon: <FileText size={18}/> },
@@ -102,7 +104,15 @@ export const DashboardView = () => {
     { name: t('deliv_flaws', "Parades aux Défauts"), tab: "interview", anchor: "flaws_section", data: flawCoachingResult, icon: <AlertTriangle size={18}/> },
     { name: t('deliv_gap', "Analyse d'Écarts (Gap)"), tab: "market", anchor: "gap_section", data: gapResult, icon: <Target size={18}/> },
     { name: t('deliv_market', "Rapport Entreprise & Marché"), tab: "market", anchor: "analysis_section", data: researchResult, icon: <Globe size={18}/> },
-    { name: t('deliv_decoder', "Décodeur d'Annonce"), tab: "market", anchor: "decoder_section", data: jobDecoderResult, icon: <Search size={18}/> },
+    { 
+      name: t('deliv_decoder', "Décodeur d'Annonce"), 
+      tab: "market", 
+      anchor: "decoder_section", 
+      data: jobDecoderResult, 
+      icon: <Search size={18}/>,
+      disabled: !hasJobDesc,
+      disabledReason: t('card_decoder_disabled', "Annonce non renseignée. Ajoutez l'annonce dans votre profil pour l'analyser.")
+    },
     { name: t('deliv_recruiter', "Vue Recruteur"), tab: "career", anchor: "recruiter_section", data: recruiterResult, icon: <Eye size={18}/> },
     { name: t('deliv_gps', "GPS de Carrière"), tab: "career", anchor: "gps_section", data: careerGpsResult, icon: <Navigation size={18}/> },
     { name: t('deliv_radar', "Radar de Carrière"), tab: "career", anchor: "radar_section", data: careerRadarResult, icon: <Compass size={18}/> },
@@ -193,23 +203,36 @@ export const DashboardView = () => {
                  <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: '0 0 1.5rem 0' }}>{t('hub_desc', 'Suivez la génération de vos outils en temps réel et cliquez pour y accéder.')}</p>
                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
                     {deliverableItems.map((item, idx) => {
-                       const isReady = isDataReady(item.data);
-                       const isPending = isProcessing && !isReady;
-                       const isNew = isReady && !viewedTabs.includes(item.tab);
+                       const isReady = isDataReady(item.data) && !item.disabled;
+                       const isPending = isProcessing && !isReady && !item.disabled;
+                       const isNew = isReady && !viewedTabs.includes(item.tab) && !item.disabled;
                        return (
-                          <div key={idx} onClick={() => handleTabChange(item.tab, (item as any).anchor)} style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', border: `1px solid ${isReady ? 'var(--primary)' : 'var(--border-color)'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', opacity: isPending ? 0.7 : 1, transition: 'all 0.2s', boxShadow: isNew ? '0 4px 12px rgba(59, 130, 246, 0.15)' : 'none' }} onMouseOver={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')} onMouseOut={(e) => (e.currentTarget.style.transform = 'none')}>
-                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: isReady ? 'var(--text-main)' : 'var(--text-muted)', fontWeight: isReady ? 600 : 400 }}>
-                                <div style={{ color: isReady ? 'var(--primary)' : 'var(--text-muted)', display: 'flex' }}>{item.icon}</div>
-                                <span style={{ fontSize: '0.95rem' }}>{item.name}</span>
+                          <div 
+                             key={idx} 
+                             onClick={() => !item.disabled && handleTabChange(item.tab, (item as any).anchor)} 
+                             style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', border: `1px solid ${isReady ? 'var(--primary)' : 'var(--border-color)'}`, display: 'flex', flexDirection: 'column', gap: '0.5rem', cursor: item.disabled ? 'not-allowed' : 'pointer', opacity: item.disabled ? 0.5 : (isPending ? 0.7 : 1), transition: 'all 0.2s', boxShadow: isNew ? '0 4px 12px rgba(59, 130, 246, 0.15)' : 'none' }} 
+                             onMouseOver={(e) => !item.disabled && (e.currentTarget.style.transform = 'translateY(-2px)')} 
+                             onMouseOut={(e) => !item.disabled && (e.currentTarget.style.transform = 'none')}
+                          >
+                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: isReady ? 'var(--text-main)' : 'var(--text-muted)', fontWeight: isReady ? 600 : 400 }}>
+                                   <div style={{ color: isReady ? 'var(--primary)' : 'var(--text-muted)', display: 'flex' }}>{item.icon}</div>
+                                   <span style={{ fontSize: '0.95rem' }}>{item.name}</span>
+                                </div>
+                                {item.disabled ? null : isNew ? (
+                                   <span style={{ background: '#ef4444', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, animation: 'pulse-new 2s infinite' }}>{t('badge_new', 'NEW')}</span>
+                                ) : isReady ? (
+                                   <span style={{ background: '#dcfce7', color: '#16a34a', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700 }}>{t('badge_ready', 'PRÊT')}</span>
+                                ) : isPending ? (
+                                   <Loader2 size={16} className="spin" color="var(--text-muted)" />
+                                ) : (
+                                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t('badge_pending', 'En attente')}</span>
+                                )}
                              </div>
-                             {isNew ? (
-                                <span style={{ background: '#ef4444', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, animation: 'pulse-new 2s infinite' }}>{t('badge_new', 'NEW')}</span>
-                             ) : isReady ? (
-                                <span style={{ background: '#dcfce7', color: '#16a34a', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700 }}>{t('badge_ready', 'PRÊT')}</span>
-                             ) : isPending ? (
-                                <Loader2 size={16} className="spin" color="var(--text-muted)" />
-                             ) : (
-                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t('badge_pending', 'En attente')}</span>
+                             {item.disabled && item.disabledReason && (
+                               <div style={{ fontSize: '0.75rem', color: 'var(--danger-text)', fontWeight: 600 }}>
+                                 {item.disabledReason}
+                               </div>
                              )}
                           </div>
                        );

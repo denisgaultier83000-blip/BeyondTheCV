@@ -25,7 +25,8 @@ export default function AdminFeedbacks() {
         const response = await authenticatedFetch(API_ROUTES.FEEDBACKS.LIST);
         if (!response.ok) throw new Error("Erreur lors de la récupération des feedbacks");
         const data = await response.json();
-        setFeedbacks(data.feedbacks || []);
+        // Si le backend renvoie un tableau plat, on l'utilise directement, sinon on cherche la clé 'feedbacks'
+        setFeedbacks(Array.isArray(data) ? data : (data.feedbacks || []));
       } catch (err: any) {
         setError(err.message);
       } finally {

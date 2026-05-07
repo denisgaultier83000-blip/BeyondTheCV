@@ -16,7 +16,7 @@ export const API_ROUTES = {
   },
   FEEDBACKS: {
     LIST: `${API_BASE_URL}/api/cv/feedbacks`,
-    CREATE: `${API_BASE_URL}/api/cv/feedbacks`,
+    CREATE: `${API_BASE_URL}/api/cv/feedback`,
   },
   SIMULATOR: {
     SITUATION: `${API_BASE_URL}/api/cv/simulate-situation`,
