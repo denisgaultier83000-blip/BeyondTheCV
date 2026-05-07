@@ -933,18 +933,18 @@ async def get_dashboard_summary(data: FullCVData, current_user: dict = Depends(r
 
 @router.post("/feedback")
 @router.post("/feedbacks")
-async def submit_feedback(request: FeedbackRequest):
+async def submit_feedback(request: FeedbackPayload):
     """
     Enregistre les retours utilisateurs (pouces levés/baissés) sur les générations IA.
     Note: Cette route ne requiert pas get_current_user car le frontend utilise un fetch standard sans token JWT.
     """
     try:
         # [FIX EXPERT] Consolidation des différents champs possibles venant du front pour éviter les commentaires vides (NULL)
-        actual_comments = request.comments or request.feedback or request.reason
+        actual_comments = request.comments
         async with db.get_connection() as conn:
             await db.execute(conn, 
-                "INSERT INTO feedbacks (feature, is_positive, comments, created_at) VALUES (?, ?, ?, ?)", 
-                (request.feature, request.is_positive, actual_comments, datetime.now()))
+                "INSERT INTO feedbacks (user_id, feature, is_positive, comments, created_at) VALUES (?, ?, ?, ?, ?)", 
+                ("anonymous", request.feature, request.is_positive, actual_comments, datetime.now()))
         return {"status": "success", "message": "Feedback enregistré avec succès"}
     except Exception as e:
         print(f"[FEEDBACK ERROR] {e}", flush=True)
