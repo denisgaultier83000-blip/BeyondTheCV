@@ -941,6 +941,7 @@ async def submit_feedback(request: FeedbackPayload, current_user: dict = Depends
     user_id = current_user.get("id")
     now = datetime.now()
 
+    err1 = None
     # Tentative 1 : Nouveau schéma
     try:
         async with db.get_connection() as conn:
@@ -950,9 +951,10 @@ async def submit_feedback(request: FeedbackPayload, current_user: dict = Depends
             if hasattr(conn, 'commit'):
                 await conn.commit() if asyncio.iscoroutinefunction(conn.commit) else conn.commit()
         return {"status": "success", "message": "Feedback enregistré avec succès"}
-    except Exception as e1:
-        pass
+    except Exception as e:
+        err1 = str(e)
 
+    err2 = None
     # Tentative 2 : Ancien schéma
     try:
         async with db.get_connection() as conn2:
@@ -962,8 +964,9 @@ async def submit_feedback(request: FeedbackPayload, current_user: dict = Depends
             if hasattr(conn2, 'commit'):
                 await conn2.commit() if asyncio.iscoroutinefunction(conn2.commit) else conn2.commit()
         return {"status": "success", "message": "Feedback enregistré avec succès"}
-    except Exception as e2:
-        print(f"[FEEDBACK] Normal inserts failed. e1: {e1}, e2: {e2}. Triggering lazy schema setup...", flush=True)
+    except Exception as e:
+        err2 = str(e)
+        print(f"[FEEDBACK] Normal inserts failed. err1: {err1}, err2: {err2}. Triggering lazy schema setup...", flush=True)
 
     # Tentative 3 : Auto-réparation "Lazy" du schéma en isolation
     try:
