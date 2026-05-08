@@ -937,29 +937,62 @@ async def submit_feedback(request: FeedbackPayload, current_user: dict = Depends
     """
     Enregistre les retours utilisateurs (pouces levés/baissés) sur les générations IA.
     """
+    actual_comments = request.comments
+    user_id = current_user.get("id")
+    now = datetime.now()
+
     try:
-        # [FIX EXPERT] Consolidation des différents champs possibles venant du front pour éviter les commentaires vides (NULL)
-        actual_comments = request.comments
-        
+        # Tentative 1 : Nouveau schéma
         try:
             async with db.get_connection() as conn:
                 await db.execute(conn, 
                     "INSERT INTO feedbacks (user_id, feature, feedback, reason, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)", 
-                    (current_user.get("id"), request.feature, request.is_positive, actual_comments, request.job_type, datetime.now()))
+                    (user_id, request.feature, request.is_positive, actual_comments, request.job_type, now))
                 if hasattr(conn, 'commit'):
                     await conn.commit() if asyncio.iscoroutinefunction(conn.commit) else conn.commit()
-        except Exception as e_insert:
-            async with db.get_connection() as conn:
-                await db.execute(conn, 
+        except Exception as e_insert1:
+            # Tentative 2 : Ancien schéma
+            async with db.get_connection() as conn2:
+                await db.execute(conn2, 
                     "INSERT INTO feedbacks (user_id, feature, is_positive, comments, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)", 
-                    (current_user.get("id"), request.feature, request.is_positive, actual_comments, request.job_type, datetime.now()))
-                if hasattr(conn, 'commit'):
-                    await conn.commit() if asyncio.iscoroutinefunction(conn.commit) else conn.commit()
-
+                    (user_id, request.feature, request.is_positive, actual_comments, request.job_type, now))
+                if hasattr(conn2, 'commit'):
+                    await conn2.commit() if asyncio.iscoroutinefunction(conn2.commit) else conn2.commit()
+        
         return {"status": "success", "message": "Feedback enregistré avec succès"}
-    except Exception as e:
-        print(f"[FEEDBACK ERROR] {e}", flush=True)
-        raise HTTPException(status_code=500, detail="Erreur lors de l'enregistrement du feedback")
+
+    except Exception as e_final:
+        print(f"[FEEDBACK] Insertions failed: {e_final}. Attempting lazy schema setup...", flush=True)
+        # Tentative 3 : Auto-réparation "Lazy" du schéma en isolation
+        try:
+            async with db.get_connection() as conn_schema:
+                await db.execute(conn_schema, "CREATE TABLE IF NOT EXISTS feedbacks (id SERIAL PRIMARY KEY, user_id TEXT, feature TEXT, feedback BOOLEAN, reason TEXT, job_type TEXT, created_at TIMESTAMP)")
+                if hasattr(conn_schema, 'commit'): await conn_schema.commit() if asyncio.iscoroutinefunction(conn_schema.commit) else conn_schema.commit()
+        except Exception:
+            try: # Fallback SQLite
+                async with db.get_connection() as conn_schema2:
+                    await db.execute(conn_schema2, "CREATE TABLE IF NOT EXISTS feedbacks (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, feature TEXT, feedback BOOLEAN, reason TEXT, job_type TEXT, created_at TIMESTAMP)")
+                    if hasattr(conn_schema2, 'commit'): await conn_schema2.commit() if asyncio.iscoroutinefunction(conn_schema2.commit) else conn_schema2.commit()
+            except Exception: pass
+        
+        try:
+            async with db.get_connection() as conn_alter:
+                await db.execute(conn_alter, "ALTER TABLE feedbacks ADD COLUMN user_id TEXT")
+                if hasattr(conn_alter, 'commit'): await conn_alter.commit() if asyncio.iscoroutinefunction(conn_alter.commit) else conn_alter.commit()
+        except Exception: pass
+
+        # Ultime tentative après réparation (sur le nouveau schéma)
+        try:
+            async with db.get_connection() as conn_final:
+                await db.execute(conn_final, 
+                    "INSERT INTO feedbacks (user_id, feature, feedback, reason, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)", 
+                    (user_id, request.feature, request.is_positive, actual_comments, request.job_type, now))
+                if hasattr(conn_final, 'commit'):
+                    await conn_final.commit() if asyncio.iscoroutinefunction(conn_final.commit) else conn_final.commit()
+            return {"status": "success", "message": "Feedback enregistré après réparation automatique"}
+        except Exception as ultimate_e:
+            print(f"[FEEDBACK CRITICAL ERROR] Impossible de sauvegarder le feedback après réparation : {ultimate_e}", flush=True)
+            raise HTTPException(status_code=500, detail="Erreur interne lors de l'enregistrement du feedback")
 
 @router.get("/feedbacks")
 async def get_feedbacks(current_user: dict = Depends(get_current_user)):
