@@ -29,7 +29,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         email = form_data.username.lower().strip()
         async with db.get_connection() as conn:
             # Requête propre et directe
-            cursor = await db.execute(conn, "SELECT * FROM users WHERE email = ?", (email,))
+            cursor = await db.execute(conn, "SELECT id, email, hashed_password, first_name, last_name, created_at, is_premium FROM users WHERE email = ?", (email,))
             row = await cursor.fetchone()
 
         if not row:
