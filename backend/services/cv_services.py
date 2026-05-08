@@ -962,9 +962,9 @@ async def submit_feedback(request: FeedbackPayload, current_user: dict = Depends
         # INSERTION FINALE (Transaction saine)
         try:
             async with db.get_connection() as conn:
-            await db.execute(conn, 
-                "INSERT INTO feedbacks (user_id, feature, feedback, reason, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)", 
-                (current_user.get("id"), request.feature, request.is_positive, actual_comments, request.job_type, datetime.now()))
+                await db.execute(conn, 
+                    "INSERT INTO feedbacks (user_id, feature, feedback, reason, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)", 
+                    (current_user.get("id"), request.feature, request.is_positive, actual_comments, request.job_type, datetime.now()))
         except Exception as e_insert:
             # Fallback absolu si la base utilise l'ancien schéma (is_positive, comments)
             async with db.get_connection() as conn:
