@@ -941,36 +941,20 @@ async def submit_feedback(request: FeedbackPayload, current_user: dict = Depends
         # [FIX EXPERT] Consolidation des différents champs possibles venant du front pour éviter les commentaires vides (NULL)
         actual_comments = request.comments
         
-        # [MIGRATION ISOLÉE 1] Création de la table (Transaction séparée pour ne pas corrompre Postgres)
-        try:
-            async with db.get_connection() as conn:
-                await db.execute(conn, "CREATE TABLE IF NOT EXISTS feedbacks (id SERIAL PRIMARY KEY, user_id TEXT, feature TEXT, feedback BOOLEAN, reason TEXT, job_type TEXT, created_at TIMESTAMP)")
-        except Exception:
-            try:
-                async with db.get_connection() as conn:
-                    await db.execute(conn, "CREATE TABLE IF NOT EXISTS feedbacks (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, feature TEXT, feedback BOOLEAN, reason TEXT, job_type TEXT, created_at TIMESTAMP)")
-            except Exception:
-                pass
-
-        # [MIGRATION ISOLÉE 2] Ajout de la colonne user_id
-        try:
-            async with db.get_connection() as conn:
-                await db.execute(conn, "ALTER TABLE feedbacks ADD COLUMN user_id TEXT")
-        except Exception:
-            pass
-
-        # INSERTION FINALE (Transaction saine)
         try:
             async with db.get_connection() as conn:
                 await db.execute(conn, 
                     "INSERT INTO feedbacks (user_id, feature, feedback, reason, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)", 
                     (current_user.get("id"), request.feature, request.is_positive, actual_comments, request.job_type, datetime.now()))
+                if hasattr(conn, 'commit'):
+                    await conn.commit() if asyncio.iscoroutinefunction(conn.commit) else conn.commit()
         except Exception as e_insert:
-            # Fallback absolu si la base utilise l'ancien schéma (is_positive, comments)
             async with db.get_connection() as conn:
                 await db.execute(conn, 
                     "INSERT INTO feedbacks (user_id, feature, is_positive, comments, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)", 
                     (current_user.get("id"), request.feature, request.is_positive, actual_comments, request.job_type, datetime.now()))
+                if hasattr(conn, 'commit'):
+                    await conn.commit() if asyncio.iscoroutinefunction(conn.commit) else conn.commit()
 
         return {"status": "success", "message": "Feedback enregistré avec succès"}
     except Exception as e:
@@ -984,13 +968,6 @@ async def get_feedbacks(current_user: dict = Depends(get_current_user)):
     Sans cette route, le composant AdminFeedbacks.tsx recevait une erreur 404 Not Found.
     """
     try:
-        # [MIGRATION ISOLÉE] S'assure que la colonne existe avant le SELECT
-        try:
-            async with db.get_connection() as conn:
-                await db.execute(conn, "ALTER TABLE feedbacks ADD COLUMN user_id TEXT")
-        except Exception:
-            pass
-            
         try:
             async with db.get_connection() as conn:
                 cursor = await db.execute(conn, """
