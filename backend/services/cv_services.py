@@ -997,10 +997,11 @@ async def submit_feedback(request: FeedbackPayload, current_user: dict = Depends
         return {"status": "success", "message": "Feedback enregistré après réparation automatique"}
     except Exception as ult_e1:
         try:
+            # Fallback de la dernière chance : schéma original strict (sans job_type) pour éviter un crash si ALTER a échoué
             async with db.get_connection() as conn_final2:
                 await db.execute(conn_final2, 
-                    "INSERT INTO feedbacks (user_id, feature, is_positive, comments, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)", 
-                    (user_id, request.feature, request.is_positive, actual_comments, request.job_type, now))
+                    "INSERT INTO feedbacks (user_id, feature, is_positive, comments, created_at) VALUES (?, ?, ?, ?, ?)", 
+                    (user_id, request.feature, request.is_positive, actual_comments, now))
                 if hasattr(conn_final2, 'commit'):
                     await conn_final2.commit() if asyncio.iscoroutinefunction(conn_final2.commit) else conn_final2.commit()
             return {"status": "success", "message": "Feedback enregistré après réparation automatique"}
