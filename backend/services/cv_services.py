@@ -993,13 +993,13 @@ async def get_feedbacks(current_user: dict = Depends(get_current_user)):
             
         try:
             async with db.get_connection() as conn:
-            cursor = await db.execute(conn, """
-                SELECT f.id, f.feature, f.feedback as is_positive, f.reason as comments, f.created_at, u.email as user_email 
-                FROM feedbacks f 
-                LEFT JOIN users u ON f.user_id = u.id 
-                ORDER BY f.created_at DESC
-            """)
-            rows = await cursor.fetchall()
+                cursor = await db.execute(conn, """
+                    SELECT f.id, f.feature, f.feedback as is_positive, f.reason as comments, f.created_at, u.email as user_email 
+                    FROM feedbacks f 
+                    LEFT JOIN users u ON f.user_id = u.id 
+                    ORDER BY f.created_at DESC
+                """)
+                rows = await cursor.fetchall()
         except Exception:
             async with db.get_connection() as conn:
                 cursor = await db.execute(conn, """
