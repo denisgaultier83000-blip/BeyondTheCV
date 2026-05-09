@@ -941,68 +941,52 @@ async def submit_feedback(request: FeedbackPayload, current_user: dict = Depends
     user_id = current_user.get("id")
     now = datetime.now()
 
-    err1 = None
-    # Tentative 1 : Schéma préféré (is_positive, comments)
-    try:
-        async with db.get_connection() as conn:
-            await db.execute(conn, 
-                "INSERT INTO feedbacks (user_id, feature, is_positive, comments, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)", 
-                (user_id, request.feature, request.is_positive, actual_comments, request.job_type, now))
-            if hasattr(conn, 'commit'):
-                await conn.commit() if asyncio.iscoroutinefunction(conn.commit) else conn.commit()
-        return {"status": "success", "message": "Feedback enregistré avec succès"}
-    except Exception as e:
-        err1 = str(e)
-        print(f"[FEEDBACK] Normal inserts failed. err1: {err1}. Triggering lazy schema setup...", flush=True)
+    # Liste des stratégies d'insertion adaptatives pour épouser n'importe quel état du schéma.
+    insert_strategies = [
+        # 1. Le schéma parfait
+        ("INSERT INTO feedbacks (user_id, feature, is_positive, comments, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+         (user_id, request.feature, request.is_positive, actual_comments, request.job_type, now)),
+        
+        # 2. Hybride (is_positive existe, mais comments s'appelle reason)
+        ("INSERT INTO feedbacks (user_id, feature, is_positive, reason, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+         (user_id, request.feature, request.is_positive, actual_comments, request.job_type, now)),
 
-    # Réparation automatique : On s'assure que la table possède les bonnes colonnes
-    try:
-        async with db.get_connection() as conn_schema:
-            await db.execute(conn_schema, "CREATE TABLE IF NOT EXISTS feedbacks (id SERIAL PRIMARY KEY, user_id TEXT, feature TEXT, is_positive BOOLEAN, comments TEXT, job_type TEXT, created_at TIMESTAMP)")
-            if hasattr(conn_schema, 'commit'): await conn_schema.commit() if asyncio.iscoroutinefunction(conn_schema.commit) else conn_schema.commit()
-    except Exception:
-        try: # Fallback SQLite
-            async with db.get_connection() as conn_schema2:
-                await db.execute(conn_schema2, "CREATE TABLE IF NOT EXISTS feedbacks (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, feature TEXT, is_positive BOOLEAN, comments TEXT, job_type TEXT, created_at TIMESTAMP)")
-                if hasattr(conn_schema2, 'commit'): await conn_schema2.commit() if asyncio.iscoroutinefunction(conn_schema2.commit) else conn_schema2.commit()
-        except Exception: pass
-    
-    # [FIX EXPERT] On tente d'ajouter chaque colonne manquante indépendamment. 
-    alter_queries = [
-        "ALTER TABLE feedbacks ADD COLUMN user_id TEXT",
-        "ALTER TABLE feedbacks ADD COLUMN job_type TEXT",
-        "ALTER TABLE feedbacks ADD COLUMN is_positive BOOLEAN",
-        "ALTER TABLE feedbacks ADD COLUMN comments TEXT"
+        # 3. Ancien schéma (feedback est un BOOLEAN, comments s'appelle reason)
+        ("INSERT INTO feedbacks (user_id, feature, feedback, reason, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+         (user_id, request.feature, request.is_positive, actual_comments, request.job_type, now)),
+
+        # 4. Ancien schéma corrompu (feedback est un TEXT)
+        ("INSERT INTO feedbacks (user_id, feature, feedback, reason, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+         (user_id, request.feature, str(request.is_positive), actual_comments, request.job_type, now)),
+         
+        # 5. Fallbacks sans job_type (si cette colonne n'a jamais été créée)
+        ("INSERT INTO feedbacks (user_id, feature, is_positive, comments, created_at) VALUES (?, ?, ?, ?, ?)",
+         (user_id, request.feature, request.is_positive, actual_comments, now)),
+         
+        ("INSERT INTO feedbacks (user_id, feature, is_positive, reason, created_at) VALUES (?, ?, ?, ?, ?)",
+         (user_id, request.feature, request.is_positive, actual_comments, now)),
+
+        ("INSERT INTO feedbacks (user_id, feature, feedback, reason, created_at) VALUES (?, ?, ?, ?, ?)",
+         (user_id, request.feature, request.is_positive, actual_comments, now)),
+
+        ("INSERT INTO feedbacks (user_id, feature, feedback, reason, created_at) VALUES (?, ?, ?, ?, ?)",
+         (user_id, request.feature, str(request.is_positive), actual_comments, now)),
     ]
-    for query in alter_queries:
-        try:
-            async with db.get_connection() as conn_alter:
-                await db.execute(conn_alter, query)
-                if hasattr(conn_alter, 'commit'): await conn_alter.commit() if asyncio.iscoroutinefunction(conn_alter.commit) else conn_alter.commit()
-        except Exception: pass
 
-    # Ultime tentative après réparation
-    try:
-        async with db.get_connection() as conn_final:
-            await db.execute(conn_final, 
-                "INSERT INTO feedbacks (user_id, feature, is_positive, comments, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)", 
-                (user_id, request.feature, request.is_positive, actual_comments, request.job_type, now))
-            if hasattr(conn_final, 'commit'):
-                await conn_final.commit() if asyncio.iscoroutinefunction(conn_final.commit) else conn_final.commit()
-        return {"status": "success", "message": "Feedback enregistré après réparation automatique"}
-    except Exception as ult_e:
-        # Fallback ultime : Si la colonne is_positive existe déjà mais au format TEXT, on cast la valeur en String.
+    last_error = ""
+    for query, params in insert_strategies:
         try:
-            async with db.get_connection() as conn_final2:
-                await db.execute(conn_final2, 
-                    "INSERT INTO feedbacks (user_id, feature, is_positive, comments, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)", 
-                    (user_id, request.feature, str(request.is_positive), actual_comments, request.job_type, now))
-                if hasattr(conn_final2, 'commit'):
-                    await conn_final2.commit() if asyncio.iscoroutinefunction(conn_final2.commit) else conn_final2.commit()
-            return {"status": "success", "message": "Feedback enregistré en mode cast string"}
-        except Exception as e_final:
-            print(f"[FEEDBACK CRITICAL ERROR] Impossible de sauvegarder le feedback après réparation : {err1} | {e_final}", flush=True)
-            raise HTTPException(status_code=500, detail="Erreur interne lors de l'enregistrement du feedback")
+            async with db.get_connection() as conn:
+                await db.execute(conn, query, params)
+                if hasattr(conn, 'commit'):
+                    await conn.commit() if asyncio.iscoroutinefunction(conn.commit) else conn.commit()
+            return {"status": "success", "message": "Feedback enregistré"}
+        except Exception as e:
+            last_error = str(e)
+            pass
+
+    print(f"[FEEDBACK CRITICAL ERROR] Toutes les stratégies d'insertion ont échoué. Dernière erreur: {last_error}", flush=True)
+    raise HTTPException(status_code=500, detail="Erreur interne lors de l'enregistrement du feedback")
 
 @router.get("/feedbacks")
 async def get_feedbacks(current_user: dict = Depends(get_current_user)):
@@ -1021,15 +1005,26 @@ async def get_feedbacks(current_user: dict = Depends(get_current_user)):
                 """)
                 rows = await cursor.fetchall()
         except Exception:
-            # Ancien schéma de secours
-            async with db.get_connection() as conn:
-                cursor = await db.execute(conn, """
-                    SELECT f.id, f.feature, f.feedback as is_positive, f.reason as comments, f.created_at, u.email as user_email 
-                    FROM feedbacks f 
-                    LEFT JOIN users u ON f.user_id = u.id 
-                    ORDER BY f.created_at DESC
-                """)
-                rows = await cursor.fetchall()
+            try:
+                # Hybride
+                async with db.get_connection() as conn:
+                    cursor = await db.execute(conn, """
+                        SELECT f.id, f.feature, f.is_positive, f.reason as comments, f.created_at, u.email as user_email 
+                        FROM feedbacks f 
+                        LEFT JOIN users u ON f.user_id = u.id 
+                        ORDER BY f.created_at DESC
+                    """)
+                    rows = await cursor.fetchall()
+            except Exception:
+                # Ancien schéma de secours
+                async with db.get_connection() as conn:
+                    cursor = await db.execute(conn, """
+                        SELECT f.id, f.feature, f.feedback as is_positive, f.reason as comments, f.created_at, u.email as user_email 
+                        FROM feedbacks f 
+                        LEFT JOIN users u ON f.user_id = u.id 
+                        ORDER BY f.created_at DESC
+                    """)
+                    rows = await cursor.fetchall()
             
         feedbacks_list = []
         for row in rows:
