@@ -85,6 +85,8 @@ export const DashboardView = () => {
   // Vérification stricte de la disponibilité des données pour éviter les "faux positifs" sur des objets/tableaux vides
   const isDataReady = (data: any) => {
     if (!data) return false;
+    if (data.status === "pending" || data.status === "PENDING" || data.status === "processing") return false;
+    if (data.error) return false;
     if (Array.isArray(data)) return data.length > 0;
     if (typeof data === 'object') {
       const keys = Object.keys(data);

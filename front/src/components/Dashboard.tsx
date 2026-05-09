@@ -179,17 +179,17 @@ export default function Dashboard({
               icon={<Briefcase />} 
               title={t('card_company_title')} 
               desc={hasCompany ? t('card_company_desc') : t('card_company_disabled', "Renseignez le nom de l'entreprise cible dans votre profil pour débloquer ce rapport.")}
-              onClick={() => onAction && onAction(researchData && hasCompany ? "View Company Report" : "Company Research")}
+            onClick={() => onAction && onAction(researchData && researchData.status !== "pending" && hasCompany ? "View Company Report" : "Company Research")}
               disabled={loading || isResearching || !hasCompany}
-              ready={researchData && hasCompany}
+            ready={researchData && researchData.status !== "pending" && hasCompany}
             />
             <ActionCard 
               icon={<BarChart3 />} 
               title={t('card_market_title')} 
               desc={t('card_market_desc')}
-              onClick={() => onAction && onAction(researchData ? "View Market Report" : "Market Research")}
+            onClick={() => onAction && onAction(researchData && researchData.status !== "pending" ? "View Market Report" : "Market Research")}
               disabled={loading || isResearching}
-              ready={researchData}
+            ready={researchData && researchData.status !== "pending"}
             />
              <ActionCard 
               icon={<Wallet />}

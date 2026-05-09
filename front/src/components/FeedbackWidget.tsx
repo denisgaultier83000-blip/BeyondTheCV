@@ -53,8 +53,7 @@ export function FeedbackWidget({
         body: JSON.stringify({
           feature,
           is_positive: isPositive,
-          comments: submittedComments ? submittedComments : null,
-          job_type: jobType,
+          comments: submittedComments ? submittedComments : "",
         }),
       });
       
