@@ -947,6 +947,10 @@ async def submit_feedback(request: FeedbackPayload, current_user: dict = Depends
         # 1. Le schéma parfait
         ("INSERT INTO feedbacks (user_id, feature, is_positive, comments, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)",
          (user_id, request.feature, request.is_positive, actual_comments, request.job_type, now)),
+         
+        # 1.5 Schéma corrompu (is_positive est un TEXT)
+        ("INSERT INTO feedbacks (user_id, feature, is_positive, comments, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+         (user_id, request.feature, str(request.is_positive), actual_comments, request.job_type, now)),
         
         # 2. Hybride (is_positive existe, mais comments s'appelle reason)
         ("INSERT INTO feedbacks (user_id, feature, is_positive, reason, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)",
@@ -995,66 +999,95 @@ async def get_feedbacks(current_user: dict = Depends(get_current_user)):
     Récupère tous les feedbacks pour l'interface Admin.
     """
     try:
+        schema_type = "new"
         try:
-            # Nouveau schéma préféré
+            # Schéma Ultra-Complet (Si la DB est un mélange corrompu)
             async with db.get_connection() as conn:
                 cursor = await db.execute(conn, """
-                    SELECT f.id, f.feature, f.is_positive, f.comments, f.created_at, u.email as user_email 
+                    SELECT f.id, f.feature, f.is_positive, f.comments, f.feedback, f.reason, f.created_at, u.email as user_email 
                     FROM feedbacks f 
                     LEFT JOIN users u ON f.user_id = u.id 
                     ORDER BY f.created_at DESC
                 """)
                 rows = await cursor.fetchall()
+                schema_type = "full"
         except Exception:
             try:
-                # Hybride
+                # Nouveau schéma préféré
                 async with db.get_connection() as conn:
                     cursor = await db.execute(conn, """
-                        SELECT f.id, f.feature, f.is_positive, f.reason as comments, f.created_at, u.email as user_email 
+                        SELECT f.id, f.feature, f.is_positive, f.comments, f.created_at, u.email as user_email 
                         FROM feedbacks f 
                         LEFT JOIN users u ON f.user_id = u.id 
                         ORDER BY f.created_at DESC
                     """)
                     rows = await cursor.fetchall()
             except Exception:
-                # Ancien schéma de secours
-                async with db.get_connection() as conn:
-                    cursor = await db.execute(conn, """
-                        SELECT f.id, f.feature, f.feedback as is_positive, f.reason as comments, f.created_at, u.email as user_email 
-                        FROM feedbacks f 
-                        LEFT JOIN users u ON f.user_id = u.id 
-                        ORDER BY f.created_at DESC
-                    """)
-                    rows = await cursor.fetchall()
+                try:
+                    # Hybride
+                    async with db.get_connection() as conn:
+                        cursor = await db.execute(conn, """
+                            SELECT f.id, f.feature, f.is_positive, f.reason as comments, f.created_at, u.email as user_email 
+                            FROM feedbacks f 
+                            LEFT JOIN users u ON f.user_id = u.id 
+                            ORDER BY f.created_at DESC
+                        """)
+                        rows = await cursor.fetchall()
+                except Exception:
+                    # Ancien schéma de secours
+                    async with db.get_connection() as conn:
+                        cursor = await db.execute(conn, """
+                            SELECT f.id, f.feature, f.feedback as is_positive, f.reason as comments, f.created_at, u.email as user_email 
+                            FROM feedbacks f 
+                            LEFT JOIN users u ON f.user_id = u.id 
+                            ORDER BY f.created_at DESC
+                        """)
+                        rows = await cursor.fetchall()
             
         feedbacks_list = []
         for row in rows:
             if isinstance(row, tuple):
-                # Gérer le cas où is_positive est une string "True" ou "False" à cause du fallback string
-                is_pos_val = row[2]
-                if isinstance(is_pos_val, str):
-                    is_pos = is_pos_val.lower() in ['true', 't', '1']
+                row_id = row[0]
+                feature = row[1]
+                if schema_type == "full":
+                    is_pos_val = row[2] if row[2] is not None else row[4]
+                    comments_val = row[3] if row[3] is not None else row[5]
+                    created_at = row[6]
+                    user_email = row[7]
                 else:
-                    is_pos = bool(is_pos_val)
-                    
-                feedbacks_list.append({
-                    "id": row[0],
-                    "feature": row[1],
-                    "is_positive": is_pos,
-                    "comments": row[3],
-                    "created_at": row[4].isoformat() if hasattr(row[4], 'isoformat') else str(row[4]),
-                    "user_email": row[5]
-                })
+                    is_pos_val = row[2]
+                    comments_val = row[3]
+                    created_at = row[4]
+                    user_email = row[5]
             else:
                 row_dict = dict(row)
-                is_pos_val = row_dict.get("is_positive", True)
-                if isinstance(is_pos_val, str):
-                    is_pos = is_pos_val.lower() in ['true', 't', '1']
-                else:
-                    is_pos = bool(is_pos_val)
-                row_dict["is_positive"] = is_pos
-                feedbacks_list.append(row_dict)
+                row_id = row_dict.get("id")
+                feature = row_dict.get("feature", "unknown")
+                is_pos_val = row_dict.get("is_positive")
+                if is_pos_val is None:
+                    is_pos_val = row_dict.get("feedback")
+                comments_val = row_dict.get("comments")
+                if comments_val is None:
+                    comments_val = row_dict.get("reason")
+                created_at = row_dict.get("created_at")
+                user_email = row_dict.get("user_email")
                 
+            if is_pos_val is None:
+                is_pos = True
+            elif isinstance(is_pos_val, str):
+                is_pos = is_pos_val.lower() in ['true', 't', '1']
+            else:
+                is_pos = bool(is_pos_val)
+
+            feedbacks_list.append({
+                "id": row_id,
+                "feature": feature,
+                "is_positive": is_pos,
+                "comments": comments_val,
+                "created_at": created_at.isoformat() if hasattr(created_at, 'isoformat') else str(created_at),
+                "user_email": user_email
+            })
+
         return {"feedbacks": feedbacks_list}
     except Exception as e:
         print(f"[GET FEEDBACKS ERROR] {e}", flush=True)
