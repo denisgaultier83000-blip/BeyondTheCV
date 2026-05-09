@@ -755,7 +755,8 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
         if data.target_company or data.target_industry:
             tasks_map["market_research"] = str(uuid.uuid4())
 
-    has_research_data = isinstance(data.research_data, dict) and len(data.research_data) > 0
+    # [FIX EXPERT] On ignore le cache si le frontend signale que la tâche est encore en cours ("pending")
+    has_research_data = isinstance(data.research_data, dict) and len(data.research_data) > 0 and data.research_data.get("status") != "pending"
 
     try:
         async with db.get_connection() as conn:
