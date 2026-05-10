@@ -68,7 +68,7 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
         return acc;
       }, {});
 
-      setApplications(Object.values(grouped).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+      setApplications(Object.values(grouped).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) as ApplicationSession[]);
     } catch (err: any) {
       setError(err.message);
     } finally {
