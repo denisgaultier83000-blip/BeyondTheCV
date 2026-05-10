@@ -183,3 +183,25 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str):
             await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket, task_id)
+
+@router.get("/api/admin/migrate-archives")
+async def migrate_archives():
+    """Route temporaire pour ranger les anciens documents orphelins dans un dossier Archives."""
+    try:
+        async with db.get_connection() as conn:
+            await db.execute(conn, """
+                INSERT INTO job_applications (id, user_id, target_company, target_job, created_at)
+                SELECT DISTINCT 
+                    md5(user_id), user_id, 'Archives', 'Anciens Documents', CURRENT_TIMESTAMP 
+                FROM documents 
+                WHERE application_id IS NULL
+                ON CONFLICT (id) DO NOTHING
+            """)
+            await db.execute(conn, """
+                UPDATE documents 
+                SET application_id = md5(user_id)
+                WHERE application_id IS NULL
+            """)
+        return {"status": "success", "message": "Anciens documents archivés avec succès !"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
