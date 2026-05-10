@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { authenticatedFetch } from "../utils/auth";
 import { API_ROUTES } from "../api/routes";
+import { API_BASE_URL } from "../config";
 import { Briefcase, Calendar, ChevronRight, ArrowLeft, FileText, Mic, MessageSquare, Building, BrainCircuit, Download, Trash2, FolderOpen } from 'lucide-react';
 
 interface Document {
@@ -36,39 +37,12 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
 
   const fetchDocuments = async () => {
     try {
-      const response = await authenticatedFetch(API_ROUTES.DOCUMENTS.LIST);
-      if (!response.ok) throw new Error(t('error_fetch_documents', "Failed to fetch documents"));
+      // Utilisation du nouvel endpoint qui lit la table job_applications en base de données
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/applications`);
+      if (!response.ok) throw new Error(t('error_fetch_documents', "Failed to fetch applications"));
+      
       const data = await response.json();
-      
-      // Filtrer les documents des 3 derniers mois
-      const threeMonthsAgo = new Date();
-      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-      
-      const recentDocs = data.filter((doc: Document) => new Date(doc.created_at) >= threeMonthsAgo);
-      
-      // [FIX EXPERT] Groupement intelligent à la volée via le nom du fichier (Smart Filename)
-      // Permet d'avoir le rendu CRM immédiatement avant même la migration de la BDD.
-      const grouped = recentDocs.reduce((acc: any, doc: Document) => {
-        const parts = doc.filename.split('_');
-        let company = "Général";
-        let job = "Poste non spécifié";
-        
-        if (parts.length >= 4) {
-          job = parts[2].replace(/-/g, ' ');
-          company = parts[3].replace(/-/g, ' ').replace(/\.[^/.]+$/, "");
-        }
-
-        const dateKey = new Date(doc.created_at).toLocaleDateString();
-        const groupKey = `${company}-${job}-${dateKey}`;
-
-        if (!acc[groupKey]) {
-          acc[groupKey] = { id: groupKey, target_company: company, target_job: job, created_at: doc.created_at, documents: [] };
-        }
-        acc[groupKey].documents.push(doc);
-        return acc;
-      }, {});
-
-      setApplications(Object.values(grouped).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) as ApplicationSession[]);
+      setApplications(data);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -184,7 +158,11 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
                       
                       <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary)' }}>
-                          {app.documents.length} document{app.documents.length > 1 ? 's' : ''}
+                          {app.documents.length === 0 ? (
+                            <span style={{ color: 'var(--text-muted)' }}>Dossier créé (En attente de documents)</span>
+                          ) : (
+                            <>{app.documents.length} document{app.documents.length > 1 ? 's' : ''} généré{app.documents.length > 1 ? 's' : ''}</>
+                          )}
                         </span>
                         <ChevronRight size={18} color="var(--text-muted)" />
                       </div>
