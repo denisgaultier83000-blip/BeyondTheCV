@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { authenticatedFetch } from "../utils/auth";
 import { API_ROUTES } from "../api/routes";
+import { Briefcase, Calendar, ChevronRight, ArrowLeft, FileText, Mic, MessageSquare, Building, BrainCircuit, Download, Trash2, FolderOpen } from 'lucide-react';
 
 interface Document {
   id: string;
@@ -10,13 +11,22 @@ interface Document {
   created_at: string;
 }
 
+interface ApplicationSession {
+  id: string;
+  target_company: string;
+  target_job: string;
+  created_at: string;
+  documents: Document[];
+}
+
 interface DocumentsModalProps {
   onClose: () => void;
 }
 
 export default function DocumentsModal({ onClose }: DocumentsModalProps) {
   const { t } = useTranslation();
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [applications, setApplications] = useState<ApplicationSession[]>([]);
+  const [selectedApp, setSelectedApp] = useState<ApplicationSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,7 +45,30 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
       threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
       
       const recentDocs = data.filter((doc: Document) => new Date(doc.created_at) >= threeMonthsAgo);
-      setDocuments(recentDocs);
+      
+      // [FIX EXPERT] Groupement intelligent à la volée via le nom du fichier (Smart Filename)
+      // Permet d'avoir le rendu CRM immédiatement avant même la migration de la BDD.
+      const grouped = recentDocs.reduce((acc: any, doc: Document) => {
+        const parts = doc.filename.split('_');
+        let company = "Général";
+        let job = "Poste non spécifié";
+        
+        if (parts.length >= 4) {
+          job = parts[2].replace(/-/g, ' ');
+          company = parts[3].replace(/-/g, ' ').replace(/\.[^/.]+$/, "");
+        }
+
+        const dateKey = new Date(doc.created_at).toLocaleDateString();
+        const groupKey = `${company}-${job}-${dateKey}`;
+
+        if (!acc[groupKey]) {
+          acc[groupKey] = { id: groupKey, target_company: company, target_job: job, created_at: doc.created_at, documents: [] };
+        }
+        acc[groupKey].documents.push(doc);
+        return acc;
+      }, {});
+
+      setApplications(Object.values(grouped).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -72,7 +105,17 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
       });
       if (!response.ok) throw new Error(t('error_delete_failed', "Delete failed"));
       
-      setDocuments(prev => prev.filter(d => d.id !== docId));
+      // Mise à jour de l'état groupé
+      setApplications(prev => prev.map(app => ({
+        ...app,
+        documents: app.documents.filter(d => d.id !== docId)
+      })).filter(app => app.documents.length > 0)); // Supprime le dossier si vide
+      
+      if (selectedApp) {
+        const updatedDocs = selectedApp.documents.filter(d => d.id !== docId);
+        if (updatedDocs.length === 0) setSelectedApp(null);
+        else setSelectedApp({ ...selectedApp, documents: updatedDocs });
+      }
     } catch (e) {
       console.error(e);
       alert(t('error_delete', "Erreur lors de la suppression"));
@@ -85,10 +128,14 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
     });
   };
 
-  const getIcon = (type: string) => {
-    if (type.includes("PDF")) return "📄";
-    if (type.includes("WORD")) return "📝";
-    return "📁";
+  // Définition visuelle des types de documents
+  const getTypeDisplay = (type: string) => {
+    if (type.includes("CV")) return { icon: <FileText size={16}/>, label: "CV Optimisé", color: "#3b82f6", bg: "rgba(59, 130, 246, 0.1)" };
+    if (type.includes("PITCH")) return { icon: <Mic size={16}/>, label: "Pitch", color: "#8b5cf6", bg: "rgba(139, 92, 246, 0.1)" };
+    if (type.includes("QUESTIONNAIRE")) return { icon: <MessageSquare size={16}/>, label: "Questions Entretien", color: "#10b981", bg: "rgba(16, 185, 129, 0.1)" };
+    if (type.includes("REPORT") || type.includes("MARKET")) return { icon: <Building size={16}/>, label: "Dossier Entreprise", color: "#f59e0b", bg: "rgba(245, 158, 11, 0.1)" };
+    if (type.includes("TRAINING") || type.includes("MES")) return { icon: <BrainCircuit size={16}/>, label: "Entraînement", color: "#ec4899", bg: "rgba(236, 72, 153, 0.1)" };
+    return { icon: <FolderOpen size={16}/>, label: type, color: "#64748b", bg: "rgba(100, 116, 139, 0.1)" };
   };
 
   return (

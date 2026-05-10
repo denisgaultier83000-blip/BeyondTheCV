@@ -1,10 +1,11 @@
 import uuid
 import json
 from datetime import datetime
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, WebSocket, WebSocketDisconnect, Depends
 from fastapi.responses import JSONResponse
 
 from database import db
+from security import get_current_user
 from models import ResearchRequest, DisambiguationRequest
 # [FIX] Import relatif cohérent
 from .ai_generator import ai_service
@@ -19,16 +20,11 @@ from .websocket_manager import manager
 router = APIRouter(tags=["Dashboard & Research"])
 
 @router.post("/api/research/start")
-async def start_research(request: ResearchRequest, background_tasks: BackgroundTasks):
+async def start_research(request: ResearchRequest, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
     tasks_map = {"research": str(uuid.uuid4()), "salary": str(uuid.uuid4())}
     print(f"[API] 🟢 Manual Research Triggered. Tasks: {tasks_map}", flush=True)
     # [FIX] On passe un objet datetime natif pour respecter le typage strict d'asyncpg (TIMESTAMP)
     now = datetime.now()
-    
-    async with db.get_connection() as conn:
-        for tid in tasks_map.values():
-            await db.execute(conn, "INSERT INTO tasks (id, status, result, created_at) VALUES (?, ?, ?, ?)", (tid, "PENDING", None, now))
-            # [FIX] Le commit manuel a été supprimé pour garantir la compatibilité asynchrone avec PostgreSQL (asyncpg/psycopg2)
     
     # [FIX] Compatibilité Pydantic V2 (model_dump) avec fallback V1 (dict)
     try:
@@ -36,11 +32,31 @@ async def start_research(request: ResearchRequest, background_tasks: BackgroundT
     except AttributeError:
         req_dict = request.dict()
         
+    candidate_data = req_dict.get("candidate_data", {})
+    application_id = candidate_data.get("application_id")
+    if not application_id:
+        application_id = str(uuid.uuid4())
+        candidate_data["application_id"] = application_id
+    
+    async with db.get_connection() as conn:
+        # 1. Création de la session de candidature
+        await db.execute(conn,
+            """INSERT INTO job_applications (id, user_id, target_company, target_job, created_at) 
+               VALUES (?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING""",
+            (application_id, current_user["id"], req_dict.get("target_company", "Général"), req_dict.get("target_job", "Poste non spécifié"), now)
+        )
+        
+        # 2. Insertion des tâches liées
+        for tid in tasks_map.values():
+            await db.execute(conn, "INSERT INTO tasks (id, status, result, created_at, application_id) VALUES (?, ?, ?, ?, ?)", (tid, "PENDING", None, now, application_id))
+            
+    # On passe le dictionnaire qui contient désormais l'application_id injecté
     background_tasks.add_task(process_research_in_background, tasks_map["research"], req_dict)
-    background_tasks.add_task(process_salary_in_background, tasks_map["salary"], request.candidate_data)
+    background_tasks.add_task(process_salary_in_background, tasks_map["salary"], candidate_data)
     
     return {
         "message": "Research started",
+        "application_id": application_id,
         "tasks": tasks_map,
         "task_id": tasks_map["research"],
         "salary_task_id": tasks_map["salary"]

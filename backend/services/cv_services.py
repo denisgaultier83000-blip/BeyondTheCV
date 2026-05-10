@@ -566,10 +566,11 @@ async def generate_document(request: GenerateRequest, current_user: dict = Depen
                 filename = _generate_smart_filename(data, "CV", "docx")
                 if not request.preview:
                     doc_id = str(uuid.uuid4())
+                    application_id = data.get("application_id")
                     async with db.get_connection() as conn:
                         await db.execute(conn,
-                            "INSERT INTO documents (id, user_id, filename, path, type, created_at, media_type) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                            (doc_id, current_user["id"], filename, docx_path, "CV_WORD", datetime.now(), 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'))
+                            "INSERT INTO documents (id, user_id, filename, path, type, created_at, media_type, application_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                            (doc_id, current_user["id"], filename, docx_path, "CV_WORD", datetime.now(), 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', application_id))
                     return FileResponse(path=docx_path, filename=filename, media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
                 else:
                     # [ROBUSTESSE] On programme la suppression du fichier temporaire après l'envoi au client
@@ -586,10 +587,11 @@ async def generate_document(request: GenerateRequest, current_user: dict = Depen
                 
                 if not request.preview:
                     doc_id = str(uuid.uuid4())
+                    application_id = data.get("application_id")
                     async with db.get_connection() as conn:
                         await db.execute(conn,
-                            "INSERT INTO documents (id, user_id, filename, path, type, created_at, media_type) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                            (doc_id, current_user["id"], filename, generated_path, "CV_ATS", datetime.now(), 'application/pdf'))
+                            "INSERT INTO documents (id, user_id, filename, path, type, created_at, media_type, application_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                            (doc_id, current_user["id"], filename, generated_path, "CV_ATS", datetime.now(), 'application/pdf', application_id))
                     return FileResponse(path=generated_path, filename=filename, media_type='application/pdf', headers=headers)
                 else:
                     # Mode prévisualisation : suppression propre post-réponse
@@ -706,10 +708,12 @@ async def render_final_cv(cv_final_data: CVFinal, preview: bool = Query(False), 
         
         if not preview:
             doc_id = str(uuid.uuid4())
+            # Compatibilité si CVFinal intègre application_id
+            application_id = getattr(cv_final_data, "application_id", None)
             async with db.get_connection() as conn:
                 await db.execute(conn,
-                    "INSERT INTO documents (id, user_id, filename, path, type, created_at, media_type) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    (doc_id, current_user["id"], filename, generated_path, "CV_ATS", datetime.now(), 'application/pdf'))
+                    "INSERT INTO documents (id, user_id, filename, path, type, created_at, media_type, application_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (doc_id, current_user["id"], filename, generated_path, "CV_ATS", datetime.now(), 'application/pdf', application_id))
             return FileResponse(path=generated_path, filename=filename, media_type='application/pdf')
         else:
             return FileResponse(path=generated_path, filename=filename, media_type='application/pdf', background=BackgroundTask(_remove_file_safe, generated_path))
@@ -755,15 +759,28 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
         if data.target_company or data.target_industry:
             tasks_map["market_research"] = str(uuid.uuid4())
 
+    application_id = cv_dict.get("application_id")
+    if not application_id:
+        application_id = str(uuid.uuid4())
+        cv_dict["application_id"] = application_id
+
     # [FIX EXPERT] On ignore le cache si le frontend signale que la tâche est encore en cours ("pending")
     has_research_data = isinstance(data.research_data, dict) and len(data.research_data) > 0 and data.research_data.get("status") != "pending"
 
     try:
         async with db.get_connection() as conn:
+            # 1. Création de la session de candidature
+            await db.execute(conn,
+                """INSERT INTO job_applications (id, user_id, target_company, target_job, created_at) 
+                   VALUES (?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING""",
+                (application_id, current_user["id"], data.target_company or "Général", data.target_job or "Poste non spécifié", now)
+            )
+            
+            # 2. Insertion des tâches liées
             for tid in tasks_map.values():
                 await db.execute(conn, 
-                    "INSERT INTO tasks (id, status, result, created_at) VALUES (?, ?, ?, ?)", 
-                    (tid, "PENDING", None, now))
+                    "INSERT INTO tasks (id, status, result, created_at, application_id) VALUES (?, ?, ?, ?, ?)", 
+                    (tid, "PENDING", None, now, application_id))
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -798,6 +815,7 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
 
     return {
         "message": "Pipeline started",
+        "application_id": application_id,
         "tasks": tasks_map,
         "task_id": tasks_map.get("cv_analysis") or tasks_map.get("market_research"),
         "salary_task_id": tasks_map.get("salary_estimation")
