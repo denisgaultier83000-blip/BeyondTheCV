@@ -142,15 +142,14 @@ class AIGenerator:
             self._cached_openai_model = "gpt-4o-mini"
             return "gpt-4o-mini"
 
-    async def generate(self, prompt: str, provider: str = None, system_instruction: str = None) -> str:
+    async def generate(self, prompt: str, provider: str = None, system_instruction: str = None, bypass_queue: bool = False) -> str:
         """
         Fonction unique pour appeler l'IA.
         :param prompt: Le texte à envoyer.
         :param provider: 'openai' ou 'gemini'. Si None, utilise le défaut.
         :param system_instruction: Instruction système (ex: "Tu es un expert RH").
+        :param bypass_queue: Si True, contourne le sémaphore global pour une exécution immédiate.
         """
-        # Si un provider est forcé, on filtre la liste, sinon on prend tout l'ordre de priorité
-        
         # Logique simplifiée et robuste : on utilise le modèle résolu au démarrage
         target_provider = provider or self.default_provider
         fallback_provider = "openai" if target_provider == "gemini" else "gemini"
@@ -159,13 +158,11 @@ class AIGenerator:
         if self._semaphore is None:
             self._semaphore = asyncio.Semaphore(self.max_concurrent_requests)
 
-        # Le sémaphore met les requêtes excédentaires en file d'attente au lieu de spammer l'API
-        async with self._semaphore:
+        async def _run():
             try:
                 return await self._execute_provider(target_provider, prompt, system_instruction)
                     
             except Exception as e:
-                error_msg = str(e).lower()
                 
                 # 🔄 SYSTÈME DE FALLBACK AUTOMATIQUE GLOBAL
                 print(f"[AI] ⚠️ {target_provider.capitalize()} a échoué ({str(e)}). Auto-fallback vers {fallback_provider}...", flush=True)
@@ -176,7 +173,14 @@ class AIGenerator:
                     print(f"[AI] 💀 FATAL: {msg}", flush=True)
                     raise RuntimeError(msg)
 
-    async def generate_valid_json(self, prompt: str, provider: str = None, system_instruction: str = None) -> dict:
+        if bypass_queue:
+            return await _run()
+            
+        # Le sémaphore met les requêtes excédentaires en file d'attente au lieu de spammer l'API
+        async with self._semaphore:
+            return await _run()
+
+    async def generate_valid_json(self, prompt: str, provider: str = None, system_instruction: str = None, bypass_queue: bool = False) -> dict:
         """
         Appelle l'IA et garantit une sortie JSON valide. 
         En cas d'erreur de parsing, relance l'IA avec un message de correction via Tenacity.
@@ -188,7 +192,7 @@ class AIGenerator:
         
         if not AsyncRetrying:
             try:
-                res_str = await self.generate(prompt, provider, system_instruction)
+                res_str = await self.generate(prompt, provider, system_instruction, bypass_queue)
                 return clean_ai_json_response(res_str)
             except Exception as e:
                 return {"error": str(e), "type": "api_error"}
@@ -201,7 +205,7 @@ class AIGenerator:
         ):
             with attempt:
                 try:
-                    res_str = await self.generate(current_prompt, provider, system_instruction)
+                    res_str = await self.generate(current_prompt, provider, system_instruction, bypass_queue)
                     parsed = clean_ai_json_response(res_str)
                     if "error" in parsed:
                         current_prompt = prompt + f"\n\n⚠️ ATTENTION : Ta réponse précédente n'était pas un JSON valide.\nErreur retournée : {parsed['error']}\nExtrait de ce que tu as envoyé : {res_str[:150]}...\nMerci de CORRIGER ce format et de retourner STRICTEMENT un JSON valide."

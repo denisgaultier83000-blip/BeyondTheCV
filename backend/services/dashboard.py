@@ -69,7 +69,7 @@ async def analyze_completeness(request: Request):
         
         OUTPUT LANGUAGE: {target_lang}
         """
-        result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a Data Quality Analyst. Language: {target_lang}. Output STRICT JSON.")
+        result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a Data Quality Analyst. Language: {target_lang}. Output STRICT JSON.", bypass_queue=True)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -77,7 +77,7 @@ async def analyze_completeness(request: Request):
 @router.post("/api/research/disambiguate")
 async def disambiguate_company_endpoint(request: DisambiguationRequest):
     try:
-        result_str = await ai_service.generate(f"Disambiguate company: {request.company_name}. Respond in JSON with a 'candidates' list.", provider="gemini", system_instruction="You are a JSON API.")
+        result_str = await ai_service.generate(f"Disambiguate company: {request.company_name}. Respond in JSON with a 'candidates' list.", provider="gemini", system_instruction="You are a JSON API.", bypass_queue=True)
         cleaned_result = result_str.replace("```json", "").replace("```", "").strip()
         return json.loads(cleaned_result)
     except Exception as e:

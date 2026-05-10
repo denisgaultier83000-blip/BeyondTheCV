@@ -859,7 +859,11 @@ async def get_dashboard_summary(data: FullCVData, current_user: dict = Depends(r
         
         cached_gap = cv_dict.get('gap_analysis')
         has_cached_gap = bool(cached_gap and isinstance(cached_gap, dict) and cached_gap.get('match_score'))
-        gap_analysis_task = asyncio.sleep(0) if has_cached_gap else run_gap_analysis_and_get_result(cv_lean_dict)
+        
+        # [FIX EXPERT] On ne lance PLUS le Gap Analysis synchrone ici (qui prenait ~15s).
+        # Il est déjà géré par la tâche de fond (background_tasks). 
+        # Le Dashboard se mettra à jour automatiquement dès qu'il sera prêt via le polling.
+        gap_analysis_task = asyncio.sleep(0)
 
         key_strengths_prompt = f"""
         Analyse ce profil et résume-le en 3 forces clés percutantes.
@@ -871,7 +875,7 @@ async def get_dashboard_summary(data: FullCVData, current_user: dict = Depends(r
         OUTPUT LANGUAGE: {target_lang}
         FORMAT JSON STRICT: {{"key_strengths": ["Force 1", "Force 2", "Force 3"]}}
         """
-        key_strengths_task = ai_service.generate(key_strengths_prompt, provider="gemini", system_instruction=f"Tu es un expert en branding personnel. Langue: {target_lang}.")
+        key_strengths_task = ai_service.generate(key_strengths_prompt, provider="gemini", system_instruction=f"Tu es un expert en branding personnel. Langue: {target_lang}.", bypass_queue=True)
 
         application_strategy_prompt = f"""
         Analyse ce profil et le poste visé. Propose une stratégie de candidature en 3 points prioritaires.
@@ -886,7 +890,7 @@ async def get_dashboard_summary(data: FullCVData, current_user: dict = Depends(r
         OUTPUT LANGUAGE: {target_lang}
         FORMAT JSON STRICT: {{"application_strategy": ["Priorité 1", "Priorité 2", "Priorité 3"]}}
         """
-        application_strategy_task = ai_service.generate(application_strategy_prompt, provider="gemini", system_instruction=f"Tu es un coach de carrière stratégique. Langue: {target_lang}.")
+        application_strategy_task = ai_service.generate(application_strategy_prompt, provider="gemini", system_instruction=f"Tu es un coach de carrière stratégique. Langue: {target_lang}.", bypass_queue=True)
 
         results = await asyncio.gather(gap_analysis_task, key_strengths_task, application_strategy_task)
         

@@ -228,8 +228,7 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
             if task_id:
                 await manager.broadcast(task_id, f"🔎 Recherche : {q}")
             try:
-                # search_web est synchrone (requests), on le déporte dans un thread pour ne pas bloquer
-                return await asyncio.to_thread(search_web, q, api_key)
+                return await search_web(q, api_key)
             except Exception as e:
                 print(f"   [ERROR] Search failed for query '{q}': {e}", flush=True)
                 return None
@@ -287,7 +286,7 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
         if task_id:
             await manager.broadcast(task_id, f"⚠️ Recherche précise échouée. Tentative générique : {fallback_query}")
         try:
-            res = await asyncio.to_thread(search_web, fallback_query, api_key)
+            res = await search_web(fallback_query, api_key)
             if res and "organic" in res:
                 raw_results.append({"title": "Industry Trends", "snippet": str(res["organic"][:3]), "link": "google.com"})
         except Exception as e:
