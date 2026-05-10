@@ -1,7 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { 
-  FileText, User, MessageSquare, Mic, 
+  FileText, MessageSquare, Mic, 
   BarChart3, Target, Sparkles, Briefcase, Wallet, Linkedin,
   Compass, Map, Search, Dumbbell, ShieldAlert
 } from 'lucide-react';

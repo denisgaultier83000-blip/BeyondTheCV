@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDashboard } from './DashboardContext';
-import { FileText, Download, Loader2, RefreshCw, AlertTriangle, Target, CheckCircle2, Plus } from 'lucide-react';
+import { FileText, Download, Loader2, RefreshCw, Target, CheckCircle2, Plus } from 'lucide-react';
 import { authenticatedFetch } from '../utils/auth';
 import { KeywordCoachModal } from './KeywordCoachModal';
 import { API_BASE_URL } from '../config';

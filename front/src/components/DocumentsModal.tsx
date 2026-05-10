@@ -122,12 +122,6 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(undefined, {
-      year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
-    });
-  };
-
   // Définition visuelle des types de documents
   const getTypeDisplay = (type: string) => {
     if (type.includes("CV")) return { icon: <FileText size={16}/>, label: "CV Optimisé", color: "#3b82f6", bg: "rgba(59, 130, 246, 0.1)" };
