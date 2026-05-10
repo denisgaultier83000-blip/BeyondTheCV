@@ -181,7 +181,6 @@ export default function Dashboard({
               desc={hasCompany ? t('card_company_desc') : t('card_company_disabled', "Renseignez le nom de l'entreprise cible dans votre profil pour débloquer ce rapport.")}
             onClick={() => onAction && onAction(researchData && researchData.status !== "pending" && hasCompany ? "View Company Report" : "Company Research")}
               disabled={loading || isResearching || !hasCompany}
-            ready={researchData && researchData.status !== "pending" && hasCompany}
             />
             <ActionCard 
               icon={<BarChart3 />} 

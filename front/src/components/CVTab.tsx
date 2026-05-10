@@ -126,7 +126,7 @@ export const CVTab = ({ data }: { data: any }) => {
       <div className="cv-header">
         <div className="cv-type-selector">
           <button className="cv-type-btn active">
-            <FileText size={16} /> {t('cv_ats_optimized', 'CV Optimisé ATS')}
+            <FileText size={16} /> {t('cv_ats_optimized', 'CV ATS')}
           </button>
           {/* D'autres boutons pourraient venir ici */}
         </div>
