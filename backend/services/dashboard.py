@@ -38,12 +38,16 @@ async def start_research(request: ResearchRequest, background_tasks: BackgroundT
         application_id = str(uuid.uuid4())
         candidate_data["application_id"] = application_id
     
+    # [FIX EXPERT] Prévention du crash SQL (NOT NULL constraint) si la valeur est None
+    target_company = req_dict.get("target_company") or candidate_data.get("target_company") or "Général"
+    target_job = req_dict.get("target_job") or candidate_data.get("target_job") or "Poste non spécifié"
+
     async with db.get_connection() as conn:
         # 1. Création de la session de candidature
         await db.execute(conn,
             """INSERT INTO job_applications (id, user_id, target_company, target_job, created_at) 
                VALUES (?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING""",
-            (application_id, current_user["id"], req_dict.get("target_company", "Général"), req_dict.get("target_job", "Poste non spécifié"), now)
+            (application_id, current_user["id"], target_company, target_job, now)
         )
         
         # 2. Insertion des tâches liées
