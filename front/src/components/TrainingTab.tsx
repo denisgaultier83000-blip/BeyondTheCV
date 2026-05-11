@@ -177,13 +177,6 @@ export default function TrainingTab() {
           {/* Graphique Radar SVG personnalisé */}
           <div style={{ display: 'flex', justifyContent: 'center', position: 'relative' }}>
             <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ overflow: 'visible' }}>
-              <defs>
-                <radialGradient id="radarHeatmap" cx={center} cy={center} r={radius} gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#ef4444" stopOpacity="0.85" />
-                  <stop offset="50%" stopColor="#f59e0b" stopOpacity="0.85" />
-                  <stop offset="100%" stopColor="#10b981" stopOpacity="0.85" />
-                </radialGradient>
-              </defs>
               {/* Lignes de fond */}
               <polygon points={maxPolygon} fill="none" stroke="var(--border-color)" strokeWidth="1" />
               <polygon points={midPolygon} fill="none" stroke="var(--border-color)" strokeWidth="1" strokeDasharray="4 4" />
@@ -191,7 +184,20 @@ export default function TrainingTab() {
                 <line key={i} x1={center} y1={center} x2={getPoint(i * 2 * Math.PI / themes.length - Math.PI / 2, 100).split(',')[0]} y2={getPoint(i * 2 * Math.PI / themes.length - Math.PI / 2, 100).split(',')[1]} stroke="var(--border-color)" strokeWidth="1" />
               ))}
               {/* Données */}
-              <polygon points={dataPolygon} fill="url(#radarHeatmap)" stroke="rgba(255,255,255,0.5)" strokeWidth="2" style={{ transition: 'all 0.5s ease-out' }} />
+              <polygon points={dataPolygon} fill="rgba(59, 130, 246, 0.1)" stroke="rgba(59, 130, 246, 0.3)" strokeWidth="1" style={{ transition: 'all 0.5s ease-out' }} />
+              {/* Branches de couleurs dynamiques */}
+              {themes.map((t, i) => {
+                const angle = i * 2 * Math.PI / themes.length - Math.PI / 2;
+                const tScore = themeScores[t] || 0;
+                const coords = getPoint(angle, tScore).split(',');
+                const branchColor = tScore >= 80 ? '#10b981' : tScore >= 50 ? '#f59e0b' : '#ef4444';
+                return (
+                  <g key={`branch-${i}`}>
+                    <line x1={center} y1={center} x2={coords[0]} y2={coords[1]} stroke={branchColor} strokeWidth="4" strokeLinecap="round" style={{ transition: 'all 0.5s ease-out' }} />
+                    <circle cx={coords[0]} cy={coords[1]} r="6" fill={branchColor} stroke="white" strokeWidth="2" style={{ transition: 'all 0.5s ease-out' }} />
+                  </g>
+                );
+              })}
               {/* Labels */}
               {themes.map((label, i) => {
                 const angle = i * 2 * Math.PI / themes.length - Math.PI / 2;
