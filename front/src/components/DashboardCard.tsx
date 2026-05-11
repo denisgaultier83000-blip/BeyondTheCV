@@ -41,7 +41,7 @@ export function DashboardCard({
 
   if (loading) {
     return (
-      <div className={`result-card ${className}`} style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', ...style }}>
+      <div className={`result-card ${className}`} style={{ padding: '1.5rem', borderRadius: '1rem', ...style }}>
         {title && (
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 0, color: 'var(--text-main)' }}>
             {icon && React.cloneElement(icon as React.ReactElement, { color: 'var(--primary)' })} {title}
@@ -58,7 +58,7 @@ export function DashboardCard({
   if (!children) return null;
 
   return (
-    <div className={`result-card ${className}`} style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', position: 'relative', overflow: 'hidden', ...style }}>
+    <div className={`result-card ${className}`} style={{ padding: '1.5rem', borderRadius: '1rem', position: 'relative', overflow: 'hidden', ...style }}>
       {(title || headerAction) && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0, color: 'var(--text-main)' }}>

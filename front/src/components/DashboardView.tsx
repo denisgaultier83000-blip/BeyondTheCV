@@ -255,9 +255,9 @@ export const DashboardView = () => {
                       data={pilotData} 
                       careerRadarData={careerRadarResult}
                       careerGpsData={careerGpsResult}
-                      onGoToGap={() => handleTabChange('market')} 
-                      onGoToRadar={() => handleTabChange('career')}
-                      onGoToGps={() => handleTabChange('career')}
+                      onGoToGap={() => handleTabChange('market', 'gap_section')} 
+                      onGoToRadar={() => handleTabChange('career', 'radar_section')}
+                      onGoToGps={() => handleTabChange('career', 'gps_section')}
                   />
                   <CareerRealityCheck data={realityResult} score={pilotData?.matchScore} loading={isProcessing && !realityResult} />
                 </>

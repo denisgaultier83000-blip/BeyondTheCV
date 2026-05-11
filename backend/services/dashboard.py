@@ -156,7 +156,7 @@ async def get_applications(current_user: dict = Depends(get_current_user)):
                 id as doc_id, filename, type as doc_type, created_at as doc_created_at
             FROM documents 
             WHERE user_id = ? AND (application_id IS NULL OR application_id = '')
-            ORDER BY ja.created_at DESC
+            ORDER BY app_created_at DESC
         """, (current_user["id"], current_user["id"]))
         rows = await cursor.fetchall()
         
