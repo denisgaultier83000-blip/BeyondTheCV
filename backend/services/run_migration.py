@@ -5,21 +5,25 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import datetime, timedelta
 
+# Ajout du dossier parent au path pour trouver database.py
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 # Import depuis la configuration centrale pour garantir la même connexion
 try:
-    from database import DATABASE_URL
+    from database import get_database_url
 except ImportError:
-    print("❌ Erreur : Impossible d'importer DATABASE_URL depuis database.py. Assurez-vous d'être dans le dossier backend.")
+    print("❌ Erreur : Impossible d'importer get_database_url depuis database.py. Assurez-vous d'être dans le dossier backend.")
     sys.exit(1)
 
 def run_migration():
-    if not DATABASE_URL:
+    db_url = get_database_url()
+    if not db_url:
         print("❌ La variable DATABASE_URL n'est pas définie dans .env")
         sys.exit(1)
         
     print(f"🔌 Connexion à la base de données...")
     try:
-        conn = psycopg2.connect(DATABASE_URL)
+        conn = psycopg2.connect(db_url)
         cur = conn.cursor(cursor_factory=RealDictCursor)
     except Exception as e:
         print(f"❌ Impossible de se connecter à PostgreSQL : {e}")
