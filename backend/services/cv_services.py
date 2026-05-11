@@ -414,18 +414,31 @@ async def get_training_stats(current_user: dict = Depends(require_active_subscri
         rows = await cursor.fetchall()
         
     if not rows:
-        return {"global_score": 0, "total_sessions": 0}
+        return {"global_score": 0, "total_sessions": 0, "theme_scores": {}}
         
     total_weighted_score, total_weight = 0, 0
+    theme_data = {}
     
     for i, row in enumerate(rows):
         score = row[0] if isinstance(row, tuple) else row["score"]
+        theme = row[1] if isinstance(row, tuple) else row["theme"]
         weight = 1 + (i * 0.05) # Les réponses plus récentes pèsent plus lourd (+5% par session)
+        
         total_weighted_score += score * weight
         total_weight += weight
         
+        if theme not in theme_data:
+            theme_data[theme] = {"score": 0, "weight": 0}
+        theme_data[theme]["score"] += score * weight
+        theme_data[theme]["weight"] += weight
+        
     global_score = min(100, max(0, round(total_weighted_score / total_weight))) if total_weight > 0 else 0
-    return {"global_score": global_score, "total_sessions": len(rows)}
+    
+    theme_scores = {}
+    for theme, data in theme_data.items():
+        theme_scores[theme] = min(100, max(0, round(data["score"] / data["weight"]))) if data["weight"] > 0 else 0
+        
+    return {"global_score": global_score, "total_sessions": len(rows), "theme_scores": theme_scores}
 
 def run_compliance_check(data, lang, quality='smart'):
     # Pas de check complexe pour l'instant, on renvoie la donnée telle quelle ou une correction simple

@@ -101,7 +101,18 @@ export default function TrainingTab() {
       setFeedback(data.feedback);
       fetchStats();
       
-      const completedQ = { ...activeQuestion, userAnswer, feedback: data.feedback };
+      const completedQ = { ...activeQuestion, userAnswer, evaluation: data.feedback, feedback: data.feedback };
+      
+      // Injection silencieuse dans le cache local pour que l'historique "Questionnaire" l'affiche avec couleurs et /10
+      try {
+        localStorage.setItem(`training_${activeQuestion.id}`, JSON.stringify({
+          answer: userAnswer,
+          userAnswer: userAnswer,
+          evaluation: data.feedback,
+          feedback: data.feedback
+        }));
+      } catch(e) { console.error("Erreur cache", e); }
+
       const updatedQuestions = [...(cvData?.trainingQuestions || []), completedQ];
       if (updateFormData) updateFormData("trainingQuestions", updatedQuestions);
     } catch (err) {
@@ -135,7 +146,7 @@ export default function TrainingTab() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Score Global IA</div>
-              <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--primary)', margin: '0.5rem 0' }}>{score} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ 100</span></div>
+              <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--primary)', margin: '0.5rem 0' }}>{Math.round(score / 10)} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ 10</span></div>
               <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Basé sur {totalSessions} entraînements terminés.</div>
             </div>
             <div style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
@@ -272,9 +283,17 @@ export default function TrainingTab() {
             {isEvaluating ? <RefreshCw className="spin" size={18} /> : <MessageSquare size={18} />} {isEvaluating ? "Évaluation..." : "Soumettre & Évaluer"}
           </button>
 
-          {feedback && (
+          {feedback && (() => {
+            const score10 = Math.round((feedback.score || 0) / 10);
+            const scoreColor = score10 >= 8 ? '#10b981' : score10 >= 5 ? '#f59e0b' : '#ef4444';
+            return (
             <div style={{ marginTop: '2rem', padding: '1.5rem', background: 'var(--bg-secondary)', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
-              <h4 style={{ margin: '0 0 1rem 0', color: 'var(--primary)' }}>Score : {feedback.score}/100</h4>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ background: scoreColor, color: 'white', fontWeight: 'bold', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontSize: '1.2rem' }}>
+                  {score10} / 10
+                </div>
+                <h4 style={{ margin: 0, color: 'var(--text-main)' }}>Analyse de votre réponse</h4>
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div><strong style={{ color: '#10b981' }}>Points forts :</strong><ul style={{ margin: '0.5rem 0', paddingLeft: '1.2rem', fontSize: '0.9rem' }}>{feedback.strengths?.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul></div>
                 <div><strong style={{ color: '#ef4444' }}>À améliorer :</strong><ul style={{ margin: '0.5rem 0', paddingLeft: '1.2rem', fontSize: '0.9rem' }}>{feedback.weaknesses?.map((w: string, i: number) => <li key={i}>{w}</li>)}</ul></div>
@@ -285,7 +304,8 @@ export default function TrainingTab() {
               </div>
               <button onClick={() => { setActiveQuestion(null); setFeedback(null); }} className="btn-secondary" style={{ marginTop: '1rem' }}>Terminer et passer à la suite</button>
             </div>
-          )}
+            );
+          })()}
         </DashboardCard>
       )}
 
