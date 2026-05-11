@@ -440,6 +440,54 @@ async def get_training_stats(current_user: dict = Depends(require_active_subscri
         
     return {"global_score": global_score, "total_sessions": len(rows), "theme_scores": theme_scores}
 
+@router.get("/training/history")
+async def get_training_history(current_user: dict = Depends(require_active_subscription)):
+    """Récupère l'historique complet des sessions d'entraînement de l'utilisateur."""
+    async with db.get_connection() as conn:
+        cursor = await db.execute(conn, """
+            SELECT id, theme, question_type, question_text, user_answer, 
+                   score, strengths, weaknesses, improved_answer, created_at
+            FROM training_sessions 
+            WHERE user_id = ? 
+            ORDER BY created_at ASC
+        """, (current_user["id"],))
+        rows = await cursor.fetchall()
+        
+    history = []
+    for row in rows:
+        r = dict(row) if not isinstance(row, tuple) else {
+            "id": row[0], "theme": row[1], "question_type": row[2], 
+            "question_text": row[3], "user_answer": row[4], "score": row[5], 
+            "strengths": row[6], "weaknesses": row[7], "improved_answer": row[8],
+            "created_at": row[9]
+        }
+        
+        try:
+            strengths = json.loads(r["strengths"]) if isinstance(r["strengths"], str) else r["strengths"]
+        except:
+            strengths = []
+            
+        try:
+            weaknesses = json.loads(r["weaknesses"]) if isinstance(r["weaknesses"], str) else r["weaknesses"]
+        except:
+            weaknesses = []
+
+        history.append({
+            "id": r["id"],
+            "category": r["theme"],
+            "type": r["question_type"],
+            "question": r["question_text"],
+            "userAnswer": r["user_answer"],
+            "feedback": {
+                "score": r["score"],
+                "strengths": strengths,
+                "weaknesses": weaknesses,
+                "improved_answer": r["improved_answer"]
+            }
+        })
+        
+    return {"history": history}
+
 def run_compliance_check(data, lang, quality='smart'):
     # Pas de check complexe pour l'instant, on renvoie la donnée telle quelle ou une correction simple
     return {"corrected_content": data}

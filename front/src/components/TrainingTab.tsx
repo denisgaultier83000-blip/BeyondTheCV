@@ -31,6 +31,7 @@ export default function TrainingTab() {
   const [userAnswer, setUserAnswer] = useState('');
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [feedback, setFeedback] = useState<any>(null);
+  const [trainingHistory, setTrainingHistory] = useState<any[]>([]);
 
   const themes = ['Management', 'Gestion de crise', 'Négociation', 'Leadership', 'Communication'];
   const types = [{ id: 'Classique', label: 'Questions Classiques' }, { id: 'MES', label: 'Mises en Situation' }];
@@ -50,9 +51,22 @@ export default function TrainingTab() {
     }
   };
 
+  const fetchHistory = async () => {
+    try {
+      const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/history`);
+      if (res.ok) {
+        const data = await res.json();
+        setTrainingHistory(data.history || []);
+      }
+    } catch (err) {
+      console.error("Erreur récupération historique", err);
+    }
+  };
+
   // Charger les statistiques globales au montage
   useEffect(() => {
     fetchStats();
+    fetchHistory();
   }, []);
 
   const handleGenerate = async () => {
@@ -113,8 +127,9 @@ export default function TrainingTab() {
         }));
       } catch(e) { console.error("Erreur cache", e); }
 
-      const updatedQuestions = [...(cvData?.trainingQuestions || []), completedQ];
-      if (updateFormData) updateFormData("trainingQuestions", updatedQuestions);
+      const updatedHistory = [...trainingHistory, completedQ];
+      setTrainingHistory(updatedHistory);
+      if (updateFormData) updateFormData("trainingQuestions", updatedHistory);
     } catch (err) {
       console.error("Erreur évaluation", err);
     } finally {
@@ -317,10 +332,10 @@ export default function TrainingTab() {
       )}
 
       {/* --- HISTORIQUE D'ENTRAÎNEMENT --- */}
-      {!activeQuestion && cvData?.trainingQuestions && cvData.trainingQuestions.length > 0 && (
+      {!activeQuestion && trainingHistory && trainingHistory.length > 0 && (
         <DashboardCard title="Historique d'Entraînement" icon={<History size={24} />}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {[...cvData.trainingQuestions].reverse().map((q: any, index: number) => {
+            {[...trainingHistory].reverse().map((q: any, index: number) => {
               const fb = q.feedback || q.evaluation;
               const score10 = Math.round((fb?.score || 0) / 10);
               const scoreColor = score10 >= 8 ? '#10b981' : score10 >= 5 ? '#f59e0b' : '#ef4444';
