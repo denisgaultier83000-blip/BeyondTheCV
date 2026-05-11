@@ -88,6 +88,23 @@ def initialize_schema():
                 profile_data JSONB
             )
         """)
+        
+        print("   - Vérification de la table 'training_sessions'...")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS training_sessions (
+                id TEXT PRIMARY KEY,
+                user_id TEXT,
+                theme TEXT,
+                question_type TEXT,
+                question_text TEXT,
+                user_answer TEXT,
+                score INTEGER,
+                strengths TEXT,
+                weaknesses TEXT,
+                improved_answer TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
 
         conn.commit()
         print("\n🎉 Schéma vérifié et fonctionnel pour les données à venir !")

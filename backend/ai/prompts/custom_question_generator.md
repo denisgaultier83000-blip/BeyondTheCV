@@ -31,7 +31,8 @@ Tu DOIS générer un JSON valide contenant exactement {{COUNT}} questions.
       "theme": "Le thème généré (rappel)",
       "type": "Classique ou MES",
       "text": "La question posée au candidat avec un ton professionnel et direct.",
-      "advice": "Explication courte du coach : ce que le recruteur teste réellement avec cette question et le cadre de réponse attendu (ex: Utilisez la méthode STAR, montrez votre sang-froid)."
+      "advice": "Explication courte du coach : ce que le recruteur teste réellement avec cette question et le cadre de réponse attendu (ex: Utilisez la méthode STAR, montrez votre sang-froid).",
+      "suggested_answer": "Une proposition de réponse complète, argumentée et formulée à la 1ère personne, utilisant la méthode STAR si pertinent."
     }
   ]
 }
