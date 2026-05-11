@@ -162,6 +162,13 @@ export default function TrainingTab() {
           {/* Graphique Radar SVG personnalisé */}
           <div style={{ display: 'flex', justifyContent: 'center', position: 'relative' }}>
             <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ overflow: 'visible' }}>
+              <defs>
+                <radialGradient id="radarHeatmap" cx={center} cy={center} r={radius} gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stopColor="#ef4444" stopOpacity="0.85" />
+                  <stop offset="50%" stopColor="#f59e0b" stopOpacity="0.85" />
+                  <stop offset="100%" stopColor="#10b981" stopOpacity="0.85" />
+                </radialGradient>
+              </defs>
               {/* Lignes de fond */}
               <polygon points={maxPolygon} fill="none" stroke="var(--border-color)" strokeWidth="1" />
               <polygon points={midPolygon} fill="none" stroke="var(--border-color)" strokeWidth="1" strokeDasharray="4 4" />
@@ -169,7 +176,7 @@ export default function TrainingTab() {
                 <line key={i} x1={center} y1={center} x2={getPoint(i * 2 * Math.PI / themes.length - Math.PI / 2, 100).split(',')[0]} y2={getPoint(i * 2 * Math.PI / themes.length - Math.PI / 2, 100).split(',')[1]} stroke="var(--border-color)" strokeWidth="1" />
               ))}
               {/* Données */}
-              <polygon points={dataPolygon} fill="rgba(59, 130, 246, 0.3)" stroke="var(--primary)" strokeWidth="2" style={{ transition: 'all 0.5s ease-out' }} />
+              <polygon points={dataPolygon} fill="url(#radarHeatmap)" stroke="rgba(255,255,255,0.5)" strokeWidth="2" style={{ transition: 'all 0.5s ease-out' }} />
               {/* Labels */}
               {themes.map((label, i) => {
                 const angle = i * 2 * Math.PI / themes.length - Math.PI / 2;
@@ -312,13 +319,40 @@ export default function TrainingTab() {
       {/* --- HISTORIQUE D'ENTRAÎNEMENT --- */}
       {!activeQuestion && cvData?.trainingQuestions && cvData.trainingQuestions.length > 0 && (
         <DashboardCard title="Historique d'Entraînement" icon={<History size={24} />}>
-           <Questionnaire 
-             questions={[...cvData.trainingQuestions].reverse()} 
-             hideHeader={true} 
-             storageKeyPrefix="training" 
-             evalEndpoint="/api/cv/training/evaluate"
-             onEvaluateSuccess={fetchStats}
-           />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {[...cvData.trainingQuestions].reverse().map((q: any, index: number) => {
+              const fb = q.feedback || q.evaluation;
+              const score10 = Math.round((fb?.score || 0) / 10);
+              const scoreColor = score10 >= 8 ? '#10b981' : score10 >= 5 ? '#f59e0b' : '#ef4444';
+
+              return (
+                <div key={q.id || index} style={{ padding: '1.5rem', background: 'var(--bg-secondary)', borderRadius: '1rem', border: '1px solid var(--border-color)', borderLeft: `6px solid ${scoreColor}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '1.1rem' }}>{q.category} <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 400 }}>• {q.type}</span></div>
+                    <div style={{ background: scoreColor, color: 'white', padding: '0.25rem 1rem', borderRadius: '1rem', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                      {score10} / 10
+                    </div>
+                  </div>
+                  <p style={{ margin: '0 0 1rem 0', color: 'var(--text-main)', fontSize: '1rem' }}><strong>Question :</strong> {q.question}</p>
+                  <div style={{ background: 'var(--bg-card)', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1rem', border: '1px solid var(--border-color)' }}>
+                    <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-muted)' }}><strong>Votre réponse :</strong> {q.userAnswer}</p>
+                  </div>
+                  {fb && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.9rem' }}>
+                      <div>
+                        <strong style={{ color: '#10b981' }}>Points forts :</strong>
+                        <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.2rem' }}>{fb.strengths?.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul>
+                      </div>
+                      <div>
+                        <strong style={{ color: '#ef4444' }}>À améliorer :</strong>
+                        <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.2rem' }}>{fb.weaknesses?.map((w: string, i: number) => <li key={i}>{w}</li>)}</ul>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </DashboardCard>
       )}
 
