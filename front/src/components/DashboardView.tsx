@@ -153,7 +153,7 @@ export const DashboardView = () => {
           <Activity size={18} /> {t('tab_overview', "Vue d'ensemble")}
         </button>
         <button className={`tab-btn ${activeTab === 'cv' ? 'active' : ''}`} onClick={() => handleTabChange('cv')} style={{ position: 'relative' }}>
-          <FileText size={18} /> {t('tab_cv_ats', "CV & ATS")} {cvUnseen && <span className="notification-dot"></span>}
+          <FileText size={18} /> {t('tab_cv_ats', "CV ATS")} {cvUnseen && <span className="notification-dot"></span>}
         </button>
         <button className={`tab-btn ${activeTab === 'interview' ? 'active' : ''}`} onClick={() => handleTabChange('interview')} style={{ position: 'relative' }}>
           <MessageSquare size={18} /> {t('tab_interview_short', "Entretien")} {interviewUnseen && <span className="notification-dot"></span>}
