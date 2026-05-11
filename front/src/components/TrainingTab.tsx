@@ -139,8 +139,9 @@ export default function TrainingTab() {
 
   // Helper couleur
   const getScoreColor = (val: number) => {
-    if (val >= 80) return '#10b981';
-    if (val >= 50) return '#f59e0b';
+    const score10 = val / 10;
+    if (score10 >= 8) return '#10b981';
+    if (score10 >= 5) return '#f59e0b';
     if (val > 0) return '#ef4444';
     return 'var(--text-muted)';
   };
@@ -155,7 +156,7 @@ export default function TrainingTab() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Score Global IA</div>
-              <div style={{ fontSize: '2.5rem', fontWeight: 800, color: getScoreColor(score), margin: '0.5rem 0' }}>{Math.round(score / 10)} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ 10</span></div>
+              <div style={{ fontSize: '2.5rem', fontWeight: 800, color: getScoreColor(score), margin: '0.5rem 0' }}>{score / 10} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ 10</span></div>
               <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Basé sur {totalSessions} entraînements terminés.</div>
             </div>
             <div style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
@@ -178,7 +179,7 @@ export default function TrainingTab() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                     <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>{t}</span>
                     <span style={{ fontSize: '1.1rem', fontWeight: 800, color: tColor }}>
-                      {Math.round(tScore / 10)} <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>/ 10</span>
+                      {tScore / 10} <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>/ 10</span>
                     </span>
                   </div>
                   <div style={{ width: '100%', height: '8px', background: 'var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
@@ -290,7 +291,7 @@ export default function TrainingTab() {
           </button>
 
           {feedback && (() => {
-            const score10 = Math.round((feedback.score || 0) / 10);
+            const score10 = (feedback.score || 0) / 10;
             const scoreColor = score10 >= 8 ? '#10b981' : score10 >= 5 ? '#f59e0b' : '#ef4444';
             return (
             <div style={{ marginTop: '2rem', padding: '1.5rem', background: 'var(--bg-secondary)', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
@@ -321,7 +322,7 @@ export default function TrainingTab() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {[...trainingHistory].reverse().map((q: any, index: number) => {
               const fb = q.feedback || q.evaluation;
-              const score10 = Math.round((fb?.score || 0) / 10);
+              const score10 = (fb?.score || 0) / 10;
               const scoreColor = score10 >= 8 ? '#10b981' : score10 >= 5 ? '#f59e0b' : '#ef4444';
 
               return (

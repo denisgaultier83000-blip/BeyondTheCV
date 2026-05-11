@@ -104,13 +104,21 @@ export default function MarketReport({ data, onBack }: Props) {
                                 {data.company_report.news_links && data.company_report.news_links.length > 0 && (
                                     <li><strong>Articles :</strong> 
                                         <ul style={{ marginTop: '0.5rem' }}>
-                                            {data.company_report.news_links.map((link: any, i: number) => (
-                                                <li key={i}>
-                                                    <a href={link.url.startsWith('http') ? link.url : `https://${link.url}`} target="_blank" rel="noopener noreferrer">
-                                                        {link.title}
-                                                    </a>
-                                                </li>
-                                            ))}
+                                            {data.company_report.news_links.map((link: any, i: number) => {
+                                                const fullUrl = link.url.startsWith('http') ? link.url : `https://${link.url}`;
+                                                return (
+                                                    <li key={i} style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem', lineHeight: 1.2 }}>
+                                                        <img 
+                                                            src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(fullUrl)}&sz=16`} 
+                                                            alt="source icon" 
+                                                            style={{ width: '16px', height: '16px', marginRight: '8px', borderRadius: '2px', flexShrink: 0 }} 
+                                                        />
+                                                        <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block' }}>
+                                                            {link.title}
+                                                        </a>
+                                                    </li>
+                                                );
+                                            })}
                                         </ul>
                                     </li>
                                 )}
