@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDashboard } from './DashboardContext';
-import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass, Mic, Search, Eye, Navigation, Network, Loader2, RotateCcw, CheckSquare, Dumbbell, ArrowUp } from 'lucide-react';
+import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass, Mic, Search, Eye, Navigation, Network, Loader2, RotateCcw, CheckSquare, Dumbbell, ArrowUp, Printer } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PilotBento } from './PilotBento';
 import { GapAnalysisFull } from './GapAnalysisFull';
@@ -199,10 +199,13 @@ export const DashboardView = () => {
                   Il s'affiche instantanément. Les analyses terminées en amont (ex: Marché) 
                   seront cliquables immédiatement sans attendre la synthèse IA. */}
               <div className="bento-card col-span-3" style={{ background: 'var(--bg-card)' }}>
-                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                   <div className="bento-header" style={{ marginBottom: '0.5rem' }}><Activity size={20} color="var(--primary)"/> {t('hub_title', 'Centre de Suivi des Analyses')}</div>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                   <div className="bento-header" style={{ marginBottom: 0 }}><Activity size={20} color="var(--primary)"/> {t('hub_title', 'Centre de Suivi des Analyses')}</div>
+                   <button onClick={() => window.print()} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
+                     <Printer size={16} /> Imprimer mon Dossier
+                   </button>
                  </div>
-                 <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: '0 0 1.5rem 0' }}>{t('hub_desc', 'Suivez la génération de vos outils en temps réel et cliquez pour y accéder.')}</p>
+                 <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: '0 0 1rem 0' }}>{t('hub_desc', 'Suivez la génération de vos outils en temps réel et cliquez pour y accéder.')}</p>
                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
                     {deliverableItems.map((item, idx) => {
                        const isReady = isDataReady(item.data) && !item.disabled;
@@ -343,6 +346,14 @@ export const DashboardView = () => {
       )}
 
       <style>{`
+        @media print {
+          .tabs-navigation, .sub-tabs-navigation, .btn-action, .btn-primary, .btn-secondary, .btn-outline, .btn-ghost, .notification-dot, .user-profile-btn, header { display: none !important; }
+          .dashboard-wrapper { gap: 1rem; }
+          .bento-card, .result-card { page-break-inside: avoid; border: 1px solid #ccc; box-shadow: none; background: white !important; color: black !important; }
+          body { background: white; margin: 0; padding: 0; }
+          * { color: black !important; }
+          .tab-content > div { gap: 1rem !important; }
+        }
         .dashboard-wrapper { display: flex; flex-direction: column; gap: 2rem; width: 100%; }
         
         .tabs-navigation { display: flex; gap: 0.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0; overflow-x: auto; align-items: flex-end; scrollbar-width: none; -ms-overflow-style: none; }

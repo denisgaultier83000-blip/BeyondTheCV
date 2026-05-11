@@ -137,31 +137,25 @@ export default function TrainingTab() {
     }
   };
 
-  // --- GÉNÉRATEUR DU RADAR SVG ---
-  const size = 300;
-  const center = size / 2;
-  const radius = center * 0.6;
-  const getPoint = (angle: number, value: number) => {
-    const val = Math.max(0, Math.min(100, value));
-    const r = radius * (val / 100);
-    return `${center + r * Math.cos(angle)},${center + r * Math.sin(angle)}`;
+  // Helper couleur
+  const getScoreColor = (val: number) => {
+    if (val >= 80) return '#10b981';
+    if (val >= 50) return '#f59e0b';
+    if (val > 0) return '#ef4444';
+    return 'var(--text-muted)';
   };
-  
-  const maxPolygon = themes.map((_, i) => getPoint(i * 2 * Math.PI / themes.length - Math.PI / 2, 100)).join(' ');
-  const midPolygon = themes.map((_, i) => getPoint(i * 2 * Math.PI / themes.length - Math.PI / 2, 50)).join(' ');
-  const dataPolygon = themes.map((t, i) => getPoint(i * 2 * Math.PI / themes.length - Math.PI / 2, themeScores[t] || 0)).join(' ');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       
-      {/* --- SECTION STATISTIQUES & RADAR --- */}
+      {/* --- SECTION STATISTIQUES --- */}
       <DashboardCard title="Tableau de Chasse" icon={<Activity size={24} />}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', alignItems: 'center' }}>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Score Global IA</div>
-              <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--primary)', margin: '0.5rem 0' }}>{Math.round(score / 10)} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ 10</span></div>
+              <div style={{ fontSize: '2.5rem', fontWeight: 800, color: getScoreColor(score), margin: '0.5rem 0' }}>{Math.round(score / 10)} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ 10</span></div>
               <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Basé sur {totalSessions} entraînements terminés.</div>
             </div>
             <div style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
@@ -169,46 +163,30 @@ export default function TrainingTab() {
                 <Award size={18} /> Conseil du Coach
               </div>
               <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
-                Identifiez vos points faibles sur le radar ci-contre et ciblez vos prochaines sessions sur ces thématiques.
+                Identifiez vos points faibles ci-contre et ciblez vos prochaines sessions sur ces thématiques pour équilibrer votre profil.
               </p>
             </div>
           </div>
 
-          {/* Graphique Radar SVG personnalisé */}
-          <div style={{ display: 'flex', justifyContent: 'center', position: 'relative' }}>
-            <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ overflow: 'visible' }}>
-              {/* Lignes de fond */}
-              <polygon points={maxPolygon} fill="none" stroke="var(--border-color)" strokeWidth="1" />
-              <polygon points={midPolygon} fill="none" stroke="var(--border-color)" strokeWidth="1" strokeDasharray="4 4" />
-              {themes.map((_, i) => (
-                <line key={i} x1={center} y1={center} x2={getPoint(i * 2 * Math.PI / themes.length - Math.PI / 2, 100).split(',')[0]} y2={getPoint(i * 2 * Math.PI / themes.length - Math.PI / 2, 100).split(',')[1]} stroke="var(--border-color)" strokeWidth="1" />
-              ))}
-              {/* Données */}
-              <polygon points={dataPolygon} fill="rgba(59, 130, 246, 0.1)" stroke="rgba(59, 130, 246, 0.3)" strokeWidth="1" style={{ transition: 'all 0.5s ease-out' }} />
-              {/* Branches de couleurs dynamiques */}
-              {themes.map((t, i) => {
-                const angle = i * 2 * Math.PI / themes.length - Math.PI / 2;
-                const tScore = themeScores[t] || 0;
-                const coords = getPoint(angle, tScore).split(',');
-                const branchColor = tScore >= 80 ? '#10b981' : tScore >= 50 ? '#f59e0b' : '#ef4444';
-                return (
-                  <g key={`branch-${i}`}>
-                    <line x1={center} y1={center} x2={coords[0]} y2={coords[1]} stroke={branchColor} strokeWidth="4" strokeLinecap="round" style={{ transition: 'all 0.5s ease-out' }} />
-                    <circle cx={coords[0]} cy={coords[1]} r="6" fill={branchColor} stroke="white" strokeWidth="2" style={{ transition: 'all 0.5s ease-out' }} />
-                  </g>
-                );
-              })}
-              {/* Labels */}
-              {themes.map((label, i) => {
-                const angle = i * 2 * Math.PI / themes.length - Math.PI / 2;
-                const lblR = radius * 1.3;
-                return (
-                  <text key={label} x={center + lblR * Math.cos(angle)} y={center + lblR * Math.sin(angle)} textAnchor="middle" dominantBaseline="middle" fontSize="10" fontWeight="600" fill="var(--text-muted)">
-                    {label}
-                  </text>
-                );
-              })}
-            </svg>
+          {/* Barres de progression (Remplace le Radar) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', padding: '1rem' }}>
+            {themes.map(t => {
+              const tScore = themeScores[t] || 0;
+              const tColor = getScoreColor(tScore);
+              return (
+                <div key={t}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>{t}</span>
+                    <span style={{ fontSize: '1.1rem', fontWeight: 800, color: tColor }}>
+                      {Math.round(tScore / 10)} <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>/ 10</span>
+                    </span>
+                  </div>
+                  <div style={{ width: '100%', height: '8px', background: 'var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{ width: `${tScore}%`, height: '100%', background: tColor, transition: 'width 0.8s ease-out' }} />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </DashboardCard>
