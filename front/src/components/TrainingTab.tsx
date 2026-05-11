@@ -71,8 +71,8 @@ export default function TrainingTab() {
           category: selectedTheme,
           type: selectedType,
           question: data.questions[0].text,
-          advice: data.questions[0].advice
-          suggested_answer: data.questions[0].suggested_answer
+          advice: data.questions[0].advice,
+          suggested_answer: data.questions[0].suggested_answer,
         };
         // Démarre la session interactive
         setActiveQuestion(newQ);
