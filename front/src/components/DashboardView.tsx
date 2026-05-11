@@ -100,7 +100,7 @@ export const DashboardView = () => {
 
   // Liste de tous les livrables avec leur état
   const deliverableItems = [
-    { name: t('deliv_cv', "CV & ATS"), tab: "cv", data: cvResult, icon: <FileText size={18}/> },
+    { name: t('deliv_cv', "CV ATS"), tab: "cv", data: cvResult, icon: <FileText size={18}/> },
     { name: t('deliv_pitch', "Pitch de 3 minutes"), tab: "interview", anchor: "pitch_section", data: pitchResult, icon: <Mic size={18}/> },
     { name: t('deliv_questions', "Questions d'Entretien"), tab: "interview", anchor: "questionnaire_section", data: questionsResult, icon: <MessageSquare size={18}/> },
     { name: t('deliv_flaws', "Parades aux Défauts"), tab: "interview", anchor: "flaws_section", data: flawCoachingResult, icon: <AlertTriangle size={18}/> },

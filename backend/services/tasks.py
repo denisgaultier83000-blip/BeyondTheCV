@@ -197,7 +197,7 @@ async def _run_pitch_logic(task_id: str, candidate_data: dict):
         OUTPUT LANGUAGE: {target_lang}
         """
         
-        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction=f"You are a senior recruiter. Output STRICT JSON in {target_lang}.")
+        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction=f"You are a senior recruiter. ALL JSON VALUES MUST BE ENTIRELY WRITTEN IN {target_lang.upper()}. Output STRICT JSON.")
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         fallback = {"accroche": "Erreur", "preuve": "", "valeur": "", "projection": ""}

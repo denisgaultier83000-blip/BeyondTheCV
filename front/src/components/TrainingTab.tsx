@@ -24,6 +24,14 @@ export default function TrainingTab() {
   const [selectedType, setSelectedType] = useState('MES');
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // UX Interactive (Aide & Suggestion)
+  const [activeQuestion, setActiveQuestion] = useState<any>(null);
+  const [showHint, setShowHint] = useState(false);
+  const [showSuggestion, setShowSuggestion] = useState(false);
+  const [userAnswer, setUserAnswer] = useState('');
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [feedback, setFeedback] = useState<any>(null);
+
   const themes = ['Management', 'Gestion de crise', 'Négociation', 'Leadership', 'Communication'];
   const types = [{ id: 'Classique', label: 'Questions Classiques' }, { id: 'MES', label: 'Mises en Situation' }];
 
@@ -64,17 +72,42 @@ export default function TrainingTab() {
           type: selectedType,
           question: data.questions[0].text,
           advice: data.questions[0].advice
+          suggested_answer: data.questions[0].suggested_answer
         };
-        // On ajoute la nouvelle question à la liste (conservée dans le dashboard)
-        const updatedQuestions = [...(cvData?.trainingQuestions || []), newQ];
-        if (updateFormData) {
-          updateFormData("trainingQuestions", updatedQuestions);
-        }
+        // Démarre la session interactive
+        setActiveQuestion(newQ);
+        setShowHint(false);
+        setShowSuggestion(false);
+        setUserAnswer('');
+        setFeedback(null);
       }
     } catch (err) {
       console.error("Erreur génération question", err);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleEvaluate = async () => {
+    if (!userAnswer.trim()) return;
+    setIsEvaluating(true);
+    try {
+      const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/evaluate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ theme: activeQuestion.category, question_type: activeQuestion.type, question_text: activeQuestion.question, user_answer: userAnswer })
+      });
+      const data = await res.json();
+      setFeedback(data.feedback);
+      fetchStats();
+      
+      const completedQ = { ...activeQuestion, userAnswer, feedback: data.feedback };
+      const updatedQuestions = [...(cvData?.trainingQuestions || []), completedQ];
+      if (updateFormData) updateFormData("trainingQuestions", updatedQuestions);
+    } catch (err) {
+      console.error("Erreur évaluation", err);
+    } finally {
+      setIsEvaluating(false);
     }
   };
 
@@ -208,8 +241,56 @@ export default function TrainingTab() {
         </div>
       </DashboardCard>
 
+      {/* --- SESSION INTERACTIVE EN COURS --- */}
+      {activeQuestion && (
+        <DashboardCard title="🎯 Votre Défi" icon={<Target size={24} />}>
+          <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
+            <h3 style={{ marginTop: 0, color: 'var(--text-main)' }}>{activeQuestion.question}</h3>
+            
+            {!showHint ? (
+              <button className="btn-outline" onClick={() => setShowHint(true)} style={{ marginTop: '1rem' }}>💡 Besoin d'un conseil ?</button>
+            ) : (
+              <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '0.5rem', borderLeft: '4px solid var(--primary)' }}>
+                <p style={{ margin: 0, color: 'var(--text-main)', fontSize: '0.95rem' }}><strong>Objectif :</strong> {activeQuestion.advice}</p>
+                {!showSuggestion ? (
+                  <button className="btn-outline" onClick={() => setShowSuggestion(true)} style={{ marginTop: '1rem', fontSize: '0.85rem' }}>Voir une suggestion</button>
+                ) : (
+                  <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--bg-card)', borderRadius: '0.5rem' }}>
+                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}><em>Suggestion : {activeQuestion.suggested_answer || "Utilisez la méthode STAR."}</em></p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <textarea 
+            value={userAnswer} onChange={(e) => setUserAnswer(e.target.value)} placeholder="Rédigez votre réponse ici..."
+            style={{ width: '100%', minHeight: '120px', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-main)', marginBottom: '1rem' }}
+          />
+
+          <button onClick={handleEvaluate} disabled={isEvaluating || !userAnswer.trim()} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {isEvaluating ? <RefreshCw className="spin" size={18} /> : <MessageSquare size={18} />} {isEvaluating ? "Évaluation..." : "Soumettre & Évaluer"}
+          </button>
+
+          {feedback && (
+            <div style={{ marginTop: '2rem', padding: '1.5rem', background: 'var(--bg-secondary)', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
+              <h4 style={{ margin: '0 0 1rem 0', color: 'var(--primary)' }}>Score : {feedback.score}/100</h4>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div><strong style={{ color: '#10b981' }}>Points forts :</strong><ul style={{ margin: '0.5rem 0', paddingLeft: '1.2rem', fontSize: '0.9rem' }}>{feedback.strengths?.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul></div>
+                <div><strong style={{ color: '#ef4444' }}>À améliorer :</strong><ul style={{ margin: '0.5rem 0', paddingLeft: '1.2rem', fontSize: '0.9rem' }}>{feedback.weaknesses?.map((w: string, i: number) => <li key={i}>{w}</li>)}</ul></div>
+              </div>
+              <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
+                <strong>Réponse idéale :</strong>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.5rem', whiteSpace: 'pre-line' }}>{feedback.improved_answer}</p>
+              </div>
+              <button onClick={() => { setActiveQuestion(null); setFeedback(null); }} className="btn-secondary" style={{ marginTop: '1rem' }}>Terminer et passer à la suite</button>
+            </div>
+          )}
+        </DashboardCard>
+      )}
+
       {/* --- HISTORIQUE D'ENTRAÎNEMENT --- */}
-      {cvData?.trainingQuestions && cvData.trainingQuestions.length > 0 && (
+      {!activeQuestion && cvData?.trainingQuestions && cvData.trainingQuestions.length > 0 && (
         <DashboardCard title="Historique d'Entraînement" icon={<History size={24} />}>
            <Questionnaire 
              questions={[...cvData.trainingQuestions].reverse()} 

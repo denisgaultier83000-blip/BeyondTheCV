@@ -105,7 +105,11 @@ export default function MarketReport({ data, onBack }: Props) {
                                     <li><strong>Articles :</strong> 
                                         <ul style={{ marginTop: '0.5rem' }}>
                                             {data.company_report.news_links.map((link: any, i: number) => (
-                                                <li key={i}><a href={link.url} target="_blank" rel="noopener noreferrer">{link.title}</a></li>
+                                                <li key={i}>
+                                                    <a href={link.url.startsWith('http') ? link.url : `https://${link.url}`} target="_blank" rel="noopener noreferrer">
+                                                        {link.title}
+                                                    </a>
+                                                </li>
                                             ))}
                                         </ul>
                                     </li>

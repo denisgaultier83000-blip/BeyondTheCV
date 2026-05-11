@@ -307,7 +307,7 @@ async def generate_pitch(data, quality='smart'):
     
     OUTPUT LANGUAGE: {target_lang}
     """
-    result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"Output STRICT JSON in {target_lang}.")
+    result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a senior recruiter. ALL CONTENT MUST BE ENTIRELY WRITTEN IN {target_lang.upper()}. Output STRICT JSON.")
     if "error" in result:
         return {}
     return result
@@ -521,13 +521,16 @@ async def generate_document(request: GenerateRequest, current_user: dict = Depen
                 analysis_data = None
 
             # [FIX CRITIQUE] Aplatissement des informations personnelles pour le LaTeX
-            # On force l'écrasement avec les VRAIES données utilisateur (data) 
-            # pour écraser définitivement toute hallucination de l'IA (ex: "Prénom Nom")
+            # On force l'écrasement avec les VRAIES données utilisateur (data)
+            # et on SUPPRIME les champs vides pour tuer les hallucinations type "URL linkedin propre"
             real_personal_info = data.get("personal_info", {})
             if isinstance(real_personal_info, dict):
-                for k, v in real_personal_info.items():
-                    if v and str(v).strip():  # Si la vraie donnée existe, on l'impose à la racine
-                        optimized_data[k] = v
+                for k in ['first_name', 'last_name', 'email', 'phone', 'linkedin', 'city', 'country']:
+                    val = real_personal_info.get(k)
+                    if val and str(val).strip():
+                        optimized_data[k] = val
+                    else:
+                        optimized_data.pop(k, None)
 
             # Normalisation des langues
             langs = optimized_data.get('languages')
