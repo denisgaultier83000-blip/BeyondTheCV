@@ -5,9 +5,6 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import datetime, timedelta
 
-# Ajout du dossier parent au path pour trouver database.py
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 # Import depuis la configuration centrale pour garantir la même connexion
 try:
     from database import DATABASE_URL
