@@ -120,6 +120,19 @@ def initialize_schema():
             )
         """)
 
+        print("   - Vérification de la table 'feedbacks'...")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS feedbacks (
+                id SERIAL PRIMARY KEY,
+                user_id TEXT,
+                feature TEXT,
+                is_positive BOOLEAN,
+                comments TEXT,
+                job_type TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
         conn.commit()
         print("\n🎉 Schéma vérifié et fonctionnel pour les données à venir !")
 

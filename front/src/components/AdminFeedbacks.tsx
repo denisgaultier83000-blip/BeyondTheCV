@@ -3,6 +3,7 @@ import { ThumbsUp, ThumbsDown, MessageSquare, Activity, BarChart3, ArrowLeft } f
 import { useNavigate } from 'react-router-dom';
 import { authenticatedFetch } from '../utils/auth';
 import { API_ROUTES } from '../api/routes';
+import { API_BASE_URL } from '../config';
 
 interface Feedback {
   id: number;
@@ -23,8 +24,12 @@ export default function AdminFeedbacks() {
   useEffect(() => {
     const fetchFeedbacks = async () => {
       try {
-        const response = await authenticatedFetch(API_ROUTES.FEEDBACKS.LIST);
-        if (!response.ok) throw new Error("Erreur lors de la récupération des feedbacks");
+        // [FIX EXPERT] On s'affranchit de API_ROUTES pour garantir la bonne URL préfixée (/api/cv/)
+        const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/feedbacks`);
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(`Erreur ${response.status} : ${errText}`);
+        }
         const data = await response.json();
         // Si le backend renvoie un tableau plat, on l'utilise directement, sinon on cherche la clé 'feedbacks'
         setFeedbacks(Array.isArray(data) ? data : (data.feedbacks || []));
