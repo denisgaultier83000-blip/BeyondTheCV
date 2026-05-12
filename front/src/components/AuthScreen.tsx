@@ -19,10 +19,11 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
     setLoading(true);
     setError(null);
     try {
+      // [FIX EXPERT] Utilisation du format URL-encoded requis par OAuth2PasswordRequestForm
       const response = await fetch(`${API_BASE_URL}/api/auth/token`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ username: email, password }),
       });
 
       if (!response.ok) {
@@ -31,8 +32,9 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
       }
 
       const data = await response.json();
-      if (data.token) {
-        localStorage.setItem("token", data.token);
+      // [FIX EXPERT] Le backend renvoie 'access_token', pas 'token'
+      if (data.access_token) {
+        localStorage.setItem("token", data.access_token);
         if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
         onLoginSuccess();
       }
