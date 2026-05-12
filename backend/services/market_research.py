@@ -42,6 +42,8 @@ def generate_deterministic_queries(company: str, industry: str) -> list:
     # [FIX] Ne rechercher l'entreprise que si elle est renseignée
     if company and company.strip() and company.lower() != "unknown":
         queries.extend([
+            f"{company_context} actualités stratégiques récentes {current_year}", # [NEW] Force la recherche d'actualités chaudes
+            f"{company_context} nouveaux projets ou acquisitions {current_year}", # [NEW] Détecte les pivots de l'entreprise
             f"{company_context} plan stratégique vision",
             f"{company_context} résultats financiers chiffre d'affaires",
             f"{company_context} valeurs culture d'entreprise",
@@ -166,6 +168,7 @@ def _enforce_schema(data: dict) -> dict:
     safe_company["usp"] = company.get("usp") or company.get("proposition_valeur") or company.get("enjeux_defis") or company.get("enjeux") or "Non spécifié."
     safe_company["culture_environment"] = company.get("culture_environment") or company.get("culture_environnement") or company.get("culture") or "Non spécifié."
     safe_company["team_structure"] = company.get("team_structure") or company.get("equipe") or company.get("structure_equipe") or "Non spécifié."
+    safe_company["linkedin_url"] = company.get("linkedin_url") or ""
     safe_company["news_links"] = company.get("news_links") or company.get("actualites") or []
 
     return {
@@ -245,6 +248,19 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
                 if isinstance(res, dict) and ("Unauthorized" in str(res) or "Forbidden" in str(res) or res.get("message") == "Unauthorized."):
                     api_key_invalid = True
                     break
+                    
+                # [FIX EXPERT] On extrait les "News" en priorité absolue pour garantir de la matière fraîche à l'IA
+                if "news" in res:
+                    for item in res["news"]:
+                        if item.get("link") and item["link"] not in seen_links:
+                            raw_results.append({
+                                "title": f"[ACTUALITÉ] {item.get('title')}",
+                                "snippet": item.get("snippet", ""),
+                                "link": item.get("link"),
+                                "date": item.get("date", "Récemment"),
+                                "source": item.get("source", "Presse")
+                            })
+                            seen_links.add(item["link"])
 
                 if "organic" in res:
                     for item in res["organic"]:
@@ -376,28 +392,46 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
     # [ROBUSTESSE] Application stricte du schéma pour éviter le crash du frontend
     safe_synthesis = _enforce_schema(final_synthesis)
 
-    # [FIX EXPERT] Tri intelligent : on remonte les articles de presse en priorité absolue
-    # et on augmente la limite visible pour l'utilisateur final.
-    press_sources = [r for r in raw_results if "[PRESSE]" in r.get('title', '')]
-    other_sources = [r for r in raw_results if "[PRESSE]" not in r.get('title', '')]
+    # [FIX EXPERT] Extraction intelligente avec Plus-Value IA
+    news_sources = [r for r in raw_results if "[ACTUALITÉ]" in r.get('title', '')]
+    other_sources = [r for r in raw_results if "[ACTUALITÉ]" not in r.get('title', '')]
     
-    # [FIX EXPERT] L'IA a tendance à halluciner les URLs ou à les tronquer (Erreur 404).
-    # Nous écrasons la génération de l'IA par les liens organiques réels récupérés via Serper.
     real_news_links = []
-    # On prend en priorité la presse, sinon on prend les résultats organiques standard
-    valid_sources = press_sources if press_sources else other_sources
-    for r in valid_sources[:5]:  # On sécurise jusqu'à 5 vrais articles
+    valid_sources = news_sources if news_sources else other_sources
+    
+    # On récupère le tableau d'actualités généré par l'IA contenant son analyse stratégique
+    ai_generated_news = safe_synthesis["company_report"].get("news_links", [])
+    
+    for i, r in enumerate(valid_sources[:4]):  # Top 4 articles sourcés et fiables
+        clean_title = r.get('title', '').replace('[ACTUALITÉ] ', '')
+        
+        # On tente de matcher l'article réel avec l'analyse stratégique de l'IA
+        analysis = ""
+        for ai_news in ai_generated_news:
+            # Match flou sur les premiers mots du titre
+            if clean_title[:20].lower() in ai_news.get('title', '').lower():
+                analysis = ai_news.get('strategic_analysis', '')
+                break
+                
+        # Fallback : si l'IA a fait l'analyse mais qu'on ne trouve pas le match exact, on l'associe au i-ème article
+        if not analysis and i < len(ai_generated_news):
+            analysis = ai_generated_news[i].get('strategic_analysis', '')
+            
+        # Injection de l'analyse IA dans le champ source pour affichage direct sur le Frontend
+        source_str = r.get('source', 'Presse / Web')
+        if analysis:
+            source_str = f"{source_str} \n💡 Conseil IA : {analysis}"
+
         real_news_links.append({
-            "title": r.get('title', '').replace('[PRESSE] ', ''),
+            "title": clean_title,
             "url": r.get('link', '#'),
-            "source": "Presse / Web",
+            "source": source_str,
             "date": r.get('date', datetime.now().strftime("%Y-%m-%d"))
         })
         
-    # Écrasement inconditionnel pour éradiquer les liens morts (404) inventés par l'IA
     safe_synthesis["company_report"]["news_links"] = real_news_links
 
-    best_sources = (press_sources + other_sources)[:10] # Top 10 des sources
+    best_sources = (news_sources + other_sources)[:10] # Top 10 des sources
     
     display_sources = []
     for r in best_sources:

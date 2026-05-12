@@ -24,7 +24,7 @@ Ton analyse doit être orientée "action" : que dire, quelles questions poser, c
 - Ne jamais faire une fiche Wikipédia
 - Toujours transformer l’information en conseil concret
 - Toujours raisonner comme un recruteur
-- **REVUE DE PRESSE & ACTUALITÉS (TRÈS IMPORTANT) :** Tu DOIS extraire au moins 2 ou 3 articles ou liens pertinents depuis le `{search_context}`. Même si ce n'est pas une "grosse actualité", inclue des liens vers la page "Carrières", des communiqués de presse, ou des articles corporate de l'entreprise elle-même. Sois TRÈS SOUPLE sur la source (site officiel, presse locale, blogs sectoriels). Le but est de donner de la matière au candidat. Ne renvoie JAMAIS un tableau vide si des URLs sont présentes dans le contexte.
+- **REVUE DE PRESSE & ACTUALITÉS (TRÈS IMPORTANT) :** Tu DOIS extraire au moins 2 ou 3 articles ou liens pertinents depuis le `{search_context}`. Ne te contente pas de lister l'article : tu DOIS générer le champ `strategic_analysis` en expliquant au candidat *comment utiliser cette information en entretien* (ex: opportunité de croissance, pivot technologique, défi à relever).
 - **LANGUE :** La sortie doit être en `{target_lang}`.
 
 ## 📦 SORTIE ATTENDUE (JSON STRICT)
@@ -49,12 +49,14 @@ Ton analyse doit être orientée "action" : que dire, quelles questions poser, c
     "usp": "[Quels sont les enjeux, les défis majeurs et la proposition de valeur ?]",
     "culture_environment": "[Quelle est la culture d'entreprise perçue ? (ex: 'Très orientée produit').]",
     "team_structure": "[Comment sont structurées les équipes ?]",
+    "linkedin_url": "[Lien vers la page LinkedIn de l'entreprise (ou une URL de recherche LinkedIn pertinente)]",
     "news_links": [
       {
         "title": "[Titre exact de l'article]",
         "url": "https://lien-vers-article.com",
         "source": "[Nom du média (ex: Les Echos, Le Figaro, L'Usine Nouvelle)]",
-        "date": "[Mois Année]"
+                "date": "[Mois Année]",
+                "strategic_analysis": "[PLUS-VALUE IA : En 1 ou 2 phrases concrètes, explique pourquoi cette actualité est un levier pour le candidat. Ex: 'Le rachat de X signifie qu'ils vont devoir structurer leurs équipes, une excellente opportunité pour valoriser votre expérience en conduite du changement.']"
       }
     ]
   }

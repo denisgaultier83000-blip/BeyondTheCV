@@ -73,6 +73,9 @@ export const PrintableDossier = () => {
         <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🏢 Analyse Entreprise & Marché</h2>
         <div className="print-box">
           <h3 style={{ color: '#2563eb' }}>Entreprise : {researchResult?.company || cvData?.target_company || "Cible"}</h3>
+          {companyReport.linkedin_url && (
+            <p><strong>LinkedIn :</strong> <a href={companyReport.linkedin_url} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'none' }}>Accéder à la page de l'entreprise</a></p>
+          )}
           <p><strong>ADN & Identité :</strong> {companyReport.identity_dna || "N/A"}</p>
           <p><strong>Santé Financière :</strong> {companyReport.financial_health || "N/A"}</p>
           <p><strong>Défis & USP :</strong> {companyReport.usp || "N/A"}</p>
