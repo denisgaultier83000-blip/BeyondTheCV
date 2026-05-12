@@ -402,9 +402,9 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
     # [FIX EXPERT] L'IA a tendance à halluciner les URLs ou à les tronquer (Erreur 404).
     # Nous écrasons la génération de l'IA par les liens organiques réels récupérés via Serper.
     real_news_links = []
-        # On prend en priorité la presse, sinon on prend les résultats organiques standard
-        valid_sources = press_sources if press_sources else other_sources
-        for r in valid_sources[:5]:  # On sécurise jusqu'à 5 vrais articles
+    # On prend en priorité la presse, sinon on prend les résultats organiques standard
+    valid_sources = press_sources if press_sources else other_sources
+    for r in valid_sources[:5]:  # On sécurise jusqu'à 5 vrais articles
         real_news_links.append({
             "title": r.get('title', '').replace('[PRESSE] ', ''),
             "url": r.get('link', '#'),
@@ -412,8 +412,8 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
             "date": r.get('date', datetime.now().strftime("%Y-%m-%d"))
         })
         
-        # Écrasement inconditionnel pour éradiquer les liens morts (404) inventés par l'IA
-        safe_synthesis["company_report"]["news_links"] = real_news_links
+    # Écrasement inconditionnel pour éradiquer les liens morts (404) inventés par l'IA
+    safe_synthesis["company_report"]["news_links"] = real_news_links
 
     best_sources = (press_sources + other_sources)[:10] # Top 10 des sources
     
