@@ -183,6 +183,32 @@ async def get_applications(current_user: dict = Depends(get_current_user)):
     
     return list(apps.values())
 
+@router.delete("/api/applications/{app_id}")
+async def delete_application(app_id: str, current_user: dict = Depends(get_current_user)):
+    """Supprime une candidature (dossier) et tous ses documents liés."""
+    async with db.get_connection() as conn:
+        # 1. Vérifier que l'application appartient bien à l'utilisateur
+        cursor = await db.execute(conn, "SELECT id FROM job_applications WHERE id = ? AND user_id = ?", (app_id, current_user["id"]))
+        if not await cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Application non trouvée ou accès refusé.")
+            
+        # 2. Supprimer les documents liés
+        await db.execute(conn, "DELETE FROM documents WHERE application_id = ?", (app_id,))
+        
+        # 3. Supprimer les tâches liées
+        await db.execute(conn, "DELETE FROM tasks WHERE application_id = ?", (app_id,))
+        
+        # 4. Supprimer les sessions d'entretien liées (avec fallback si la table n'est pas encore créée)
+        try:
+            await db.execute(conn, "DELETE FROM interview_sessions WHERE application_id = ?", (app_id,))
+        except Exception:
+            pass
+            
+        # 5. Supprimer l'application elle-même
+        await db.execute(conn, "DELETE FROM job_applications WHERE id = ?", (app_id,))
+        
+    return {"status": "success", "message": "Candidature supprimée"}
+
 @router.websocket("/ws/task/{task_id}")
 async def websocket_endpoint(websocket: WebSocket, task_id: str):
     await manager.connect(websocket, task_id)

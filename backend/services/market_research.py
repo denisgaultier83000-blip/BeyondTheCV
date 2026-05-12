@@ -42,9 +42,6 @@ def generate_deterministic_queries(company: str, industry: str) -> list:
     # [FIX] Ne rechercher l'entreprise que si elle est renseignée
     if company and company.strip() and company.lower() != "unknown":
         queries.extend([
-            f"{company_context} actualités presse {current_year}", # [FIX] Garde cette requête générale
-            f"{company_context} articles de presse {current_year}", # [FIX] Ajout requête spécifique
-            f"{company_context} communiqués de presse {current_year}", # [FIX] Ajout requête spécifique
             f"{company_context} plan stratégique vision",
             f"{company_context} résultats financiers chiffre d'affaires",
             f"{company_context} valeurs culture d'entreprise",
@@ -259,19 +256,6 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
                                 "date": item.get("date", "Recent")
                             })
                             seen_links.add(item["link"])
-                            
-                # [FIX EXPERT] Extraction spécifique des articles de presse et actualités
-                for news_key in ["news", "topStories"]:
-                    if news_key in res:
-                        for item in res[news_key]:
-                            if item.get("link") and item["link"] not in seen_links:
-                                raw_results.append({
-                                    "title": f"[PRESSE] {item.get('title')}",
-                                    "snippet": item.get("snippet", item.get("source", "Actualité")),
-                                    "link": item.get("link"),
-                                    "date": item.get("date", "Récemment")
-                                })
-                                seen_links.add(item["link"])
                 
         if api_key_invalid:
             print("[PIPELINE] 🛑 Serper API key is invalid or expired. Aborting web search.", flush=True)
@@ -299,11 +283,9 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
     if raw_results:
         if task_id:
             await manager.broadcast(task_id, f"📊 Formatage de {len(raw_results)} sources pour synthèse...")
-        # [FIX EXPERT] Suppression du goulot d'étranglement (Data Loss).
-        # On sépare les articles de presse et les résultats organiques pour garantir un mix parfait à l'IA.
-        press_results = [r for r in raw_results if "[PRESSE]" in r.get('title', '')]
-        organic_results = [r for r in raw_results if "[PRESSE]" not in r.get('title', '')]
-        balanced_results = press_results[:15] + organic_results[:25]
+        
+        # Utilisation exclusive des résultats organiques de fond
+        balanced_results = raw_results[:40]
         
         context_lines = []
         for i, r in enumerate(balanced_results):

@@ -172,6 +172,7 @@ async def optimize_cv_data(data, target_lang='French', quality='smart'):
     prompt = f"""
     Optimize this CV data for ATS in {target_lang}. Improve wording and keywords.
     ⚠️ IMPÉRATIF DE CORRECTION : Le texte fourni est un brouillon brut. Tu DOIS corriger scrupuleusement toutes les fautes d'orthographe, de frappe, ajouter les accents manquants et corriger la typographie (mettre des majuscules aux noms, prénoms, noms d'entreprises et débuts de phrases). Le résultat doit avoir une rigueur typographique absolue.
+    ⚠️ INTERDICTION ABSOLUE : N'invente AUCUNE donnée personnelle (téléphone, email, ville, linkedin). Si une information est absente du JSON source, laisse la valeur VIDE ou null. N'écris JAMAIS de texte comme "Numéro formaté", "Ville, France" ou "URL propre".
     {instructions_candidat}
     
     DATA:
@@ -356,9 +357,43 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
             provider="openai", 
             system_instruction="You are an Expert Interview Coach. Output STRICT JSON."
         )
+        
+        # [FIX EXPERT] Sauvegarde de la session d'entretien en BDD
+        session_id = str(uuid.uuid4())
+        async with db.get_connection() as conn:
+            await db.execute(conn, """
+                INSERT INTO interview_sessions (id, user_id, application_id, question_text, user_answer, score, feedback, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?::jsonb, ?)
+            """, (session_id, current_user["id"], "general", request.question, request.user_answer, result.get("score", 0), json.dumps(result), datetime.now()))
+            
         return {"feedback": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'évaluation de la réponse: {str(e)}")
+
+@router.get("/interview/history")
+async def get_interview_history(current_user: dict = Depends(require_active_subscription)):
+    """Récupère l'historique des réponses aux entretiens de l'utilisateur."""
+    async with db.get_connection() as conn:
+        cursor = await db.execute(conn, """
+            SELECT id, question_text, user_answer, score, feedback, created_at
+            FROM interview_sessions 
+            WHERE user_id = ? 
+            ORDER BY created_at DESC
+        """, (current_user["id"],))
+        rows = await cursor.fetchall()
+        
+    history = []
+    for row in rows:
+        r = dict(row) if not isinstance(row, tuple) else {
+            "id": row[0], "question_text": row[1], "user_answer": row[2], 
+            "score": row[3], "feedback": row[4], "created_at": row[5]
+        }
+        feedback = json.loads(r["feedback"]) if isinstance(r["feedback"], str) else r["feedback"]
+        history.append({
+            "id": r["id"], "question": r["question_text"], "user_answer": r["user_answer"],
+            "score": r["score"], "feedback": feedback, "created_at": r["created_at"].isoformat() if hasattr(r["created_at"], 'isoformat') else str(r["created_at"])
+        })
+    return {"history": history}
 
 @router.post("/training/generate-question")
 async def generate_training_question(request: CustomQuestionRequest, current_user: dict = Depends(require_active_subscription)):
@@ -588,8 +623,13 @@ async def generate_document(request: GenerateRequest, current_user: dict = Depen
             if isinstance(real_personal_info, dict):
                 for k in ['first_name', 'last_name', 'email', 'phone', 'linkedin', 'city', 'country']:
                     val = real_personal_info.get(k)
-                    if val and str(val).strip():
-                        optimized_data[k] = val
+                    if val and isinstance(val, str) and str(val).strip():
+                        val_lower = val.lower()
+                        # Filtre strict anti-hallucinations fréquentes de l'IA
+                        if "propre" in val_lower or "formaté" in val_lower or ("url" in val_lower and k == "linkedin"):
+                            optimized_data.pop(k, None)
+                        else:
+                            optimized_data[k] = val.strip()
                     else:
                         optimized_data.pop(k, None)
 

@@ -68,7 +68,8 @@ export const DashboardView = () => {
     ],
     market: [
       { label: t('submenu_gap', 'Gap Analysis'), id: 'gap_section' },
-      { label: t('submenu_market', 'Entreprise & Marché'), id: 'analysis_section' },
+      { label: t('submenu_company', 'Entreprise'), id: 'company_section' },
+      { label: t('submenu_market', 'Marché'), id: 'market_section' },
       { label: t('submenu_decoder', 'Décodeur d\'Annonce'), id: 'decoder_section' }
     ],
     career: [
@@ -105,7 +106,8 @@ export const DashboardView = () => {
     { name: t('deliv_questions', "Questions d'Entretien"), tab: "interview", anchor: "questionnaire_section", data: questionsResult, icon: <MessageSquare size={18}/> },
     { name: t('deliv_flaws', "Parades aux Défauts"), tab: "interview", anchor: "flaws_section", data: flawCoachingResult, icon: <AlertTriangle size={18}/> },
     { name: t('deliv_gap', "Analyse d'Écarts (Gap)"), tab: "market", anchor: "gap_section", data: gapResult, icon: <Target size={18}/> },
-    { name: t('deliv_market', "Rapport Entreprise & Marché"), tab: "market", anchor: "analysis_section", data: researchResult, icon: <Globe size={18}/> },
+    { name: t('deliv_company', "Rapport Entreprise"), tab: "market", anchor: "company_section", data: researchResult, icon: <Building size={18}/> },
+    { name: t('deliv_market', "Rapport Marché"), tab: "market", anchor: "market_section", data: researchResult, icon: <Globe size={18}/> },
     { 
       name: t('deliv_decoder', "Décodeur d'Annonce"), 
       tab: "market", 
@@ -201,7 +203,12 @@ export const DashboardView = () => {
               <div className="bento-card col-span-3" style={{ background: 'var(--bg-card)' }}>
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                    <div className="bento-header" style={{ marginBottom: 0 }}><Activity size={20} color="var(--primary)"/> {t('hub_title', 'Centre de Suivi des Analyses')}</div>
-                   <button onClick={() => window.print()} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
+                   <button 
+                     onClick={() => {
+                       // [EXPERT FIX] Câblage prêt pour une route dédiée qui sera propre.
+                       window.open('/dossier-print', '_blank');
+                     }} 
+                     className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
                      <Printer size={16} /> Imprimer mon Dossier
                    </button>
                  </div>
@@ -286,8 +293,8 @@ export const DashboardView = () => {
              <div id="gap_section">
                <GapAnalysisFull data={gapResult || pilotData} loading={isProcessing && !gapResult} onBack={() => handleTabChange('overview')} />
              </div>
-             <div id="analysis_section">
-               <AnalysisTab researchResult={researchResult} salaryResult={salaryResult} onRefresh={triggerResearch} isRefreshing={globalStatus === "PROCESSING"} />
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+               <AnalysisTab researchResult={researchResult} salaryResult={salaryResult} onRefresh={triggerResearch} isRefreshing={isProcessing} />
              </div>
              <div id="decoder_section">
                <JobDecoder data={jobDecoderResult} loading={isProcessing && !jobDecoderResult} />

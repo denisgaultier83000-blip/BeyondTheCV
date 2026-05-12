@@ -1,25 +1,19 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Building, Globe, RefreshCw } from 'lucide-react';
 import { CompanyAnalysisCard } from './CompanyAnalysisCard';
 import { MarketAnalysisCard } from './MarketAnalysisCard';
 
 export const AnalysisTab = ({ researchResult, salaryResult, onRefresh, isRefreshing }: { researchResult: any, salaryResult: any, onRefresh?: () => void, isRefreshing?: boolean }) => {
-  const [subTab, setSubTab] = useState<'company' | 'market'>('company');
 
   return (
     <div className="analysis-tab-container">
       <div className="cv-header">
-        <div className="cv-type-selector">
-          <button className={`cv-type-btn ${subTab === 'company' ? 'active' : ''}`} onClick={() => setSubTab('company')}>
-            <Building size={16} /> Rapport Entreprise
-          </button>
-          <button className={`cv-type-btn ${subTab === 'market' ? 'active' : ''}`} onClick={() => setSubTab('market')}>
-            <Globe size={16} /> Rapport Marché
-          </button>
-        </div>
+        <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-main)' }}>
+          <Building size={20} color="var(--primary)" /> Analyse Entreprise & Marché
+        </h3>
         <button 
           className="btn-action btn-secondary-action" 
-          style={{ maxWidth: '250px', padding: '0.5rem 1rem' }}
+          style={{ maxWidth: '250px', padding: '0.5rem 1rem', marginLeft: 'auto' }}
           onClick={onRefresh}
           disabled={isRefreshing}
         >
@@ -27,10 +21,13 @@ export const AnalysisTab = ({ researchResult, salaryResult, onRefresh, isRefresh
           {isRefreshing ? "Actualisation..." : "Mettre à jour les données"}
         </button>
       </div>
-      <div>
-        {subTab === 'company' 
-          ? <CompanyAnalysisCard data={researchResult} loading={!researchResult || isRefreshing} error={researchResult?.error} /> 
-          : <MarketAnalysisCard data={researchResult} salaryData={salaryResult} loading={(!researchResult || !salaryResult) || isRefreshing} error={researchResult?.error || salaryResult?.error} />}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div id="company_section">
+          <CompanyAnalysisCard data={researchResult} loading={!researchResult || isRefreshing} error={researchResult?.error} /> 
+        </div>
+        <div id="market_section">
+          <MarketAnalysisCard data={researchResult} salaryData={salaryResult} loading={(!researchResult || !salaryResult) || isRefreshing} error={researchResult?.error || salaryResult?.error} />
+        </div>
       </div>
     </div>
   );

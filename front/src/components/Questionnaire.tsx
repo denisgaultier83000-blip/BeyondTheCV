@@ -192,7 +192,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
           
           <div style={{ background: 'var(--bg-card)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
             <Lightbulb size={20} color="#eab308" style={{ flexShrink: 0 }} />
-            <span><strong>Indicateur de difficulté :</strong> De ⭐ (Question d'introduction abordable) à ⭐⭐⭐⭐⭐ (Mise en situation extrêmement complexe ou question piège redoutable).</span>
+            <span><strong>Indicateur de difficulté :</strong> De ★ (Question abordable) à ★★★★★ (Mise en situation complexe ou question piège). Et la dernière question vous permet de vous entraîner à l'inversion de rôle !</span>
           </div>
         </>
       )}
@@ -261,7 +261,19 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                         {q.trap_type}
                       </span>
                     )}
-                    {q.difficulty && <span style={{ fontSize: '0.8rem', letterSpacing: '0.05em' }} title="Difficulté">{q.difficulty}</span>}
+            {(() => {
+              const diffVal = Number(q.difficulty || q.score);
+              if (diffVal > 0 && diffVal <= 5) {
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginLeft: 'auto' }} title={`Difficulté: ${diffVal}/5`}>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <span key={i} style={{ fontSize: '1.2rem', color: i < diffVal ? "#f59e0b" : "#e5e7eb", lineHeight: 1 }}>★</span>
+                    ))}
+                  </div>
+                );
+              }
+              return null;
+            })()}
                   </div>
                   <h3 style={{ margin: 0, fontSize: '1.05rem', lineHeight: '1.5', color: 'var(--text-main)', fontWeight: '600' }}>
                     {q.question}

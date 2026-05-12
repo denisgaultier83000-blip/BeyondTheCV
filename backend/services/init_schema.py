@@ -106,6 +106,20 @@ def initialize_schema():
             )
         """)
 
+        print("   - Vérification de la table 'interview_sessions'...")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS interview_sessions (
+                id TEXT PRIMARY KEY,
+                user_id TEXT,
+                application_id TEXT,
+                question_text TEXT,
+                user_answer TEXT,
+                score INTEGER,
+                feedback JSONB,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
         conn.commit()
         print("\n🎉 Schéma vérifié et fonctionnel pour les données à venir !")
 

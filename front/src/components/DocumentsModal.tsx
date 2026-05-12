@@ -96,6 +96,24 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
     }
   };
 
+  // [FIX EXPERT] Fonction pour supprimer un dossier complet (Application)
+  const handleDeleteApplication = async (e: React.MouseEvent, appId: string) => {
+    e.stopPropagation(); // Évite de cliquer sur la carte et de l'ouvrir
+    if (!window.confirm(t('confirm_delete_app', "Voulez-vous vraiment supprimer tout ce dossier et son contenu ?"))) return;
+
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/applications/${appId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Delete failed");
+      
+      setApplications(prev => prev.filter(app => app.id !== appId));
+    } catch (e) {
+      console.error(e);
+      alert(t('error_delete', "Erreur lors de la suppression"));
+    }
+  };
+
   // Définition visuelle des types de documents
   const getTypeDisplay = (type: string) => {
     if (type.includes("CV")) return { icon: <FileText size={16}/>, label: "CV Optimisé", color: "#3b82f6", bg: "rgba(59, 130, 246, 0.1)" };
@@ -149,9 +167,12 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
                         <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '12px', borderRadius: '10px', color: 'var(--primary)' }}>
                           <Briefcase size={24} />
                         </div>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: 'var(--text-muted)', background: 'var(--bg-secondary)', padding: '4px 8px', borderRadius: '12px' }}>
-                          <Calendar size={12} /> {new Date(app.created_at).toLocaleDateString()}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: 'var(--text-muted)', background: 'var(--bg-secondary)', padding: '4px 8px', borderRadius: '12px' }}>
+                            <Calendar size={12} /> {new Date(app.created_at).toLocaleDateString()}
+                          </span>
+                          <button onClick={(e) => handleDeleteApplication(e, app.id)} style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: '#ef4444', padding: '6px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Supprimer le dossier"><Trash2 size={14} /></button>
+                        </div>
                       </div>
                       <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', color: 'var(--text-main)' }}>{app.target_company}</h3>
                       <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>{app.target_job}</p>
