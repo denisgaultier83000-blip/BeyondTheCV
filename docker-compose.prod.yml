@@ -33,7 +33,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       ENVIRONMENT: production
       # Injection dynamique pour les CORS
-      FRONTEND_URL: "https://beyondthecv.app"
+      FRONTEND_URL: ${FRONTEND_URL}
 
     depends_on:
       db:
