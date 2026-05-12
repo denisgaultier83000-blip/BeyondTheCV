@@ -209,6 +209,56 @@ async def delete_application(app_id: str, current_user: dict = Depends(get_curre
         
     return {"status": "success", "message": "Candidature supprimée"}
 
+@router.get("/api/applications/{app_id}/load")
+async def load_application(app_id: str, current_user: dict = Depends(get_current_user)):
+    """Recharge les données complètes d'une ancienne candidature depuis les archives des tâches."""
+    async with db.get_connection() as conn:
+        cursor = await db.execute(conn, "SELECT id, target_company, target_job FROM job_applications WHERE id = ? AND user_id = ?", (app_id, current_user["id"]))
+        app_row = await cursor.fetchone()
+        if not app_row:
+            raise HTTPException(status_code=404, detail="Candidature non trouvée ou accès refusé.")
+            
+        # Récupérer toutes les tâches réussies associées à cette candidature
+        cursor = await db.execute(conn, "SELECT status, result FROM tasks WHERE application_id = ? AND status IN ('SUCCESS', 'COMPLETED')", (app_id,))
+        tasks = await cursor.fetchall()
+        
+    results = {}
+    # [FIX EXPERT] Inférence automatique du type de tâche en fonction du schéma JSON retourné
+    for task in tasks:
+        res_str = task[1] if isinstance(task, tuple) else task.get("result")
+        if not res_str: continue
+        
+        try:
+            parsed = json.loads(res_str)
+            if isinstance(parsed, str):
+                try: parsed = json.loads(parsed)
+                except: pass
+                
+            if isinstance(parsed, dict):
+                if "market_report" in parsed or "company_report" in parsed: results["researchResult"] = parsed
+                elif "gap_analysis" in parsed or "match_score" in parsed: results["gapResult"] = parsed
+                elif "salary_range" in parsed: results["salaryResult"] = parsed
+                elif "pitch" in parsed: results["pitchResult"] = parsed
+                elif "questions" in parsed: results["questionsResult"] = parsed
+                elif "career_gps_result" in parsed or "route" in parsed: results["careerGpsResult"] = parsed
+                elif "career_radar_result" in parsed or "trajectories" in parsed: results["careerRadarResult"] = parsed
+                elif "job_decoder_result" in parsed or ("reality_check" in parsed and isinstance(parsed.get("reality_check"), list)): results["jobDecoderResult"] = parsed
+                elif "hidden_market" in parsed or "target_profiles" in parsed: results["hiddenMarketResult"] = parsed
+                elif "recruiter_persona" in parsed: results["recruiterResult"] = parsed
+                elif "reality_check" in parsed and isinstance(parsed.get("reality_check"), dict): results["realityResult"] = parsed
+                elif "action_plan_result" in parsed or "action_plan" in parsed: results["actionPlanResult"] = parsed
+                elif "custom_scenarios_result" in parsed or "categories" in parsed: results["customScenariosResult"] = parsed
+                elif "optimized_data" in parsed: results["cvResult"] = parsed
+                elif "flaws" in parsed or "flaw_coaching" in parsed: results["flawCoachingResult"] = parsed
+            elif isinstance(parsed, list):
+                results["flawCoachingResult"] = parsed # Le flaw coaching peut parfois retourner un tableau direct
+        except Exception as e:
+            print(f"[LOAD APP] Erreur de parsing d'une tâche: {e}")
+            
+    app_data = dict(app_row) if not isinstance(app_row, tuple) else {"id": app_row[0], "target_company": app_row[1], "target_job": app_row[2]}
+        
+    return {"status": "success", "application": app_data, "data": results}
+
 @router.websocket("/ws/task/{task_id}")
 async def websocket_endpoint(websocket: WebSocket, task_id: str):
     await manager.connect(websocket, task_id)

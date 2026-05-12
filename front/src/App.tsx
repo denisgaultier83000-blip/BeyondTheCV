@@ -39,6 +39,7 @@ function AppContent() {
   const [darkMode, setDarkMode] = useState<boolean>(() => localStorage.getItem('theme') === 'dark');
   const [showDocsModal, setShowDocsModal] = useState(false);
   const [stepErrors, setStepErrors] = useState<Record<string, boolean>>({});
+  const [restoredData, setRestoredData] = useState<any>(null);
 
   // Ref pour éviter de déclencher l'auto-sauvegarde au montage initial de la page
   const initialLoadRef = useRef(true);
@@ -244,6 +245,31 @@ function AppContent() {
     }
   }, [isAuthenticated]);
 
+  // --- RESTAURATION DE CANDIDATURE (Depuis Mes Documents) ---
+  useEffect(() => {
+    if (isAuthenticated) {
+      const restoredDataStr = sessionStorage.getItem('restored_application_data');
+      if (restoredDataStr) {
+        try {
+          const parsedData = JSON.parse(restoredDataStr);
+          setRestoredData(parsedData);
+          setCurrentStep(8); // Redirection immédiate vers le Dashboard
+          setToasts(prev => [...prev, { id: Date.now(), text: "Dossier de candidature restauré avec succès." }]);
+        } catch (e) {
+          console.error("Erreur de parsing des données restaurées", e);
+        }
+        sessionStorage.removeItem('restored_application_data');
+      }
+    }
+  }, [isAuthenticated, setCurrentStep, setToasts]);
+
+  // Nettoyage de l'archive si le candidat lance une toute nouvelle analyse
+  useEffect(() => {
+    if (globalStatus === 'STARTING') {
+      setRestoredData(null);
+    }
+  }, [globalStatus]);
+
   useEffect(() => {
     document.body.classList.toggle('dark-mode', darkMode);
     localStorage.setItem('theme', darkMode ? 'dark' : 'light');
@@ -323,7 +349,27 @@ function AppContent() {
         </div>);
       case 8: return (
         <div className="step-wrapper dashboard-wrapper">
-          <TabProvider initialCvData={cvData} initialCvResult={cvResult} initialGapResult={gapResult} initialActionPlanResult={actionPlanResult} initialResearchResult={researchResult} initialSalaryResult={salaryResult} initialCareerGpsResult={careerGpsResult} initialCareerRadarResult={careerRadarResult} initialJobDecoderResult={jobDecoderResult} initialPitchResult={pitchResult} initialQuestionsResult={questionsResult} initialHiddenMarketResult={hiddenMarketResult} initialRecruiterResult={recruiterResult} initialRealityResult={realityResult} initialFlawCoachingResult={flawCoachingResult} initialCustomScenariosResult={customScenariosResult} initialGlobalStatus={globalStatus} onSetCurrentStep={setCurrentStep} onTriggerResearch={triggerResearch}>
+          <TabProvider 
+            initialCvData={cvData} 
+            initialCvResult={restoredData?.cvResult || cvResult} 
+            initialGapResult={restoredData?.gapResult || gapResult} 
+            initialActionPlanResult={restoredData?.actionPlanResult || actionPlanResult} 
+            initialResearchResult={restoredData?.researchResult || researchResult} 
+            initialSalaryResult={restoredData?.salaryResult || salaryResult} 
+            initialCareerGpsResult={restoredData?.careerGpsResult || careerGpsResult} 
+            initialCareerRadarResult={restoredData?.careerRadarResult || careerRadarResult} 
+            initialJobDecoderResult={restoredData?.jobDecoderResult || jobDecoderResult} 
+            initialPitchResult={restoredData?.pitchResult || pitchResult} 
+            initialQuestionsResult={restoredData?.questionsResult || questionsResult} 
+            initialHiddenMarketResult={restoredData?.hiddenMarketResult || hiddenMarketResult} 
+            initialRecruiterResult={restoredData?.recruiterResult || recruiterResult} 
+            initialRealityResult={restoredData?.realityResult || realityResult} 
+            initialFlawCoachingResult={restoredData?.flawCoachingResult || flawCoachingResult} 
+            initialCustomScenariosResult={restoredData?.customScenariosResult || customScenariosResult} 
+            initialGlobalStatus={restoredData ? "COMPLETED" : globalStatus} 
+            onSetCurrentStep={setCurrentStep} 
+            onTriggerResearch={triggerResearch}
+          >
             <DashboardView />
           </TabProvider>
         </div>);

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { authenticatedFetch } from "../utils/auth";
 import { API_ROUTES } from "../api/routes";
 import { API_BASE_URL } from "../config";
-import { Briefcase, Calendar, ChevronRight, ArrowLeft, FileText, Mic, MessageSquare, Building, BrainCircuit, Download, Trash2, FolderOpen } from 'lucide-react';
+import { Briefcase, Calendar, ChevronRight, ArrowLeft, FileText, Mic, MessageSquare, Building, BrainCircuit, Download, Trash2, FolderOpen, Printer, Eye } from 'lucide-react';
 
 interface Document {
   id: string;
@@ -111,6 +111,26 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
     } catch (e) {
       console.error(e);
       alert(t('error_delete', "Erreur lors de la suppression"));
+    }
+  };
+
+  // [FIX EXPERT] Fonction pour recharger le contexte complet d'une ancienne candidature
+  const handleResumeApplication = async (appId: string) => {
+    try {
+      setLoading(true);
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/applications/${appId}/load`);
+      if (!response.ok) throw new Error("Erreur de chargement");
+      const loadedData = await response.json();
+      
+      // On utilise le sessionStorage pour transférer ce gros payload au composant parent (App/Interface)
+      sessionStorage.setItem('restored_application_data', JSON.stringify(loadedData.data));
+      
+      // Redirection/Rechargement pour initialiser le Dashboard avec ces nouvelles données
+      window.location.reload(); 
+    } catch (e) {
+      console.error(e);
+      alert(t('error_load_app', "Erreur lors de la restauration de la candidature."));
+      setLoading(false);
     }
   };
 
@@ -235,6 +255,50 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
                       })}
                     </tbody>
                   </table>
+                </div>
+
+                {/* [NOUVEAU] Zone des Documents Vivants / Outils de Préparation */}
+                <div style={{ marginTop: '2rem' }}>
+                  <h4 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)', fontSize: '1.1rem' }}>Outils de Préparation (Interactifs)</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                    
+                    {/* Bouton pour tout imprimer (Utilise la fonction d'impression native) */}
+                    <button 
+                      onClick={() => {
+                        // On pourrait ici charger le contexte de selectedApp.id avant d'imprimer
+                        window.print();
+                      }} 
+                      style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left' }}
+                      onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; }}
+                      onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; }}
+                    >
+                      <div style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)', width: '40px', height: '40px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Printer size={20} />
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, color: 'var(--text-main)', marginBottom: '4px' }}>Dossier Complet</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Pitch, Q&A, Entreprise, Marché</div>
+                      </div>
+                    </button>
+
+                    {/* On peut ajouter d'autres liens web vers des vues spécifiques ici */}
+                    <button 
+                      onClick={() => {
+                        handleResumeApplication(selectedApp.id);
+                      }} 
+                      style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left' }}
+                      onMouseOver={(e) => { e.currentTarget.style.borderColor = '#8b5cf6'; }}
+                      onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; }}
+                    >
+                      <div style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', width: '40px', height: '40px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Eye size={20} />
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, color: 'var(--text-main)', marginBottom: '4px' }}>Reprendre la préparation</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Ouvrir dans le Dashboard</div>
+                      </div>
+                    </button>
+                  </div>
                 </div>
               </div>
               )}

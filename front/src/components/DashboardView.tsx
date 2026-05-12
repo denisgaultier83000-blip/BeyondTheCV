@@ -18,6 +18,7 @@ import { DashboardCard } from './DashboardCard';
 import FlawCoaching from './FlawCoaching';
 import { ToDoListCard } from './ToDoListCard';
 import TrainingTab from './TrainingTab';
+import { PrintableDossier } from './PrintableDossier';
 
 export const DashboardView = () => {
   const { t } = useTranslation();
@@ -205,8 +206,7 @@ export const DashboardView = () => {
                    <div className="bento-header" style={{ marginBottom: 0 }}><Activity size={20} color="var(--primary)"/> {t('hub_title', 'Centre de Suivi des Analyses')}</div>
                    <button 
                      onClick={() => {
-                       // [EXPERT FIX] Câblage prêt pour une route dédiée qui sera propre.
-                       window.open('/dossier-print', '_blank');
+                       window.print();
                      }} 
                      className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
                      <Printer size={16} /> Imprimer mon Dossier
@@ -341,6 +341,9 @@ export const DashboardView = () => {
         )}
       </div>
 
+      {/* Composant d'impression invisible à l'écran */}
+      <PrintableDossier />
+
       {/* BOUTON RETOUR EN HAUT */}
       {showBackToTop && (
         <button 
@@ -355,11 +358,11 @@ export const DashboardView = () => {
       <style>{`
         @media print {
           .tabs-navigation, .sub-tabs-navigation, .btn-action, .btn-primary, .btn-secondary, .btn-outline, .btn-ghost, .notification-dot, .user-profile-btn, header { display: none !important; }
-          .dashboard-wrapper { gap: 1rem; }
-          .bento-card, .result-card { page-break-inside: avoid; border: 1px solid #ccc; box-shadow: none; background: white !important; color: black !important; }
+          /* On cache tout le contenu interactif du dashboard pour ne laisser que le PrintableDossier */
+          .tab-content, .bento-grid, .dashboard-grid-new, .dashboard-container-new { display: none !important; }
+          .printable-dossier { display: block !important; }
           body { background: white; margin: 0; padding: 0; }
           * { color: black !important; }
-          .tab-content > div { gap: 1rem !important; }
         }
         .dashboard-wrapper { display: flex; flex-direction: column; gap: 2rem; width: 100%; }
         
