@@ -1,5 +1,5 @@
 import React from 'react';
-import { Target, MessageSquare, FileText, ArrowRight, CheckCircle2, BrainCircuit, Compass, Search, Play } from 'lucide-react';
+import { Target, MessageSquare, FileText, ArrowRight, CheckCircle2, BrainCircuit, Compass, Search, Mic, FolderOpen, Award } from 'lucide-react';
 
 interface LandingPageProps {
   onStart: () => void;
@@ -152,19 +152,19 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
       {/* HERO SECTION */}
       <section className="lp-hero">
         <h1 className="lp-hero-title">
-          L'entretien se gagne avant d'entrer dans la pièce.
+          L'entretien ne se passe pas au talent. Il se prépare.
         </h1>
         <p className="lp-hero-subtitle">
-          BeyondTheCV n'est pas un générateur de CV. C'est votre coach stratégique pour structurer votre discours, comprendre votre cible et décrocher le poste.
+          Générez votre <strong>dossier de préparation ultra-complet</strong> en quelques minutes : analyse de l'entreprise, coaching sur les questions pièges et entraînements oraux face à l'IA.
         </p>
         <button onClick={onStart} className="lp-cta-main">
-          Préparer ma candidature (99$) <ArrowRight size={18} />
+          Débloquer mon dossier complet (XX €) <ArrowRight size={18} />
         </button>
         
         {/* Main Dashboard Screenshot Placeholder */}
         <div style={{ marginTop: '4rem', padding: '0 1rem' }}>
           <div className="lp-placeholder-img" style={{ maxWidth: '1000px', margin: '0 auto', background: '#f8fafc', color: '#94a3b8', border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            [📸 Insérez ici une capture d'écran du Dashboard Principal]
+            [📸 Insérez ici une capture du Dashboard (Vue d'ensemble avec jauges et scores)]
           </div>
         </div>
       </section>
@@ -172,35 +172,35 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
       {/* PROBLEM & METHODOLOGY SECTION */}
       <section className="lp-section" style={{ textAlign: 'center' }}>
         <h2 className="lp-section-title" style={{ marginBottom: '1rem', color: '#0F2650' }}>
-          Le CV n'est qu'un ticket d'entrée.<br/>L'entretien est l'épreuve finale.
+          Ne vous contentez plus d'un simple CV.<br/>Arrivez sur-préparé à votre entretien.
         </h2>
         <p style={{ fontSize: '1.1rem', color: 'var(--text-muted)', maxWidth: '800px', margin: '0 auto' }}>
-          La plupart des candidats échouent parce qu'ils récitent leur CV au lieu de vendre leur valeur. Un entretien réussi est le résultat d'une préparation méthodique, pas du hasard.
+          Les recruteurs écartent les candidats qui récitent leur parcours sans comprendre les vrais enjeux du poste. Notre Intelligence Artificielle décortique le marché et vous coache à l'oral pour faire de vous l'évidence.
         </p>
 
         <div className="lp-grid-4">
           <div className="lp-card">
-            <div className="lp-icon-wrapper" style={{ background: '#f1f5f9', color: '#0F2650' }}><BrainCircuit size={24} /></div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: '#0F2650' }}>Coaching Structuré</h3>
-            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>Un questionnaire guidé pour construire votre logique, identifier vos failles et corriger votre posture.</p>
+            <div className="lp-icon-wrapper" style={{ background: '#f1f5f9', color: '#0F2650' }}><FolderOpen size={24} /></div>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: '#0F2650' }}>Dossier Stratégique</h3>
+            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>Un rapport complet sur votre cible : culture d'entreprise, actualités, santé financière, baromètre des salaires et décodage de l'offre d'emploi.</p>
           </div>
           
           <div className="lp-card">
             <div className="lp-icon-wrapper" style={{ background: '#f1f5f9', color: '#0F2650' }}><Target size={24} /></div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: '#0F2650' }}>Analyse Stratégique</h3>
-            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>Compréhension profonde des enjeux de l'entreprise, de son marché et analyse des écarts avec votre profil.</p>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: '#0F2650' }}>Coaching Réponses & Défauts</h3>
+            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>L'IA anticipe les 10 questions pièges que l'on va vous poser, et transforme vos pires défauts en arguments de force implacables.</p>
           </div>
 
           <div className="lp-card">
-            <div className="lp-icon-wrapper" style={{ background: '#f1f5f9', color: '#0F2650' }}><MessageSquare size={24} /></div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: '#0F2650' }}>Pitch de 3 Minutes</h3>
-            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>Un discours clair, structuré et impactant généré sur-mesure pour répondre à l'inévitable « Parlez-moi de vous ».</p>
+            <div className="lp-icon-wrapper" style={{ background: '#f1f5f9', color: '#0F2650' }}><Mic size={24} /></div>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: '#0F2650' }}>Entraînement Oral</h3>
+            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>Prenez le micro ! Notre simulateur vocal analyse votre débit de parole, vos tics de langage ("euh", "du coup") et l'impact de votre présentation.</p>
           </div>
 
           <div className="lp-card">
             <div className="lp-icon-wrapper" style={{ background: '#f1f5f9', color: '#0F2650' }}><FileText size={24} /></div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: '#0F2650' }}>CV Optimisé ATS</h3>
-            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>Une version technique épurée conçue spécifiquement pour franchir les filtres logiciels et soutenir votre oral.</p>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: '#0F2650' }}>CV "Anti-Rejet" (ATS)</h3>
+            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>Une version de votre CV formatée au pixel près pour franchir les logiciels de tri automatique (ATS) des grandes entreprises.</p>
           </div>
         </div>
       </section>
@@ -208,31 +208,31 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
       {/* SHOWCASE SECTION (THE "KILLER FEATURES") */}
       <section className="lp-section" style={{ background: '#f8fafc', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0', margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
-          <h2 className="lp-section-title" style={{ color: '#0F2650' }}>Une arme secrète pour votre carrière.</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Allez bien au-delà de la simple mise en page.</p>
+          <h2 className="lp-section-title" style={{ color: '#0F2650' }}>Tout ce dont vous avez besoin. Et bien plus.</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>Un accompagnement de classe "Executive", disponible 24/7.</p>
         </div>
 
-        {/* Feature 1: Décodeur RH */}
+        {/* Feature 1: Le Dossier Complet */}
         <div className="lp-feature-row">
           <div className="lp-feature-text">
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: '#0F2650', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}><Search size={16} /> Décodeur de Fiche de Poste</div>
-            <h3 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '1rem', color: '#0F2650' }}>Lisez entre les lignes.</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', lineHeight: 1.6 }}>Ne tombez plus dans les pièges du jargon RH. Notre IA analyse l'offre d'emploi et vous traduit les véritables attentes cachées, les signaux d'alerte (red flags) et la culture réelle de l'entreprise.</p>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: '#0F2650', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}><FolderOpen size={16} /> Le Dossier d'Investigation</div>
+            <h3 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '1rem', color: '#0F2650' }}>Sachez exactement où vous mettez les pieds.</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', lineHeight: 1.6 }}>Avant même de serrer la main du recruteur, vous aurez lu notre rapport complet : décodage de l'offre d'emploi (pièges et attentes cachées), analyse financière de la boîte, baromètre des salaires et revues de presse récentes.</p>
           </div>
           <div className="lp-feature-image-wrapper">
-            <div className="lp-placeholder-img">[📸 Capture d'écran : Le Décodeur d'Offre]</div>
+            <div className="lp-placeholder-img">[📸 Capture d'écran : Dossier Entreprise / Décodeur]</div>
           </div>
         </div>
 
-        {/* Feature 2: Simulateur */}
+        {/* Feature 2: L'Entraînement Oral */}
         <div className="lp-feature-row reverse">
           <div className="lp-feature-text">
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: '#0F2650', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}><Play size={16} /> Simulateur de Carrière</div>
-            <h3 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '1rem', color: '#0F2650' }}>Testez vos choix avant de les faire.</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', lineHeight: 1.6 }}>"Que se passe-t-il si je passe la certification AWS ?" Entrez une action potentielle et l'IA simulera instantanément l'impact sur votre score d'employabilité et votre salaire cible.</p>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: '#0F2650', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}><Mic size={16} /> Le Simulateur d'Entretien Vocal</div>
+            <h3 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '1rem', color: '#0F2650' }}>Arrêtez de bégayer. Mesurez votre impact.</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', lineHeight: 1.6 }}>Lisez votre Pitch de 3 minutes sur notre Téléprompteur intégré, ou activez le micro pour une session sans filet ! L'IA analysera votre débit vocal (mots/minute), traquera vos tics de langage et notera votre force de persuasion.</p>
           </div>
           <div className="lp-feature-image-wrapper">
-            <div className="lp-placeholder-img">[📸 Capture d'écran : Simulateur de Carrière]</div>
+            <div className="lp-placeholder-img">[📸 Capture d'écran : Module d'entraînement vocal et Jauges]</div>
           </div>
         </div>
 
@@ -240,11 +240,11 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
         <div className="lp-feature-row">
           <div className="lp-feature-text">
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: '#0F2650', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}><Compass size={16} /> Career Radar</div>
-            <h3 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '1rem', color: '#0F2650' }}>Découvrez des pivots insoupçonnés.</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', lineHeight: 1.6 }}>Vous stagnez ? Le Radar identifie des trajectoires professionnelles alternatives basées sur vos compétences transverses, avec le temps d'adaptation requis et le potentiel salarial.</p>
+            <h3 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '1rem', color: '#0F2650' }}>Le GPS de votre Carrière.</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', lineHeight: 1.6 }}>Identifiez instantanément les "gaps" (lacunes) de votre profil par rapport au poste visé. Découvrez également des trajectoires de carrières alternatives et accédez aux stratégies pour percer le Marché Caché.</p>
           </div>
           <div className="lp-feature-image-wrapper">
-            <div className="lp-placeholder-img">[📸 Capture d'écran : Career Radar]</div>
+            <div className="lp-placeholder-img">[📸 Capture d'écran : Dashboard GPS / Marché Caché]</div>
           </div>
         </div>
       </section>
@@ -255,23 +255,22 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
           <h2 style={{ fontSize: '2rem', fontWeight: 700, color: '#0F2650' }}>Un investissement clair.</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', marginTop: '0.5rem' }}>Pas d'abonnement caché. Vous gardez le contrôle.</p>
           
-          <div style={{ fontSize: '3.5rem', fontWeight: 700, color: '#0F2650', margin: '1.5rem 0' }}>99 €</div>
-          <p style={{ fontWeight: 600, color: '#475569', marginBottom: '2.5rem' }}>Accès 100% illimité pendant 3 mois</p>
+          <div style={{ fontSize: '3.5rem', fontWeight: 700, color: '#0F2650', margin: '1.5rem 0' }}>XX €</div>
+          <p style={{ fontWeight: 600, color: '#475569', marginBottom: '2.5rem' }}>Accès à vie à votre espace pour cette candidature</p>
           
           <div style={{ textAlign: 'left', maxWidth: '400px', margin: '0 auto 2.5rem auto' }}>
-            <div className="lp-check-item"><CheckCircle2 size={18} color="#0F2650" /> Génération de CVs ATS illimitée</div>
-            <div className="lp-check-item"><CheckCircle2 size={18} color="#0F2650" /> Analyses d'Entreprises et de Marché illimitées</div>
-            <div className="lp-check-item"><CheckCircle2 size={18} color="#0F2650" /> Simulateur et Career Radar inclus</div>
-            <div className="lp-check-item"><CheckCircle2 size={18} color="#0F2650" /> Préparation aux entretiens (Pitch & Q/A)</div>
+            <div className="lp-check-item"><CheckCircle2 size={18} color="#0F2650" /> <strong>Dossier complet</strong> (Entreprise, Marché, Culture)</div>
+            <div className="lp-check-item"><CheckCircle2 size={18} color="#0F2650" /> <strong>Coaching Q&A</strong> (Méthode STAR, Parades défauts)</div>
+            <div className="lp-check-item"><CheckCircle2 size={18} color="#0F2650" /> <strong>Simulateur Vocal</strong> (Analyse IA de l'oral)</div>
+            <div className="lp-check-item"><CheckCircle2 size={18} color="#0F2650" /> Génération du CV "Anti-Rejet" (ATS)</div>
           </div>
 
           <button onClick={onStart} className="lp-cta-main" style={{ width: '100%', justifyContent: 'center', backgroundColor: '#0F2650', color: 'white' }}>
-            Démarrer ma préparation
+            Obtenir mon Dossier de Préparation
           </button>
           
-          <div style={{ marginTop: '2.5rem', paddingTop: '2rem', borderTop: '1px solid var(--border-color)', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-            <strong>Toujours en recherche après 3 mois ?</strong><br />
-            Vos données sont conservées. Prolongez votre accès complet pour seulement 30 € les 2 mois.
+          <div style={{ marginTop: '1.5rem', fontSize: '0.9rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+            <Award size={16} /> Satisfait ou remboursé sous 14 jours.
           </div>
         </div>
       </section>
