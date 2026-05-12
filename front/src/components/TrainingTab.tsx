@@ -14,6 +14,7 @@ import Questionnaire from './Questionnaire';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { useDashboard } from './DashboardContext';
+import { VocalPitchTrainer } from './VocalPitchTrainer';
 
 export default function TrainingTab() {
   const { cvData, updateFormData } = useDashboard();
@@ -191,6 +192,9 @@ export default function TrainingTab() {
           </div>
         </div>
       </DashboardCard>
+
+      {/* --- NOUVEAU MODULE : ENTRAÎNEMENT AU PITCH VOCAL --- */}
+      <VocalPitchTrainer targetJob={cvData?.target_job || cvData?.target_role_primary || "Candidat"} />
 
       {/* --- SECTION CONFIGURATION --- */}
       <DashboardCard title="Nouvelle Session d'Entraînement" icon={<Settings2 size={24} />}>

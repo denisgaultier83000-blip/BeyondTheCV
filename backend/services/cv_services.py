@@ -78,6 +78,12 @@ class TrainingEvaluateRequest(BaseModel):
     target_job: Optional[str] = "Candidat"
     target_company: Optional[str] = "Entreprise cible"
 
+class VocalPitchRequest(BaseModel):
+    transcript: str
+    duration_seconds: int
+    target_job: Optional[str] = "Candidat"
+    target_language: Optional[str] = "fr"
+
 def _remove_file_safe(path: str):
     """Supprime un fichier temporaire après son envoi sans crasher en cas d'erreur."""
     try:
@@ -394,6 +400,56 @@ async def get_interview_history(current_user: dict = Depends(require_active_subs
             "score": r["score"], "feedback": feedback, "created_at": r["created_at"].isoformat() if hasattr(r["created_at"], 'isoformat') else str(r["created_at"])
         })
     return {"history": history}
+
+@router.post("/training/evaluate-vocal-pitch")
+async def evaluate_vocal_pitch(request: VocalPitchRequest, current_user: dict = Depends(require_active_subscription)):
+    """Évalue un pitch vocal (transcription + durée) pour analyser le débit, les tics et la structure."""
+    word_count = len(request.transcript.split())
+    wpm = int((word_count / request.duration_seconds) * 60) if request.duration_seconds > 0 else 0
+    target_lang = normalize_language(request.target_language)
+
+    prompt = f"""
+    Tu es un Expert en Prise de Parole en Public et Coach de Carrière de très haut niveau.
+    Ta mission est d'analyser la transcription d'un pitch vocal SPONTANÉ (sans script) et de fournir un feedback hyper-actionnable.
+
+    POSTE VISÉ : {request.target_job}
+    DURÉE DE L'ENREGISTREMENT : {request.duration_seconds} secondes
+    MOTS PRONONCÉS : {word_count}
+    DÉBIT (Words Per Minute) : {wpm} mots / minute. (Pour info: 130-150 = conversationnel, >160 = trop rapide/stressé, <110 = trop lent/hésitant).
+
+    TRANSCRIPTION DU PITCH :
+    "{request.transcript}"
+
+    ANALYSE ATTENDUE :
+    1. Tics de langage : Traque les mots parasites ("euh", "du coup", "en fait", "voilà").
+    2. Rythme : Analyse le WPM et repère l'absence de silence ou les hésitations.
+    3. Structure : Le candidat est-il clair ? Y a-t-il une vraie accroche et une conclusion ?
+    4. Micro-exercices : Propose 2 petits exercices pratiques pour corriger les défauts ciblés.
+
+    OUTPUT STRICT JSON:
+    {{
+        "score": 75,
+        "metrics": {{
+            "wpm": {wpm},
+            "pace_status": "Idéal | Trop rapide | Trop lent",
+            "filler_words_detected": ["euh", "du coup"]
+        }},
+        "feedback": {{
+            "pace_and_silences": "Diagnostic précis sur le rythme...",
+            "structure_and_clarity": "Diagnostic sur la clarté et l'impact...",
+            "actionable_advice": ["Conseil 1", "Conseil 2"]
+        }},
+        "micro_exercises": [
+            {{ "title": "Titre de l'exercice", "description": "Comment l'exécuter concrètement" }}
+        ]
+    }}
+    LANGUAGE: {target_lang}
+    """
+    try:
+        result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are an elite Public Speaking Coach. Output STRICT JSON.")
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur d'évaluation vocale : {str(e)}")
 
 @router.post("/training/generate-question")
 async def generate_training_question(request: CustomQuestionRequest, current_user: dict = Depends(require_active_subscription)):
