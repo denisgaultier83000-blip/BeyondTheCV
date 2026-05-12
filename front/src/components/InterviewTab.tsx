@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useDashboard } from './DashboardContext';
-import { Mic, MessageSquare, Play, Pause, RotateCcw, BrainCircuit, ArrowLeft, History } from 'lucide-react';
+import { Mic, MessageSquare, Play, Pause, RotateCcw, BrainCircuit, ArrowLeft, History, Loader2, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DashboardCard } from './DashboardCard';
 import { SituationSimulator } from './SituationSimulator';
@@ -9,14 +9,18 @@ import Questionnaire from './Questionnaire';
 import Flashcards from './Flashcards';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
+import ScoreGauge from './ScoreGauge';
 
 export const InterviewTab = () => {
-  const { pitchResult, questionsResult, globalStatus } = useDashboard();
+  const { pitchResult, questionsResult, globalStatus, cvData } = useDashboard();
   const { t } = useTranslation();
   const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false);
   const [isDark] = useState(() => document.body.classList.contains('dark-mode'));
   const [showHistory, setShowHistory] = useState(false);
   const [historyData, setHistoryData] = useState<any[]>([]);
+
+  const [pitchAnalysis, setPitchAnalysis] = useState<any>(null);
+  const [isEvaluatingPitch, setIsEvaluatingPitch] = useState(false);
 
   const [editablePitch, setEditablePitch] = useState<{accroche: string, preuve: string, valeur: string, projection: string}>({
     accroche: "", preuve: "", valeur: "", projection: ""
@@ -31,6 +35,7 @@ export const InterviewTab = () => {
         valeur: p?.valeur || "",
         projection: p?.projection || ""
       });
+      setPitchAnalysis(p?.analysis || null);
     }
   }, [pitchResult]);
 
@@ -101,6 +106,29 @@ export const InterviewTab = () => {
     );
   };
 
+  const handleEvaluatePitch = async () => {
+    setIsEvaluatingPitch(true);
+    try {
+      const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/evaluate-pitch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          ...editablePitch, 
+          target_job: cvData?.target_job || cvData?.target_role_primary || 'Candidat',
+          target_language: cvData?.target_language || 'fr'
+        })
+      });
+      const data = await res.json();
+      if (data.analysis) {
+        setPitchAnalysis(data.analysis);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsEvaluatingPitch(false);
+    }
+  };
+
   const fetchHistory = async () => {
     try {
       const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/interview/history`);
@@ -122,30 +150,6 @@ export const InterviewTab = () => {
       {isTeleprompterOpen && <Teleprompter />}
       <div className="interview-tab-container">
         
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '-1rem' }}>
-          <button onClick={() => setShowHistory(!showHistory)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}>
-            <History size={16} /> {showHistory ? "Masquer l'historique" : "Archives de mes réponses"}
-          </button>
-        </div>
-
-        {showHistory && (
-          <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
-            <h3 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)' }}>Historique de vos réponses</h3>
-            {historyData.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>Aucune réponse enregistrée pour le moment.</p> : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {historyData.map((item, idx) => (
-                  <div key={idx} style={{ padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{new Date(item.created_at).toLocaleDateString()} - Score : {item.score}/100</div>
-                    <div style={{ fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.5rem' }}>Q : {item.question}</div>
-                    <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: '0.5rem' }}>R : "{item.user_answer}"</div>
-                    <div style={{ color: '#166534', background: '#dcfce7', padding: '0.5rem', borderRadius: '0.25rem', fontSize: '0.9rem' }}>Feedback : {item.feedback?.improved_answer || "Bonne réponse."}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
         <div id="pitch_section">
         <DashboardCard
           title={t('deliv_pitch', "Pitch de 3 minutes")}
@@ -162,11 +166,38 @@ export const InterviewTab = () => {
           )}
         >
           {pitchResult && (
-            <div className="pitch-grid">
-              <div className="pitch-card"><h4>{t('pitch_hook', 'Accroche')}</h4><textarea className="pitch-textarea" value={editablePitch.accroche} onChange={e => handlePitchChange('accroche', e.target.value)} /></div>
-              <div className="pitch-card"><h4>{t('pitch_proof', 'Preuve & Impact')}</h4><textarea className="pitch-textarea" value={editablePitch.preuve} onChange={e => handlePitchChange('preuve', e.target.value)} /></div>
-              <div className="pitch-card"><h4>{t('pitch_value', 'Valeur Ajoutée')}</h4><textarea className="pitch-textarea" value={editablePitch.valeur} onChange={e => handlePitchChange('valeur', e.target.value)} /></div>
-              <div className="pitch-card"><h4>{t('pitch_projection', 'Projection')}</h4><textarea className="pitch-textarea" value={editablePitch.projection} onChange={e => handlePitchChange('projection', e.target.value)} /></div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <div className="pitch-grid">
+                <div className="pitch-card"><h4>{t('pitch_hook', 'Accroche')}</h4><textarea className="pitch-textarea" value={editablePitch.accroche} onChange={e => handlePitchChange('accroche', e.target.value)} /></div>
+                <div className="pitch-card"><h4>{t('pitch_proof', 'Preuve & Impact')}</h4><textarea className="pitch-textarea" value={editablePitch.preuve} onChange={e => handlePitchChange('preuve', e.target.value)} /></div>
+                <div className="pitch-card"><h4>{t('pitch_value', 'Valeur Ajoutée')}</h4><textarea className="pitch-textarea" value={editablePitch.valeur} onChange={e => handlePitchChange('valeur', e.target.value)} /></div>
+                <div className="pitch-card"><h4>{t('pitch_projection', 'Projection')}</h4><textarea className="pitch-textarea" value={editablePitch.projection} onChange={e => handlePitchChange('projection', e.target.value)} /></div>
+              </div>
+
+              <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                  <h4 style={{ margin: 0, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <BrainCircuit size={18} color="var(--primary)" /> Évaluation de votre Pitch
+                  </h4>
+                  <button onClick={handleEvaluatePitch} disabled={isEvaluatingPitch} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
+                    {isEvaluatingPitch ? <Loader2 size={16} className="spin" /> : <RefreshCw size={16} />} 
+                    {isEvaluatingPitch ? "Analyse en cours..." : "Analyser mon Pitch"}
+                  </button>
+                </div>
+                
+                {pitchAnalysis && (
+                  <ScoreGauge 
+                    score={Number(pitchAnalysis.global_score) || 0} 
+                    label={t('pitch_impact_score', "Score d'Impact du Pitch")} 
+                    critique={pitchAnalysis.critique}
+                    metrics={[
+                      { label: "Structure", value: pitchAnalysis.structure || "N/A" },
+                      { label: "Clarté", value: pitchAnalysis.clarity || "N/A" },
+                      { label: "Conviction", value: pitchAnalysis.conviction || "N/A" }
+                    ]}
+                  />
+                )}
+              </div>
             </div>
           )}
         </DashboardCard>
@@ -181,8 +212,30 @@ export const InterviewTab = () => {
           error={!questionsResult && (globalStatus === 'COMPLETED' || globalStatus === 'FAILED')}
           errorText={t('questions_error', "Le questionnaire n'a pas pu être généré.")}
           featureId="interview_questions"
+          headerAction={
+            <button onClick={() => setShowHistory(!showHistory)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
+              <History size={16} /> {showHistory ? "Masquer les archives" : "Archives de mes réponses"}
+            </button>
+          }
         >
-          {questionsResult && (
+          {showHistory && (
+            <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginBottom: '1.5rem' }}>
+              <h3 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)' }}>Historique de vos réponses</h3>
+              {historyData.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>Aucune réponse enregistrée pour le moment.</p> : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {historyData.map((item, idx) => (
+                    <div key={idx} style={{ padding: '1rem', background: 'var(--bg-card)', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{new Date(item.created_at).toLocaleDateString()} - Score : {item.score}/100</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.5rem' }}>Q : {item.question}</div>
+                      <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: '0.5rem' }}>R : "{item.user_answer}"</div>
+                      <div style={{ color: '#166534', background: '#dcfce7', padding: '0.5rem', borderRadius: '0.25rem', fontSize: '0.9rem' }}>Feedback : {item.feedback?.improved_answer || "Bonne réponse."}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {questionsResult && !showHistory && (
             <>
               <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "1.5rem", fontStyle: "italic", background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
                 * Légende : ★ (1-Facile) à ★★★★★ (5-Très Difficile)

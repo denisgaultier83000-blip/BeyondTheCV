@@ -6,9 +6,10 @@ import { useTranslation } from 'react-i18next';
 
 interface VocalPitchTrainerProps {
   targetJob?: string;
+  onSuccess?: () => void;
 }
 
-export const VocalPitchTrainer = ({ targetJob = "Candidat" }: VocalPitchTrainerProps) => {
+export const VocalPitchTrainer = ({ targetJob = "Candidat", onSuccess }: VocalPitchTrainerProps) => {
   const { t } = useTranslation();
   
   const [isRecording, setIsRecording] = useState(false);
@@ -95,6 +96,7 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat" }: VocalPitchTrainerP
       if (!response.ok) throw new Error("Erreur lors de l'analyse");
       const data = await response.json();
       setResult(data);
+      if (onSuccess) onSuccess();
     } catch (e) {
       console.error(e);
       alert("L'analyse a échoué. Veuillez réessayer.");

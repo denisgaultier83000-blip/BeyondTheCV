@@ -78,9 +78,9 @@ export const CVTab = ({ data }: { data: any }) => {
         country: payloadData.country
     };
 
-    // [FIX] On ajoute le texte reformulé généré par le KeywordCoachModal dans la section profil (bio)
+    // [FIX EXPERT] L'IA doit LIRE et INTÉGRER les nouvelles suggestions (sans juste les coller en bas)
     if (extraContent.length > 0) {
-        payloadData.bio = (payloadData.bio ? payloadData.bio + "\n\n" : "") + extraContent.join("\n\n");
+        payloadData.free_text = (payloadData.free_text ? payloadData.free_text + "\n\n" : "") + "Intègre de manière fluide et très professionnelle ces éléments dans les expériences ou compétences :\n" + extraContent.join("\n");
     }
 
     if (!payloadData) {
@@ -90,7 +90,7 @@ export const CVTab = ({ data }: { data: any }) => {
     setPreviewBody({
       action: "CV",
       data: payloadData,
-      skip_ai: true,
+      skip_ai: extraContent.length === 0 && addedKeywords.length === 0, // Force la lecture IA si du contenu manuel est injecté
       preview: true,
       renderer: 'latex'
     });

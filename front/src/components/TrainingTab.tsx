@@ -17,7 +17,7 @@ import { useDashboard } from './DashboardContext';
 import { VocalPitchTrainer } from './VocalPitchTrainer';
 
 export default function TrainingTab() {
-  const { cvData, updateFormData } = useDashboard();
+  const { cvData, updateFormData, pitchResult } = useDashboard();
   const [score, setScore] = useState(0);
   const [totalSessions, setTotalSessions] = useState(0);
   const [themeScores, setThemeScores] = useState<Record<string, number>>({});
@@ -147,6 +147,9 @@ export default function TrainingTab() {
     return 'var(--text-muted)';
   };
 
+  // [FIX EXPERT] On remplace la note du "Fond" par la vraie note vocale calculée par le VocalPitchTrainer
+  const oralPitchScore = themeScores['Pitch Vocal'] || 0;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       
@@ -155,11 +158,22 @@ export default function TrainingTab() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', alignItems: 'center' }}>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
-              <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Score Global IA</div>
-              <div style={{ fontSize: '2.5rem', fontWeight: 800, color: getScoreColor(score), margin: '0.5rem 0' }}>{score / 10} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ 10</span></div>
-              <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Basé sur {totalSessions} entraînements terminés.</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem' }}>
+              <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Entretien (Q/A)</div>
+                <div style={{ fontSize: '2.5rem', fontWeight: 800, color: getScoreColor(score), margin: '0.5rem 0' }}>{score / 10} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ 10</span></div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Sur {totalSessions} sessions.</div>
+              </div>
+              
+              <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Entraînement Oral (Pitch)</div>
+                <div style={{ fontSize: '2.5rem', fontWeight: 800, color: oralPitchScore > 0 ? getScoreColor(oralPitchScore) : 'var(--text-muted)', margin: '0.5rem 0' }}>
+                  {oralPitchScore > 0 ? (oralPitchScore / 10).toFixed(1) : '-'} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ 10</span>
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Évaluation de la prosodie et du débit.</div>
+              </div>
             </div>
+
             <div style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
               <div style={{ fontSize: '0.9rem', color: 'var(--primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Award size={18} /> Conseil du Coach
@@ -194,7 +208,7 @@ export default function TrainingTab() {
       </DashboardCard>
 
       {/* --- NOUVEAU MODULE : ENTRAÎNEMENT AU PITCH VOCAL --- */}
-      <VocalPitchTrainer targetJob={cvData?.target_job || cvData?.target_role_primary || "Candidat"} />
+      <VocalPitchTrainer targetJob={cvData?.target_job || cvData?.target_role_primary || "Candidat"} onSuccess={fetchStats} />
 
       {/* --- SECTION CONFIGURATION --- */}
       <DashboardCard title="Nouvelle Session d'Entraînement" icon={<Settings2 size={24} />}>

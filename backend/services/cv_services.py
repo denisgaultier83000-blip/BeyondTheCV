@@ -84,6 +84,14 @@ class VocalPitchRequest(BaseModel):
     target_job: Optional[str] = "Candidat"
     target_language: Optional[str] = "fr"
 
+class EvaluatePitchRequest(BaseModel):
+    accroche: str
+    preuve: str
+    valeur: str
+    projection: str
+    target_job: Optional[str] = "Candidat"
+    target_language: Optional[str] = "fr"
+
 def _remove_file_safe(path: str):
     """Supprime un fichier temporaire après son envoi sans crasher en cas d'erreur."""
     try:
@@ -447,9 +455,50 @@ async def evaluate_vocal_pitch(request: VocalPitchRequest, current_user: dict = 
     """
     try:
         result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are an elite Public Speaking Coach. Output STRICT JSON.")
+        
+        # [FIX EXPERT] Sauvegarde du pitch vocal dans l'historique d'entraînement pour les statistiques
+        session_id = str(uuid.uuid4())
+        async with db.get_connection() as conn:
+            await db.execute(conn, """
+                INSERT INTO training_sessions (id, user_id, theme, question_type, question_text, user_answer, score, strengths, weaknesses, improved_answer, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (session_id, current_user["id"], "Pitch Vocal", "Vocal", "Entraînement au pitch vocal (spontané)", request.transcript, result.get("score", 0), json.dumps(result.get("metrics", {})), json.dumps(result.get("feedback", {})), json.dumps(result.get("micro_exercises", [])), datetime.now()))
+            
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur d'évaluation vocale : {str(e)}")
+
+@router.post("/evaluate-pitch")
+async def evaluate_written_pitch(request: EvaluatePitchRequest, current_user: dict = Depends(require_active_subscription)):
+    """Évalue le pitch écrit par le candidat après modification manuelle."""
+    prompt = f"""
+    Tu es un coach en communication pour cadres dirigeants.
+    Évalue ce pitch de présentation de 3 minutes pour le poste de "{request.target_job}".
+    
+    PITCH DU CANDIDAT :
+    Accroche : "{request.accroche}"
+    Preuve : "{request.preuve}"
+    Valeur : "{request.valeur}"
+    Projection : "{request.projection}"
+    
+    L'analyse doit être sévère et constructive. Le score global est un entier sur 10.
+    
+    OUTPUT STRICT JSON:
+    {{
+        "analysis": {{
+            "global_score": 7,
+            "structure": "Forte | Moyenne | Faible",
+            "clarity": "Élevée | Moyenne | Basse",
+            "conviction": "Forte | Moyenne | Faible",
+            "critique": "Une phrase courte de critique constructive sur l'impact."
+        }}
+    }}
+    LANGUAGE: {request.target_language}
+    """
+    try:
+        return await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are an expert pitch coach. Output STRICT JSON.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur d'évaluation du pitch : {str(e)}")
 
 @router.post("/training/generate-question")
 async def generate_training_question(request: CustomQuestionRequest, current_user: dict = Depends(require_active_subscription)):
@@ -682,7 +731,8 @@ async def generate_document(request: GenerateRequest, current_user: dict = Depen
                     if val and isinstance(val, str) and str(val).strip():
                         val_lower = val.lower()
                         # Filtre strict anti-hallucinations fréquentes de l'IA
-                        if "propre" in val_lower or "formaté" in val_lower or ("url" in val_lower and k == "linkedin"):
+                        invalid_placeholders = ["ville", "ville, france", "city", "numéro formaté", "numéro de téléphone", "votre ville", "url linkedin", "url propre"]
+                        if any(p in val_lower for p in ["propre", "formaté"]) or val_lower in invalid_placeholders or ("url" in val_lower and k == "linkedin"):
                             optimized_data.pop(k, None)
                         else:
                             optimized_data[k] = val.strip()
