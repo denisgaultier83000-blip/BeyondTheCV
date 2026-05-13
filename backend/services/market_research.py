@@ -371,7 +371,8 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
                         "title": "[Article title]",
                         "url": "https://...",
                         "source": "[Media name]",
-                        "date": "[Date]"
+                            "date": "[Date]",
+                            "strategic_analysis": "[Actionable strategic advice for the candidate]"
                     }
                 ]
             }}
@@ -404,27 +405,34 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
     
     for i, r in enumerate(valid_sources[:4]):  # Top 4 articles sourcés et fiables
         clean_title = r.get('title', '').replace('[ACTUALITÉ] ', '')
+        article_url = r.get('link', '#')
         
         # On tente de matcher l'article réel avec l'analyse stratégique de l'IA
         analysis = ""
         for ai_news in ai_generated_news:
-            # Match flou sur les premiers mots du titre
-            if clean_title[:20].lower() in ai_news.get('title', '').lower():
-                analysis = ai_news.get('strategic_analysis', '')
+            # 1. Match ultra précis par URL
+            if article_url != '#' and article_url in ai_news.get('url', ''):
+                analysis = ai_news.get('strategic_analysis') or ai_news.get('analyse_strategique') or ai_news.get('conseil_strategique') or ai_news.get('conseil') or ""
                 break
+                
+        if not analysis:
+            for ai_news in ai_generated_news:
+                # 2. Match flou sur le titre (15 caractères suffisent pour limiter la casse)
+                ai_title = ai_news.get('title', '')
+                if clean_title[:15].lower() in ai_title.lower() or ai_title[:15].lower() in clean_title.lower():
+                    analysis = ai_news.get('strategic_analysis') or ai_news.get('analyse_strategique') or ai_news.get('conseil_strategique') or ai_news.get('conseil') or ""
+                    break
                 
         # Fallback : si l'IA a fait l'analyse mais qu'on ne trouve pas le match exact, on l'associe au i-ème article
         if not analysis and i < len(ai_generated_news):
-            analysis = ai_generated_news[i].get('strategic_analysis', '')
+            ai_news = ai_generated_news[i]
+            analysis = ai_news.get('strategic_analysis') or ai_news.get('analyse_strategique') or ai_news.get('conseil_strategique') or ai_news.get('conseil') or ""
             
-        # Injection de l'analyse IA dans le champ source pour affichage direct sur le Frontend
         source_str = r.get('source', 'Presse / Web')
-        if analysis:
-            source_str = f"{source_str} \n💡 Conseil IA : {analysis}"
 
         real_news_links.append({
             "title": clean_title,
-            "url": r.get('link', '#'),
+            "url": article_url,
             "source": source_str,
             "date": r.get('date', datetime.now().strftime("%Y-%m-%d")),
             "strategic_analysis": analysis
