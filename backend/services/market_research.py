@@ -169,7 +169,7 @@ def _enforce_schema(data: dict) -> dict:
     safe_company["culture_environment"] = company.get("culture_environment") or company.get("culture_environnement") or company.get("culture") or "Non spécifié."
     safe_company["team_structure"] = company.get("team_structure") or company.get("equipe") or company.get("structure_equipe") or "Non spécifié."
     safe_company["linkedin_url"] = company.get("linkedin_url") or ""
-    safe_company["news_links"] = company.get("news_links") or company.get("actualites") or []
+    safe_company["news_links"] = company.get("news_links") or company.get("actualites") or root.get("news_links") or root.get("actualites") or []
 
     return {
         "market_report": safe_market,
@@ -397,47 +397,75 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
     news_sources = [r for r in raw_results if "[ACTUALITÉ]" in r.get('title', '')]
     other_sources = [r for r in raw_results if "[ACTUALITÉ]" not in r.get('title', '')]
     
-    real_news_links = []
-    valid_sources = news_sources if news_sources else other_sources
+    # [FIX EXPERT] On fusionne pour parcourir d'abord les vraies actus, puis le reste
+    all_sources = news_sources + other_sources
     
     # On récupère le tableau d'actualités généré par l'IA contenant son analyse stratégique
     ai_generated_news = safe_synthesis["company_report"].get("news_links", [])
     
-    for i, r in enumerate(valid_sources[:4]):  # Top 4 articles sourcés et fiables
+    # Extraction intelligente des analyses IA tout en conservant les URLs RÉELLES (issues de Serper)
+    ai_analyses = []
+    if isinstance(ai_generated_news, list):
+        for news in ai_generated_news:
+            if isinstance(news, dict):
+                analysis = news.get('strategic_analysis') or news.get('analyse_strategique') or news.get('conseil_strategique') or news.get('conseil') or ""
+                if analysis:
+                    ai_analyses.append({
+                        "url": news.get("url", ""),
+                        "title": news.get("title", ""),
+                        "analysis": analysis,
+                        "used": False
+                    })
+
+    real_news_links = []
+    for r in all_sources:
         clean_title = r.get('title', '').replace('[ACTUALITÉ] ', '')
         article_url = r.get('link', '#')
+        assigned_analysis = ""
         
-        # On tente de matcher l'article réel avec l'analyse stratégique de l'IA
-        analysis = ""
-        for ai_news in ai_generated_news:
-            # 1. Match ultra précis par URL
-            if article_url != '#' and article_url in ai_news.get('url', ''):
-                analysis = ai_news.get('strategic_analysis') or ai_news.get('analyse_strategique') or ai_news.get('conseil_strategique') or ai_news.get('conseil') or ""
-                break
-                
-        if not analysis:
-            for ai_news in ai_generated_news:
-                # 2. Match flou sur le titre (15 caractères suffisent pour limiter la casse)
-                ai_title = ai_news.get('title', '')
-                if clean_title[:15].lower() in ai_title.lower() or ai_title[:15].lower() in clean_title.lower():
-                    analysis = ai_news.get('strategic_analysis') or ai_news.get('analyse_strategique') or ai_news.get('conseil_strategique') or ai_news.get('conseil') or ""
+        # 1. Match par URL ou match flou par Titre
+        for ai_item in ai_analyses:
+            if not ai_item["used"]:
+                if (article_url != '#' and article_url in ai_item["url"]) or (len(ai_item["title"]) > 10 and (ai_item["title"][:15].lower() in clean_title.lower() or clean_title[:15].lower() in ai_item["title"].lower())):
+                    assigned_analysis = ai_item["analysis"]
+                    ai_item["used"] = True
                     break
-                
-        # Fallback : si l'IA a fait l'analyse mais qu'on ne trouve pas le match exact, on l'associe au i-ème article
-        if not analysis and i < len(ai_generated_news):
-            ai_news = ai_generated_news[i]
-            analysis = ai_news.get('strategic_analysis') or ai_news.get('analyse_strategique') or ai_news.get('conseil_strategique') or ai_news.get('conseil') or ""
+                    
+        # 2. Fallback séquentiel (si l'IA a reformulé sans aucun point commun, on distribue les analyses restantes)
+        if not assigned_analysis:
+            for ai_item in ai_analyses:
+                if not ai_item["used"]:
+                    assigned_analysis = ai_item["analysis"]
+                    ai_item["used"] = True
+                    break
+                    
+        # [CRITIQUE] On n'ajoute l'article QUE s'il a une analyse IA ou s'il est explicitement une actualité.
+        # Cela empêche l'affichage d'un lien "pauvre" comme la page de contact de l'entreprise.
+        is_explicit_news = "[ACTUALITÉ]" in r.get('title', '')
+        if assigned_analysis or is_explicit_news:
+            real_news_links.append({
+                "title": clean_title,
+                "url": article_url,
+                "source": r.get('source', 'Presse / Web'),
+                "date": r.get('date', datetime.now().strftime("%Y-%m-%d")),
+                "strategic_analysis": assigned_analysis
+            })
             
-        source_str = r.get('source', 'Presse / Web')
+        if len(real_news_links) >= 4:
+            break
 
-        real_news_links.append({
-            "title": clean_title,
-            "url": article_url,
-            "source": source_str,
-            "date": r.get('date', datetime.now().strftime("%Y-%m-%d")),
-            "strategic_analysis": analysis
-        })
-        
+    # [FALLBACK DE SÉCURITÉ] Si Serper n'a rien trouvé d'utile, on sauve l'honneur 
+    # en utilisant les analyses générées par les connaissances internes de l'IA.
+    if not real_news_links and ai_analyses:
+        for ai_item in ai_analyses[:4]:
+            real_news_links.append({
+                "title": ai_item.get("title", "Actualité Sectorielle"),
+                "url": ai_item.get("url", "#"),
+                "source": "Analyse IA / Connaissances Marché",
+                "date": datetime.now().strftime("%Y-%m-%d"),
+                "strategic_analysis": ai_item["analysis"]
+            })
+
     safe_synthesis["company_report"]["news_links"] = real_news_links
 
     best_sources = (news_sources + other_sources)[:10] # Top 10 des sources

@@ -42,6 +42,7 @@ from .tasks import (
 )
 from .utils import clean_ai_json_response, normalize_language, load_prompt
 from .tasks import get_prompt_path
+from .websocket_manager import manager
 
 router = APIRouter(prefix="/api/cv", tags=["CV Generator"])
 
@@ -1001,7 +1002,11 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
         # [FIX EXPERT] On court-circuite le cache si l'utilisateur relance explicitement l'analyse (is_partial_start)
         # Cela force l'IA à refaire une recherche web fraîche.
         if has_research_data and not data.is_partial_start:
-            background_tasks.add_task(update_task_status_sync, tasks_map["market_research"], "SUCCESS", data.research_data)
+            # [FIX EXPERT] On restaure le cache ET on prévient le frontend via WebSocket
+            async def restore_research_cache(tid, cached_data):
+                await asyncio.to_thread(update_task_status_sync, tid, "SUCCESS", cached_data)
+                await manager.broadcast(tid, "Analyse restaurée depuis le cache.", status="COMPLETED", data=cached_data)
+            background_tasks.add_task(restore_research_cache, tasks_map["market_research"], data.research_data)
         elif data.target_company or data.target_industry:
             research_payload = {
                 "target_company": data.target_company,
