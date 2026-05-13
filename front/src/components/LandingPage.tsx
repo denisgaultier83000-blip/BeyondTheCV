@@ -327,7 +327,6 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
           <button onClick={onShowPrivacy} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, font: 'inherit' }}>
             Politique de Confidentialité
           </button>
-        </p>
         </div>
       </footer>
     </div>
