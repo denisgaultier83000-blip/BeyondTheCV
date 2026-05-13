@@ -109,12 +109,20 @@ export default function MarketReport({ data, onBack }: Props) {
                                 <h4 style={{ color: 'var(--primary)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>📰 Actualités & Leviers Stratégiques</h4>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                     {data.company_report.news_links.map((link: any, i: number) => {
-                                        const fullUrl = link.url.startsWith('http') ? link.url : `https://${link.url}`;
+                                        const urlStr = link.url || '#';
+                                        const isDummyUrl = urlStr === '#';
+                                        const fullUrl = isDummyUrl ? '#' : (urlStr.startsWith('http') ? urlStr : `https://${urlStr}`);
                                         return (
                                             <div key={i} style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                                    <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(fullUrl)}&sz=16`} alt="source" style={{ width: '16px', height: '16px', marginRight: '8px', borderRadius: '2px', flexShrink: 0 }} />
-                                                    <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 600, color: 'var(--text-main)', textDecoration: 'none' }}>{link.title}</a>
+                                                    {!isDummyUrl ? (
+                                                        <>
+                                                            <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(fullUrl)}&sz=16`} alt="source" style={{ width: '16px', height: '16px', marginRight: '8px', borderRadius: '2px', flexShrink: 0 }} />
+                                                            <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 600, color: 'var(--text-main)', textDecoration: 'none' }}>{link.title}</a>
+                                                        </>
+                                                    ) : (
+                                                        <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>💡 {link.title}</span>
+                                                    )}
                                                 </div>
                                                 {link.strategic_analysis && (
                                                     <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', borderLeft: '3px solid var(--primary)', paddingLeft: '0.75rem', marginTop: '0.75rem', fontStyle: 'italic', lineHeight: 1.5 }}>

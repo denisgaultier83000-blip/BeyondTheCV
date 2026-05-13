@@ -1,6 +1,7 @@
 import os
 import json
 import asyncio
+import re
 from datetime import datetime
 from .ai_generator import ai_service
 from .search_service import search_web
@@ -430,9 +431,15 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
             r_title = r.get('title', '').replace('[ACTUALITÉ] ', '')
             r_url = r.get('link', '#')
             
-            # Match strict par URL ou flou par titre
-            if (r_url != '#' and ai_url != '#' and (r_url in ai_url or ai_url in r_url)) or \
-               (len(ai_title) > 10 and len(r_title) > 10 and (ai_title[:15].lower() in r_title.lower() or r_title[:15].lower() in ai_title.lower())):
+            # 1. Match strict par URL
+            is_url_match = (r_url != '#' and ai_url != '#' and "lien-vers" not in ai_url and (r_url in ai_url or ai_url in r_url))
+            
+            # 2. Match sémantique par mots communs (au moins 2 mots significatifs de 4+ lettres)
+            r_words = set(w.lower() for w in re.findall(r'\w{4,}', r_title))
+            ai_words = set(w.lower() for w in re.findall(r'\w{4,}', ai_title))
+            is_title_match = len(r_words.intersection(ai_words)) >= 2
+            
+            if is_url_match or is_title_match:
                 matched_source = r
                 break
                 
@@ -447,15 +454,16 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
             })
             all_sources.remove(matched_source)
         else:
-            # Aucun match Serper trouvé (l'IA a probablement altéré les données ou utilisé ses connaissances)
-            # On intègre l'analyse avec les métadonnées de l'IA pour conserver la cohérence Lien <-> Conseil
-            real_news_links.append({
-                "title": ai_title if ai_title else "Actualité Stratégique",
-                "url": ai_url if ai_url else "#",
-                "source": ai_item["source"],
-                "date": ai_item["date"],
-                "strategic_analysis": ai_item["analysis"]
-            })
+            # Aucun match Serper trouvé : l'IA a résumé ses propres connaissances ou mal formaté le lien.
+            # On GARDE l'analyse (précieuse), mais on ne force plus l'ancrage sur un mauvais lien.
+            is_valid_url = ai_url and ai_url.startswith("http") and "lien-vers" not in ai_url and "example" not in ai_url
+                real_news_links.append({
+                "title": ai_title if ai_title else "Levier Stratégique",
+                "url": ai_url if is_valid_url else "#",
+                "source": ai_item.get("source", "Analyse IA") if is_valid_url else "Synthèse IA",
+                "date": ai_item.get("date", datetime.now().strftime("%Y-%m-%d")),
+                    "strategic_analysis": ai_item["analysis"]
+                })
             
         if len(real_news_links) >= 4:
             break

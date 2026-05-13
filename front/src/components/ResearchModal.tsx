@@ -101,12 +101,20 @@ const ResearchModal: React.FC<ResearchModalProps> = ({ data, mode = 'company', o
                         {company_report.news_links && company_report.news_links.length > 0 ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             {company_report.news_links.map((link: any, i: number) => {
-                              const fullUrl = link.url.startsWith('http') ? link.url : `https://${link.url}`;
+                              const urlStr = link.url || '#';
+                              const isDummyUrl = urlStr === '#';
+                              const fullUrl = isDummyUrl ? '#' : (urlStr.startsWith('http') ? urlStr : `https://${urlStr}`);
                               return (
                                 <div key={i} style={{ background: 'white', padding: '0.75rem', borderRadius: '6px', border: '1px solid rgba(225, 29, 72, 0.2)' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                    <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(fullUrl)}&sz=16`} alt="source" style={{ width: '16px', height: '16px', marginRight: '8px', borderRadius: '2px', flexShrink: 0 }} />
-                                    <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--danger-text)', textDecoration: 'none', fontWeight: 600, fontSize: '0.9rem' }}>{link.title}</a>
+                                    {!isDummyUrl ? (
+                                        <>
+                                            <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(fullUrl)}&sz=16`} alt="source" style={{ width: '16px', height: '16px', marginRight: '8px', borderRadius: '2px', flexShrink: 0 }} />
+                                            <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--danger-text)', textDecoration: 'none', fontWeight: 600, fontSize: '0.9rem' }}>{link.title}</a>
+                                        </>
+                                    ) : (
+                                        <span style={{ color: 'var(--danger-text)', fontWeight: 600, fontSize: '0.9rem' }}>💡 {link.title}</span>
+                                    )}
                                   </div>
                                   {link.strategic_analysis && (
                                     <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', borderLeft: '3px solid var(--danger-text)', paddingLeft: '0.75rem', marginTop: '0.5rem', fontStyle: 'italic', lineHeight: 1.4 }}>

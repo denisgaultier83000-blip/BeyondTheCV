@@ -1106,6 +1106,7 @@ async def get_dashboard_summary(data: FullCVData, current_user: dict = Depends(r
         PROFIL: {json.dumps(cv_lean_dict, default=str)}
         
         OUTPUT LANGUAGE: {target_lang}
+        ⚠️ INSTRUCTION CRITIQUE : Ne recopie JAMAIS "Force 1", "Force 2". Tu DOIS générer les vraies forces du candidat.
         FORMAT JSON STRICT: {{"key_strengths": ["Force 1", "Force 2", "Force 3"]}}
         """
         key_strengths_task = ai_service.generate(key_strengths_prompt, provider="gemini", system_instruction=f"Tu es un expert en branding personnel. Langue: {target_lang}.", bypass_queue=True)
@@ -1121,6 +1122,7 @@ async def get_dashboard_summary(data: FullCVData, current_user: dict = Depends(r
         PROFIL: {json.dumps(cv_lean_dict, default=str)}
         
         OUTPUT LANGUAGE: {target_lang}
+        ⚠️ INSTRUCTION CRITIQUE : Ne recopie JAMAIS "Priorité 1", "Priorité 2". Tu DOIS générer de vraies stratégies actionnables.
         FORMAT JSON STRICT: {{"application_strategy": ["Priorité 1", "Priorité 2", "Priorité 3"]}}
         """
         application_strategy_task = ai_service.generate(application_strategy_prompt, provider="gemini", system_instruction=f"Tu es un coach de carrière stratégique. Langue: {target_lang}.", bypass_queue=True)

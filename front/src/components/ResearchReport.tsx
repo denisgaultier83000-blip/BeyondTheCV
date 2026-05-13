@@ -120,14 +120,22 @@ export function ResearchReport({ data, companyName }: ResearchReportProps) {
           </h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {newsLinks.map((article: any, idx: number) => {
-              const fullUrl = article.url.startsWith('http') ? article.url : `https://${article.url}`;
+              const urlStr = article.url || '#';
+              const isDummyUrl = urlStr === '#';
+              const fullUrl = isDummyUrl ? '#' : (urlStr.startsWith('http') ? urlStr : `https://${urlStr}`);
               return (
                 <div key={idx} style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
                   <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
-                    <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(fullUrl)}&sz=16`} alt="source" style={{ width: '16px', height: '16px', marginRight: '8px', borderRadius: '2px', flexShrink: 0 }} />
-                    <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 600 }}>
-                      {article.title}
-                    </a>
+                    {!isDummyUrl ? (
+                        <>
+                            <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(fullUrl)}&sz=16`} alt="source" style={{ width: '16px', height: '16px', marginRight: '8px', borderRadius: '2px', flexShrink: 0 }} />
+                            <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 600 }}>
+                                {article.title}
+                            </a>
+                        </>
+                    ) : (
+                        <span style={{ color: 'var(--primary)', fontWeight: 600 }}>💡 {article.title}</span>
+                    )}
                   </div>
                   {article.strategic_analysis && (
                     <div style={{ fontSize: '0.85rem', color: '#475569', borderLeft: '3px solid var(--primary)', paddingLeft: '0.75rem', marginTop: '0.75rem', fontStyle: 'italic', lineHeight: 1.5 }}>
