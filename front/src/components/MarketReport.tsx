@@ -185,6 +185,23 @@ export default function MarketReport({ data, onBack }: Props) {
                                     <td style={{ padding: "12px", fontWeight: "bold", color: "var(--text-muted)", width: "40%" }}>Baromètre des salaires</td>
                                     <td style={{ padding: "12px" }}>{data.market_report.salary_barometer}</td>
                                 </tr>
+                                <tr style={{ borderBottom: "1px solid var(--border-color)" }}>
+                                    <td style={{ padding: "12px", fontWeight: "bold", color: "var(--text-muted)", width: "40%" }}>Paysage Concurrentiel</td>
+                                    <td style={{ padding: "12px" }}>{data.market_report.competitive_landscape}</td>
+                                </tr>
+                                <tr style={{ borderBottom: "1px solid var(--border-color)" }}>
+                                    <td style={{ padding: "12px", fontWeight: "bold", color: "var(--text-muted)", width: "40%" }}>Tendances du marché</td>
+                                    <td style={{ padding: "12px" }}>{data.market_report.trends}</td>
+                                </tr>
+                                {((data.market_report.top_skills?.hard && data.market_report.top_skills.hard.length > 0) || (data.market_report.top_skills?.soft && data.market_report.top_skills.soft.length > 0)) && (
+                                    <tr style={{ borderBottom: "1px solid var(--border-color)" }}>
+                                        <td style={{ padding: "12px", fontWeight: "bold", color: "var(--text-muted)", width: "40%" }}>Compétences prisées</td>
+                                        <td style={{ padding: "12px" }}>
+                                            <strong>Hard:</strong> {data.market_report.top_skills.hard?.join(', ') || 'N/A'}<br/>
+                                            <strong>Soft:</strong> {data.market_report.top_skills.soft?.join(', ') || 'N/A'}
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                         </>

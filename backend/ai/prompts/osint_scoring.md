@@ -34,7 +34,7 @@ Tu DOIS retourner un JSON contenant la liste des articles évalués. Ne génère
 {
   "scored_articles": [
     {
-      "original_url": "https://url-de-larticle.com",
+      "link": "https://url-de-larticle.com",
       "credibility": 9,
       "relevance": 8,
       "risk": 2,

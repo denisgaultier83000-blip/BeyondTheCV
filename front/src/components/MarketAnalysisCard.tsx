@@ -1,5 +1,5 @@
 import React from 'react';
-import { Globe, Wallet, Activity, Zap, Loader2, XCircle, Target, Award } from 'lucide-react';
+import { Globe, Wallet, Activity, Zap, Loader2, XCircle, Target, Award, Lightbulb } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 
 interface MarketAnalysisCardProps {
@@ -64,7 +64,8 @@ export function MarketAnalysisCard({ data, salaryData, loading, error }: MarketA
   const mid = salaryData?.salary_range?.mid ? `${salaryData.salary_range.mid}k€` : "N/A";
   const high = salaryData?.salary_range?.high ? `${salaryData.salary_range.high}k€` : "N/A";
   const comment = salaryData?.commentary || report.salary_barometer || report.barometre_salaires || report.salaires || "Baromètre non disponible";
-  const dynamics = report.recruitment_dynamics || report.dynamique_recrutement || report.trends || report.tendances || "Données de marché en attente...";
+  const dynamics = report.recruitment_dynamics || report.dynamique_recrutement || "Données de marché en attente...";
+  const trends = report.trends || report.tendances || "Analyse des tendances en cours...";
   const disruptions = report.major_disruptions || report.perturbations || "Recherche des disruptions en cours...";
   const landscape = report.competitive_landscape || report.paysage_concurrentiel || "Analyse des concurrents en cours...";
   const skills = report.top_skills || report.competences_cles || { hard: [], soft: [] };
@@ -97,6 +98,14 @@ export function MarketAnalysisCard({ data, salaryData, loading, error }: MarketA
           </div>
         </div>
 
+        {/* NOUVEAU : Tendances & Innovations */}
+        <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
+          <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 0, marginBottom: '1rem', color: 'var(--text-main)' }}>
+            <Lightbulb size={18} color="#f59e0b" /> Tendances & Innovations
+          </h4>
+          <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>{trends}</p>
+        </div>
+
         {/* NOUVEAU : Perturbations Majeures */}
         <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
           <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 0, marginBottom: '1rem', color: 'var(--text-main)' }}>
@@ -107,9 +116,16 @@ export function MarketAnalysisCard({ data, salaryData, loading, error }: MarketA
 
         {/* Salaire */}
         <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
-          <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 0, marginBottom: '1rem', color: 'var(--text-main)' }}>
-            <Wallet size={18} color="#10b981" /> Baromètre des Salaires
-          </h4>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0, color: 'var(--text-main)' }}>
+              <Wallet size={18} color="#10b981" /> Baromètre des Salaires
+            </h4>
+            {salaryData?.confidence && (
+              <span style={{ fontSize: '0.75rem', background: salaryData.confidence.toLowerCase().includes('haute') || salaryData.confidence.toLowerCase().includes('high') ? 'rgba(16, 185, 129, 0.1)' : salaryData.confidence.toLowerCase().includes('faible') || salaryData.confidence.toLowerCase().includes('low') ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)', color: salaryData.confidence.toLowerCase().includes('haute') || salaryData.confidence.toLowerCase().includes('high') ? '#10b981' : salaryData.confidence.toLowerCase().includes('faible') || salaryData.confidence.toLowerCase().includes('low') ? '#ef4444' : '#f59e0b', border: `1px solid ${salaryData.confidence.toLowerCase().includes('haute') || salaryData.confidence.toLowerCase().includes('high') ? 'rgba(16, 185, 129, 0.2)' : salaryData.confidence.toLowerCase().includes('faible') || salaryData.confidence.toLowerCase().includes('low') ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`, padding: '0.2rem 0.6rem', borderRadius: '1rem', fontWeight: 600 }}>
+                Fiabilité : {salaryData.confidence}
+              </span>
+            )}
+          </div>
           
           <div style={{ position: 'relative', height: '8px', background: 'var(--border-color)', borderRadius: '4px', margin: '2rem 1rem 1.5rem' }}>
             <div style={{ position: 'absolute', left: '20%', right: '15%', height: '100%', background: '#10b981', borderRadius: '4px' }}></div>

@@ -310,8 +310,12 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
                 scored_articles = scoring_result.get("scored_articles", [])
                 
                 # On ne garde que les articles avec un score d'exploitabilité >= 6
-                valid_urls = [art.get("original_url") for art in scored_articles if int(art.get("actionability", 0)) >= 6]
+                valid_urls = [art.get("link") or art.get("original_url") for art in scored_articles if int(art.get("actionability", 0)) >= 6]
                 valid_news = [r for r in news_to_score if r.get("link") in valid_urls]
+                
+                # Sécurité anti-trou noir : si le matching des URLs échoue mais que l'IA avait bien trouvé des articles valides, on bypass le filtre pour ne pas tout perdre
+                if not valid_news and any(int(art.get("actionability", 0)) >= 6 for art in scored_articles):
+                    valid_news = news_to_score
                 print(f"[OSINT] Filtrage terminé : {len(valid_news)} articles hautement exploitables retenus sur {len(news_to_score)}.")
             except Exception as e:
                 print(f"[OSINT ERROR] Scoring failed: {e}")
@@ -456,7 +460,7 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
             r_url = r.get('link', '#')
             
             # 1. Match strict par URL
-            is_url_match = (r_url != '#' and ai_url != '#' and "lien-vers" not in ai_url and (r_url in ai_url or ai_url in r_url))
+            is_url_match = (r_url != '#' and len(ai_url) > 10 and "lien-vers" not in ai_url and (r_url in ai_url or ai_url in r_url))
             
             # 2. Match sémantique par mots communs (au moins 2 mots significatifs de 4+ lettres)
             r_words = set(w.lower() for w in re.findall(r'\w{4,}', r_title))

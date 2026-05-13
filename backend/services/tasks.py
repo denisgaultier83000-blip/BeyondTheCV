@@ -79,7 +79,7 @@ async def _run_salary_logic(task_id: str, candidate_data: dict):
         elif remote_pref == 'full':
             geo_context = f"in {target_country} (Full Remote context)"
 
-        prompt = f"Estimate a realistic salary range (low, mid, high) for this profile {geo_context}.\n\nSPECIAL INSTRUCTION: If location is Remote/International, use USD or EUR and explain in 'commentary' that salary depends on Company HQ location. Write the 'commentary' in {target_lang}.\n\nPROFILE:\n{json.dumps(candidate_data, indent=2, ensure_ascii=False, default=str)}\n\nRespond in STRICT JSON: {{\"salary_range\": {{\"low\": 45000, \"mid\": 50000, \"high\": 55000}}, \"currency\": \"EUR\", \"commentary\": \"...\"}}\nIMPORTANT: 'low', 'mid', 'high' MUST be integers."
+        prompt = f"Estimate a realistic salary range (low, mid, high) for this profile {geo_context}.\n\nSPECIAL INSTRUCTION: If location is Remote/International, use USD or EUR and explain in 'commentary' that salary depends on Company HQ location. Write the 'commentary' in {target_lang}.\n\nPROFILE:\n{json.dumps(candidate_data, indent=2, ensure_ascii=False, default=str)}\n\nRespond in STRICT JSON: {{\"salary_range\": {{\"low\": 45000, \"mid\": 50000, \"high\": 55000}}, \"currency\": \"EUR\", \"confidence\": \"Haute | Moyenne | Faible\", \"commentary\": \"...\"}}\nIMPORTANT: 'low', 'mid', 'high' MUST be integers."
         
         result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are a compensation expert. You must output STRICT JSON.")
         if "error" in result:
