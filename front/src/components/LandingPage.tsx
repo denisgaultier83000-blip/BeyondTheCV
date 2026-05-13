@@ -309,7 +309,6 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
           </button>
           
           <div style={{ marginTop: '1.5rem', fontSize: '0.9rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-            <Award size={16} /> Satisfait ou remboursé sous 14 jours.
           </div>
         </div>
       </section>

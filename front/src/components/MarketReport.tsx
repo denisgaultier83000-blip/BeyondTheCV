@@ -21,7 +21,7 @@ interface MarketData {
         culture_environment: string;
         team_structure: string;
         hot_news?: string;
-        news_links?: { title: string; url: string; source?: string }[];
+        news_links?: { title: string; url: string; source?: string; strategic_analysis?: string }[];
     };
     market_report?: {
         tension_score: number;
@@ -101,29 +101,32 @@ export default function MarketReport({ data, onBack }: Props) {
                             <ul>
                                 {data.company_report.team_structure && <li><strong>Équipes :</strong> {data.company_report.team_structure}</li>}
                                 {data.company_report.hot_news && <li><strong>Actu :</strong> {data.company_report.hot_news}</li>}
-                                {data.company_report.news_links && data.company_report.news_links.length > 0 && (
-                                    <li><strong>Articles :</strong> 
-                                        <ul style={{ marginTop: '0.5rem' }}>
-                                            {data.company_report.news_links.map((link: any, i: number) => {
-                                                const fullUrl = link.url.startsWith('http') ? link.url : `https://${link.url}`;
-                                                return (
-                                                    <li key={i} style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem', lineHeight: 1.2 }}>
-                                                        <img 
-                                                            src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(fullUrl)}&sz=16`} 
-                                                            alt="source icon" 
-                                                            style={{ width: '16px', height: '16px', marginRight: '8px', borderRadius: '2px', flexShrink: 0 }} 
-                                                        />
-                                                        <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block' }}>
-                                                            {link.title}
-                                                        </a>
-                                                    </li>
-                                                );
-                                            })}
-                                        </ul>
-                                    </li>
-                                )}
                             </ul>
                         ) : null}
+
+                        {data.company_report?.news_links && data.company_report.news_links.length > 0 && (
+                            <div style={{ marginTop: '1.5rem' }}>
+                                <h4 style={{ color: 'var(--primary)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>📰 Actualités & Leviers Stratégiques</h4>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    {data.company_report.news_links.map((link: any, i: number) => {
+                                        const fullUrl = link.url.startsWith('http') ? link.url : `https://${link.url}`;
+                                        return (
+                                            <div key={i} style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                                    <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(fullUrl)}&sz=16`} alt="source" style={{ width: '16px', height: '16px', marginRight: '8px', borderRadius: '2px', flexShrink: 0 }} />
+                                                    <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 600, color: 'var(--text-main)', textDecoration: 'none' }}>{link.title}</a>
+                                                </div>
+                                                {link.strategic_analysis && (
+                                                    <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', borderLeft: '3px solid var(--primary)', paddingLeft: '0.75rem', marginTop: '0.75rem', fontStyle: 'italic', lineHeight: 1.5 }}>
+                                                        <strong style={{ color: 'var(--primary)', fontStyle: 'normal' }}>Conseil Stratégique :</strong> {link.strategic_analysis}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
