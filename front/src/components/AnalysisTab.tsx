@@ -23,10 +23,10 @@ export const AnalysisTab = ({ researchResult, salaryResult, onRefresh, isRefresh
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
         <div id="company_section">
-          <CompanyAnalysisCard data={researchResult} loading={!researchResult || isRefreshing} error={researchResult?.error} /> 
+          <CompanyAnalysisCard data={researchResult} loading={!researchResult && isRefreshing} error={researchResult?.error} /> 
         </div>
         <div id="market_section">
-          <MarketAnalysisCard data={researchResult} salaryData={salaryResult} loading={(!researchResult || !salaryResult) || isRefreshing} error={researchResult?.error || salaryResult?.error} />
+          <MarketAnalysisCard data={researchResult} salaryData={salaryResult} loading={(!researchResult || !salaryResult) && isRefreshing} error={researchResult?.error || salaryResult?.error} />
         </div>
       </div>
     </div>

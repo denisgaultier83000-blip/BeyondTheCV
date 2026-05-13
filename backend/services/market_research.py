@@ -426,7 +426,8 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
             "title": clean_title,
             "url": r.get('link', '#'),
             "source": source_str,
-            "date": r.get('date', datetime.now().strftime("%Y-%m-%d"))
+            "date": r.get('date', datetime.now().strftime("%Y-%m-%d")),
+            "strategic_analysis": analysis
         })
         
     safe_synthesis["company_report"]["news_links"] = real_news_links
