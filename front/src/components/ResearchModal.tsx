@@ -97,15 +97,26 @@ const ResearchModal: React.FC<ResearchModalProps> = ({ data, mode = 'company', o
                         <p style={{...textStyle, fontSize: '0.85rem'}}>{company_report.team_structure}</p>
                     </div>
                   <div style={{ background: 'rgba(225, 29, 72, 0.05)', border: '1px solid rgba(225, 29, 72, 0.2)', padding: '1rem', borderRadius: '8px' }}>
-                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--danger-text)' }}>{t('company_news', 'Dernières actualités')}</h4>
+                      <h4 style={{ margin: '0 0 1rem 0', color: 'var(--danger-text)' }}>{t('company_news', 'Actualités & Leviers Stratégiques')}</h4>
                         {company_report.news_links && company_report.news_links.length > 0 ? (
-                          <ul style={{ margin: 0, paddingLeft: '1.2rem', ...textStyle, fontSize: '0.85rem' }}>
-                            {company_report.news_links.map((link: any, i: number) => (
-                              <li key={i} style={{ marginBottom: '0.25rem' }}>
-                                <a href={link.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--danger-text)', textDecoration: 'none' }}>{link.title}</a>
-                              </li>
-                            ))}
-                          </ul>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            {company_report.news_links.map((link: any, i: number) => {
+                              const fullUrl = link.url.startsWith('http') ? link.url : `https://${link.url}`;
+                              return (
+                                <div key={i} style={{ background: 'white', padding: '0.75rem', borderRadius: '6px', border: '1px solid rgba(225, 29, 72, 0.2)' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                    <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(fullUrl)}&sz=16`} alt="source" style={{ width: '16px', height: '16px', marginRight: '8px', borderRadius: '2px', flexShrink: 0 }} />
+                                    <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--danger-text)', textDecoration: 'none', fontWeight: 600, fontSize: '0.9rem' }}>{link.title}</a>
+                                  </div>
+                                  {link.strategic_analysis && (
+                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', borderLeft: '3px solid var(--danger-text)', paddingLeft: '0.75rem', marginTop: '0.5rem', fontStyle: 'italic', lineHeight: 1.4 }}>
+                                      <strong style={{ color: 'var(--danger-text)', fontStyle: 'normal' }}>Conseil Stratégique :</strong> {link.strategic_analysis}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         ) : (
                           <p style={{...textStyle, fontSize: '0.85rem'}}>{company_report.hot_news || "Aucune actualité récente."}</p>
                         )}

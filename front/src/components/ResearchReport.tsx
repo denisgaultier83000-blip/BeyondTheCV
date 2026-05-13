@@ -115,19 +115,29 @@ export function ResearchReport({ data, companyName }: ResearchReportProps) {
       {/* Articles de Presse / Actualités */}
       {newsLinks.length > 0 && (
         <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
-          <h4 style={{ margin: '0 0 0.75rem 0', color: '#334155', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Newspaper size={18}/> Actualités & Articles Clés
+          <h4 style={{ margin: '0 0 1rem 0', color: '#334155', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Newspaper size={18}/> Actualités & Leviers Stratégiques
           </h4>
-          <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#475569', fontSize: '0.9rem' }}>
-            {newsLinks.map((article: any, idx: number) => (
-              <li key={idx} style={{ marginBottom: '0.5rem' }}>
-                <a href={article.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 500 }}>
-                  {article.title}
-                </a>
-                {article.source && <span style={{ color: '#94a3b8', fontSize: '0.8rem', marginLeft: '0.5rem' }}>({article.source})</span>}
-              </li>
-            ))}
-          </ul>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {newsLinks.map((article: any, idx: number) => {
+              const fullUrl = article.url.startsWith('http') ? article.url : `https://${article.url}`;
+              return (
+                <div key={idx} style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(fullUrl)}&sz=16`} alt="source" style={{ width: '16px', height: '16px', marginRight: '8px', borderRadius: '2px', flexShrink: 0 }} />
+                    <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 600 }}>
+                      {article.title}
+                    </a>
+                  </div>
+                  {article.strategic_analysis && (
+                    <div style={{ fontSize: '0.85rem', color: '#475569', borderLeft: '3px solid var(--primary)', paddingLeft: '0.75rem', marginTop: '0.75rem', fontStyle: 'italic', lineHeight: 1.5 }}>
+                      <strong style={{ color: 'var(--primary)', fontStyle: 'normal' }}>Conseil Stratégique :</strong> {article.strategic_analysis}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
