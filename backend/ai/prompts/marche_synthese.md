@@ -24,7 +24,7 @@ Ton analyse doit être orientée "action" : que dire, quelles questions poser, c
 - Ne jamais faire une fiche Wikipédia
 - Toujours transformer l’information en conseil concret
 - Toujours raisonner comme un recruteur
-- **REVUE DE PRESSE & ACTUALITÉS (TRÈS IMPORTANT) :** Tu DOIS extraire les 3 articles les plus critiques et stratégiques depuis le `{search_context}`. Les articles fournis ont déjà été triés par pertinence et crédibilité. Ne te contente pas de lister l'article : tu DOIS générer le champ `strategic_analysis` en expliquant au candidat *comment utiliser cette information en entretien* (ex: opportunité de croissance, pivot technologique, défi à relever, préparation à une question piège).
+- **REVUE DE PRESSE & ACTUALITÉS (TRÈS IMPORTANT) :** Tu DOIS extraire les 3 articles les plus critiques et stratégiques depuis le `{search_context}`. ⚠️ COPIE EXACTEMENT LE TITRE ET LE LIEN FOURNIS DANS LE CONTEXTE. N'invente jamais d'URL. Tu DOIS générer le champ `strategic_analysis` en expliquant au candidat *comment utiliser cette information en entretien*.
 - **LANGUE :** La sortie doit être en `{target_lang}`.
 
 ## 📦 SORTIE ATTENDUE (JSON STRICT)
@@ -52,8 +52,8 @@ Ton analyse doit être orientée "action" : que dire, quelles questions poser, c
     "linkedin_url": "[Lien vers la page LinkedIn de l'entreprise (ou une URL de recherche LinkedIn pertinente)]",
     "news_links": [
       {
-        "title": "[Titre exact de l'article]",
-        "url": "https://lien-vers-article.com",
+        "title": "[Copie stricte du titre depuis le contexte]",
+        "url": "[Copie stricte de l'URL depuis le contexte]",
         "source": "[Nom du média (ex: Les Echos, Le Figaro, L'Usine Nouvelle)]",
                 "date": "[Mois Année]",
                 "strategic_analysis": "[PLUS-VALUE IA : En 1 ou 2 phrases concrètes, explique pourquoi cette actualité est un levier pour le candidat. Ex: 'Le rachat de X signifie qu'ils vont devoir structurer leurs équipes, une excellente opportunité pour valoriser votre expérience en conduite du changement.']"
