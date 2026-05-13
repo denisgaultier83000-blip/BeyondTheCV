@@ -87,6 +87,18 @@ export const PrintableDossier = () => {
           <p><strong>Tendances :</strong> {marketReport.trends || "N/A"}</p>
           <p><strong>Salaires :</strong> {marketReport.salary_barometer || "N/A"}</p>
         </div>
+
+        {companyReport.news_links && companyReport.news_links.length > 0 && (
+          <div className="print-box avoid-break">
+            <h3 style={{ color: '#e11d48', marginTop: '1rem' }}>📰 Actualités & Leviers Stratégiques</h3>
+            {companyReport.news_links.map((link: any, idx: number) => (
+              <div key={idx} style={{ marginBottom: '1rem' }}>
+                <p style={{ margin: '0 0 0.25rem 0', fontWeight: 'bold' }}>• {link.title}</p>
+                {link.strategic_analysis && <p style={{ margin: 0, fontStyle: 'italic', color: '#475569', paddingLeft: '1rem' }}>Conseil Stratégique : {link.strategic_analysis}</p>}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 3. Réponses aux Défauts */}
