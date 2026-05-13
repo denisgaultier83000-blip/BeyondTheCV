@@ -454,13 +454,12 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
             })
             all_sources.remove(matched_source)
         else:
-            # Aucun match Serper trouvé : l'IA a résumé ses propres connaissances ou mal formaté le lien.
-            # On GARDE l'analyse (précieuse), mais on ne force plus l'ancrage sur un mauvais lien.
-            is_valid_url = ai_url and ai_url.startswith("http") and "lien-vers" not in ai_url and "example" not in ai_url
+            # Aucun match Serper trouvé : l'IA a halluciné l'URL ou a résumé ses propres connaissances.
+            # On GARDE l'analyse (précieuse), mais on FORCE l'URL à '#' pour appliquer une politique Zero-Trust et éviter les 404.
             real_news_links.append({
                 "title": ai_title if ai_title else "Levier Stratégique",
-                "url": ai_url if is_valid_url else "#",
-                "source": ai_item.get("source", "Analyse IA") if is_valid_url else "Synthèse IA",
+                "url": "#",
+                "source": "Synthèse IA",
                 "date": ai_item.get("date", datetime.now().strftime("%Y-%m-%d")),
                 "strategic_analysis": ai_item["analysis"]
             })
