@@ -52,51 +52,16 @@ class AIGenerator:
 
         # [FIX] Sémaphore reporté au runtime pour éviter le crash "No event loop" (Python 3.10+)
         self._semaphore = None
+        
+        # [CIRCUIT BREAKER] Gestion globale des pannes de providers
+        self.provider_failures = {"gemini": 0, "openai": 0}
+        self.circuit_breaker_threshold = 2
 
     def _resolve_best_gemini_model(self):
-        """
-        Algorithme d'Intersection Sécurisée : Vérifie la disponibilité réelle 
-        sur l'API sans sacrifier le contrôle des coûts et de la qualité.
-        """
-        if not self.gemini_client:
-            return None
-
-        print("[AI INIT] 📡 Discovery: Querying available Gemini models...", flush=True)
-        
-        # 🎯 NOTRE STRATÉGIE (Par ordre de préférence strict)
-        PREFERENCE_ORDER = [
-            "gemini-1.5-flash", # Moins cher et plus rapide, idéal pour 95% des tâches
-            "gemini-1.5-flash",
-            "gemini-1.0-pro",
-            "gemini-pro"
-        ]
-
-        try:
-            # 1. Requête dynamique pour récupérer la liste des modèles actifs
-            available_models = list(self.gemini_client.models.list())
-            
-            # 2. Extraction sécurisée (Fix de compatibilité SDK)
-            available_model_names = [m.name.replace("models/", "") for m in available_models]
-
-            # 3. Matching avec notre préférence
-            for pref in PREFERENCE_ORDER:
-                matches = [m for m in available_model_names if pref in m]
-                if matches:
-                    selected = matches[0]
-                    print(f"[AI INIT] ✅ SELECTED BEST MODEL: {selected}", flush=True)
-                    return selected
-            
-            # 4. Fallback ultime si rien ne matche
-            print("[AI INIT] ⚠️ No preferred model found. Fallback to 'gemini-1.5-flash'.", flush=True)
-            return "gemini-1.5-flash"
-            
-        except Exception as e:
-            # 5. Résilience ultime : Si l'endpoint plante
-            print(f"[AI INIT] ❌ Model discovery failed: {e}. Defaulting to 'gemini-1.5-flash'.", flush=True)
-            return "gemini-1.5-flash"
+        """Sélection directe du meilleur modèle pour éviter les latences de découverte et les erreurs 502 de l'API list."""
+        return "gemini-1.5-flash"
             
     async def _get_gemini_model(self) -> str:
-        """Exécute l'algorithme d'intersection sans bloquer l'Event Loop."""
         if self.gemini_model_name:
             return self.gemini_model_name
         
@@ -105,42 +70,8 @@ class AIGenerator:
         return self.gemini_model_name
 
     async def _get_openai_model(self) -> str:
-        """
-        Algorithme d'Intersection Sécurisée pour OpenAI (Lazy Loading).
-        Mis en cache après le premier appel pour ne pas ralentir l'application.
-        """
-        if hasattr(self, '_cached_openai_model'):
-            return self._cached_openai_model
-
-        if not self.openai_client:
-            return "gpt-4o-mini"
-
-        print("[AI INIT] 📡 Discovery: Querying available OpenAI models...", flush=True)
-        PREFERRED_MODELS = [
-            "gpt-4o-mini", # Moins cher et plus rapide
-            "gpt-4o",
-            "gpt-4-turbo",
-            "gpt-3.5-turbo"
-        ]
-
-        try:
-            model_list = await self.openai_client.models.list()
-            available_model_ids = [m.id for m in model_list.data]
-            
-            for model in PREFERRED_MODELS:
-                if model in available_model_ids:
-                    print(f"[AI INIT] ✅ SELECTED BEST OPENAI MODEL: {model}", flush=True)
-                    self._cached_openai_model = model
-                    return model
-                    
-            print("[AI INIT] ⚠️ No preferred OpenAI model found. Fallback to gpt-4o-mini.", flush=True)
-            self._cached_openai_model = "gpt-4o-mini"
-            return "gpt-4o-mini"
-            
-        except Exception as e:
-            print(f"[AI INIT] ❌ OpenAI Discovery failed: {e}. Defaulting to gpt-4o-mini.", flush=True)
-            self._cached_openai_model = "gpt-4o-mini"
-            return "gpt-4o-mini"
+        """Sélection directe du modèle OpenAI."""
+        return "gpt-4o-mini"
 
     async def generate(self, prompt: str, provider: str = None, system_instruction: str = None, bypass_queue: bool = False) -> str:
         """
@@ -152,6 +83,13 @@ class AIGenerator:
         """
         # Logique simplifiée et robuste : on utilise le modèle résolu au démarrage
         target_provider = provider or self.default_provider
+        
+        # [CIRCUIT BREAKER] Auto-switch si le provider par défaut est hors-service
+        if not provider and self.provider_failures.get(target_provider, 0) >= self.circuit_breaker_threshold:
+            fallback = "openai" if target_provider == "gemini" else "gemini"
+            print(f"[AI CIRCUIT BREAKER] {target_provider} est ignoré suite à de multiples échecs. Routage direct vers {fallback}.", flush=True)
+            target_provider = fallback
+            
         fallback_provider = "openai" if target_provider == "gemini" else "gemini"
 
         # Initialisation Lazy du Sémaphore (Garanti dans l'Event Loop)
@@ -160,15 +98,21 @@ class AIGenerator:
 
         async def _run():
             try:
-                return await self._execute_provider(target_provider, prompt, system_instruction)
+                res = await self._execute_provider(target_provider, prompt, system_instruction)
+                self.provider_failures[target_provider] = max(0, self.provider_failures[target_provider] - 1)
+                return res
                     
             except Exception as e:
                 
+                self.provider_failures[target_provider] += 1
                 # 🔄 SYSTÈME DE FALLBACK AUTOMATIQUE GLOBAL
                 print(f"[AI] ⚠️ {target_provider.capitalize()} a échoué ({str(e)}). Auto-fallback vers {fallback_provider}...", flush=True)
                 try:
-                    return await self._execute_provider(fallback_provider, prompt, system_instruction)
+                    res = await self._execute_provider(fallback_provider, prompt, system_instruction)
+                    self.provider_failures[fallback_provider] = max(0, self.provider_failures[fallback_provider] - 1)
+                    return res
                 except Exception as fallback_e:
+                    self.provider_failures[fallback_provider] += 1
                     msg = f"Both providers failed. Primary: {e!r} | Fallback: {fallback_e!r}"
                     print(f"[AI] 💀 FATAL: {msg}", flush=True)
                     raise RuntimeError(msg)
@@ -241,10 +185,10 @@ class AIGenerator:
         
         for attempt in range(max_retries + 1):
             try:
-                # [CIRCUIT BREAKER] Timeout réduit à 30s pour déclencher le fallback plus rapidement
-                return await asyncio.wait_for(func(*args, model=model_name, **kwargs), timeout=30.0)
+                # [CIRCUIT BREAKER] Timeout réduit à 25s pour déclencher le fallback plus rapidement
+                return await asyncio.wait_for(func(*args, model=model_name, **kwargs), timeout=25.0)
             except asyncio.TimeoutError:
-                print(f"[AI] ⏱️ Timeout (30s) sur {model_name}. Le provider bloque.", flush=True)
+                print(f"[AI] ⏱️ Timeout (25s) sur {model_name}. Le provider bloque.", flush=True)
                 if attempt < max_retries:
                     delay = base_delay * (2 ** attempt) + random.uniform(0, 0.5)
                     print(f"[AI] ⏳ Retry après Timeout dans {delay:.1f}s...", flush=True)
@@ -260,6 +204,9 @@ class AIGenerator:
                 if "400" in error_msg or "invalid argument" in error_msg: # Requête invalide
                     raise e
                 if "401" in error_msg or "unauthenticated" in error_msg: # Clé invalide
+                    raise e
+                if "502" in error_msg or "bad gateway" in error_msg or "503" in error_msg or "500" in error_msg: # Panne API Serveur
+                    print(f"[AI] 🚨 Panne API Serveur ({model_name}). Rejet immédiat pour déclencher le fallback.", flush=True)
                     raise e
 
                 # 2. Erreurs Transitoires (Réessayer le même modèle)
