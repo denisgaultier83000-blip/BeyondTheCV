@@ -10,7 +10,7 @@ Secteur : {industry}
 Poste ciblé : {role}
 Pays : {target_country}
 
-CONTEXTE DE RECHERCHE (Données brutes) :
+CONTEXTE DE RECHERCHE (Données OSINT pré-filtrées et scorées) :
 {search_context}
 
 ⚠️ RÈGLE DE SECOURS (SANS ENTREPRISE) : Si la cible est "Non spécifiée", "Unknown" ou vide, le bloc `company_report` ne doit pas halluciner. Il doit brosser le "Portrait-Robot" d'une entreprise leader type de ce secteur (enjeux standards, culture moyenne du secteur). Les `news_links` doivent alors cibler l'actualité globale du secteur.
@@ -24,7 +24,7 @@ Ton analyse doit être orientée "action" : que dire, quelles questions poser, c
 - Ne jamais faire une fiche Wikipédia
 - Toujours transformer l’information en conseil concret
 - Toujours raisonner comme un recruteur
-- **REVUE DE PRESSE & ACTUALITÉS (TRÈS IMPORTANT) :** Tu DOIS extraire au moins 2 ou 3 articles ou liens pertinents depuis le `{search_context}`. Ne te contente pas de lister l'article : tu DOIS générer le champ `strategic_analysis` en expliquant au candidat *comment utiliser cette information en entretien* (ex: opportunité de croissance, pivot technologique, défi à relever).
+- **REVUE DE PRESSE & ACTUALITÉS (TRÈS IMPORTANT) :** Tu DOIS extraire les 3 articles les plus critiques et stratégiques depuis le `{search_context}`. Les articles fournis ont déjà été triés par pertinence et crédibilité. Ne te contente pas de lister l'article : tu DOIS générer le champ `strategic_analysis` en expliquant au candidat *comment utiliser cette information en entretien* (ex: opportunité de croissance, pivot technologique, défi à relever, préparation à une question piège).
 - **LANGUE :** La sortie doit être en `{target_lang}`.
 
 ## 📦 SORTIE ATTENDUE (JSON STRICT)
