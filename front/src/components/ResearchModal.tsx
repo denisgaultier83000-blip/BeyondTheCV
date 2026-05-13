@@ -105,12 +105,12 @@ const ResearchModal: React.FC<ResearchModalProps> = ({ data, mode = 'company', o
                               const isDummyUrl = urlStr === '#';
                               const fullUrl = isDummyUrl ? '#' : (urlStr.startsWith('http') ? urlStr : `https://${urlStr}`);
                               return (
-                                <div key={i} style={{ background: 'white', padding: '0.75rem', borderRadius: '6px', border: '1px solid rgba(225, 29, 72, 0.2)' }}>
+                                <div key={i} style={{ background: 'white', padding: '0.75rem', borderRadius: '6px', border: '1px solid rgba(225, 29, 72, 0.2)' }} onClick={(e) => e.stopPropagation()}>
                                   <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
                                     {!isDummyUrl ? (
                                         <>
                                             <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(fullUrl)}&sz=16`} alt="source" style={{ width: '16px', height: '16px', marginRight: '8px', borderRadius: '2px', flexShrink: 0 }} />
-                                            <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--danger-text)', textDecoration: 'none', fontWeight: 600, fontSize: '0.9rem' }}>{link.title}</a>
+                                            <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--danger-text)', textDecoration: 'none', fontWeight: 600, fontSize: '0.9rem' }} onClick={(e) => e.stopPropagation()}>{link.title}</a>
                                         </>
                                     ) : (
                                         <span style={{ color: 'var(--danger-text)', fontWeight: 600, fontSize: '0.9rem' }}>💡 {link.title}</span>
@@ -192,7 +192,10 @@ const ResearchModal: React.FC<ResearchModalProps> = ({ data, mode = 'company', o
         {sources && sources.length > 0 && (
           <div style={{ marginTop: '2rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
             <button 
-                onClick={() => setSourcesExpanded(!sourcesExpanded)} 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSourcesExpanded(!sourcesExpanded);
+                }} 
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem', color: '#64748b', padding: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500 }}
             >
                 {sourcesExpanded ? `▼ ${t('section_sources', 'Sources')}` : `▶ ${t('section_sources', 'Sources')}`} ({sources.length})

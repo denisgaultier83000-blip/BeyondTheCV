@@ -113,12 +113,12 @@ export default function MarketReport({ data, onBack }: Props) {
                                         const isDummyUrl = urlStr === '#';
                                         const fullUrl = isDummyUrl ? '#' : (urlStr.startsWith('http') ? urlStr : `https://${urlStr}`);
                                         return (
-                                            <div key={i} style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                                            <div key={i} style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }} onClick={(e) => e.stopPropagation()}>
                                                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
                                                     {!isDummyUrl ? (
                                                         <>
                                                             <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(fullUrl)}&sz=16`} alt="source" style={{ width: '16px', height: '16px', marginRight: '8px', borderRadius: '2px', flexShrink: 0 }} />
-                                                            <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 600, color: 'var(--text-main)', textDecoration: 'none' }}>{link.title}</a>
+                                                            <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 600, color: 'var(--text-main)', textDecoration: 'none' }} onClick={(e) => e.stopPropagation()}>{link.title}</a>
                                                         </>
                                                     ) : (
                                                         <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>💡 {link.title}</span>
