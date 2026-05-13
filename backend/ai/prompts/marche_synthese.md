@@ -20,10 +20,11 @@ Produire un rapport final qui donne au candidat un avantage décisif.
 Ton analyse doit être orientée "action" : que dire, quelles questions poser, comment se positionner.
 
 ## ⚠️ RÈGLES
-- Ne jamais inventer de données
+- **ANTI-HALLUCINATION ABSOLUE :** Croise tes sources. Si tu n'es pas sûr, utilise le tag [INFERRED] (Déduit) ou [SPECULATIVE]. N'invente JAMAIS de faits.
 - Ne jamais faire une fiche Wikipédia
 - Toujours transformer l’information en conseil concret
-- Toujours raisonner comme un recruteur
+- **GUERRE AU JARGON CORPO :** BANNIS les phrases zombies ("culture collaborative", "entreprise innovante", "leader dynamique"). Tu DOIS exiger et fournir des PREUVES OBSERVABLES (ex: "Le CEO vient d'être changé", "Turnover élevé", "Rachat récent = choc culturel en cours").
+- **LA PEUR DU DIRIGEANT :** Dans tes analyses, identifie ce qui empêche le DRH ou le CEO de dormir la nuit (Le VRAI problème caché).
 - **REVUE DE PRESSE & ACTUALITÉS (TRÈS IMPORTANT) :** Tu DOIS extraire les 3 articles les plus critiques et stratégiques depuis le `{search_context}`. ⚠️ COPIE EXACTEMENT LE TITRE ET LE LIEN FOURNIS DANS LE CONTEXTE. N'invente jamais d'URL. Tu DOIS générer le champ `strategic_analysis` en expliquant au candidat *comment utiliser cette information en entretien*.
 - **LANGUE :** La sortie doit être en `{target_lang}`.
 
@@ -32,22 +33,22 @@ Ton analyse doit être orientée "action" : que dire, quelles questions poser, c
 ```json
 {
   "market_report": {
-    "tension_index": "[Analyse de la tension du marché pour ce type de poste.]",
+    "tension_index": "[Analyse brutale de la tension du marché (ex: Pénurie critique vs Forte concurrence).]",
     "tension_score": 85,
     "salary_barometer": "[Estimation de la fourchette salariale et des avantages courants.]",
-    "competitive_landscape": "[Qui sont les leaders, les challengers et les startups innovantes du secteur ?]",
-    "trends": "[Quelles sont les 2-3 innovations ou tendances qui transforment ce marché ?]",
+    "competitive_landscape": "[Qui menace réellement l'entreprise ? (Guerre des prix, startups disruptives, etc.)]",
+    "trends": "[Quelles sont les vraies tendances (y compris les bulles ou les impasses technologiques) ?]",
     "recruitment_dynamics": "[Les entreprises du secteur recrutent-elles massivement, ou sont-elles en phase de stabilisation ?]",
-    "major_disruptions": "[Quelles sont les perturbations majeures ou risques ?]",
+    "major_disruptions": "[Quelles sont les perturbations majeures ou risques mortels pour le secteur ?]",
     "top_skills": {"hard": ["Compétence 1"], "soft": ["Compétence 2"]}
   },
   "company_report": {
     "key_figures": "[Extraire les chiffres clés les plus importants (CA, employés, date de création).]",
     "leadership": "[Dirigeants et équipe de direction.]",
-    "identity_dna": "[Quel est le positionnement de l'entreprise, sa mission et son ADN ?]",
-    "financial_health": "[Quelle est la santé financière (Croissance, Levées de fonds...) ?]",
-    "usp": "[Quels sont les enjeux, les défis majeurs et la proposition de valeur ?]",
-    "culture_environment": "[Quelle est la culture d'entreprise perçue ? (ex: 'Très orientée produit').]",
+    "identity_dna": "[Le positionnement réel (ex: 'Machine de guerre commerciale déguisée en startup tech').]",
+    "financial_health": "[Quelle est la VRAIE santé financière (Tensions cash-flow, pression rentabilité...) ?]",
+    "usp": "[Quel est le VRAI problème que l'entreprise essaie de résoudre en ce moment ?]",
+    "culture_environment": "[Preuves observables de la vraie culture (ex: turnover, présentéisme, télétravail). Pas de bla-bla !]",
     "team_structure": "[Comment sont structurées les équipes ?]",
     "linkedin_url": "[Lien vers la page LinkedIn de l'entreprise (ou une URL de recherche LinkedIn pertinente)]",
     "news_links": [

@@ -294,15 +294,39 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
             print(f"   [ERROR] Fallback search failed: {e}", flush=True)
             pass
 
-    # --- ÉTAPE 4 : ANALYSE & SYNTHÈSE (Fusionnée pour robustesse) ---
+    # --- ÉTAPE 3.5 : FILTRAGE OSINT (Scoring via 'actionability') ---
+    news_to_score = [r for r in raw_results if "[ACTUALITÉ]" in r.get('title', '')][:8]
+    valid_news = []
+    
+    if news_to_score:
+        if task_id:
+            await manager.broadcast(task_id, "⚖️ Analyse OSINT : Tri des actualités par impact stratégique...")
+            
+        scoring_prompt_template = load_prompt("osint_scoring.md")
+        if scoring_prompt_template:
+            scoring_prompt = scoring_prompt_template.replace("{company_name}", company or "Secteur").replace("{articles_json}", json.dumps(news_to_score, ensure_ascii=False))
+            try:
+                scoring_result = await ai_service.generate_valid_json(scoring_prompt, provider="openai", system_instruction="Tu es un Analyste OSINT senior. Output STRICT JSON.")
+                scored_articles = scoring_result.get("scored_articles", [])
+                
+                # On ne garde que les articles avec un score d'exploitabilité >= 6
+                valid_urls = [art.get("original_url") for art in scored_articles if int(art.get("actionability", 0)) >= 6]
+                valid_news = [r for r in news_to_score if r.get("link") in valid_urls]
+                print(f"[OSINT] Filtrage terminé : {len(valid_news)} articles hautement exploitables retenus sur {len(news_to_score)}.")
+            except Exception as e:
+                print(f"[OSINT ERROR] Scoring failed: {e}")
+                valid_news = news_to_score
+        else:
+            valid_news = news_to_score
+
+    # --- ÉTAPE 4 : SYNTHÈSE FINALE ---
     # Si pas de résultats, on passe en mode "Connaissances Générales" au lieu de planter
     search_context = ""
     if raw_results:
+        other_sources = [r for r in raw_results if "[ACTUALITÉ]" not in r.get('title', '')][:25]
+        balanced_results = valid_news + other_sources
         if task_id:
-            await manager.broadcast(task_id, f"📊 Formatage de {len(raw_results)} sources pour synthèse...")
-        
-        # Utilisation exclusive des résultats organiques de fond
-        balanced_results = raw_results[:40]
+            await manager.broadcast(task_id, f"📊 Formatage de {len(balanced_results)} sources de haute qualité pour synthèse...")
         
         context_lines = []
         for i, r in enumerate(balanced_results):

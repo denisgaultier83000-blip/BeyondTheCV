@@ -547,6 +547,30 @@ async def evaluate_training_answer(request: TrainingEvaluateRequest, current_use
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur d'évaluation : {str(e)}")
 
+@router.post("/generate-extra-scenarios")
+async def generate_extra_scenarios(data: dict = Body(...), current_user: dict = Depends(require_active_subscription)):
+    """Génère de nouvelles mises en situation (scénarios de crise) à la volée pour le candidat."""
+    target_job = data.get("target_job") or data.get("target_role_primary") or "Candidat"
+    target_lang = normalize_language(data.get("target_language", "fr"))
+    
+    prompt_template = load_prompt("mise_en_situation.md")
+    
+    final_prompt = f"""
+    {prompt_template or "Génère 3 catégories de mises en situation avec des scénarios de crise."}
+    
+    POSTE VISÉ : {target_job}
+    PROFIL DU CANDIDAT : {json.dumps(_sanitize_data_for_ai(data, strict=True), default=str)}
+    
+    OUTPUT STRICT JSON.
+    LANGUAGE: {target_lang}
+    """
+    
+    try:
+        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an Expert HR Assessor. Output STRICT JSON.")
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur de génération des scénarios : {str(e)}")
+
 @router.get("/training/stats")
 async def get_training_stats(current_user: dict = Depends(require_active_subscription)):
     """Récupère les statistiques de l'utilisateur pour l'onglet d'entraînement."""

@@ -12,6 +12,8 @@ interface MarketData {
     company_report?: {
         overview?: string;
         identity_dna: string;
+        key_figures?: string;
+        leadership?: string;
         financial_health: string;
         usp: string;
         key_challenges?: string[];
@@ -29,6 +31,7 @@ interface MarketData {
         salary_barometer: string;
         competitive_landscape: string;
         trends: string;
+        major_disruptions?: string;
         recruitment_dynamics: string;
         top_skills?: { hard: string[], soft: string[] };
     };
@@ -76,6 +79,9 @@ export default function MarketReport({ data, onBack }: Props) {
                     <div style={{ marginBottom: 20 }}>
                         <h3>🏢 Vue d'ensemble</h3>
                         <p>{data.company_report?.overview || data.company_report?.identity_dna || data.synthesis?.overview}</p>
+                        {(data.company_report?.key_figures && data.company_report.key_figures !== "Non spécifié.") && (
+                            <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}><strong>Chiffres clés :</strong> {data.company_report.key_figures}</p>
+                        )}
                     </div>
                     <div style={{ marginBottom: 20 }}>
                         <h3>🧩 Activités & Clients</h3>
@@ -89,6 +95,9 @@ export default function MarketReport({ data, onBack }: Props) {
                     <div style={{ marginBottom: 20 }}>
                         <h3>⚠️ Enjeux & Challenges</h3>
                         <p>{data.company_report?.key_challenges?.join('\n') || data.company_report?.usp || data.synthesis?.challenges}</p>
+                        {(data.company_report?.leadership && data.company_report.leadership !== "Non spécifié.") && (
+                            <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}><strong>Leadership :</strong> {data.company_report.leadership}</p>
+                        )}
                         <p><strong>Dynamique :</strong> {data.company_report?.current_dynamics?.join(', ')}</p>
                     </div>
                     <div>
@@ -166,6 +175,12 @@ export default function MarketReport({ data, onBack }: Props) {
                                     <td style={{ padding: "12px", fontWeight: "bold", color: "var(--text-muted)", width: "40%" }}>Dynamique de recrutement</td>
                                     <td style={{ padding: "12px" }}>{data.market_report.recruitment_dynamics}</td>
                                 </tr>
+                                {(data.market_report.major_disruptions && data.market_report.major_disruptions !== "Non spécifié.") && (
+                                <tr style={{ borderBottom: "1px solid var(--border-color)", background: "rgba(239, 68, 68, 0.05)" }}>
+                                    <td style={{ padding: "12px", fontWeight: "bold", color: "var(--danger-text)", width: "40%" }}>Perturbations Majeures (Risques)</td>
+                                    <td style={{ padding: "12px", color: "var(--danger-text)" }}>{data.market_report.major_disruptions}</td>
+                                </tr>
+                                )}
                                 <tr style={{ borderBottom: "1px solid var(--border-color)" }}>
                                     <td style={{ padding: "12px", fontWeight: "bold", color: "var(--text-muted)", width: "40%" }}>Baromètre des salaires</td>
                                     <td style={{ padding: "12px" }}>{data.market_report.salary_barometer}</td>

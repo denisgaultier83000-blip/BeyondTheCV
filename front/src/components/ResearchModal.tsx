@@ -165,6 +165,11 @@ const ResearchModal: React.FC<ResearchModalProps> = ({ data, mode = 'company', o
                 </div>
 
                 <div>
+                    <h3 style={headingStyle}>Perturbations Majeures (Risques)</h3>
+                    <p style={textStyle}>{market_report.major_disruptions}</p>
+                </div>
+
+                <div>
                     <h3 style={headingStyle}>{t('market_recruitment', 'Dynamique de recrutement')}</h3>
                     <p style={textStyle}>{market_report.recruitment_dynamics}</p>
                 </div>
