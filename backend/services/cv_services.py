@@ -893,7 +893,7 @@ async def generate_document(request: GenerateRequest, current_user: dict = Depen
 
         elif "Salary" in action:
             # Gestion de l'action 'Salary Estimate' manquante
-            prompt = f"Estimate a realistic salary range (low, mid, high) for this profile:\n{json.dumps(data, indent=2)}\n\nRespond in STRICT JSON: {{\"salary_range\": {{\"low\": 0, \"mid\": 0, \"high\": 0}}, \"currency\": \"EUR\", \"confidence\": \"Haute | Moyenne | Faible\", \"commentary\": \"...\"}}"
+            prompt = f"Estimate a realistic salary range (low, mid, high) for this profile:\n{json.dumps(data, indent=2)}\n\n⚠️ INSTRUCTION CRITIQUE : Ne renvoie JAMAIS les valeurs 0 de l'exemple JSON. Tu DOIS estimer de VRAIS salaires de marché selon l'expérience du candidat.\nRespond in STRICT JSON: {{\"salary_range\": {{\"low\": 0, \"mid\": 0, \"high\": 0}}, \"currency\": \"EUR\", \"confidence\": \"Haute | Moyenne | Faible\", \"commentary\": \"...\"}}"
             res_str = await ai_service.generate(prompt, provider="openai", system_instruction="You are a compensation expert. You must output STRICT JSON.")
             salary_data = clean_ai_json_response(res_str)
             return JSONResponse(content=salary_data)
