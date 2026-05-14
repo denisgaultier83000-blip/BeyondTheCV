@@ -1357,25 +1357,18 @@ export default function Candidate({ globalLang }: CandidateProps = {}): JSX.Elem
                 loading={isPrinting}
             />
           ) : showPitchMissingInfo ? (
-            <PitchMissingInfo 
-                missingFields={missingPitchFields}
-                data={form}
-                onChange={change}
-                onSubmit={() => { setShowPitchMissingInfo(false); handleAction("Pitch"); }}
-                onCancel={() => setShowPitchMissingInfo(false)}
-            />
+            <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>Veuillez renseigner les informations manquantes pour le Pitch.</div>
           ) : showPitch && pitchData ? (
-            <PitchEditor 
-                data={pitchData}
-                onBack={() => setShowPitch(false)}
-            />
+            <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>Votre Pitch est prêt ! (Consultez le Dashboard) <button onClick={() => setShowPitch(false)} className="btn-secondary">Retour</button></div>
           ) : showFlawCoaching ? (
             <FlawCoaching 
                 data={flawCoachingResult}
                 onBack={() => setShowFlawCoaching(false)}
             />
           ) : view === 'cv_preview' ? (
-            <CVPreview pdfUrl={pdfUrl} onBack={() => setView('dashboard')} />
+            <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>
+              Aperçu du CV indisponible dans cette ancienne vue. <button onClick={() => setView('dashboard')} className="btn-primary">Retour au Dashboard</button>
+            </div>
           ) : view === 'dashboard' ? ( // [FIX] Refonte de la logique d'affichage du dashboard
             <>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
