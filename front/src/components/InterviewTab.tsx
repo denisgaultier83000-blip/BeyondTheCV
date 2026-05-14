@@ -150,7 +150,23 @@ export const InterviewTab = () => {
     if (!data) return [];
     if (Array.isArray(data)) return data;
     if (data.questions && Array.isArray(data.questions)) return data.questions;
+    
     const payload = data.interview_questions_result || data.interview_questions || data;
+    
+    // Extraction spécifique pour le nouveau format du prompt (interview_json_v1.txt)
+    // où les questions sont regroupées par catégories dans "interview_prep"
+    if (payload?.interview_prep && typeof payload.interview_prep === 'object') {
+      if (Array.isArray(payload.interview_prep)) {
+        return payload.interview_prep;
+      }
+      // Aplatir l'objet (cv_based, company_based, classics...) en un seul tableau
+      const allQuestions: any[] = [];
+      Object.values(payload.interview_prep).forEach(val => {
+        if (Array.isArray(val)) allQuestions.push(...val);
+      });
+      if (allQuestions.length > 0) return allQuestions;
+    }
+
     return payload?.questions || (payload ? Object.values(payload).find(v => Array.isArray(v)) : []) || [];
   };
 
