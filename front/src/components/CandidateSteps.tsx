@@ -677,7 +677,7 @@ export const StepFreeText = ({ data, onChange, onAnalyze, loading, lang = 'en' }
     );
 };
 
-export const StepClarification = ({ clarifications, onAnswer, lang = 'en' }: any) => {
+export const StepClarification = ({ clarifications, answers = {}, onAnswer, lang = 'en' }: any) => {
   const { t } = useTranslation();
   if (!clarifications || clarifications.length === 0) return <div className="step-content"><h2>{t('all_good')}</h2><p>{t('profile_complete')}</p></div>;
   return (
@@ -693,7 +693,13 @@ export const StepClarification = ({ clarifications, onAnswer, lang = 'en' }: any
             </div>
             <label style={{fontWeight: "600", fontSize: "1.05em", color: "var(--text-main)", lineHeight: "1.4", marginTop: "2px"}}>{item.question}</label>
           </div>
-          <textarea rows={3} placeholder={t('placeholder_answer')} onBlur={(e) => onAnswer(item.id, e.target.value)} style={{ width: "100%", borderRadius: "8px", borderColor: "var(--border-color)" }} />
+          <textarea 
+            rows={3} 
+            placeholder={t('placeholder_answer')} 
+            defaultValue={answers[item.id] || ""}
+            onBlur={(e) => onAnswer(item.id, e.target.value)} 
+            style={{ width: "100%", borderRadius: "8px", borderColor: "var(--border-color)" }} 
+          />
         </div>
       ))}
     </div>

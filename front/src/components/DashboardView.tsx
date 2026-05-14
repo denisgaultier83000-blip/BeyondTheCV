@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDashboard } from './DashboardContext';
-import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass, Mic, Search, Eye, Navigation, Network, Loader2, RotateCcw, CheckSquare, Dumbbell, ArrowUp, Printer, Building } from 'lucide-react';
+import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass, Mic, Search, Eye, Navigation, Network, Loader2, RotateCcw, CheckSquare, Dumbbell, ArrowUp, Printer, Building, ShieldAlert, Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PilotBento } from './PilotBento';
 import { GapAnalysisFull } from './GapAnalysisFull';
@@ -27,7 +27,7 @@ export const DashboardView = () => {
     researchResult, salaryResult, careerGpsResult, careerRadarResult, setCurrentStep,
     jobDecoderResult, hiddenMarketResult, recruiterResult, realityResult, flawCoachingResult,
     globalStatus, triggerResearch,
-    pitchResult, questionsResult, cvResult, gapResult, actionPlanResult
+    pitchResult, questionsResult, cvResult, gapResult, actionPlanResult, customScenariosResult
   } = useDashboard();
 
   // --- GESTION DES NOTIFICATIONS ---
@@ -105,6 +105,7 @@ export const DashboardView = () => {
     { name: t('deliv_cv', "CV ATS"), tab: "cv", data: cvResult, icon: <FileText size={18}/> },
     { name: t('deliv_pitch', "Pitch de 3 minutes"), tab: "interview", anchor: "pitch_section", data: pitchResult, icon: <Mic size={18}/> },
     { name: t('deliv_questions', "Questions d'Entretien"), tab: "interview", anchor: "questionnaire_section", data: questionsResult, icon: <MessageSquare size={18}/> },
+    { name: t('deliv_mes', "Mises en situation"), tab: "training", data: customScenariosResult || cvData, icon: <ShieldAlert size={18}/> },
     { name: t('deliv_flaws', "Parades aux Défauts"), tab: "interview", anchor: "flaws_section", data: flawCoachingResult, icon: <AlertTriangle size={18}/> },
     { name: t('deliv_gap', "Analyse d'Écarts (Gap)"), tab: "market", anchor: "gap_section", data: gapResult, icon: <Target size={18}/> },
     { name: t('deliv_company', "Rapport Entreprise"), tab: "market", anchor: "company_section", data: researchResult, icon: <Building size={18}/> },
@@ -122,6 +123,7 @@ export const DashboardView = () => {
     { name: t('deliv_gps', "GPS de Carrière"), tab: "career", anchor: "gps_section", data: careerGpsResult, icon: <Navigation size={18}/> },
     { name: t('deliv_radar', "Radar de Carrière"), tab: "career", anchor: "radar_section", data: careerRadarResult, icon: <Compass size={18}/> },
     { name: t('deliv_hidden', "Marché Caché"), tab: "career", anchor: "hidden_section", data: hiddenMarketResult, icon: <Network size={18}/> },
+    { name: t('deliv_simulator', "Simulateur de Carrière"), tab: "career", anchor: "simulator_section", data: cvData, icon: <Play size={18}/> },
     { name: t('deliv_todo', "To-Do List d'Action"), tab: "actions", data: actionPlanResult, icon: <CheckSquare size={18}/> }
   ];
 

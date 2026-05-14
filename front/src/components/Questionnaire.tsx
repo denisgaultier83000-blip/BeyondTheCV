@@ -430,7 +430,8 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                </div>
             )}
           </div>
-          })
+              );
+            })
         )}
       </div>
     </div>
