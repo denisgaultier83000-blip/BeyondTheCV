@@ -424,11 +424,6 @@ export const DashboardView = () => {
         
         .editor-placeholder { margin-top: 1.5rem; padding: 2rem; background: var(--bg-secondary); border: 1px dashed var(--border-color); border-radius: 0.5rem; text-align: center; color: var(--text-muted); }
         
-        .template-selector { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
-        .template-btn { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1rem; border: 2px solid var(--border-color); border-radius: 0.5rem; background: var(--bg-card); cursor: pointer; transition: 0.2s; color: var(--text-muted); }
-        .template-btn:hover { border-color: var(--primary); }
-        .template-btn.active { border-color: var(--primary); color: var(--primary); background: rgba(59, 130, 246, 0.1); }
-        
         .progress-bar { width: 100%; height: 8px; background: var(--border-color); border-radius: 4px; margin: 0.5rem 0; overflow: hidden; }
         .progress-fill { height: 100%; background: #16a34a; border-radius: 4px; }
         
