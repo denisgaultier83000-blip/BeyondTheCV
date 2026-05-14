@@ -4,8 +4,6 @@ import Header from "../components/Header";
 import DiagnosticDashboard from "../components/DiagnosticDashboard";
 import { API_BASE_URL } from "../config";
 import Questionnaire from "../components/Questionnaire";
-import PitchEditor from "../components/PitchEditor";
-import PitchMissingInfo from "../components/PitchMissingInfo";
 import Toast from "../components/Toast";
 import DebugModal from "../components/DebugModal";
 import ResearchModal from "../components/ResearchModal";
@@ -38,7 +36,6 @@ import {
 import { useAiActions } from "../hooks/useAiActions";
 import { isAuthenticated, authenticatedFetch, getUser } from "../utils/auth";
 import AuthScreen from "../components/AuthScreen";
-import CVPreview from "../components/CVPreview";
 import { useTranslation } from "react-i18next"; // [NEW] Remplacer l'import statique
 import { LoadingScreen } from "../components/LoadingScreen";
 
