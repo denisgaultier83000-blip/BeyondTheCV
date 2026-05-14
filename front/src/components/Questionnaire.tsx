@@ -210,7 +210,12 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
 
       {/* Affichage pleine largeur (1fr) pour plus de lisibilité avec animation en cascade */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
-        {questions.map((q, idx) => {
+        {(!questions || questions.length === 0) ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px dashed var(--border-color)' }}>
+            Aucune question n'a été trouvée ou le format généré par l'IA est incorrect.
+          </div>
+        ) : (
+          questions.map((q, idx) => {
           const qKey = getKey(q, idx);
           const isRevealed = revealed[qKey];
           const isActive = activeMode[qKey];
@@ -425,7 +430,8 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                </div>
             )}
           </div>
-        )})}
+          })
+        )}
       </div>
     </div>
   );

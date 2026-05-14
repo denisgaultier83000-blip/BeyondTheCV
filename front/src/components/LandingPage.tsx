@@ -180,9 +180,11 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
         </button>
         
         <div style={{ marginTop: '4rem', padding: '0 1rem' }}>
-          <div className="lp-placeholder-img" style={{ maxWidth: '1000px', margin: '0 auto', background: '#f8fafc', color: '#94a3b8', border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            [📸 Insérez ici une capture du Dashboard (Vue d'ensemble avec jauges et scores)]
-          </div>
+          <img 
+            src="/dashboard-preview.png" 
+            alt="Aperçu du Dashboard Beyond The CV" 
+            style={{ maxWidth: '1000px', width: '100%', height: 'auto', display: 'block', margin: '0 auto', borderRadius: '0.5rem', border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }} 
+          />
         </div>
       </section>
 

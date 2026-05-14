@@ -145,6 +145,15 @@ export const InterviewTab = () => {
     if (showHistory) fetchHistory();
   }, [showHistory]);
 
+  // Extraction robuste des questions pour pallier les variations de structure (encapsulation IA)
+  const getQuestionsArray = (data: any) => {
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    if (data.questions && Array.isArray(data.questions)) return data.questions;
+    const payload = data.interview_questions_result || data.interview_questions || data;
+    return payload?.questions || (payload ? Object.values(payload).find(v => Array.isArray(v)) : []) || [];
+  };
+
   return (
     <>
       {isTeleprompterOpen && <Teleprompter />}
@@ -240,7 +249,7 @@ export const InterviewTab = () => {
               <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "1.5rem", fontStyle: "italic", background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
                 * Légende : ★ (1-Facile) à ★★★★★ (5-Très Difficile)
               </div>
-              <Questionnaire questions={Array.isArray(questionsResult) ? questionsResult : (questionsResult.questions || [])} hideHeader={true} />
+              <Questionnaire questions={getQuestionsArray(questionsResult)} hideHeader={true} />
             </>
           )}
         </DashboardCard>
