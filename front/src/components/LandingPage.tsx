@@ -15,21 +15,21 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
       <style>{`
         .lp-container {
           font-family: 'Inter', system-ui, -apple-system, sans-serif;
-          color: #f8fafc;
-          background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+          color: var(--text-main);
+          background: var(--bg-body);
           min-height: 100vh;
           line-height: 1.6;
         }
         .lp-hero {
-          background: transparent;
-          padding: 7rem 2rem 5rem 2rem;
+          background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+          color: #f8fafc;
+          padding: 8rem 2rem 5rem 2rem;
           text-align: center;
-          margin-top: 60px; /* [FIX CRITIQUE] Repousse la page sous le header fixe */
         }
         .lp-hero-title {
           font-size: clamp(2rem, 4vw, 3.5rem);
           font-weight: 800;
-          background: linear-gradient(to right, #f8fafc, #94a3b8);
+          background: linear-gradient(to right, #ffffff, #94a3b8);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           line-height: 1.2;
@@ -45,7 +45,7 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
           font-weight: 400;
         }
         .lp-cta-main {
-          background-color: #3b82f6;
+          background-color: var(--primary);
           color: #ffffff;
           border: none;
           padding: 1.1rem 2.5rem;
@@ -79,7 +79,7 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
           font-size: clamp(1.75rem, 3vw, 2.25rem);
           font-weight: 700;
           letter-spacing: -0.01em;
-          color: #f8fafc;
+          color: var(--text-main);
         }
         .lp-grid-4 {
           display: grid;
@@ -94,41 +94,39 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
           margin-top: 4rem;
         }
         .lp-card {
-          background: rgba(30, 41, 59, 0.6);
-          backdrop-filter: blur(10px);
+          background: var(--bg-card);
           padding: 2.5rem 2rem;
           border-radius: 1rem;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid var(--border-color);
           box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
           transition: all 0.3s;
           text-align: left;
         }
         .lp-card:hover {
-          border-color: rgba(59, 130, 246, 0.5);
+          border-color: var(--primary);
           transform: translateY(-5px);
-          background: rgba(30, 41, 59, 0.8);
+          box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
         }
         .lp-icon-wrapper {
           width: 60px;
           height: 60px;
           border-radius: 1rem;
-          background: rgba(59, 130, 246, 0.1);
-          color: #3b82f6;
+          background: var(--bg-secondary);
+          color: var(--primary);
           display: flex;
           align-items: center;
           justify-content: center;
           margin-bottom: 1.5rem;
         }
         .lp-pricing {
-          background: rgba(30, 41, 59, 0.6);
-          backdrop-filter: blur(10px);
+          background: var(--bg-card);
           border-radius: 1rem;
           padding: 4rem 3rem;
           text-align: center;
           margin: 4rem auto;
           max-width: 700px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+          border: 1px solid var(--border-color);
+          box-shadow: 0 25px 50px -12px rgba(0,0,0,0.05);
         }
         .lp-check-item {
           display: flex;
@@ -136,29 +134,28 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
           gap: 0.75rem;
           font-weight: 500;
           margin-bottom: 1rem;
-          color: #cbd5e1;
+          color: var(--text-main);
         }
         .lp-testimonial-box {
           max-width: 800px;
           margin: 0 auto;
-          background: rgba(30, 41, 59, 0.6);
-          backdrop-filter: blur(10px);
+          background: var(--bg-card);
           padding: 2.5rem;
           border-radius: 1rem;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid var(--border-color);
         }
         .lp-faq-item {
           text-align: left;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          border-bottom: 1px solid var(--border-color);
           padding: 1.5rem 0;
         }
         .lp-faq-question {
           font-weight: 600;
           font-size: 1.1rem;
-          color: #f8fafc;
+          color: var(--text-main);
         }
         .lp-faq-answer {
-          color: #94a3b8;
+          color: var(--text-muted);
           margin-top: 0.75rem;
         }
       `}</style>
@@ -179,7 +176,7 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
           <img 
             src="/dashboard-preview.png" 
             alt="Aperçu du Dashboard Beyond The CV" 
-            style={{ maxWidth: '1000px', width: '100%', height: 'auto', display: 'block', margin: '0 auto', borderRadius: '0.75rem', border: '1px solid rgba(255, 255, 255, 0.1)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }} 
+            style={{ maxWidth: '1000px', width: '100%', height: 'auto', display: 'block', margin: '0 auto', borderRadius: '0.75rem', border: '4px solid var(--bg-card)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }} 
           />
         </div>
       </section>
@@ -188,7 +185,7 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
       <section className="lp-section lp-section dark">
         <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
           <h2 className="lp-section-title">Vous vous battez avec les mêmes armes que tout le monde.</h2>
-          <p style={{ color: '#94a3b8', fontSize: '1.1rem', marginTop: '1.5rem', lineHeight: 1.7 }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginTop: '1.5rem', lineHeight: 1.7 }}>
             Vous envoyez des CV dans le vide. Vous attendez qu'on vous rappelle. Et quand vous obtenez un entretien, vous vous contentez de réciter votre parcours.
             <br/><br/>
             Le problème n'est pas votre parcours. <strong>Le problème est votre niveau de préparation stratégique.</strong>
@@ -205,26 +202,26 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
         <div className="lp-grid-4">
           <div className="lp-card">
             <div className="lp-icon-wrapper"><Search size={24} /></div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: '#f8fafc' }}>Lisez dans les pensées de votre cible</h3>
-            <p style={{ color: '#94a3b8', lineHeight: 1.6, fontSize: '0.95rem' }}>Notre IA fouille le web et vous livre un rapport stratégique sur l'entreprise : sa culture réelle, ses défis actuels et ses dernières actualités.</p>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-main)' }}>Lisez dans les pensées de votre cible</h3>
+            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>Notre IA fouille le web et vous livre un rapport stratégique sur l'entreprise : sa culture réelle, ses défis actuels et ses dernières actualités.</p>
           </div>
           
           <div className="lp-card">
             <div className="lp-icon-wrapper"><Mic size={24} /></div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: '#f8fafc' }}>Prenez le contrôle des 3 premières minutes</h3>
-            <p style={{ color: '#94a3b8', lineHeight: 1.6, fontSize: '0.95rem' }}>Obtenez un pitch d'introduction implacable, structuré selon la Pyramide de Minto. Entraînez-vous vocalement face à notre simulateur.</p>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-main)' }}>Prenez le contrôle des 3 premières minutes</h3>
+            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>Obtenez un pitch d'introduction implacable, structuré selon la Pyramide de Minto. Entraînez-vous vocalement face à notre simulateur.</p>
           </div>
 
           <div className="lp-card">
             <div className="lp-icon-wrapper"><ShieldQuestion size={24} /></div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: '#f8fafc' }}>Anticipez vos propres failles</h3>
-            <p style={{ color: '#94a3b8', lineHeight: 1.6, fontSize: '0.95rem' }}>L'algorithme compare votre parcours à la réalité du marché et vous montre vos faiblesses avant que le recruteur ne le fasse.</p>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-main)' }}>Anticipez vos propres failles</h3>
+            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>L'algorithme compare votre parcours à la réalité du marché et vous montre vos faiblesses avant que le recruteur ne le fasse.</p>
           </div>
 
           <div className="lp-card">
             <div className="lp-icon-wrapper"><FileText size={24} /></div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: '#f8fafc' }}>Passez les robots, marquez les humains</h3>
-            <p style={{ color: '#94a3b8', lineHeight: 1.6, fontSize: '0.95rem' }}>Obtenez un CV au format "ATS" pour les algorithmes RH, et une version Design pour marquer l'esprit du décideur final.</p>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-main)' }}>Passez les robots, marquez les humains</h3>
+            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>Obtenez un CV au format "ATS" pour les algorithmes RH, et une version Design pour marquer l'esprit du décideur final.</p>
           </div>
         </div>
       </section>
@@ -235,10 +232,10 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
           <h2 className="lp-section-title">Ce qu'en disent les professionnels de haut niveau</h2>
         </div>
         <div className="lp-testimonial-box">
-          <p style={{ fontStyle: 'italic', color: '#94a3b8', fontSize: '1.1rem', lineHeight: 1.7 }}>
+          <p style={{ fontStyle: 'italic', color: 'var(--text-muted)', fontSize: '1.1rem', lineHeight: 1.7 }}>
             "Je pensais savoir me vendre. Beyond The CV m'a mis face à une réalité brutale : je ne racontais qu'une chronologie ennuyeuse. Le rapport OSINT et le simulateur vocal m'ont permis de décrocher un poste de Direction avec 15% de salaire en plus."
           </p>
-          <p style={{ fontWeight: 600, marginTop: '1.5rem', color: '#f8fafc', textAlign: 'right' }}>— Marc D., Directeur des Opérations (C-Level)</p>
+          <p style={{ fontWeight: 600, marginTop: '1.5rem', color: 'var(--text-main)', textAlign: 'right' }}>— Marc D., Directeur des Opérations (C-Level)</p>
         </div>
       </section>
 
@@ -249,16 +246,16 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
         </div>
         <div className="lp-grid-3">
           <div className="lp-card">
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: '#f8fafc' }}>1. Ciblez</h3>
-            <p style={{ color: '#94a3b8', lineHeight: 1.6, fontSize: '0.95rem' }}>Importez votre profil et indiquez l'entreprise ou le poste que vous visez. Notre système commence l'analyse en arrière-plan.</p>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-main)' }}>1. Ciblez</h3>
+            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>Importez votre profil et indiquez l'entreprise ou le poste que vous visez. Notre système commence l'analyse en arrière-plan.</p>
           </div>
           <div className="lp-card">
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: '#f8fafc' }}>2. Analysez</h3>
-            <p style={{ color: '#94a3b8', lineHeight: 1.6, fontSize: '0.95rem' }}>Pendant que vous répondez à quelques questions de clarification, notre IA fouille le web (marché, entreprise, salaires).</p>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-main)' }}>2. Analysez</h3>
+            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>Pendant que vous répondez à quelques questions de clarification, notre IA fouille le web (marché, entreprise, salaires).</p>
           </div>
           <div className="lp-card">
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: '#f8fafc' }}>3. Dominez</h3>
-            <p style={{ color: '#94a3b8', lineHeight: 1.6, fontSize: '0.95rem' }}>Atterrissez sur votre tableau de bord. Adaptez votre CV, lisez votre rapport d'entreprise et lancez le simulateur d'entretien.</p>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-main)' }}>3. Dominez</h3>
+            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>Atterrissez sur votre tableau de bord. Adaptez votre CV, lisez votre rapport d'entreprise et lancez le simulateur d'entretien.</p>
           </div>
         </div>
       </section>
@@ -287,19 +284,19 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
       {/* PRICING / FINAL CTA SECTION */}
       <section className="lp-section">
         <div className="lp-pricing">
-          <h2 style={{ fontSize: '2rem', fontWeight: 700, color: '#f8fafc' }}>Un investissement clair.</h2>
-          <p style={{ color: '#94a3b8', fontSize: '1.05rem', marginTop: '0.5rem', maxWidth: '450px', margin: '0.5rem auto 0 auto' }}>
+          <h2 style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-main)' }}>Un investissement clair.</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', marginTop: '0.5rem', maxWidth: '450px', margin: '0.5rem auto 0 auto' }}>
             Pas d'abonnement toxique. Un tarif net pour un avantage décisif.
           </p>
           
-          <div style={{ fontSize: '3.5rem', fontWeight: 700, color: '#3b82f6', margin: '1.5rem 0' }}>99 €</div>
-          <p style={{ fontWeight: 600, color: '#94a3b8', marginBottom: '2.5rem' }}>Accès valable 4 mois. Renouvelable pour 20€.</p>
+          <div style={{ fontSize: '3.5rem', fontWeight: 700, color: 'var(--primary)', margin: '1.5rem 0' }}>99 €</div>
+          <p style={{ fontWeight: 600, color: 'var(--text-muted)', marginBottom: '2.5rem' }}>Accès valable 4 mois. Renouvelable pour 20€.</p>
           
           <div style={{ textAlign: 'left', maxWidth: '400px', margin: '0 auto 2.5rem auto' }}>
-            <div className="lp-check-item"><CheckCircle2 size={18} color="#3b82f6" /> <strong>Dossier d'investigation complet</strong> (OSINT)</div>
-            <div className="lp-check-item"><CheckCircle2 size={18} color="#3b82f6" /> <strong>Coaching Q&A</strong> (Méthode STAR, Parades défauts)</div>
-            <div className="lp-check-item"><CheckCircle2 size={18} color="#3b82f6" /> <strong>Simulateur Vocal & Pitch</strong> (Analyse IA)</div>
-            <div className="lp-check-item"><CheckCircle2 size={18} color="#3b82f6" /> <strong>CV Optimisé (ATS)</strong></div>
+            <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" /> <strong>Dossier d'investigation complet</strong> (OSINT)</div>
+            <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" /> <strong>Coaching Q&A</strong> (Méthode STAR, Parades défauts)</div>
+            <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" /> <strong>Simulateur Vocal & Pitch</strong> (Analyse IA)</div>
+            <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" /> <strong>CV Optimisé (ATS)</strong></div>
           </div>
 
           <button onClick={onStart} className="lp-cta-main" style={{ width: '100%', justifyContent: 'center' }}>
@@ -309,16 +306,16 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
       </section>
       
       {/* FOOTER */}
-      <footer style={{ textAlign: 'center', padding: '3rem 2rem', color: '#94a3b8', borderTop: '1px solid rgba(255, 255, 255, 0.05)', backgroundColor: 'rgba(15, 23, 42, 0.4)' }}>
+      <footer style={{ textAlign: 'center', padding: '3rem 2rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)' }}>
         <p>© 2026 BeyondTheCV. Tous droits réservés.</p>
         <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', marginTop: '1rem', fontSize: '0.85rem' }}>
-          <button onClick={onShowLegal} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0, font: 'inherit' }}>
+          <button onClick={onShowLegal} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, font: 'inherit' }}>
             Mentions Légales
           </button>
-          <button onClick={onShowCGU} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0, font: 'inherit' }}>
+          <button onClick={onShowCGU} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, font: 'inherit' }}>
             CGU
           </button>
-          <button onClick={onShowPrivacy} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0, font: 'inherit' }}>
+          <button onClick={onShowPrivacy} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, font: 'inherit' }}>
             Politique de Confidentialité
           </button>
         </div>
