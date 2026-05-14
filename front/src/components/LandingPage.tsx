@@ -37,7 +37,7 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
         }
         .lp-hero-subtitle {
           font-size: 1.15rem;
-          color: #94a3b8;
+          color: var(--text-muted);
           max-width: 700px;
           margin: 0 auto 3rem auto;
           font-weight: 400;
@@ -68,9 +68,9 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
           margin: 0 auto;
         }
         .lp-section.dark {
-          background: #0a0f1c;
-          border-top: 1px solid #1e293b;
-          border-bottom: 1px solid #1e293b;
+          background: var(--bg-secondary);
+          border-top: 1px solid var(--border-color);
+          border-bottom: 1px solid var(--border-color);
           width: 100%; /* Prend toute la largeur */
         }
         .lp-section-title {
