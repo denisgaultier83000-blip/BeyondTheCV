@@ -20,8 +20,29 @@ export default function AdminFeedbacks() {
   const [error, setError] = useState<string | null>(null);
   const [selectedFeature, setSelectedFeature] = useState<string>('all');
   const navigate = useNavigate();
+  
+  // --- GESTION DE LA SÉCURITÉ ---
+  const [authPass, setAuthPass] = useState('');
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
+    if (sessionStorage.getItem('admin_auth') === 'true') {
+      setIsAuthorized(true);
+    }
+  }, []);
+
+  const handleAuth = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (authPass === 'beyond2026') {
+      setIsAuthorized(true);
+      sessionStorage.setItem('admin_auth', 'true');
+    } else {
+      alert('Mot de passe incorrect');
+    }
+  };
+
+  useEffect(() => {
+    if (!isAuthorized) return; // On ne fetch pas si on n'a pas accès
     const fetchFeedbacks = async () => {
       try {
         // [FIX EXPERT] On s'affranchit de API_ROUTES pour garantir la bonne URL préfixée (/api/cv/)
@@ -41,7 +62,26 @@ export default function AdminFeedbacks() {
     };
     
     fetchFeedbacks();
-  }, []);
+  }, [isAuthorized]);
+
+  if (!isAuthorized) {
+    return (
+      <div style={{ maxWidth: '400px', margin: '100px auto', padding: '2.5rem', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px solid var(--border-color)', textAlign: 'center', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+        <h2 style={{ marginBottom: '1.5rem', color: 'var(--text-main)' }}>Accès Restreint</h2>
+        <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <input 
+            type="password" 
+            value={authPass} 
+            onChange={(e) => setAuthPass(e.target.value)} 
+            placeholder="Mot de passe administrateur" 
+            style={{ padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-main)', fontSize: '1rem', outline: 'none' }} 
+          />
+          <button type="submit" className="btn-primary" style={{ padding: '1rem', fontSize: '1rem' }}>Valider l'accès</button>
+        </form>
+        <button onClick={() => navigate('/candidate')} className="btn-ghost" style={{ marginTop: '1.5rem' }}>Retour à l'application</button>
+      </div>
+    );
+  }
 
   if (loading) {
     return <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>Chargement des données...</div>;
