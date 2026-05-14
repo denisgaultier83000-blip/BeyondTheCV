@@ -145,21 +145,17 @@ export const InterviewTab = () => {
     if (showHistory) fetchHistory();
   }, [showHistory]);
 
-  // Extraction robuste des questions pour pallier les variations de structure (encapsulation IA)
-  const getQuestionsArray = (data: any) => {
+  // Extraction ultra-robuste des questions pour pallier les variations de structure (encapsulation IA)
+  const getQuestionsArray = (data: any): any[] => {
     if (!data) return [];
     if (Array.isArray(data)) return data;
-    if (data.questions && Array.isArray(data.questions)) return data.questions;
     
     const payload = data.interview_questions_result || data.interview_questions || data;
+    if (Array.isArray(payload)) return payload;
     
-    // Extraction spécifique pour le nouveau format du prompt (interview_json_v1.txt)
-    // où les questions sont regroupées par catégories dans "interview_prep"
+    // 1. Cherche un format exact connu (ex: interview_prep)
     if (payload?.interview_prep && typeof payload.interview_prep === 'object') {
-      if (Array.isArray(payload.interview_prep)) {
-        return payload.interview_prep;
-      }
-      // Aplatir l'objet (cv_based, company_based, classics...) en un seul tableau
+      if (Array.isArray(payload.interview_prep)) return payload.interview_prep;
       const allQuestions: any[] = [];
       Object.values(payload.interview_prep).forEach(val => {
         if (Array.isArray(val)) allQuestions.push(...val);
@@ -167,7 +163,30 @@ export const InterviewTab = () => {
       if (allQuestions.length > 0) return allQuestions;
     }
 
-    return payload?.questions || (payload ? Object.values(payload).find(v => Array.isArray(v)) : []) || [];
+    if (payload?.questions && Array.isArray(payload.questions)) return payload.questions;
+
+    // 2. Recherche récursive d'un tableau contenant des objets avec une clé "question"
+    const extractQuestionsDeep = (obj: any): any[] => {
+        if (!obj || typeof obj !== 'object') return [];
+        let found: any[] = [];
+        for (const key of Object.keys(obj)) {
+            const val = obj[key];
+            if (Array.isArray(val)) {
+                if (val.length > 0 && typeof val[0] === 'object' && val[0].question) {
+                    found = found.concat(val);
+                }
+            } else if (typeof val === 'object' && val !== null) {
+                found = found.concat(extractQuestionsDeep(val));
+            }
+        }
+        return found;
+    };
+
+    const deepExtracted = extractQuestionsDeep(payload);
+    if (deepExtracted.length > 0) return deepExtracted;
+
+    // 3. Fallback: on retourne le premier tableau trouvé dans l'objet
+    return (Object.values(payload).find(v => Array.isArray(v)) as any[]) || [];
   };
 
   return (

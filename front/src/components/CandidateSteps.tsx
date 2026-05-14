@@ -565,10 +565,16 @@ export const StepQualitiesFlaws = ({ data, onChange, lang = 'en' }: any) => {
         onKeyDown={(e) => { 
           if(e.key === 'Enter' && e.currentTarget.value.trim()) { 
             e.preventDefault(); 
-            onChange("flaws", [...(data.flaws || []), e.currentTarget.value.trim()]); 
+            onChange("flaws", Array.from(new Set([...(data.flaws || []), e.currentTarget.value.trim()]))); 
             e.currentTarget.value = ""; 
           } 
         }} 
+        onBlur={(e) => {
+          if(e.currentTarget.value.trim()) {
+            onChange("flaws", Array.from(new Set([...(data.flaws || []), e.currentTarget.value.trim()])));
+            e.currentTarget.value = "";
+          }
+        }}
         style={{ width: "100%", marginBottom: 20, padding: "10px", borderRadius: "8px", border: "1px solid var(--border-color)" }} 
       />
 
@@ -665,7 +671,23 @@ export const StepQualitiesFlaws = ({ data, onChange, lang = 'en' }: any) => {
                 </button>
             ))}
         </div>
-        <input placeholder={t('add_custom_interest')} onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); onChange("interests", [...(Array.isArray(data.interests) ? data.interests : []), e.currentTarget.value]); e.currentTarget.value = ""; } }} style={{marginTop: 5, width: "100%"}} />
+        <input 
+          placeholder={t('add_custom_interest')} 
+          onKeyDown={(e) => { 
+            if(e.key === 'Enter' && e.currentTarget.value.trim()) { 
+              e.preventDefault(); 
+              onChange("interests", Array.from(new Set([...(Array.isArray(data.interests) ? data.interests : []), e.currentTarget.value.trim()]))); 
+              e.currentTarget.value = ""; 
+            } 
+          }} 
+          onBlur={(e) => {
+            if(e.currentTarget.value.trim()) {
+              onChange("interests", Array.from(new Set([...(Array.isArray(data.interests) ? data.interests : []), e.currentTarget.value.trim()])));
+              e.currentTarget.value = "";
+            }
+          }}
+          style={{ marginTop: 5, width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid var(--border-color)" }} 
+        />
     </div>
   </div>
   );

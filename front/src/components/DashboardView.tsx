@@ -105,7 +105,7 @@ export const DashboardView = () => {
     { name: t('deliv_cv', "CV ATS"), tab: "cv", data: cvResult, icon: <FileText size={18}/> },
     { name: t('deliv_pitch', "Pitch de 3 minutes"), tab: "interview", anchor: "pitch_section", data: pitchResult, icon: <Mic size={18}/> },
     { name: t('deliv_questions', "Questions d'Entretien"), tab: "interview", anchor: "questionnaire_section", data: questionsResult, icon: <MessageSquare size={18}/> },
-    { name: t('deliv_mes', "Mises en situation"), tab: "training", data: customScenariosResult || cvData, icon: <ShieldAlert size={18}/> },
+    { name: t('deliv_mes', "Mises en situation"), tab: "interview", anchor: "mes_section", data: customScenariosResult || cvData, icon: <ShieldAlert size={18}/> },
     { name: t('deliv_flaws', "Parades aux Défauts"), tab: "interview", anchor: "flaws_section", data: flawCoachingResult, icon: <AlertTriangle size={18}/> },
     { name: t('deliv_gap', "Analyse d'Écarts (Gap)"), tab: "market", anchor: "gap_section", data: gapResult, icon: <Target size={18}/> },
     { name: t('deliv_company', "Rapport Entreprise"), tab: "market", anchor: "company_section", data: researchResult, icon: <Building size={18}/> },
