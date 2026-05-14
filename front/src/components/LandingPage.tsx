@@ -219,7 +219,7 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
           <div className="lp-card">
             <div className="lp-icon-wrapper"><FileText size={24} /></div>
             <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-main)' }}>Passez les robots, marquez les humains</h3>
-            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>Obtenez un CV au format "ATS" pour les algorithmes RH, et une version Design pour marquer l'esprit du décideur final.</p>
+            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>Obtenez un CV au format "ATS" optimisé pour franchir les algorithmes RH et marquer l'esprit du décideur final.</p>
           </div>
         </div>
       </section>

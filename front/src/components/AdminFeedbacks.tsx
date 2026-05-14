@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ThumbsUp, ThumbsDown, MessageSquare, Activity, BarChart3, ArrowLeft } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, MessageSquare, Activity, BarChart3, ArrowLeft, Trash2, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { authenticatedFetch } from '../utils/auth';
 import { API_ROUTES } from '../api/routes';
@@ -20,6 +20,7 @@ export default function AdminFeedbacks() {
   const [error, setError] = useState<string | null>(null);
   const [selectedFeature, setSelectedFeature] = useState<string>('all');
   const navigate = useNavigate();
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   
   // --- GESTION DE LA SÉCURITÉ ---
   const [authPass, setAuthPass] = useState('');
@@ -63,6 +64,25 @@ export default function AdminFeedbacks() {
     
     fetchFeedbacks();
   }, [isAuthorized]);
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce feedback définitivement ?")) return;
+    
+    setDeletingId(id);
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/feedbacks/${id}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) {
+        throw new Error("Erreur lors de la suppression");
+      }
+      setFeedbacks(prev => prev.filter(f => f.id !== id));
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   if (!isAuthorized) {
     return (
@@ -167,6 +187,7 @@ export default function AdminFeedbacks() {
               <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 600 }}>Fonctionnalité</th>
               <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 600 }}>Vote</th>
               <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 600 }}>Commentaire</th>
+              <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 600, textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -185,6 +206,18 @@ export default function AdminFeedbacks() {
                     }
                   </td>
                   <td style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '300px' }}>{f.comments || <span style={{ fontStyle: 'italic', opacity: 0.5 }}>Aucun commentaire</span>}</td>
+                  <td style={{ padding: '1rem', textAlign: 'right' }}>
+                    <button 
+                      onClick={() => handleDelete(f.id)} 
+                      disabled={deletingId === f.id}
+                      style={{ background: 'var(--bg-body)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px', cursor: deletingId === f.id ? 'wait' : 'pointer', color: 'var(--danger-text)', transition: 'all 0.2s' }} 
+                      title="Supprimer ce retour"
+                      onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; e.currentTarget.style.borderColor = '#ef4444'; }}
+                      onMouseOut={(e) => { e.currentTarget.style.background = 'var(--bg-body)'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}
+                    >
+                      {deletingId === f.id ? <Loader2 size={16} className="spin" /> : <Trash2 size={16} />}
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
