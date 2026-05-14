@@ -16,7 +16,8 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
         .lp-container {
           font-family: 'Inter', system-ui, -apple-system, sans-serif;
           color: #f8fafc;
-          background-color: #020617;
+          background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+          min-height: 100vh;
           line-height: 1.6;
         }
         .lp-hero {
@@ -93,17 +94,19 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
           margin-top: 4rem;
         }
         .lp-card {
-          background: #0f172a;
+          background: rgba(30, 41, 59, 0.6);
+          backdrop-filter: blur(10px);
           padding: 2.5rem 2rem;
           border-radius: 1rem;
-          border: 1px solid #1e293b;
+          border: 1px solid rgba(255, 255, 255, 0.1);
           box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
           transition: all 0.3s;
           text-align: left;
         }
         .lp-card:hover {
-          border-color: #334155;
+          border-color: rgba(59, 130, 246, 0.5);
           transform: translateY(-5px);
+          background: rgba(30, 41, 59, 0.8);
         }
         .lp-icon-wrapper {
           width: 60px;
@@ -117,13 +120,14 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
           margin-bottom: 1.5rem;
         }
         .lp-pricing {
-          background: #0f172a;
+          background: rgba(30, 41, 59, 0.6);
+          backdrop-filter: blur(10px);
           border-radius: 1rem;
           padding: 4rem 3rem;
           text-align: center;
           margin: 4rem auto;
           max-width: 700px;
-          border: 1px solid #1e293b;
+          border: 1px solid rgba(255, 255, 255, 0.1);
           box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
         }
         .lp-check-item {
@@ -137,14 +141,15 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
         .lp-testimonial-box {
           max-width: 800px;
           margin: 0 auto;
-          background: #0f172a;
+          background: rgba(30, 41, 59, 0.6);
+          backdrop-filter: blur(10px);
           padding: 2.5rem;
           border-radius: 1rem;
-          border: 1px solid #1e293b;
+          border: 1px solid rgba(255, 255, 255, 0.1);
         }
         .lp-faq-item {
           text-align: left;
-          border-bottom: 1px solid #1e293b;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
           padding: 1.5rem 0;
         }
         .lp-faq-question {
@@ -171,33 +176,11 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
         </button>
         
         <div style={{ marginTop: '4rem', padding: '0 1rem' }}>
-          {/* Mockup d'interface 100% CSS (Plus d'image cassée) */}
-          <div style={{ maxWidth: '1000px', width: '100%', aspectRatio: '16/9', margin: '0 auto', background: '#0f172a', borderRadius: '0.75rem', border: '1px solid #1e293b', padding: '1.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', display: 'flex', gap: '1.5rem', position: 'relative', overflow: 'hidden', textAlign: 'left' }}>
-            <div style={{ position: 'absolute', top: '10%', left: '30%', width: '400px', height: '400px', background: '#3b82f6', filter: 'blur(120px)', opacity: 0.15, pointerEvents: 'none' }}></div>
-            {/* Sidebar */}
-            <div style={{ width: '20%', display: 'flex', flexDirection: 'column', gap: '1rem', zIndex: 1 }}>
-              <div style={{ height: '30px', width: '80%', background: '#1e293b', borderRadius: '0.25rem', marginBottom: '1.5rem' }}></div>
-              <div style={{ height: '40px', width: '100%', background: '#3b82f6', borderRadius: '0.5rem', opacity: 0.9 }}></div>
-              <div style={{ height: '40px', width: '100%', background: '#1e293b', borderRadius: '0.5rem' }}></div>
-              <div style={{ height: '40px', width: '100%', background: '#1e293b', borderRadius: '0.5rem' }}></div>
-            </div>
-            {/* Main Content */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1.5rem', zIndex: 1 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <div style={{ height: '36px', width: '40%', background: '#1e293b', borderRadius: '0.5rem' }}></div>
-                <div style={{ height: '36px', width: '15%', background: '#1e293b', borderRadius: '0.5rem' }}></div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1.5rem' }}>
-                <div style={{ height: '220px', background: '#1e293b', borderRadius: '0.75rem', border: '1px solid #334155' }}></div>
-                <div style={{ height: '220px', background: '#1e293b', borderRadius: '0.75rem', border: '1px solid #334155' }}></div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', flex: 1 }}>
-                <div style={{ background: '#1e293b', borderRadius: '0.75rem', border: '1px solid #334155' }}></div>
-                <div style={{ background: '#1e293b', borderRadius: '0.75rem', border: '1px solid #334155' }}></div>
-                <div style={{ background: '#1e293b', borderRadius: '0.75rem', border: '1px solid #334155' }}></div>
-              </div>
-            </div>
-          </div>
+          <img 
+            src="/dashboard-preview.png" 
+            alt="Aperçu du Dashboard Beyond The CV" 
+            style={{ maxWidth: '1000px', width: '100%', height: 'auto', display: 'block', margin: '0 auto', borderRadius: '0.75rem', border: '1px solid rgba(255, 255, 255, 0.1)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }} 
+          />
         </div>
       </section>
 
@@ -326,7 +309,7 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
       </section>
       
       {/* FOOTER */}
-      <footer style={{ textAlign: 'center', padding: '3rem 2rem', color: '#94a3b8', borderTop: '1px solid #1e293b', backgroundColor: '#020617' }}>
+      <footer style={{ textAlign: 'center', padding: '3rem 2rem', color: '#94a3b8', borderTop: '1px solid rgba(255, 255, 255, 0.05)', backgroundColor: 'rgba(15, 23, 42, 0.4)' }}>
         <p>© 2026 BeyondTheCV. Tous droits réservés.</p>
         <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', marginTop: '1rem', fontSize: '0.85rem' }}>
           <button onClick={onShowLegal} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0, font: 'inherit' }}>
