@@ -40,6 +40,7 @@ function AppContent() {
   const [showDocsModal, setShowDocsModal] = useState(false);
   const [stepErrors, setStepErrors] = useState<Record<string, boolean>>({});
   const [restoredData, setRestoredData] = useState<any>(null);
+  const [lastSaveTime, setLastSaveTime] = useState<Date | null>(null);
 
   // Ref pour éviter de déclencher l'auto-sauvegarde au montage initial de la page
   const initialLoadRef = useRef(true);
@@ -73,15 +74,15 @@ function AppContent() {
     const source = { ...profileData, ...(profileData.personal_info || {}), ...(profileData.form || {}) };
     
     const frontendData = {
+      ...source, // On spread la source en premier pour ne pas écraser nos listes sécurisées
       first_name: source.first_name || '',
       last_name: source.last_name || '',
       email: source.email || '',
       linkedin: source.linkedin || '',
       bio: source.bio || '',
-      experiences: source.experiences || [],
-      educations: source.educations || [],
-      skills: source.skills || [],
-      ...source // Spread the rest of the source
+      experiences: (source.experiences || []).map((exp: any, i: number) => ({ ...exp, id: exp.id || `exp_${Date.now()}_${i}` })),
+      educations: (source.educations || []).map((edu: any, i: number) => ({ ...edu, id: edu.id || `edu_${Date.now()}_${i}` })),
+      skills: source.skills || []
     };
 
     // Clean up to avoid redundant nested objects
@@ -136,7 +137,7 @@ function AppContent() {
       const payloadForBackend = transformProfileForBackend(data);
 
       // Changement de PUT vers POST pour respecter le contrôleur backend
-      await fetch(`${API_BASE_URL}/api/cv/me/profile`, {
+      const res = await fetch(`${API_BASE_URL}/api/cv/me/profile`, {
         method: 'POST', 
         headers: {
           'Content-Type': 'application/json',
@@ -144,6 +145,9 @@ function AppContent() {
         },
         body: JSON.stringify(payloadForBackend)
       });
+      if (res.ok) {
+        setLastSaveTime(new Date());
+      }
     } catch (e) {
       console.error("🚨 [AUTO-SAVE] Échec de la sauvegarde en arrière-plan:", e);
     }
@@ -182,6 +186,7 @@ function AppContent() {
           if ((frontendData as any).target_language) {
             i18n.changeLanguage((frontendData as any).target_language.toLowerCase());
           }
+          setLastSaveTime(new Date());
         }
       } else if (response.status === 404) {
         resetDashboard(); // Le hook gère la réinitialisation à INITIAL_DATA
@@ -306,6 +311,11 @@ function AppContent() {
           {/* [FIX] Alignement propre avec le bouton reset poussé à gauche (marginRight: 'auto') et les autres à droite */}
           <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem', gap: '1rem', alignItems: 'center' }}>
             <button className="btn-ghost" onClick={() => resetDashboard()} style={{ marginRight: 'auto' }}><RotateCcw size={16} style={{ marginRight: '0.5rem' }}/>{t('btn_reset')}</button>
+            {lastSaveTime && (
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                {t('last_saved_at', 'Sauvegardé à')} {lastSaveTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
             <button className="btn-secondary" onClick={loadProfile}><RefreshCw size={16} style={{ marginRight: '0.5rem' }}/>{t('btn_sync', 'Synchroniser')}</button>
             <button className="btn-primary" onClick={() => handleNextStep()}>{t('btn_next')}</button>
           </div>
