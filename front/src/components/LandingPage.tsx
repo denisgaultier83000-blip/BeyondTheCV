@@ -21,17 +21,15 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
           line-height: 1.6;
         }
         .lp-hero {
-          background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-          color: #f8fafc;
+          background: var(--bg-body);
+          color: var(--text-main);
           padding: 8rem 2rem 5rem 2rem;
           text-align: center;
         }
         .lp-hero-title {
           font-size: clamp(2rem, 4vw, 3.5rem);
           font-weight: 800;
-          background: linear-gradient(to right, #ffffff, #94a3b8);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
+          color: var(--text-main);
           line-height: 1.2;
           max-width: 900px;
           margin: 0 auto 1.5rem auto;
