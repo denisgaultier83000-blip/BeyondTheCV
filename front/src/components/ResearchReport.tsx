@@ -31,8 +31,8 @@ interface ResearchReportProps {
 export function ResearchReport({ data, companyName }: ResearchReportProps) {
   if (!data) return null;
 
-  const companyReport = data.company_report || {};
-  const marketReport = data.market_report || {};
+  const companyReport = data.company_report || data.synthesis?.company_report || {};
+  const marketReport = data.market_report || data.synthesis?.market_report || {};
   
   const overview = companyReport.identity_dna || "Analyse de l'entreprise indisponible.";
   const culture = companyReport.culture_environment || "Non spécifié.";
@@ -42,7 +42,7 @@ export function ResearchReport({ data, companyName }: ResearchReportProps) {
   const figures = companyReport.key_figures || "Non spécifié.";
   
   // Rétrocompatibilité : on cherche d'abord le nouveau format, puis l'ancien
-  const newsLinks = companyReport.news_links || data.essential_articles || [];
+  const newsLinks = companyReport.news_links || data.essential_articles || data.synthesis?.essential_articles || [];
 
   let advice = data.advice || [];
   if (!advice || advice.length === 0) {
@@ -137,6 +137,11 @@ export function ResearchReport({ data, companyName }: ResearchReportProps) {
                         <span style={{ color: 'var(--primary)', fontWeight: 600 }}>💡 {article.title}</span>
                     )}
                   </div>
+                  {(article.source || article.date) && (
+                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 'bold' }}>
+                      {article.source || 'Presse / Web'} {article.date ? `• ${article.date}` : ''}
+                    </div>
+                  )}
                   {article.strategic_analysis && (
                     <div style={{ fontSize: '0.85rem', color: '#475569', borderLeft: '3px solid var(--primary)', paddingLeft: '0.75rem', marginTop: '0.75rem', fontStyle: 'italic', lineHeight: 1.5 }}>
                       <strong style={{ color: 'var(--primary)', fontStyle: 'normal' }}>Conseil Stratégique :</strong> {article.strategic_analysis}
