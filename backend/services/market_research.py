@@ -46,15 +46,14 @@ def generate_deterministic_queries(company: str, industry: str) -> list:
             f"{company_context} actualités stratégiques récentes {current_year}", # [NEW] Force la recherche d'actualités chaudes
             f"{company_context} nouveaux projets ou acquisitions {current_year}", # [NEW] Détecte les pivots de l'entreprise
             f"{company_context} plan stratégique vision",
-            f"{company_context} résultats financiers chiffre d'affaires",
-            f"{company_context} valeurs culture d'entreprise",
-            f"{company_context} recrutement process RH",
-            f"{company_context} dirigeants CEO",
-            f"{company_context} concurrents parts de marché",
-            f"{company_context} avis employés",
-            f"{company_context} rapport ESG RSE durabilité {current_year}" # [NEW] Pour plus de détails sur la culture et les valeurs
-        ])
-        
+            queries.extend([
+                f"{company_context} actualités presse stratégie {current_year}",
+                f"site:glassdoor.fr OR site:glassdoor.com {company_context} avis reviews",
+                f"site:linkedin.com {company_context} recrutement hiring turnover",
+                f"{company_context} concurrents parts de marché",
+                f"{company_context} dirigeants CEO interview",
+                f"{company_context} rapport ESG RSE durabilité {current_year}" # [NEW] Pour plus de détails sur la culture et les valeurs
+            ])
     if industry and industry.strip() and industry.lower() != "unknown":
         queries.extend([
             f"{industry} market trends AI sustainability digitalization {current_year}",
@@ -169,6 +168,8 @@ def _enforce_schema(data: dict) -> dict:
     safe_company["usp"] = company.get("usp") or company.get("proposition_valeur") or company.get("enjeux_defis") or company.get("enjeux") or "Non spécifié."
     safe_company["culture_environment"] = company.get("culture_environment") or company.get("culture_environnement") or company.get("culture") or "Non spécifié."
     safe_company["team_structure"] = company.get("team_structure") or company.get("equipe") or company.get("structure_equipe") or "Non spécifié."
+    safe_company["psychological_prep"] = company.get("psychological_prep") or "Non spécifié."
+    safe_company["cross_referenced_signals"] = company.get("cross_referenced_signals") or "Non spécifié."
     safe_company["linkedin_url"] = company.get("linkedin_url") or ""
     safe_company["news_links"] = company.get("news_links") or company.get("actualites") or root.get("news_links") or root.get("actualites") or []
 
@@ -401,9 +402,13 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
                         "url": "https://...",
                         "source": "[Media name]",
                             "date": "[Date]",
-                            "strategic_analysis": "[Actionable strategic advice for the candidate]"
+                            "strategic_analysis": "[Actionable strategic advice for the candidate]",
+                            "interview_relevance": 8,
+                            "hidden_meaning": "[Translation of corporate PR into reality]"
                     }
-                ]
+                ],
+                "psychological_prep": "[Psychological preparation]",
+                "cross_referenced_signals": "[Cross referenced signals]"
             }}
         }}
         """
@@ -444,7 +449,9 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
                         "title": news.get("title", ""),
                         "source": news.get("source", "Presse / Web"),
                         "date": news.get("date", datetime.now().strftime("%Y-%m-%d")),
-                        "analysis": analysis
+                        "analysis": analysis,
+                        "interview_relevance": news.get("interview_relevance", 5),
+                        "hidden_meaning": news.get("hidden_meaning", "")
                     })
 
     real_news_links = []
@@ -478,7 +485,9 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
                 "url": matched_source.get('link', '#'),
                 "source": matched_source.get('source', 'Presse / Web'),
                 "date": matched_source.get('date', datetime.now().strftime("%Y-%m-%d")),
-                "strategic_analysis": ai_item["analysis"]
+                "strategic_analysis": ai_item["analysis"],
+                "interview_relevance": ai_item.get("interview_relevance", 5),
+                "hidden_meaning": ai_item.get("hidden_meaning", "")
             })
             all_sources.remove(matched_source)
             

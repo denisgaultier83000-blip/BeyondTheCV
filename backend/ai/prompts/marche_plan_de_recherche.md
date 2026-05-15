@@ -12,10 +12,11 @@ OUTPUT STRICT JSON:
     "queries": [
         "\"{company}\" actualités OR news OR presse {current_year}",
         "\"{company}\" stratégie {current_year} OR plan de développement",
-        "\"{company}\" culture d'entreprise OR valeurs OR avis employés",
+        "site:glassdoor.fr OR site:glassdoor.com \"{company}\" avis OR reviews OR \"working at\"",
+        "site:linkedin.com \"{company}\" recrutement OR hiring OR \"je quitte\"",
+        "site:github.com OR site:stackshare.io \"{company}\" tech stack OR repository",
+        "\"{company}\" culture d'entreprise OR valeurs OR restructuration",
         "interview questions for {role} at \"{company}\"",
-        "\"{company}\" concurrents OR marché {industry}",
-        "challenges facing {industry} industry {current_year}",
-        "\"{company}\" CEO OR {ceo_name} interview"
+        "\"{company}\" concurrents OR marché {industry}"
     ]
 }

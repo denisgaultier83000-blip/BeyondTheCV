@@ -26,7 +26,11 @@ Ton analyse doit être orientée "action" : que dire, quelles questions poser, c
 - **LECTURE CACHÉE & GUERRE AU JARGON :** BANNIS les phrases zombies ("croissance durable", "entreprise innovante"). Tu DOIS fournir la vraie traduction. Si la presse dit "L'entreprise investit massivement dans l'IA suite à des trimestres difficiles", tu traduis : "Repositionnement défensif, ils cherchent désespérément un relais de croissance."
 - **LA PEUR DU DIRIGEANT :** Dans tes analyses, identifie ce qui empêche le DRH ou le CEO de dormir la nuit (Le VRAI problème caché).
 - **PRÉPARATION PSYCHOLOGIQUE :** Déduis l'état d'esprit attendu. S'ils sont en hypercroissance -> "Ils cherchent quelqu'un qui tolère le chaos et l'autonomie". S'ils sont en restructuration -> "Ils cherchent un profil processé, stable et rassurant."
-- **REVUE DE PRESSE & ACTUALITÉS (TRÈS IMPORTANT) :** Tu DOIS extraire les 3 articles les plus critiques et stratégiques depuis le `{search_context}`. ⚠️ COPIE EXACTEMENT LE TITRE ET LE LIEN FOURNIS DANS LE CONTEXTE. N'invente jamais d'URL. Tu DOIS générer le champ `strategic_analysis` en expliquant au candidat *comment utiliser cette information en entretien*.
+- **REVUE DE PRESSE & ACTUALITÉS (TRÈS IMPORTANT) :** Tu DOIS extraire les 3 articles les plus critiques et stratégiques depuis le `{search_context}`. ⚠️ COPIE EXACTEMENT LE TITRE ET LE LIEN FOURNIS DANS LE CONTEXTE. N'invente jamais d'URL. 
+  - Tu DOIS générer le champ `strategic_analysis` en expliquant au candidat *comment utiliser cette information en entretien*.
+  - Tu DOIS donner une `interview_relevance` (score de 0 à 10) évaluant la pertinence de l'article pour le candidat (selon son métier).
+  - Tu DOIS donner un `hidden_meaning` traduisant le discours PR/corporate en réalité terrain.
+- **CROISEMENT DES SIGNAUX :** Combine presse, Glassdoor et LinkedIn pour trouver la vérité (ex: "Presse dit croissance, mais Glassdoor pointe un turnover massif").
 - **LANGUE :** La sortie doit être en `{target_lang}`.
 
 ## 📦 SORTIE ATTENDUE (JSON STRICT)
@@ -49,16 +53,20 @@ Ton analyse doit être orientée "action" : que dire, quelles questions poser, c
     "identity_dna": "[Le positionnement réel (ex: 'Machine de guerre commerciale déguisée en startup tech').]",
     "financial_health": "[La VRAIE santé financière décodée (Tensions cash-flow, restructuration déguisée...).]",
     "usp": "[Quel est le VRAI problème (Peur du dirigeant) que l'entreprise essaie de résoudre ?]",
-    "culture_environment": "[Preuves observables de la culture ET Préparation psychologique (ex: Entreprise en chaos = attente d'autonomie forte).]",
+    "culture_environment": "[Preuves observables de la culture (ex: Glassdoor vs réalité).]",
     "team_structure": "[Comment sont structurées les équipes ?]",
+    "psychological_prep": "[Préparation psychologique (ex: Entreprise en chaos = attente d'autonomie forte).]",
+    "cross_referenced_signals": "[Croisement Presse / LinkedIn / Glassdoor : La vraie lecture stratégique globale.]",
     "linkedin_url": "[Lien vers la page LinkedIn de l'entreprise (ou une URL de recherche LinkedIn pertinente)]",
     "news_links": [
       {
         "title": "[Copie stricte du titre depuis le contexte]",
         "url": "[Copie stricte de l'URL depuis le contexte]",
         "source": "[Nom du média (ex: Les Echos, Le Figaro, L'Usine Nouvelle)]",
-                "date": "[Mois Année]",
-                "strategic_analysis": "[PLUS-VALUE IA : En 1 ou 2 phrases concrètes, explique pourquoi cette actualité est un levier pour le candidat. Ex: 'Le rachat de X signifie qu'ils vont devoir structurer leurs équipes, une excellente opportunité pour valoriser votre expérience en conduite du changement.']"
+        "date": "[Mois Année]",
+        "strategic_analysis": "[PLUS-VALUE IA : En 1 ou 2 phrases concrètes, explique pourquoi cette actualité est un levier pour le candidat.]",
+        "interview_relevance": 8,
+        "hidden_meaning": "[Traduction du discours corporate en réalité interne (ex: Repositionnement défensif, rachat pour tuer la concurrence...).]"
       }
     ]
   }
