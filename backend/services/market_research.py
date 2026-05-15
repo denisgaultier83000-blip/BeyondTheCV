@@ -423,8 +423,8 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
     safe_synthesis = _enforce_schema(final_synthesis)
 
     # [FIX EXPERT] Extraction intelligente avec Plus-Value IA
-    news_sources = [r for r in raw_results if "[ACTUALITÉ]" in r.get('title', '')]
-    other_sources = [r for r in raw_results if "[ACTUALITÉ]" not in r.get('title', '')]
+    news_sources = [r for r in raw_results if "[ACTUALITÉ]" in str(r.get('title') or '')]
+    other_sources = [r for r in raw_results if "[ACTUALITÉ]" not in str(r.get('title') or '')]
     
     # [FIX EXPERT] On fusionne pour parcourir d'abord les vraies actus, puis le reste
     all_sources = news_sources + other_sources
@@ -456,7 +456,7 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
         ai_title = ai_item.get("title", "")
         
         for r in all_sources:
-            r_title = r.get('title', '').replace('[ACTUALITÉ] ', '')
+            r_title = str(r.get('title') or '').replace('[ACTUALITÉ] ', '')
             r_url = r.get('link', '#')
             
             # 1. Match strict par URL
