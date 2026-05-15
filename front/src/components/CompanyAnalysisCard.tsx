@@ -23,6 +23,7 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
   const usp = report.usp || report.key_challenges;
   const psychological_prep = report.psychological_prep;
   const cross_referenced_signals = report.cross_referenced_signals;
+  const strategicChallenges = report.strategic_challenges || data?.synthesis?.company_report?.strategic_challenges || [];
   const sources = data?.sources || []; // Exploitation des sources Web fournies par le backend
   
   const isValid = (val: any) => val && typeof val === 'string' && val.trim() !== "" && !val.toLowerCase().includes("non spécifié") && !val.toLowerCase().includes("non renseigné");
@@ -63,6 +64,20 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
                 <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
                   <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>Santé Financière</h4>
                   <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-muted)' }}>{finance}</p>
+                </div>
+              )}
+              
+              {/* NOUVEAU: Défis Stratégiques Actuels */}
+              {strategicChallenges && strategicChallenges.length > 0 && (
+                <div style={{ background: '#fef2f2', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid #fee2e2', gridColumn: '1 / -1' }}>
+                  <h4 style={{ margin: '0 0 0.5rem 0', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Target size={18}/> Défis Stratégiques
+                  </h4>
+                  <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#7f1d1d', fontSize: '0.95rem' }}>
+                    {strategicChallenges.map((defi: string, idx: number) => (
+                      <li key={idx} style={{ marginBottom: '0.35rem', lineHeight: '1.4' }}>{defi}</li>
+                    ))}
+                  </ul>
                 </div>
               )}
             </div>

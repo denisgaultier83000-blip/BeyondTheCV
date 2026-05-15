@@ -148,9 +148,12 @@ export const InterviewTab = () => {
   // Extraction ultra-robuste des questions pour pallier les variations de structure (encapsulation IA)
   const getQuestionsArray = (data: any): any[] => {
     if (!data) return [];
-    if (Array.isArray(data)) return data;
     
-    const payload = data.interview_questions_result || data.interview_questions || data;
+    // Déballage d'un potentiel { result: ... } du polling
+    const actualData = data.result || data;
+    if (Array.isArray(actualData)) return actualData;
+    
+    const payload = actualData.interview_questions_result || actualData.interview_questions || actualData;
     if (Array.isArray(payload)) return payload;
     
     // 1. Cherche un format exact connu (ex: interview_prep)
@@ -284,7 +287,13 @@ export const InterviewTab = () => {
               <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "1.5rem", fontStyle: "italic", background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
                 * Légende : ★ (1-Facile) à ★★★★★ (5-Très Difficile)
               </div>
-              <Questionnaire questions={getQuestionsArray(questionsResult)} hideHeader={true} />
+              {getQuestionsArray(questionsResult).length > 0 ? (
+                <Questionnaire questions={getQuestionsArray(questionsResult)} hideHeader={true} />
+              ) : (
+                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  Les questions sont en cours d'analyse ou n'ont pas pu être formatées correctement.
+                </div>
+              )}
             </>
           )}
         </DashboardCard>
