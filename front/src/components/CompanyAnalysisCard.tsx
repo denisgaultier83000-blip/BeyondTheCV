@@ -25,16 +25,7 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
   
   const isValid = (val: any) => val && typeof val === 'string' && val.trim() !== "" && !val.toLowerCase().includes("non spécifié");
   
-  // [FIX] Fallback Presse en dur : Si l'IA échoue, on génère un lien automatique de recherche
   let newsLinks = report.news_links || [];
-  if (!Array.isArray(newsLinks) || newsLinks.length === 0) {
-      newsLinks = [{
-          title: `Rechercher les actualités récentes de ${companyName}`,
-          url: `https://news.google.com/search?q=${encodeURIComponent(companyName)}`,
-          source: "Google News",
-          date: "Recherche dynamique"
-      }];
-  }
 
   return (
     <DashboardCard

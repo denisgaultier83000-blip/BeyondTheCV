@@ -24,8 +24,8 @@ Articles à analyser (JSON) :
 3. **Niveau de Risque (risk) [0-10] :**
    - 8-10 : Scandales, procès, faillites, grèves majeures, cyberattaques, licenciements, dette, turnover de la direction.
    - 0-3 : Actualité positive ou neutre.
-4. **Intérêt Entretien Spécifique (interview_relevance) [0-10] :**
-   - 8-10 : Hautement pertinent POUR CE POSTE SPÉCIFIQUE ({target_role}). (Ex: Une faille de sécurité est 10/10 pour un CISO, mais 2/10 pour un RH).
+4. **Exploitabilité / Intérêt Entretien (actionability) [0-10] :**
+   - 8-10 : Hautement exploitable POUR CE POSTE SPÉCIFIQUE ({target_role}). (Ex: Une faille de sécurité est 10/10 pour un CISO, mais 2/10 pour un RH).
    - 0-3 : Pertinent pour les investisseurs, mais inutile pour le candidat lors de l'entretien.
 
 ## 📦 SORTIE ATTENDUE (JSON STRICT)
@@ -39,7 +39,7 @@ Tu DOIS retourner un JSON contenant la liste des articles évalués. Ne génère
       "credibility": 9,
       "relevance": 8,
       "risk": 2,
-      "interview_relevance": 9,
+      "actionability": 9,
       "category": "eco | cyber | risk | hr | tech | other",
       "justification": "Explication en 1 phrase courte du score attribué."
     }
