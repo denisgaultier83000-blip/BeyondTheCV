@@ -170,6 +170,7 @@ def _enforce_schema(data: dict) -> dict:
     safe_company["culture_environment"] = company.get("culture_environment") or company.get("culture_environnement") or company.get("culture") or "Non spécifié."
     safe_company["team_structure"] = company.get("team_structure") or company.get("equipe") or company.get("structure_equipe") or "Non spécifié."
     safe_company["linkedin_url"] = company.get("linkedin_url") or ""
+    safe_company["strategic_challenges"] = company.get("strategic_challenges") or company.get("defis_strategiques") or []
     safe_company["news_links"] = company.get("news_links") or company.get("actualites") or root.get("news_links") or root.get("actualites") or []
 
     return {
@@ -438,13 +439,15 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
         for news in ai_generated_news:
             if isinstance(news, dict):
                 analysis = news.get('strategic_analysis') or news.get('analyse_strategique') or news.get('conseil_strategique') or news.get('conseil') or ""
-                if analysis:
+                if analysis or news.get("hidden_meaning") or news.get("interview_relevance"):
                     ai_analyses.append({
                         "url": news.get("url", ""),
                         "title": news.get("title", ""),
                         "source": news.get("source", "Presse / Web"),
                         "date": news.get("date", datetime.now().strftime("%Y-%m-%d")),
-                        "analysis": analysis
+                        "analysis": analysis,
+                        "interview_relevance": news.get("interview_relevance"),
+                        "hidden_meaning": news.get("hidden_meaning", "")
                     })
 
     real_news_links = []
@@ -478,9 +481,22 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
                 "url": matched_source.get('link', '#'),
                 "source": matched_source.get('source', 'Presse / Web'),
                 "date": matched_source.get('date', datetime.now().strftime("%Y-%m-%d")),
-                "strategic_analysis": ai_item["analysis"]
+                "strategic_analysis": ai_item["analysis"],
+                "interview_relevance": ai_item.get("interview_relevance"),
+                "hidden_meaning": ai_item.get("hidden_meaning")
             })
             all_sources.remove(matched_source)
+        else:
+            # [FIX EXPERT] On GARDE l'analyse de l'IA même si le mapping strict a échoué (évite le trou noir)
+            real_news_links.append({
+                "title": ai_title or "Article Stratégique",
+                "url": ai_url if ai_url and "http" in ai_url else "#",
+                "source": ai_item.get("source", "Presse / Web"),
+                "date": ai_item.get("date", datetime.now().strftime("%Y-%m-%d")),
+                "strategic_analysis": ai_item["analysis"],
+                "interview_relevance": ai_item.get("interview_relevance"),
+                "hidden_meaning": ai_item.get("hidden_meaning")
+            })
             
         if len(real_news_links) >= 4:
             break

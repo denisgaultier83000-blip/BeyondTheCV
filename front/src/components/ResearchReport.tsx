@@ -40,6 +40,7 @@ export function ResearchReport({ data, companyName }: ResearchReportProps) {
   const team = companyReport.team_structure || "Non spécifié.";
   const finance = companyReport.financial_health || "Non spécifié.";
   const figures = companyReport.key_figures || "Non spécifié.";
+  const strategicChallenges = companyReport.strategic_challenges || data.synthesis?.company_report?.strategic_challenges || [];
   
   // Rétrocompatibilité : on cherche d'abord le nouveau format, puis l'ancien
   const newsLinks = companyReport.news_links || data.essential_articles || data.synthesis?.essential_articles || [];
@@ -96,6 +97,20 @@ export function ResearchReport({ data, companyName }: ResearchReportProps) {
           <p style={{ fontSize: '0.85rem', color: '#14532d', margin: '0 0 0.5rem 0' }}><strong>Chiffres:</strong> {figures}</p>
           <p style={{ fontSize: '0.85rem', color: '#14532d', margin: 0 }}><strong>Dynamique:</strong> {finance}</p>
         </div>
+
+        {/* NOUVEAU: Défis Stratégiques Actuels */}
+        {strategicChallenges.length > 0 && (
+          <div style={{ background: '#fef2f2', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #fee2e2' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              🎯 Défis Stratégiques
+            </h4>
+            <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#7f1d1d', fontSize: '0.85rem' }}>
+              {strategicChallenges.map((defi: string, idx: number) => (
+                <li key={idx} style={{ marginBottom: '0.35rem', lineHeight: '1.4' }}>{defi}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       {/* Conseils Stratégiques */}
@@ -145,6 +160,16 @@ export function ResearchReport({ data, companyName }: ResearchReportProps) {
                   {article.strategic_analysis && (
                     <div style={{ fontSize: '0.85rem', color: '#475569', borderLeft: '3px solid var(--primary)', paddingLeft: '0.75rem', marginTop: '0.75rem', fontStyle: 'italic', lineHeight: 1.5 }}>
                       <strong style={{ color: 'var(--primary)', fontStyle: 'normal' }}>Conseil Stratégique :</strong> {article.strategic_analysis}
+                    </div>
+                  )}
+                  {article.hidden_meaning && (
+                    <div style={{ fontSize: '0.85rem', color: '#475569', borderLeft: '3px solid #f59e0b', paddingLeft: '0.75rem', marginTop: '0.75rem', fontStyle: 'italic', lineHeight: 1.5 }}>
+                      <strong style={{ color: '#d97706', fontStyle: 'normal' }}>Lecture Cachée :</strong> {article.hidden_meaning}
+                    </div>
+                  )}
+                  {article.interview_relevance && (
+                    <div style={{ display: 'inline-block', fontSize: '0.75rem', color: '#1e40af', background: '#dbeafe', padding: '0.25rem 0.75rem', borderRadius: '1rem', marginTop: '0.75rem', fontWeight: 600 }}>
+                      Pertinence Entretien : {article.interview_relevance}
                     </div>
                   )}
                 </div>

@@ -31,6 +31,7 @@ Ton analyse doit être orientée "action" : que dire, quelles questions poser, c
   - Tu DOIS donner une `interview_relevance` (score de 0 à 10) évaluant la pertinence de l'article pour le candidat (selon son métier).
   - Tu DOIS donner un `hidden_meaning` traduisant le discours PR/corporate en réalité terrain.
 - **CROISEMENT DES SIGNAUX :** Combine presse, Glassdoor et LinkedIn pour trouver la vérité (ex: "Presse dit croissance, mais Glassdoor pointe un turnover massif").
+- **DÉFIS STRATÉGIQUES ACTUELS :** Liste 3 à 5 défis opérationnels ou industriels cruciaux (ex: "montée des tensions géopolitiques", "recrutement de profils rares"). BANNIS les mots valises comme "Présence internationale". C'est pour que le candidat adapte son discours.
 - **LANGUE :** La sortie doit être en `{target_lang}`.
 
 ## 📦 SORTIE ATTENDUE (JSON STRICT)
@@ -58,6 +59,11 @@ Ton analyse doit être orientée "action" : que dire, quelles questions poser, c
     "psychological_prep": "[Préparation psychologique (ex: Entreprise en chaos = attente d'autonomie forte).]",
     "cross_referenced_signals": "[Croisement Presse / LinkedIn / Glassdoor : La vraie lecture stratégique globale.]",
     "linkedin_url": "[Lien vers la page LinkedIn de l'entreprise (ou une URL de recherche LinkedIn pertinente)]",
+    "strategic_challenges": [
+      "[Défi ultra-spécifique 1 (ex: Pression sur les délais industriels)]",
+      "[Défi ultra-spécifique 2]",
+      "[Défi ultra-spécifique 3]"
+    ],
     "news_links": [
       {
         "title": "[Copie stricte du titre depuis le contexte]",
