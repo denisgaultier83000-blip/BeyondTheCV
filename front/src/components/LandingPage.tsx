@@ -6,9 +6,10 @@ interface LandingPageProps {
   onShowCGU: () => void;
   onShowPrivacy: () => void;
   onShowLegal: () => void;
+  darkMode?: boolean;
 }
 
-export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: LandingPageProps) {
+export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, darkMode }: LandingPageProps) {
   return (
     <div className="lp-container">
       {/* Styles encapsulés pour un rendu "Plug & Play" */}
@@ -172,7 +173,7 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal }: 
         
         <div style={{ marginTop: '4rem', padding: '0 1rem' }}>
           <img 
-            src="/dashboard-preview.png" 
+            src={darkMode ? "/dashboard-preview-night.png" : "/dashboard-preview.png"} 
             alt="Aperçu du Dashboard Beyond The CV" 
             style={{ maxWidth: '1000px', width: '100%', height: 'auto', display: 'block', margin: '0 auto', borderRadius: '0.75rem', border: '4px solid var(--bg-card)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }} 
           />
