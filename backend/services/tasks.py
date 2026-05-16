@@ -221,12 +221,12 @@ async def _run_questions_logic(task_id: str, candidate_data: dict):
         target_lang = normalize_language(candidate_data.get('target_language', 'French'))
         
         # [FIX] Logique "Victor Hugo" : Extraction adresse et hobbies pour questions de curiosité
-        p_info = candidate_data.get('personal_info', {})
-        address = p_info.get('address', 'Inconnue')
-        city = p_info.get('city', '')
-        hobbies = candidate_data.get('interests', [])
-        flaws = candidate_data.get('flaws', [])
-        target_job = candidate_data.get('target_job', 'Poste visé')
+        p_info = candidate_data.get('personal_info') or {}
+        address = p_info.get('address') or 'Inconnue'
+        city = p_info.get('city') or ''
+        hobbies = candidate_data.get('interests') or []
+        flaws = candidate_data.get('flaws') or []
+        target_job = candidate_data.get('target_job') or 'Poste visé'
         prompt_template = load_prompt(get_prompt_path("interview_questions.md"))
         
         # [FIX EXPERT] Purge des données massives qui font exploser la limite de tokens et crasher le JSON

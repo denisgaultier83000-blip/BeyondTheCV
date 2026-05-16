@@ -461,8 +461,8 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
     # 1. On parcourt d'abord les analyses générées par l'IA pour trouver leur vraie source Serper
     for ai_item in ai_analyses:
         matched_source = None
-        ai_url = str(ai_item.get("url") or "")
-        ai_title = str(ai_item.get("title") or "")
+        ai_url = str(ai_item.get("url") or "") # [FIX EXPERT] Garantit une string, même si l'IA renvoie {"url": null}
+        ai_title = str(ai_item.get("title") or "") # [FIX EXPERT] Idem pour le titre
         
         for r in all_sources:
             r_title = str(r.get('title') or '').replace('[ACTUALITÉ] ', '')
