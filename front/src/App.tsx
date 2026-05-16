@@ -100,14 +100,13 @@ function AppContent() {
     // Liste des champs appartenant aux informations personnelles
     const personalInfoFields = ['first_name', 'last_name', 'email', 'phone', 'city', 'country', 'linkedin', 'bio', 'target_language'];
     
-    const payload = {
-      personal_info: {} as Record<string, any>,
-      form: {} as Record<string, any>
+    const payload: Record<string, any> = {
+      personal_info: {}
     };
 
     Object.entries(frontendData).forEach(([key, value]) => {
       if (personalInfoFields.includes(key)) payload.personal_info[key] = value;
-      else payload.form[key] = value;
+      else payload[key] = value;
     });
 
     return payload;
