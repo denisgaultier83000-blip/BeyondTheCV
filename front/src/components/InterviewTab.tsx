@@ -153,7 +153,7 @@ export const InterviewTab = () => {
     if (typeof data === 'string') {
         try {
             const match = data.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-            actualData = JSON.parse(match ? match : data);
+            actualData = JSON.parse(match ? match[1] : data);
         } catch(e) {}
     }
     

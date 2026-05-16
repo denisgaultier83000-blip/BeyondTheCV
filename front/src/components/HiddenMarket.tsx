@@ -11,7 +11,7 @@ interface HiddenMarketData {
 }
 
 interface HiddenMarketProps {
-  data: { hidden_market: HiddenMarketData } | null;
+  data: any;
   loading?: boolean;
   error?: boolean;
 }
@@ -31,7 +31,7 @@ export function HiddenMarket({ data, loading, error }: HiddenMarketProps) {
   if (typeof data === 'string') {
       try {
           const match = data.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-          parsedData = JSON.parse(match ? match : data);
+          parsedData = JSON.parse(match ? match[1] : data);
       } catch(e) {}
   }
   
