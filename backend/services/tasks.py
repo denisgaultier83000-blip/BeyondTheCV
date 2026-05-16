@@ -161,7 +161,15 @@ async def _run_pitch_logic(task_id: str, candidate_data: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
         prompt_template = load_prompt(get_prompt_path("pitch_v1.md"))
-        context_str = json.dumps(candidate_data, indent=2, ensure_ascii=False, default=str)
+        
+        # [FIX EXPERT] Purge pour éviter l'explosion des tokens
+        safe_data = candidate_data.copy() if isinstance(candidate_data, dict) else {}
+        if 'personal_info' in safe_data and isinstance(safe_data['personal_info'], dict):
+            safe_data['personal_info'] = safe_data['personal_info'].copy()
+            safe_data['personal_info'].pop('photo', None)
+        for k in ['research_data', 'gap_analysis']: safe_data.pop(k, None)
+        
+        context_str = json.dumps(safe_data, indent=2, ensure_ascii=False, default=str)
         
         # [FIX] Ajout du contexte de l'annonce/poste visé pour un pitch pertinent
         target_job = candidate_data.get('target_job', 'Poste visé')
@@ -221,6 +229,13 @@ async def _run_questions_logic(task_id: str, candidate_data: dict):
         target_job = candidate_data.get('target_job', 'Poste visé')
         prompt_template = load_prompt(get_prompt_path("interview_questions.md"))
         
+        # [FIX EXPERT] Purge des données massives qui font exploser la limite de tokens et crasher le JSON
+        safe_data = candidate_data.copy() if isinstance(candidate_data, dict) else {}
+        if 'personal_info' in safe_data and isinstance(safe_data['personal_info'], dict):
+            safe_data['personal_info'] = safe_data['personal_info'].copy()
+            safe_data['personal_info'].pop('photo', None)
+        for k in ['research_data', 'gap_analysis', 'pitch_data']: safe_data.pop(k, None)
+        
         final_prompt = f"""
         {prompt_template}
         
@@ -231,7 +246,7 @@ async def _run_questions_logic(task_id: str, candidate_data: dict):
         Poste visé : {target_job}
         
         DONNÉES :
-        {json.dumps(candidate_data, indent=2, ensure_ascii=False, default=str)}
+        {json.dumps(safe_data, indent=2, ensure_ascii=False, default=str)}
         
         OUTPUT LANGUAGE: {target_lang}
         """

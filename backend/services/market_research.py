@@ -38,10 +38,11 @@ def generate_deterministic_queries(company: str, industry: str) -> list:
     queries = []
     
     # [OPTIMISATION] Requêtes plus naturelles pour Google. Les opérateurs booléens complexes étouffent l'algorithme sémantique.
-    company_context = f'"{company}"'
     
     # [FIX] Ne rechercher l'entreprise que si elle est renseignée
-    if company and company.strip() and company.lower() != "unknown":
+    safe_company = str(company).strip() if company else ""
+    company_context = f'"{safe_company}"'
+    if safe_company and safe_company.lower() != "unknown" and safe_company.lower() != "none":
         queries.extend([
             f"{company_context} actualités stratégiques récentes {current_year}", # [NEW] Force la recherche d'actualités chaudes
             f"{company_context} nouveaux projets ou acquisitions {current_year}", # [NEW] Détecte les pivots de l'entreprise
@@ -55,7 +56,8 @@ def generate_deterministic_queries(company: str, industry: str) -> list:
             f"{company_context} rapport ESG RSE durabilité {current_year}" # [NEW] Pour plus de détails sur la culture et les valeurs
         ])
         
-    if industry and industry.strip() and industry.lower() != "unknown":
+    safe_industry = str(industry).strip() if industry else ""
+    if safe_industry and safe_industry.lower() != "unknown" and safe_industry.lower() != "none":
         queries.extend([
             f"{industry} market trends AI sustainability digitalization {current_year}",
             f"{industry} most in-demand skills hard soft skills {current_year}",
@@ -496,7 +498,8 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
             
             # Si l'URL de l'IA est manifestement fausse, on génère une recherche Google sémantique
             is_fake_url = not ai_url or "example" in ai_url or "lien-vers" in ai_url or "..." in ai_url or "http" not in ai_url
-            safe_url = f"https://www.google.com/search?q={urllib.parse.quote(ai_title + ' ' + company)}" if is_fake_url else ai_url
+            safe_company_name = str(company) if company else ""
+            safe_url = f"https://www.google.com/search?q={urllib.parse.quote(ai_title + ' ' + safe_company_name)}" if is_fake_url else ai_url
             real_news_links.append({
                 "title": ai_title or "Article Stratégique",
                 "url": safe_url,
