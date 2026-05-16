@@ -263,10 +263,10 @@ export const InterviewTab = () => {
         <DashboardCard
           title={t('deliv_questions', "Questionnaire d'Entretien")}
           icon={<MessageSquare size={24} />}
-          loading={globalStatus === 'PROCESSING' && !questionsResult}
+          loading={globalStatus === 'PROCESSING' && (!questionsResult || questionsResult.error)}
           loadingText={t('questions_loading', "Génération des questions...")}
-          error={!questionsResult && (globalStatus === 'COMPLETED' || globalStatus === 'FAILED')}
-          errorText={t('questions_error', "Le questionnaire n'a pas pu être généré.")}
+          error={(!questionsResult || questionsResult.error) && (globalStatus === 'COMPLETED' || globalStatus === 'FAILED')}
+          errorText={questionsResult?.error ? `Erreur: ${questionsResult.error}` : t('questions_error', "Le questionnaire n'a pas pu être généré.")}
           featureId="interview_questions"
           headerAction={
             <button onClick={() => setShowHistory(!showHistory)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
