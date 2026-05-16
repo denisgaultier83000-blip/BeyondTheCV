@@ -396,6 +396,10 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
                 "usp": "[String (Enjeux & Défis / Proposition de valeur)]",
                 "culture_environment": "[String]",
                 "team_structure": "[String]",
+                "strategic_challenges": [
+                    "[Défi ultra-spécifique 1]",
+                    "[Défi ultra-spécifique 2]"
+                ],
                 "news_links": [
                     {{
                         "title": "[Article title]",

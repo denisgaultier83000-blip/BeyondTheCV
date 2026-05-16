@@ -40,7 +40,10 @@ export function ResearchReport({ data, companyName }: ResearchReportProps) {
   const team = companyReport.team_structure || "Non spécifié.";
   const finance = companyReport.financial_health || "Non spécifié.";
   const figures = companyReport.key_figures || "Non spécifié.";
-  const strategicChallenges = companyReport.strategic_challenges || data.synthesis?.company_report?.strategic_challenges || [];
+  
+  // [FIX EXPERT] On s'assure d'avoir un tableau, même si l'IA hallucine une string.
+  const rawStrategicChallenges = companyReport.strategic_challenges || data.synthesis?.company_report?.strategic_challenges || [];
+  const strategicChallenges = Array.isArray(rawStrategicChallenges) ? rawStrategicChallenges : (typeof rawStrategicChallenges === 'string' ? [rawStrategicChallenges] : []);
   
   // Rétrocompatibilité : on cherche d'abord le nouveau format, puis l'ancien
   const newsLinks = companyReport.news_links || data.essential_articles || data.synthesis?.essential_articles || [];

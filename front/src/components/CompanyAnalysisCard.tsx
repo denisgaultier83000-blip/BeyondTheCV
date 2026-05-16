@@ -23,7 +23,11 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
   const usp = report.usp || report.key_challenges;
   const psychological_prep = report.psychological_prep;
   const cross_referenced_signals = report.cross_referenced_signals;
-  const strategicChallenges = report.strategic_challenges || data?.synthesis?.company_report?.strategic_challenges || [];
+  
+  // [FIX EXPERT] On s'assure d'avoir un tableau, même si l'IA hallucine une string.
+  const rawStrategicChallenges = report.strategic_challenges || data?.synthesis?.company_report?.strategic_challenges || [];
+  const strategicChallenges = Array.isArray(rawStrategicChallenges) ? rawStrategicChallenges : (typeof rawStrategicChallenges === 'string' ? [rawStrategicChallenges] : []);
+  
   const sources = data?.sources || []; // Exploitation des sources Web fournies par le backend
   
   const isValid = (val: any) => val && typeof val === 'string' && val.trim() !== "" && !val.toLowerCase().includes("non spécifié") && !val.toLowerCase().includes("non renseigné");
