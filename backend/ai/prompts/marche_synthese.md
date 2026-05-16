@@ -26,7 +26,7 @@ Ton analyse doit être orientée "action" : que dire, quelles questions poser, c
 - **LECTURE CACHÉE & GUERRE AU JARGON :** BANNIS les phrases zombies ("croissance durable", "entreprise innovante"). Tu DOIS fournir la vraie traduction. Si la presse dit "L'entreprise investit massivement dans l'IA suite à des trimestres difficiles", tu traduis : "Repositionnement défensif, ils cherchent désespérément un relais de croissance."
 - **LA PEUR DU DIRIGEANT :** Dans tes analyses, identifie ce qui empêche le DRH ou le CEO de dormir la nuit (Le VRAI problème caché).
 - **PRÉPARATION PSYCHOLOGIQUE :** Déduis l'état d'esprit attendu. S'ils sont en hypercroissance -> "Ils cherchent quelqu'un qui tolère le chaos et l'autonomie". S'ils sont en restructuration -> "Ils cherchent un profil processé, stable et rassurant."
-- **REVUE DE PRESSE & ACTUALITÉS (TRÈS IMPORTANT) :** Tu DOIS extraire les 3 articles les plus critiques et stratégiques depuis le `{search_context}`. ⚠️ COPIE EXACTEMENT LE TITRE ET LE LIEN FOURNIS DANS LE CONTEXTE. N'invente jamais d'URL. 
+- **REVUE DE PRESSE & ACTUALITÉS (TRÈS IMPORTANT) :** Tu DOIS extraire les 6 articles les plus critiques et stratégiques depuis le `{search_context}`. ⚠️ COPIE EXACTEMENT LE TITRE ET LE LIEN FOURNIS DANS LE CONTEXTE. N'invente jamais d'URL. 
   - Tu dois utiliser exclusivement les URLs fournies dans le contexte.
   - Tu n'as pas le droit de modifier, raccourcir, compléter ou inventer une URL.
   - Si aucune URL n'est disponible, n'invente pas d'article.

@@ -296,7 +296,7 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
             pass
 
     # --- ÉTAPE 3.5 : FILTRAGE OSINT (Scoring via 'actionability') ---
-    news_to_score = [r for r in raw_results if "[ACTUALITÉ]" in r.get('title', '')][:8]
+    news_to_score = [r for r in raw_results if "[ACTUALITÉ]" in str(r.get('title') or '')][:12]
     valid_news = []
     
     if news_to_score:
@@ -507,22 +507,22 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
                 "hidden_meaning": ai_item.get("hidden_meaning")
             })
             
-        if len(real_news_links) >= 4:
+        if len(real_news_links) >= 6:
             break
 
-    # 2. Si on a moins de 4 actualités analysées, on complète avec de vraies news Serper
-    if len(real_news_links) < 4:
+    # 2. Si on a moins de 6 actualités analysées, on complète avec de vraies news Serper
+    if len(real_news_links) < 6:
         for r in all_sources:
-            is_explicit_news = "[ACTUALITÉ]" in r.get('title', '')
+            is_explicit_news = "[ACTUALITÉ]" in str(r.get('title') or '')
             if is_explicit_news:
                 real_news_links.append({
-                    "title": r.get('title', '').replace('[ACTUALITÉ] ', ''),
+                    "title": str(r.get('title') or '').replace('[ACTUALITÉ] ', ''),
                     "url": r.get('link', '#'),
                     "source": r.get('source', 'Presse / Web'),
                     "date": r.get('date', datetime.now().strftime("%Y-%m-%d")),
                     "strategic_analysis": ""
                 })
-            if len(real_news_links) >= 4:
+            if len(real_news_links) >= 6:
                 break
 
     safe_synthesis["company_report"]["news_links"] = real_news_links
