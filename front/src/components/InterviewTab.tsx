@@ -149,15 +149,17 @@ export const InterviewTab = () => {
   const getQuestionsArray = (data: any): any[] => {
     if (!data) return [];
     
-    let actualData = data;
-    if (typeof data === 'string') {
+    // 1. Déballage d'un potentiel { result: ... } du polling
+    let actualData = data.result !== undefined ? data.result : data;
+    
+    // 2. Nettoyage du Markdown SI ET SEULEMENT SI la donnée interne est un texte
+    if (typeof actualData === 'string') {
         try {
-            const match = data.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-            actualData = JSON.parse(match ? match[1] : data);
+            const match = actualData.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+            actualData = JSON.parse(match ? match : actualData);
         } catch(e) {}
     }
     
-    actualData = actualData.result || actualData;
     if (Array.isArray(actualData)) return actualData;
     
     const payload = actualData.interview_questions_result || actualData.interview_questions || actualData;
