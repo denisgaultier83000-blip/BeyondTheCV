@@ -149,8 +149,15 @@ export const InterviewTab = () => {
   const getQuestionsArray = (data: any): any[] => {
     if (!data) return [];
     
-    // Déballage d'un potentiel { result: ... } du polling
-    const actualData = data.result || data;
+    let actualData = data;
+    if (typeof data === 'string') {
+        try {
+            const match = data.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+            actualData = JSON.parse(match ? match : data);
+        } catch(e) {}
+    }
+    
+    actualData = actualData.result || actualData;
     if (Array.isArray(actualData)) return actualData;
     
     const payload = actualData.interview_questions_result || actualData.interview_questions || actualData;

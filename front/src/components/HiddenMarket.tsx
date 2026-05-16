@@ -27,7 +27,15 @@ export function HiddenMarket({ data, loading, error }: HiddenMarketProps) {
   }
 
   // Résolution robuste (Support de l'encapsulation IA)
-  const actualData = data && 'result' in data ? (data as any).result : data;
+  let parsedData = data;
+  if (typeof data === 'string') {
+      try {
+          const match = data.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+          parsedData = JSON.parse(match ? match : data);
+      } catch(e) {}
+  }
+  
+  const actualData = parsedData && 'result' in parsedData ? (parsedData as any).result : parsedData;
   const hidden_market: any = actualData && 'hidden_market' in actualData ? actualData.hidden_market : actualData;
   
   if (loading) return null;

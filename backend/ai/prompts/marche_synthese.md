@@ -72,7 +72,7 @@ Ton analyse doit être orientée "action" : que dire, quelles questions poser, c
         "title": "[Copie stricte du titre depuis le contexte]",
         "url": "[Copie stricte de l'URL depuis le contexte]",
         "source": "[Nom du média (ex: Les Echos, Le Figaro, L'Usine Nouvelle)]",
-        "date": "[Mois Année]",
+        "date": "[Copie EXACTE de la date depuis le contexte, ou 'Récemment' si absente]",
         "strategic_analysis": "[PLUS-VALUE IA : En 1 ou 2 phrases concrètes, explique pourquoi cette actualité est un levier pour le candidat.]",
         "interview_relevance": 8,
         "hidden_meaning": "[Traduction du discours corporate en réalité interne (ex: Repositionnement défensif, rachat pour tuer la concurrence...).]"

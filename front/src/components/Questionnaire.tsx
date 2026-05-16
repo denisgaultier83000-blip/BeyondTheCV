@@ -267,7 +267,8 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                       </span>
                     )}
             {(() => {
-              const diffVal = Number(q.difficulty || q.score);
+              const rawScore = q.difficulty || q.score;
+              const diffVal = typeof rawScore === 'string' ? parseInt(rawScore.replace(/\D/g, ''), 10) : Number(rawScore);
               if (diffVal > 0 && diffVal <= 5) {
                 return (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginLeft: 'auto' }} title={`Difficulté: ${diffVal}/5`}>
