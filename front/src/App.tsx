@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AlertCircle, RotateCcw, RefreshCw, Loader2, FileText, Target, MessageSquare, BarChart3, Bell as LucideBell, X as LucideX, Lock, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Header, { Step } from './components/Header';
 import { DashboardView } from './components/DashboardView';
@@ -20,6 +20,11 @@ import { LoadingScreen } from './components/LoadingScreen';
 import DocumentsModal from './components/DocumentsModal';
 import { API_BASE_URL } from './config';
 import { authenticatedFetch } from './utils/auth';
+import { DossierLayout } from './components/DossierLayout';
+import { DossierOverview } from './components/DossierOverview';
+import { DossierCV } from './components/DossierCV';
+import { DossierPitch } from './components/DossierPitch';
+import { DossierQA } from './components/DossierQA';
 import './index.css';
 
 function AppContent() {
@@ -461,7 +466,7 @@ function AppContent() {
     parsedUserName = parsedUserName.charAt(0).toUpperCase() + parsedUserName.slice(1);
   }
 
-  return (
+  const legacyAppLayout = (
     <div className="app-container">
       <Header 
         darkMode={darkMode} 
@@ -551,6 +556,21 @@ function AppContent() {
         <button className="btn-ghost" onClick={() => setShowPrivacy(true)}>{t('footer_privacy', 'Politique de Confidentialité')}</button>
       </footer>
     </div>
+  );
+
+  return (
+    <Routes>
+      {/* NOUVEAU WORKSPACE PREMIUM */}
+      <Route path="/app/recherches/:id" element={!isAuthenticated ? <Navigate to="/" replace /> : <DossierLayout />}>
+        <Route index element={<DossierOverview />} />
+        <Route path="cv" element={<DossierCV />} />
+        <Route path="pitch" element={<DossierPitch />} />
+        <Route path="questions-reponses" element={<DossierQA />} />
+      </Route>
+
+      {/* APPLICATION CLASSIQUE (Fallback conservant l'ancien comportement) */}
+      <Route path="*" element={legacyAppLayout} />
+    </Routes>
   );
 }
 
