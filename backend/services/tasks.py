@@ -254,8 +254,10 @@ async def _run_questions_logic(task_id: str, candidate_data: dict):
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction=f"You are an expert interviewer. Output ONLY JSON. Language: {target_lang}.")
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
+            await manager.broadcast(task_id, "Erreur lors de la génération", status="FAILED", data=result)
         else:
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            await manager.broadcast(task_id, "Questions générées avec succès", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
 
@@ -896,7 +898,12 @@ async def process_custom_scenarios_in_background(task_id: str, data: dict):
         """
         
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an Expert HR Scenario Designer.")
-        await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS" if "error" not in result else "FAILED", result)
+        if "error" in result:
+            await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
+            await manager.broadcast(task_id, "Erreur de génération des scénarios", status="FAILED", data=result)
+        else:
+            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            await manager.broadcast(task_id, "Scénarios générés avec succès", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
 

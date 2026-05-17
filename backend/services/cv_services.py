@@ -63,6 +63,8 @@ class InterviewAnswerRequest(BaseModel):
     category: Optional[str] = "Question d'entretien"
     suggested_framework: Optional[str] = ""
     user_answer: str
+    application_id: Optional[str] = None
+    task_id: Optional[str] = None
 
 class CustomQuestionRequest(BaseModel):
     theme: str
@@ -375,11 +377,37 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
         
         # [FIX EXPERT] Sauvegarde de la session d'entretien en BDD
         session_id = str(uuid.uuid4())
+        app_id = request.application_id or "general"
+        
         async with db.get_connection() as conn:
             await db.execute(conn, """
                 INSERT INTO interview_sessions (id, user_id, application_id, question_text, user_answer, score, feedback, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?::jsonb, ?)
-            """, (session_id, current_user["id"], "general", request.question, request.user_answer, result.get("score", 0), json.dumps(result), datetime.now()))
+            """, (session_id, current_user["id"], app_id, request.question, request.user_answer, result.get("score", 0), json.dumps(result), datetime.now()))
+            
+            # [FIX EXPERT] Mise à jour du JSON de la tâche pour que les scores soient rechargés au retour
+            if request.task_id:
+                cursor = await db.execute(conn, "SELECT result FROM tasks WHERE id = ?", (request.task_id,))
+                task_row = await cursor.fetchone()
+                if task_row:
+                    task_result_str = task_row[0] if isinstance(task_row, tuple) else task_row.get("result")
+                    if task_result_str:
+                        task_result = json.loads(task_result_str)
+                        def update_question_node(node):
+                            if isinstance(node, dict):
+                                if node.get("question") == request.question or node.get("text") == request.question:
+                                    node["user_answer"] = request.user_answer
+                                    node["evaluation"] = result
+                                    return True
+                                for v in node.values():
+                                    if update_question_node(v): return True
+                            elif isinstance(node, list):
+                                for item in node:
+                                    if update_question_node(item): return True
+                            return False
+                        
+                        update_question_node(task_result)
+                        await db.execute(conn, "UPDATE tasks SET result = ? WHERE id = ?", (json.dumps(task_result), request.task_id))
             
         return {"feedback": result}
     except Exception as e:
