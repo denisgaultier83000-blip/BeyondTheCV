@@ -162,12 +162,13 @@ async def _run_pitch_logic(task_id: str, candidate_data: dict):
     try:
         prompt_template = load_prompt(get_prompt_path("pitch_v1.md"))
         
-        # [FIX EXPERT] Purge pour éviter l'explosion des tokens
-        safe_data = candidate_data.copy() if isinstance(candidate_data, dict) else {}
-        if 'personal_info' in safe_data and isinstance(safe_data['personal_info'], dict):
-            safe_data['personal_info'] = safe_data['personal_info'].copy()
-            safe_data['personal_info'].pop('photo', None)
-        for k in ['research_data', 'gap_analysis']: safe_data.pop(k, None)
+        # [FIX EXPERT] Whitelist stricte pour éviter l'explosion de tokens (qui génère {"error": True})
+        safe_data = {
+            "experiences": candidate_data.get("experiences", []),
+            "educations": candidate_data.get("educations", []),
+            "skills": candidate_data.get("skills", []),
+            "free_text": candidate_data.get("free_text", "")
+        }
         
         context_str = json.dumps(safe_data, indent=2, ensure_ascii=False, default=str)
         
@@ -229,12 +230,15 @@ async def _run_questions_logic(task_id: str, candidate_data: dict):
         target_job = candidate_data.get('target_job') or 'Poste visé'
         prompt_template = load_prompt(get_prompt_path("interview_questions.md"))
         
-        # [FIX EXPERT] Purge des données massives qui font exploser la limite de tokens et crasher le JSON
-        safe_data = candidate_data.copy() if isinstance(candidate_data, dict) else {}
-        if 'personal_info' in safe_data and isinstance(safe_data['personal_info'], dict):
-            safe_data['personal_info'] = safe_data['personal_info'].copy()
-            safe_data['personal_info'].pop('photo', None)
-        for k in ['research_data', 'gap_analysis', 'pitch_data']: safe_data.pop(k, None)
+        # [FIX EXPERT] Whitelist stricte pour éviter l'explosion de tokens. Le profil enfle avec
+        # l'historique d'entraînement, ce qui causait une coupure JSON et l'erreur {"error": True}
+        safe_data = {
+            "experiences": candidate_data.get("experiences", []),
+            "educations": candidate_data.get("educations", []),
+            "skills": candidate_data.get("skills", []),
+            "languages": candidate_data.get("languages", []),
+            "free_text": candidate_data.get("free_text", "")
+        }
         
         final_prompt = f"""
         {prompt_template}
@@ -280,15 +284,17 @@ async def _run_gap_analysis_logic(task_id: str, data: dict):
         else:
             context_job += "\n(Pas de description fournie, base-toi sur les standards du marché pour ce titre)"
         
-        # [FIX] Nettoyage des données pour l'IA (Retrait de la photo Base64 lourde)
-        clean_data = data.copy()
-        if 'personal_info' in clean_data and isinstance(clean_data['personal_info'], dict):
-            # On ne modifie pas le dictionnaire original imbriqué
-            clean_data['personal_info'] = clean_data['personal_info'].copy()
-            if 'photo' in clean_data['personal_info']:
-                clean_data['personal_info']['photo'] = "[PHOTO_REMOVED_FOR_AI]"
-        # Retrait d'autres champs lourds inutiles pour l'analyse
-        if 'pitch_data' in clean_data: del clean_data['pitch_data']
+        # [FIX EXPERT] Whitelist stricte pour empêcher le JSON de dépasser la limite de l'IA
+        clean_data = {
+            "experiences": data.get("experiences", []),
+            "educations": data.get("educations", []),
+            "skills": data.get("skills", []),
+            "languages": data.get("languages", []),
+            "work_style": data.get("work_style", []),
+            "relational_style": data.get("relational_style", []),
+            "professional_approach": data.get("professional_approach", []),
+            "free_text": data.get("free_text", "")
+        }
         
         prompt_template = load_prompt(get_prompt_path("gap_analysis.md"))
         prompt = f"""
@@ -328,12 +334,17 @@ async def run_gap_analysis_and_get_result(data: dict):
         else:
             context_job += "\n(Pas de description fournie, base-toi sur les standards du marché pour ce titre)"
         
-        # [FIX] Nettoyage des données pour l'IA (Retrait de la photo Base64 lourde)
-        clean_data = data.copy()
-        if 'personal_info' in clean_data and isinstance(clean_data['personal_info'], dict):
-            clean_data['personal_info'] = clean_data['personal_info'].copy()
-            if 'photo' in clean_data['personal_info']:
-                clean_data['personal_info']['photo'] = "[PHOTO_REMOVED_FOR_AI]"
+        # [FIX EXPERT] Whitelist stricte pour empêcher le JSON de dépasser la limite de l'IA
+        clean_data = {
+            "experiences": data.get("experiences", []),
+            "educations": data.get("educations", []),
+            "skills": data.get("skills", []),
+            "languages": data.get("languages", []),
+            "work_style": data.get("work_style", []),
+            "relational_style": data.get("relational_style", []),
+            "professional_approach": data.get("professional_approach", []),
+            "free_text": data.get("free_text", "")
+        }
         
         print(f"[Gap Analysis] Running for job: {target_job}...", flush=True)
 

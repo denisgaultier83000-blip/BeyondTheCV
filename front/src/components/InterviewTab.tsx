@@ -266,7 +266,7 @@ export const InterviewTab = () => {
           loading={globalStatus === 'PROCESSING' && !questionsResult}
           loadingText={t('questions_loading', "Génération des questions...")}
           error={!!questionsResult?.error || (!questionsResult && (globalStatus === 'COMPLETED' || globalStatus === 'FAILED'))}
-          errorText={questionsResult?.error ? `Erreur IA : ${questionsResult.error}` : t('questions_error', "Le questionnaire n'a pas pu être généré.")}
+          errorText={questionsResult?.error ? `Erreur IA : ${typeof questionsResult.error === 'boolean' ? "Limite de contexte atteinte (données trop lourdes)." : questionsResult.error}` : t('questions_error', "Le questionnaire n'a pas pu être généré.")}
           featureId="interview_questions"
           headerAction={
             <button onClick={() => setShowHistory(!showHistory)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
