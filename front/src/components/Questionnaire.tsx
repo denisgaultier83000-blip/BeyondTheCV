@@ -6,6 +6,19 @@ import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
 import { useDashboard } from './DashboardContext';
 
+// [FIX EXPERT] Mini-parseur robuste pour rendre le gras (**) généré par l'IA sans faille XSS
+const formatText = (text: string) => {
+  if (!text) return text;
+  if (typeof text !== 'string') return text;
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i} style={{ color: 'inherit' }}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+};
+
 interface QuestionnaireProps {
   questions: any[];
   onBack?: () => void;
@@ -150,19 +163,24 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
     if (!answer) return;
     
     setIsSubmitting(qKey);
+    
+    // Sécurisation des clés pour l'envoi API
+    const questionText = q.question || q.text || "Question non spécifiée";
+    const suggestedAnswer = q.suggested_answer || q.answer || q.reponse_suggeree || q.reponse || "";
+    
     try {
       const response = await authenticatedFetch(`${API_BASE_URL}${evalEndpoint || '/api/cv/evaluate-interview-answer'}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-            question: q.question, 
+            question: questionText, 
             category: q.category, 
-            suggested_framework: q.suggested_answer,
+            suggested_framework: suggestedAnswer,
             user_answer: answer,
             // Ajouts spécifiques pour garantir la compatibilité avec la route d'entraînement
             theme: q.category,
             question_type: q.type,
-            question_text: q.question
+            question_text: questionText
         }),
       });
       
@@ -245,6 +263,11 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
           const theme = getScoreTheme(feedback?.score);
           const showFeedback = showFeedbackDetails[qKey];
           const isHovered = hoveredCard === qKey;
+          
+          // [FIX EXPERT] Extraction blindée contre les hallucinations de clés de l'IA
+          const suggestedAnswer = q.suggested_answer || q.answer || q.reponse_suggeree || q.reponse || "";
+          const advice = q.advice || q.conseil || q.coach_advice || q.tip || "";
+          const questionText = q.question || q.text || "Question non spécifiée";
 
           return (
           <div key={idx} className="staggered-card" style={{ 
@@ -301,7 +324,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
             })()}
                   </div>
                   <h3 style={{ margin: 0, fontSize: '1.05rem', lineHeight: '1.5', color: 'var(--text-main)', fontWeight: '600' }}>
-                    {q.question}
+                    {formatText(questionText)}
                   </h3>
                 </div>
               </div>
@@ -315,9 +338,11 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
             {/* BOUTONS D'ACTION (Si ni révélé, ni en mode actif, ni feedback) */}
             {!isRevealed && !isActive && !feedback && (
               <div style={{ marginTop: '0.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                <button onClick={() => toggleReveal(qKey)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
-                  <Eye size={16} /> {t('q_read_mode', 'Mode Lecture (Voir la suggestion)')}
-                </button>
+                {suggestedAnswer && (
+                  <button onClick={() => toggleReveal(qKey)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
+                    <Eye size={16} /> {t('q_read_mode', 'Mode Lecture (Voir la suggestion)')}
+                  </button>
+                )}
                 <button onClick={() => setActiveMode(prev => ({...prev, [qKey]: true}))} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem', background: '#8b5cf6', borderColor: '#8b5cf6', boxShadow: '0 4px 6px -1px rgba(139, 92, 246, 0.2)' }}>
                   <Edit3 size={16} /> {t('q_practice_mode', "S'entraîner (Micro / Texte)")}
                 </button>
@@ -411,7 +436,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
             )}
 
             {/* MODE LECTURE (Suggestion brute) */}
-            {q.suggested_answer && isRevealed && !isActive && !feedback && (
+            {isRevealed && !isActive && !feedback && (
               <div style={{ background: 'rgba(34, 197, 94, 0.05)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(34, 197, 94, 0.2)', fontSize: '0.9rem', color: 'var(--success, #16a34a)', animation: 'fadeIn 0.3s ease-out' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '600' }}>
@@ -424,7 +449,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                 </div>
                 {/* [FIX] Textarea éditable pour la réponse */}
                 <textarea 
-                  defaultValue={q.suggested_answer || ""} 
+                  defaultValue={suggestedAnswer} 
                   onChange={(e) => onUpdate && onUpdate(idx, "suggested_answer", e.target.value)}
                   style={{ 
                       width: "100%", 
@@ -443,10 +468,10 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
               </div>
             )}
             
-            {q.advice && isRevealed && (
+            {advice && isRevealed && (
                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', gap: '0.5rem', marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px dashed var(--border-color)', animation: 'fadeIn 0.3s ease-out' }}>
                  <Lightbulb size={16} style={{ flexShrink: 0, color: '#eab308' }} /> 
-                 <span>{q.advice}</span>
+                 <span>{formatText(advice)}</span>
                </div>
             )}
           </div>
