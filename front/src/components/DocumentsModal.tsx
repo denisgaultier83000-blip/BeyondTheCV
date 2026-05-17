@@ -3,7 +3,8 @@ import { useTranslation } from "react-i18next";
 import { authenticatedFetch } from "../utils/auth";
 import { API_ROUTES } from "../api/routes";
 import { API_BASE_URL } from "../config";
-import { Briefcase, Calendar, ChevronRight, ArrowLeft, FileText, Mic, MessageSquare, Building, BrainCircuit, Download, Trash2, FolderOpen, Printer, Eye } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
+import { Briefcase, Calendar, ChevronRight, Trash2, FolderOpen } from 'lucide-react';
 
 interface Document {
   id: string;
@@ -26,8 +27,8 @@ interface DocumentsModalProps {
 
 export default function DocumentsModal({ onClose }: DocumentsModalProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [applications, setApplications] = useState<ApplicationSession[]>([]);
-  const [selectedApp, setSelectedApp] = useState<ApplicationSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,26 +51,6 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
     }
   };
 
-  const handleDownload = async (docId: string, filename: string) => {
-    try {
-      const response = await authenticatedFetch(API_ROUTES.DOCUMENTS.DOWNLOAD(docId));
-      if (!response.ok) throw new Error(t('error_download_failed', "Download failed"));
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (e) {
-      console.error(e);
-      alert(t('error_download', "Erreur lors du téléchargement"));
-    }
-  };
-
   const handleDelete = async (docId: string) => {
     if (!window.confirm(t('confirm_delete_doc', "Êtes-vous sûr de vouloir supprimer ce document ?"))) return;
 
@@ -85,11 +66,6 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
         documents: app.documents.filter(d => d.id !== docId)
       })).filter(app => app.documents.length > 0)); // Supprime le dossier si vide
       
-      if (selectedApp) {
-        const updatedDocs = selectedApp.documents.filter(d => d.id !== docId);
-        if (updatedDocs.length === 0) setSelectedApp(null);
-        else setSelectedApp({ ...selectedApp, documents: updatedDocs });
-      }
     } catch (e) {
       console.error(e);
       alert(t('error_delete', "Erreur lors de la suppression"));
@@ -112,36 +88,6 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
       console.error(e);
       alert(t('error_delete', "Erreur lors de la suppression"));
     }
-  };
-
-  // [FIX EXPERT] Fonction pour recharger le contexte complet d'une ancienne candidature
-  const handleResumeApplication = async (appId: string) => {
-    try {
-      setLoading(true);
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/applications/${appId}/load`);
-      if (!response.ok) throw new Error("Erreur de chargement");
-      const loadedData = await response.json();
-      
-      // On utilise le sessionStorage pour transférer ce gros payload au composant parent (App/Interface)
-      sessionStorage.setItem('restored_application_data', JSON.stringify(loadedData.data));
-      
-      // Redirection/Rechargement pour initialiser le Dashboard avec ces nouvelles données
-      window.location.reload(); 
-    } catch (e) {
-      console.error(e);
-      alert(t('error_load_app', "Erreur lors de la restauration de la candidature."));
-      setLoading(false);
-    }
-  };
-
-  // Définition visuelle des types de documents
-  const getTypeDisplay = (type: string) => {
-    if (type.includes("CV")) return { icon: <FileText size={16}/>, label: "CV Optimisé", color: "#3b82f6", bg: "rgba(59, 130, 246, 0.1)" };
-    if (type.includes("PITCH")) return { icon: <Mic size={16}/>, label: "Pitch", color: "#8b5cf6", bg: "rgba(139, 92, 246, 0.1)" };
-    if (type.includes("QUESTIONNAIRE")) return { icon: <MessageSquare size={16}/>, label: "Questions Entretien", color: "#10b981", bg: "rgba(16, 185, 129, 0.1)" };
-    if (type.includes("REPORT") || type.includes("MARKET")) return { icon: <Building size={16}/>, label: "Dossier Entreprise", color: "#f59e0b", bg: "rgba(245, 158, 11, 0.1)" };
-    if (type.includes("TRAINING") || type.includes("MES")) return { icon: <BrainCircuit size={16}/>, label: "Entraînement", color: "#ec4899", bg: "rgba(236, 72, 153, 0.1)" };
-    return { icon: <FolderOpen size={16}/>, label: type, color: "#64748b", bg: "rgba(100, 116, 139, 0.1)" };
   };
 
   return (
@@ -172,13 +118,14 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
               <p>{t('no_documents_found', 'Aucune candidature récente trouvée.')}</p>
             </div>
           ) : (
-            <>
-              {!selectedApp ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
                   {applications.map((app) => (
                     <div 
                       key={app.id} 
-                      onClick={() => setSelectedApp(app)}
+                      onClick={() => {
+                        onClose();
+                        navigate(`/app/recherches/${app.id}`);
+                      }}
                       style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px', cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}
                       onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.05)'; }}
                       onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.02)'; }}
