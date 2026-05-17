@@ -97,7 +97,7 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
       <div className="card" style={{ width: "90%", maxWidth: "900px", height: "85vh", display: "flex", flexDirection: "column", padding: 0, overflow: "hidden", background: "var(--bg-body)" }}>
         <div style={{ padding: "20px", borderBottom: "1px solid var(--border-color)", display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--bg-secondary)", borderTopLeftRadius: "16px", borderTopRightRadius: "16px" }}>
           <h2 style={{ margin: 0, fontSize: "20px", color: "var(--text-main)", display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <FolderOpen size={24} color="var(--primary)" /> {t('my_documents_title', 'Mon Espace Candidature')}
+            <FolderOpen size={24} color="var(--primary)" /> {t('my_documents_title', 'Mes Dossiers Stratégiques')}
           </h2>
           <button onClick={onClose} style={{ background: "none", border: "none", fontSize: "24px", cursor: "pointer", color: "var(--text-muted)" }}>&times;</button>
         </div>
