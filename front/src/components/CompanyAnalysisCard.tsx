@@ -14,10 +14,15 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
   const companyName = data?.company || t('default_target_company', "Entreprise Ciblée");
   const report = data?.company_report || data?.synthesis || {};
   
-  const isValid = (val: any) => val && typeof val === 'string' && val.trim() !== "" && !val.toLowerCase().includes("non spécifié") && !val.toLowerCase().includes("non renseigné");
+  const isValid = (val: any) => {
+    if (!val || typeof val !== 'string' || val.trim() === "") return false;
+    // Normalisation pour ignorer les accents (ex: "Non specifié" vs "Non spécifié")
+    const normalized = val.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return !normalized.includes("non specifie") && !normalized.includes("non renseigne") && !normalized.includes("inconnu");
+  };
   
   const rawDna = report.identity_dna || report.overview;
-  const dna = isValid(rawDna) ? rawDna : "L'analyse stratégique est en cours ou les données web sont temporairement indisponibles.";
+  const dna = isValid(rawDna) ? rawDna : "Les données web sont temporairement indisponibles (Timeout de recherche).";
   const figures = report.key_figures;
   const finance = report.financial_health;
   const leadership = report.leadership;

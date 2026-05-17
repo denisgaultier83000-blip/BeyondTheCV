@@ -417,7 +417,15 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                                 try:
                                     task_result = json.loads(task_result)
                                 except Exception:
-                                    break
+                                    import re
+                                    match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', task_result, re.IGNORECASE)
+                                    if match:
+                                        try:
+                                            task_result = json.loads(match.group(1))
+                                        except Exception:
+                                            break
+                                    else:
+                                        break
                             else:
                                 break
                                 

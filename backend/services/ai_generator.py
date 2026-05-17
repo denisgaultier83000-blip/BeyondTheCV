@@ -48,7 +48,7 @@ class AIGenerator:
 
         # Modèle par défaut
         self.default_provider = os.getenv("DEFAULT_AI_PROVIDER", "gemini")
-        self.max_concurrent_requests = int(os.getenv("AI_MAX_CONCURRENT_REQUESTS", "4"))
+        self.max_concurrent_requests = int(os.getenv("AI_MAX_CONCURRENT_REQUESTS", "3"))
 
         # [FIX] Sémaphore reporté au runtime pour éviter le crash "No event loop" (Python 3.10+)
         self._semaphore = None
@@ -59,7 +59,7 @@ class AIGenerator:
 
     def _resolve_best_gemini_model(self):
         """Sélection directe du meilleur modèle pour éviter les latences de découverte et les erreurs 502 de l'API list."""
-        return "gemini-1.5-flash"
+        return "gemini-1.5-flash-latest"
             
     async def _get_gemini_model(self) -> str:
         if self.gemini_model_name:
@@ -185,10 +185,10 @@ class AIGenerator:
         
         for attempt in range(max_retries + 1):
             try:
-                # [CIRCUIT BREAKER] Timeout réduit à 25s pour déclencher le fallback plus rapidement
-                return await asyncio.wait_for(func(*args, model=model_name, **kwargs), timeout=25.0)
+                # [CIRCUIT BREAKER] Timeout étendu à 60s pour absorber les pics de charge d'OpenAI
+                return await asyncio.wait_for(func(*args, model=model_name, **kwargs), timeout=60.0)
             except asyncio.TimeoutError:
-                print(f"[AI] ⏱️ Timeout (25s) sur {model_name}. Le provider bloque.", flush=True)
+                print(f"[AI] ⏱️ Timeout (60s) sur {model_name}. Le provider bloque.", flush=True)
                 if attempt < max_retries:
                     delay = base_delay * (2 ** attempt) + random.uniform(0, 0.5)
                     print(f"[AI] ⏳ Retry après Timeout dans {delay:.1f}s...", flush=True)
@@ -233,7 +233,7 @@ class AIGenerator:
         )
         return response.choices[0].message.content
 
-    async def _call_gemini(self, prompt, system_instruction, model="gemini-1.5-flash"):
+    async def _call_gemini(self, prompt, system_instruction, model="gemini-1.5-flash-latest"):
         if not self.gemini_client:
             raise ValueError("Clé Gemini non configurée.")
         
