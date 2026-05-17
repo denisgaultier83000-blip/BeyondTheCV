@@ -38,7 +38,6 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
 
   const fetchDocuments = async () => {
     try {
-      // Utilisation du nouvel endpoint qui lit la table job_applications en base de données
       const response = await authenticatedFetch(`${API_BASE_URL}/api/applications`);
       if (!response.ok) throw new Error(t('error_fetch_documents', "Failed to fetch applications"));
       
@@ -60,11 +59,10 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
       });
       if (!response.ok) throw new Error(t('error_delete_failed', "Delete failed"));
       
-      // Mise à jour de l'état groupé
       setApplications(prev => prev.map(app => ({
         ...app,
         documents: app.documents.filter(d => d.id !== docId)
-      })).filter(app => app.documents.length > 0)); // Supprime le dossier si vide
+      })).filter(app => app.documents.length > 0)); 
       
     } catch (e) {
       console.error(e);
@@ -72,9 +70,8 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
     }
   };
 
-  // [FIX EXPERT] Fonction pour supprimer un dossier complet (Application)
   const handleDeleteApplication = async (e: React.MouseEvent, appId: string) => {
-    e.stopPropagation(); // Évite de cliquer sur la carte et de l'ouvrir
+    e.stopPropagation(); 
     if (!window.confirm(t('confirm_delete_app', "Voulez-vous vraiment supprimer tout ce dossier et son contenu ?"))) return;
 
     try {
