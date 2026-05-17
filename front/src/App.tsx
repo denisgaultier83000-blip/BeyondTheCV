@@ -562,7 +562,7 @@ function AppContent() {
   return (
     <Routes>
       {/* NOUVEAU WORKSPACE PREMIUM */}
-      <Route path="/app/recherches/:id" element={!isAuthenticated ? <Navigate to="/" replace /> : <DossierLayout />}>
+      <Route path="/app/recherches/:id" element={<DossierLayout />}>
         <Route index element={<DossierOverview />} />
         <Route path="cv" element={<DossierCV />} />
         <Route path="pitch" element={<DossierPitch />} />
