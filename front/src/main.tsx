@@ -32,6 +32,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <ProtectedRoute><App /></ProtectedRoute>
           } />
 
+          {/* Nouvelle route pour autoriser le trafic vers le Workspace Premium */}
+          <Route path="/app/*" element={
+            <ProtectedRoute><App /></ProtectedRoute>
+          } />
+
           {/* Nouvelle route pour les rapports de recherche */}
           <Route path="/report" element={
             <ProtectedRoute><ResearchReport /></ProtectedRoute>

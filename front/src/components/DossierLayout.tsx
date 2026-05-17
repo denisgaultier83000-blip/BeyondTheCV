@@ -72,7 +72,7 @@ export const DossierLayout = () => {
         <AlertTriangle size={48} className="text-red-500 mb-4" />
         <h2 className="text-2xl font-bold mb-2">Dossier introuvable</h2>
         <p className="text-slate-500 mb-6">{error}</p>
-        <button onClick={() => navigate('/app')} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700">
+        <button onClick={() => navigate('/candidate')} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700">
           Retour à l'accueil
         </button>
       </div>
@@ -85,7 +85,7 @@ export const DossierLayout = () => {
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col no-print shrink-0">
         <div className="p-6 border-b border-slate-100">
           <button 
-            onClick={() => navigate('/app')}
+            onClick={() => navigate('/candidate')}
             className="flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors mb-4"
           >
             <ArrowLeft size={16} className="mr-2" /> Retour
