@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { 
   FileText, 
   MessageSquare, 
@@ -22,12 +22,9 @@ interface ApplicationData {
   data?: any; 
 }
 
-interface DossierOverviewProps {
-  applicationData: ApplicationData;
-}
-
-export const DossierOverview: React.FC<DossierOverviewProps> = ({ applicationData }) => {
+export const DossierOverview: React.FC = () => {
   const navigate = useNavigate();
+  const { applicationData } = useOutletContext<{ applicationData: ApplicationData }>();
   const { target_company, target_job, id } = applicationData.application;
 
   // Configuration centralisée des modules (Single Source of Truth)
