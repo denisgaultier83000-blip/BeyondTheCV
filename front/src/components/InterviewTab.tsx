@@ -152,12 +152,17 @@ export const InterviewTab = () => {
     // 1. Déballage d'un potentiel { result: ... } du polling
     let actualData = data.result !== undefined ? data.result : data;
     
-    // 2. Nettoyage du Markdown SI ET SEULEMENT SI la donnée interne est un texte
-    if (typeof actualData === 'string') {
+    // [FIX EXPERT] Boucle de désérialisation pour détruire la double/triple stringification
+    // Fréquent lors de l'enregistrement de JSON stringifié dans des colonnes JSONB (PostgreSQL)
+    let depth = 0;
+    while (typeof actualData === 'string' && depth < 3) {
         try {
             const match = actualData.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
             actualData = JSON.parse(match ? match[1] : actualData);
-        } catch(e) {}
+            depth++;
+        } catch(e) {
+            break;
+        }
     }
     
     if (Array.isArray(actualData)) return actualData;

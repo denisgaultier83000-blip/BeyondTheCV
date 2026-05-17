@@ -44,9 +44,28 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
   const getKey = (q: any, idx: number): string => q.id || idx.toString();
 
   useEffect(() => {
-    if (cvData?.[userAnswersKey]) setUserAnswers(cvData[userAnswersKey]);
-    if (cvData?.[feedbacksKey]) setFeedbacks(cvData[feedbacksKey]);
-  }, [cvData?.[userAnswersKey], cvData?.[feedbacksKey], userAnswersKey, feedbacksKey]);
+    // [FIX EXPERT] Récupération prioritaire depuis les données persistées par le backend
+    const restoredAnswers: Record<string, string> = { ...cvData?.[userAnswersKey] };
+    const restoredFeedbacks: Record<string, any> = { ...cvData?.[feedbacksKey] };
+    let hasUpdates = false;
+    
+    if (questions && Array.isArray(questions)) {
+      questions.forEach((q, idx) => {
+        const qKey = getKey(q, idx);
+        if (q.user_answer && !restoredAnswers[qKey]) {
+          restoredAnswers[qKey] = q.user_answer;
+          hasUpdates = true;
+        }
+        if (q.evaluation && !restoredFeedbacks[qKey]) {
+          restoredFeedbacks[qKey] = q.evaluation;
+          hasUpdates = true;
+        }
+      });
+    }
+
+    if (hasUpdates || Object.keys(restoredAnswers).length > 0) setUserAnswers(restoredAnswers);
+    if (hasUpdates || Object.keys(restoredFeedbacks).length > 0) setFeedbacks(restoredFeedbacks);
+  }, [questions, cvData?.[userAnswersKey], cvData?.[feedbacksKey], userAnswersKey, feedbacksKey]);
 
   const toggleReveal = (qKey: string) => {
     setRevealed(prev => ({ ...prev, [qKey]: !prev[qKey] }));
