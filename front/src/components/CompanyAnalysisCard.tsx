@@ -14,7 +14,10 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
   const companyName = data?.company || t('default_target_company', "Entreprise Ciblée");
   const report = data?.company_report || data?.synthesis || {};
   
-  const dna = report.identity_dna || report.overview || t('company_dna_loading', "L'analyse IA de l'entreprise est en cours...");
+  const isValid = (val: any) => val && typeof val === 'string' && val.trim() !== "" && !val.toLowerCase().includes("non spécifié") && !val.toLowerCase().includes("non renseigné");
+  
+  const rawDna = report.identity_dna || report.overview;
+  const dna = isValid(rawDna) ? rawDna : "L'analyse stratégique est en cours ou les données web sont temporairement indisponibles.";
   const figures = report.key_figures;
   const finance = report.financial_health;
   const leadership = report.leadership;
@@ -29,8 +32,6 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
   const strategicChallenges = Array.isArray(rawStrategicChallenges) ? rawStrategicChallenges : (typeof rawStrategicChallenges === 'string' ? [rawStrategicChallenges] : []);
   
   const sources = data?.sources || []; // Exploitation des sources Web fournies par le backend
-  
-  const isValid = (val: any) => val && typeof val === 'string' && val.trim() !== "" && !val.toLowerCase().includes("non spécifié") && !val.toLowerCase().includes("non renseigné");
   
   let newsLinks = report.news_links || [];
 

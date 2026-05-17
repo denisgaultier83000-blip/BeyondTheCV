@@ -409,7 +409,18 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                 if task_row:
                     task_result_str = task_row[0] if isinstance(task_row, tuple) else task_row.get("result")
                     if task_result_str:
-                        task_result = json.loads(task_result_str)
+                        # [FIX EXPERT] Désérialisation profonde pour détruire l'effet "Poupée Russe"
+                        # Empêche la stringification exponentielle à chaque nouvelle réponse évaluée.
+                        task_result = task_result_str
+                        for _ in range(5):
+                            if isinstance(task_result, str):
+                                try:
+                                    task_result = json.loads(task_result)
+                                except Exception:
+                                    break
+                            else:
+                                break
+                                
                         def update_question_node(node):
                             if isinstance(node, dict):
                                 if node.get("question") == request.question or node.get("text") == request.question:

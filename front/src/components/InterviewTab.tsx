@@ -155,7 +155,7 @@ export const InterviewTab = () => {
     // [FIX EXPERT] Boucle de désérialisation pour détruire la double/triple stringification
     // Fréquent lors de l'enregistrement de JSON stringifié dans des colonnes JSONB (PostgreSQL)
     let depth = 0;
-    while (typeof actualData === 'string' && depth < 3) {
+    while (typeof actualData === 'string' && depth < 7) {
         try {
             const match = actualData.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
             actualData = JSON.parse(match ? match[1] : actualData);
