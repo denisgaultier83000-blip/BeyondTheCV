@@ -25,6 +25,7 @@ import { DossierOverview } from './components/DossierOverview';
 import { DossierCV } from './components/DossierCV';
 import { DossierPitch } from './components/DossierPitch';
 import { DossierQA } from './components/DossierQA';
+import { PrintableDossier } from './components/PrintableDossier';
 import './index.css';
 
 function AppContent() {
@@ -566,6 +567,7 @@ function AppContent() {
         <Route path="cv" element={<DossierCV />} />
         <Route path="pitch" element={<DossierPitch />} />
         <Route path="questions-reponses" element={<DossierQA />} />
+        <Route path="export" element={<PrintableDossier />} />
       </Route>
 
       {/* APPLICATION CLASSIQUE (Fallback conservant l'ancien comportement) */}

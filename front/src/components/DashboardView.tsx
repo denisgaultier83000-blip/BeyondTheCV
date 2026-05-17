@@ -18,7 +18,6 @@ import { DashboardCard } from './DashboardCard';
 import FlawCoaching from './FlawCoaching';
 import { ToDoListCard } from './ToDoListCard';
 import TrainingTab from './TrainingTab';
-import { PrintableDossier } from './PrintableDossier';
 
 export const DashboardView = () => {
   const { t } = useTranslation();
@@ -342,9 +341,6 @@ export const DashboardView = () => {
            </div>
         )}
       </div>
-
-      {/* Composant d'impression invisible à l'écran */}
-      <PrintableDossier />
 
       {/* BOUTON RETOUR EN HAUT */}
       {showBackToTop && (
