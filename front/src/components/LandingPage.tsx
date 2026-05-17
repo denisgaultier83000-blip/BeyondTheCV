@@ -93,9 +93,11 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
           margin-top: 4rem;
         }
         .lp-card {
+          display: flex;
+          flex-direction: column;
           background: var(--bg-card);
-          padding: 2.5rem 2rem;
-          border-radius: 1rem;
+          padding: 1.5rem;
+          border-radius: 1.5rem;
           border: 1px solid var(--border-color);
           box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
           transition: all 0.3s;
@@ -103,19 +105,40 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
         }
         .lp-card:hover {
           border-color: var(--primary);
-          transform: translateY(-5px);
-          box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+          transform: translateY(-4px);
+          box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
         }
         .lp-icon-wrapper {
-          width: 60px;
-          height: 60px;
-          border-radius: 1rem;
+          width: 48px;
+          height: 48px;
+          border-radius: 0.75rem;
           background: var(--bg-secondary);
           color: var(--primary);
           display: flex;
           align-items: center;
           justify-content: center;
-          margin-bottom: 1.5rem;
+          margin-bottom: 1.25rem;
+          transition: transform 0.3s ease, background 0.3s ease;
+        }
+        .lp-card:hover .lp-icon-wrapper {
+          background: rgba(59, 130, 246, 0.1);
+          transform: scale(1.1);
+        }
+        .lp-card-title {
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: var(--text-main);
+          margin-bottom: 0.5rem;
+          transition: color 0.3s ease;
+        }
+        .lp-card:hover .lp-card-title {
+          color: var(--primary);
+        }
+        .lp-card-desc {
+          color: var(--text-muted);
+          line-height: 1.6;
+          font-size: 0.95rem;
+          flex-grow: 1;
         }
         .lp-pricing {
           background: var(--bg-card);
@@ -200,27 +223,27 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
 
         <div className="lp-grid-4">
           <div className="lp-card">
-            <div className="lp-icon-wrapper"><Search size={24} /></div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-main)' }}>Lisez dans les pensées de votre cible</h3>
-            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>Notre moteur d'analyse consolide : actualités, enjeux marché, culture réelle et signaux stratégiques pour vous donner un coup d'avance.</p>
+            <div className="lp-icon-wrapper"><Search size={24} strokeWidth={2} /></div>
+            <h3 className="lp-card-title">Lisez dans les pensées de votre cible</h3>
+            <p className="lp-card-desc">Notre moteur d'analyse consolide : actualités, enjeux marché, culture réelle et signaux stratégiques pour vous donner un coup d'avance.</p>
           </div>
           
           <div className="lp-card">
-            <div className="lp-icon-wrapper"><Mic size={24} /></div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-main)' }}>Prenez le contrôle des 3 premières minutes</h3>
-            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>Obtenez un pitch d'introduction implacable, structuré selon la Pyramide de Minto. Entraînez-vous vocalement face à notre simulateur.</p>
+            <div className="lp-icon-wrapper"><Mic size={24} strokeWidth={2} /></div>
+            <h3 className="lp-card-title">Prenez le contrôle des 3 premières minutes</h3>
+            <p className="lp-card-desc">Obtenez un pitch d'introduction implacable, structuré selon la Pyramide de Minto. Entraînez-vous vocalement face à notre simulateur.</p>
           </div>
 
           <div className="lp-card">
-            <div className="lp-icon-wrapper"><ShieldQuestion size={24} /></div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-main)' }}>Anticipez vos propres failles</h3>
-            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>L'algorithme compare votre parcours à la réalité du marché et vous montre vos faiblesses avant que le recruteur ne le fasse.</p>
+            <div className="lp-icon-wrapper"><ShieldQuestion size={24} strokeWidth={2} /></div>
+            <h3 className="lp-card-title">Anticipez vos propres failles</h3>
+            <p className="lp-card-desc">L'algorithme compare votre parcours à la réalité du marché et vous montre vos faiblesses avant que le recruteur ne le fasse.</p>
           </div>
 
           <div className="lp-card">
-            <div className="lp-icon-wrapper"><FileText size={24} /></div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-main)' }}>Passez les robots, marquez les humains</h3>
-            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>Obtenez un CV au format "ATS" optimisé pour franchir les algorithmes RH et marquer l'esprit du décideur final.</p>
+            <div className="lp-icon-wrapper"><FileText size={24} strokeWidth={2} /></div>
+            <h3 className="lp-card-title">Passez les robots, marquez les humains</h3>
+            <p className="lp-card-desc">Obtenez un CV au format "ATS" optimisé pour franchir les algorithmes RH et marquer l'esprit du décideur final.</p>
           </div>
         </div>
       </section>
