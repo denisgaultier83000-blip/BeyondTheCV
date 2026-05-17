@@ -151,7 +151,7 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
               <h3 style={{ fontSize: '1.2rem', color: 'var(--text-main)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Newspaper size={20} color="var(--primary)" /> 4. Revue de Presse & Signaux Faibles
               </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', width: '100%' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
                 {newsLinks.map((news: any, i: number) => (
                   <div key={i} style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-card)', borderRadius: '0.75rem', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
                     <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>

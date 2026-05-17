@@ -386,8 +386,25 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
             """, (session_id, current_user["id"], app_id, request.question, request.user_answer, result.get("score", 0), json.dumps(result), datetime.now()))
             
             # [FIX EXPERT] Mise à jour du JSON de la tâche pour que les scores soient rechargés au retour
-            if request.task_id:
-                cursor = await db.execute(conn, "SELECT result FROM tasks WHERE id = ?", (request.task_id,))
+            task_to_update = request.task_id
+            
+            if not task_to_update:
+                # Auto-découverte si le composant Frontend n'envoie pas de task_id
+                cursor = await db.execute(conn, """
+                    SELECT t.id, t.result FROM tasks t
+                    LEFT JOIN job_applications a ON t.application_id = a.id
+                    WHERE a.user_id = ? OR a.user_id IS NULL
+                    ORDER BY t.created_at DESC LIMIT 20
+                """, (current_user["id"],))
+                rows = await cursor.fetchall()
+                for row in rows:
+                    t_res = row[1] if isinstance(row, tuple) else row.get("result")
+                    if t_res and request.question in str(t_res):
+                        task_to_update = row[0] if isinstance(row, tuple) else row.get("id")
+                        break
+
+            if task_to_update:
+                cursor = await db.execute(conn, "SELECT result FROM tasks WHERE id = ?", (task_to_update,))
                 task_row = await cursor.fetchone()
                 if task_row:
                     task_result_str = task_row[0] if isinstance(task_row, tuple) else task_row.get("result")
@@ -407,7 +424,7 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                             return False
                         
                         update_question_node(task_result)
-                        await db.execute(conn, "UPDATE tasks SET result = ? WHERE id = ?", (json.dumps(task_result), request.task_id))
+                        await db.execute(conn, "UPDATE tasks SET result = ? WHERE id = ?", (json.dumps(task_result), task_to_update))
             
         return {"feedback": result}
     except Exception as e:

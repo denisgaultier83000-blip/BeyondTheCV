@@ -263,7 +263,7 @@ export const InterviewTab = () => {
         <DashboardCard
           title={t('deliv_questions', "Questionnaire d'Entretien")}
           icon={<MessageSquare size={24} />}
-          loading={globalStatus === 'PROCESSING' && !questionsResult?.error}
+          loading={globalStatus === 'PROCESSING' && !questionsResult}
           loadingText={t('questions_loading', "Génération des questions...")}
           error={!!questionsResult?.error || (!questionsResult && (globalStatus === 'COMPLETED' || globalStatus === 'FAILED'))}
           errorText={questionsResult?.error ? `Erreur IA : ${questionsResult.error}` : t('questions_error', "Le questionnaire n'a pas pu être généré.")}
