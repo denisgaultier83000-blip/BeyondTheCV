@@ -321,7 +321,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
 
             {/* MODE ACTIF (Entraînement) */}
             {isActive && !feedback && (
-              <div style={{ marginTop: '1rem', background: '#f8fafc', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e2e8f0', animation: 'fadeIn 0.3s ease-out' }}>
+              <div style={{ marginTop: '1rem', background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)', animation: 'fadeIn 0.3s ease-out' }}>
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                     <div style={{ fontSize: '0.95rem', color: 'var(--text-main)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <Edit3 size={18} color="#8b5cf6" /> {t('q_write_dictate', 'Rédigez ou dictez votre réponse')}
@@ -343,7 +343,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                     placeholder={t('q_answer_placeholder', "Commencez à parler ou tapez votre réponse ici...")}
                     rows={4}
                     disabled={isSubmittingThis}
-                    style={{ width: '100%', background: 'white', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0.75rem', fontFamily: 'inherit', fontSize: '0.95rem', resize: 'vertical', outline: 'none', marginBottom: '1rem' }}
+                    style={{ width: '100%', background: 'var(--bg-card)', color: 'var(--text-main)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0.75rem', fontFamily: 'inherit', fontSize: '0.95rem', resize: 'vertical', outline: 'none', marginBottom: '1rem' }}
                  />
 
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -393,13 +393,13 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
 
             {/* MODE LECTURE (Suggestion brute) */}
             {q.suggested_answer && isRevealed && !isActive && !feedback && (
-              <div style={{ background: '#f0fdf4', padding: '1rem', borderRadius: '8px', border: '1px solid #bbf7d0', fontSize: '0.9rem', color: '#166534', animation: 'fadeIn 0.3s ease-out' }}>
+              <div style={{ background: 'rgba(34, 197, 94, 0.05)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(34, 197, 94, 0.2)', fontSize: '0.9rem', color: 'var(--success, #16a34a)', animation: 'fadeIn 0.3s ease-out' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '600' }}>
                     <CheckCircle2 size={16} /> 
                     <span>{t('q_suggested_answer', 'Suggestion de réponse (Éditable)')}</span>
                   </div>
-                  <button onClick={() => toggleReveal(qKey)} style={{ background: 'transparent', border: 'none', color: '#166534', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', opacity: 0.8 }} onMouseOver={e => e.currentTarget.style.opacity = '1'} onMouseOut={e => e.currentTarget.style.opacity = '0.8'}>
+                  <button onClick={() => toggleReveal(qKey)} style={{ background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', opacity: 0.8 }} onMouseOver={e => e.currentTarget.style.opacity = '1'} onMouseOut={e => e.currentTarget.style.opacity = '0.8'}>
                     <EyeOff size={14} /> {t('q_hide', 'Masquer')}
                   </button>
                 </div>
@@ -412,7 +412,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                       background: "transparent", 
                       border: "none", 
                       resize: "vertical", 
-                      color: "#166534", 
+                      color: "inherit", 
                       fontFamily: "inherit",
                       fontSize: "inherit",
                       lineHeight: "1.5",

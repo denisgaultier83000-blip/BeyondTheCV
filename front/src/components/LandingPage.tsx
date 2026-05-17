@@ -162,10 +162,10 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
       {/* HERO SECTION */}
       <section className="lp-hero">
         <h1 className="lp-hero-title">
-          Ne cherchez plus un emploi. Dominez votre prochain entretien.
+          Les meilleurs candidats ne répondent pas aux questions.<br/>Ils contrôlent la conversation.
         </h1>
         <p className="lp-hero-subtitle">
-          Le CV n'est qu'un ticket d'entrée. <strong>Beyond The CV</strong> est votre stratège personnel pour décoder l'entreprise visée, anticiper ses failles et structurer le discours qui décrochera le poste. Réservé aux profils exigeants.
+          Le CV n'est qu'un ticket d'entrée. <strong>Beyond The CV</strong> est votre stratège personnel pour décoder l'entreprise visée, identifier ses priorités invisibles et structurer le discours qui décrochera le poste. Réservé aux profils exigeants.
         </p>
         <button onClick={onStart} className="lp-cta-main">
           Démarrer mon analyse stratégique <ArrowRight size={18} />
@@ -181,7 +181,7 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
       </section>
 
       {/* PROBLEM (AGITATION) SECTION */}
-      <section className="lp-section lp-section dark">
+      <section className="lp-section dark">
         <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
           <h2 className="lp-section-title">Vous vous battez avec les mêmes armes que tout le monde.</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginTop: '1.5rem', lineHeight: 1.7 }}>
@@ -202,7 +202,7 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
           <div className="lp-card">
             <div className="lp-icon-wrapper"><Search size={24} /></div>
             <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-main)' }}>Lisez dans les pensées de votre cible</h3>
-            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>Notre IA fouille le web et vous livre un rapport stratégique sur l'entreprise : sa culture réelle, ses défis actuels et ses dernières actualités.</p>
+            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>Notre moteur d'analyse consolide : actualités, enjeux marché, culture réelle et signaux stratégiques pour vous donner un coup d'avance.</p>
           </div>
           
           <div className="lp-card">
@@ -238,29 +238,8 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
         </div>
       </section>
 
-      {/* HOW IT WORKS SECTION */}
-      <section className="lp-section">
-        <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
-          <h2 className="lp-section-title">De chercheur d'emploi à candidat stratégique</h2>
-        </div>
-        <div className="lp-grid-3">
-          <div className="lp-card">
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-main)' }}>1. Ciblez</h3>
-            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>Importez votre profil et indiquez l'entreprise ou le poste que vous visez. Notre système commence l'analyse en arrière-plan.</p>
-          </div>
-          <div className="lp-card">
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-main)' }}>2. Analysez</h3>
-            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>Pendant que vous répondez à quelques questions de clarification, notre IA fouille le web (marché, entreprise, salaires).</p>
-          </div>
-          <div className="lp-card">
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-main)' }}>3. Dominez</h3>
-            <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, fontSize: '0.95rem' }}>Atterrissez sur votre tableau de bord. Adaptez votre CV, lisez votre rapport d'entreprise et lancez le simulateur d'entretien.</p>
-          </div>
-        </div>
-      </section>
-
       {/* OBJECTIONS (FAQ) SECTION */}
-      <section className="lp-section lp-section dark">
+      <section className="lp-section">
         <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
           <h2 className="lp-section-title">Vos questions, nos réponses</h2>
         </div>
@@ -281,7 +260,7 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
       </section>
 
       {/* PRICING / FINAL CTA SECTION */}
-      <section className="lp-section">
+      <section className="lp-section dark">
         <div className="lp-pricing">
           <h2 style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-main)' }}>Un investissement clair.</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', marginTop: '0.5rem', maxWidth: '450px', margin: '0.5rem auto 0 auto' }}>
