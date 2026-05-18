@@ -1,0 +1,34 @@
+/* 
+ * Module d'impression premium pour les dossiers candidats 
+ * Charge ce fichier globalement ou dynamiquement sur les pages de rendu.
+ */
+
+@media print {
+  /* Masquer tous les éléments d'interface non pertinents */
+  nav, header, footer, button, .no-print, .modal-overlays {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Forcer les sauts de page avant les grandes sections */
+  .page-break-before {
+    break-before: page;
+  }
+
+  /* Éviter qu'une carte, un paragraphe ou une question Q/R soit coupé en deux */
+  .card, .qna-item, p, li {
+    break-inside: avoid;
+  }
+
+  /* Optionnel : Afficher les URLs des liens absolus pour une lecture papier */
+  a[href^="http"]:after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+  }
+}
