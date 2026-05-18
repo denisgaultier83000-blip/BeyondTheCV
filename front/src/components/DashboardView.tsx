@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext, useNavigate, useParams } from 'react-router-dom';
-import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Navigation, Search, Loader2, Building, ShieldAlert } from 'lucide-react';
+import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Navigation, Search, Loader2, Building, ShieldAlert, Mic } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PilotBento } from './PilotBento';
 import { CareerRealityCheck } from './CareerRealityCheck';

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useDashboard } from './DashboardContext';
+import { useOutletContext } from 'react-router-dom';
 import { Mic, MessageSquare, Play, Pause, RotateCcw, BrainCircuit, ArrowLeft, History, Loader2, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DashboardCard } from './DashboardCard';
@@ -12,7 +12,14 @@ import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
 
 export const InterviewTab = () => {
-  const { pitchResult, questionsResult, globalStatus, cvData } = useDashboard();
+  // [EXPERT FIX] Transition vers la V2 : Remplacement de l'ancien contexte par le OutletContext
+  const { applicationData } = useOutletContext<any>() || {};
+  const appData = applicationData?.data || {};
+  const cvData = appData.cvData;
+  const pitchResult = appData.pitchResult;
+  const questionsResult = appData.questionsResult;
+  const globalStatus = appData.globalStatus || applicationData?.application?.status || 'COMPLETED';
+  
   const { t } = useTranslation();
   const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false);
   const [isDark] = useState(() => document.body.classList.contains('dark-mode'));

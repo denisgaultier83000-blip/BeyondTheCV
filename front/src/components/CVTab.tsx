@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useDashboard } from './DashboardContext';
+import { useOutletContext } from 'react-router-dom';
 import { FileText, Download, Loader2, RefreshCw, Target, CheckCircle2, Plus } from 'lucide-react';
 import { authenticatedFetch } from '../utils/auth';
 import { KeywordCoachModal } from './KeywordCoachModal';
@@ -8,7 +8,9 @@ import PdfPreviewer from './PdfPreviewer';
 import { useTranslation } from 'react-i18next';
 
 export const CVTab = ({ data }: { data: any }) => {
-  const { cvData, cvResult, gapResult } = useDashboard();
+  // [EXPERT FIX] Transition vers la V2 : on tire les données depuis le Routeur (DossierLayout)
+  const { applicationData } = useOutletContext<any>() || {};
+  const { cvData, cvResult, gapResult } = applicationData?.data || {};
   const { t } = useTranslation();
   const [previewBody, setPreviewBody] = useState<any>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
