@@ -3,6 +3,7 @@ import uuid
 import json
 import asyncio
 import re
+import hashlib
 from datetime import datetime, timezone
 from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks, Body, Depends, Query
 from fastapi.responses import JSONResponse, FileResponse
@@ -102,6 +103,22 @@ def _remove_file_safe(path: str):
             os.remove(path)
     except Exception as e:
         print(f"[CLEANUP ERROR] Impossible de supprimer {path}: {e}")
+
+def _compute_cv_hash(cv_dict: dict) -> str:
+    """Génère un hash déterministe des données du profil pour le système de cache instantané."""
+    core_data = {
+        "experiences": cv_dict.get("experiences", []),
+        "educations": cv_dict.get("educations", []),
+        "skills": cv_dict.get("skills", []),
+        "languages": cv_dict.get("languages", []),
+        "target_job": cv_dict.get("target_job", ""),
+        "target_company": cv_dict.get("target_company", ""),
+        "target_industry": cv_dict.get("target_industry", ""),
+        "free_text": cv_dict.get("free_text", ""),
+        "flaws": cv_dict.get("flaws", []),
+        "clarifications": cv_dict.get("clarifications", []),
+    }
+    return hashlib.md5(json.dumps(core_data, sort_keys=True, default=str).encode("utf-8")).hexdigest()
 
 def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
     """Supprime les données lourdes et inutiles pour l'IA (ex: Base64) pour économiser des tokens et de la latence."""
@@ -529,6 +546,9 @@ async def evaluate_vocal_pitch(request: VocalPitchRequest, current_user: dict = 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (session_id, current_user["id"], "Pitch Vocal", "Vocal", "Entraînement au pitch vocal (spontané)", request.transcript, result.get("score", 0), json.dumps(result.get("metrics", {})), json.dumps(result.get("feedback", {})), json.dumps(result.get("micro_exercises", [])), datetime.now()))
             
+            if hasattr(conn, 'commit'):
+                await conn.commit() if asyncio.iscoroutinefunction(conn.commit) else conn.commit()
+            
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur d'évaluation vocale : {str(e)}")
@@ -606,6 +626,9 @@ async def evaluate_training_answer(request: TrainingEvaluateRequest, current_use
                 INSERT INTO training_sessions (id, user_id, theme, question_type, question_text, user_answer, score, strengths, weaknesses, improved_answer, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (session_id, current_user["id"], request.theme, request.question_type, request.question_text, request.user_answer, feedback.get("score", 0), json.dumps(feedback.get("strengths", [])), json.dumps(feedback.get("weaknesses", [])), feedback.get("improved_answer", ""), datetime.now()))
+            
+            if hasattr(conn, 'commit'):
+                await conn.commit() if asyncio.iscoroutinefunction(conn.commit) else conn.commit()
             
         return {"feedback": feedback}
     except Exception as e:
@@ -789,6 +812,9 @@ async def start_cv_generation(background_tasks: BackgroundTasks, data: dict = Bo
         await db.execute(conn, 
             "INSERT INTO tasks (id, status, result, created_at) VALUES (?, ?, ?, ?)", 
             (task_id, "PENDING", None, datetime.now()))
+        if hasattr(conn, 'commit'):
+            await conn.commit() if asyncio.iscoroutinefunction(conn.commit) else conn.commit()
+            
     background_tasks.add_task(process_cv_draft_in_background, task_id, data)
     return {"task_id": task_id, "status": "PENDING"}
 
@@ -1062,6 +1088,10 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
     if not application_id:
         application_id = str(uuid.uuid4())
         cv_dict["application_id"] = application_id
+        
+    current_hash = _compute_cv_hash(cv_dict)
+    skip_analysis = False
+    is_existing_app = bool(data.model_dump().get("application_id") if hasattr(data, "model_dump") else data.dict().get("application_id"))
 
     # [FIX EXPERT] On ignore le cache si le frontend signale que la tâche est encore en cours ("pending")
     has_research_data = isinstance(data.research_data, dict) and len(data.research_data) > 0 and data.research_data.get("status") != "pending"
@@ -1086,6 +1116,15 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
         print(f"[START_ANALYSIS] DB INSERT ERROR: {e}", flush=True)
         raise HTTPException(status_code=500, detail="Database insert error")
     
+    if skip_analysis:
+        return {
+            "message": "Pipeline restored from cache",
+            "application_id": application_id,
+            "tasks": tasks_map,
+            "task_id": tasks_map.get("cv_analysis") or tasks_map.get("market_research"),
+            "salary_task_id": tasks_map.get("salary_estimation")
+        }
+
     if "market_research" in tasks_map:
         # [FIX EXPERT] On court-circuite le cache si l'utilisateur relance explicitement l'analyse (is_partial_start)
         # Cela force l'IA à refaire une recherche web fraîche.
