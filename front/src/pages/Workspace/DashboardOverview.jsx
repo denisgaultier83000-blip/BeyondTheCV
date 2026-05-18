@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 // Configuration de tes 7 piliers du dossier
@@ -13,9 +13,12 @@ const WORKSPACE_MODULES = [
   { id: 'pitch', path: 'pitch', icon: '🗣️' }
 ];
 
-export default function DashboardOverview({ companyName, roleTitle }) {
+export default function DashboardOverview() {
   const { ghd } = useParams();
   const { t } = useTranslation();
+
+  // Le layout parent (WorkspaceLayout) doit injecter ces données via l'Outlet
+  const { applicationData } = useOutletContext() || {};
 
   const handlePrintFullDossier = () => {
     // Ouvre la boîte de dialogue d'impression native du navigateur
@@ -28,7 +31,7 @@ export default function DashboardOverview({ companyName, roleTitle }) {
       <header className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-2xl font-bold text-blue-900">
-            Dossier d'entretien — {companyName} / {roleTitle}
+            Dossier d'entretien — {applicationData?.application?.target_company || "Entreprise inconnue"} / {applicationData?.application?.target_job || "Poste inconnu"}
           </h1>
           <p className="text-gray-500 text-sm">Référence : {ghd}</p>
         </div>
