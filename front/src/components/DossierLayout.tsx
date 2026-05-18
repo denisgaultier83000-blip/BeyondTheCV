@@ -102,23 +102,24 @@ export const DossierLayout = () => {
           {navItems.map((item) => {
             // Résolution du lien exact (pour la vue d'ensemble)
             const to = item.path ? `/app/recherches/${id}/${item.path}` : `/app/recherches/${id}`;
-            const isActive = item.exact 
-              ? location.pathname === `/app/recherches/${id}`
-              : location.pathname.includes(item.path);
 
             return (
               <NavLink
                 key={item.path}
                 to={to}
                 end={item.exact}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive 
                     ? 'bg-blue-50 text-blue-700' 
                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 }`}
               >
-                <item.icon size={18} className={isActive ? 'text-blue-600' : 'text-slate-400'} />
-                {item.label}
+                {({ isActive }) => (
+                  <>
+                    <item.icon size={18} className={isActive ? 'text-blue-600' : 'text-slate-400'} />
+                    {item.label}
+                  </>
+                )}
               </NavLink>
             );
           })}
@@ -126,7 +127,7 @@ export const DossierLayout = () => {
       </aside>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 overflow-y-auto relative dossier-page">
+      <main className="flex-1 overflow-y-auto relative">
         {/* L'Outlet rend les sous-routes et leur passe les données */}
         <Outlet context={{ applicationData }} />
       </main>

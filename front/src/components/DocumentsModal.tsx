@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { authenticatedFetch } from "../utils/auth";
 import { API_ROUTES } from "../api/routes";
 import { API_BASE_URL } from "../config";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Briefcase, Calendar, ChevronRight, Trash2, FolderOpen } from 'lucide-react';
 
 interface Document {
@@ -28,6 +28,7 @@ interface DocumentsModalProps {
 export default function DocumentsModal({ onClose }: DocumentsModalProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const [applications, setApplications] = useState<ApplicationSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -121,7 +122,23 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
                       key={app.id} 
                       onClick={() => {
                         onClose();
-                        navigate(`/app/recherches/${app.id}`);
+                        
+                        // [EXPERT FIX] Préservation contextuelle de l'onglet/sous-route
+                        // On analyse l'URL courante pour garder l'utilisateur sur la même vue métier
+                        const pathParts = location.pathname.split('/');
+                        const recherchesIndex = pathParts.indexOf('recherches');
+                        
+                        let targetUrl = `/app/recherches/${app.id}`;
+                        
+                        // S'il existe un sous-chemin après l'ID du dossier actuel (ex: /app/recherches/123/cv)
+                        if (recherchesIndex !== -1 && pathParts.length > recherchesIndex + 2) {
+                          const subRoute = pathParts.slice(recherchesIndex + 2).join('/');
+                          if (subRoute) {
+                            targetUrl += `/${subRoute}`;
+                          }
+                        }
+                        
+                        navigate(targetUrl);
                       }}
                       style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px', cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}
                       onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.05)'; }}
