@@ -43,6 +43,41 @@ export const DossierLayout = () => {
     loadDossier();
   }, [id]);
 
+  // [EXPERT FIX] Ajout d'un mécanisme de polling pour rafraîchir les données asynchrones.
+  // Ceci est crucial car la génération des analyses par l'IA prend du temps.
+  useEffect(() => {
+    // Ne pas démarrer le polling si les données initiales ne sont pas encore là.
+    if (!applicationData) return;
+
+    const status = applicationData.application?.status;
+    const isProcessing = status === 'PROCESSING' || status === 'STARTING';
+
+    // Si le statut est déjà final, inutile de poller.
+    if (!isProcessing) return;
+
+    // Démarrage du poller toutes les 5 secondes.
+    const intervalId = setInterval(async () => {
+      try {
+        const res = await authenticatedFetch(`${API_BASE_URL}/api/applications/${id}/load`);
+        if (!res.ok) throw new Error("Polling failed, stopping.");
+        const data = await res.json();
+        setApplicationData(data); // Mise à jour de l'état avec les nouvelles données
+
+        // Si le nouveau statut est final, on arrête le polling.
+        if (data.application?.status !== 'PROCESSING' && data.application?.status !== 'STARTING') {
+          clearInterval(intervalId);
+        }
+      } catch (err) {
+        console.error("Polling error:", err);
+        clearInterval(intervalId); // Arrêt en cas d'erreur réseau pour éviter de spammer.
+      }
+    }, 5000); // Intervalle de 5 secondes
+
+    // Nettoyage : on s'assure d'arrêter le polling si le composant est démonté.
+    return () => clearInterval(intervalId);
+
+  }, [applicationData, id]); // Cet effet se relancera si l'ID du dossier change.
+
   const navItems = [
     { path: '', label: 'Vue d\'ensemble', icon: LayoutDashboard, exact: true },
     { path: 'cv', label: 'CV Optimisé', icon: FileText },
