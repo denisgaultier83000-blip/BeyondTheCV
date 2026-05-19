@@ -1,6 +1,5 @@
 import os
 import uuid
-import hashlib
 import json
 import asyncio
 import re
@@ -41,7 +40,10 @@ from .tasks import (
     orchestrate_dashboard_tasks,
     process_action_plan_in_background,
 )
-from .utils import clean_ai_json_response, normalize_language, load_prompt
+from .utils import (
+    clean_ai_json_response, normalize_language, load_prompt, 
+    _sanitize_data_for_ai, _generate_cache_key, get_cached_content, set_cached_content
+)
 from .tasks import get_prompt_path
 from .websocket_manager import manager
 
@@ -103,67 +105,6 @@ def _remove_file_safe(path: str):
             os.remove(path)
     except Exception as e:
         print(f"[CLEANUP ERROR] Impossible de supprimer {path}: {e}")
-
-def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
-    """Supprime les données lourdes et inutiles pour l'IA (ex: Base64) pour économiser des tokens et de la latence."""
-    clean_data = data.copy() if isinstance(data, dict) else {}
-        
-    if 'personal_info' in clean_data and isinstance(clean_data['personal_info'], dict):
-        clean_data['personal_info'] = clean_data['personal_info'].copy()
-            
-        if strict:
-            # Suppression des PII inutiles pour l'analyse stratégique
-            for key in ['email', 'phone', 'address', 'linkedin', 'city']:
-                clean_data['personal_info'].pop(key, None)
-                
-    if strict:
-        # Suppression des flags de l'UI
-        for key in ['target_language', 'provider', 'renderer', 'design_variant', 'is_partial_start', 'preview', 'clarifications']:
-            clean_data.pop(key, None)
-            
-        # [FIX CRITIQUE] On purge les données de marché brutes (Serper) pour ne pas exploser les tokens de chaque tâche IA
-        clean_data.pop('research_data', None)
-            
-    return clean_data
-
-def _generate_cache_key(user_id: str, content_type: str, data: dict) -> str:
-    """Génère une signature unique (hash) pour mettre en cache les requêtes IA identiques."""
-    clean_data = _sanitize_data_for_ai(data, strict=True)
-    # Tri des clés pour garantir que le même dictionnaire donne toujours le même JSON
-    data_str = json.dumps(clean_data, sort_keys=True, default=str)
-    raw_key = f"{user_id}_{content_type}_{data_str}"
-    return hashlib.sha256(raw_key.encode('utf-8')).hexdigest()
-
-async def get_cached_content(cache_key: str):
-    """Récupère le contenu généré en cache s'il existe."""
-    try:
-        async with db.get_connection() as conn:
-            cursor = await db.execute(conn, "SELECT result FROM generation_cache WHERE cache_key = ?", (cache_key,))
-            row = await cursor.fetchone()
-            if row:
-                result = row[0] if isinstance(row, tuple) else row.get("result")
-                if isinstance(result, str):
-                    try:
-                        return json.loads(result)
-                    except Exception:
-                        return result
-                return result
-    except Exception as e:
-        print(f"[CACHE ERROR] Impossible de lire le cache: {e}")
-    return None
-
-async def set_cached_content(cache_key: str, user_id: str, content_type: str, result: Any):
-    """Sauvegarde le résultat généré en cache."""
-    try:
-        async with db.get_connection() as conn:
-            result_str = json.dumps(result, default=str)
-            await db.execute(conn, """
-                INSERT INTO generation_cache (cache_key, user_id, content_type, result, created_at)
-                VALUES (?, ?, ?, ?::jsonb, ?)
-                ON CONFLICT (cache_key) DO UPDATE SET result = EXCLUDED.result, created_at = EXCLUDED.created_at
-            """, (cache_key, user_id, content_type, result_str, datetime.now()))
-    except Exception as e:
-        print(f"[CACHE ERROR] Impossible de sauvegarder dans le cache: {e}")
 
 # --- Gardien d'Abonnement (Paywall Backend) ---
 async def require_active_subscription(current_user: dict = Depends(get_current_user)):
@@ -1131,6 +1072,9 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
     if not application_id:
         application_id = str(uuid.uuid4())
         cv_dict["application_id"] = application_id
+
+    # [INJECTION] On transmet l'ID Utilisateur aux tâches de fond pour permettre le Cache IA
+    cv_dict["user_id"] = current_user["id"]
 
     # [FIX EXPERT] On ignore le cache si le frontend signale que la tâche est encore en cours ("pending")
     has_research_data = isinstance(data.research_data, dict) and len(data.research_data) > 0 and data.research_data.get("status") != "pending"

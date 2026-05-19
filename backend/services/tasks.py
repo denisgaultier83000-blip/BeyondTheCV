@@ -7,7 +7,10 @@ from .websocket_manager import manager
 # Import de la vraie logique de recherche
 from .market_research import perform_market_research
 # Import des utilitaires pour éviter le cycle
-from .utils import load_prompt, clean_ai_json_response, normalize_language
+from .utils import (
+    load_prompt, clean_ai_json_response, normalize_language, 
+    _generate_cache_key, get_cached_content, set_cached_content
+)
 
 # --- CONFIGURATION DES CHEMINS ---
 # Calcul robuste du dossier des prompts : backend/services/../ai/prompts -> backend/ai/prompts
@@ -219,6 +222,14 @@ async def process_questions_in_background(task_id: str, candidate_data: dict):
 async def _run_questions_logic(task_id: str, candidate_data: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
+        user_id = candidate_data.get("user_id", "unknown_user")
+        cache_key = _generate_cache_key(user_id, "interview_questions", candidate_data)
+        cached = await get_cached_content(cache_key)
+        if cached:
+            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", cached)
+            await manager.broadcast(task_id, "Questions récupérées en cache", status="COMPLETED", data=cached)
+            return
+
         target_lang = normalize_language(candidate_data.get('target_language', 'French'))
         
         # [FIX] Logique "Victor Hugo" : Extraction adresse et hobbies pour questions de curiosité
@@ -260,6 +271,7 @@ async def _run_questions_logic(task_id: str, candidate_data: dict):
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur lors de la génération", status="FAILED", data=result)
         else:
+            await set_cached_content(cache_key, user_id, "interview_questions", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
             await manager.broadcast(task_id, "Questions générées avec succès", status="COMPLETED", data=result)
     except Exception as e:
@@ -886,6 +898,14 @@ async def process_custom_scenarios_in_background(task_id: str, data: dict):
     print(f"[Task {task_id}] 🎭 Starting Custom Scenarios (Async)...")
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
+        user_id = data.get("user_id", "unknown_user")
+        cache_key = _generate_cache_key(user_id, "extra_scenarios", data)
+        cached = await get_cached_content(cache_key)
+        if cached:
+            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", cached)
+            await manager.broadcast(task_id, "Scénarios récupérés en cache", status="COMPLETED", data=cached)
+            return
+
         target_lang = normalize_language(data.get('target_language', 'French'))
         target_job = data.get('target_job') or data.get('target_role_primary', 'Candidat')
         job_desc = data.get('job_description', '')
@@ -913,6 +933,7 @@ async def process_custom_scenarios_in_background(task_id: str, data: dict):
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur de génération des scénarios", status="FAILED", data=result)
         else:
+            await set_cached_content(cache_key, user_id, "extra_scenarios", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
             await manager.broadcast(task_id, "Scénarios générés avec succès", status="COMPLETED", data=result)
     except Exception as e:

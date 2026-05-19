@@ -1,6 +1,9 @@
 import os
 import json
 import re
+import hashlib
+from datetime import datetime
+from database import db
 
 def load_prompt(filename: str) -> str:
     """Helper to load prompts from the ai/prompts directory."""
@@ -53,3 +56,69 @@ def normalize_language(lang_code: str) -> str:
         return 'English'
     code = str(lang_code).lower()[:2]
     return lang_map.get(code, 'English')
+
+def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
+    """Supprime les données lourdes et inutiles pour l'IA pour économiser tokens et stabiliser le hash."""
+    clean_data = data.copy() if isinstance(data, dict) else {}
+        
+    if 'personal_info' in clean_data and isinstance(clean_data['personal_info'], dict):
+        clean_data['personal_info'] = clean_data['personal_info'].copy()
+        if strict:
+            for key in ['email', 'phone', 'address', 'linkedin', 'city']:
+                clean_data['personal_info'].pop(key, None)
+                
+    if strict:
+        for key in ['target_language', 'provider', 'renderer', 'design_variant', 'is_partial_start', 'preview', 'clarifications', 'application_id', 'user_id', 'id', 'created_at', 'updated_at']:
+            clean_data.pop(key, None)
+        clean_data.pop('research_data', None)
+        
+        # Purge des listes : suppression des IDs aléatoires qui cassent la signature du cache
+        for list_key in ['experiences', 'educations', 'projects', 'skills']:
+            if list_key in clean_data and isinstance(clean_data[list_key], list):
+                clean_list = []
+                for item in clean_data[list_key]:
+                    if isinstance(item, dict):
+                        item_copy = item.copy()
+                        item_copy.pop('id', None)
+                        clean_list.append(item_copy)
+                    else:
+                        clean_list.append(item)
+                clean_data[list_key] = clean_list
+            
+    return clean_data
+
+def _generate_cache_key(user_id: str, content_type: str, data: dict) -> str:
+    """Génère une signature unique (hash) pour mettre en cache les requêtes IA identiques."""
+    clean_data = _sanitize_data_for_ai(data, strict=True)
+    data_str = json.dumps(clean_data, sort_keys=True, default=str)
+    raw_key = f"{user_id}_{content_type}_{data_str}"
+    return hashlib.sha256(raw_key.encode('utf-8')).hexdigest()
+
+async def get_cached_content(cache_key: str):
+    """Récupère le contenu généré en cache s'il existe."""
+    try:
+        async with db.get_connection() as conn:
+            cursor = await db.execute(conn, "SELECT result FROM generation_cache WHERE cache_key = ?", (cache_key,))
+            row = await cursor.fetchone()
+            if row:
+                result = row[0] if isinstance(row, tuple) else row.get("result")
+                if isinstance(result, str):
+                    try: return json.loads(result)
+                    except Exception: return result
+                return result
+    except Exception as e:
+        print(f"[CACHE ERROR] Impossible de lire le cache: {e}")
+    return None
+
+async def set_cached_content(cache_key: str, user_id: str, content_type: str, result: any):
+    """Sauvegarde le résultat généré en cache."""
+    try:
+        async with db.get_connection() as conn:
+            result_str = json.dumps(result, default=str)
+            await db.execute(conn, """
+                INSERT INTO generation_cache (cache_key, user_id, content_type, result, created_at)
+                VALUES (?, ?, ?, ?::jsonb, ?)
+                ON CONFLICT (cache_key) DO UPDATE SET result = EXCLUDED.result, created_at = EXCLUDED.created_at
+            """, (cache_key, user_id, content_type, result_str, datetime.now()))
+    except Exception as e:
+        print(f"[CACHE ERROR] Impossible de sauvegarder dans le cache: {e}")
