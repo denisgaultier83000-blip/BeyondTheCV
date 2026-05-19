@@ -1,5 +1,6 @@
 import os
 import uuid
+import hashlib
 import json
 import asyncio
 import re
@@ -124,6 +125,45 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
         clean_data.pop('research_data', None)
             
     return clean_data
+
+def _generate_cache_key(user_id: str, content_type: str, data: dict) -> str:
+    """Génère une signature unique (hash) pour mettre en cache les requêtes IA identiques."""
+    clean_data = _sanitize_data_for_ai(data, strict=True)
+    # Tri des clés pour garantir que le même dictionnaire donne toujours le même JSON
+    data_str = json.dumps(clean_data, sort_keys=True, default=str)
+    raw_key = f"{user_id}_{content_type}_{data_str}"
+    return hashlib.sha256(raw_key.encode('utf-8')).hexdigest()
+
+async def get_cached_content(cache_key: str):
+    """Récupère le contenu généré en cache s'il existe."""
+    try:
+        async with db.get_connection() as conn:
+            cursor = await db.execute(conn, "SELECT result FROM generation_cache WHERE cache_key = ?", (cache_key,))
+            row = await cursor.fetchone()
+            if row:
+                result = row[0] if isinstance(row, tuple) else row.get("result")
+                if isinstance(result, str):
+                    try:
+                        return json.loads(result)
+                    except Exception:
+                        return result
+                return result
+    except Exception as e:
+        print(f"[CACHE ERROR] Impossible de lire le cache: {e}")
+    return None
+
+async def set_cached_content(cache_key: str, user_id: str, content_type: str, result: Any):
+    """Sauvegarde le résultat généré en cache."""
+    try:
+        async with db.get_connection() as conn:
+            result_str = json.dumps(result, default=str)
+            await db.execute(conn, """
+                INSERT INTO generation_cache (cache_key, user_id, content_type, result, created_at)
+                VALUES (?, ?, ?, ?::jsonb, ?)
+                ON CONFLICT (cache_key) DO UPDATE SET result = EXCLUDED.result, created_at = EXCLUDED.created_at
+            """, (cache_key, user_id, content_type, result_str, datetime.now()))
+    except Exception as e:
+        print(f"[CACHE ERROR] Impossible de sauvegarder dans le cache: {e}")
 
 # --- Gardien d'Abonnement (Paywall Backend) ---
 async def require_active_subscription(current_user: dict = Depends(get_current_user)):
@@ -568,6 +608,12 @@ async def evaluate_written_pitch(request: EvaluatePitchRequest, current_user: di
 @router.post("/training/generate-question")
 async def generate_training_question(request: CustomQuestionRequest, current_user: dict = Depends(require_active_subscription)):
     """Génère une question ciblée d'entraînement basée sur un thème."""
+    
+    cache_key = _generate_cache_key(current_user["id"], "training_question", request.model_dump() if hasattr(request, "model_dump") else request.dict())
+    cached = await get_cached_content(cache_key)
+    if cached:
+        return cached
+
     prompt_template = load_prompt(get_prompt_path("custom_question_generator.md"))
     
     final_prompt = prompt_template.replace("{{THEME}}", request.theme) \
@@ -578,6 +624,7 @@ async def generate_training_question(request: CustomQuestionRequest, current_use
                                   
     try:
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="Tu es un Coach de Carrière expert.")
+        await set_cached_content(cache_key, current_user["id"], "training_question", result)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur de génération : {str(e)}")
@@ -617,6 +664,11 @@ async def generate_extra_scenarios(data: dict = Body(...), current_user: dict = 
     target_job = data.get("target_job") or data.get("target_role_primary") or "Candidat"
     target_lang = normalize_language(data.get("target_language", "fr"))
     
+    cache_key = _generate_cache_key(current_user["id"], "extra_scenarios", data)
+    cached = await get_cached_content(cache_key)
+    if cached:
+        return cached
+
     prompt_template = load_prompt("mise_en_situation.md")
     
     final_prompt = f"""
@@ -631,6 +683,7 @@ async def generate_extra_scenarios(data: dict = Body(...), current_user: dict = 
     
     try:
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an Expert HR Assessor. Output STRICT JSON.")
+        await set_cached_content(cache_key, current_user["id"], "extra_scenarios", result)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur de génération des scénarios : {str(e)}")
@@ -900,11 +953,27 @@ async def generate_document(request: GenerateRequest, current_user: dict = Depen
             # [OPTIMISATION] Parallélisation des appels IA pour réduire de moitié le temps d'attente
             async def get_qs():
                 q = data.get('questions') or data.get('questions_list')
-                return q if q else await generate_interview_questions(data, quality='smart')
+                if q: return q
+                
+                cache_key = _generate_cache_key(current_user["id"], "interview_questions", data)
+                cached = await get_cached_content(cache_key)
+                if cached: return cached
+                
+                res = await generate_interview_questions(data, quality='smart')
+                if res: await set_cached_content(cache_key, current_user["id"], "interview_questions", res)
+                return res
                 
             async def get_smart_qs():
                 sq = data.get('questions_to_ask')
-                return sq if sq else await generate_smart_questions(data, quality='smart')
+                if sq: return sq
+                
+                cache_key = _generate_cache_key(current_user["id"], "smart_questions", data)
+                cached = await get_cached_content(cache_key)
+                if cached: return cached
+                
+                res = await generate_smart_questions(data, quality='smart')
+                if res: await set_cached_content(cache_key, current_user["id"], "smart_questions", res)
+                return res
 
             questions, smart_qs = await asyncio.gather(get_qs(), get_smart_qs())
             
@@ -1419,3 +1488,16 @@ async def get_feedbacks(current_user: dict = Depends(get_current_user)):
     except Exception as e:
         print(f"[GET FEEDBACKS ERROR] {e}", flush=True)
         raise HTTPException(status_code=500, detail="Erreur lors de la récupération des feedbacks")
+
+@router.delete("/cache")
+async def purge_cache(content_type: Optional[str] = Query(None), current_user: dict = Depends(require_active_subscription)):
+    """Permet au Frontend de forcer la suppression du cache (Ex: Bouton 'Générer d'autres questions')."""
+    try:
+        async with db.get_connection() as conn:
+            if content_type:
+                await db.execute(conn, "DELETE FROM generation_cache WHERE user_id = ? AND content_type = ?", (current_user["id"], content_type))
+            else:
+                await db.execute(conn, "DELETE FROM generation_cache WHERE user_id = ?", (current_user["id"],))
+        return {"status": "success", "message": "Cache purgé avec succès pour forcer une nouvelle génération."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

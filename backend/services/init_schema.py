@@ -120,6 +120,17 @@ def initialize_schema():
             )
         """)
 
+        print("   - Vérification de la table 'generation_cache'...")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS generation_cache (
+                cache_key TEXT PRIMARY KEY,
+                user_id TEXT,
+                content_type TEXT,
+                result JSONB,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
         print("   - Vérification de la table 'feedbacks'...")
         cur.execute("""
             CREATE TABLE IF NOT EXISTS feedbacks (
