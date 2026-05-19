@@ -1055,6 +1055,58 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
     except AttributeError:
         cv_dict = data.dict()
     
+    application_id = cv_dict.get("application_id")
+    if not application_id:
+        application_id = str(uuid.uuid4())
+        cv_dict["application_id"] = application_id
+        
+    is_existing_app = bool(data.model_dump().get("application_id") if hasattr(data, "model_dump") else data.dict().get("application_id"))
+
+    # [FIX EXPERT] Récupération des tâches existantes pour préserver les réponses (MES et Questions)
+    existing_tasks_map = {}
+    if is_existing_app:
+        try:
+            async with db.get_connection() as conn:
+                cursor = await db.execute(conn, "SELECT id, status, result FROM tasks WHERE application_id = ?", (application_id,))
+                rows = await cursor.fetchall()
+                
+                # Hachage pour détecter un changement de profil/poste pour les questions
+                hash_input = str(cv_dict.get("target_job", "")) + str(cv_dict.get("experiences", ""))
+                current_cv_hash = hashlib.md5(hash_input.encode("utf-8")).hexdigest()
+                
+                for row in rows:
+                    tid = row[0] if isinstance(row, tuple) else row.get("id")
+                    tstatus = row[1] if isinstance(row, tuple) else row.get("status")
+                    tresult = row[2] if isinstance(row, tuple) else row.get("result")
+                    
+                    if tstatus in ["SUCCESS", "COMPLETED"] and tresult:
+                        try:
+                            parsed = json.loads(tresult) if isinstance(tresult, str) else tresult
+                            if isinstance(parsed, str):
+                                parsed = json.loads(parsed)
+                            
+                            if isinstance(parsed, dict):
+                                if "custom_scenarios_result" in parsed or "categories" in parsed:
+                                    existing_tasks_map["custom_scenarios"] = tid
+                                elif "action_plan_result" in parsed or "action_plan" in parsed:
+                                    task_cv_hash = parsed.get("_cv_hash")
+                                    # On préserve le plan d'action si le profil n'a pas changé ou si des actions ont été cochées
+                                    has_checks = any(k in str(parsed) for k in ["'checked': True", "'completed': True", "'is_completed': True", '"checked": true', '"completed": true', '"is_completed": true'])
+                                    if not task_cv_hash or task_cv_hash == current_cv_hash or has_checks:
+                                        existing_tasks_map["action_plan"] = tid
+                                elif "questions" in parsed:
+                                    task_cv_hash = parsed.get("_cv_hash")
+                                    # On préserve les questions si le profil (job/exp) n'a pas changé OU si le candidat a déjà des réponses enregistrées
+                                    if not task_cv_hash or task_cv_hash == current_cv_hash or str(parsed).find("user_answer") != -1:
+                                        existing_tasks_map["questions"] = tid
+                        except Exception:
+                            pass
+        except Exception as e:
+            print(f"[START_ANALYSIS] Error fetching existing tasks: {e}")
+
+    current_hash = _compute_cv_hash(cv_dict)
+    skip_analysis = False
+
     if data.is_partial_start:
         if data.target_company or data.target_industry:
             tasks_map["market_research"] = str(uuid.uuid4())
@@ -1062,7 +1114,7 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
     else:
         tasks_map["cv_analysis"] = str(uuid.uuid4())
         tasks_map["pitch"] = str(uuid.uuid4())
-        tasks_map["questions"] = str(uuid.uuid4())
+        tasks_map["questions"] = existing_tasks_map.get("questions", str(uuid.uuid4()))
         tasks_map["gap_analysis"] = str(uuid.uuid4())
         tasks_map["salary_estimation"] = str(uuid.uuid4())
         tasks_map["career_radar"] = str(uuid.uuid4())
@@ -1078,20 +1130,11 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
         tasks_map["reality_check"] = str(uuid.uuid4())
         tasks_map["profile_validation"] = str(uuid.uuid4())
         tasks_map["flaw_coaching"] = str(uuid.uuid4())
-        tasks_map["action_plan"] = str(uuid.uuid4())
-        tasks_map["custom_scenarios"] = str(uuid.uuid4())
+        tasks_map["action_plan"] = existing_tasks_map.get("action_plan", str(uuid.uuid4()))
+        tasks_map["custom_scenarios"] = existing_tasks_map.get("custom_scenarios", str(uuid.uuid4()))
         
         if data.target_company or data.target_industry:
             tasks_map["market_research"] = str(uuid.uuid4())
-
-    application_id = cv_dict.get("application_id")
-    if not application_id:
-        application_id = str(uuid.uuid4())
-        cv_dict["application_id"] = application_id
-        
-    current_hash = _compute_cv_hash(cv_dict)
-    skip_analysis = False
-    is_existing_app = bool(data.model_dump().get("application_id") if hasattr(data, "model_dump") else data.dict().get("application_id"))
 
     # [FIX EXPERT] On ignore le cache si le frontend signale que la tâche est encore en cours ("pending")
     has_research_data = isinstance(data.research_data, dict) and len(data.research_data) > 0 and data.research_data.get("status") != "pending"
@@ -1107,6 +1150,8 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
             
             # 2. Insertion des tâches liées
             for tid in tasks_map.values():
+                if tid in existing_tasks_map.values():
+                    continue # On préserve la tâche existante, pas besoin de la réinsérer
                 await db.execute(conn, 
                     "INSERT INTO tasks (id, status, result, created_at, application_id) VALUES (?, ?, ?, ?, ?)", 
                     (tid, "PENDING", None, now, application_id))
@@ -1153,7 +1198,8 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
 
     # Lancement orchestré par vagues pour éviter les Timeouts d'API (Thundering Herd)
     if not data.is_partial_start:
-        background_tasks.add_task(orchestrate_dashboard_tasks, tasks_map, cv_dict)
+        tasks_to_run = {k: v for k, v in tasks_map.items() if v not in existing_tasks_map.values()}
+        background_tasks.add_task(orchestrate_dashboard_tasks, tasks_to_run, cv_dict)
 
     return {
         "message": "Pipeline started",

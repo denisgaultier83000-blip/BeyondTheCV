@@ -259,6 +259,90 @@ async def load_application(app_id: str, current_user: dict = Depends(get_current
         
     return {"status": "success", "application": app_data, "data": results}
 
+@router.get("/api/applications/{app_id}/inventory")
+async def get_application_inventory(app_id: str, current_user: dict = Depends(get_current_user)):
+    """
+    [LAZY LOADING] Renvoie uniquement un inventaire léger des documents/tâches disponibles 
+    pour une candidature, sans charger les lourds payloads JSON.
+    Idéal pour afficher un tableau de bord avec des actions "Voir / Imprimer".
+    """
+    async with db.get_connection() as conn:
+        cursor = await db.execute(conn, "SELECT id, target_company, target_job, created_at FROM job_applications WHERE id = ? AND user_id = ?", (app_id, current_user["id"]))
+        app_row = await cursor.fetchone()
+        if not app_row:
+            raise HTTPException(status_code=404, detail="Candidature non trouvée ou accès refusé.")
+            
+        cursor = await db.execute(conn, "SELECT id, status, result, created_at FROM tasks WHERE application_id = ? AND status IN ('SUCCESS', 'COMPLETED')", (app_id,))
+        tasks = await cursor.fetchall()
+        
+    inventory = []
+    for task in tasks:
+        task_id = task[0] if isinstance(task, tuple) else task.get("id")
+        status = task[1] if isinstance(task, tuple) else task.get("status")
+        res_str = task[2] if isinstance(task, tuple) else task.get("result")
+        created_at = task[3] if isinstance(task, tuple) else task.get("created_at")
+        
+        if not res_str: continue
+        
+        # Inférence légère du type de document en scannant les clés du JSON
+        doc_type = "Document Inconnu"
+        doc_key = "unknown"
+        
+        try:
+            parsed = json.loads(res_str)
+            if isinstance(parsed, str):
+                try: parsed = json.loads(parsed)
+                except: pass
+                
+            if isinstance(parsed, dict):
+                if "market_report" in parsed or "company_report" in parsed: 
+                    doc_type, doc_key = "Recherche Marché & Entreprise", "researchResult"
+                elif "gap_analysis" in parsed or "match_score" in parsed: 
+                    doc_type, doc_key = "Analyse d'Adéquation (Gap)", "gapResult"
+                elif "salary_range" in parsed: 
+                    doc_type, doc_key = "Estimation Salariale", "salaryResult"
+                elif "pitch" in parsed: 
+                    doc_type, doc_key = "Pitch de Présentation", "pitchResult"
+                elif "questions" in parsed: 
+                    doc_type, doc_key = "Questions d'Entretien", "questionsResult"
+                elif "career_gps_result" in parsed or "route" in parsed: 
+                    doc_type, doc_key = "GPS de Carrière", "careerGpsResult"
+                elif "career_radar_result" in parsed or "trajectories" in parsed: 
+                    doc_type, doc_key = "Radar de Carrière", "careerRadarResult"
+                elif "job_decoder_result" in parsed or ("reality_check" in parsed and isinstance(parsed.get("reality_check"), list)): 
+                    doc_type, doc_key = "Décodeur d'Offre", "jobDecoderResult"
+                elif "hidden_market" in parsed or "target_profiles" in parsed: 
+                    doc_type, doc_key = "Marché Caché", "hiddenMarketResult"
+                elif "recruiter_persona" in parsed: 
+                    doc_type, doc_key = "Vision du Recruteur", "recruiterResult"
+                elif "reality_check" in parsed and isinstance(parsed.get("reality_check"), dict): 
+                    doc_type, doc_key = "Reality Check", "realityResult"
+                elif "action_plan_result" in parsed or "action_plan" in parsed: 
+                    doc_type, doc_key = "Plan d'Action", "actionPlanResult"
+                elif "custom_scenarios_result" in parsed or "categories" in parsed: 
+                    doc_type, doc_key = "Mises en Situation", "customScenariosResult"
+                elif "optimized_data" in parsed: 
+                    doc_type, doc_key = "CV Optimisé", "cvResult"
+                elif "flaws" in parsed or "flaw_coaching" in parsed: 
+                    doc_type, doc_key = "Coaching Défauts", "flawCoachingResult"
+            elif isinstance(parsed, list):
+                doc_type, doc_key = "Coaching Défauts", "flawCoachingResult"
+        except Exception:
+            pass
+            
+        if doc_key != "unknown":
+            inventory.append({
+                "task_id": task_id,
+                "name": doc_type,
+                "key": doc_key,
+                "status": status,
+                "created_at": created_at.isoformat() if hasattr(created_at, "isoformat") else str(created_at)
+            })
+            
+    app_data = dict(app_row) if not isinstance(app_row, tuple) else {"id": app_row[0], "target_company": app_row[1], "target_job": app_row[2]}
+        
+    return {"status": "success", "application": app_data, "inventory": inventory}
+
 @router.websocket("/ws/task/{task_id}")
 async def websocket_endpoint(websocket: WebSocket, task_id: str):
     await manager.connect(websocket, task_id)

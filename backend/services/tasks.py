@@ -260,6 +260,10 @@ async def _run_questions_logic(task_id: str, candidate_data: dict):
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur lors de la génération", status="FAILED", data=result)
         else:
+            import hashlib
+            hash_input = str(candidate_data.get("target_job", "")) + str(candidate_data.get("experiences", ""))
+            result["_cv_hash"] = hashlib.md5(hash_input.encode("utf-8")).hexdigest()
+            
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
             await manager.broadcast(task_id, "Questions générées avec succès", status="COMPLETED", data=result)
     except Exception as e:
@@ -312,6 +316,10 @@ async def _run_gap_analysis_logic(task_id: str, data: dict):
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:
+            import hashlib
+            hash_input = str(cv_dict.get("target_job", "")) + str(cv_dict.get("experiences", ""))
+            result["_cv_hash"] = hashlib.md5(hash_input.encode("utf-8")).hexdigest()
+            
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
