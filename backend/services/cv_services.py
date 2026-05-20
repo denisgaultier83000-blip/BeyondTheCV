@@ -411,8 +411,14 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                                 break
                                 
                         def update_question_node(node):
+                            def normalize_str(s):
+                                return re.sub(r'\W+', '', str(s)).lower() if s else ""
+                                
                             if isinstance(node, dict):
-                                if node.get("question") == request.question or node.get("text") == request.question:
+                                req_q = normalize_str(request.question)
+                                node_q = normalize_str(node.get("question"))
+                                node_t = normalize_str(node.get("text"))
+                                if (req_q and req_q in node_q) or (req_q and req_q in node_t) or (node_q and node_q in req_q):
                                     node["user_answer"] = request.user_answer
                                     node["evaluation"] = result
                                     return True
@@ -1067,6 +1073,13 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
         cv_dict = data.model_dump()
     except AttributeError:
         cv_dict = data.dict()
+        
+    # [FIX EXPERT] Tri chronologique absolu en entrée de pipeline. Force la réorganisation des 
+    # expériences et formations par date même si le frontend envoie un tableau désordonné.
+    if 'experiences' in cv_dict and isinstance(cv_dict['experiences'], list):
+        cv_dict['experiences'].sort(key=lambda exp: _get_sortable_date_tuple(exp.get('end_date', '')), reverse=True)
+    if 'educations' in cv_dict and isinstance(cv_dict['educations'], list):
+        cv_dict['educations'].sort(key=lambda edu: _get_sortable_date_tuple(edu.get('end_date', '')), reverse=True)
     
     if data.is_partial_start:
         if data.target_company or data.target_industry:
@@ -1217,6 +1230,13 @@ async def get_dashboard_summary(data: FullCVData, current_user: dict = Depends(r
             cv_dict = data.model_dump()
         except AttributeError:
             cv_dict = data.dict()
+            
+        # [FIX EXPERT] On s'assure que le résumé du dashboard travaille également sur des données triées
+        if 'experiences' in cv_dict and isinstance(cv_dict['experiences'], list):
+            cv_dict['experiences'].sort(key=lambda exp: _get_sortable_date_tuple(exp.get('end_date', '')), reverse=True)
+        if 'educations' in cv_dict and isinstance(cv_dict['educations'], list):
+            cv_dict['educations'].sort(key=lambda edu: _get_sortable_date_tuple(edu.get('end_date', '')), reverse=True)
+            
         target_lang = normalize_language(cv_dict.get('target_language', 'French'))
         cv_lean_dict = _sanitize_data_for_ai(cv_dict, strict=True)
         

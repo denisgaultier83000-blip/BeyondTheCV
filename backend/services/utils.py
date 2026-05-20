@@ -98,10 +98,9 @@ def _get_sortable_date_tuple(date_str: str) -> tuple:
 
 def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
     """Supprime les données lourdes et inutiles pour l'IA pour économiser tokens et stabiliser le hash."""
-    clean_data = data.copy() if isinstance(data, dict) else {}
+    clean_data = json.loads(json.dumps(data, default=str)) if isinstance(data, dict) else {}
         
     if 'personal_info' in clean_data and isinstance(clean_data['personal_info'], dict):
-        clean_data['personal_info'] = clean_data['personal_info'].copy()
         if strict:
             for key in ['email', 'phone', 'address', 'linkedin', 'city']:
                 clean_data['personal_info'].pop(key, None)
@@ -141,7 +140,7 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
                 # [FIX EXPERT] Tri des listes pour garantir un hash 100% déterministe
                 try:
                     if list_key in ['experiences', 'educations']:
-                        clean_list.sort(key=lambda x: str(x.get('start_date', '')) + str(x.get('title', x.get('role', ''))))
+                        clean_list.sort(key=lambda x: _get_sortable_date_tuple(x.get('end_date', '')), reverse=True)
                     elif list_key == 'clarifications':
                         clean_list.sort(key=lambda x: str(x.get('question', '')))
                 except Exception:
