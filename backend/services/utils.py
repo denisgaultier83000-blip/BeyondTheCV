@@ -68,9 +68,22 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
                 clean_data['personal_info'].pop(key, None)
                 
     if strict:
-        for key in ['target_language', 'provider', 'renderer', 'design_variant', 'is_partial_start', 'preview', 'clarifications', 'application_id', 'user_id', 'id', 'created_at', 'updated_at']:
+        # 1. Champs techniques et d'interface
+        for key in ['target_language', 'language', 'provider', 'renderer', 'design_variant', 'is_partial_start', 'preview', 'application_id', 'user_id', 'id', 'created_at', 'updated_at']:
             clean_data.pop(key, None)
-        clean_data.pop('research_data', None)
+            
+        # 2. TOUS les champs générés par l'IA ou volatils
+        # (Le Frontend les réinjecte souvent dans l'objet, ce qui modifiait le Hash en boucle et cassait le cache)
+        ai_generated_keys = [
+            'research_data', 'pitch', 'gap_analysis', 'questions', 'questions_list', 
+            'questions_to_ask', 'smart_questions', 'action_plan', 'custom_scenarios', 
+            'salary_estimation', 'career_radar', 'recruiter_view', 'one_liner', 
+            'risk_analysis', 'job_decoder', 'hidden_market', 'career_gps', 
+            'reality_check', 'profile_validation', 'flaw_coaching', 'feedback', 'feedbacks',
+            'clarifications', 'target_job', 'target_company', 'target_industry', 'target_country', 'target_role_primary'
+        ]
+        for key in ai_generated_keys:
+            clean_data.pop(key, None)
         
         # Purge des listes : suppression des IDs aléatoires qui cassent la signature du cache
         for list_key in ['experiences', 'educations', 'projects', 'skills']:
@@ -80,6 +93,7 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
                     if isinstance(item, dict):
                         item_copy = item.copy()
                         item_copy.pop('id', None)
+                        item_copy.pop('_id', None) # Sécurité pour les IDs générés par le Frontend (MongoDB/React)
                         clean_list.append(item_copy)
                     else:
                         clean_list.append(item)
@@ -90,8 +104,15 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
 def _generate_cache_key(user_id: str, content_type: str, data: dict) -> str:
     """Génère une signature unique (hash) pour mettre en cache les requêtes IA identiques."""
     clean_data = _sanitize_data_for_ai(data, strict=True)
+    
+    # Paramètres discriminants vitaux (récupérés depuis data car exclus de clean_data pour isoler le CV pur)
+    lang = str(data.get('target_language', data.get('language', 'fr'))).lower()
+    job = str(data.get('target_job', data.get('target_role_primary', ''))).lower()
+    company = str(data.get('target_company', '')).lower()
+    industry = str(data.get('target_industry', '')).lower()
+    
     data_str = json.dumps(clean_data, sort_keys=True, default=str)
-    raw_key = f"{user_id}_{content_type}_{data_str}"
+    raw_key = f"{user_id}_{content_type}_{lang}_{job}_{company}_{industry}_{data_str}"
     return hashlib.sha256(raw_key.encode('utf-8')).hexdigest()
 
 async def get_cached_content(cache_key: str):
