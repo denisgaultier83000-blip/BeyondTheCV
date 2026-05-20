@@ -36,6 +36,18 @@ def update_task_status_sync(task_id: str, status: str, result: dict = None):
 
 # --- TÂCHES ASYNCHRONES ---
 
+async def _check_cache_and_broadcast(task_id: str, user_id: str, content_type: str, data: dict, message: str = "Récupéré en cache"):
+    """Vérifie le cache et diffuse le résultat s'il est trouvé."""
+    if not user_id or user_id == "unknown_user":
+        return False, None
+    cache_key = _generate_cache_key(user_id, content_type, data)
+    cached = await get_cached_content(cache_key)
+    if cached:
+        await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", cached)
+        await manager.broadcast(task_id, message, status="COMPLETED", data=cached)
+        return True, cache_key
+    return False, cache_key
+
 async def process_research_in_background(task_id: str, request_data: dict):
     print(f"[Task {task_id}] 🚀 Starting research (Async)...")
     await _run_research_logic(task_id, request_data)
@@ -43,11 +55,16 @@ async def process_research_in_background(task_id: str, request_data: dict):
 async def _run_research_logic(task_id: str, request_data: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
+        user_id = request_data.get("user_id", "unknown_user")
+        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "research", request_data, "Analyse récupérée en cache")
+        if is_cached: return
+
         # Normalisation de la langue pour la recherche
         if 'target_language' in request_data:
             request_data['target_language'] = normalize_language(request_data['target_language'])
         final_report = await perform_market_research(request_data, task_id=task_id) # Utilise déjà Serper si configuré
         
+        await set_cached_content(cache_key, user_id, "research", final_report)
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", final_report)
         await manager.broadcast(task_id, "Analyse terminée avec succès !", status="COMPLETED", data=final_report)
     except Exception as e:
@@ -69,6 +86,10 @@ async def process_salary_in_background(task_id: str, candidate_data: dict):
 async def _run_salary_logic(task_id: str, candidate_data: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
+        user_id = candidate_data.get("user_id", "unknown_user")
+        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "salary", candidate_data, "Estimation récupérée en cache")
+        if is_cached: return
+
         await manager.broadcast(task_id, "Estimation du salaire en cours...")
         
         # [LOGIQUE REMOTE/INTERNATIONAL]
@@ -87,6 +108,8 @@ async def _run_salary_logic(task_id: str, candidate_data: dict):
         result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are a compensation expert. You must output STRICT JSON.")
         if "error" in result:
             result = {"salary_range": {"low": 0, "mid": 0, "high": 0}, "currency": "EUR", "commentary": "Estimation indisponible."}
+        else:
+            await set_cached_content(cache_key, user_id, "salary", result)
             
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
         await manager.broadcast(task_id, "Estimation terminée.", status="COMPLETED", data=result)
@@ -102,10 +125,16 @@ async def process_cv_draft_in_background(task_id: str, source_data: dict):
 async def _run_cv_draft_logic(task_id: str, source_data: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
+        user_id = source_data.get("user_id", "unknown_user")
+        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "cv_draft", source_data, "CV récupéré en cache")
+        if is_cached: return
+
         prompt_template = load_prompt(get_prompt_path("master_prompt.md"))
         context_str = json.dumps(source_data, indent=2, ensure_ascii=False, default=str)
         final_prompt = f"{prompt_template}\n\nINPUT DATA:\n{context_str}"
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are the AI for BeyondTheCV.")
+        if "error" not in result:
+            await set_cached_content(cache_key, user_id, "cv_draft", result)
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", {"error": str(e)})
@@ -118,6 +147,10 @@ async def _run_completeness_logic(task_id: str, payload: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
         data_to_analyze = payload.get("data", payload)
+        user_id = data_to_analyze.get("user_id", "unknown_user")
+        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "completeness", data_to_analyze, "Analyse récupérée en cache")
+        if is_cached: return
+
         target_lang = normalize_language(data_to_analyze.get('target_language', 'French'))
         text_content = json.dumps(data_to_analyze, indent=2, ensure_ascii=False, default=str) if isinstance(data_to_analyze, dict) else str(data_to_analyze)
         
@@ -133,6 +166,8 @@ async def _run_completeness_logic(task_id: str, payload: dict):
         {text_content[:15000]}
         """
         result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a Data Quality Analyst. Output STRICT JSON. Language: {target_lang}.")
+        if "error" not in result:
+            await set_cached_content(cache_key, user_id, "completeness", result)
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         fallback = {"score": 50, "quality": "Moyen", "missing_info": [], "suggestions": [], "clarifications": []}
@@ -145,12 +180,18 @@ async def process_cv_analysis_in_background(task_id: str, cv_data: dict):
 async def _run_cv_analysis_logic(task_id: str, cv_data: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
+        user_id = cv_data.get("user_id", "unknown_user")
+        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "cv_analysis", cv_data, "Analyse récupérée en cache")
+        if is_cached: return
+
         await manager.broadcast(task_id, "Analyse approfondie du CV en cours...")
         prompt_template = load_prompt(get_prompt_path("master_prompt.md"))
         target_lang = normalize_language(cv_data.get('target_language', 'French'))
         target_country = cv_data.get('target_country', 'International')
         user_prompt = f"Voici les données JSON du candidat :\n{json.dumps(cv_data, ensure_ascii=False, default=str)}\nAnalyse ce profil. CONTEXTE CULTUREL : {target_country}. IMPORTANT: OUTPUT STRICTLY IN {target_lang.upper()}."
         result_json = await ai_service.generate_valid_json(prompt=user_prompt, provider="openai", system_instruction=prompt_template)
+        if "error" not in result_json:
+            await set_cached_content(cache_key, user_id, "cv_analysis", result_json)
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result_json)
         await manager.broadcast(task_id, "Analyse CV terminée.", status="COMPLETED", data=result_json)
     except Exception as e:
@@ -163,6 +204,10 @@ async def process_pitch_in_background(task_id: str, candidate_data: dict):
 async def _run_pitch_logic(task_id: str, candidate_data: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
+        user_id = candidate_data.get("user_id", "unknown_user")
+        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "pitch", candidate_data, "Pitch récupéré en cache")
+        if is_cached: return
+
         prompt_template = load_prompt(get_prompt_path("pitch_v1.md"))
         
         # [FIX EXPERT] Whitelist stricte pour éviter l'explosion de tokens (qui génère {"error": True})
@@ -210,6 +255,8 @@ async def _run_pitch_logic(task_id: str, candidate_data: dict):
         """
         
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction=f"You are a senior recruiter. ALL JSON VALUES MUST BE ENTIRELY WRITTEN IN {target_lang.upper()}. Output STRICT JSON.")
+        if "error" not in result:
+            await set_cached_content(cache_key, user_id, "pitch", result)
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         fallback = {"accroche": "Erreur", "preuve": "", "valeur": "", "projection": ""}
@@ -223,12 +270,8 @@ async def _run_questions_logic(task_id: str, candidate_data: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
         user_id = candidate_data.get("user_id", "unknown_user")
-        cache_key = _generate_cache_key(user_id, "interview_questions", candidate_data)
-        cached = await get_cached_content(cache_key)
-        if cached:
-            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", cached)
-            await manager.broadcast(task_id, "Questions récupérées en cache", status="COMPLETED", data=cached)
-            return
+        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "interview_questions", candidate_data, "Questions récupérées en cache")
+        if is_cached: return
 
         target_lang = normalize_language(candidate_data.get('target_language', 'French'))
         
@@ -284,6 +327,10 @@ async def process_gap_analysis_in_background(task_id: str, data: dict):
 async def _run_gap_analysis_logic(task_id: str, data: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
+        user_id = data.get("user_id", "unknown_user")
+        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "gap_analysis", data, "Analyse d'écart récupérée en cache")
+        if is_cached: return
+
         target_lang = normalize_language(data.get('target_language', 'French'))
         # [FIX] Fallback robuste pour le titre du poste
         target_job = data.get('target_job') or data.get('target_role_primary', 'Unknown Position')
@@ -324,6 +371,7 @@ async def _run_gap_analysis_logic(task_id: str, data: dict):
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:
+            await set_cached_content(cache_key, user_id, "action_plan", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -386,6 +434,10 @@ async def process_career_radar_in_background(task_id: str, data: dict):
 async def _run_career_radar_logic(task_id: str, data: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
+        user_id = data.get("user_id", "unknown_user")
+        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "career_radar", data, "Radar récupéré en cache")
+        if is_cached: return
+
         target_lang = normalize_language(data.get('target_language', 'French'))
         prompt_template = load_prompt(get_prompt_path("career_radar.md"))
         
@@ -414,6 +466,7 @@ async def _run_career_radar_logic(task_id: str, data: dict):
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:
+            await set_cached_content(cache_key, user_id, "flaw_coaching", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -425,6 +478,10 @@ async def process_recruiter_view_in_background(task_id: str, data: dict):
 async def _run_recruiter_view_logic(task_id: str, data: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
+        user_id = data.get("user_id", "unknown_user")
+        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "recruiter_view", data, "Vue recruteur récupérée en cache")
+        if is_cached: return
+
         target_lang = normalize_language(data.get('target_language', 'French'))
         prompt_template = load_prompt(get_prompt_path("recruiter_view.md"))
         
@@ -442,6 +499,7 @@ async def _run_recruiter_view_logic(task_id: str, data: dict):
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:
+            await set_cached_content(cache_key, user_id, "profile_validation", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -453,6 +511,10 @@ async def process_oneliner_in_background(task_id: str, data: dict):
 async def _run_oneliner_logic(task_id: str, data: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
+        user_id = data.get("user_id", "unknown_user")
+        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "oneliner", data, "One-Liner récupéré en cache")
+        if is_cached: return
+
         target_lang = normalize_language(data.get('target_language', 'French'))
         
         prompt = f"""
@@ -474,6 +536,7 @@ async def _run_oneliner_logic(task_id: str, data: dict):
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:
+            await set_cached_content(cache_key, user_id, "reality_check", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -485,6 +548,10 @@ async def process_risk_analysis_in_background(task_id: str, data: dict):
 async def _run_risk_analysis_logic(task_id: str, data: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
+        user_id = data.get("user_id", "unknown_user")
+        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "risk_analysis", data, "Analyse des risques récupérée en cache")
+        if is_cached: return
+
         target_lang = normalize_language(data.get('target_language', 'French'))
         
         prompt = f"""
@@ -517,6 +584,7 @@ async def _run_risk_analysis_logic(task_id: str, data: dict):
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:
+            await set_cached_content(cache_key, user_id, "career_gps", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -528,6 +596,10 @@ async def process_job_decoder_in_background(task_id: str, data: dict):
 async def _run_job_decoder_logic(task_id: str, data: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
+        user_id = data.get("user_id", "unknown_user")
+        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "job_decoder", data, "Décodeur d'offre récupéré en cache")
+        if is_cached: return
+
         target_lang = normalize_language(data.get('target_language', 'French'))
         prompt_template = load_prompt(get_prompt_path("job_decoder.md"))
         
@@ -547,6 +619,7 @@ async def _run_job_decoder_logic(task_id: str, data: dict):
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:
+            await set_cached_content(cache_key, user_id, "hidden_market", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -558,6 +631,10 @@ async def process_hidden_market_in_background(task_id: str, data: dict):
 async def _run_hidden_market_logic(task_id: str, data: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
+        user_id = data.get("user_id", "unknown_user")
+        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "hidden_market", data, "Marché caché récupéré en cache")
+        if is_cached: return
+
         target_lang = normalize_language(data.get('target_language', 'French'))
         prompt_template = load_prompt(get_prompt_path("hidden_market.md"))
         
@@ -580,6 +657,7 @@ async def _run_hidden_market_logic(task_id: str, data: dict):
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:
+            await set_cached_content(cache_key, user_id, "job_decoder", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -591,6 +669,10 @@ async def process_career_gps_in_background(task_id: str, data: dict):
 async def _run_career_gps_logic(task_id: str, data: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
+        user_id = data.get("user_id", "unknown_user")
+        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "career_gps", data, "GPS Carrière récupéré en cache")
+        if is_cached: return
+
         target_lang = normalize_language(data.get('target_language', 'French'))
         prompt_template = load_prompt(get_prompt_path("career_gps.md"))
         
@@ -618,6 +700,7 @@ async def _run_career_gps_logic(task_id: str, data: dict):
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:
+            await set_cached_content(cache_key, user_id, "risk_analysis", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -629,6 +712,10 @@ async def process_reality_check_in_background(task_id: str, data: dict):
 async def _run_reality_check_logic(task_id: str, data: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
+        user_id = data.get("user_id", "unknown_user")
+        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "reality_check", data, "Reality check récupéré en cache")
+        if is_cached: return
+
         target_lang = normalize_language(data.get('target_language', 'French'))
         prompt_template = load_prompt(get_prompt_path("career_reality_check.md"))
         
@@ -646,6 +733,7 @@ async def _run_reality_check_logic(task_id: str, data: dict):
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:
+            await set_cached_content(cache_key, user_id, "oneliner", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -657,6 +745,10 @@ async def process_profile_validation_in_background(task_id: str, data: dict):
 async def _run_profile_validation_logic(task_id: str, data: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
+        user_id = data.get("user_id", "unknown_user")
+        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "profile_validation", data, "Validation de profil récupérée en cache")
+        if is_cached: return
+
         target_lang = normalize_language(data.get('target_language', 'French'))
         
         prompt = f"""
@@ -691,6 +783,7 @@ async def _run_profile_validation_logic(task_id: str, data: dict):
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:
+            await set_cached_content(cache_key, user_id, "recruiter_view", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -699,6 +792,10 @@ async def process_flaw_coaching_in_background(task_id: str, data: dict):
     print(f"[Task {task_id}] ✨ Starting Flaw Coaching (Async)...")
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
+        user_id = data.get("user_id", "unknown_user")
+        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "flaw_coaching", data, "Coaching défauts récupéré en cache")
+        if is_cached: return
+
         target_lang = normalize_language(data.get('target_language', 'French'))
         flaws = data.get('flaws', [])
         if not flaws:
@@ -720,6 +817,7 @@ async def process_flaw_coaching_in_background(task_id: str, data: dict):
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:
+            await set_cached_content(cache_key, user_id, "career_radar", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -781,6 +879,8 @@ async def process_executive_summary_in_background(task_ids: dict, data: dict):
         if "error" in result:
             raise Exception(result["error"])
             
+        await set_cached_content(cache_key, user_id, "executive_summary", result)
+
         # 2. On dispatche intelligemment les résultats vers les bonnes tâches Frontend
         if "one_liner" in task_ids: await asyncio.to_thread(update_task_status_sync, task_ids["one_liner"], "SUCCESS", result.get("one_liner_result", {}))
         if "career_radar" in task_ids: await asyncio.to_thread(update_task_status_sync, task_ids["career_radar"], "SUCCESS", result.get("career_radar_result", {}))
@@ -801,6 +901,16 @@ async def process_market_strategy_in_background(task_ids: dict, data: dict):
         await asyncio.to_thread(update_task_status_sync, tid, "RUNNING")
         
     try:
+        user_id = data.get("user_id", "unknown_user")
+        cache_key = _generate_cache_key(user_id, "executive_summary", data)
+        cached = await get_cached_content(cache_key)
+        if cached:
+            if "one_liner" in task_ids: await asyncio.to_thread(update_task_status_sync, task_ids["one_liner"], "SUCCESS", cached.get("one_liner_result", {}))
+            if "career_radar" in task_ids: await asyncio.to_thread(update_task_status_sync, task_ids["career_radar"], "SUCCESS", cached.get("career_radar_result", {}))
+            if "recruiter_view" in task_ids: await asyncio.to_thread(update_task_status_sync, task_ids["recruiter_view"], "SUCCESS", cached.get("recruiter_view_result", {}))
+            for tid in task_ids.values(): await manager.broadcast(tid, "Résumé exécutif récupéré en cache", status="COMPLETED", data=cached)
+            return
+
         target_lang = normalize_language(data.get('target_language', 'French'))
         target_role = data.get('target_role_primary') or data.get('target_job') or 'Non défini'
         target_company = data.get('target_company', 'Non spécifiée')
@@ -855,6 +965,8 @@ async def process_market_strategy_in_background(task_ids: dict, data: dict):
         if "error" in result:
             raise Exception(result["error"])
             
+        await set_cached_content(cache_key, user_id, "market_strategy", result)
+
         # 2. On dispatche les résultats vers les tâches du Frontend
         if "job_decoder" in task_ids: await asyncio.to_thread(update_task_status_sync, task_ids["job_decoder"], "SUCCESS", result.get("job_decoder_result", {}))
         if "risk_analysis" in task_ids: await asyncio.to_thread(update_task_status_sync, task_ids["risk_analysis"], "SUCCESS", result.get("risk_analysis_result", {}))
@@ -869,6 +981,10 @@ async def process_action_plan_in_background(task_id: str, cv_dict: dict):
     print(f"[Task {task_id}] 📋 Starting Action Plan (Async)...")
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
+        user_id = cv_dict.get("user_id", "unknown_user")
+        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "action_plan", cv_dict, "Plan d'action récupéré en cache")
+        if is_cached: return
+
         target_lang = normalize_language(cv_dict.get('target_language', 'French'))
         try:
             prompt_template = load_prompt(get_prompt_path("action_plan.md"))
@@ -889,6 +1005,7 @@ async def process_action_plan_in_background(task_id: str, cv_dict: dict):
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:
+            await set_cached_content(cache_key, user_id, "gap_analysis", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -899,12 +1016,8 @@ async def process_custom_scenarios_in_background(task_id: str, data: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
         user_id = data.get("user_id", "unknown_user")
-        cache_key = _generate_cache_key(user_id, "extra_scenarios", data)
-        cached = await get_cached_content(cache_key)
-        if cached:
-            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", cached)
-            await manager.broadcast(task_id, "Scénarios récupérés en cache", status="COMPLETED", data=cached)
-            return
+        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "extra_scenarios", data, "Scénarios récupérés en cache")
+        if is_cached: return
 
         target_lang = normalize_language(data.get('target_language', 'French'))
         target_job = data.get('target_job') or data.get('target_role_primary', 'Candidat')
