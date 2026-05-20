@@ -497,7 +497,7 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
             import urllib.parse
             
             # Si l'URL de l'IA est manifestement fausse, on génère une recherche Google sémantique
-            is_fake_url = not ai_url or "example" in ai_url or "lien-vers" in ai_url or "..." in ai_url or "http" not in ai_url
+            is_fake_url = (not ai_url) or ("example" in ai_url.lower()) or ("exemple" in ai_url.lower()) or ("lien-vers" in ai_url.lower()) or ("..." in ai_url) or (not ai_url.startswith("http"))
             safe_company_name = str(company) if company else ""
             safe_url = f"https://www.google.com/search?q={urllib.parse.quote(ai_title + ' ' + safe_company_name)}" if is_fake_url else ai_url
             real_news_links.append({

@@ -57,6 +57,45 @@ def normalize_language(lang_code: str) -> str:
     code = str(lang_code).lower()[:2]
     return lang_map.get(code, 'English')
 
+def _get_sortable_date_tuple(date_str: str) -> tuple:
+    """Converts a variety of date strings into a sortable tuple (year, month)."""
+    if not isinstance(date_str, str):
+        return (0, 0)
+    date_str_lower = date_str.lower().strip()
+    
+    present_terms = ["present", "aujourd'hui", "en cours", "current", "heute", "actual"]
+    if any(term in date_str_lower for term in present_terms):
+        return (datetime.max.year, datetime.max.month)
+
+    year_match = re.search(r'\b(19[89]\d|20\d{2})\b', date_str)
+    year = int(year_match.group(0)) if year_match else 0
+    if not year: return (0, 0)
+
+    numeric_month_match = re.search(r'(?P<y1>\d{4})[/-](?P<m1>\d{1,2})|(?P<m2>\d{1,2})[/-](?P<y2>\d{4})', date_str)
+    if numeric_month_match:
+        groups = numeric_month_match.groupdict()
+        month = int(groups.get('m1') or groups.get('m2'))
+        if 1 <= month <= 12: return (year, month)
+
+    month_map = {
+        'january': 1, 'janvier': 1, 'jan': 1, 'janv': 1, 'february': 2, 'février': 2, 'feb': 2, 'fév': 2, 'fev': 2,
+        'march': 3, 'mars': 3, 'mar': 3, 'april': 4, 'avril': 4, 'apr': 4, 'avr': 4, 'may': 5, 'mai': 5,
+        'june': 6, 'juin': 6, 'jun': 6, 'july': 7, 'juillet': 7, 'jul': 7, 'juil': 7, 'august': 8, 'août': 8, 'aug': 8, 'aou': 8,
+        'september': 9, 'septembre': 9, 'sep': 9, 'october': 10, 'octobre': 10, 'oct': 10,
+        'november': 11, 'novembre': 11, 'nov': 11, 'december': 12, 'décembre': 12, 'dec': 12, 'déc': 12
+    }
+    for month_str, month_num in month_map.items():
+        if month_str in date_str_lower: return (year, month_num)
+
+    quarter_match = re.search(r'[qt]([1-4])', date_str_lower)
+    if quarter_match: return (year, int(quarter_match.group(1)) * 3)
+
+    season_map = {'winter': 2, 'hiver': 2, 'spring': 5, 'printemps': 5, 'summer': 8, 'été': 8, 'autumn': 11, 'automne': 11}
+    for season_str, month_num in season_map.items():
+        if season_str in date_str_lower: return (year, month_num)
+
+    return (year, 0)
+
 def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
     """Supprime les données lourdes et inutiles pour l'IA pour économiser tokens et stabiliser le hash."""
     clean_data = data.copy() if isinstance(data, dict) else {}
@@ -93,9 +132,20 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
                         item_copy = item.copy()
                         item_copy.pop('id', None)
                         item_copy.pop('_id', None) # Sécurité pour les IDs générés par le Frontend (MongoDB/React)
+                        item_copy.pop('created_at', None)
+                        item_copy.pop('updated_at', None)
                         clean_list.append(item_copy)
                     else:
                         clean_list.append(item)
+                
+                # [FIX EXPERT] Tri des listes pour garantir un hash 100% déterministe
+                try:
+                    if list_key in ['experiences', 'educations']:
+                        clean_list.sort(key=lambda x: str(x.get('start_date', '')) + str(x.get('title', x.get('role', ''))))
+                    elif list_key == 'clarifications':
+                        clean_list.sort(key=lambda x: str(x.get('question', '')))
+                except Exception:
+                    pass
                 clean_data[list_key] = clean_list
             
     return clean_data

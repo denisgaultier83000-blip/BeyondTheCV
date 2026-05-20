@@ -41,7 +41,7 @@ from .tasks import (
     process_action_plan_in_background,
 )
 from .utils import (
-    clean_ai_json_response, normalize_language, load_prompt, 
+    clean_ai_json_response, normalize_language, load_prompt, _get_sortable_date_tuple,
     _sanitize_data_for_ai, _generate_cache_key, get_cached_content, set_cached_content
 )
 from .tasks import get_prompt_path
@@ -105,69 +105,6 @@ def _remove_file_safe(path: str):
             os.remove(path)
     except Exception as e:
         print(f"[CLEANUP ERROR] Impossible de supprimer {path}: {e}")
-
-def _get_sortable_date_tuple(date_str: str) -> tuple:
-    """
-    Converts a variety of date strings into a sortable tuple (year, month).
-    Handles formats like "Jan 2020", "01/2020", "2020-01", "Q3 2021", "Summer 2022", and "Present".
-    """
-    if not isinstance(date_str, str):
-        return (0, 0)
-
-    date_str_lower = date_str.lower().strip()
-    
-    # 1. Gérer les dates "Présent" comme les plus récentes
-    present_terms = ["present", "aujourd'hui", "en cours", "current", "heute", "actual"]
-    if any(term in date_str_lower for term in present_terms):
-        return (datetime.max.year, datetime.max.month)
-
-    # 2. Extraire l'année en premier (partie la plus fiable)
-    year_match = re.search(r'\b(19[89]\d|20\d{2})\b', date_str)
-    year = int(year_match.group(0)) if year_match else 0
-    if not year:
-        return (0, 0) # Si pas d'année, on ne peut pas trier de manière fiable
-
-    # 3. Essayer d'extraire un mois numérique (ex: 2023-08, 08/2023)
-    numeric_month_match = re.search(r'(?P<y1>\d{4})[/-](?P<m1>\d{1,2})|(?P<m2>\d{1,2})[/-](?P<y2>\d{4})', date_str)
-    if numeric_month_match:
-        groups = numeric_month_match.groupdict()
-        month = int(groups.get('m1') or groups.get('m2'))
-        if 1 <= month <= 12:
-            return (year, month)
-
-    # 4. Essayer d'extraire le mois par son nom (complet ou abrégé)
-    month_map = {
-        'january': 1, 'janvier': 1, 'jan': 1, 'janv': 1,
-        'february': 2, 'février': 2, 'feb': 2, 'fév': 2, 'fev': 2,
-        'march': 3, 'mars': 3, 'mar': 3,
-        'april': 4, 'avril': 4, 'apr': 4, 'avr': 4,
-        'may': 5, 'mai': 5,
-        'june': 6, 'juin': 6, 'jun': 6,
-        'july': 7, 'juillet': 7, 'jul': 7, 'juil': 7,
-        'august': 8, 'août': 8, 'aug': 8, 'aou': 8,
-        'september': 9, 'septembre': 9, 'sep': 9,
-        'october': 10, 'octobre': 10, 'oct': 10,
-        'november': 11, 'novembre': 11, 'nov': 11,
-        'december': 12, 'décembre': 12, 'dec': 12, 'déc': 12
-    }
-    for month_str, month_num in month_map.items():
-        if month_str in date_str_lower:
-            return (year, month_num)
-
-    # 5. Gérer les trimestres (ex: Q1, T2)
-    quarter_match = re.search(r'[qt]([1-4])', date_str_lower)
-    if quarter_match:
-        quarter = int(quarter_match.group(1))
-        return (year, quarter * 3) # Associe le trimestre à son mois de fin pour le tri
-
-    # 6. Gérer les saisons
-    season_map = {'winter': 2, 'hiver': 2, 'spring': 5, 'printemps': 5, 'summer': 8, 'été': 8, 'autumn': 11, 'automne': 11}
-    for season_str, month_num in season_map.items():
-        if season_str in date_str_lower:
-            return (year, month_num)
-
-    # 7. Si seule une année a été trouvée, retourner le mois en tant que 0
-    return (year, 0)
 
 # --- Gardien d'Abonnement (Paywall Backend) ---
 async def require_active_subscription(current_user: dict = Depends(get_current_user)):
@@ -488,6 +425,19 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                         
                         update_question_node(task_result)
                         await db.execute(conn, "UPDATE tasks SET result = ? WHERE id = ?", (json.dumps(task_result), task_to_update))
+                        
+                        # [FIX EXPERT] Mise à jour du Cache pour que les réponses survivent au rechargement de page (F5)
+                        cursor = await db.execute(conn, "SELECT cache_key, result FROM generation_cache WHERE user_id = ? AND content_type IN ('interview_questions', 'extra_scenarios') ORDER BY created_at DESC LIMIT 5", (current_user["id"],))
+                        cache_rows = await cursor.fetchall()
+                        for c_row in cache_rows:
+                            c_key = c_row[0] if isinstance(c_row, tuple) else c_row.get("cache_key")
+                            c_res = c_row[1] if isinstance(c_row, tuple) else c_row.get("result")
+                            try:
+                                c_data = json.loads(c_res) if isinstance(c_res, str) else c_res
+                                if update_question_node(c_data):
+                                    await db.execute(conn, "UPDATE generation_cache SET result = ?::jsonb WHERE cache_key = ?", (json.dumps(c_data), c_key))
+                            except Exception:
+                                pass
             
         return {"feedback": result}
     except Exception as e:
