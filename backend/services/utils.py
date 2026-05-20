@@ -73,20 +73,19 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
             clean_data.pop(key, None)
             
         # 2. TOUS les champs générés par l'IA ou volatils
-        # (Le Frontend les réinjecte souvent dans l'objet, ce qui modifiait le Hash en boucle et cassait le cache)
+        # (Le Frontend les réinjecte dans l'objet, ce qui modifiait le Hash en boucle et cassait le cache)
         ai_generated_keys = [
             'research_data', 'pitch', 'gap_analysis', 'questions', 'questions_list', 
             'questions_to_ask', 'smart_questions', 'action_plan', 'custom_scenarios', 
             'salary_estimation', 'career_radar', 'recruiter_view', 'one_liner', 
-            'risk_analysis', 'job_decoder', 'hidden_market', 'career_gps', 
-            'reality_check', 'profile_validation', 'flaw_coaching', 'feedback', 'feedbacks',
-            'clarifications', 'target_job', 'target_company', 'target_industry', 'target_country', 'target_role_primary'
+            'risk_analysis', 'job_decoder', 'hidden_market', 'career_gps', 'reality_check', 
+            'profile_validation', 'flaw_coaching', 'feedback', 'feedbacks', 'target_job', 'target_company', 'target_industry', 'target_country', 'target_role_primary'
         ]
         for key in ai_generated_keys:
             clean_data.pop(key, None)
         
         # Purge des listes : suppression des IDs aléatoires qui cassent la signature du cache
-        for list_key in ['experiences', 'educations', 'projects', 'skills']:
+        for list_key in ['experiences', 'educations', 'projects', 'skills', 'languages', 'clarifications']:
             if list_key in clean_data and isinstance(clean_data[list_key], list):
                 clean_list = []
                 for item in clean_data[list_key]:
