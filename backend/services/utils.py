@@ -107,7 +107,7 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
                 
     if strict:
         # 1. Champs techniques et d'interface
-        for key in ['target_language', 'language', 'provider', 'renderer', 'design_variant', 'is_partial_start', 'preview', 'application_id', 'user_id', 'id', 'created_at', 'updated_at']:
+        for key in ['target_language', 'language', 'provider', 'renderer', 'design_variant', 'is_partial_start', 'preview', 'application_id', 'user_id', 'id', 'created_at', 'updated_at', 'createdAt', 'updatedAt']:
             clean_data.pop(key, None)
             
         # 2. TOUS les champs générés par l'IA ou volatils
@@ -133,6 +133,8 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
                         item_copy.pop('_id', None) # Sécurité pour les IDs générés par le Frontend (MongoDB/React)
                         item_copy.pop('created_at', None)
                         item_copy.pop('updated_at', None)
+                        item_copy.pop('createdAt', None)
+                        item_copy.pop('updatedAt', None)
                         clean_list.append(item_copy)
                     else:
                         clean_list.append(item)
@@ -140,9 +142,14 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
                 # [FIX EXPERT] Tri des listes pour garantir un hash 100% déterministe
                 try:
                     if list_key in ['experiences', 'educations']:
-                        clean_list.sort(key=lambda x: _get_sortable_date_tuple(x.get('end_date', '')), reverse=True)
+                        clean_list.sort(key=lambda x: (
+                            _get_sortable_date_tuple(x.get('end_date', '') if isinstance(x, dict) else ''),
+                            str(x.get('title', x.get('role', '')) if isinstance(x, dict) else '').strip().lower()
+                        ), reverse=True)
                     elif list_key == 'clarifications':
-                        clean_list.sort(key=lambda x: str(x.get('question', '')))
+                        clean_list.sort(key=lambda x: str(x.get('question', '') if isinstance(x, dict) else '').strip().lower())
+                    elif list_key in ['skills', 'languages', 'projects']:
+                        clean_list.sort(key=lambda x: str(x).strip().lower())
                 except Exception:
                     pass
                 clean_data[list_key] = clean_list
@@ -154,10 +161,10 @@ def _generate_cache_key(user_id: str, content_type: str, data: dict) -> str:
     clean_data = _sanitize_data_for_ai(data, strict=True)
     
     # Paramètres discriminants vitaux (récupérés depuis data car exclus de clean_data pour isoler le CV pur)
-    lang = str(data.get('target_language', data.get('language', 'fr'))).lower()
-    job = str(data.get('target_job', data.get('target_role_primary', ''))).lower()
-    company = str(data.get('target_company', '')).lower()
-    industry = str(data.get('target_industry', '')).lower()
+    lang = normalize_language(data.get('target_language', data.get('language', 'fr'))).lower()
+    job = str(data.get('target_job', data.get('target_role_primary', ''))).strip().lower()
+    company = str(data.get('target_company', '')).strip().lower()
+    industry = str(data.get('target_industry', '')).strip().lower()
     
     data_str = json.dumps(clean_data, sort_keys=True, default=str)
     raw_key = f"{user_id}_{content_type}_{lang}_{job}_{company}_{industry}_{data_str}"

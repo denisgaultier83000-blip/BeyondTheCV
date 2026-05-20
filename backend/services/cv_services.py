@@ -1036,6 +1036,11 @@ async def render_final_cv(cv_final_data: CVFinal, preview: bool = Query(False), 
                 for item in items:
                     if "bullets" in item and "achievements" not in item:
                         item["achievements"] = item["bullets"]
+                        
+                # [FIX EXPERT] Tri chronologique final JUSTE AVANT la génération du PDF
+                if section.type in ["experience", "education"]:
+                    items.sort(key=lambda x: _get_sortable_date_tuple(x.get('end_date', '')), reverse=True)
+                    
                 latex_data[key] = items
             elif section.type == "skills":
                 if not isinstance(latex_data.get("skills"), dict):
