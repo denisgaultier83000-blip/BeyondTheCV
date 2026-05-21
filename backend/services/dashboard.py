@@ -14,7 +14,7 @@ from .tasks import (
     process_research_in_background, 
     process_salary_in_background, 
 )
-from .utils import clean_ai_json_response, normalize_language
+from .utils import clean_ai_json_response, normalize_language, _generate_cache_key, get_cached_content, set_cached_content
 from .websocket_manager import manager
 
 router = APIRouter(tags=["Dashboard & Research"])
@@ -67,11 +67,17 @@ async def start_research(request: ResearchRequest, background_tasks: BackgroundT
     }
 
 @router.post("/api/analyze-completeness")
-async def analyze_completeness(request: Request):
+async def analyze_completeness(request: Request, current_user: dict = Depends(get_current_user)):
     # [MODIF] Exécution SYNCHRONE demandée pour la Page 7
     try:
         body = await request.json()
         data_to_analyze = body.get("data", body)
+        
+        cache_key = _generate_cache_key(current_user["id"], "completeness_sync", data_to_analyze)
+        cached = await get_cached_content(cache_key)
+        if cached:
+            return cached
+            
         target_lang = normalize_language(data_to_analyze.get("target_language", "French"))
         text_content = json.dumps(data_to_analyze, indent=2, default=str)
         
@@ -90,6 +96,8 @@ async def analyze_completeness(request: Request):
         OUTPUT LANGUAGE: {target_lang}
         """
         result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a Data Quality Analyst. Language: {target_lang}. Output STRICT JSON.", bypass_queue=True)
+        if "error" not in result:
+            await set_cached_content(cache_key, current_user["id"], "completeness_sync", result)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

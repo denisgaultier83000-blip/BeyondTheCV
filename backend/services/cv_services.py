@@ -313,8 +313,14 @@ async def generate_pitch(data, quality='smart'):
     return result
 
 @router.post("/coach-flaw")
-async def coach_flaw(request: FlawCoachRequest):
+async def coach_flaw(request: FlawCoachRequest, current_user: dict = Depends(require_active_subscription)):
     """Transforme un défaut brut en argument d'entretien."""
+    req_dump = request.model_dump() if hasattr(request, "model_dump") else request.dict()
+    cache_key = _generate_cache_key(current_user["id"], "coach_flaw", req_dump)
+    cached = await get_cached_content(cache_key)
+    if cached:
+        return cached
+        
     target_lang = normalize_language(request.target_language)
     prompt_template = load_prompt(get_prompt_path("flaw_coach.md"))
     
@@ -330,6 +336,7 @@ async def coach_flaw(request: FlawCoachRequest):
     
     try:
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an Interview Coach.")
+        await set_cached_content(cache_key, current_user["id"], "coach_flaw", result)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Flaw coaching failed: {str(e)}")
@@ -800,9 +807,17 @@ async def extract_skills(request: SkillExtractionRequest, current_user: dict = D
 
 @router.post("/generate-clarifications")
 async def generate_clarifications(data: FullCVData, current_user: dict = Depends(require_active_subscription)):
+    cv_dict = data.model_dump() if hasattr(data, "model_dump") else data.dict()
+    cache_key = _generate_cache_key(current_user["id"], "clarifications", cv_dict)
+    cached = await get_cached_content(cache_key)
+    if cached:
+        return cached
+        
     target_lang = normalize_language(data.target_language)
     prompt = f"Analyze this candidate profile. Identify ambiguous/missing points CRITICAL for a CV. Generate up to 20 clarification questions (0-3 if well detailed).\nCRITICAL: If the user includes typos, self-sabotaging flaws (e.g., 'lazy', 'liar'), or unprofessional terms, your FIRST question MUST act as a coach: point out the error gently and propose a positive professional alternative to reframe it.\n\nDATA: {json.dumps(_sanitize_data_for_ai(data.model_dump(), strict=True), default=str)}\n\nOUTPUT STRICT JSON: {{ \"questions\": [\"Q1?\", \"Q2?\"] }}\nLANGUAGE: {target_lang}"
     res = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are a Career Coach.")
+    if "error" not in res:
+        await set_cached_content(cache_key, current_user["id"], "clarifications", res)
     return res
 
 @router.post("/parse-linkedin")
@@ -1198,6 +1213,8 @@ async def start_analysis(background_tasks: BackgroundTasks, data: dict = Body(..
                         t_map_raw = existing_app[1] if isinstance(existing_app, tuple) else existing_app["tasks_map"]
                         if t_map_raw:
                             t_map = json.loads(t_map_raw) if isinstance(t_map_raw, str) else t_map_raw
+                        # [VERIFICATION CRITIQUE] On s'assure que c'est une session COMPLÈTE et non une session issue d'un "is_partial_start"
+                        if "cv_analysis" in t_map and "recruiter_view" in t_map:
                             print(f"[START_ANALYSIS] Session restored for hash {session_hash}", flush=True)
                             return {
                                 "message": "Session restored",
@@ -1214,7 +1231,8 @@ async def start_analysis(background_tasks: BackgroundTasks, data: dict = Body(..
                 tasks_map_json = json.dumps(tasks_map)
                 await db.execute(conn,
                     """INSERT INTO job_applications (id, user_id, target_company, target_job, created_at, session_hash, tasks_map) 
-                       VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING""",
+                   VALUES (?, ?, ?, ?, ?, ?, ?) 
+                   ON CONFLICT (id) DO UPDATE SET session_hash = EXCLUDED.session_hash, tasks_map = EXCLUDED.tasks_map""",
                     (application_id, current_user["id"], cv_dict.get('target_company') or "Général", cv_dict.get('target_job') or "Poste non spécifié", now, session_hash, tasks_map_json)
                 )
             except Exception as e:
@@ -1326,6 +1344,14 @@ async def get_dashboard_summary(data: FullCVData, current_user: dict = Depends(r
         except AttributeError:
             cv_dict = data.dict()
             
+        # [FIX EXPERT] Cache pour éviter de relancer les requêtes IA "Dashboard" à chaque F5
+        cache_key = _generate_cache_key(current_user["id"], "dashboard_summary", cv_dict)
+        cached = await get_cached_content(cache_key)
+        
+        # Ne recharge le cache que s'il est complet (c.-à-d. Gap Analysis a eu le temps de finir)
+        if cached and cached.get("matchScore", 0) > 0:
+            return cached
+
         # [FIX EXPERT] On s'assure que le résumé du dashboard travaille également sur des données triées
         if 'experiences' in cv_dict and isinstance(cv_dict['experiences'], list):
             cv_dict['experiences'].sort(key=lambda exp: _get_sortable_date_tuple(exp.get('end_date', '')), reverse=True)
