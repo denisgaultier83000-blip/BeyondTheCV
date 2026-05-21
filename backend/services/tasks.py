@@ -392,7 +392,7 @@ async def _run_gap_analysis_logic(task_id: str, data: dict):
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:
-            await set_cached_content(cache_key, user_id, "action_plan", result)
+            await set_cached_content(cache_key, user_id, "gap_analysis", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -487,7 +487,7 @@ async def _run_career_radar_logic(task_id: str, data: dict):
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:
-            await set_cached_content(cache_key, user_id, "flaw_coaching", result)
+            await set_cached_content(cache_key, user_id, "career_radar", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -520,7 +520,7 @@ async def _run_recruiter_view_logic(task_id: str, data: dict):
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:
-            await set_cached_content(cache_key, user_id, "profile_validation", result)
+            await set_cached_content(cache_key, user_id, "recruiter_view", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -557,7 +557,7 @@ async def _run_oneliner_logic(task_id: str, data: dict):
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:
-            await set_cached_content(cache_key, user_id, "reality_check", result)
+            await set_cached_content(cache_key, user_id, "oneliner", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -605,7 +605,7 @@ async def _run_risk_analysis_logic(task_id: str, data: dict):
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:
-            await set_cached_content(cache_key, user_id, "career_gps", result)
+            await set_cached_content(cache_key, user_id, "risk_analysis", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -640,7 +640,7 @@ async def _run_job_decoder_logic(task_id: str, data: dict):
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:
-            await set_cached_content(cache_key, user_id, "hidden_market", result)
+            await set_cached_content(cache_key, user_id, "job_decoder", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -678,7 +678,7 @@ async def _run_hidden_market_logic(task_id: str, data: dict):
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:
-            await set_cached_content(cache_key, user_id, "job_decoder", result)
+            await set_cached_content(cache_key, user_id, "hidden_market", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -721,7 +721,7 @@ async def _run_career_gps_logic(task_id: str, data: dict):
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:
-            await set_cached_content(cache_key, user_id, "risk_analysis", result)
+            await set_cached_content(cache_key, user_id, "career_gps", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -754,7 +754,7 @@ async def _run_reality_check_logic(task_id: str, data: dict):
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:
-            await set_cached_content(cache_key, user_id, "oneliner", result)
+            await set_cached_content(cache_key, user_id, "reality_check", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -804,7 +804,7 @@ async def _run_profile_validation_logic(task_id: str, data: dict):
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:
-            await set_cached_content(cache_key, user_id, "recruiter_view", result)
+            await set_cached_content(cache_key, user_id, "profile_validation", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -838,7 +838,7 @@ async def process_flaw_coaching_in_background(task_id: str, data: dict):
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:
-            await set_cached_content(cache_key, user_id, "career_radar", result)
+            await set_cached_content(cache_key, user_id, "flaw_coaching", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -900,12 +900,20 @@ async def process_executive_summary_in_background(task_ids: dict, data: dict):
         if "error" in result:
             raise Exception(result["error"])
             
+        user_id = data.get("user_id", "unknown_user")
+        cache_key = _generate_cache_key(user_id, "executive_summary", data)
         await set_cached_content(cache_key, user_id, "executive_summary", result)
 
         # 2. On dispatche intelligemment les résultats vers les bonnes tâches Frontend
-        if "one_liner" in task_ids: await asyncio.to_thread(update_task_status_sync, task_ids["one_liner"], "SUCCESS", result.get("one_liner_result", {}))
-        if "career_radar" in task_ids: await asyncio.to_thread(update_task_status_sync, task_ids["career_radar"], "SUCCESS", result.get("career_radar_result", {}))
-        if "recruiter_view" in task_ids: await asyncio.to_thread(update_task_status_sync, task_ids["recruiter_view"], "SUCCESS", result.get("recruiter_view_result", {}))
+        if "one_liner" in task_ids: 
+            await asyncio.to_thread(update_task_status_sync, task_ids["one_liner"], "SUCCESS", result.get("one_liner_result", {}))
+            await manager.broadcast(task_ids["one_liner"], "One-Liner générée", status="COMPLETED", data=result.get("one_liner_result", {}))
+        if "career_radar" in task_ids: 
+            await asyncio.to_thread(update_task_status_sync, task_ids["career_radar"], "SUCCESS", result.get("career_radar_result", {}))
+            await manager.broadcast(task_ids["career_radar"], "Radar généré", status="COMPLETED", data=result.get("career_radar_result", {}))
+        if "recruiter_view" in task_ids: 
+            await asyncio.to_thread(update_task_status_sync, task_ids["recruiter_view"], "SUCCESS", result.get("recruiter_view_result", {}))
+            await manager.broadcast(task_ids["recruiter_view"], "Vue recruteur générée", status="COMPLETED", data=result.get("recruiter_view_result", {}))
         
     except Exception as e:
         for tid in task_ids.values():
@@ -923,13 +931,18 @@ async def process_market_strategy_in_background(task_ids: dict, data: dict):
         
     try:
         user_id = data.get("user_id", "unknown_user")
-        cache_key = _generate_cache_key(user_id, "executive_summary", data)
+        cache_key = _generate_cache_key(user_id, "market_strategy", data)
         cached = await get_cached_content(cache_key)
         if cached:
-            if "one_liner" in task_ids: await asyncio.to_thread(update_task_status_sync, task_ids["one_liner"], "SUCCESS", cached.get("one_liner_result", {}))
-            if "career_radar" in task_ids: await asyncio.to_thread(update_task_status_sync, task_ids["career_radar"], "SUCCESS", cached.get("career_radar_result", {}))
-            if "recruiter_view" in task_ids: await asyncio.to_thread(update_task_status_sync, task_ids["recruiter_view"], "SUCCESS", cached.get("recruiter_view_result", {}))
-            for tid in task_ids.values(): await manager.broadcast(tid, "Résumé exécutif récupéré en cache", status="COMPLETED", data=cached)
+            if "job_decoder" in task_ids: 
+                await asyncio.to_thread(update_task_status_sync, task_ids["job_decoder"], "SUCCESS", cached.get("job_decoder_result", {}))
+                await manager.broadcast(task_ids["job_decoder"], "Décodeur récupéré en cache", status="COMPLETED", data=cached.get("job_decoder_result", {}))
+            if "risk_analysis" in task_ids: 
+                await asyncio.to_thread(update_task_status_sync, task_ids["risk_analysis"], "SUCCESS", cached.get("risk_analysis_result", {}))
+                await manager.broadcast(task_ids["risk_analysis"], "Analyse récupérée en cache", status="COMPLETED", data=cached.get("risk_analysis_result", {}))
+            if "hidden_market" in task_ids: 
+                await asyncio.to_thread(update_task_status_sync, task_ids["hidden_market"], "SUCCESS", cached.get("hidden_market_result", {}))
+                await manager.broadcast(task_ids["hidden_market"], "Marché caché récupéré en cache", status="COMPLETED", data=cached.get("hidden_market_result", {}))
             return
 
         target_lang = normalize_language(data.get('target_language', 'French'))
@@ -989,9 +1002,15 @@ async def process_market_strategy_in_background(task_ids: dict, data: dict):
         await set_cached_content(cache_key, user_id, "market_strategy", result)
 
         # 2. On dispatche les résultats vers les tâches du Frontend
-        if "job_decoder" in task_ids: await asyncio.to_thread(update_task_status_sync, task_ids["job_decoder"], "SUCCESS", result.get("job_decoder_result", {}))
-        if "risk_analysis" in task_ids: await asyncio.to_thread(update_task_status_sync, task_ids["risk_analysis"], "SUCCESS", result.get("risk_analysis_result", {}))
-        if "hidden_market" in task_ids: await asyncio.to_thread(update_task_status_sync, task_ids["hidden_market"], "SUCCESS", result.get("hidden_market_result", {}))
+        if "job_decoder" in task_ids: 
+            await asyncio.to_thread(update_task_status_sync, task_ids["job_decoder"], "SUCCESS", result.get("job_decoder_result", {}))
+            await manager.broadcast(task_ids["job_decoder"], "Décodeur d'offre généré", status="COMPLETED", data=result.get("job_decoder_result", {}))
+        if "risk_analysis" in task_ids: 
+            await asyncio.to_thread(update_task_status_sync, task_ids["risk_analysis"], "SUCCESS", result.get("risk_analysis_result", {}))
+            await manager.broadcast(task_ids["risk_analysis"], "Analyse des risques terminée", status="COMPLETED", data=result.get("risk_analysis_result", {}))
+        if "hidden_market" in task_ids: 
+            await asyncio.to_thread(update_task_status_sync, task_ids["hidden_market"], "SUCCESS", result.get("hidden_market_result", {}))
+            await manager.broadcast(task_ids["hidden_market"], "Stratégie marché caché générée", status="COMPLETED", data=result.get("hidden_market_result", {}))
         
     except Exception as e:
         for tid in task_ids.values():
@@ -1026,7 +1045,7 @@ async def process_action_plan_in_background(task_id: str, cv_dict: dict):
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
         else:
-            await set_cached_content(cache_key, user_id, "gap_analysis", result)
+            await set_cached_content(cache_key, user_id, "action_plan", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
