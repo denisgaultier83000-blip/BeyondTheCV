@@ -130,6 +130,24 @@ def initialize_schema():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        
+        print("   - Vérification de la table 'job_applications'...")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS job_applications (
+                id TEXT PRIMARY KEY,
+                user_id TEXT,
+                target_company TEXT,
+                target_job TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                session_hash TEXT,
+                tasks_map JSONB
+            )
+        """)
+        try:
+            cur.execute("ALTER TABLE job_applications ADD COLUMN session_hash TEXT")
+            cur.execute("ALTER TABLE job_applications ADD COLUMN tasks_map JSONB")
+        except Exception:
+            conn.rollback()
 
         print("   - Vérification de la table 'feedbacks'...")
         cur.execute("""

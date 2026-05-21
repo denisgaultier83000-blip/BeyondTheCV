@@ -1162,18 +1162,68 @@ async def start_analysis(background_tasks: BackgroundTasks, data: dict = Body(..
     # [INJECTION] On transmet l'ID Utilisateur aux tâches de fond pour permettre le Cache IA
     cv_dict["user_id"] = current_user["id"]
 
+    session_hash = _generate_cache_key(current_user["id"], "session", cv_dict)
+
     # [FIX EXPERT] On ignore le cache si le frontend signale que la tâche est encore en cours ("pending")
     rd = cv_dict.get('research_data')
     has_research_data = isinstance(rd, dict) and len(rd) > 0 and rd.get("status") != "pending"
 
     try:
         async with db.get_connection() as conn:
+            try:
+                try:
+                    cursor = await db.execute(conn, "SELECT column_name FROM information_schema.columns WHERE table_name='job_applications'")
+                    columns = [row[0] if isinstance(row, tuple) else row.get("column_name") for row in await cursor.fetchall()]
+                except Exception:
+                    cursor = await db.execute(conn, "PRAGMA table_info(job_applications)")
+                    columns = [row[1] if isinstance(row, tuple) else row.get("name") for row in await cursor.fetchall()]
+                
+                if columns:
+                    if 'session_hash' not in columns:
+                        await db.execute(conn, "ALTER TABLE job_applications ADD COLUMN session_hash TEXT")
+                    if 'tasks_map' not in columns:
+                        try:
+                            await db.execute(conn, "ALTER TABLE job_applications ADD COLUMN tasks_map JSONB")
+                        except Exception:
+                            await db.execute(conn, "ALTER TABLE job_applications ADD COLUMN tasks_map TEXT")
+            except Exception as e:
+                print(f"[DB WARNING] Alter table skipped: {e}")
+
+            if not cv_dict.get('is_partial_start'):
+                try:
+                    cursor = await db.execute(conn, "SELECT id, tasks_map FROM job_applications WHERE user_id = ? AND session_hash = ? ORDER BY created_at DESC LIMIT 1", (current_user["id"], session_hash))
+                    existing_app = await cursor.fetchone()
+                    if existing_app:
+                        app_id = existing_app[0] if isinstance(existing_app, tuple) else existing_app["id"]
+                        t_map_raw = existing_app[1] if isinstance(existing_app, tuple) else existing_app["tasks_map"]
+                        if t_map_raw:
+                            t_map = json.loads(t_map_raw) if isinstance(t_map_raw, str) else t_map_raw
+                            print(f"[START_ANALYSIS] Session restored for hash {session_hash}", flush=True)
+                            return {
+                                "message": "Session restored",
+                                "application_id": app_id,
+                                "tasks": t_map,
+                                "task_id": t_map.get("cv_analysis") or t_map.get("market_research"),
+                                "salary_task_id": t_map.get("salary_estimation")
+                            }
+                except Exception as e:
+                    print(f"[DB WARNING] Failed to restore session: {e}")
+
             # 1. Création de la session de candidature
-            await db.execute(conn,
-                """INSERT INTO job_applications (id, user_id, target_company, target_job, created_at) 
-                   VALUES (?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING""",
-                (application_id, current_user["id"], cv_dict.get('target_company') or "Général", cv_dict.get('target_job') or "Poste non spécifié", now)
-            )
+            try:
+                tasks_map_json = json.dumps(tasks_map)
+                await db.execute(conn,
+                    """INSERT INTO job_applications (id, user_id, target_company, target_job, created_at, session_hash, tasks_map) 
+                       VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING""",
+                    (application_id, current_user["id"], cv_dict.get('target_company') or "Général", cv_dict.get('target_job') or "Poste non spécifié", now, session_hash, tasks_map_json)
+                )
+            except Exception as e:
+                print(f"[DB WARNING] Insert fallback used: {e}")
+                await db.execute(conn,
+                    """INSERT INTO job_applications (id, user_id, target_company, target_job, created_at) 
+                       VALUES (?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING""",
+                    (application_id, current_user["id"], cv_dict.get('target_company') or "Général", cv_dict.get('target_job') or "Poste non spécifié", now)
+                )
             
             # 2. Insertion des tâches liées
             for tid in tasks_map.values():

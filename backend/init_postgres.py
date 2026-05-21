@@ -74,6 +74,19 @@ def main():
         print("✅ Table 'user_profiles' created")
 
         cur.execute("""
+            CREATE TABLE IF NOT EXISTS job_applications (
+                id TEXT PRIMARY KEY,
+                user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+                target_company TEXT,
+                target_job TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                session_hash TEXT,
+                tasks_map JSONB
+            )
+        """)
+        print("✅ Table 'job_applications' created")
+
+        cur.execute("""
             DROP TABLE IF EXISTS products CASCADE;
         """)
         
@@ -113,7 +126,8 @@ def main():
                 path TEXT,
                 type TEXT,
                 media_type TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                application_id TEXT REFERENCES job_applications(id) ON DELETE CASCADE
             )
         """)
         print("✅ Table 'documents' created")
@@ -166,6 +180,20 @@ def main():
         print("✅ Table 'feedbacks' created")
 
         cur.execute("""
+            CREATE TABLE IF NOT EXISTS interview_sessions (
+                id TEXT PRIMARY KEY,
+                user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+                application_id TEXT REFERENCES job_applications(id) ON DELETE CASCADE,
+                question_text TEXT,
+                user_answer TEXT,
+                score INTEGER,
+                feedback JSONB,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        print("✅ Table 'interview_sessions' created")
+
+        cur.execute("""
             DROP TABLE IF EXISTS tasks CASCADE;
         """)
         
@@ -181,7 +209,8 @@ def main():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 started_at TIMESTAMP,
                 completed_at TIMESTAMP,
-                metadata JSONB
+                metadata JSONB,
+                application_id TEXT REFERENCES job_applications(id) ON DELETE CASCADE
             )
         """)
         print("✅ Table 'tasks' created")

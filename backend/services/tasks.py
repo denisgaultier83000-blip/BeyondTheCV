@@ -138,6 +138,7 @@ async def _run_salary_logic(task_id: str, candidate_data: dict):
         print(f"[Task {task_id}] ❌ Salary failed: {e}")
         fallback = {"salary_range": {"low": 0, "mid": 0, "high": 0}, "currency": "EUR", "commentary": "Erreur temporaire de l'IA."}
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", fallback)
+        await manager.broadcast(task_id, "Estimation (Fallback)", status="COMPLETED", data=fallback)
 
 async def process_cv_draft_in_background(task_id: str, source_data: dict):
     print(f"[Task {task_id}] ⚙️ Starting CV Draft (Async)...")
@@ -157,8 +158,12 @@ async def _run_cv_draft_logic(task_id: str, source_data: dict):
         if "error" not in result:
             await set_cached_content(cache_key, user_id, "cv_draft", result)
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+        await manager.broadcast(task_id, "Brouillon généré", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", {"error": str(e)})
+        err = {"error": str(e)}
+        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", err)
+        await manager.broadcast(task_id, "Erreur", status="FAILED", data=err)
 
 async def process_completeness_in_background(task_id: str, payload: dict):
     print(f"[Task {task_id}] 🔍 Starting Completeness Analysis (Async)...")
@@ -190,9 +195,11 @@ async def _run_completeness_logic(task_id: str, payload: dict):
         if "error" not in result:
             await set_cached_content(cache_key, user_id, "completeness", result)
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+        await manager.broadcast(task_id, "Analyse terminée", status="COMPLETED", data=result)
     except Exception as e:
         fallback = {"score": 50, "quality": "Moyen", "missing_info": [], "suggestions": [], "clarifications": []}
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", fallback)
+        await manager.broadcast(task_id, "Analyse terminée (Fallback)", status="COMPLETED", data=fallback)
 
 async def process_cv_analysis_in_background(task_id: str, cv_data: dict):
     print(f"[Task {task_id}] 🧠 Starting Full CV Analysis (Async)...")
@@ -217,6 +224,9 @@ async def _run_cv_analysis_logic(task_id: str, cv_data: dict):
         await manager.broadcast(task_id, "Analyse CV terminée.", status="COMPLETED", data=result_json)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", {"error": str(e)})
+        err = {"error": str(e)}
+        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", err)
+        await manager.broadcast(task_id, "Erreur", status="FAILED", data=err)
 
 async def process_pitch_in_background(task_id: str, candidate_data: dict):
     print(f"[Task {task_id}] 🎤 Starting Pitch (Async)...")
@@ -279,9 +289,11 @@ async def _run_pitch_logic(task_id: str, candidate_data: dict):
         if "error" not in result:
             await set_cached_content(cache_key, user_id, "pitch", result)
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+        await manager.broadcast(task_id, "Pitch généré", status="COMPLETED", data=result)
     except Exception as e:
         fallback = {"accroche": "Erreur", "preuve": "", "valeur": "", "projection": ""}
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", fallback)
+        await manager.broadcast(task_id, "Erreur de génération", status="FAILED", data=fallback)
 
 async def process_questions_in_background(task_id: str, candidate_data: dict):
     print(f"[Task {task_id}] ❓ Starting Questions (Async)...")
@@ -340,6 +352,9 @@ async def _run_questions_logic(task_id: str, candidate_data: dict):
             await manager.broadcast(task_id, "Questions générées avec succès", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
+        err = {"error": str(e)}
+        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", err)
+        await manager.broadcast(task_id, "Erreur", status="FAILED", data=err)
 
 async def process_gap_analysis_in_background(task_id: str, data: dict):
     print(f"[Task {task_id}] ⚖️ Starting Gap Analysis (Async)...")
@@ -391,11 +406,16 @@ async def _run_gap_analysis_logic(task_id: str, data: dict):
         result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a Career Coach. Output STRICT JSON in {target_lang}.")
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
+            await manager.broadcast(task_id, "Erreur d'analyse", status="FAILED", data=result)
         else:
             await set_cached_content(cache_key, user_id, "gap_analysis", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            await manager.broadcast(task_id, "Analyse terminée", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
+        err = {"error": str(e)}
+        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", err)
+        await manager.broadcast(task_id, "Erreur", status="FAILED", data=err)
 
 async def run_gap_analysis_and_get_result(data: dict):
     """
@@ -486,11 +506,16 @@ async def _run_career_radar_logic(task_id: str, data: dict):
         
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
+            await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
             await set_cached_content(cache_key, user_id, "career_radar", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            await manager.broadcast(task_id, "Radar généré", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
+        err = {"error": str(e)}
+        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", err)
+        await manager.broadcast(task_id, "Erreur", status="FAILED", data=err)
 
 async def process_recruiter_view_in_background(task_id: str, data: dict):
     print(f"[Task {task_id}] 🕶️ Starting Recruiter View (Async)...")
@@ -519,11 +544,16 @@ async def _run_recruiter_view_logic(task_id: str, data: dict):
         
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
+            await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
             await set_cached_content(cache_key, user_id, "recruiter_view", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            await manager.broadcast(task_id, "Vue recruteur générée", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
+        err = {"error": str(e)}
+        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", err)
+        await manager.broadcast(task_id, "Erreur", status="FAILED", data=err)
 
 async def process_oneliner_in_background(task_id: str, data: dict):
     print(f"[Task {task_id}] ⚡ Starting One-Liner (Async)...")
@@ -556,11 +586,16 @@ async def _run_oneliner_logic(task_id: str, data: dict):
         
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
+            await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
             await set_cached_content(cache_key, user_id, "oneliner", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            await manager.broadcast(task_id, "One-liner générée", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
+        err = {"error": str(e)}
+        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", err)
+        await manager.broadcast(task_id, "Erreur", status="FAILED", data=err)
 
 async def process_risk_analysis_in_background(task_id: str, data: dict):
     print(f"[Task {task_id}] 🛡️ Starting Risk Analysis (Async)...")
@@ -604,11 +639,16 @@ async def _run_risk_analysis_logic(task_id: str, data: dict):
         
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
+            await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
             await set_cached_content(cache_key, user_id, "risk_analysis", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            await manager.broadcast(task_id, "Analyse des risques terminée", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
+        err = {"error": str(e)}
+        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", err)
+        await manager.broadcast(task_id, "Erreur", status="FAILED", data=err)
 
 async def process_job_decoder_in_background(task_id: str, data: dict):
     print(f"[Task {task_id}] 🕵️ Starting Job Decoder (Async)...")
@@ -639,11 +679,16 @@ async def _run_job_decoder_logic(task_id: str, data: dict):
         
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
+            await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
             await set_cached_content(cache_key, user_id, "job_decoder", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            await manager.broadcast(task_id, "Décodeur d'offre généré", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
+        err = {"error": str(e)}
+        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", err)
+        await manager.broadcast(task_id, "Erreur", status="FAILED", data=err)
 
 async def process_hidden_market_in_background(task_id: str, data: dict):
     print(f"[Task {task_id}] 🕸️ Starting Hidden Market Engine (Async)...")
@@ -677,11 +722,16 @@ async def _run_hidden_market_logic(task_id: str, data: dict):
         
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
+            await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
             await set_cached_content(cache_key, user_id, "hidden_market", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            await manager.broadcast(task_id, "Stratégie marché caché générée", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
+        err = {"error": str(e)}
+        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", err)
+        await manager.broadcast(task_id, "Erreur", status="FAILED", data=err)
 
 async def process_career_gps_in_background(task_id: str, data: dict):
     print(f"[Task {task_id}] 🧭 Starting Career GPS (Async)...")
@@ -720,11 +770,16 @@ async def _run_career_gps_logic(task_id: str, data: dict):
         
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
+            await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
             await set_cached_content(cache_key, user_id, "career_gps", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            await manager.broadcast(task_id, "GPS Carrière généré", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
+        err = {"error": str(e)}
+        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", err)
+        await manager.broadcast(task_id, "Erreur", status="FAILED", data=err)
 
 async def process_reality_check_in_background(task_id: str, data: dict):
     print(f"[Task {task_id}] 🌟 Starting Reality Check (Async)...")
@@ -753,11 +808,16 @@ async def _run_reality_check_logic(task_id: str, data: dict):
         
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
+            await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
             await set_cached_content(cache_key, user_id, "reality_check", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            await manager.broadcast(task_id, "Reality check généré", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
+        err = {"error": str(e)}
+        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", err)
+        await manager.broadcast(task_id, "Erreur", status="FAILED", data=err)
 
 async def process_profile_validation_in_background(task_id: str, data: dict):
     print(f"[Task {task_id}] 🛡️ Starting Profile Validation (Async)...")
@@ -803,11 +863,16 @@ async def _run_profile_validation_logic(task_id: str, data: dict):
         result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are a strict HR reviewer and career coach.")
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
+            await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
             await set_cached_content(cache_key, user_id, "profile_validation", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            await manager.broadcast(task_id, "Validation de profil terminée", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
+        err = {"error": str(e)}
+        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", err)
+        await manager.broadcast(task_id, "Erreur", status="FAILED", data=err)
 
 async def process_flaw_coaching_in_background(task_id: str, data: dict):
     print(f"[Task {task_id}] ✨ Starting Flaw Coaching (Async)...")
@@ -822,6 +887,7 @@ async def process_flaw_coaching_in_background(task_id: str, data: dict):
         if not flaws:
             # Pas de défauts renseignés, on valide la tâche vide
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", {"coaching": []})
+            await manager.broadcast(task_id, "Aucun défaut", status="COMPLETED", data={"coaching": []})
             return
             
         prompt_template = load_prompt(get_prompt_path("flaw_coach.md"))
@@ -837,11 +903,16 @@ async def process_flaw_coaching_in_background(task_id: str, data: dict):
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an Interview Coach. Output STRICT JSON.")
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
+            await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
             await set_cached_content(cache_key, user_id, "flaw_coaching", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            await manager.broadcast(task_id, "Coaching défauts généré", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
+        err = {"error": str(e)}
+        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", err)
+        await manager.broadcast(task_id, "Erreur", status="FAILED", data=err)
 
 async def process_executive_summary_in_background(task_ids: dict, data: dict):
     """
@@ -918,6 +989,9 @@ async def process_executive_summary_in_background(task_ids: dict, data: dict):
     except Exception as e:
         for tid in task_ids.values():
             await asyncio.to_thread(update_task_status_sync, tid, "FAILED", {"error": str(e)})
+            err_data = {"error": str(e)}
+            await asyncio.to_thread(update_task_status_sync, tid, "FAILED", err_data)
+            await manager.broadcast(tid, "Erreur", status="FAILED", data=err_data)
 
 async def process_market_strategy_in_background(task_ids: dict, data: dict):
     """
@@ -1015,6 +1089,9 @@ async def process_market_strategy_in_background(task_ids: dict, data: dict):
     except Exception as e:
         for tid in task_ids.values():
             await asyncio.to_thread(update_task_status_sync, tid, "FAILED", {"error": str(e)})
+            err_data = {"error": str(e)}
+            await asyncio.to_thread(update_task_status_sync, tid, "FAILED", err_data)
+            await manager.broadcast(tid, "Erreur", status="FAILED", data=err_data)
 
 async def process_action_plan_in_background(task_id: str, cv_dict: dict):
     """Génère la To-Do list (Plan d'Action) en tâche de fond"""
@@ -1044,11 +1121,16 @@ async def process_action_plan_in_background(task_id: str, cv_dict: dict):
         result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are a Career Coach.")
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
+            await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
             await set_cached_content(cache_key, user_id, "action_plan", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            await manager.broadcast(task_id, "Plan d'action généré", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
+        err = {"error": str(e)}
+        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", err)
+        await manager.broadcast(task_id, "Erreur", status="FAILED", data=err)
 
 async def process_custom_scenarios_in_background(task_id: str, data: dict):
     """Génère les Mises en Situation (Scénarios) ultra-personnalisées en tâche de fond"""
@@ -1091,6 +1173,9 @@ async def process_custom_scenarios_in_background(task_id: str, data: dict):
             await manager.broadcast(task_id, "Scénarios générés avec succès", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
+        err = {"error": str(e)}
+        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", err)
+        await manager.broadcast(task_id, "Erreur", status="FAILED", data=err)
 
 async def orchestrate_dashboard_tasks(tasks_map: dict, cv_dict: dict):
     """
@@ -1118,6 +1203,9 @@ async def orchestrate_dashboard_tasks(tasks_map: dict, cv_dict: dict):
                 for tid in tids:
                     try:
                         await asyncio.to_thread(update_task_status_sync, tid, "FAILED", {"error": f"Orchestrator safety fallback: {str(e)}"})
+                        err_data = {"error": f"Orchestrator safety fallback: {str(e)}"}
+                        await asyncio.to_thread(update_task_status_sync, tid, "FAILED", err_data)
+                        await manager.broadcast(tid, "Erreur critique", status="FAILED", data=err_data)
                     except Exception as db_err:
                         print(f"[ORCHESTRATOR DB ERROR] Impossible de MAJ le statut pour {tid}: {db_err}", flush=True)
                         
