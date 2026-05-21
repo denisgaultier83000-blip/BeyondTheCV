@@ -63,7 +63,7 @@ def _get_sortable_date_tuple(date_str: str) -> tuple:
         return (0, 0)
     date_str_lower = date_str.lower().strip()
     
-    present_terms = ["present", "aujourd'hui", "en cours", "current", "heute", "actual"]
+    present_terms = ["present", "aujourd'hui", "en cours", "current", "heute", "actual", "à ce jour", "jusqu'à présent", "now", "présent"]
     if any(term in date_str_lower for term in present_terms):
         return (datetime.max.year, datetime.max.month)
 
@@ -117,7 +117,8 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
             'questions_to_ask', 'smart_questions', 'action_plan', 'custom_scenarios', 
             'salary_estimation', 'career_radar', 'recruiter_view', 'one_liner', 
             'risk_analysis', 'job_decoder', 'hidden_market', 'career_gps', 'reality_check', 
-            'profile_validation', 'flaw_coaching', 'feedback', 'feedbacks', 'target_job', 'target_company', 'target_industry', 'target_country', 'target_role_primary'
+            'profile_validation', 'flaw_coaching', 'feedback', 'feedbacks', 'target_job', 'target_company', 'target_industry', 'target_country', 'target_role_primary',
+            'missing_info', 'suggestions', 'completeness', 'quality', 'score', 'tasks'
         ]
         for key in ai_generated_keys:
             clean_data.pop(key, None)
@@ -143,10 +144,12 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
                 try:
                     if list_key in ['experiences', 'educations']:
                         clean_list.sort(key=lambda x: (
-                            _get_sortable_date_tuple(x.get('end_date', '') if isinstance(x, dict) else ''),
+                            _get_sortable_date_tuple((x.get('end_date') or x.get('endDate') or x.get('date') or '') if isinstance(x, dict) else ''),
                             str(x.get('title', x.get('role', '')) if isinstance(x, dict) else '').strip().lower()
                         ), reverse=True)
                     elif list_key == 'clarifications':
+                        # On ne conserve dans le hash QUE les questions où l'utilisateur a donné une réponse
+                        clean_list = [c for c in clean_list if isinstance(c, dict) and c.get('answer')]
                         clean_list.sort(key=lambda x: str(x.get('question', '') if isinstance(x, dict) else '').strip().lower())
                     elif list_key in ['skills', 'languages', 'projects']:
                         clean_list.sort(key=lambda x: str(x).strip().lower())

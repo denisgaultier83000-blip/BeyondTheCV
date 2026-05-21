@@ -1044,7 +1044,7 @@ async def render_final_cv(cv_final_data: CVFinal, preview: bool = Query(False), 
                         
                 # [FIX EXPERT] Tri chronologique final JUSTE AVANT la génération du PDF
                 if section.type in ["experience", "education"]:
-                    items.sort(key=lambda x: _get_sortable_date_tuple(x.get('end_date', '')), reverse=True)
+                    items.sort(key=lambda x: _get_sortable_date_tuple(x.get('end_date') or x.get('endDate') or x.get('date') or ''), reverse=True)
                     
                 latex_data[key] = items
             elif section.type == "skills":
@@ -1087,9 +1087,9 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
     # [FIX EXPERT] Tri chronologique absolu en entrée de pipeline. Force la réorganisation des 
     # expériences et formations par date même si le frontend envoie un tableau désordonné.
     if 'experiences' in cv_dict and isinstance(cv_dict['experiences'], list):
-        cv_dict['experiences'].sort(key=lambda exp: _get_sortable_date_tuple(exp.get('end_date', '')), reverse=True)
+        cv_dict['experiences'].sort(key=lambda exp: _get_sortable_date_tuple(exp.get('end_date') or exp.get('endDate') or exp.get('date') or ''), reverse=True)
     if 'educations' in cv_dict and isinstance(cv_dict['educations'], list):
-        cv_dict['educations'].sort(key=lambda edu: _get_sortable_date_tuple(edu.get('end_date', '')), reverse=True)
+        cv_dict['educations'].sort(key=lambda edu: _get_sortable_date_tuple(edu.get('end_date') or edu.get('endDate') or edu.get('date') or ''), reverse=True)
     
     if data.is_partial_start:
         if data.target_company or data.target_industry:

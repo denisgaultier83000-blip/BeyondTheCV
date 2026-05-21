@@ -53,9 +53,9 @@ async def update_my_profile(payload: dict = Body(...), current_user: dict = Depe
     try:
         # [FIX] Tri chronologique définitif des expériences et formations avant sauvegarde en BDD
         if 'experiences' in payload and isinstance(payload['experiences'], list):
-            payload['experiences'].sort(key=lambda exp: _get_sortable_date_tuple(exp.get('end_date', '')), reverse=True)
+            payload['experiences'].sort(key=lambda exp: _get_sortable_date_tuple(exp.get('end_date') or exp.get('endDate') or exp.get('date') or ''), reverse=True)
         if 'educations' in payload and isinstance(payload['educations'], list):
-            payload['educations'].sort(key=lambda edu: _get_sortable_date_tuple(edu.get('end_date', '')), reverse=True)
+            payload['educations'].sort(key=lambda edu: _get_sortable_date_tuple(edu.get('end_date') or edu.get('endDate') or edu.get('date') or ''), reverse=True)
             
         async with db.get_connection() as conn:
             profile_json = json.dumps(payload)
