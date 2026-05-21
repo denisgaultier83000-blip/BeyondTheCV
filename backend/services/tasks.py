@@ -49,9 +49,11 @@ async def _check_cache_and_broadcast(task_id: str, user_id: str, content_type: s
         payload_to_broadcast = cached
         needs_cache_update = False
         
-        if content_type == "interview_questions" and data.get("questions") and isinstance(data.get("questions"), list) and len(data.get("questions")) > 0:
-            payload_to_broadcast = {"questions": data.get("questions")}
-            needs_cache_update = True
+        if content_type == "interview_questions":
+            qs = data.get("questions") or data.get("questions_list")
+            if qs and isinstance(qs, list) and len(qs) > 0:
+                payload_to_broadcast = {"questions": qs}
+                needs_cache_update = True
         elif content_type == "pitch" and data.get("pitch") and isinstance(data.get("pitch"), dict) and data.get("pitch").get("accroche"):
             payload_to_broadcast = data.get("pitch")
             needs_cache_update = True

@@ -114,10 +114,14 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
         if strict:
             for key in ['email', 'phone', 'address', 'linkedin', 'city']:
                 clean_data['personal_info'].pop(key, None)
+            # Remove any id or ui_ keys from personal_info
+            keys_to_remove = [k for k in clean_data['personal_info'].keys() if k in ['id', '_id', 'created_at', 'updated_at', 'createdAt', 'updatedAt'] or k.startswith('ui_') or k.startswith('is')]
+            for k in keys_to_remove:
+                clean_data['personal_info'].pop(k, None)
                 
     if strict:
         # Purge des listes : suppression des IDs aléatoires qui cassent la signature du cache
-        for list_key in ['experiences', 'educations', 'projects', 'skills', 'languages', 'clarifications']:
+        for list_key in ['experiences', 'educations', 'projects', 'skills', 'languages', 'clarifications', 'work_style', 'relational_style', 'professional_approach', 'interests', 'flaws']:
             if list_key in clean_data and isinstance(clean_data[list_key], list):
                 clean_list = []
                 for item in clean_data[list_key]:
@@ -142,7 +146,7 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
                         # On ne conserve dans le hash QUE les questions où l'utilisateur a donné une réponse
                         clean_list = [c for c in clean_list if isinstance(c, dict) and c.get('answer')]
                         clean_list.sort(key=lambda x: str(x.get('question', '') if isinstance(x, dict) else '').strip().lower())
-                    elif list_key in ['skills', 'languages', 'projects', 'interests', 'flaws']:
+                    elif list_key in ['skills', 'languages', 'projects', 'interests', 'flaws', 'work_style', 'relational_style', 'professional_approach']:
                         clean_list.sort(key=lambda x: json.dumps(x, sort_keys=True).lower() if isinstance(x, dict) else str(x).strip().lower())
                 except Exception:
                     pass

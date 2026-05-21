@@ -1113,13 +1113,10 @@ async def render_final_cv(cv_final_data: CVFinal, preview: bool = Query(False), 
         raise HTTPException(status_code=500, detail=f"Render error: {e}")
 
 @router.post("/start-analysis")
-async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, current_user: dict = Depends(require_active_subscription)):
+async def start_analysis(data: dict = Body(...), background_tasks: BackgroundTasks, current_user: dict = Depends(require_active_subscription)):
     tasks_map = {}
     now = datetime.now()
-    try:
-        cv_dict = data.model_dump()
-    except AttributeError:
-        cv_dict = data.dict()
+    cv_dict = data.copy()
         
     # [FIX EXPERT] Tri chronologique absolu en entrée de pipeline. Force la réorganisation des 
     # expériences et formations par date même si le frontend envoie un tableau désordonné.
@@ -1128,8 +1125,8 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
     if 'educations' in cv_dict and isinstance(cv_dict['educations'], list):
         cv_dict['educations'].sort(key=lambda edu: _get_sortable_date_tuple(edu.get('end_date') or edu.get('endDate') or edu.get('date') or ''), reverse=True)
     
-    if data.is_partial_start:
-        if data.target_company or data.target_industry:
+    if cv_dict.get('is_partial_start'):
+        if cv_dict.get('target_company') or cv_dict.get('target_industry'):
             tasks_map["market_research"] = str(uuid.uuid4())
             tasks_map["salary_estimation"] = str(uuid.uuid4()) # Ajout explicite pour le frontend
     else:
@@ -1144,7 +1141,7 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
         tasks_map["risk_analysis"] = str(uuid.uuid4())
         
         # [FIX] On ne lance le Job Decoder QUE si une annonce a été fournie (évite les hallucinations)
-        if data.job_description and str(data.job_description).strip():
+        if cv_dict.get('job_description') and str(cv_dict.get('job_description')).strip():
             tasks_map["job_decoder"] = str(uuid.uuid4())
         tasks_map["hidden_market"] = str(uuid.uuid4())
         tasks_map["career_gps"] = str(uuid.uuid4())
@@ -1154,7 +1151,7 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
         tasks_map["action_plan"] = str(uuid.uuid4())
         tasks_map["custom_scenarios"] = str(uuid.uuid4())
         
-        if data.target_company or data.target_industry:
+        if cv_dict.get('target_company') or cv_dict.get('target_industry'):
             tasks_map["market_research"] = str(uuid.uuid4())
 
     application_id = cv_dict.get("application_id")
@@ -1166,7 +1163,8 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
     cv_dict["user_id"] = current_user["id"]
 
     # [FIX EXPERT] On ignore le cache si le frontend signale que la tâche est encore en cours ("pending")
-    has_research_data = isinstance(data.research_data, dict) and len(data.research_data) > 0 and data.research_data.get("status") != "pending"
+    rd = cv_dict.get('research_data')
+    has_research_data = isinstance(rd, dict) and len(rd) > 0 and rd.get("status") != "pending"
 
     try:
         async with db.get_connection() as conn:
@@ -1174,7 +1172,7 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
             await db.execute(conn,
                 """INSERT INTO job_applications (id, user_id, target_company, target_job, created_at) 
                    VALUES (?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING""",
-                (application_id, current_user["id"], data.target_company or "Général", data.target_job or "Poste non spécifié", now)
+                (application_id, current_user["id"], cv_dict.get('target_company') or "Général", cv_dict.get('target_job') or "Poste non spécifié", now)
             )
             
             # 2. Insertion des tâches liées
@@ -1191,21 +1189,21 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
     if "market_research" in tasks_map:
         # [FIX EXPERT] On court-circuite le cache si l'utilisateur relance explicitement l'analyse (is_partial_start)
         # Cela force l'IA à refaire une recherche web fraîche.
-        if has_research_data and not data.is_partial_start:
+        if has_research_data and not cv_dict.get('is_partial_start'):
             # [FIX EXPERT] On restaure le cache ET on prévient le frontend via WebSocket
             async def restore_research_cache(tid, cached_data):
                 await asyncio.to_thread(update_task_status_sync, tid, "SUCCESS", cached_data)
                 await manager.broadcast(tid, "Analyse restaurée depuis le cache.", status="COMPLETED", data=cached_data)
-            background_tasks.add_task(restore_research_cache, tasks_map["market_research"], data.research_data)
-        elif data.target_company or data.target_industry:
+            background_tasks.add_task(restore_research_cache, tasks_map["market_research"], rd)
+        elif cv_dict.get('target_company') or cv_dict.get('target_industry'):
             research_payload = {
-                "target_company": data.target_company,
-                "target_industry": data.target_industry,
-                "target_country": data.target_country,
-                "target_job": data.target_job,
+                "target_company": cv_dict.get('target_company'),
+                "target_industry": cv_dict.get('target_industry'),
+                "target_country": cv_dict.get('target_country'),
+                "target_job": cv_dict.get('target_job'),
                 "candidate_data": cv_dict,
-                "provider": data.provider,
-                "target_language": data.target_language
+                "provider": cv_dict.get('provider'),
+                "target_language": cv_dict.get('target_language')
             }
             background_tasks.add_task(process_research_in_background, tasks_map["market_research"], research_payload)
         else:
@@ -1215,7 +1213,7 @@ async def start_analysis(data: FullCVData, background_tasks: BackgroundTasks, cu
         background_tasks.add_task(process_salary_in_background, tasks_map["salary_estimation"], cv_dict)
 
     # Lancement orchestré par vagues pour éviter les Timeouts d'API (Thundering Herd)
-    if not data.is_partial_start:
+    if not cv_dict.get('is_partial_start'):
         background_tasks.add_task(orchestrate_dashboard_tasks, tasks_map, cv_dict)
 
     return {
