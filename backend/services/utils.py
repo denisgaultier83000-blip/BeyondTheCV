@@ -151,8 +151,8 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
                         # On ne conserve dans le hash QUE les questions où l'utilisateur a donné une réponse
                         clean_list = [c for c in clean_list if isinstance(c, dict) and c.get('answer')]
                         clean_list.sort(key=lambda x: str(x.get('question', '') if isinstance(x, dict) else '').strip().lower())
-                elif list_key in ['skills', 'languages', 'projects', 'interests', 'flaws']:
-                    clean_list.sort(key=lambda x: json.dumps(x, sort_keys=True).lower() if isinstance(x, dict) else str(x).strip().lower())
+                    elif list_key in ['skills', 'languages', 'projects', 'interests', 'flaws']:
+                        clean_list.sort(key=lambda x: json.dumps(x, sort_keys=True).lower() if isinstance(x, dict) else str(x).strip().lower())
                 except Exception:
                     pass
                 clean_data[list_key] = clean_list
