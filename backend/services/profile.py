@@ -67,9 +67,6 @@ async def update_my_profile(payload: dict = Body(...), current_user: dict = Depe
             else:
                 await db.execute(conn, "INSERT INTO user_profiles (user_id, profile_data) VALUES (?, ?::jsonb)", (current_user["id"], profile_json))
 
-            # Nettoyage de l'ancien cache IA : puisque le profil a changé, 
-            # on supprime les anciens résultats pour économiser de l'espace en DB
-            await db.execute(conn, "DELETE FROM generation_cache WHERE user_id = ?", (current_user["id"],))
         return {"status": "success", "message": "Profil sauvegardé"}
     except Exception as e:
         print(f"[PROFILE SAVE ERROR] {e}", flush=True)

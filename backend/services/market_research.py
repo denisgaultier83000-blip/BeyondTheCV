@@ -435,6 +435,8 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
     
     # [FIX EXPERT] On fusionne pour parcourir d'abord les vraies actus, puis le reste
     all_sources = news_sources + other_sources
+    # Copie pour vérifier l'appartenance stricte des URLs générées
+    known_urls = [src.get('link', '') for src in all_sources]
     
     # On récupère le tableau d'actualités généré par l'IA contenant son analyse stratégique
     ai_generated_news = safe_synthesis["company_report"].get("news_links", [])
@@ -468,8 +470,9 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
             r_title = str(r.get('title') or '').replace('[ACTUALITÉ] ', '')
             r_url = r.get('link', '#')
             
-            # 1. Match strict par URL
-            is_url_match = (r_url != '#' and len(ai_url) > 10 and "lien-vers" not in ai_url and (r_url in ai_url or ai_url in r_url))
+            # 1. Match strict par URL (on ignore les points de suspension ajoutés par l'IA)
+            clean_ai_url = ai_url.replace("...", "").replace("…", "").strip()
+            is_url_match = (r_url != '#' and len(clean_ai_url) > 10 and "lien-vers" not in clean_ai_url and (r_url in clean_ai_url or clean_ai_url in r_url))
             
             # 2. Match sémantique par mots communs (au moins 2 mots significatifs de 4+ lettres)
             r_words = set(w.lower() for w in re.findall(r'\w{4,}', r_title))
@@ -496,8 +499,17 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
             # [FIX EXPERT] On GARDE l'analyse de l'IA même si le mapping strict a échoué (évite le trou noir)
             import urllib.parse
             
-            # Si l'URL de l'IA est manifestement fausse, on génère une recherche Google sémantique
-            is_fake_url = (not ai_url) or ("example" in ai_url.lower()) or ("exemple" in ai_url.lower()) or ("lien-vers" in ai_url.lower()) or ("..." in ai_url) or (not ai_url.startswith("http"))
+            # Si l'URL de l'IA est manifestement fausse, tronquée ou inventée, on génère une recherche Google
+            is_fake_url = (
+                not ai_url 
+                or "example" in ai_url.lower() 
+                or "exemple" in ai_url.lower() 
+                or "lien-vers" in ai_url.lower() 
+                or "..." in ai_url 
+                or "…" in ai_url
+                or not ai_url.startswith("http")
+                or ai_url not in known_urls
+            )
             safe_company_name = str(company) if company else ""
             safe_url = f"https://www.google.com/search?q={urllib.parse.quote(ai_title + ' ' + safe_company_name)}" if is_fake_url else ai_url
             real_news_links.append({

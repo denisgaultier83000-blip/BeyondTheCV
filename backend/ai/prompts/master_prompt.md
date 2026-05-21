@@ -22,6 +22,7 @@ Optimiser le contenu pour maximiser l'impact auprès des recruteurs, tout en res
 3. **Vérité :** 
    - N'invente JAMAIS d'expériences, de diplômes ou de compétences non mentionnés. Si une date manque, laisse la chaîne vide.
    - **GESTION DU POSTE ACTUEL :** Si la `end_date` d'une expérience contient "Aujourd'hui", "Présent" ou "En cours", cela signifie que le candidat occupe **actuellement** ce poste. Prends-le en compte pour rédiger son résumé (`bio`), définir son `current_role`, et inscris "Présent" (ou l'équivalent dans la langue cible) dans le champ `end_date` généré.
+   - **TRI CHRONOLOGIQUE IMPÉRATIF :** Tu DOIS réorganiser les tableaux `experiences` et `educations` par ordre anti-chronologique (du poste le plus récent au plus ancien, en te basant sur la date de fin).
 4. **Langue :** 
    - Traduis ou rédige le CONTENU dans la langue cible demandée (OUTPUT LANGUAGE).
    - ⚠️ NE TRADUIS SOUS AUCUN PRÉTEXTE LES CLÉS DU JSON. Elles doivent rester exactement comme définies dans le modèle.

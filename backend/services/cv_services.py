@@ -171,6 +171,7 @@ async def optimize_cv_data(data, target_lang='French', quality='smart'):
     Optimize this CV data for ATS in {target_lang}. Improve wording and keywords.
     ⚠️ IMPÉRATIF DE CORRECTION : Le texte fourni est un brouillon brut. Tu DOIS corriger scrupuleusement toutes les fautes d'orthographe, de frappe, ajouter les accents manquants et corriger la typographie (mettre des majuscules aux noms, prénoms, noms d'entreprises et débuts de phrases). Le résultat doit avoir une rigueur typographique absolue.
     ⚠️ INTERDICTION ABSOLUE : N'invente AUCUNE donnée personnelle (téléphone, email, ville, linkedin). Si une information est absente du JSON source, laisse la valeur VIDE ou null. N'écris JAMAIS de texte comme "Numéro formaté", "Ville, France" ou "URL propre".
+    ⚠️ TRI CHRONOLOGIQUE : Tu DOIS réorganiser les tableaux `experiences` et `educations` par ordre anti-chronologique (de la date la plus récente à la plus ancienne). Si une date est marquée comme 'Présent' ou 'En cours', place-la en premier.
     {instructions_candidat}
     
     DATA:
@@ -371,6 +372,9 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
             
             if not task_to_update:
                 # Auto-découverte si le composant Frontend n'envoie pas de task_id
+                def normalize_for_search(s):
+                    return re.sub(r'\W+', '', str(s)).lower() if s else "|||"
+                    
                 cursor = await db.execute(conn, """
                     SELECT t.id, t.result FROM tasks t
                     LEFT JOIN job_applications a ON t.application_id = a.id
@@ -378,9 +382,10 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                     ORDER BY t.created_at DESC LIMIT 20
                 """, (current_user["id"],))
                 rows = await cursor.fetchall()
+                req_q_norm = normalize_for_search(request.question)
                 for row in rows:
                     t_res = row[1] if isinstance(row, tuple) else row.get("result")
-                    if t_res and request.question in str(t_res):
+                    if t_res and req_q_norm in normalize_for_search(t_res):
                         task_to_update = row[0] if isinstance(row, tuple) else row.get("id")
                         break
 
