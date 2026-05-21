@@ -44,6 +44,18 @@ import database as database_module
 def load_app_config():
     try:
         config_path = os.path.join(os.path.dirname(__file__), "data", "app_config.json")
+        
+        if not os.path.exists(config_path):
+            os.makedirs(os.path.dirname(config_path), exist_ok=True)
+            default_config = {
+                "rate_limit_window": 60,
+                "rate_limit_max_requests": 100,
+                "required_templates": ["cv_ats.tex"]
+            }
+            with open(config_path, "w", encoding="utf-8") as f:
+                json.dump(default_config, f, indent=4)
+            return default_config
+            
         with open(config_path, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
