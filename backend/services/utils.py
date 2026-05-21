@@ -100,34 +100,22 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
     """Supprime les données lourdes et inutiles pour l'IA pour économiser tokens et stabiliser le hash."""
     clean_data = json.loads(json.dumps(data, default=str)) if isinstance(data, dict) else {}
         
+    if strict:
+        # WHITELIST : On ne conserve QUE les clés qui impactent la génération IA et le CV
+        allowed_keys = {
+            'personal_info', 'experiences', 'educations', 'projects', 'skills', 
+            'languages', 'interests', 'flaws', 'clarifications', 'bio', 
+            'work_style', 'relational_style', 'professional_approach', 'free_text',
+            'job_description', 'remote_preference'
+        }
+        clean_data = {k: v for k, v in clean_data.items() if k in allowed_keys}
+        
     if 'personal_info' in clean_data and isinstance(clean_data['personal_info'], dict):
         if strict:
             for key in ['email', 'phone', 'address', 'linkedin', 'city']:
                 clean_data['personal_info'].pop(key, None)
                 
     if strict:
-        # 1. Champs techniques et d'interface
-        for key in ['target_language', 'language', 'provider', 'renderer', 'design_variant', 'is_partial_start', 'preview', 'application_id', 'user_id', 'id', 'created_at', 'updated_at', 'createdAt', 'updatedAt', 'task_id', 'salary_task_id', 'message', 'status', 'error']:
-            clean_data.pop(key, None)
-            
-        # 2. TOUS les champs générés par l'IA ou volatils
-        # (Le Frontend les réinjecte dans l'objet, ce qui modifiait le Hash en boucle et cassait le cache)
-        ai_generated_keys = [
-            'research_data', 'pitch', 'gap_analysis', 'questions', 'questions_list', 
-            'questions_to_ask', 'smart_questions', 'action_plan', 'custom_scenarios', 
-            'salary_estimation', 'career_radar', 'recruiter_view', 'one_liner', 
-            'risk_analysis', 'job_decoder', 'hidden_market', 'career_gps', 'reality_check', 
-            'profile_validation', 'flaw_coaching', 'feedback', 'feedbacks', 'target_job', 'target_company', 'target_industry', 'target_country', 'target_role_primary',
-            'missing_info', 'suggestions', 'completeness', 'quality', 'score', 'tasks', 'executive_summary', 'market_strategy', 'analysis'
-        ]
-        for key in ai_generated_keys:
-            clean_data.pop(key, None)
-        
-        # [FIX EXPERT] Nettoyage dynamique des clés d'état du Frontend (qui modifient le Hash en boucle)
-        dynamic_keys = [k for k in list(clean_data.keys()) if k.endswith('UserAnswers') or k.endswith('Feedbacks') or k.endswith('Result') or k.startswith('ui_') or k == 'hasUpdates']
-        for k in dynamic_keys:
-            clean_data.pop(k, None)
-            
         # Purge des listes : suppression des IDs aléatoires qui cassent la signature du cache
         for list_key in ['experiences', 'educations', 'projects', 'skills', 'languages', 'clarifications']:
             if list_key in clean_data and isinstance(clean_data[list_key], list):
@@ -135,12 +123,10 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
                 for item in clean_data[list_key]:
                     if isinstance(item, dict):
                         item_copy = item.copy()
-                        item_copy.pop('id', None)
-                        item_copy.pop('_id', None) # Sécurité pour les IDs générés par le Frontend (MongoDB/React)
-                        item_copy.pop('created_at', None)
-                        item_copy.pop('updated_at', None)
-                        item_copy.pop('createdAt', None)
-                        item_copy.pop('updatedAt', None)
+                        # Nettoyage profond des états de l'UI (isEditing, etc.) et IDs
+                        keys_to_remove = [k for k in item_copy.keys() if k in ['id', '_id', 'created_at', 'updated_at', 'createdAt', 'updatedAt'] or k.startswith('ui_') or k.startswith('is')]
+                        for k in keys_to_remove:
+                            item_copy.pop(k, None)
                         clean_list.append(item_copy)
                     else:
                         clean_list.append(item)

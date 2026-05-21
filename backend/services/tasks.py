@@ -47,12 +47,20 @@ async def _check_cache_and_broadcast(task_id: str, user_id: str, content_type: s
         # Si le CV n'a pas changé (Cache HIT), on privilégie les données déjà présentes dans le profil du Frontend
         # plutôt que de renvoyer le cache brut qui écraserait les modifications locales (comme suggested_answer).
         payload_to_broadcast = cached
+        needs_cache_update = False
+        
         if content_type == "interview_questions" and data.get("questions") and isinstance(data.get("questions"), list) and len(data.get("questions")) > 0:
             payload_to_broadcast = {"questions": data.get("questions")}
+            needs_cache_update = True
         elif content_type == "pitch" and data.get("pitch") and isinstance(data.get("pitch"), dict) and data.get("pitch").get("accroche"):
             payload_to_broadcast = data.get("pitch")
+            needs_cache_update = True
         elif content_type == "action_plan" and data.get("action_plan"):
             payload_to_broadcast = data.get("action_plan")
+            needs_cache_update = True
+            
+        if needs_cache_update:
+            await set_cached_content(cache_key, user_id, content_type, payload_to_broadcast)
             
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", payload_to_broadcast)
         await manager.broadcast(task_id, message, status="COMPLETED", data=payload_to_broadcast)
