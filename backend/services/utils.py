@@ -118,7 +118,7 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
             'salary_estimation', 'career_radar', 'recruiter_view', 'one_liner', 
             'risk_analysis', 'job_decoder', 'hidden_market', 'career_gps', 'reality_check', 
             'profile_validation', 'flaw_coaching', 'feedback', 'feedbacks', 'target_job', 'target_company', 'target_industry', 'target_country', 'target_role_primary',
-            'missing_info', 'suggestions', 'completeness', 'quality', 'score', 'tasks'
+            'missing_info', 'suggestions', 'completeness', 'quality', 'score', 'tasks', 'executive_summary', 'market_strategy', 'analysis'
         ]
         for key in ai_generated_keys:
             clean_data.pop(key, None)
@@ -151,8 +151,8 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
                         # On ne conserve dans le hash QUE les questions où l'utilisateur a donné une réponse
                         clean_list = [c for c in clean_list if isinstance(c, dict) and c.get('answer')]
                         clean_list.sort(key=lambda x: str(x.get('question', '') if isinstance(x, dict) else '').strip().lower())
-                    elif list_key in ['skills', 'languages', 'projects']:
-                        clean_list.sort(key=lambda x: str(x).strip().lower())
+                elif list_key in ['skills', 'languages', 'projects', 'interests', 'flaws']:
+                    clean_list.sort(key=lambda x: json.dumps(x, sort_keys=True).lower() if isinstance(x, dict) else str(x).strip().lower())
                 except Exception:
                     pass
                 clean_data[list_key] = clean_list
@@ -168,9 +168,10 @@ def _generate_cache_key(user_id: str, content_type: str, data: dict) -> str:
     job = str(data.get('target_job', data.get('target_role_primary', ''))).strip().lower()
     company = str(data.get('target_company', '')).strip().lower()
     industry = str(data.get('target_industry', '')).strip().lower()
+    country = str(data.get('target_country', '')).strip().lower()
     
     data_str = json.dumps(clean_data, sort_keys=True, default=str)
-    raw_key = f"{user_id}_{content_type}_{lang}_{job}_{company}_{industry}_{data_str}"
+    raw_key = f"{user_id}_{content_type}_{lang}_{job}_{company}_{industry}_{country}_{data_str}"
     return hashlib.sha256(raw_key.encode('utf-8')).hexdigest()
 
 async def get_cached_content(cache_key: str):

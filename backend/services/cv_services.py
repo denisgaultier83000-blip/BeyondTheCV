@@ -423,7 +423,14 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                                 req_q = normalize_str(request.question)
                                 node_q = normalize_str(node.get("question"))
                                 node_t = normalize_str(node.get("text"))
-                                if (req_q and req_q in node_q) or (req_q and req_q in node_t) or (node_q and node_q in req_q):
+                                
+                                def is_match(a, b):
+                                    if not a or not b: return False
+                                    if len(a) > 5 and a in b: return True
+                                    if len(b) > 5 and b in a: return True
+                                    return a == b
+                                    
+                                if is_match(req_q, node_q) or is_match(req_q, node_t):
                                     node["user_answer"] = request.user_answer
                                     node["evaluation"] = result
                                     return True
@@ -823,14 +830,14 @@ async def generate_document(request: GenerateRequest, current_user: dict = Depen
             # place toujours les postes dans le bon ordre chronologique sur le CV final.
             if 'experiences' in data and isinstance(data['experiences'], list):
                 data['experiences'].sort(
-                    key=lambda exp: _get_sortable_date_tuple(exp.get('end_date', '')),
+                    key=lambda exp: _get_sortable_date_tuple(exp.get('end_date') or exp.get('endDate') or exp.get('date') or ''),
                     reverse=True
                 )
             
             # [COHÉRENCE] Tri automatique des formations.
             if 'educations' in data and isinstance(data['educations'], list):
                 data['educations'].sort(
-                    key=lambda edu: _get_sortable_date_tuple(edu.get('end_date', '')),
+                    key=lambda edu: _get_sortable_date_tuple(edu.get('end_date') or edu.get('endDate') or edu.get('date') or ''),
                     reverse=True
                 )
 
