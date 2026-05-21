@@ -123,6 +123,11 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
         for key in ai_generated_keys:
             clean_data.pop(key, None)
         
+        # [FIX EXPERT] Nettoyage dynamique des clés d'état du Frontend (qui modifient le Hash en boucle)
+        dynamic_keys = [k for k in list(clean_data.keys()) if k.endswith('UserAnswers') or k.endswith('Feedbacks') or k.endswith('Result') or k.startswith('ui_') or k == 'hasUpdates']
+        for k in dynamic_keys:
+            clean_data.pop(k, None)
+            
         # Purge des listes : suppression des IDs aléatoires qui cassent la signature du cache
         for list_key in ['experiences', 'educations', 'projects', 'skills', 'languages', 'clarifications']:
             if list_key in clean_data and isinstance(clean_data[list_key], list):
