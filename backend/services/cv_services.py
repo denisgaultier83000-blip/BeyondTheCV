@@ -1113,7 +1113,7 @@ async def render_final_cv(cv_final_data: CVFinal, preview: bool = Query(False), 
         raise HTTPException(status_code=500, detail=f"Render error: {e}")
 
 @router.post("/start-analysis")
-async def start_analysis(data: dict = Body(...), background_tasks: BackgroundTasks, current_user: dict = Depends(require_active_subscription)):
+async def start_analysis(background_tasks: BackgroundTasks, data: dict = Body(...), current_user: dict = Depends(require_active_subscription)):
     tasks_map = {}
     now = datetime.now()
     cv_dict = data.copy()
