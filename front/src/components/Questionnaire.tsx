@@ -313,7 +313,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
               const diffVal = typeof rawScore === 'string' ? parseInt(rawScore.replace(/\D/g, ''), 10) : Number(rawScore);
               if (diffVal > 0 && diffVal <= 5) {
                 return (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginLeft: 'auto' }} title={`Difficulté: ${diffVal}/5`}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }} title={`Difficulté: ${diffVal}/5`}>
                     {Array.from({ length: 5 }).map((_, i) => (
                       <span key={i} style={{ fontSize: '1.2rem', color: i < diffVal ? "#f59e0b" : "#e5e7eb", lineHeight: 1 }}>★</span>
                     ))}
