@@ -107,7 +107,7 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
                 
     if strict:
         # 1. Champs techniques et d'interface
-        for key in ['target_language', 'language', 'provider', 'renderer', 'design_variant', 'is_partial_start', 'preview', 'application_id', 'user_id', 'id', 'created_at', 'updated_at', 'createdAt', 'updatedAt']:
+        for key in ['target_language', 'language', 'provider', 'renderer', 'design_variant', 'is_partial_start', 'preview', 'application_id', 'user_id', 'id', 'created_at', 'updated_at', 'createdAt', 'updatedAt', 'task_id', 'salary_task_id', 'message', 'status', 'error']:
             clean_data.pop(key, None)
             
         # 2. TOUS les champs générés par l'IA ou volatils
