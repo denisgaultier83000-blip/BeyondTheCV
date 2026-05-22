@@ -1,5 +1,6 @@
 import json
 import asyncio
+import re
 from pathlib import Path
 from database import db
 from .ai_generator import ai_service
@@ -52,6 +53,21 @@ async def _check_cache_and_broadcast(task_id: str, user_id: str, content_type: s
         if content_type == "interview_questions":
             qs = data.get("questions") or data.get("questions_list")
             if qs and isinstance(qs, list) and len(qs) > 0:
+                # [FIX EXPERT] Fusion intelligente : on préserve les éditions du frontend
+                # tout en ré-injectant les réponses du candidat stockées en cache.
+                cached_qs = cached.get("questions", []) if isinstance(cached, dict) else []
+                cached_answers = {
+                    re.sub(r'\W+', '', str(cq.get("question", ""))).lower(): cq 
+                    for cq in cached_qs if isinstance(cq, dict) and "user_answer" in cq
+                }
+                for q in qs:
+                    if isinstance(q, dict):
+                        q_norm = re.sub(r'\W+', '', str(q.get("question", ""))).lower()
+                        if q_norm in cached_answers:
+                            cq = cached_answers[q_norm]
+                            q["user_answer"] = cq.get("user_answer")
+                            if "evaluation" in cq:
+                                q["evaluation"] = cq.get("evaluation")
                 payload_to_broadcast = {"questions": qs}
                 needs_cache_update = True
         elif content_type == "pitch" and data.get("pitch") and isinstance(data.get("pitch"), dict) and data.get("pitch").get("accroche"):

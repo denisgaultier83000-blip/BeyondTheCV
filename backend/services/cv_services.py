@@ -986,10 +986,26 @@ async def generate_document(request: GenerateRequest, current_user: dict = Depen
             # [OPTIMISATION] Parallélisation des appels IA pour réduire de moitié le temps d'attente
             async def get_qs():
                 q = data.get('questions') or data.get('questions_list')
-                if q: return q
                 
                 cache_key = _generate_cache_key(current_user["id"], "interview_questions", data)
                 cached = await get_cached_content(cache_key)
+                
+                if q and isinstance(q, list) and len(q) > 0:
+                    if cached and isinstance(cached, dict) and "questions" in cached:
+                        cached_answers = {
+                            re.sub(r'\W+', '', str(cq.get("question", ""))).lower(): cq 
+                            for cq in cached.get("questions", []) if isinstance(cq, dict) and "user_answer" in cq
+                        }
+                        for q_item in q:
+                            if isinstance(q_item, dict):
+                                q_norm = re.sub(r'\W+', '', str(q_item.get("question", ""))).lower()
+                                if q_norm in cached_answers:
+                                    cq = cached_answers[q_norm]
+                                    q_item["user_answer"] = cq.get("user_answer")
+                                    if "evaluation" in cq:
+                                        q_item["evaluation"] = cq.get("evaluation")
+                    return q
+                    
                 if cached: return cached
                 
                 res = await generate_interview_questions(data, quality='smart')
