@@ -447,7 +447,7 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                 except Exception as e:
                     print(f"[DB WARNING] Failed to auto-discover task: {e}", flush=True)
 
-            elif task_to_update:
+            else:
                 try:
                     cursor = await db.execute(conn, "SELECT result FROM tasks WHERE id = ?", (task_to_update,))
                     task_row = await cursor.fetchone()
@@ -460,22 +460,22 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                 except Exception as e:
                     print(f"[DB WARNING] Failed to update task JSON: {e}", flush=True)
                     
-                try:
-                    # [FIX EXPERT] Mise à jour du Cache pour que les réponses survivent au rechargement de page (F5)
-                    cursor = await db.execute(conn, "SELECT cache_key, result FROM generation_cache WHERE user_id = ? AND content_type IN ('interview_questions', 'extra_scenarios') ORDER BY created_at DESC LIMIT 5", (current_user["id"],))
-                    cache_rows = await cursor.fetchall()
-                    for c_row in cache_rows:
-                        c_key = c_row[0] if isinstance(c_row, tuple) else c_row.get("cache_key")
-                        c_res = c_row[1] if isinstance(c_row, tuple) else c_row.get("result")
-                        try:
-                            c_data = parse_deep_json(c_res)
-                                
-                            if update_question_node(c_data):
-                                await db.execute(conn, "UPDATE generation_cache SET result = ?::jsonb WHERE cache_key = ?", (json.dumps(c_data), c_key))
-                        except Exception:
-                            pass
-                except Exception as e:
-                    print(f"[DB WARNING] Failed to update generation_cache: {e}", flush=True)
+            try:
+                # [FIX EXPERT] Mise à jour du Cache pour que les réponses survivent au rechargement de page (F5)
+                cursor = await db.execute(conn, "SELECT cache_key, result FROM generation_cache WHERE user_id = ? AND content_type IN ('interview_questions', 'extra_scenarios') ORDER BY created_at DESC LIMIT 5", (current_user["id"],))
+                cache_rows = await cursor.fetchall()
+                for c_row in cache_rows:
+                    c_key = c_row[0] if isinstance(c_row, tuple) else c_row.get("cache_key")
+                    c_res = c_row[1] if isinstance(c_row, tuple) else c_row.get("result")
+                    try:
+                        c_data = parse_deep_json(c_res)
+                            
+                        if update_question_node(c_data):
+                            await db.execute(conn, "UPDATE generation_cache SET result = ?::jsonb WHERE cache_key = ?", (json.dumps(c_data), c_key))
+                    except Exception:
+                        pass
+            except Exception as e:
+                print(f"[DB WARNING] Failed to update generation_cache: {e}", flush=True)
             
         return {"feedback": result}
     except Exception as e:
