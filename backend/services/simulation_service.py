@@ -116,12 +116,18 @@ async def simulate_situation(request: SituationSimulationRequest, current_user: 
                                 except Exception: break
                             else: break
                             
+                        def is_match(a, b):
+                            if not a or not b: return False
+                            if len(a) > 10 and a in b: return True
+                            if len(b) > 10 and b in a: return True
+                            return a == b
+                            
                         def update_scenario(node):
                             if isinstance(node, dict):
                                 node_id = str(node.get("id")) if node.get("id") is not None else ""
                                 node_scen_id = str(node.get("scenario_id")) if node.get("scenario_id") is not None else ""
                                 req_id = str(request.scenario_id)
-                                if node_id == req_id or node_scen_id == req_id or req_id in str(node.get("scenario", "")):
+                                if node_id == req_id or node_scen_id == req_id or is_match(req_id, str(node.get("scenario", ""))):
                                     node["user_answer"] = request.user_answer
                                     node["feedback"] = feedback
                                     return True
@@ -142,7 +148,13 @@ async def simulate_situation(request: SituationSimulationRequest, current_user: 
                                 c_key = c_row[0] if isinstance(c_row, tuple) else c_row.get("cache_key")
                                 c_res_str = c_row[1] if isinstance(c_row, tuple) else c_row.get("result")
                                 try:
-                                    c_data = json.loads(c_res_str) if isinstance(c_res_str, str) else c_res_str
+                                # [FIX EXPERT] Désérialisation profonde pour la sauvegarde en cache
+                                c_data = c_res_str
+                                for _ in range(5):
+                                    if isinstance(c_data, str):
+                                        try: c_data = json.loads(c_data)
+                                        except Exception: break
+                                    else: break
                                     if update_scenario(c_data):
                                         await db.execute(conn, "UPDATE generation_cache SET result = ?::jsonb WHERE cache_key = ?", (json.dumps(c_data), c_key))
                                 except Exception:

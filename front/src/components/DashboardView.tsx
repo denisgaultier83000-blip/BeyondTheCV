@@ -63,8 +63,7 @@ export const DashboardView = () => {
   const subMenus: Record<string, {label: string, id: string}[]> = {
     interview: [
       { label: t('submenu_pitch', 'Pitch'), id: 'pitch_section' },
-      { label: t('submenu_questionnaire', 'Questionnaire'), id: 'questionnaire_section' },
-      { label: t('submenu_mes', 'Mises en situation'), id: 'mes_section' },
+      { label: t('submenu_questionnaire', 'Questions & Scénarios'), id: 'questionnaire_section' },
       { label: t('submenu_flaws', 'Parades aux Défauts'), id: 'flaws_section' }
     ],
     market: [
@@ -104,8 +103,8 @@ export const DashboardView = () => {
   const deliverableItems = [
     { name: t('deliv_cv', "CV ATS"), tab: "cv", data: cvResult, icon: <FileText size={18}/> },
     { name: t('deliv_pitch', "Pitch de 3 minutes"), tab: "interview", anchor: "pitch_section", data: pitchResult, icon: <Mic size={18}/> },
-    { name: t('deliv_questions', "Questions d'Entretien"), tab: "interview", anchor: "questionnaire_section", data: questionsResult, icon: <MessageSquare size={18}/> },
-    { name: t('deliv_mes', "Mises en situation"), tab: "interview", anchor: "mes_section", data: customScenariosResult || cvData, icon: <ShieldAlert size={18}/> },
+    { name: t('deliv_questions', "Questions & Scénarios"), tab: "interview", anchor: "questionnaire_section", data: questionsResult || customScenariosResult, icon: <MessageSquare size={18}/> },
+    { name: t('deliv_mes', "Mises en situation"), tab: "interview", anchor: "questionnaire_section", data: customScenariosResult || cvData, icon: <ShieldAlert size={18}/> },
     { name: t('deliv_flaws', "Parades aux Défauts"), tab: "interview", anchor: "flaws_section", data: flawCoachingResult, icon: <AlertTriangle size={18}/> },
     { name: t('deliv_gap', "Analyse d'Écarts (Gap)"), tab: "market", anchor: "gap_section", data: gapResult, icon: <Target size={18}/> },
     { name: t('deliv_company', "Rapport Entreprise"), tab: "market", anchor: "company_section", data: researchResult, icon: <Building size={18}/> },

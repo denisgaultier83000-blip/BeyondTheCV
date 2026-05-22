@@ -12,7 +12,7 @@ import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
 
 export const InterviewTab = () => {
-  const { pitchResult, questionsResult, globalStatus, cvData } = useDashboard();
+  const { pitchResult, questionsResult, customScenariosResult, globalStatus, cvData } = useDashboard();
   const { t } = useTranslation();
   const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false);
   const [isDark] = useState(() => document.body.classList.contains('dark-mode'));
@@ -206,6 +206,46 @@ export const InterviewTab = () => {
     return (Object.values(payload).find(v => Array.isArray(v)) as any[]) || [];
   };
 
+  // Convertir les Mises en Situation (MES) en format "Question" pour les fusionner
+  const getScenariosAsQuestions = (data: any): any[] => {
+    if (!data) return [];
+    let actualData = data.result !== undefined ? data.result : data;
+    let depth = 0;
+    while (typeof actualData === 'string' && depth < 7) {
+        try {
+            const match = actualData.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+            actualData = JSON.parse(match ? match[1] : actualData);
+            depth++;
+        } catch(e) { break; }
+    }
+    
+    const scenarios: any[] = [];
+    const extractDeep = (obj: any, currentCategory: string = "Mise en situation") => {
+        if (!obj || typeof obj !== 'object') return;
+        if (Array.isArray(obj)) {
+            obj.forEach(item => extractDeep(item, currentCategory));
+        } else {
+            if (obj.scenario) {
+                scenarios.push({
+                    category: "SCÉNARIO : " + currentCategory.toUpperCase(),
+                    question: obj.scenario,
+                    suggested_answer: obj.expected_behavior || obj.suggested_answer || "Conseil : Utilisez la méthode STAR pour structurer votre réponse.",
+                    advice: obj.advice || obj.context || "Cette mise en situation évalue vos réflexes professionnels.",
+                    user_answer: obj.user_answer,
+                    evaluation: obj.feedback || obj.evaluation
+                });
+            } else {
+                const cat = obj.category || obj.theme || obj.title || currentCategory;
+                Object.values(obj).forEach(v => extractDeep(v, cat));
+            }
+        }
+    };
+    extractDeep(actualData);
+    return scenarios;
+  };
+
+  const mergedQuestions = [...getQuestionsArray(questionsResult), ...getScenariosAsQuestions(customScenariosResult)];
+
   return (
     <>
       {isTeleprompterOpen && <Teleprompter />}
@@ -266,7 +306,7 @@ export const InterviewTab = () => {
 
         <div id="questionnaire_section">
         <DashboardCard
-          title={t('deliv_questions', "Questionnaire d'Entretien")}
+          title={t('deliv_questions', "Questions & Mises en situation")}
           icon={<MessageSquare size={24} />}
           loading={globalStatus === 'PROCESSING' && !questionsResult}
           loadingText={t('questions_loading', "Génération des questions...")}
@@ -301,8 +341,8 @@ export const InterviewTab = () => {
               <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "1.5rem", fontStyle: "italic", background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
                 * Légende : ★ (1-Facile) à ★★★★★ (5-Très Difficile)
               </div>
-              {getQuestionsArray(questionsResult).length > 0 ? (
-                <Questionnaire questions={getQuestionsArray(questionsResult)} hideHeader={true} />
+              {mergedQuestions.length > 0 ? (
+                <Questionnaire questions={mergedQuestions} hideHeader={true} />
               ) : (
                 <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                   Les questions sont en cours d'analyse ou n'ont pas pu être formatées correctement.
@@ -313,16 +353,6 @@ export const InterviewTab = () => {
         </DashboardCard>
         </div>
 
-        {/* MODULE MISE EN SITUATION */}
-        <div id="mes_section">
-        <DashboardCard
-          title={t('submenu_mes', "Mises en situation")}
-          icon={<BrainCircuit size={24} />}
-          featureId="situation_simulator"
-        >
-          <SituationSimulator />
-        </DashboardCard>
-        </div>
       </div>
     </>
   );

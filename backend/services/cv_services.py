@@ -437,6 +437,7 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                                     req_q = normalize_str(request.question)
                                     node_q = normalize_str(node.get("question"))
                                     node_t = normalize_str(node.get("text"))
+                                    node_s = normalize_str(node.get("scenario"))
                                     
                                     def is_match(a, b):
                                         if not a or not b: return False
@@ -444,7 +445,7 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                                         if len(b) > 5 and b in a: return True
                                         return a == b
                                         
-                                    if is_match(req_q, node_q) or is_match(req_q, node_t):
+                                    if is_match(req_q, node_q) or is_match(req_q, node_t) or is_match(req_q, node_s):
                                         node["user_answer"] = request.user_answer
                                         node["evaluation"] = result
                                         return True
@@ -468,7 +469,14 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                         c_key = c_row[0] if isinstance(c_row, tuple) else c_row.get("cache_key")
                         c_res = c_row[1] if isinstance(c_row, tuple) else c_row.get("result")
                         try:
-                            c_data = json.loads(c_res) if isinstance(c_res, str) else c_res
+                            # [FIX EXPERT] Désérialisation profonde garantie pour le cache
+                            c_data = c_res
+                            for _ in range(5):
+                                if isinstance(c_data, str):
+                                    try: c_data = json.loads(c_data)
+                                    except Exception: break
+                                else: break
+                                
                             if update_question_node(c_data):
                                 await db.execute(conn, "UPDATE generation_cache SET result = ?::jsonb WHERE cache_key = ?", (json.dumps(c_data), c_key))
                         except Exception:
