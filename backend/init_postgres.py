@@ -194,6 +194,34 @@ def main():
         print("✅ Table 'interview_sessions' created")
 
         cur.execute("""
+            CREATE TABLE IF NOT EXISTS training_sessions (
+                id TEXT PRIMARY KEY,
+                user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+                theme TEXT,
+                question_type TEXT,
+                question_text TEXT,
+                user_answer TEXT,
+                score INTEGER,
+                strengths TEXT,
+                weaknesses TEXT,
+                improved_answer TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        print("✅ Table 'training_sessions' created")
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS generation_cache (
+                cache_key TEXT PRIMARY KEY,
+                user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+                content_type TEXT,
+                result JSONB,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        print("✅ Table 'generation_cache' created")
+
+        cur.execute("""
             DROP TABLE IF EXISTS tasks CASCADE;
         """)
         

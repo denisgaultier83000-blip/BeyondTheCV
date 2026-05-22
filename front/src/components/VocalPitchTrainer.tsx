@@ -179,12 +179,14 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", onSuccess }: VocalPi
             
             <div style={{ padding: '1.5rem', background: 'rgba(139, 92, 246, 0.05)', borderRadius: '0.75rem', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
               <h3 style={{ margin: '0 0 1rem 0', color: '#6d28d9', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Dumbbell size={18} /> Plan d'entraînement</h3>
-              {result.micro_exercises.map((ex: any, i: number) => (
+              {Array.isArray(result.micro_exercises) ? result.micro_exercises.map((ex: any, i: number) => (
                 <div key={i} style={{ marginBottom: '1rem' }}>
                   <div style={{ fontWeight: 600, color: '#5b21b6', fontSize: '0.9rem' }}>• {ex.title}</div>
                   <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', paddingLeft: '1rem' }}>{ex.description}</div>
                 </div>
-              ))}
+              )) : (
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', paddingLeft: '1rem' }}>{result.micro_exercises}</div>
+              )}
             </div>
           </div>
 

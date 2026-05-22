@@ -320,8 +320,8 @@ export default function TrainingTab() {
                 <h4 style={{ margin: 0, color: 'var(--text-main)' }}>Analyse de votre réponse</h4>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div><strong style={{ color: '#10b981' }}>Points forts :</strong><ul style={{ margin: '0.5rem 0', paddingLeft: '1.2rem', fontSize: '0.9rem' }}>{feedback.strengths?.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul></div>
-                <div><strong style={{ color: '#ef4444' }}>À améliorer :</strong><ul style={{ margin: '0.5rem 0', paddingLeft: '1.2rem', fontSize: '0.9rem' }}>{feedback.weaknesses?.map((w: string, i: number) => <li key={i}>{w}</li>)}</ul></div>
+                <div><strong style={{ color: '#10b981' }}>Points forts :</strong><ul style={{ margin: '0.5rem 0', paddingLeft: '1.2rem', fontSize: '0.9rem' }}>{Array.isArray(feedback.strengths) ? feedback.strengths.map((s: string, i: number) => <li key={i}>{s}</li>) : <li>{feedback.strengths}</li>}</ul></div>
+                <div><strong style={{ color: '#ef4444' }}>À améliorer :</strong><ul style={{ margin: '0.5rem 0', paddingLeft: '1.2rem', fontSize: '0.9rem' }}>{Array.isArray(feedback.weaknesses) ? feedback.weaknesses.map((w: string, i: number) => <li key={i}>{w}</li>) : <li>{feedback.weaknesses}</li>}</ul></div>
               </div>
               <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
                 <strong>Réponse idéale :</strong>
@@ -359,11 +359,11 @@ export default function TrainingTab() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.9rem' }}>
                       <div>
                         <strong style={{ color: '#10b981' }}>Points forts :</strong>
-                        <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.2rem' }}>{fb.strengths?.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul>
+                        <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.2rem' }}>{Array.isArray(fb.strengths) ? fb.strengths.map((s: string, i: number) => <li key={i}>{s}</li>) : <li>{fb.strengths}</li>}</ul>
                       </div>
                       <div>
                         <strong style={{ color: '#ef4444' }}>À améliorer :</strong>
-                        <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.2rem' }}>{fb.weaknesses?.map((w: string, i: number) => <li key={i}>{w}</li>)}</ul>
+                        <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.2rem' }}>{Array.isArray(fb.weaknesses) ? fb.weaknesses.map((w: string, i: number) => <li key={i}>{w}</li>) : <li>{fb.weaknesses}</li>}</ul>
                       </div>
                     </div>
                   )}
