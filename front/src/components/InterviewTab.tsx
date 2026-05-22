@@ -241,7 +241,7 @@ export const InterviewTab = () => {
                 scenarios.push({
                     category: "SCÉNARIO : " + currentCategory.toUpperCase(),
                     question: obj.scenario || obj.question || obj.situation || obj.text || obj.contexte || obj.description || obj.defi,
-                    suggested_answer: obj.expected_behavior || obj.suggested_answer || obj.answer || obj.solution || "Conseil : Utilisez la méthode STAR pour structurer votre réponse.",
+                    suggested_answer: obj.expected_behavior || obj.suggested_answer || obj.answer || obj.solution || "Utilisez la méthode STAR (Situation, Tâche, Action, Résultat) pour structurer votre réponse.",
                     advice: obj.advice || obj.context || obj.rationale || obj.strategy || obj.feedback || "Cette mise en situation évalue vos réflexes professionnels.",
                     user_answer: obj.user_answer,
                     evaluation: obj.feedback || obj.evaluation

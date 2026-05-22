@@ -91,7 +91,8 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
                 scenarios.push({
                     category: "SCÉNARIO : " + cat.toUpperCase(),
                     question: obj.scenario || obj.question || obj.situation || obj.text || obj.contexte || obj.description || obj.defi,
-                    suggested_answer: obj.expected_behavior || obj.suggested_answer || obj.answer || obj.solution || "Conseil : STAR",
+                    suggested_answer: obj.expected_behavior || obj.suggested_answer || obj.answer || obj.solution || "Utilisez la méthode STAR (Situation, Tâche, Action, Résultat) pour structurer votre réponse.",
+                    advice: obj.advice || obj.context || obj.rationale || obj.strategy || obj.feedback || "Cette mise en situation évalue vos réflexes professionnels.",
                     user_answer: obj.user_answer,
                     evaluation: obj.feedback || obj.evaluation
                 });
@@ -105,7 +106,22 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
   const questionsArray = getQuestionsArray(questionsResult);
   const scenariosArray = getScenariosAsQuestions(customScenariosResult);
   const pitch = pitchResult?.pitch || pitchResult;
-  const todoList = actionPlanResult?.action_plan || actionPlanResult?.tasks || actionPlanResult?.phases || actionPlanResult;
+  let todoList = actionPlanResult?.action_plan || actionPlanResult?.tasks || actionPlanResult?.phases || actionPlanResult;
+  
+  // Nettoyage et formatage du plan d'action s'il a été retourné sous forme d'objet dictionnaire
+  if (todoList && typeof todoList === 'object' && !Array.isArray(todoList)) {
+    const arr: any[] = [];
+    Object.entries(todoList).forEach(([k, v]) => {
+      if (Array.isArray(v)) {
+        arr.push({ phase: k, actions: v });
+      } else if (typeof v === 'string') {
+        arr.push({ phase: k, actions: [v] });
+      } else if (typeof v === 'object' && v !== null) {
+        arr.push({ phase: k, actions: [JSON.stringify(v)] });
+      }
+    });
+    if (arr.length > 0) todoList = arr;
+  }
 
   const renderImprovedAnswer = (answer: any) => {
     if (!answer) return "N/A";
@@ -223,7 +239,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
                   )}
                 </>
               ) : (
-                <p style={{ margin: '0.5rem 0', color: '#94a3b8', fontStyle: 'italic' }}>Non répondu. Suggestion : {q.suggested_answer || q.answer}</p>
+                <p style={{ margin: '0.5rem 0', color: '#94a3b8', fontStyle: 'italic' }}>Non répondu. Suggestion : {(q.suggested_answer || q.answer || "À vous de jouer").replace(/^(Suggestion|Conseil)\s*:\s*/i, '')}</p>
               )}
             </div>
           ))}
@@ -248,7 +264,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
                   )}
                 </>
               ) : (
-                <p style={{ margin: '0.5rem 0', color: '#94a3b8', fontStyle: 'italic' }}>Non répondu. Conseil : {q.advice || q.suggested_answer}</p>
+                <p style={{ margin: '0.5rem 0', color: '#94a3b8', fontStyle: 'italic' }}>Non répondu. Conseil : {(q.advice || q.suggested_answer || "Utilisez la méthode STAR (Situation, Tâche, Action, Résultat) pour structurer votre réponse.").replace(/^Conseil\s*:\s*/i, '')}</p>
               )}
             </div>
           ))}
@@ -276,16 +292,26 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
         <div className="print-section page-break">
           <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>✅ Plan d'Action (To-Do List)</h2>
           <div className="print-box">
-            {Array.isArray(todoList) ? todoList.map((step: any, i: number) => (
+            {Array.isArray(todoList) ? todoList.map((step: any, i: number) => {
+              const title = typeof step === 'string' ? `Étape ${i+1}` : (step.phase || step.title || step.step || step.name || `Étape ${i+1}`);
+              let actions = [];
+              if (typeof step === 'string') {
+                actions = [step];
+              } else {
+                const rawActions = step.actions || step.tasks || step.items || step.description || step.details;
+                if (Array.isArray(rawActions)) actions = rawActions;
+                else if (rawActions) actions = [rawActions];
+              }
+              return (
               <div key={i} style={{ marginBottom: '1.5rem' }}>
-                <h4 style={{ color: '#2563eb', margin: '0 0 0.5rem 0' }}>{step.phase || step.title || step.step || `Étape ${i+1}`}</h4>
+                <h4 style={{ color: '#2563eb', margin: '0 0 0.5rem 0', textTransform: 'capitalize' }}>{title.replace(/_/g, ' ')}</h4>
                 <ul style={{ margin: 0, paddingLeft: '1.5rem' }}>
-                  {(step.actions || step.tasks || []).map((act: string, j: number) => (
-                    <li key={j} style={{ marginBottom: '0.25rem' }}>{act}</li>
+                  {actions.map((act: any, j: number) => (
+                    <li key={j} style={{ marginBottom: '0.25rem' }}>{typeof act === 'string' ? act : JSON.stringify(act)}</li>
                   ))}
                 </ul>
               </div>
-            )) : (
+            )}) : (
               <p>Plan d'action non disponible.</p>
             )}
           </div>
