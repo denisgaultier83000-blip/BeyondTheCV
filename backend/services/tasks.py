@@ -55,7 +55,19 @@ async def _check_cache_and_broadcast(task_id: str, user_id: str, content_type: s
             if qs and isinstance(qs, list) and len(qs) > 0:
                 # [FIX EXPERT] Fusion intelligente : on préserve les éditions du frontend
                 # tout en ré-injectant les réponses du candidat stockées en cache.
-                cached_qs = cached.get("questions", []) if isinstance(cached, dict) else cached if isinstance(cached, list) else []
+                def extract_deep_questions(obj):
+                    found = []
+                    if isinstance(obj, dict):
+                        if "question" in obj:
+                            found.append(obj)
+                        for v in obj.values():
+                            found.extend(extract_deep_questions(v))
+                    elif isinstance(obj, list):
+                        for item in obj:
+                            found.extend(extract_deep_questions(item))
+                    return found
+                
+                cached_qs = extract_deep_questions(cached)
                 cached_answers = {
                     re.sub(r'\W+', '', str(cq.get("question", ""))).lower(): cq 
                     for cq in cached_qs if isinstance(cq, dict) and "user_answer" in cq

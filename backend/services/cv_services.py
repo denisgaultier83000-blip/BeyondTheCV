@@ -1013,7 +1013,19 @@ async def generate_document(request: GenerateRequest, current_user: dict = Depen
                     
                     if q and isinstance(q, list) and len(q) > 0:
                         if cached:
-                            cached_list = cached.get("questions", []) if isinstance(cached, dict) else cached if isinstance(cached, list) else []
+                            def extract_deep_questions(obj):
+                                found = []
+                                if isinstance(obj, dict):
+                                    if "question" in obj:
+                                        found.append(obj)
+                                    for v in obj.values():
+                                        found.extend(extract_deep_questions(v))
+                                elif isinstance(obj, list):
+                                    for item in obj:
+                                        found.extend(extract_deep_questions(item))
+                                return found
+                                
+                            cached_list = extract_deep_questions(cached)
                             cached_answers = {
                                 re.sub(r'\W+', '', str(cq.get("question", ""))).lower(): cq 
                                 for cq in cached_list if isinstance(cq, dict) and "user_answer" in cq

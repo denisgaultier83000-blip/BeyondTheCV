@@ -225,12 +225,12 @@ export const InterviewTab = () => {
         if (Array.isArray(obj)) {
             obj.forEach(item => extractDeep(item, currentCategory));
         } else {
-            if (obj.scenario) {
+            if (obj.scenario || obj.question) {
                 scenarios.push({
                     category: "SCÉNARIO : " + currentCategory.toUpperCase(),
-                    question: obj.scenario,
-                    suggested_answer: obj.expected_behavior || obj.suggested_answer || "Conseil : Utilisez la méthode STAR pour structurer votre réponse.",
-                    advice: obj.advice || obj.context || "Cette mise en situation évalue vos réflexes professionnels.",
+                    question: obj.scenario || obj.question,
+                    suggested_answer: obj.expected_behavior || obj.suggested_answer || obj.answer || "Conseil : Utilisez la méthode STAR pour structurer votre réponse.",
+                    advice: obj.advice || obj.context || obj.rationale || "Cette mise en situation évalue vos réflexes professionnels.",
                     user_answer: obj.user_answer,
                     evaluation: obj.feedback || obj.evaluation
                 });

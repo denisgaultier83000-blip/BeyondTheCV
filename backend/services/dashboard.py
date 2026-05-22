@@ -255,7 +255,7 @@ async def load_application(app_id: str, current_user: dict = Depends(get_current
                 elif "recruiter_persona" in parsed: results["recruiterResult"] = parsed
                 elif "reality_check" in parsed and isinstance(parsed.get("reality_check"), dict): results["realityResult"] = parsed
                 elif "action_plan_result" in parsed or "action_plan" in parsed: results["actionPlanResult"] = parsed
-                elif "custom_scenarios_result" in parsed or "categories" in parsed: results["customScenariosResult"] = parsed
+                elif "custom_scenarios_result" in parsed or "categories" in parsed or "scenarios" in parsed or "mises_en_situation" in parsed: results["customScenariosResult"] = parsed
                 elif "optimized_data" in parsed: results["cvResult"] = parsed
                 elif "flaws" in parsed or "flaw_coaching" in parsed: results["flawCoachingResult"] = parsed
             elif isinstance(parsed, list):
