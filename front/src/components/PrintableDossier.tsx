@@ -239,7 +239,12 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
                   )}
                 </>
               ) : (
-                <p style={{ margin: '0.5rem 0', color: '#94a3b8', fontStyle: 'italic' }}>Non répondu. Suggestion : {(q.suggested_answer || q.answer || "À vous de jouer").replace(/^(Suggestion|Conseil)\s*:\s*/i, '')}</p>
+                <div style={{ background: '#f1f5f9', padding: '1rem', borderRadius: '6px', marginTop: '0.75rem', border: '1px dashed #cbd5e1' }}>
+                  <p style={{ margin: '0 0 0.5rem 0', color: '#64748b', fontStyle: 'italic', fontSize: '0.9rem' }}>Non répondu lors de l'entraînement.</p>
+                  <p style={{ margin: 0, color: '#0f172a', fontSize: '0.95rem', lineHeight: '1.5' }}>
+                    <strong style={{ color: '#3b82f6' }}>💡 Conseil du coach :</strong> {(q.suggested_answer || q.answer || q.advice || "À vous de jouer !").replace(/^(Suggestion|Conseil)\s*:\s*/i, '')}
+                  </p>
+                </div>
               )}
             </div>
           ))}
@@ -264,7 +269,12 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
                   )}
                 </>
               ) : (
-                <p style={{ margin: '0.5rem 0', color: '#94a3b8', fontStyle: 'italic' }}>Non répondu. Conseil : {(q.advice || q.suggested_answer || "Utilisez la méthode STAR (Situation, Tâche, Action, Résultat) pour structurer votre réponse.").replace(/^Conseil\s*:\s*/i, '')}</p>
+                <div style={{ background: '#f1f5f9', padding: '1rem', borderRadius: '6px', marginTop: '0.75rem', border: '1px dashed #cbd5e1' }}>
+                  <p style={{ margin: '0 0 0.5rem 0', color: '#64748b', fontStyle: 'italic', fontSize: '0.9rem' }}>Non répondu lors de l'entraînement.</p>
+                  <p style={{ margin: 0, color: '#0f172a', fontSize: '0.95rem', lineHeight: '1.5' }}>
+                    <strong style={{ color: '#3b82f6' }}>💡 Conseil du coach :</strong> {(q.advice || q.suggested_answer || "Utilisez la méthode STAR (Situation, Tâche, Action, Résultat) pour structurer votre réponse.").replace(/^(Suggestion|Conseil)\s*:\s*/i, '')}
+                  </p>
+                </div>
               )}
             </div>
           ))}
@@ -293,6 +303,19 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
           <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>✅ Plan d'Action (To-Do List)</h2>
           <div className="print-box">
             {Array.isArray(todoList) ? todoList.map((step: any, i: number) => {
+              // Nouveau cas : L'IA renvoie directement un tableau de tâches simples (task/advice)
+              if (step.task && step.advice) {
+                return (
+                  <div key={i} style={{ marginBottom: '1.5rem' }}>
+                    <h4 style={{ color: '#2563eb', margin: '0 0 0.5rem 0' }}>{step.task}</h4>
+                    <ul style={{ margin: 0, paddingLeft: '1.5rem' }}>
+                      <li style={{ marginBottom: '0.25rem', color: '#475569', lineHeight: '1.5' }}>{step.advice}</li>
+                    </ul>
+                  </div>
+                );
+              }
+
+              // Ancien cas : L'IA renvoie des phases complexes
               const title = typeof step === 'string' ? `Étape ${i+1}` : (step.phase || step.title || step.step || step.name || `Étape ${i+1}`);
               let actions = [];
               if (typeof step === 'string') {
@@ -301,13 +324,16 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
                 const rawActions = step.actions || step.tasks || step.items || step.description || step.details;
                 if (Array.isArray(rawActions)) actions = rawActions;
                 else if (rawActions) actions = [rawActions];
+                else if (step.task) actions = [step];
               }
               return (
               <div key={i} style={{ marginBottom: '1.5rem' }}>
                 <h4 style={{ color: '#2563eb', margin: '0 0 0.5rem 0', textTransform: 'capitalize' }}>{title.replace(/_/g, ' ')}</h4>
                 <ul style={{ margin: 0, paddingLeft: '1.5rem' }}>
                   {actions.map((act: any, j: number) => (
-                    <li key={j} style={{ marginBottom: '0.25rem' }}>{typeof act === 'string' ? act : JSON.stringify(act)}</li>
+                    <li key={j} style={{ marginBottom: '0.25rem', color: '#475569', lineHeight: '1.5' }}>
+                      {typeof act === 'string' ? act : (act.task ? `${act.task}${act.advice ? ` : ${act.advice}` : ''}` : JSON.stringify(act))}
+                    </li>
                   ))}
                 </ul>
               </div>
