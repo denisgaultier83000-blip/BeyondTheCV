@@ -442,12 +442,12 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                                         if len(a) > 10 and a in b: return True
                                         if len(b) > 10 and b in a: return True
                                         return a == b   
-                                for k, v in node.items():
-                                    if isinstance(v, str) and len(v) > 5:
-                                        if is_match(req_q, normalize_str(v)):
-                                            node["user_answer"] = request.user_answer
-                                            node["evaluation"] = result
-                                            return True                                                                            
+                                    for k, v in node.items():
+                                        if isinstance(v, str) and len(v) > 5:
+                                            if is_match(req_q, normalize_str(v)):
+                                                node["user_answer"] = request.user_answer
+                                                node["evaluation"] = result
+                                                return True
                                     for v in node.values():
                                         if update_question_node(v): return True
                                 elif isinstance(node, list):
