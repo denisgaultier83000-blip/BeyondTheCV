@@ -410,13 +410,16 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                         if len(b) > 10 and b in a: return True
                         return a == b   
                         
-                    for k, v in node.items():
-                        if isinstance(v, str) and len(v) > 5:
-                            if is_match(req_q, normalize_str(v)):
-                                node["user_answer"] = request.user_answer
-                                node["evaluation"] = result
-                                return True
-                    for v in node.values():
+                    # [FIX EXPERT] Sécurité : on s'assure de n'altérer que des noeuds qui ressemblent à des questions
+                    if any(k in node for k in ["question", "scenario", "situation", "text", "contexte", "description", "defi"]):
+                        for k, v in list(node.items()):
+                            if isinstance(v, str) and len(v) > 5:
+                                if is_match(req_q, normalize_str(v)):
+                                    node["user_answer"] = request.user_answer
+                                    node["evaluation"] = result
+                                    return True
+                                    
+                    for v in list(node.values()):
                         if update_question_node(v): return True
                 elif isinstance(node, list):
                     for item in node:
@@ -426,14 +429,41 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
             # [FIX EXPERT] Mise à jour du JSON de la tâche pour que les scores soient rechargés au retour
             task_to_update = request.task_id
             
+            # [FIX EXPERT] Recherche robuste de la tâche avec priorité ciblée sur le tasks_map
+            if not task_to_update and request.application_id:
+                try:
+                    cursor = await db.execute(conn, "SELECT tasks_map FROM job_applications WHERE id = ?", (request.application_id,))
+                    row = await cursor.fetchone()
+                    if row:
+                        t_map_raw = row[0] if isinstance(row, tuple) else row.get("tasks_map")
+                        if t_map_raw:
+                            t_map = json.loads(t_map_raw) if isinstance(t_map_raw, str) else t_map_raw
+                            possible_tasks = []
+                            if "questions" in t_map: possible_tasks.append(t_map["questions"])
+                            if "custom_scenarios" in t_map: possible_tasks.append(t_map["custom_scenarios"])
+                            
+                            for tid in possible_tasks:
+                                cursor = await db.execute(conn, "SELECT result FROM tasks WHERE id = ?", (tid,))
+                                t_row = await cursor.fetchone()
+                                if t_row:
+                                    t_res = t_row[0] if isinstance(t_row, tuple) else t_row.get("result")
+                                    if t_res:
+                                        task_result = parse_deep_json(t_res)
+                                        if update_question_node(task_result):
+                                            task_to_update = tid
+                                            await db.execute(conn, "UPDATE tasks SET result = ? WHERE id = ?", (json.dumps(task_result), task_to_update))
+                                            break
+                except Exception as e:
+                    print(f"[DB WARNING] Failed to use tasks_map: {e}")
+                    
             if not task_to_update:
                 try:
                     cursor = await db.execute(conn, """
                         SELECT t.id, t.result FROM tasks t
                         LEFT JOIN job_applications a ON t.application_id = a.id
-                        WHERE a.user_id = ? OR a.user_id IS NULL
-                        ORDER BY t.created_at DESC LIMIT 20
-                    """, (current_user["id"],))
+                        WHERE (a.user_id = ? OR t.user_id = ?)
+                        ORDER BY t.created_at DESC LIMIT 50
+                    """, (current_user["id"], current_user["id"]))
                     rows = await cursor.fetchall()
                     for row in rows:
                         t_res = row[1] if isinstance(row, tuple) else row.get("result")
@@ -447,7 +477,7 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                 except Exception as e:
                     print(f"[DB WARNING] Failed to auto-discover task: {e}", flush=True)
 
-            else:
+            elif request.task_id:
                 try:
                     cursor = await db.execute(conn, "SELECT result FROM tasks WHERE id = ?", (task_to_update,))
                     task_row = await cursor.fetchone()
