@@ -666,28 +666,34 @@ async def generate_extra_scenarios(data: dict = Body(...), current_user: dict = 
     target_lang = normalize_language(data.get("target_language", "fr"))
     
     cache_key = _generate_cache_key(current_user["id"], "extra_scenarios", data)
-    cached = await get_cached_content(cache_key)
-    if cached:
-        return cached
+    from .utils import _CACHE_LOCKS
+    import asyncio
+    if cache_key not in _CACHE_LOCKS:
+        _CACHE_LOCKS[cache_key] = asyncio.Lock()
+        
+    async with _CACHE_LOCKS[cache_key]:
+        cached = await get_cached_content(cache_key)
+        if cached:
+            return cached
 
-    prompt_template = load_prompt("mise_en_situation.md")
-    
-    final_prompt = f"""
-    {prompt_template or "Génère 3 catégories de mises en situation avec des scénarios de crise."}
-    
-    POSTE VISÉ : {target_job}
-    PROFIL DU CANDIDAT : {json.dumps(_sanitize_data_for_ai(data, strict=True), default=str)}
-    
-    OUTPUT STRICT JSON.
-    LANGUAGE: {target_lang}
-    """
-    
-    try:
-        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an Expert HR Assessor. Output STRICT JSON.")
-        await set_cached_content(cache_key, current_user["id"], "extra_scenarios", result)
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur de génération des scénarios : {str(e)}")
+        prompt_template = load_prompt("mise_en_situation.md")
+        
+        final_prompt = f"""
+        {prompt_template or "Génère 3 catégories de mises en situation avec des scénarios de crise."}
+        
+        POSTE VISÉ : {target_job}
+        PROFIL DU CANDIDAT : {json.dumps(_sanitize_data_for_ai(data, strict=True), default=str)}
+        
+        OUTPUT STRICT JSON.
+        LANGUAGE: {target_lang}
+        """
+        
+        try:
+            result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an Expert HR Assessor. Output STRICT JSON.")
+            await set_cached_content(cache_key, current_user["id"], "extra_scenarios", result)
+            return result
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Erreur de génération des scénarios : {str(e)}")
 
 @router.get("/training/stats")
 async def get_training_stats(current_user: dict = Depends(require_active_subscription)):
@@ -988,29 +994,37 @@ async def generate_document(request: GenerateRequest, current_user: dict = Depen
                 q = data.get('questions') or data.get('questions_list')
                 
                 cache_key = _generate_cache_key(current_user["id"], "interview_questions", data)
-                cached = await get_cached_content(cache_key)
                 
-                if q and isinstance(q, list) and len(q) > 0:
-                    if cached and isinstance(cached, dict) and "questions" in cached:
-                        cached_answers = {
-                            re.sub(r'\W+', '', str(cq.get("question", ""))).lower(): cq 
-                            for cq in cached.get("questions", []) if isinstance(cq, dict) and "user_answer" in cq
-                        }
-                        for q_item in q:
-                            if isinstance(q_item, dict):
-                                q_norm = re.sub(r'\W+', '', str(q_item.get("question", ""))).lower()
-                                if q_norm in cached_answers:
-                                    cq = cached_answers[q_norm]
-                                    q_item["user_answer"] = cq.get("user_answer")
-                                    if "evaluation" in cq:
-                                        q_item["evaluation"] = cq.get("evaluation")
-                    return q
+                from .utils import _CACHE_LOCKS
+                import asyncio
+                if cache_key not in _CACHE_LOCKS:
+                    _CACHE_LOCKS[cache_key] = asyncio.Lock()
                     
-                if cached: return cached
-                
-                res = await generate_interview_questions(data, quality='smart')
-                if res: await set_cached_content(cache_key, current_user["id"], "interview_questions", res)
-                return res
+                async with _CACHE_LOCKS[cache_key]:
+                    cached = await get_cached_content(cache_key)
+                    
+                    if q and isinstance(q, list) and len(q) > 0:
+                        if cached:
+                            cached_list = cached.get("questions", []) if isinstance(cached, dict) else cached if isinstance(cached, list) else []
+                            cached_answers = {
+                                re.sub(r'\W+', '', str(cq.get("question", ""))).lower(): cq 
+                                for cq in cached_list if isinstance(cq, dict) and "user_answer" in cq
+                            }
+                            for q_item in q:
+                                if isinstance(q_item, dict):
+                                    q_norm = re.sub(r'\W+', '', str(q_item.get("question", ""))).lower()
+                                    if q_norm in cached_answers:
+                                        cq = cached_answers[q_norm]
+                                        q_item["user_answer"] = cq.get("user_answer")
+                                        if "evaluation" in cq:
+                                            q_item["evaluation"] = cq.get("evaluation")
+                        return q
+                        
+                    if cached: return cached
+                    
+                    res = await generate_interview_questions(data, quality='smart')
+                    if res: await set_cached_content(cache_key, current_user["id"], "interview_questions", res)
+                    return res
                 
             async def get_smart_qs():
                 sq = data.get('questions_to_ask')

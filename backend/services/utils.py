@@ -3,7 +3,11 @@ import json
 import re
 import hashlib
 from datetime import datetime
+import asyncio
 from database import db
+
+from asyncio import Lock
+_CACHE_LOCKS = {}
 
 def load_prompt(filename: str) -> str:
     """Helper to load prompts from the ai/prompts directory."""

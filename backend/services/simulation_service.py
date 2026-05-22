@@ -118,7 +118,10 @@ async def simulate_situation(request: SituationSimulationRequest, current_user: 
                             
                         def update_scenario(node):
                             if isinstance(node, dict):
-                                if node.get("id") == request.scenario_id or node.get("scenario_id") == request.scenario_id or request.scenario_id in str(node.get("scenario", "")):
+                                node_id = str(node.get("id")) if node.get("id") is not None else ""
+                                node_scen_id = str(node.get("scenario_id")) if node.get("scenario_id") is not None else ""
+                                req_id = str(request.scenario_id)
+                                if node_id == req_id or node_scen_id == req_id or req_id in str(node.get("scenario", "")):
                                     node["user_answer"] = request.user_answer
                                     node["feedback"] = feedback
                                     return True

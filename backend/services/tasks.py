@@ -55,7 +55,7 @@ async def _check_cache_and_broadcast(task_id: str, user_id: str, content_type: s
             if qs and isinstance(qs, list) and len(qs) > 0:
                 # [FIX EXPERT] Fusion intelligente : on préserve les éditions du frontend
                 # tout en ré-injectant les réponses du candidat stockées en cache.
-                cached_qs = cached.get("questions", []) if isinstance(cached, dict) else []
+                cached_qs = cached.get("questions", []) if isinstance(cached, dict) else cached if isinstance(cached, list) else []
                 cached_answers = {
                     re.sub(r'\W+', '', str(cq.get("question", ""))).lower(): cq 
                     for cq in cached_qs if isinstance(cq, dict) and "user_answer" in cq
@@ -319,53 +319,60 @@ async def _run_questions_logic(task_id: str, candidate_data: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
         user_id = candidate_data.get("user_id", "unknown_user")
-        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "interview_questions", candidate_data, "Questions récupérées en cache")
-        if is_cached: return
+        cache_key = _generate_cache_key(user_id, "interview_questions", candidate_data)
+        
+        from .utils import _CACHE_LOCKS
+        if cache_key not in _CACHE_LOCKS:
+            _CACHE_LOCKS[cache_key] = asyncio.Lock()
+            
+        async with _CACHE_LOCKS[cache_key]:
+            is_cached, _ = await _check_cache_and_broadcast(task_id, user_id, "interview_questions", candidate_data, "Questions récupérées en cache")
+            if is_cached: return
 
-        target_lang = normalize_language(candidate_data.get('target_language', 'French'))
-        
-        # [FIX] Logique "Victor Hugo" : Extraction adresse et hobbies pour questions de curiosité
-        p_info = candidate_data.get('personal_info') or {}
-        address = p_info.get('address') or 'Inconnue'
-        city = p_info.get('city') or ''
-        hobbies = candidate_data.get('interests') or []
-        flaws = candidate_data.get('flaws') or []
-        target_job = candidate_data.get('target_job') or 'Poste visé'
-        prompt_template = load_prompt(get_prompt_path("interview_questions.md"))
-        
-        # [FIX EXPERT] Whitelist stricte pour éviter l'explosion de tokens. Le profil enfle avec
-        # l'historique d'entraînement, ce qui causait une coupure JSON et l'erreur {"error": True}
-        safe_data = {
-            "experiences": candidate_data.get("experiences", []),
-            "educations": candidate_data.get("educations", []),
-            "skills": candidate_data.get("skills", []),
-            "languages": candidate_data.get("languages", []),
-            "free_text": candidate_data.get("free_text", "")
-        }
-        
-        final_prompt = f"""
-        {prompt_template}
-        
-        CONTEXTE CANDIDAT :
-        Adresse Complète : {address}, {city}
-        Hobbies : {hobbies}
-        Défauts identifiés par le candidat : {flaws}
-        Poste visé : {target_job}
-        
-        DONNÉES :
-        {json.dumps(safe_data, indent=2, ensure_ascii=False, default=str)}
-        
-        OUTPUT LANGUAGE: {target_lang}
-        """
-        
-        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction=f"You are an expert interviewer. Output ONLY JSON. Language: {target_lang}.")
-        if "error" in result:
-            await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
-            await manager.broadcast(task_id, "Erreur lors de la génération", status="FAILED", data=result)
-        else:
-            await set_cached_content(cache_key, user_id, "interview_questions", result)
-            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
-            await manager.broadcast(task_id, "Questions générées avec succès", status="COMPLETED", data=result)
+            target_lang = normalize_language(candidate_data.get('target_language', 'French'))
+            
+            # [FIX] Logique "Victor Hugo" : Extraction adresse et hobbies pour questions de curiosité
+            p_info = candidate_data.get('personal_info') or {}
+            address = p_info.get('address') or 'Inconnue'
+            city = p_info.get('city') or ''
+            hobbies = candidate_data.get('interests') or []
+            flaws = candidate_data.get('flaws') or []
+            target_job = candidate_data.get('target_job') or 'Poste visé'
+            prompt_template = load_prompt(get_prompt_path("interview_questions.md"))
+            
+            # [FIX EXPERT] Whitelist stricte pour éviter l'explosion de tokens. Le profil enfle avec
+            # l'historique d'entraînement, ce qui causait une coupure JSON et l'erreur {"error": True}
+            safe_data = {
+                "experiences": candidate_data.get("experiences", []),
+                "educations": candidate_data.get("educations", []),
+                "skills": candidate_data.get("skills", []),
+                "languages": candidate_data.get("languages", []),
+                "free_text": candidate_data.get("free_text", "")
+            }
+            
+            final_prompt = f"""
+            {prompt_template}
+            
+            CONTEXTE CANDIDAT :
+            Adresse Complète : {address}, {city}
+            Hobbies : {hobbies}
+            Défauts identifiés par le candidat : {flaws}
+            Poste visé : {target_job}
+            
+            DONNÉES :
+            {json.dumps(safe_data, indent=2, ensure_ascii=False, default=str)}
+            
+            OUTPUT LANGUAGE: {target_lang}
+            """
+            
+            result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction=f"You are an expert interviewer. Output ONLY JSON. Language: {target_lang}.")
+            if "error" in result:
+                await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
+                await manager.broadcast(task_id, "Erreur lors de la génération", status="FAILED", data=result)
+            else:
+                await set_cached_content(cache_key, user_id, "interview_questions", result)
+                await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+                await manager.broadcast(task_id, "Questions générées avec succès", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
         err = {"error": str(e)}
