@@ -468,19 +468,7 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                         c_key = c_row[0] if isinstance(c_row, tuple) else c_row.get("cache_key")
                         c_res = c_row[1] if isinstance(c_row, tuple) else c_row.get("result")
                         try:
-                            # [FIX EXPERT] Désérialisation profonde garantie pour le cache
-                            c_data = c_res
-                            for _ in range(5):
-                                if isinstance(c_data, str):
-                                    try: c_data = json.loads(c_data)
-                                    except Exception:
-                                        import re
-                                        match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', c_data, re.IGNORECASE)
-                                        if match:
-                                            try: c_data = json.loads(match.group(1))
-                                            except Exception: break
-                                        else: break
-                                else: break
+                            c_data = parse_deep_json(c_res)
                                 
                             if update_question_node(c_data):
                                 await db.execute(conn, "UPDATE generation_cache SET result = ?::jsonb WHERE cache_key = ?", (json.dumps(c_data), c_key))
