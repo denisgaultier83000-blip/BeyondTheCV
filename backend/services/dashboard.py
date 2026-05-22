@@ -221,19 +221,29 @@ async def delete_application(app_id: str, current_user: dict = Depends(get_curre
 async def load_application(app_id: str, current_user: dict = Depends(get_current_user)):
     """Recharge les données complètes d'une ancienne candidature depuis les archives des tâches."""
     async with db.get_connection() as conn:
-        cursor = await db.execute(conn, "SELECT id, target_company, target_job FROM job_applications WHERE id = ? AND user_id = ?", (app_id, current_user["id"]))
+        try:
+            cursor = await db.execute(conn, "SELECT id, target_company, target_job, tasks_map FROM job_applications WHERE id = ? AND user_id = ?", (app_id, current_user["id"]))
+        except Exception:
+            cursor = await db.execute(conn, "SELECT id, target_company, target_job FROM job_applications WHERE id = ? AND user_id = ?", (app_id, current_user["id"]))
         app_row = await cursor.fetchone()
         if not app_row:
             raise HTTPException(status_code=404, detail="Candidature non trouvée ou accès refusé.")
             
-        # Récupérer toutes les tâches réussies associées à cette candidature
-        cursor = await db.execute(conn, "SELECT status, result FROM tasks WHERE application_id = ? AND status IN ('SUCCESS', 'COMPLETED')", (app_id,))
+        tasks_map = {}
+        if len(app_row) > 3:
+            t_map_raw = app_row[3] if isinstance(app_row, tuple) else app_row.get("tasks_map")
+            if t_map_raw:
+                tasks_map = json.loads(t_map_raw) if isinstance(t_map_raw, str) else t_map_raw
+                
+        cursor = await db.execute(conn, "SELECT id, status, result FROM tasks WHERE application_id = ? AND status IN ('SUCCESS', 'COMPLETED')", (app_id,))
         tasks = await cursor.fetchall()
         
     results = {}
-    # [FIX EXPERT] Inférence automatique du type de tâche en fonction du schéma JSON retourné
+    id_to_key = {v: k for k, v in tasks_map.items()} if tasks_map else {}
+    
     for task in tasks:
-        res_str = task[1] if isinstance(task, tuple) else task.get("result")
+        task_id = task[0] if isinstance(task, tuple) else task.get("id")
+        res_str = task[2] if isinstance(task, tuple) else task.get("result")
         if not res_str: continue
         
         try:
@@ -242,24 +252,43 @@ async def load_application(app_id: str, current_user: dict = Depends(get_current
                 try: parsed = json.loads(parsed)
                 except: pass
                 
-            if isinstance(parsed, dict):
-                if "market_report" in parsed or "company_report" in parsed: results["researchResult"] = parsed
-                elif "gap_analysis" in parsed or "match_score" in parsed: results["gapResult"] = parsed
-                elif "salary_range" in parsed: results["salaryResult"] = parsed
-                elif "pitch" in parsed: results["pitchResult"] = parsed
-                elif "questions" in parsed: results["questionsResult"] = parsed
-                elif "career_gps_result" in parsed or "route" in parsed: results["careerGpsResult"] = parsed
-                elif "career_radar_result" in parsed or "trajectories" in parsed: results["careerRadarResult"] = parsed
-                elif "job_decoder_result" in parsed or ("reality_check" in parsed and isinstance(parsed.get("reality_check"), list)): results["jobDecoderResult"] = parsed
-                elif "hidden_market" in parsed or "target_profiles" in parsed: results["hiddenMarketResult"] = parsed
-                elif "recruiter_persona" in parsed: results["recruiterResult"] = parsed
-                elif "reality_check" in parsed and isinstance(parsed.get("reality_check"), dict): results["realityResult"] = parsed
-                elif "action_plan_result" in parsed or "action_plan" in parsed: results["actionPlanResult"] = parsed
-                elif "custom_scenarios_result" in parsed or "categories" in parsed or "scenarios" in parsed or "mises_en_situation" in parsed: results["customScenariosResult"] = parsed
-                elif "optimized_data" in parsed: results["cvResult"] = parsed
-                elif "flaws" in parsed or "flaw_coaching" in parsed: results["flawCoachingResult"] = parsed
-            elif isinstance(parsed, list):
-                results["flawCoachingResult"] = parsed # Le flaw coaching peut parfois retourner un tableau direct
+            task_key = id_to_key.get(task_id)
+            if task_key:
+                if task_key == "market_research": results["researchResult"] = parsed
+                elif task_key == "gap_analysis": results["gapResult"] = parsed
+                elif task_key == "salary_estimation": results["salaryResult"] = parsed
+                elif task_key == "pitch": results["pitchResult"] = parsed
+                elif task_key == "questions": results["questionsResult"] = parsed
+                elif task_key == "career_gps": results["careerGpsResult"] = parsed
+                elif task_key == "career_radar": results["careerRadarResult"] = parsed
+                elif task_key == "job_decoder": results["jobDecoderResult"] = parsed
+                elif task_key == "hidden_market": results["hiddenMarketResult"] = parsed
+                elif task_key == "recruiter_view": results["recruiterResult"] = parsed
+                elif task_key == "reality_check": results["realityResult"] = parsed
+                elif task_key == "action_plan": results["actionPlanResult"] = parsed
+                elif task_key == "custom_scenarios": results["customScenariosResult"] = parsed
+                elif task_key == "cv_analysis": results["cvResult"] = parsed
+                elif task_key == "flaw_coaching": results["flawCoachingResult"] = parsed
+            else:
+                # Fallback robuste en cas d'absence du mapping
+                if isinstance(parsed, dict):
+                    if "market_report" in parsed or "company_report" in parsed: results["researchResult"] = parsed
+                    elif "gap_analysis" in parsed or "match_score" in parsed: results["gapResult"] = parsed
+                    elif "salary_range" in parsed: results["salaryResult"] = parsed
+                    elif "pitch" in parsed: results["pitchResult"] = parsed
+                    elif "questions" in parsed and not ("mises_en_situation" in parsed or "scenarios" in parsed or "custom_scenarios" in parsed or "situations" in parsed): results["questionsResult"] = parsed
+                    elif "career_gps_result" in parsed or "route" in parsed: results["careerGpsResult"] = parsed
+                    elif "career_radar_result" in parsed or "trajectories" in parsed: results["careerRadarResult"] = parsed
+                    elif "job_decoder_result" in parsed or ("reality_check" in parsed and isinstance(parsed.get("reality_check"), list)): results["jobDecoderResult"] = parsed
+                    elif "hidden_market" in parsed or "target_profiles" in parsed: results["hiddenMarketResult"] = parsed
+                    elif "recruiter_persona" in parsed: results["recruiterResult"] = parsed
+                    elif "reality_check" in parsed and isinstance(parsed.get("reality_check"), dict): results["realityResult"] = parsed
+                    elif "action_plan_result" in parsed or "action_plan" in parsed: results["actionPlanResult"] = parsed
+                    elif "custom_scenarios_result" in parsed or "categories" in parsed or "scenarios" in parsed or "mises_en_situation" in parsed or "situations" in parsed or "custom_scenarios" in parsed or ("questions" in parsed and ("mises_en_situation" in parsed or "scenarios" in parsed)): results["customScenariosResult"] = parsed
+                    elif "optimized_data" in parsed: results["cvResult"] = parsed
+                    elif "flaws" in parsed or "flaw_coaching" in parsed: results["flawCoachingResult"] = parsed
+                elif isinstance(parsed, list):
+                    results["flawCoachingResult"] = parsed
         except Exception as e:
             print(f"[LOAD APP] Erreur de parsing d'une tâche: {e}")
             

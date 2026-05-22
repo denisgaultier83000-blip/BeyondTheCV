@@ -435,20 +435,19 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                                     
                                 if isinstance(node, dict):
                                     req_q = normalize_str(request.question)
-                                    node_q = normalize_str(node.get("question"))
-                                    node_t = normalize_str(node.get("text"))
-                                    node_s = normalize_str(node.get("scenario"))
+
                                     
                                     def is_match(a, b):
                                         if not a or not b: return False
-                                        if len(a) > 5 and a in b: return True
-                                        if len(b) > 5 and b in a: return True
-                                        return a == b
-                                        
-                                    if is_match(req_q, node_q) or is_match(req_q, node_t) or is_match(req_q, node_s):
-                                        node["user_answer"] = request.user_answer
-                                        node["evaluation"] = result
-                                        return True
+                                        if len(a) > 10 and a in b: return True
+                                        if len(b) > 10 and b in a: return True
+                                        return a == b   
+                                for k, v in node.items():
+                                    if isinstance(v, str) and len(v) > 5:
+                                        if is_match(req_q, normalize_str(v)):
+                                            node["user_answer"] = request.user_answer
+                                            node["evaluation"] = result
+                                            return True                                                                            
                                     for v in node.values():
                                         if update_question_node(v): return True
                                 elif isinstance(node, list):
@@ -1016,7 +1015,7 @@ async def generate_document(request: GenerateRequest, current_user: dict = Depen
                             def extract_deep_questions(obj):
                                 found = []
                                 if isinstance(obj, dict):
-                                    if "question" in obj:
+                                    if any(k in obj for k in ["question", "scenario", "situation", "text"]):
                                         found.append(obj)
                                     for v in obj.values():
                                         found.extend(extract_deep_questions(v))
@@ -1027,12 +1026,13 @@ async def generate_document(request: GenerateRequest, current_user: dict = Depen
                                 
                             cached_list = extract_deep_questions(cached)
                             cached_answers = {
-                                re.sub(r'\W+', '', str(cq.get("question", ""))).lower(): cq 
+                                re.sub(r'\W+', '', str(cq.get("question") or cq.get("scenario") or cq.get("situation") or cq.get("text") or "")).lower(): cq 
                                 for cq in cached_list if isinstance(cq, dict) and "user_answer" in cq
                             }
                             for q_item in q:
                                 if isinstance(q_item, dict):
-                                    q_norm = re.sub(r'\W+', '', str(q_item.get("question", ""))).lower()
+                                    q_text = q_item.get("question") or q_item.get("scenario") or q_item.get("situation") or q_item.get("text") or ""
+                                    q_norm = re.sub(r'\W+', '', str(q_text)).lower()
                                     if q_norm in cached_answers:
                                         cq = cached_answers[q_norm]
                                         q_item["user_answer"] = cq.get("user_answer")
