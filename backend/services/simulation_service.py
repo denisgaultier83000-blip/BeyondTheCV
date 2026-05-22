@@ -148,13 +148,13 @@ async def simulate_situation(request: SituationSimulationRequest, current_user: 
                                 c_key = c_row[0] if isinstance(c_row, tuple) else c_row.get("cache_key")
                                 c_res_str = c_row[1] if isinstance(c_row, tuple) else c_row.get("result")
                                 try:
-                                # [FIX EXPERT] Désérialisation profonde pour la sauvegarde en cache
-                                c_data = c_res_str
-                                for _ in range(5):
-                                    if isinstance(c_data, str):
-                                        try: c_data = json.loads(c_data)
-                                        except Exception: break
-                                    else: break
+                                    # [FIX EXPERT] Désérialisation profonde pour la sauvegarde en cache
+                                    c_data = c_res_str
+                                    for _ in range(5):
+                                        if isinstance(c_data, str):
+                                            try: c_data = json.loads(c_data)
+                                            except Exception: break
+                                        else: break
                                     if update_scenario(c_data):
                                         await db.execute(conn, "UPDATE generation_cache SET result = ?::jsonb WHERE cache_key = ?", (json.dumps(c_data), c_key))
                                 except Exception:
