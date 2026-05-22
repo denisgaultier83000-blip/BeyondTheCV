@@ -58,7 +58,7 @@ async def _check_cache_and_broadcast(task_id: str, user_id: str, content_type: s
                 def extract_deep_questions(obj):
                     found = []
                     if isinstance(obj, dict):
-                        if any(k in obj for k in ["question", "scenario", "situation", "text"]):
+                        if any(k in obj for k in ["question", "scenario", "situation", "text", "contexte", "description", "defi"]):
                             found.append(obj)
                         for v in obj.values():
                             found.extend(extract_deep_questions(v))
@@ -69,12 +69,12 @@ async def _check_cache_and_broadcast(task_id: str, user_id: str, content_type: s
                 
                 cached_qs = extract_deep_questions(cached)
                 cached_answers = {
-                    re.sub(r'\W+', '', str(cq.get("question") or cq.get("scenario") or cq.get("situation") or cq.get("text") or "")).lower(): cq 
+                    re.sub(r'\W+', '', str(cq.get("question") or cq.get("scenario") or cq.get("situation") or cq.get("text") or cq.get("contexte") or cq.get("description") or cq.get("defi") or "")).lower(): cq 
                     for cq in cached_qs if isinstance(cq, dict) and "user_answer" in cq
                 }
                 for q in qs:
                     if isinstance(q, dict):
-                        q_text = q.get("question") or q.get("scenario") or q.get("situation") or q.get("text") or ""
+                        q_text = q.get("question") or q.get("scenario") or q.get("situation") or q.get("text") or q.get("contexte") or q.get("description") or q.get("defi") or ""
                         q_norm = re.sub(r'\W+', '', str(q_text)).lower()
                         if q_norm in cached_answers:
                             cq = cached_answers[q_norm]

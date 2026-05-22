@@ -473,7 +473,13 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                             for _ in range(5):
                                 if isinstance(c_data, str):
                                     try: c_data = json.loads(c_data)
-                                    except Exception: break
+                                    except Exception:
+                                        import re
+                                        match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', c_data, re.IGNORECASE)
+                                        if match:
+                                            try: c_data = json.loads(match.group(1))
+                                            except Exception: break
+                                        else: break
                                 else: break
                                 
                             if update_question_node(c_data):
@@ -1015,7 +1021,7 @@ async def generate_document(request: GenerateRequest, current_user: dict = Depen
                             def extract_deep_questions(obj):
                                 found = []
                                 if isinstance(obj, dict):
-                                    if any(k in obj for k in ["question", "scenario", "situation", "text"]):
+                                    if any(k in obj for k in ["question", "scenario", "situation", "text", "contexte", "description", "defi"]):
                                         found.append(obj)
                                     for v in obj.values():
                                         found.extend(extract_deep_questions(v))
@@ -1026,12 +1032,12 @@ async def generate_document(request: GenerateRequest, current_user: dict = Depen
                                 
                             cached_list = extract_deep_questions(cached)
                             cached_answers = {
-                                re.sub(r'\W+', '', str(cq.get("question") or cq.get("scenario") or cq.get("situation") or cq.get("text") or "")).lower(): cq 
+                                re.sub(r'\W+', '', str(cq.get("question") or cq.get("scenario") or cq.get("situation") or cq.get("text") or cq.get("contexte") or cq.get("description") or cq.get("defi") or "")).lower(): cq 
                                 for cq in cached_list if isinstance(cq, dict) and "user_answer" in cq
                             }
                             for q_item in q:
                                 if isinstance(q_item, dict):
-                                    q_text = q_item.get("question") or q_item.get("scenario") or q_item.get("situation") or q_item.get("text") or ""
+                                    q_text = q_item.get("question") or q_item.get("scenario") or q_item.get("situation") or q_item.get("text") or q_item.get("contexte") or q_item.get("description") or q_item.get("defi") or ""
                                     q_norm = re.sub(r'\W+', '', str(q_text)).lower()
                                     if q_norm in cached_answers:
                                         cq = cached_answers[q_norm]
