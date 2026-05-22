@@ -3,7 +3,7 @@ import { useDashboard } from './DashboardContext';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 
-export const PrintableDossier = () => {
+export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
   const { cvData, pilotData, researchResult, gapResult, flawCoachingResult } = useDashboard();
   const [interviewHistory, setInterviewHistory] = useState<any[]>([]);
   const [trainingHistory, setTrainingHistory] = useState<any[]>([]);
@@ -61,71 +61,80 @@ export const PrintableDossier = () => {
         <p style={{ marginTop: '4rem', fontSize: '1.4rem' }}>Score d'Adéquation global : <strong>{pilotData?.matchScore || 0}/100</strong></p>
       </div>
 
-      <div className="print-section avoid-break">
-        <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🎯 Stratégie de Candidature</h2>
-        <div className="print-box">
-          <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, fontSize: '1.1rem' }}>{pilotData?.recommendedStrategy || "Stratégie non générée."}</p>
+      {/* 1. Stratégie */}
+      {selection.gap !== false && (
+        <div className="print-section avoid-break">
+          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🎯 Stratégie de Candidature</h2>
+          <div className="print-box">
+            <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, fontSize: '1.1rem' }}>{pilotData?.recommendedStrategy || "Stratégie non générée."}</p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 2. Dossier Entreprise & Marché */}
-      <div className="print-section avoid-break page-break">
-        <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🏢 Analyse Entreprise & Marché</h2>
-        <div className="print-box">
-          <h3 style={{ color: '#2563eb' }}>Entreprise : {researchResult?.company || cvData?.target_company || "Cible"}</h3>
-          {companyReport.linkedin_url && (
-            <p><strong>LinkedIn :</strong> <a href={companyReport.linkedin_url} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'none' }}>Accéder à la page de l'entreprise</a></p>
-          )}
-          <p><strong>ADN & Identité :</strong> {companyReport.identity_dna || "N/A"}</p>
-          <p><strong>Santé Financière :</strong> {companyReport.financial_health || "N/A"}</p>
-          <p><strong>Défis & USP :</strong> {companyReport.usp || "N/A"}</p>
-          <p><strong>Culture :</strong> {companyReport.culture_environment || "N/A"}</p>
-        </div>
-        <div className="print-box">
-          <h3 style={{ color: '#059669' }}>Marché</h3>
-          <p><strong>Dynamique de recrutement :</strong> {marketReport.recruitment_dynamics || "N/A"}</p>
-          <p><strong>Tendances :</strong> {marketReport.trends || "N/A"}</p>
-          <p><strong>Salaires :</strong> {marketReport.salary_barometer || "N/A"}</p>
-        </div>
-
-        {companyReport.news_links && companyReport.news_links.length > 0 && (
-          <div className="print-box avoid-break">
-            <h3 style={{ color: '#e11d48', marginTop: '1rem' }}>📰 Actualités & Leviers Stratégiques</h3>
-            {companyReport.news_links.map((link: any, idx: number) => (
-              <div key={idx} style={{ marginBottom: '1rem' }}>
-                <p style={{ margin: '0 0 0.25rem 0', fontWeight: 'bold' }}>• {link.title}</p>
-                {link.strategic_analysis && <p style={{ margin: 0, fontStyle: 'italic', color: '#475569', paddingLeft: '1rem' }}>Conseil Stratégique : {link.strategic_analysis}</p>}
-              </div>
-            ))}
+      {selection.research !== false && (
+        <div className="print-section avoid-break page-break">
+          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🏢 Analyse Entreprise & Marché</h2>
+          <div className="print-box">
+            <h3 style={{ color: '#2563eb' }}>Entreprise : {researchResult?.company || cvData?.target_company || "Cible"}</h3>
+            {companyReport.linkedin_url && (
+              <p><strong>LinkedIn :</strong> <a href={companyReport.linkedin_url} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'none' }}>Accéder à la page de l'entreprise</a></p>
+            )}
+            <p><strong>ADN & Identité :</strong> {companyReport.identity_dna || "N/A"}</p>
+            <p><strong>Santé Financière :</strong> {companyReport.financial_health || "N/A"}</p>
+            <p><strong>Défis & USP :</strong> {companyReport.usp || "N/A"}</p>
+            <p><strong>Culture :</strong> {companyReport.culture_environment || "N/A"}</p>
           </div>
-        )}
-      </div>
+          <div className="print-box">
+            <h3 style={{ color: '#059669' }}>Marché</h3>
+            <p><strong>Dynamique de recrutement :</strong> {marketReport.recruitment_dynamics || "N/A"}</p>
+            <p><strong>Tendances :</strong> {marketReport.trends || "N/A"}</p>
+            <p><strong>Salaires :</strong> {marketReport.salary_barometer || "N/A"}</p>
+          </div>
+
+          {companyReport.news_links && companyReport.news_links.length > 0 && (
+            <div className="print-box avoid-break">
+              <h3 style={{ color: '#e11d48', marginTop: '1rem' }}>📰 Actualités & Leviers Stratégiques</h3>
+              {companyReport.news_links.map((link: any, idx: number) => (
+                <div key={idx} style={{ marginBottom: '1rem' }}>
+                  <p style={{ margin: '0 0 0.25rem 0', fontWeight: 'bold' }}>• {link.title}</p>
+                  {link.strategic_analysis && <p style={{ margin: 0, fontStyle: 'italic', color: '#475569', paddingLeft: '1rem' }}>Conseil Stratégique : {link.strategic_analysis}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 3. Réponses aux Défauts */}
-      <div className="print-section page-break">
-        <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🛡️ Parades aux Défauts</h2>
-        {flaws.map((flaw: any, idx: number) => (
-          <div key={idx} className="print-box avoid-break">
-            <h3 style={{ color: '#dc2626' }}>{flaw.flaw || flaw.defaut}</h3>
-            <p><strong>Risque perçu :</strong> {flaw.impact_justification}</p>
-            <p><strong>Réponse courte :</strong> "{flaw.short_answer || flaw.reponse_courte}"</p>
-            <p><strong>Storytelling :</strong> "{flaw.long_answer || flaw.reponse_longue}"</p>
-            <p><strong>Pièges à éviter :</strong> {flaw.to_avoid || flaw.a_eviter}</p>
-          </div>
-        ))}
-      </div>
+      {selection.flaws !== false && flaws.length > 0 && (
+        <div className="print-section page-break">
+          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🛡️ Parades aux Défauts</h2>
+          {flaws.map((flaw: any, idx: number) => (
+            <div key={idx} className="print-box avoid-break">
+              <h3 style={{ color: '#dc2626' }}>{flaw.flaw || flaw.defaut}</h3>
+              <p><strong>Risque perçu :</strong> {flaw.impact_justification}</p>
+              <p><strong>Réponse courte :</strong> "{flaw.short_answer || flaw.reponse_courte}"</p>
+              <p><strong>Storytelling :</strong> "{flaw.long_answer || flaw.reponse_longue}"</p>
+              <p><strong>Pièges à éviter :</strong> {flaw.to_avoid || flaw.a_eviter}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* 4. Historique des questions */}
-      <div className="print-section page-break">
-        <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>💬 Historique d'Entraînement</h2>
-        {trainingHistory.length === 0 && interviewHistory.length === 0 ? <p>Aucun entraînement enregistré pour le moment.</p> : [...interviewHistory, ...trainingHistory].map((item, idx) => (
-          <div key={idx} className="print-box avoid-break" style={{ borderLeft: '4px solid #8b5cf6' }}>
-            <h4 style={{ margin: '0 0 10px 0', fontSize: '1.1rem' }}>Q : {item.question || item.question_text}</h4>
-            <p style={{ margin: '0 0 10px 0' }}><strong>Votre réponse :</strong> {item.user_answer || item.userAnswer}</p>
-            <p style={{ margin: '0 0 10px 0', color: '#166534' }}><strong>Correction IA (Score : {item.score || item.feedback?.score}/100) :</strong> {item.feedback?.improved_answer}</p>
-          </div>
-        ))}
-      </div>
+      {(selection.questions !== false || selection.mes !== false) && (
+        <div className="print-section page-break">
+          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>💬 Historique d'Entraînement</h2>
+          {trainingHistory.length === 0 && interviewHistory.length === 0 ? <p>Aucun entraînement enregistré pour le moment.</p> : [...interviewHistory, ...trainingHistory].map((item, idx) => (
+            <div key={idx} className="print-box avoid-break" style={{ borderLeft: '4px solid #8b5cf6' }}>
+              <h4 style={{ margin: '0 0 10px 0', fontSize: '1.1rem' }}>Q : {item.question || item.question_text}</h4>
+              <p style={{ margin: '0 0 10px 0' }}><strong>Votre réponse :</strong> {item.user_answer || item.userAnswer}</p>
+              <p style={{ margin: '0 0 10px 0', color: '#166534' }}><strong>Correction IA (Score : {item.score || item.feedback?.score}/100) :</strong> {item.feedback?.improved_answer}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

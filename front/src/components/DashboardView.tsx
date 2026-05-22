@@ -33,6 +33,22 @@ export const DashboardView = () => {
   // --- GESTION DES NOTIFICATIONS ---
   const [viewedTabs, setViewedTabs] = useState<string[]>(['overview']);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  
+  // --- GESTION DE L'IMPRESSION ---
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [printSelection, setPrintSelection] = useState({
+    cv: true, pitch: true, questions: true, mes: true, flaws: true,
+    gap: true, research: true, decoder: true, gps: true, radar: true,
+    hidden_market: true, todo: true
+  });
+  const togglePrintSelection = (key: keyof typeof printSelection) => {
+    setPrintSelection(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+  const handlePrintConfirm = () => {
+    setIsPrintModalOpen(false);
+    // On laisse le temps à React de passer les props au composant caché avant de déclencher l'impression
+    setTimeout(() => window.print(), 300);
+  };
 
   const handleTabChange = (tab: string, anchor?: string) => {
     setActiveTab(tab);
@@ -63,7 +79,7 @@ export const DashboardView = () => {
   const subMenus: Record<string, {label: string, id: string}[]> = {
     interview: [
       { label: t('submenu_pitch', 'Pitch'), id: 'pitch_section' },
-      { label: t('submenu_questionnaire', 'Questions & Scénarios'), id: 'questionnaire_section' },
+      { label: t('submenu_questionnaire', 'Questions & Mises en situation'), id: 'questionnaire_section' },
       { label: t('submenu_flaws', 'Parades aux Défauts'), id: 'flaws_section' }
     ],
     market: [
@@ -103,8 +119,8 @@ export const DashboardView = () => {
   const deliverableItems = [
     { name: t('deliv_cv', "CV ATS"), tab: "cv", data: cvResult, icon: <FileText size={18}/> },
     { name: t('deliv_pitch', "Pitch de 3 minutes"), tab: "interview", anchor: "pitch_section", data: pitchResult, icon: <Mic size={18}/> },
-    { name: t('deliv_questions', "Questions & Scénarios"), tab: "interview", anchor: "questionnaire_section", data: questionsResult || customScenariosResult, icon: <MessageSquare size={18}/> },
-    { name: t('deliv_mes', "Mises en situation"), tab: "interview", anchor: "questionnaire_section", data: customScenariosResult || cvData, icon: <ShieldAlert size={18}/> },
+    { name: t('deliv_questions', "Questions & Mises en situation"), tab: "interview", anchor: "questionnaire_section", data: questionsResult || customScenariosResult, icon: <MessageSquare size={18}/> },
+    { name: t('deliv_mes', "Mises en situation"), tab: "interview", anchor: "mes_anchor", data: customScenariosResult || cvData, icon: <ShieldAlert size={18}/> },
     { name: t('deliv_flaws', "Parades aux Défauts"), tab: "interview", anchor: "flaws_section", data: flawCoachingResult, icon: <AlertTriangle size={18}/> },
     { name: t('deliv_gap', "Analyse d'Écarts (Gap)"), tab: "market", anchor: "gap_section", data: gapResult, icon: <Target size={18}/> },
     { name: t('deliv_company', "Rapport Entreprise"), tab: "market", anchor: "company_section", data: researchResult, icon: <Building size={18}/> },
@@ -206,9 +222,7 @@ export const DashboardView = () => {
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                    <div className="bento-header" style={{ marginBottom: 0 }}><Activity size={20} color="var(--primary)"/> {t('hub_title', 'Centre de Suivi des Analyses')}</div>
                    <button 
-                     onClick={() => {
-                       window.print();
-                     }} 
+                     onClick={() => setIsPrintModalOpen(true)} 
                      className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
                      <Printer size={16} /> Imprimer mon Dossier
                    </button>
@@ -342,8 +356,42 @@ export const DashboardView = () => {
         )}
       </div>
 
+      {/* MODALE D'IMPRESSION */}
+      {isPrintModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ background: 'var(--bg-card)', borderRadius: '1rem', padding: '2rem', maxWidth: '500px', width: '100%', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+            <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>Personnaliser l'impression</h3>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Sélectionnez les éléments que vous souhaitez inclure dans votre dossier (PDF / Papier) :</p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2rem', maxHeight: '50vh', overflowY: 'auto', paddingRight: '1rem' }}>
+              {Object.keys(printSelection).map((key) => {
+                const labels: Record<string, string> = {
+                  cv: "CV ATS", pitch: "Pitch de présentation", questions: "Questions d'entretien", mes: "Mises en situation",
+                  flaws: "Parades aux défauts", gap: "Analyse d'écarts (Gap)", research: "Rapports Entreprise & Marché",
+                  decoder: "Décodeur d'annonce", gps: "GPS de Carrière", radar: "Radar de Carrière",
+                  hidden_market: "Stratégie Marché Caché", todo: "Plan d'action (To-Do)"
+                };
+                return (
+                  <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', color: 'var(--text-main)', fontSize: '0.95rem' }}>
+                    <input type="checkbox" checked={printSelection[key as keyof typeof printSelection]} onChange={() => togglePrintSelection(key as keyof typeof printSelection)} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
+                    {labels[key]}
+                  </label>
+                );
+              })}
+            </div>
+            
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              <button className="btn-secondary" onClick={() => setIsPrintModalOpen(false)}>Annuler</button>
+              <button className="btn-primary" onClick={handlePrintConfirm} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Printer size={16} /> Générer le Document
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Composant d'impression invisible à l'écran */}
-      <PrintableDossier />
+      <PrintableDossier selection={printSelection} />
 
       {/* BOUTON RETOUR EN HAUT */}
       {showBackToTop && (

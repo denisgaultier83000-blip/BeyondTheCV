@@ -244,7 +244,9 @@ export const InterviewTab = () => {
     return scenarios;
   };
 
-  const mergedQuestions = [...getQuestionsArray(questionsResult), ...getScenariosAsQuestions(customScenariosResult)];
+  const questionsArray = getQuestionsArray(questionsResult);
+  const scenariosArray = getScenariosAsQuestions(customScenariosResult);
+  const mergedQuestions = [...questionsArray, ...scenariosArray];
 
   return (
     <>
@@ -342,7 +344,14 @@ export const InterviewTab = () => {
                 * Légende : ★ (1-Facile) à ★★★★★ (5-Très Difficile)
               </div>
               {mergedQuestions.length > 0 ? (
-                <Questionnaire questions={mergedQuestions} hideHeader={true} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                  {questionsArray.length > 0 && (
+                    <Questionnaire questions={questionsArray} hideHeader={true} />
+                  )}
+                  {scenariosArray.length > 0 && (
+                    <div id="mes_anchor"><Questionnaire questions={scenariosArray} hideHeader={true} /></div>
+                  )}
+                </div>
               ) : (
                 <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                   Les questions sont en cours d'analyse ou n'ont pas pu être formatées correctement.
