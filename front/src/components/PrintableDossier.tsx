@@ -4,7 +4,7 @@ import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 
 export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
-  const { cvData, pilotData, researchResult, gapResult, flawCoachingResult } = useDashboard();
+  const { cvData, pilotData, researchResult, gapResult, flawCoachingResult, pitchResult, questionsResult, customScenariosResult, actionPlanResult } = useDashboard();
   const [interviewHistory, setInterviewHistory] = useState<any[]>([]);
   const [trainingHistory, setTrainingHistory] = useState<any[]>([]);
 
@@ -37,14 +37,96 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
   const gapData = gapResult?.gap_analysis || gapResult || {};
   const flaws = Array.isArray(flawCoachingResult) ? flawCoachingResult : (flawCoachingResult?.flaws || []);
 
-  const renderItem = (item: any) => typeof item === 'string' ? item : item?.skill || item?.name || item?.description || JSON.stringify(item);
+  // --- EXTRACTIONS IDENTIQUES À INTERVIEWTAB ---
+  const getQuestionsArray = (data: any): any[] => {
+    if (!data) return [];
+    let actualData = data.result !== undefined ? data.result : data;
+    let depth = 0;
+    while (typeof actualData === 'string' && depth < 7) {
+        try {
+            const match = actualData.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+            actualData = JSON.parse(match ? match[1] : actualData);
+            depth++;
+        } catch(e) { break; }
+    }
+    if (Array.isArray(actualData)) return actualData;
+    const payload = actualData.interview_questions_result || actualData.interview_questions || actualData;
+    if (Array.isArray(payload)) return payload;
+    if (payload?.questions && Array.isArray(payload.questions)) return payload.questions;
+    const extractDeep = (obj: any): any[] => {
+        if (!obj || typeof obj !== 'object') return [];
+        let found: any[] = [];
+        for (const key of Object.keys(obj)) {
+            const val = obj[key];
+            if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'object' && val[0].question) {
+                found = found.concat(val);
+            } else if (typeof val === 'object' && val !== null) {
+                found = found.concat(extractDeep(val));
+            }
+        }
+        return found;
+    };
+    const deep = extractDeep(payload);
+    if (deep.length > 0) return deep;
+    return (Object.values(payload).find(v => Array.isArray(v)) as any[]) || [];
+  };
+
+  const getScenariosAsQuestions = (data: any): any[] => {
+    if (!data) return [];
+    let actualData = data.result !== undefined ? data.result : data;
+    let depth = 0;
+    while (typeof actualData === 'string' && depth < 7) {
+        try {
+            const match = actualData.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+            actualData = JSON.parse(match ? match[1] : actualData);
+            depth++;
+        } catch(e) { break; }
+    }
+    const scenarios: any[] = [];
+    const extractDeep = (obj: any, cat: string = "Mise en situation") => {
+        if (!obj || typeof obj !== 'object') return;
+        if (Array.isArray(obj)) obj.forEach(item => extractDeep(item, cat));
+        else {
+            if (obj.scenario || obj.question || obj.situation || obj.text || obj.contexte || obj.description || obj.defi) {
+                scenarios.push({
+                    category: "SCÉNARIO : " + cat.toUpperCase(),
+                    question: obj.scenario || obj.question || obj.situation || obj.text || obj.contexte || obj.description || obj.defi,
+                    suggested_answer: obj.expected_behavior || obj.suggested_answer || obj.answer || obj.solution || "Conseil : STAR",
+                    user_answer: obj.user_answer,
+                    evaluation: obj.feedback || obj.evaluation
+                });
+            } else Object.values(obj).forEach(v => extractDeep(v, obj.category || obj.theme || obj.title || cat));
+        }
+    };
+    extractDeep(actualData);
+    return scenarios;
+  };
+
+  const questionsArray = getQuestionsArray(questionsResult);
+  const scenariosArray = getScenariosAsQuestions(customScenariosResult);
+  const pitch = pitchResult?.pitch || pitchResult;
+  const todoList = actionPlanResult?.action_plan || actionPlanResult?.tasks || actionPlanResult?.phases || actionPlanResult;
+
+  const renderImprovedAnswer = (answer: any) => {
+    if (!answer) return "N/A";
+    try {
+      const parsed = typeof answer === 'string' ? JSON.parse(answer) : answer;
+      if (Array.isArray(parsed)) {
+        return <ul style={{ margin: 0, paddingLeft: '1.2rem', marginTop: '0.5rem' }}>{parsed.map((ex: any, i: number) => <li key={i}><strong>{ex.title}</strong>: {ex.description}</li>)}</ul>;
+      }
+    } catch (e) {}
+    return answer;
+  };
 
   return (
     <div className="printable-dossier" style={{ color: 'black', background: 'white', padding: '2rem', fontFamily: 'Arial, sans-serif' }}>
       <style>{`
         .printable-dossier { display: none; }
         @media print {
+          body * { visibility: hidden !important; }
           .printable-dossier { display: block !important; }
+          .printable-dossier, .printable-dossier * { visibility: visible !important; }
+          .printable-dossier { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; }
           .page-break { page-break-before: always; }
           .avoid-break { page-break-inside: avoid; }
           h1, h2, h3, h4 { color: #0f172a; margin-top: 0; }
@@ -60,6 +142,23 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
         <h3 style={{ fontSize: '1.5rem', color: '#64748b' }}>Cible : {cvData?.target_job} {cvData?.target_company ? `chez ${cvData.target_company}` : ''}</h3>
         <p style={{ marginTop: '4rem', fontSize: '1.4rem' }}>Score d'Adéquation global : <strong>{pilotData?.matchScore || 0}/100</strong></p>
       </div>
+
+      {/* Pitch */}
+      {selection.pitch !== false && pitch && (
+        <div className="print-section avoid-break">
+          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🎤 Pitch de Présentation (3 min)</h2>
+          <div className="print-box">
+            <h4 style={{ color: '#0f172a', margin: '0 0 0.5rem 0' }}>Accroche</h4>
+            <p style={{ margin: '0 0 1rem 0' }}>{pitch.accroche}</p>
+            <h4 style={{ color: '#0f172a', margin: '0 0 0.5rem 0' }}>Preuve & Impact</h4>
+            <p style={{ margin: '0 0 1rem 0' }}>{pitch.preuve}</p>
+            <h4 style={{ color: '#0f172a', margin: '0 0 0.5rem 0' }}>Valeur Ajoutée</h4>
+            <p style={{ margin: '0 0 1rem 0' }}>{pitch.valeur}</p>
+            <h4 style={{ color: '#0f172a', margin: '0 0 0.5rem 0' }}>Projection</h4>
+            <p style={{ margin: 0 }}>{pitch.projection}</p>
+          </div>
+        </div>
+      )}
 
       {/* 1. Stratégie */}
       {selection.gap !== false && (
@@ -106,6 +205,56 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
         </div>
       )}
 
+      {/* Questions d'entretien */}
+      {selection.questions !== false && questionsArray.length > 0 && (
+        <div className="print-section page-break">
+          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>💬 Questions d'Entretien</h2>
+          {questionsArray.map((q: any, idx: number) => (
+            <div key={idx} className="print-box avoid-break">
+              <h3 style={{ color: '#0f172a', fontSize: '1.1rem', margin: '0 0 0.5rem 0' }}>Q : {q.question || q.text}</h3>
+              {q.user_answer ? (
+                <>
+                  <p style={{ margin: '0.5rem 0', color: '#475569' }}><strong>Votre réponse :</strong> {q.user_answer}</p>
+                  {q.evaluation && (
+                    <div style={{ background: '#dcfce7', padding: '1rem', borderRadius: '4px', marginTop: '0.5rem', border: '1px solid #bbf7d0' }}>
+                      <p style={{ margin: '0 0 0.5rem 0', color: '#166534', fontWeight: 'bold' }}>Feedback IA (Score: {(q.evaluation.score/10).toFixed(1)}/10)</p>
+                      <div style={{ margin: 0, color: '#166534' }}>{renderImprovedAnswer(q.evaluation.improved_answer || q.evaluation.feedback)}</div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p style={{ margin: '0.5rem 0', color: '#94a3b8', fontStyle: 'italic' }}>Non répondu. Suggestion : {q.suggested_answer || q.answer}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Mises en situation */}
+      {selection.mes !== false && scenariosArray.length > 0 && (
+        <div className="print-section page-break">
+          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🎭 Mises en Situation</h2>
+          {scenariosArray.map((q: any, idx: number) => (
+            <div key={idx} className="print-box avoid-break">
+              <h3 style={{ color: '#0f172a', fontSize: '1.1rem', margin: '0 0 0.5rem 0' }}>Cas : {q.question || q.text}</h3>
+              {q.user_answer ? (
+                <>
+                  <p style={{ margin: '0.5rem 0', color: '#475569' }}><strong>Votre action :</strong> {q.user_answer}</p>
+                  {q.evaluation && (
+                    <div style={{ background: '#dcfce7', padding: '1rem', borderRadius: '4px', marginTop: '0.5rem', border: '1px solid #bbf7d0' }}>
+                      <p style={{ margin: '0 0 0.5rem 0', color: '#166534', fontWeight: 'bold' }}>Feedback IA (Score: {(q.evaluation.score/10).toFixed(1)}/10)</p>
+                      <div style={{ margin: 0, color: '#166534' }}>{renderImprovedAnswer(q.evaluation.improved_answer || q.evaluation.feedback)}</div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p style={{ margin: '0.5rem 0', color: '#94a3b8', fontStyle: 'italic' }}>Non répondu. Conseil : {q.advice || q.suggested_answer}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* 3. Réponses aux Défauts */}
       {selection.flaws !== false && flaws.length > 0 && (
         <div className="print-section page-break">
@@ -123,16 +272,23 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
       )}
 
       {/* 4. Historique des questions */}
-      {(selection.questions !== false || selection.mes !== false) && (
+      {(selection.todo !== false) && (
         <div className="print-section page-break">
-          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>💬 Historique d'Entraînement</h2>
-          {trainingHistory.length === 0 && interviewHistory.length === 0 ? <p>Aucun entraînement enregistré pour le moment.</p> : [...interviewHistory, ...trainingHistory].map((item, idx) => (
-            <div key={idx} className="print-box avoid-break" style={{ borderLeft: '4px solid #8b5cf6' }}>
-              <h4 style={{ margin: '0 0 10px 0', fontSize: '1.1rem' }}>Q : {item.question || item.question_text}</h4>
-              <p style={{ margin: '0 0 10px 0' }}><strong>Votre réponse :</strong> {item.user_answer || item.userAnswer}</p>
-              <p style={{ margin: '0 0 10px 0', color: '#166534' }}><strong>Correction IA (Score : {item.score || item.feedback?.score}/100) :</strong> {item.feedback?.improved_answer}</p>
-            </div>
-          ))}
+          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>✅ Plan d'Action (To-Do List)</h2>
+          <div className="print-box">
+            {Array.isArray(todoList) ? todoList.map((step: any, i: number) => (
+              <div key={i} style={{ marginBottom: '1.5rem' }}>
+                <h4 style={{ color: '#2563eb', margin: '0 0 0.5rem 0' }}>{step.phase || step.title || step.step || `Étape ${i+1}`}</h4>
+                <ul style={{ margin: 0, paddingLeft: '1.5rem' }}>
+                  {(step.actions || step.tasks || []).map((act: string, j: number) => (
+                    <li key={j} style={{ marginBottom: '0.25rem' }}>{act}</li>
+                  ))}
+                </ul>
+              </div>
+            )) : (
+              <p>Plan d'action non disponible.</p>
+            )}
+          </div>
         </div>
       )}
     </div>

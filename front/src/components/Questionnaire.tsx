@@ -54,7 +54,14 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
 
-  const getKey = (q: any, idx: number): string => q.id || idx.toString();
+  // [FIX EXPERT] On utilise le texte de la question comme clé unique 
+  // pour éviter que les réponses ne bavent d'un index à l'autre (ex: Index 0 Question = Index 0 MES)
+  const getKey = (q: any, idx: number): string => {
+    if (q.id) return String(q.id);
+    const text = q.question || q.scenario || q.situation || q.text || q.contexte || q.description || q.defi || "";
+    if (text) return text.substring(0, 40).replace(/[^a-z0-9]/gi, '').toLowerCase();
+    return idx.toString();
+  };
 
   useEffect(() => {
     // [FIX EXPERT] Récupération prioritaire depuis les données persistées par le backend

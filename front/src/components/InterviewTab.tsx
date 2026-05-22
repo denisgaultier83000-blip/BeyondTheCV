@@ -145,6 +145,18 @@ export const InterviewTab = () => {
     if (showHistory) fetchHistory();
   }, [showHistory]);
 
+  const handlePurgeCache = async () => {
+    if (window.confirm(t('confirm_purge', "Voulez-vous effacer vos anciennes réponses et forcer l'IA à regénérer un nouveau set de questions au prochain chargement ?"))) {
+      try {
+        await authenticatedFetch(`${API_BASE_URL}/api/cv/cache?content_type=interview_questions`, { method: 'DELETE' });
+        await authenticatedFetch(`${API_BASE_URL}/api/cv/cache?content_type=extra_scenarios`, { method: 'DELETE' });
+        alert(t('purge_success', "Cache purgé. Veuillez rafraîchir la page (F5) pour générer de nouvelles questions vierges."));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
+
   // Extraction ultra-robuste des questions pour pallier les variations de structure (encapsulation IA)
   const getQuestionsArray = (data: any): any[] => {
     if (!data) return [];
@@ -316,9 +328,14 @@ export const InterviewTab = () => {
           errorText={questionsResult?.error ? `Erreur IA : ${typeof questionsResult.error === 'boolean' ? "Limite de contexte atteinte (données trop lourdes)." : questionsResult.error}` : t('questions_error', "Le questionnaire n'a pas pu être généré.")}
           featureId="interview_questions"
           headerAction={
-            <button onClick={() => setShowHistory(!showHistory)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
-              <History size={16} /> {showHistory ? "Masquer les archives" : "Archives de mes réponses"}
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button onClick={handlePurgeCache} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} title="Effacer l'historique d'entraînement du profil">
+                <RotateCcw size={16} /> Purger le cache
+              </button>
+              <button onClick={() => setShowHistory(!showHistory)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
+                <History size={16} /> {showHistory ? "Masquer les archives" : "Archives de mes réponses"}
+              </button>
+            </div>
           }
         >
           {showHistory && (
