@@ -377,15 +377,57 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
             except Exception as e:
                 print(f"[DB WARNING] Failed to insert interview session (missing table?): {e}", flush=True)
             
+            def parse_deep_json(raw_str):
+                parsed = raw_str
+                for _ in range(5):
+                    if isinstance(parsed, str):
+                        try:
+                            parsed = json.loads(parsed)
+                        except Exception:
+                            import re
+                            match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', parsed, re.IGNORECASE)
+                            if match:
+                                try:
+                                    parsed = json.loads(match.group(1))
+                                except Exception:
+                                    break
+                            else:
+                                break
+                    else:
+                        break
+                return parsed
+
+            def update_question_node(node):
+                def normalize_str(s):
+                    return re.sub(r'\W+', '', str(s)).lower() if s else ""
+                    
+                if isinstance(node, dict):
+                    req_q = normalize_str(request.question)
+                    
+                    def is_match(a, b):
+                        if not a or not b: return False
+                        if len(a) > 10 and a in b: return True
+                        if len(b) > 10 and b in a: return True
+                        return a == b   
+                        
+                    for k, v in node.items():
+                        if isinstance(v, str) and len(v) > 5:
+                            if is_match(req_q, normalize_str(v)):
+                                node["user_answer"] = request.user_answer
+                                node["evaluation"] = result
+                                return True
+                    for v in node.values():
+                        if update_question_node(v): return True
+                elif isinstance(node, list):
+                    for item in node:
+                        if update_question_node(item): return True
+                return False
+
             # [FIX EXPERT] Mise à jour du JSON de la tâche pour que les scores soient rechargés au retour
             task_to_update = request.task_id
             
             if not task_to_update:
                 try:
-                    # Auto-découverte si le composant Frontend n'envoie pas de task_id
-                    def normalize_for_search(s):
-                        return re.sub(r'\W+', '', str(s)).lower() if s else "|||"
-                        
                     cursor = await db.execute(conn, """
                         SELECT t.id, t.result FROM tasks t
                         LEFT JOIN job_applications a ON t.application_id = a.id
@@ -393,70 +435,28 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                         ORDER BY t.created_at DESC LIMIT 20
                     """, (current_user["id"],))
                     rows = await cursor.fetchall()
-                    req_q_norm = normalize_for_search(request.question)
                     for row in rows:
                         t_res = row[1] if isinstance(row, tuple) else row.get("result")
-                        if t_res and req_q_norm in normalize_for_search(t_res):
+                        if not t_res: continue
+                        
+                        task_result = parse_deep_json(t_res)
+                        if update_question_node(task_result):
                             task_to_update = row[0] if isinstance(row, tuple) else row.get("id")
+                            await db.execute(conn, "UPDATE tasks SET result = ? WHERE id = ?", (json.dumps(task_result), task_to_update))
                             break
                 except Exception as e:
                     print(f"[DB WARNING] Failed to auto-discover task: {e}", flush=True)
 
-            if task_to_update:
+            elif task_to_update:
                 try:
                     cursor = await db.execute(conn, "SELECT result FROM tasks WHERE id = ?", (task_to_update,))
                     task_row = await cursor.fetchone()
                     if task_row:
                         task_result_str = task_row[0] if isinstance(task_row, tuple) else task_row.get("result")
                         if task_result_str:
-                            # [FIX EXPERT] Désérialisation profonde pour détruire l'effet "Poupée Russe"
-                            # Empêche la stringification exponentielle à chaque nouvelle réponse évaluée.
-                            task_result = task_result_str
-                            for _ in range(5):
-                                if isinstance(task_result, str):
-                                    try:
-                                        task_result = json.loads(task_result)
-                                    except Exception:
-                                        import re
-                                        match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', task_result, re.IGNORECASE)
-                                        if match:
-                                            try:
-                                                task_result = json.loads(match.group(1))
-                                            except Exception:
-                                                break
-                                        else:
-                                            break
-                                else:
-                                    break
-                                    
-                            def update_question_node(node):
-                                def normalize_str(s):
-                                    return re.sub(r'\W+', '', str(s)).lower() if s else ""
-                                    
-                                if isinstance(node, dict):
-                                    req_q = normalize_str(request.question)
-
-                                    
-                                    def is_match(a, b):
-                                        if not a or not b: return False
-                                        if len(a) > 10 and a in b: return True
-                                        if len(b) > 10 and b in a: return True
-                                        return a == b   
-                                    for k, v in node.items():
-                                        if isinstance(v, str) and len(v) > 5:
-                                            if is_match(req_q, normalize_str(v)):
-                                                node["user_answer"] = request.user_answer
-                                                node["evaluation"] = result
-                                                return True
-                                    for v in node.values():
-                                        if update_question_node(v): return True
-                                elif isinstance(node, list):
-                                    for item in node:
-                                        if update_question_node(item): return True
-                                return False
-                            
-                            update_question_node(task_result)
-                            await db.execute(conn, "UPDATE tasks SET result = ? WHERE id = ?", (json.dumps(task_result), task_to_update))
+                            task_result = parse_deep_json(task_result_str)
+                            if update_question_node(task_result):
+                                await db.execute(conn, "UPDATE tasks SET result = ? WHERE id = ?", (json.dumps(task_result), task_to_update))
                 except Exception as e:
                     print(f"[DB WARNING] Failed to update task JSON: {e}", flush=True)
                     
