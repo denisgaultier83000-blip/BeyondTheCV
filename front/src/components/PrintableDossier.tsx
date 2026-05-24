@@ -179,11 +179,11 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
           .print-box { border: 1px solid #cbd5e1; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; background: #f8fafc; box-sizing: border-box; width: 100%; word-wrap: break-word; overflow-wrap: break-word; }
           p, div, span, li, h3, h4 { max-width: 100%; }
           
-          /* En-tête fixe pour répéter le logo sur chaque page */
+          /* Logo sur la première page uniquement */
           .print-logo-container {
-            position: fixed;
-            top: 0.5cm;
-            right: 1.5cm;
+            position: absolute;
+            top: 0;
+            right: 0;
             height: 35px;
             z-index: 1000;
             display: block !important;
@@ -277,7 +277,42 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
         <div className="print-section page-break">
           <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🧭 GPS de Carrière</h2>
           <div className="print-box avoid-break">
-            {renderGeneric(careerGpsResult.route || careerGpsResult.steps || careerGpsResult.milestones || careerGpsResult)}
+            {(() => {
+              const gpsData = careerGpsResult.career_gps_result || careerGpsResult;
+              const route = gpsData.route || gpsData;
+              if (!route || !route.steps) return renderGeneric(gpsData);
+              return (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid #cbd5e1', paddingBottom: '0.5rem' }}>
+                    <span><strong>Temps estimé :</strong> {route.estimated_time || "N/A"}</span>
+                    <span><strong>Probabilité :</strong> {route.probability || "N/A"}%</span>
+                  </div>
+                  <h4 style={{ color: '#0f172a', margin: '0 0 0.5rem 0' }}>Étapes Clés</h4>
+                  <ul style={{ margin: '0 0 1rem 0', paddingLeft: '1.2rem' }}>
+                    {(route.steps || []).map((step: any, i: number) => (
+                      <li key={i} style={{ marginBottom: '0.5rem' }}>
+                        {step.icon && <span style={{ marginRight: '0.5rem' }}>{step.icon}</span>}
+                        <strong>{(step.name || "").replace(/\*\*/g, '')}</strong>
+                        {step.impact && <span style={{ color: '#64748b', fontSize: '0.9rem' }}> (Impact : {step.impact})</span>}
+                      </li>
+                    ))}
+                  </ul>
+                  {route.obstacles && route.obstacles.length > 0 && (
+                    <>
+                      <h4 style={{ color: '#dc2626', margin: '0 0 0.5rem 0' }}>Obstacles & Risques</h4>
+                      <ul style={{ margin: '0', paddingLeft: '1.2rem', color: '#dc2626' }}>
+                        {route.obstacles.map((obs: any, i: number) => (
+                          <li key={i} style={{ marginBottom: '0.5rem' }}>
+                            {obs.icon && <span style={{ marginRight: '0.5rem' }}>{obs.icon}</span>}
+                            {(obs.text || (typeof obs === 'string' ? obs : '')).replace(/\*\*/g, '')}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
       )}
