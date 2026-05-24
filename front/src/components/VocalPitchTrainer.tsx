@@ -160,7 +160,7 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", onSuccess }: VocalPi
             </div>
             <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', textAlign: 'center' }}>
               <AlertTriangle size={24} color="#f59e0b" style={{ margin: '0 auto 0.5rem auto' }} />
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#b45309' }}>{result.metrics.filler_words_detected.length > 0 ? result.metrics.filler_words_detected.join(', ') : "Aucun"}</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#b45309' }}>{Array.isArray(result.metrics?.filler_words_detected) && result.metrics.filler_words_detected.length > 0 ? result.metrics.filler_words_detected.join(', ') : "Aucun"}</div>
               <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Tics de langage détectés</div>
             </div>
             <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', textAlign: 'center' }}>
@@ -185,7 +185,7 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", onSuccess }: VocalPi
                   <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', paddingLeft: '1rem' }}>{ex.description}</div>
                 </div>
               )) : (
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', paddingLeft: '1rem' }}>{result.micro_exercises}</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', paddingLeft: '1rem' }}>{typeof result.micro_exercises === 'string' ? result.micro_exercises : "Aucun exercice proposé."}</div>
               )}
             </div>
           </div>

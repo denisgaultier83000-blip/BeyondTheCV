@@ -4,7 +4,11 @@ import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 
 export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
-  const { cvData, pilotData, researchResult, gapResult, flawCoachingResult, pitchResult, questionsResult, customScenariosResult, actionPlanResult } = useDashboard();
+  const { 
+    cvData, pilotData, researchResult, gapResult, flawCoachingResult, 
+    pitchResult, questionsResult, customScenariosResult, actionPlanResult,
+    careerRadarResult, careerGpsResult, jobDecoderResult, hiddenMarketResult
+  } = useDashboard();
   const [interviewHistory, setInterviewHistory] = useState<any[]>([]);
   const [trainingHistory, setTrainingHistory] = useState<any[]>([]);
 
@@ -35,7 +39,8 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
   const companyReport = researchResult?.company_report || {};
   const marketReport = researchResult?.market_report || {};
   const gapData = gapResult?.gap_analysis || gapResult || {};
-  const flaws = Array.isArray(flawCoachingResult) ? flawCoachingResult : (flawCoachingResult?.flaws || []);
+  const flawsRaw = flawCoachingResult?.coaching || flawCoachingResult?.flaws || flawCoachingResult;
+  const flaws = Array.isArray(flawsRaw) ? flawsRaw : (Array.isArray(flawCoachingResult) ? flawCoachingResult : []);
 
   // --- EXTRACTIONS IDENTIQUES À INTERVIEWTAB ---
   const getQuestionsArray = (data: any): any[] => {
@@ -134,22 +139,103 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
     return answer;
   };
 
+  // Fonction robuste pour afficher n'importe quel objet JSON proprement 
+  // (Utile pour le GPS, Radar, etc., si le backend change la structure)
+  const renderGeneric = (data: any): React.ReactNode => {
+    if (data === null || data === undefined) return "N/A";
+    if (typeof data !== 'object') return String(data);
+    if (Array.isArray(data)) {
+      return (
+        <ul style={{ margin: '0.5rem 0', paddingLeft: '1.5rem' }}>
+          {data.map((item, i) => <li key={i} style={{ marginBottom: '0.25rem' }}>{renderGeneric(item)}</li>)}
+        </ul>
+      );
+    }
+    return (
+      <div style={{ marginLeft: '0.5rem', marginTop: '0.25rem' }}>
+        {Object.entries(data).map(([k, v]) => (
+          <div key={k} style={{ marginBottom: '0.25rem' }}>
+            <strong style={{ textTransform: 'capitalize', color: '#334155' }}>{k.replace(/_/g, ' ')} :</strong> {renderGeneric(v)}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
-    <div className="printable-dossier" style={{ color: 'black', background: 'white', padding: '2rem', fontFamily: 'Arial, sans-serif' }}>
+    <div className="printable-dossier" style={{ color: 'black', background: 'white', padding: '2rem', fontFamily: 'Arial, sans-serif', boxSizing: 'border-box', maxWidth: '100%' }}>
       <style>{`
         .printable-dossier { display: none; }
         @media print {
+          @page { margin: 2cm 1.5cm 2cm 1.5cm; }
           body * { visibility: hidden !important; }
           .printable-dossier { display: block !important; }
           .printable-dossier, .printable-dossier * { visibility: visible !important; }
-          .printable-dossier { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; }
+          .printable-dossier { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; box-sizing: border-box; }
           .page-break { page-break-before: always; }
           .avoid-break { page-break-inside: avoid; }
           h1, h2, h3, h4 { color: #0f172a; margin-top: 0; }
-          .print-section { margin-bottom: 2rem; }
-          .print-box { border: 1px solid #cbd5e1; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; background: #f8fafc; }
+          .print-section { margin-bottom: 2rem; max-width: 100%; box-sizing: border-box; }
+          .print-box { border: 1px solid #cbd5e1; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; background: #f8fafc; box-sizing: border-box; width: 100%; word-wrap: break-word; overflow-wrap: break-word; }
+          p, div, span, li, h3, h4 { max-width: 100%; }
+          
+          /* En-tête fixe pour répéter le logo sur chaque page */
+          .print-logo-container {
+            position: fixed;
+            top: 0.5cm;
+            right: 1.5cm;
+            height: 35px;
+            z-index: 1000;
+            display: block !important;
+          }
+          
+          /* Pied de page fixe avec bordure */
+          .print-footer-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex !important;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #64748b;
+            border-top: 1px solid #cbd5e1;
+            padding-top: 0.5rem;
+            z-index: 1000;
+          }
+
+          /* Filigrane Confidentiel (Bonus) */
+          .print-watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 8rem;
+            font-weight: 800;
+            color: #cbd5e1;
+            opacity: 0.15;
+            z-index: -1;
+            display: block !important;
+            pointer-events: none;
+          }
         }
       `}</style>
+
+      {/* Logo répété en haut à droite de chaque page */}
+      <div className="print-logo-container" style={{ display: 'none' }}>
+        <img src="/logo_reduit_BTCV.png" alt="BeyondTheCV" style={{ height: '100%', width: 'auto', opacity: 0.8 }} />
+      </div>
+
+      {/* Filigrane Confidentiel */}
+      <div className="print-watermark" style={{ display: 'none' }}>
+        CONFIDENTIEL
+      </div>
+
+      {/* Pied de page avec le nom du Candidat */}
+      <div className="print-footer-container" style={{ display: 'none' }}>
+        <span>Dossier Candidat : {cvData?.first_name} {cvData?.last_name}</span>
+        <span>Généré par BeyondTheCV</span>
+      </div>
 
       {/* 1. Page de Garde & Stratégie */}
       <div className="print-section text-center" style={{ textAlign: 'center', marginBottom: '4rem', paddingTop: '4rem' }}>
@@ -186,6 +272,75 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
         </div>
       )}
 
+      {/* GPS de Carrière */}
+      {selection.gps !== false && careerGpsResult && (
+        <div className="print-section page-break">
+          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🧭 GPS de Carrière</h2>
+          <div className="print-box avoid-break">
+            {renderGeneric(careerGpsResult.route || careerGpsResult.steps || careerGpsResult.milestones || careerGpsResult)}
+          </div>
+        </div>
+      )}
+
+      {/* Radar de Carrière */}
+      {selection.radar !== false && careerRadarResult && (
+        <div className="print-section page-break">
+          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>📡 Radar de Carrière (Trajectoires)</h2>
+          {careerRadarResult.trajectories ? careerRadarResult.trajectories.map((traj: any, idx: number) => (
+            <div key={idx} className="print-box avoid-break">
+              <h3 style={{ color: '#0f172a', margin: '0 0 0.5rem 0' }}>{traj.title || traj.role || traj.name} - {traj.match_percent}%</h3>
+              <p style={{ margin: '0 0 0.25rem 0' }}><strong>Temps estimé :</strong> {traj.time_to_reach}</p>
+              <p style={{ margin: '0 0 0.25rem 0' }}><strong>Potentiel Salarial :</strong> {traj.salary_potential}</p>
+              <p style={{ margin: '0 0 0.25rem 0' }}><strong>Pourquoi :</strong> {traj.rationale || traj.why}</p>
+              <p style={{ margin: 0 }}><strong>Écarts (Gap) :</strong> {traj.gap || traj.missing}</p>
+            </div>
+          )) : (
+            <div className="print-box avoid-break">
+              {renderGeneric(careerRadarResult)}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Décodeur d'Annonce */}
+      {selection.decoder !== false && jobDecoderResult && (
+        <div className="print-section page-break">
+          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🕵️ Décodeur d'Annonce</h2>
+          <div className="print-box avoid-break">
+            {jobDecoderResult.reality_check ? (
+              <>
+                <h3 style={{ color: '#0f172a', fontSize: '1.1rem' }}>Jargon décodé</h3>
+                <ul>
+                  {(jobDecoderResult.reality_check || []).map((item: any, idx: number) => (
+                    <li key={idx} style={{ marginBottom: '0.25rem' }}><strong>{item.jargon} :</strong> {item.translation}</li>
+                  ))}
+                </ul>
+                {jobDecoderResult.real_expectations && (
+                  <>
+                    <h3 style={{ color: '#0f172a', fontSize: '1.1rem', marginTop: '1rem' }}>Vraies attentes</h3>
+                    <ul>
+                      {(jobDecoderResult.real_expectations || []).map((item: string, idx: number) => (
+                        <li key={idx} style={{ marginBottom: '0.25rem' }}>{item}</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+                {jobDecoderResult.red_flags && jobDecoderResult.red_flags.length > 0 && (
+                  <>
+                    <h3 style={{ color: '#dc2626', fontSize: '1.1rem', marginTop: '1rem' }}>Signaux d'alerte</h3>
+                    <ul>
+                      {jobDecoderResult.red_flags.map((item: string, idx: number) => (
+                        <li key={idx} style={{ color: '#dc2626', marginBottom: '0.25rem' }}>{item}</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </>
+            ) : renderGeneric(jobDecoderResult)}
+          </div>
+        </div>
+      )}
+
       {/* 2. Dossier Entreprise & Marché */}
       {selection.research !== false && (
         <div className="print-section avoid-break page-break">
@@ -218,6 +373,44 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Marché Caché */}
+      {selection.hidden_market !== false && hiddenMarketResult && (
+        <div className="print-section page-break">
+          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🕸️ Stratégie Marché Caché</h2>
+          <div className="print-box avoid-break">
+            {hiddenMarketResult.target_profiles ? (
+              <>
+                <h3 style={{ color: '#0f172a', fontSize: '1.1rem' }}>Profils à cibler</h3>
+                <ul>
+                  {(hiddenMarketResult.target_profiles || []).map((item: any, idx: number) => (
+                    <li key={idx} style={{ marginBottom: '0.25rem' }}><strong>{item.role} :</strong> {item.reason}</li>
+                  ))}
+                </ul>
+                {hiddenMarketResult.outreach_message && (
+                  <>
+                    <h3 style={{ color: '#0f172a', fontSize: '1.1rem', marginTop: '1rem' }}>Message d'approche suggéré</h3>
+                    <div style={{ background: '#f1f5f9', padding: '1rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
+                      <p style={{ margin: '0 0 0.5rem 0' }}><strong>Objet :</strong> {hiddenMarketResult.outreach_message?.subject}</p>
+                      <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{hiddenMarketResult.outreach_message?.body}</p>
+                    </div>
+                  </>
+                )}
+                {hiddenMarketResult.networking_tips && (
+                  <>
+                    <h3 style={{ color: '#0f172a', fontSize: '1.1rem', marginTop: '1rem' }}>Astuces Réseau</h3>
+                    <ul>
+                      {hiddenMarketResult.networking_tips.map((item: string, idx: number) => (
+                        <li key={idx} style={{ marginBottom: '0.25rem' }}>{item}</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </>
+            ) : renderGeneric(hiddenMarketResult)}
+          </div>
         </div>
       )}
 

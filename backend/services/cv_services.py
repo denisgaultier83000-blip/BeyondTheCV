@@ -364,6 +364,14 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
             system_instruction="You are an Expert Interview Coach. Output STRICT JSON."
         )
         
+        # --- [FIX EXPERT] SANITISATION DES TABLEAUX ---
+        if not isinstance(result.get("strengths"), list):
+            s = result.get("strengths")
+            result["strengths"] = [s] if s and isinstance(s, str) else []
+        if not isinstance(result.get("weaknesses"), list):
+            w = result.get("weaknesses")
+            result["weaknesses"] = [w] if w and isinstance(w, str) else []
+            
         # [FIX EXPERT] Sauvegarde de la session d'entretien en BDD
         session_id = str(uuid.uuid4())
         app_id = request.application_id or "general"
@@ -587,6 +595,21 @@ async def evaluate_vocal_pitch(request: VocalPitchRequest, current_user: dict = 
     try:
         result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are an elite Public Speaking Coach. Output STRICT JSON.")
         
+        # --- [FIX EXPERT] SANITISATION GLOBALE DES TABLEAUX ---
+        # On force la conversion en tableau pour éviter les crashs React (ie.map is not a function)
+        if "metrics" in result and not isinstance(result["metrics"].get("filler_words_detected"), list):
+            fw = result["metrics"].get("filler_words_detected")
+            result["metrics"]["filler_words_detected"] = [fw] if fw and isinstance(fw, str) else []
+            
+        if not isinstance(result.get("micro_exercises"), list):
+            me = result.get("micro_exercises")
+            if isinstance(me, dict):
+                result["micro_exercises"] = [me]
+            elif isinstance(me, str):
+                result["micro_exercises"] = [{"title": "Exercice ciblé", "description": me}]
+            else:
+                result["micro_exercises"] = []
+                
         # [FIX EXPERT] Sauvegarde du pitch vocal dans l'historique d'entraînement pour les statistiques
         session_id = str(uuid.uuid4())
         try:
@@ -675,6 +698,14 @@ async def evaluate_training_answer(request: TrainingEvaluateRequest, current_use
     try:
         feedback = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an Expert Interview Coach. Output STRICT JSON.")
         
+        # --- [FIX EXPERT] SANITISATION DES TABLEAUX ---
+        if not isinstance(feedback.get("strengths"), list):
+            s = feedback.get("strengths")
+            feedback["strengths"] = [s] if s and isinstance(s, str) else []
+        if not isinstance(feedback.get("weaknesses"), list):
+            w = feedback.get("weaknesses")
+            feedback["weaknesses"] = [w] if w and isinstance(w, str) else []
+            
         # Sauvegarde de la session en base de données pour calculer les moyennes plus tard
         session_id = str(uuid.uuid4())
         try:
@@ -789,11 +820,13 @@ async def get_training_history(current_user: dict = Depends(require_active_subsc
             
             try:
                 strengths = json.loads(r["strengths"]) if isinstance(r["strengths"], str) else r["strengths"]
+                if not isinstance(strengths, list): strengths = [strengths] if strengths else []
             except:
                 strengths = []
                 
             try:
                 weaknesses = json.loads(r["weaknesses"]) if isinstance(r["weaknesses"], str) else r["weaknesses"]
+                if not isinstance(weaknesses, list): weaknesses = [weaknesses] if weaknesses else []
             except:
                 weaknesses = []
 

@@ -68,6 +68,13 @@ export const DashboardView = () => {
     }
   };
 
+  // --- ECOUTEUR GLOBAL POUR LE BOUTON "MES DOCUMENTS" DU HEADER ---
+  useEffect(() => {
+    const handleOpenPrint = () => setIsPrintModalOpen(true);
+    window.addEventListener('open-print-modal', handleOpenPrint);
+    return () => window.removeEventListener('open-print-modal', handleOpenPrint);
+  }, []);
+
   useEffect(() => {
     const handleScroll = () => {
       setShowBackToTop(window.scrollY > 300);

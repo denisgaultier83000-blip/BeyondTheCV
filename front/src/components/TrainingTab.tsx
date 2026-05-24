@@ -338,7 +338,7 @@ export default function TrainingTab() {
       {!activeQuestion && trainingHistory && trainingHistory.length > 0 && (
         <DashboardCard title="Historique d'Entraînement" icon={<History size={24} />}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {[...trainingHistory].reverse().map((q: any, index: number) => {
+            {[...(Array.isArray(trainingHistory) ? trainingHistory : [])].reverse().map((q: any, index: number) => {
               const fb = q.feedback || q.evaluation;
               const score10 = (fb?.score || 0) / 10;
               const scoreColor = score10 >= 8 ? '#10b981' : score10 >= 5 ? '#f59e0b' : '#ef4444';
