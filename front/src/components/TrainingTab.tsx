@@ -150,6 +150,18 @@ export default function TrainingTab() {
   // [FIX EXPERT] On remplace la note du "Fond" par la vraie note vocale calculée par le VocalPitchTrainer
   const oralPitchScore = themeScores['Pitch Vocal'] || 0;
 
+  // Fonction de sécurité pour afficher les objets JSON de l'IA (Pitch Vocal) sans faire crasher React
+  const renderSafeText = (item: any) => {
+    if (!item) return "";
+    if (typeof item === 'string') return item;
+    if (typeof item === 'object') {
+      if (item.pace_and_silences) return `Rythme: ${item.pace_and_silences} | Structure: ${item.structure_and_clarity}`;
+      if (item.wpm) return `Débit: ${item.wpm} mots/min (${item.pace_status})`;
+      try { return JSON.stringify(item); } catch { return "Données complexes"; }
+    }
+    return String(item);
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       
@@ -320,12 +332,12 @@ export default function TrainingTab() {
                 <h4 style={{ margin: 0, color: 'var(--text-main)' }}>Analyse de votre réponse</h4>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div><strong style={{ color: '#10b981' }}>Points forts :</strong><ul style={{ margin: '0.5rem 0', paddingLeft: '1.2rem', fontSize: '0.9rem' }}>{Array.isArray(feedback.strengths) ? feedback.strengths.map((s: string, i: number) => <li key={i}>{s}</li>) : <li>{feedback.strengths}</li>}</ul></div>
-                <div><strong style={{ color: '#ef4444' }}>À améliorer :</strong><ul style={{ margin: '0.5rem 0', paddingLeft: '1.2rem', fontSize: '0.9rem' }}>{Array.isArray(feedback.weaknesses) ? feedback.weaknesses.map((w: string, i: number) => <li key={i}>{w}</li>) : <li>{feedback.weaknesses}</li>}</ul></div>
+                <div><strong style={{ color: '#10b981' }}>Points forts :</strong><ul style={{ margin: '0.5rem 0', paddingLeft: '1.2rem', fontSize: '0.9rem' }}>{Array.isArray(feedback.strengths) ? feedback.strengths.map((s: any, i: number) => <li key={i}>{renderSafeText(s)}</li>) : <li>{renderSafeText(feedback.strengths)}</li>}</ul></div>
+                <div><strong style={{ color: '#ef4444' }}>À améliorer :</strong><ul style={{ margin: '0.5rem 0', paddingLeft: '1.2rem', fontSize: '0.9rem' }}>{Array.isArray(feedback.weaknesses) ? feedback.weaknesses.map((w: any, i: number) => <li key={i}>{renderSafeText(w)}</li>) : <li>{renderSafeText(feedback.weaknesses)}</li>}</ul></div>
               </div>
               <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
                 <strong>Réponse idéale :</strong>
-                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.5rem', whiteSpace: 'pre-line' }}>{feedback.improved_answer}</p>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.5rem', whiteSpace: 'pre-line' }}>{typeof feedback.improved_answer === 'object' ? JSON.stringify(feedback.improved_answer) : feedback.improved_answer}</p>
               </div>
               <button onClick={() => { setActiveQuestion(null); setFeedback(null); }} className="btn-secondary" style={{ marginTop: '1rem' }}>Terminer et passer à la suite</button>
             </div>
@@ -358,12 +370,12 @@ export default function TrainingTab() {
                   {fb && (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.9rem' }}>
                       <div>
-                        <strong style={{ color: '#10b981' }}>Points forts :</strong>
-                        <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.2rem' }}>{Array.isArray(fb.strengths) ? fb.strengths.map((s: string, i: number) => <li key={i}>{s}</li>) : <li>{fb.strengths}</li>}</ul>
+                        <strong style={{ color: '#10b981' }}>{q.type === 'Vocal' ? 'Métriques :' : 'Points forts :'}</strong>
+                        <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.2rem' }}>{Array.isArray(fb.strengths) ? fb.strengths.map((s: any, i: number) => <li key={i}>{renderSafeText(s)}</li>) : <li>{renderSafeText(fb.strengths)}</li>}</ul>
                       </div>
                       <div>
-                        <strong style={{ color: '#ef4444' }}>À améliorer :</strong>
-                        <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.2rem' }}>{Array.isArray(fb.weaknesses) ? fb.weaknesses.map((w: string, i: number) => <li key={i}>{w}</li>) : <li>{fb.weaknesses}</li>}</ul>
+                        <strong style={{ color: '#ef4444' }}>{q.type === 'Vocal' ? 'Diagnostic :' : 'À améliorer :'}</strong>
+                        <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.2rem' }}>{Array.isArray(fb.weaknesses) ? fb.weaknesses.map((w: any, i: number) => <li key={i}>{renderSafeText(w)}</li>) : <li>{renderSafeText(fb.weaknesses)}</li>}</ul>
                       </div>
                     </div>
                   )}
