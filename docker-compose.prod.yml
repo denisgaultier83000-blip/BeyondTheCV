@@ -41,7 +41,7 @@ services:
 
     networks:
       - btcv-prod-internal
-      - web
+      - web-production
 
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/')\" || exit 1"]
@@ -52,12 +52,25 @@ services:
 
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=web"
+      - "traefik.docker.network=web-production"
 
       - "traefik.http.routers.btcv-api-prod.rule=Host(`api.beyondthecv.app`)"
       - "traefik.http.routers.btcv-api-prod.entrypoints=websecure"
       - "traefik.http.routers.btcv-api-prod.tls.certresolver=le"
       - "traefik.http.routers.btcv-api-prod.service=btcv-api-prod"
+
+      # Déclaration du Rate Limiter (ex: 50 requêtes/sec en moyenne, burst de 100 max)
+      - "traefik.http.middlewares.btcv-api-ratelimit.ratelimit.average=50"
+      - "traefik.http.middlewares.btcv-api-ratelimit.ratelimit.burst=100"
+      
+      # Déclaration des Headers de Sécurité
+      - "traefik.http.middlewares.btcv-security.headers.customFrameOptionsValue=SAMEORIGIN"
+      - "traefik.http.middlewares.btcv-security.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.btcv-security.headers.forceSTSHeader=true"
+      - "traefik.http.middlewares.btcv-security.headers.stsSeconds=31536000"
+
+      # Application des middlewares sur la route de l'API
+      - "traefik.http.routers.btcv-api-prod.middlewares=btcv-api-ratelimit,btcv-security"
 
       - "traefik.http.services.btcv-api-prod.loadbalancer.server.port=8080"
 
@@ -70,23 +83,26 @@ services:
       ENVIRONMENT: production
 
     networks:
-      - web
+      - web-production
 
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=web"
+      - "traefik.docker.network=web-production"
 
       - "traefik.http.routers.btcv-front-prod.rule=Host(`beyondthecv.app`) || Host(`www.beyondthecv.app`)"
       - "traefik.http.routers.btcv-front-prod.entrypoints=websecure"
       - "traefik.http.routers.btcv-front-prod.tls.certresolver=le"
       - "traefik.http.routers.btcv-front-prod.service=btcv-front-prod"
 
+      # Application des middlewares de sécurité sur le frontend également
+      - "traefik.http.routers.btcv-front-prod.middlewares=btcv-security"
+
       - "traefik.http.services.btcv-front-prod.loadbalancer.server.port=8080"
 
 networks:
   btcv-prod-internal:
     driver: bridge
-  web:
+  web-production:
     external: true
 
 volumes:

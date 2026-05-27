@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Search, AlertTriangle, CheckCircle, ArrowRight } from 'lucide-react';
 import { formatMarkdown } from '../utils/markdown';
+import DOMPurify from 'dompurify';
 import { FeedbackWidget } from './FeedbackWidget';
 
 interface DecoderData {
@@ -91,7 +92,7 @@ export default function JobDecoderModal({ data, onClose }: JobDecoderModalProps)
           {decoder.culture_fit && (
             <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
               <h4 style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--primary)', marginBottom: '1rem' }}>🎭 Décryptage de la Culture</h4>
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.6' }} dangerouslySetInnerHTML={formatMarkdown(decoder.culture_fit)} />
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.6' }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatMarkdown(decoder.culture_fit).__html) }} />
             </div>
           )}
         </div>

@@ -168,6 +168,7 @@ export const StepProfile = ({ data, onChange, errors, lang = 'en' }: StepProps) 
 export const StepTarget = ({ data, onChange, errors, loading, lang = 'en' }: StepProps) => {
   // Extraction de i18n et t sans doublon (correction du crash React)
   const { t, i18n } = useTranslation();
+  const [targetType, setTargetType] = useState<'company' | 'industry'>(data.target_type || (data.target_industry && !data.target_company ? 'industry' : 'company'));
   return (
   <div className="step-content">
     <h2>{t('target_title')}</h2>
@@ -197,16 +198,53 @@ export const StepTarget = ({ data, onChange, errors, loading, lang = 'en' }: Ste
         </select>
       </div>
     </div>
-    <div className="row">
-      <div className="col form-group">
-        <label>{t('target_company')}</label>
-        <input disabled={loading} value={data.target_company || ""} onChange={e => onChange("target_company", e.target.value)} placeholder={t('placeholder_target_company')} style={{ width: "100%", borderColor: errors?.target_company ? "#ef4444" : undefined, opacity: loading ? 0.6 : 1 }} />
-      </div>
-      <div className="col form-group">
-        <label>{t('target_industry')}</label>
-        <input disabled={loading} value={data.target_industry || ""} onChange={e => onChange("target_industry", e.target.value)} placeholder={t('placeholder_target_industry')} style={{ width: "100%", borderColor: errors?.target_industry ? "#ef4444" : undefined, opacity: loading ? 0.6 : 1 }} />
+
+    <div className="form-group" style={{ marginTop: 15, marginBottom: 15 }}>
+      <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('target_type_label', 'Quel est votre objectif ?')}</label>
+      <div style={{ display: 'flex', gap: '20px' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+          <input 
+            type="radio" 
+            value="company" 
+            checked={targetType === 'company'} 
+            onChange={() => { setTargetType('company'); onChange('target_type', 'company'); }} 
+            disabled={loading}
+          />
+          {t('target_type_company', 'Je cible une entreprise précise')}
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+          <input 
+            type="radio" 
+            value="industry" 
+            checked={targetType === 'industry'} 
+            onChange={() => { setTargetType('industry'); onChange('target_type', 'industry'); onChange('target_company', ''); }} 
+            disabled={loading}
+          />
+          {t('target_type_industry', "Je cible un secteur d'activité en général")}
+        </label>
       </div>
     </div>
+
+    {targetType === 'company' && (
+      <div className="row">
+        <div className="col form-group">
+          <label>{t('target_company')}</label>
+          <input disabled={loading} value={data.target_company || ""} onChange={e => onChange("target_company", e.target.value)} placeholder={t('placeholder_target_company')} style={{ width: "100%", borderColor: errors?.target_company ? "#ef4444" : undefined, opacity: loading ? 0.6 : 1 }} />
+        </div>
+        <div className="col form-group">
+          <label>{t('target_industry')} ({t('optional', 'Optionnel')})</label>
+          <input disabled={loading} value={data.target_industry || ""} onChange={e => onChange("target_industry", e.target.value)} placeholder={t('placeholder_target_industry')} style={{ width: "100%", borderColor: errors?.target_industry ? "#ef4444" : undefined, opacity: loading ? 0.6 : 1 }} />
+        </div>
+      </div>
+    )}
+    {targetType === 'industry' && (
+      <div className="row">
+        <div className="col form-group">
+          <label>{t('target_industry')}</label>
+          <input disabled={loading} value={data.target_industry || ""} onChange={e => onChange("target_industry", e.target.value)} placeholder={t('placeholder_target_industry')} style={{ width: "100%", borderColor: errors?.target_industry ? "#ef4444" : undefined, opacity: loading ? 0.6 : 1 }} />
+        </div>
+      </div>
+    )}
     <div className="form-group">
       <label>{t('job_desc_label')}</label>
       <textarea disabled={loading} rows={6} value={data.job_description || ""} onChange={e => onChange("job_description", e.target.value)} placeholder={t('job_desc_placeholder')} style={{ width: "100%", opacity: loading ? 0.6 : 1 }} />
