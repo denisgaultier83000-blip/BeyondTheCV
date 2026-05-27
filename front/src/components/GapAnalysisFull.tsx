@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, X, Target, CheckCircle, Lightbulb } from 'lucide-react';
 import Gauge from './Gauge';
+import { FeedbackWidget } from './FeedbackWidget';
 
 export const GapAnalysisFull = ({ data, loading, onBack }: { data: any, loading?: boolean, onBack: () => void }) => {
   // Normalisation robuste des données
@@ -22,6 +23,7 @@ export const GapAnalysisFull = ({ data, loading, onBack }: { data: any, loading?
   const renderItem = (item: any) => typeof item === 'string' ? item : item?.skill || item?.name || item?.description || item?.action || JSON.stringify(item);
 
   return (
+    <>
     <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '1rem', border: '1px solid var(--border-color)', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
         <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-main)' }}>
@@ -75,5 +77,8 @@ export const GapAnalysisFull = ({ data, loading, onBack }: { data: any, loading?
         )}
       </div>
     </div>
+
+    <FeedbackWidget feature="gap_analysis" question="Cette analyse d'écarts vous semble-t-elle pertinente et actionable ?" />
+    </>
   );
 };

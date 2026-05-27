@@ -31,8 +31,8 @@ interface ResearchReportProps {
 export function ResearchReport({ data, companyName }: ResearchReportProps) {
   if (!data) return null;
 
-  const companyReport = data.company_report || {};
-  const marketReport = data.market_report || {};
+  const companyReport = data.company_report || data.synthesis?.company_report || {};
+  const marketReport = data.market_report || data.synthesis?.market_report || {};
   
   const overview = companyReport.identity_dna || "Analyse de l'entreprise indisponible.";
   const culture = companyReport.culture_environment || "Non spécifié.";
@@ -41,8 +41,12 @@ export function ResearchReport({ data, companyName }: ResearchReportProps) {
   const finance = companyReport.financial_health || "Non spécifié.";
   const figures = companyReport.key_figures || "Non spécifié.";
   
+  // [FIX EXPERT] On s'assure d'avoir un tableau, même si l'IA hallucine une string.
+  const rawStrategicChallenges = companyReport.strategic_challenges || data.synthesis?.company_report?.strategic_challenges || [];
+  const strategicChallenges = Array.isArray(rawStrategicChallenges) ? rawStrategicChallenges : (typeof rawStrategicChallenges === 'string' ? [rawStrategicChallenges] : []);
+  
   // Rétrocompatibilité : on cherche d'abord le nouveau format, puis l'ancien
-  const newsLinks = companyReport.news_links || data.essential_articles || [];
+  const newsLinks = companyReport.news_links || data.essential_articles || data.synthesis?.essential_articles || [];
 
   let advice = data.advice || [];
   if (!advice || advice.length === 0) {
@@ -96,6 +100,20 @@ export function ResearchReport({ data, companyName }: ResearchReportProps) {
           <p style={{ fontSize: '0.85rem', color: '#14532d', margin: '0 0 0.5rem 0' }}><strong>Chiffres:</strong> {figures}</p>
           <p style={{ fontSize: '0.85rem', color: '#14532d', margin: 0 }}><strong>Dynamique:</strong> {finance}</p>
         </div>
+
+        {/* NOUVEAU: Défis Stratégiques Actuels */}
+        {strategicChallenges.length > 0 && (
+          <div style={{ background: '#fef2f2', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #fee2e2' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              🎯 Défis Stratégiques
+            </h4>
+            <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#7f1d1d', fontSize: '0.85rem' }}>
+              {strategicChallenges.map((defi: string, idx: number) => (
+                <li key={idx} style={{ marginBottom: '0.35rem', lineHeight: '1.4' }}>{defi}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       {/* Conseils Stratégiques */}
@@ -115,19 +133,52 @@ export function ResearchReport({ data, companyName }: ResearchReportProps) {
       {/* Articles de Presse / Actualités */}
       {newsLinks.length > 0 && (
         <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
-          <h4 style={{ margin: '0 0 0.75rem 0', color: '#334155', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Newspaper size={18}/> Actualités & Articles Clés
+          <h4 style={{ margin: '0 0 1rem 0', color: '#334155', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Newspaper size={18}/> Actualités & Leviers Stratégiques
           </h4>
-          <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#475569', fontSize: '0.9rem' }}>
-            {newsLinks.map((article: any, idx: number) => (
-              <li key={idx} style={{ marginBottom: '0.5rem' }}>
-                <a href={article.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 500 }}>
-                  {article.title}
-                </a>
-                {article.source && <span style={{ color: '#94a3b8', fontSize: '0.8rem', marginLeft: '0.5rem' }}>({article.source})</span>}
-              </li>
-            ))}
-          </ul>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {newsLinks.map((article: any, idx: number) => {
+              const urlStr = article.url || '#';
+              const isDummyUrl = urlStr === '#';
+              const fullUrl = isDummyUrl ? '#' : (urlStr.startsWith('http') ? urlStr : `https://${urlStr}`);
+              return (
+                <div key={idx} style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }} onClick={(e) => e.stopPropagation()}>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    {!isDummyUrl ? (
+                        <>
+                            <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(fullUrl)}&sz=16`} alt="source" style={{ width: '16px', height: '16px', marginRight: '8px', borderRadius: '2px', flexShrink: 0 }} />
+                            <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 600 }} onClick={(e) => e.stopPropagation()}>
+                                {article.title}
+                            </a>
+                        </>
+                    ) : (
+                        <span style={{ color: 'var(--primary)', fontWeight: 600 }}>💡 {article.title}</span>
+                    )}
+                  </div>
+                  {(article.source || article.date) && (
+                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 'bold' }}>
+                      {article.source || 'Presse / Web'} {article.date ? `• ${article.date}` : ''}
+                    </div>
+                  )}
+                  {article.strategic_analysis && (
+                    <div style={{ fontSize: '0.85rem', color: '#475569', borderLeft: '3px solid var(--primary)', paddingLeft: '0.75rem', marginTop: '0.75rem', fontStyle: 'italic', lineHeight: 1.5 }}>
+                      <strong style={{ color: 'var(--primary)', fontStyle: 'normal' }}>Conseil Stratégique :</strong> {article.strategic_analysis}
+                    </div>
+                  )}
+                  {article.hidden_meaning && (
+                    <div style={{ fontSize: '0.85rem', color: '#475569', borderLeft: '3px solid #f59e0b', paddingLeft: '0.75rem', marginTop: '0.75rem', fontStyle: 'italic', lineHeight: 1.5 }}>
+                      <strong style={{ color: '#d97706', fontStyle: 'normal' }}>Lecture Cachée :</strong> {article.hidden_meaning}
+                    </div>
+                  )}
+                  {article.interview_relevance && (
+                    <div style={{ display: 'inline-block', fontSize: '0.75rem', color: '#1e40af', background: '#dbeafe', padding: '0.25rem 0.75rem', borderRadius: '1rem', marginTop: '0.75rem', fontWeight: 600 }}>
+                      Pertinence Entretien : {article.interview_relevance}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

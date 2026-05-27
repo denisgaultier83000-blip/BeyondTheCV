@@ -6,6 +6,19 @@ import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
 import { useDashboard } from './DashboardContext';
 
+// [FIX EXPERT] Mini-parseur robuste pour rendre le gras (**) généré par l'IA sans faille XSS
+const formatText = (text: string) => {
+  if (!text) return text;
+  if (typeof text !== 'string') return text;
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i} style={{ color: 'inherit' }}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+};
+
 interface QuestionnaireProps {
   questions: any[];
   onBack?: () => void;
@@ -41,12 +54,38 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
 
-  const getKey = (q: any, idx: number): string => q.id || idx.toString();
+  // [FIX EXPERT] On utilise le texte de la question comme clé unique 
+  // pour éviter que les réponses ne bavent d'un index à l'autre (ex: Index 0 Question = Index 0 MES)
+  const getKey = (q: any, idx: number): string => {
+    if (q.id) return String(q.id);
+    const text = q.question || q.scenario || q.situation || q.text || q.contexte || q.description || q.defi || "";
+    if (text) return text.substring(0, 40).replace(/[^a-z0-9]/gi, '').toLowerCase();
+    return idx.toString();
+  };
 
   useEffect(() => {
-    if (cvData?.[userAnswersKey]) setUserAnswers(cvData[userAnswersKey]);
-    if (cvData?.[feedbacksKey]) setFeedbacks(cvData[feedbacksKey]);
-  }, [cvData?.[userAnswersKey], cvData?.[feedbacksKey], userAnswersKey, feedbacksKey]);
+    // [FIX EXPERT] Récupération prioritaire depuis les données persistées par le backend
+    const restoredAnswers: Record<string, string> = { ...cvData?.[userAnswersKey] };
+    const restoredFeedbacks: Record<string, any> = { ...cvData?.[feedbacksKey] };
+    let hasUpdates = false;
+    
+    if (questions && Array.isArray(questions)) {
+      questions.forEach((q, idx) => {
+        const qKey = getKey(q, idx);
+        if (q.user_answer && !restoredAnswers[qKey]) {
+          restoredAnswers[qKey] = q.user_answer;
+          hasUpdates = true;
+        }
+        if (q.evaluation && !restoredFeedbacks[qKey]) {
+          restoredFeedbacks[qKey] = q.evaluation;
+          hasUpdates = true;
+        }
+      });
+    }
+
+    if (hasUpdates || Object.keys(restoredAnswers).length > 0) setUserAnswers(restoredAnswers);
+    if (hasUpdates || Object.keys(restoredFeedbacks).length > 0) setFeedbacks(restoredFeedbacks);
+  }, [questions, cvData?.[userAnswersKey], cvData?.[feedbacksKey], userAnswersKey, feedbacksKey]);
 
   const toggleReveal = (qKey: string) => {
     setRevealed(prev => ({ ...prev, [qKey]: !prev[qKey] }));
@@ -131,19 +170,24 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
     if (!answer) return;
     
     setIsSubmitting(qKey);
+    
+    // Sécurisation des clés pour l'envoi API
+    const questionText = q.question || q.text || "Question non spécifiée";
+    const suggestedAnswer = q.suggested_answer || q.answer || q.reponse_suggeree || q.reponse || "";
+    
     try {
       const response = await authenticatedFetch(`${API_BASE_URL}${evalEndpoint || '/api/cv/evaluate-interview-answer'}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-            question: q.question, 
+            question: questionText, 
             category: q.category, 
-            suggested_framework: q.suggested_answer,
+            suggested_framework: suggestedAnswer,
             user_answer: answer,
             // Ajouts spécifiques pour garantir la compatibilité avec la route d'entraînement
             theme: q.category,
             question_type: q.type,
-            question_text: q.question
+            question_text: questionText
         }),
       });
       
@@ -172,22 +216,29 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
   return (
     <div className={hideHeader ? "" : "step-content"} style={{ maxWidth: '1200px', margin: '0 auto', padding: hideHeader ? '0' : '20px' }}>
       {!hideHeader && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-          {onBack ? (
-            <button onClick={onBack} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <ArrowLeft size={16} /> {t('back_productions') || 'Retour'}
-            </button>
-          ) : <div />}
-          <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-main)' }}>
-            <MessageSquare size={28} color="var(--primary)" />
-            {t('card_interview_title') || 'Questionnaire d\'Entretien'}
-          </h2>
-          {onPrint ? (
-            <button onClick={() => onPrint(questions)} className="btn-primary" disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Printer size={16} /> {loading ? t('generating') : (t('print') || 'Imprimer')}
-            </button>
-          ) : <div />}
-        </div>
+        <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+            {onBack ? (
+              <button onClick={onBack} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <ArrowLeft size={16} /> {t('back_productions') || 'Retour'}
+              </button>
+            ) : <div />}
+            <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-main)' }}>
+              <MessageSquare size={28} color="var(--primary)" />
+              {t('card_interview_title') || 'Questionnaire d\'Entretien'}
+            </h2>
+            {onPrint ? (
+              <button onClick={() => onPrint(questions)} className="btn-primary" disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Printer size={16} /> {loading ? t('generating') : (t('print') || 'Imprimer')}
+              </button>
+            ) : <div />}
+          </div>
+          
+          <div style={{ background: 'var(--bg-card)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+            <Lightbulb size={20} color="#eab308" style={{ flexShrink: 0 }} />
+            <span><strong>Indicateur de difficulté :</strong> De ★ (Question abordable) à ★★★★★ (Mise en situation complexe ou question piège). Et la dernière question vous permet de vous entraîner à l'inversion de rôle !</span>
+          </div>
+        </>
       )}
 
       <style>{`
@@ -203,7 +254,12 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
 
       {/* Affichage pleine largeur (1fr) pour plus de lisibilité avec animation en cascade */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
-        {questions.map((q, idx) => {
+        {(!questions || questions.length === 0) ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px dashed var(--border-color)' }}>
+            Aucune question n'a été trouvée ou le format généré par l'IA est incorrect.
+          </div>
+        ) : (
+          questions.map((q, idx) => {
           const qKey = getKey(q, idx);
           const isRevealed = revealed[qKey];
           const isActive = activeMode[qKey];
@@ -214,6 +270,11 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
           const theme = getScoreTheme(feedback?.score);
           const showFeedback = showFeedbackDetails[qKey];
           const isHovered = hoveredCard === qKey;
+          
+          // [FIX EXPERT] Extraction blindée contre les hallucinations de clés de l'IA
+          const suggestedAnswer = q.suggested_answer || q.answer || q.reponse_suggeree || q.reponse || "";
+          const advice = q.advice || q.conseil || q.coach_advice || q.tip || "";
+          const questionText = q.question || q.text || "Question non spécifiée";
 
           return (
           <div key={idx} className="staggered-card" style={{ 
@@ -254,10 +315,23 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                         {q.trap_type}
                       </span>
                     )}
-                    {q.difficulty && <span style={{ fontSize: '0.8rem', letterSpacing: '0.05em' }} title="Difficulté">{q.difficulty}</span>}
+            {(() => {
+              const rawScore = q.difficulty || q.score;
+              const diffVal = typeof rawScore === 'string' ? parseInt(rawScore.replace(/\D/g, ''), 10) : Number(rawScore);
+              if (diffVal > 0 && diffVal <= 5) {
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }} title={`Difficulté: ${diffVal}/5`}>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <span key={i} style={{ fontSize: '1.2rem', color: i < diffVal ? "#f59e0b" : "#e5e7eb", lineHeight: 1 }}>★</span>
+                    ))}
+                  </div>
+                );
+              }
+              return null;
+            })()}
                   </div>
                   <h3 style={{ margin: 0, fontSize: '1.05rem', lineHeight: '1.5', color: 'var(--text-main)', fontWeight: '600' }}>
-                    {q.question}
+                    {formatText(questionText)}
                   </h3>
                 </div>
               </div>
@@ -271,9 +345,11 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
             {/* BOUTONS D'ACTION (Si ni révélé, ni en mode actif, ni feedback) */}
             {!isRevealed && !isActive && !feedback && (
               <div style={{ marginTop: '0.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                <button onClick={() => toggleReveal(qKey)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
-                  <Eye size={16} /> {t('q_read_mode', 'Mode Lecture (Voir la suggestion)')}
-                </button>
+                {suggestedAnswer && (
+                  <button onClick={() => toggleReveal(qKey)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
+                    <Eye size={16} /> {t('q_read_mode', 'Mode Lecture (Voir la suggestion)')}
+                  </button>
+                )}
                 <button onClick={() => setActiveMode(prev => ({...prev, [qKey]: true}))} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem', background: '#8b5cf6', borderColor: '#8b5cf6', boxShadow: '0 4px 6px -1px rgba(139, 92, 246, 0.2)' }}>
                   <Edit3 size={16} /> {t('q_practice_mode', "S'entraîner (Micro / Texte)")}
                 </button>
@@ -296,7 +372,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
 
             {/* MODE ACTIF (Entraînement) */}
             {isActive && !feedback && (
-              <div style={{ marginTop: '1rem', background: '#f8fafc', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e2e8f0', animation: 'fadeIn 0.3s ease-out' }}>
+              <div style={{ marginTop: '1rem', background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)', animation: 'fadeIn 0.3s ease-out' }}>
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                     <div style={{ fontSize: '0.95rem', color: 'var(--text-main)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <Edit3 size={18} color="#8b5cf6" /> {t('q_write_dictate', 'Rédigez ou dictez votre réponse')}
@@ -318,7 +394,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                     placeholder={t('q_answer_placeholder', "Commencez à parler ou tapez votre réponse ici...")}
                     rows={4}
                     disabled={isSubmittingThis}
-                    style={{ width: '100%', background: 'white', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0.75rem', fontFamily: 'inherit', fontSize: '0.95rem', resize: 'vertical', outline: 'none', marginBottom: '1rem' }}
+                    style={{ width: '100%', background: 'var(--bg-card)', color: 'var(--text-main)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0.75rem', fontFamily: 'inherit', fontSize: '0.95rem', resize: 'vertical', outline: 'none', marginBottom: '1rem' }}
                  />
 
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -367,27 +443,27 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
             )}
 
             {/* MODE LECTURE (Suggestion brute) */}
-            {q.suggested_answer && isRevealed && !isActive && !feedback && (
-              <div style={{ background: '#f0fdf4', padding: '1rem', borderRadius: '8px', border: '1px solid #bbf7d0', fontSize: '0.9rem', color: '#166534', animation: 'fadeIn 0.3s ease-out' }}>
+            {isRevealed && !isActive && !feedback && (
+              <div style={{ background: 'rgba(34, 197, 94, 0.05)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(34, 197, 94, 0.2)', fontSize: '0.9rem', color: 'var(--success, #16a34a)', animation: 'fadeIn 0.3s ease-out' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '600' }}>
                     <CheckCircle2 size={16} /> 
                     <span>{t('q_suggested_answer', 'Suggestion de réponse (Éditable)')}</span>
                   </div>
-                  <button onClick={() => toggleReveal(qKey)} style={{ background: 'transparent', border: 'none', color: '#166534', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', opacity: 0.8 }} onMouseOver={e => e.currentTarget.style.opacity = '1'} onMouseOut={e => e.currentTarget.style.opacity = '0.8'}>
+                  <button onClick={() => toggleReveal(qKey)} style={{ background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', opacity: 0.8 }} onMouseOver={e => e.currentTarget.style.opacity = '1'} onMouseOut={e => e.currentTarget.style.opacity = '0.8'}>
                     <EyeOff size={14} /> {t('q_hide', 'Masquer')}
                   </button>
                 </div>
                 {/* [FIX] Textarea éditable pour la réponse */}
                 <textarea 
-                  defaultValue={q.suggested_answer || ""} 
+                  defaultValue={suggestedAnswer} 
                   onChange={(e) => onUpdate && onUpdate(idx, "suggested_answer", e.target.value)}
                   style={{ 
                       width: "100%", 
                       background: "transparent", 
                       border: "none", 
                       resize: "vertical", 
-                      color: "#166534", 
+                      color: "inherit", 
                       fontFamily: "inherit",
                       fontSize: "inherit",
                       lineHeight: "1.5",
@@ -399,14 +475,16 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
               </div>
             )}
             
-            {q.advice && isRevealed && (
+            {advice && isRevealed && (
                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', gap: '0.5rem', marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px dashed var(--border-color)', animation: 'fadeIn 0.3s ease-out' }}>
                  <Lightbulb size={16} style={{ flexShrink: 0, color: '#eab308' }} /> 
-                 <span>{q.advice}</span>
+                 <span>{formatText(advice)}</span>
                </div>
             )}
           </div>
-        )})}
+              );
+            })
+        )}
       </div>
     </div>
   );

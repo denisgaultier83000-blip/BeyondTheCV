@@ -457,8 +457,10 @@ export function createApp(opts = {}) {
   // -----------------------------
   // CORS (dev)
   // -----------------------------
+  // Autorise les requêtes de l'URL du frontend définie dans l'environnement, ou localhost:5173 par défaut
+  const allowedOrigin = process.env.FRONTEND_URL || "http://localhost:5173";
   app.use((req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", "http://localhost:5173");
+    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
     if (req.method === "OPTIONS") return res.sendStatus(204);

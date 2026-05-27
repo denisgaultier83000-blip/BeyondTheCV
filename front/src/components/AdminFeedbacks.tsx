@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { ThumbsUp, ThumbsDown, MessageSquare, Activity, BarChart3, ArrowLeft } from 'lucide-react';
-import { API_BASE_URL } from '../config';
+import { ThumbsUp, ThumbsDown, MessageSquare, Activity, BarChart3, ArrowLeft, Trash2, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { authenticatedFetch } from '../utils/auth';
+import { API_ROUTES } from '../api/routes';
+import { API_BASE_URL } from '../config';
 
 interface Feedback {
   id: number;
@@ -10,6 +11,7 @@ interface Feedback {
   is_positive: boolean;
   comments: string | null;
   created_at: string;
+  user_email?: string | null;
 }
 
 export default function AdminFeedbacks() {
@@ -18,14 +20,41 @@ export default function AdminFeedbacks() {
   const [error, setError] = useState<string | null>(null);
   const [selectedFeature, setSelectedFeature] = useState<string>('all');
   const navigate = useNavigate();
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  
+  // --- GESTION DE LA SÉCURITÉ ---
+  const [authPass, setAuthPass] = useState('');
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
+    if (sessionStorage.getItem('admin_auth') === 'true') {
+      setIsAuthorized(true);
+    }
+  }, []);
+
+  const handleAuth = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (authPass === 'beyond2026') {
+      setIsAuthorized(true);
+      sessionStorage.setItem('admin_auth', 'true');
+    } else {
+      alert('Mot de passe incorrect');
+    }
+  };
+
+  useEffect(() => {
+    if (!isAuthorized) return; // On ne fetch pas si on n'a pas accès
     const fetchFeedbacks = async () => {
       try {
+        // [FIX EXPERT] On s'affranchit de API_ROUTES pour garantir la bonne URL préfixée (/api/cv/)
         const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/feedbacks`);
-        if (!response.ok) throw new Error("Erreur lors de la récupération des feedbacks");
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(`Erreur ${response.status} : ${errText}`);
+        }
         const data = await response.json();
-        setFeedbacks(data.feedbacks || []);
+        // Si le backend renvoie un tableau plat, on l'utilise directement, sinon on cherche la clé 'feedbacks'
+        setFeedbacks(Array.isArray(data) ? data : (data.feedbacks || []));
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -34,7 +63,45 @@ export default function AdminFeedbacks() {
     };
     
     fetchFeedbacks();
-  }, []);
+  }, [isAuthorized]);
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce feedback définitivement ?")) return;
+    
+    setDeletingId(id);
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/feedbacks/${id}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) {
+        throw new Error("Erreur lors de la suppression");
+      }
+      setFeedbacks(prev => prev.filter(f => f.id !== id));
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  if (!isAuthorized) {
+    return (
+      <div style={{ maxWidth: '400px', margin: '100px auto', padding: '2.5rem', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px solid var(--border-color)', textAlign: 'center', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+        <h2 style={{ marginBottom: '1.5rem', color: 'var(--text-main)' }}>Accès Restreint</h2>
+        <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <input 
+            type="password" 
+            value={authPass} 
+            onChange={(e) => setAuthPass(e.target.value)} 
+            placeholder="Mot de passe administrateur" 
+            style={{ padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-main)', fontSize: '1rem', outline: 'none' }} 
+          />
+          <button type="submit" className="btn-primary" style={{ padding: '1rem', fontSize: '1rem' }}>Valider l'accès</button>
+        </form>
+        <button onClick={() => navigate('/candidate')} className="btn-ghost" style={{ marginTop: '1.5rem' }}>Retour à l'application</button>
+      </div>
+    );
+  }
 
   if (loading) {
     return <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>Chargement des données...</div>;
@@ -116,9 +183,11 @@ export default function AdminFeedbacks() {
           <thead style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
             <tr>
               <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 600 }}>Date</th>
+              <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 600 }}>Utilisateur</th>
               <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 600 }}>Fonctionnalité</th>
               <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 600 }}>Vote</th>
               <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 600 }}>Commentaire</th>
+              <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 600, textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -128,6 +197,7 @@ export default function AdminFeedbacks() {
               filteredFeedbacks.map((f) => (
                 <tr key={f.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.2s' }}>
                   <td style={{ padding: '1rem', color: 'var(--text-main)', fontSize: '0.9rem' }}>{new Date(f.created_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                  <td style={{ padding: '1rem', color: 'var(--text-main)', fontSize: '0.9rem' }}>{f.user_email || <span style={{ fontStyle: 'italic', opacity: 0.5 }}>Anonyme</span>}</td>
                   <td style={{ padding: '1rem' }}><span style={{ background: 'var(--bg-secondary)', padding: '0.25rem 0.75rem', borderRadius: '1rem', fontSize: '0.85rem', fontWeight: 500, color: 'var(--primary)' }}>{f.feature}</span></td>
                   <td style={{ padding: '1rem' }}>
                     {f.is_positive 
@@ -136,6 +206,18 @@ export default function AdminFeedbacks() {
                     }
                   </td>
                   <td style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '300px' }}>{f.comments || <span style={{ fontStyle: 'italic', opacity: 0.5 }}>Aucun commentaire</span>}</td>
+                  <td style={{ padding: '1rem', textAlign: 'right' }}>
+                    <button 
+                      onClick={() => handleDelete(f.id)} 
+                      disabled={deletingId === f.id}
+                      style={{ background: 'var(--bg-body)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px', cursor: deletingId === f.id ? 'wait' : 'pointer', color: 'var(--danger-text)', transition: 'all 0.2s' }} 
+                      title="Supprimer ce retour"
+                      onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; e.currentTarget.style.borderColor = '#ef4444'; }}
+                      onMouseOut={(e) => { e.currentTarget.style.background = 'var(--bg-body)'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}
+                    >
+                      {deletingId === f.id ? <Loader2 size={16} className="spin" /> : <Trash2 size={16} />}
+                    </button>
+                  </td>
                 </tr>
               ))
             )}

@@ -7,6 +7,7 @@ from models import (
     SituationSimulationRequest,
 )
 from security import get_current_user
+from database import db
 from .ai_generator import ai_service
 from .utils import load_prompt, clean_ai_json_response, normalize_language
 
@@ -90,6 +91,78 @@ async def simulate_situation(request: SituationSimulationRequest, current_user: 
     
     try:
         result_str = await ai_service.generate(final_prompt, provider="openai", system_instruction="Tu es un Recruteur Expert et Coach de Carrière.")
-        return {"feedback": clean_ai_json_response(result_str)}
+        feedback = clean_ai_json_response(result_str)
+        
+        # [SAUVEGARDE DB] On stocke la réponse et le feedback dans la tâche pour que ça survive au rechargement (Hash de session)
+        try:
+            async with db.get_connection() as conn:
+                cursor = await db.execute(conn, """
+                    SELECT t.id, t.result FROM tasks t
+                    LEFT JOIN job_applications a ON t.application_id = a.id
+                    WHERE a.user_id = ? OR a.user_id IS NULL
+                    ORDER BY t.created_at DESC LIMIT 20
+                """, (current_user["id"],))
+                rows = await cursor.fetchall()
+                
+                for row in rows:
+                    task_id = row[0] if isinstance(row, tuple) else row.get("id")
+                    t_res = row[1] if isinstance(row, tuple) else row.get("result")
+                    
+                    if t_res and request.scenario_id in str(t_res):
+                        task_result = t_res
+                        for _ in range(3):
+                            if isinstance(task_result, str):
+                                try: task_result = json.loads(task_result)
+                                except Exception: break
+                            else: break
+                            
+                        def is_match(a, b):
+                            if not a or not b: return False
+                            if len(a) > 10 and a in b: return True
+                            if len(b) > 10 and b in a: return True
+                            return a == b
+                            
+                        def update_scenario(node):
+                            if isinstance(node, dict):
+                                node_id = str(node.get("id")) if node.get("id") is not None else ""
+                                node_scen_id = str(node.get("scenario_id")) if node.get("scenario_id") is not None else ""
+                                req_id = str(request.scenario_id)
+                                if node_id == req_id or node_scen_id == req_id or is_match(req_id, str(node.get("scenario", ""))):
+                                    node["user_answer"] = request.user_answer
+                                    node["feedback"] = feedback
+                                    return True
+                                for v in node.values():
+                                    if update_scenario(v): return True
+                            elif isinstance(node, list):
+                                for item in node:
+                                    if update_scenario(item): return True
+                            return False
+                            
+                        if update_scenario(task_result):
+                            await db.execute(conn, "UPDATE tasks SET result = ? WHERE id = ?", (json.dumps(task_result), task_id))
+                            
+                            # Mise à jour du cache maitre
+                            c_cursor = await db.execute(conn, "SELECT cache_key, result FROM generation_cache WHERE user_id = ? AND content_type = 'extra_scenarios' ORDER BY created_at DESC LIMIT 5", (current_user["id"],))
+                            c_rows = await c_cursor.fetchall()
+                            for c_row in c_rows:
+                                c_key = c_row[0] if isinstance(c_row, tuple) else c_row.get("cache_key")
+                                c_res_str = c_row[1] if isinstance(c_row, tuple) else c_row.get("result")
+                                try:
+                                    # [FIX EXPERT] Désérialisation profonde pour la sauvegarde en cache
+                                    c_data = c_res_str
+                                    for _ in range(5):
+                                        if isinstance(c_data, str):
+                                            try: c_data = json.loads(c_data)
+                                            except Exception: break
+                                        else: break
+                                    if update_scenario(c_data):
+                                        await db.execute(conn, "UPDATE generation_cache SET result = ?::jsonb WHERE cache_key = ?", (json.dumps(c_data), c_key))
+                                except Exception:
+                                    pass
+                        break
+        except Exception as e:
+            print(f"[DB WARNING] Impossible de sauvegarder la MES: {e}", flush=True)
+
+        return {"feedback": feedback}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Situation simulation failed: {str(e)}")

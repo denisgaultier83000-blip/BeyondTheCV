@@ -356,6 +356,10 @@ export function useDashboardLogic() {
               onComplete({ error: true, message: "L'analyse a échoué." });
               clearInterval(interval); // On arrête mais on ne bloque pas tout le dashboard
             }
+          } else if (res.status === 404) {
+            // [FIX] La tâche n'existe plus en BDD (expiration ou DB reset). On arrête de spammer !
+            onComplete({ error: true, message: "Tâche introuvable ou expirée." });
+            clearInterval(interval);
           }
         } catch (e) { console.error("Polling error", e); }
       }, 2000);

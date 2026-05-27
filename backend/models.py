@@ -104,6 +104,7 @@ class FullCVData(BaseModel):
     languages: Any = []
     clarifications: Any = []
     target_job: Optional[str] = ""
+    target_type: Optional[str] = Field(None, description="Type de cible: 'company' ou 'industry'")
     target_company: Optional[str] = None
     target_industry: Optional[str] = None
     job_description: Optional[str] = Field(None, description="Description brute de l'offre d'emploi")
@@ -132,10 +133,16 @@ class TextAnalysisRequest(BaseModel):
     text: str
 
 class ResearchRequest(BaseModel):
-    target_company: str
+    target_company: Optional[str] = None
     target_industry: Optional[str] = None
     force_search: bool = False
     candidate_data: Dict[str, Any] = {}
+
+    @model_validator(mode='after')
+    def check_company_or_industry(self):
+        if not self.target_company and not self.target_industry:
+            raise ValueError("Vous devez spécifier soit une entreprise cible, soit un secteur d'activité.")
+        return self
 
 class DisambiguationRequest(BaseModel):
     company_name: str

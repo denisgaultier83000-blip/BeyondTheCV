@@ -2,6 +2,7 @@ import json
 from fastapi import APIRouter, Depends, Body, HTTPException
 from security import get_current_user
 from database import db
+from .utils import _get_sortable_date_tuple
 
 router = APIRouter(
     prefix="/api/cv",
@@ -50,6 +51,12 @@ async def get_my_profile(current_user: dict = Depends(get_current_user)):
 async def update_my_profile(payload: dict = Body(...), current_user: dict = Depends(get_current_user)):
     """Met à jour (écrase) le profil complet du candidat dans la base de données."""
     try:
+        # [FIX] Tri chronologique définitif des expériences et formations avant sauvegarde en BDD
+        if 'experiences' in payload and isinstance(payload['experiences'], list):
+            payload['experiences'].sort(key=lambda exp: _get_sortable_date_tuple(exp.get('end_date') or exp.get('endDate') or exp.get('date') or ''), reverse=True)
+        if 'educations' in payload and isinstance(payload['educations'], list):
+            payload['educations'].sort(key=lambda edu: _get_sortable_date_tuple(edu.get('end_date') or edu.get('endDate') or edu.get('date') or ''), reverse=True)
+            
         async with db.get_connection() as conn:
             profile_json = json.dumps(payload)
             cursor = await db.execute(conn, "SELECT 1 FROM user_profiles WHERE user_id = ?", (current_user["id"],))
@@ -59,6 +66,7 @@ async def update_my_profile(payload: dict = Body(...), current_user: dict = Depe
                 await db.execute(conn, "UPDATE user_profiles SET profile_data = ?::jsonb WHERE user_id = ?", (profile_json, current_user["id"]))
             else:
                 await db.execute(conn, "INSERT INTO user_profiles (user_id, profile_data) VALUES (?, ?::jsonb)", (current_user["id"], profile_json))
+
         return {"status": "success", "message": "Profil sauvegardé"}
     except Exception as e:
         print(f"[PROFILE SAVE ERROR] {e}", flush=True)

@@ -11,7 +11,7 @@ interface HiddenMarketData {
 }
 
 interface HiddenMarketProps {
-  data: { hidden_market: HiddenMarketData } | null;
+  data: any;
   loading?: boolean;
   error?: boolean;
 }
@@ -27,8 +27,23 @@ export function HiddenMarket({ data, loading, error }: HiddenMarketProps) {
   }
 
   // Résolution robuste (Support de l'encapsulation IA)
-  const hidden_market: any = data && 'hidden_market' in data ? data.hidden_market : data;
-  if (loading || !hidden_market || Object.keys(hidden_market).length === 0) return null;
+  let actualData = data && 'result' in data ? (data as any).result : data;
+  
+  if (typeof actualData === 'string') {
+      try {
+          const match = actualData.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+          actualData = JSON.parse(match ? match[1] : actualData);
+      } catch(e) {}
+  }
+  
+  const hidden_market: any = actualData && 'hidden_market' in actualData ? actualData.hidden_market : actualData;
+  
+  if (loading) return null;
+  if (!hidden_market || Object.keys(hidden_market).length === 0) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Analyse du marché caché indisponible.</div>
+    );
+  }
 
   const outreach = hidden_market.outreach_message || { subject: "", body: "" };
   const tips = hidden_market.networking_tips || [];

@@ -100,12 +100,16 @@ export default function Header({
                   display: 'flex', flexDirection: 'column', overflow: 'hidden', zIndex: 1000
                 }}>
                   <button 
-                    onClick={() => { setDropdownOpen(false); onOpenProfile?.(); }} 
+                    onClick={() => { 
+                      setDropdownOpen(false); 
+                      window.dispatchEvent(new Event('open-print-modal'));
+                      if (onOpenProfile) onOpenProfile(); 
+                    }} 
                     style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', textAlign: 'left', cursor: 'pointer', color: 'var(--text-main)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                     onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
                     onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                   >
-                    📄 Mes Productions
+                    📄 Imprimer mon dossier
                   </button>
                   <button 
                     onClick={() => { setDropdownOpen(false); onLogout?.(); }} 

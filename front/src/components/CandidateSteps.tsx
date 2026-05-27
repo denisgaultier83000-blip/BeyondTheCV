@@ -168,6 +168,7 @@ export const StepProfile = ({ data, onChange, errors, lang = 'en' }: StepProps) 
 export const StepTarget = ({ data, onChange, errors, loading, lang = 'en' }: StepProps) => {
   // Extraction de i18n et t sans doublon (correction du crash React)
   const { t, i18n } = useTranslation();
+  const [targetType, setTargetType] = useState<'company' | 'industry'>(data.target_type || (data.target_industry && !data.target_company ? 'industry' : 'company'));
   return (
   <div className="step-content">
     <h2>{t('target_title')}</h2>
@@ -197,16 +198,53 @@ export const StepTarget = ({ data, onChange, errors, loading, lang = 'en' }: Ste
         </select>
       </div>
     </div>
-    <div className="row">
-      <div className="col form-group">
-        <label>{t('target_company')}</label>
-        <input disabled={loading} value={data.target_company || ""} onChange={e => onChange("target_company", e.target.value)} placeholder={t('placeholder_target_company')} style={{ width: "100%", borderColor: errors?.target_company ? "#ef4444" : undefined, opacity: loading ? 0.6 : 1 }} />
-      </div>
-      <div className="col form-group">
-        <label>{t('target_industry')}</label>
-        <input disabled={loading} value={data.target_industry || ""} onChange={e => onChange("target_industry", e.target.value)} placeholder={t('placeholder_target_industry')} style={{ width: "100%", borderColor: errors?.target_industry ? "#ef4444" : undefined, opacity: loading ? 0.6 : 1 }} />
+
+    <div className="form-group" style={{ marginTop: 15, marginBottom: 15 }}>
+      <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('target_type_label', 'Quel est votre objectif ?')}</label>
+      <div style={{ display: 'flex', gap: '20px' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+          <input 
+            type="radio" 
+            value="company" 
+            checked={targetType === 'company'} 
+            onChange={() => { setTargetType('company'); onChange('target_type', 'company'); }} 
+            disabled={loading}
+          />
+          {t('target_type_company', 'Je cible une entreprise précise')}
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+          <input 
+            type="radio" 
+            value="industry" 
+            checked={targetType === 'industry'} 
+            onChange={() => { setTargetType('industry'); onChange('target_type', 'industry'); onChange('target_company', ''); }} 
+            disabled={loading}
+          />
+          {t('target_type_industry', "Je cible un secteur d'activité en général")}
+        </label>
       </div>
     </div>
+
+    {targetType === 'company' && (
+      <div className="row">
+        <div className="col form-group">
+          <label>{t('target_company')}</label>
+          <input disabled={loading} value={data.target_company || ""} onChange={e => onChange("target_company", e.target.value)} placeholder={t('placeholder_target_company')} style={{ width: "100%", borderColor: errors?.target_company ? "#ef4444" : undefined, opacity: loading ? 0.6 : 1 }} />
+        </div>
+        <div className="col form-group">
+          <label>{t('target_industry')} ({t('optional', 'Optionnel')})</label>
+          <input disabled={loading} value={data.target_industry || ""} onChange={e => onChange("target_industry", e.target.value)} placeholder={t('placeholder_target_industry')} style={{ width: "100%", borderColor: errors?.target_industry ? "#ef4444" : undefined, opacity: loading ? 0.6 : 1 }} />
+        </div>
+      </div>
+    )}
+    {targetType === 'industry' && (
+      <div className="row">
+        <div className="col form-group">
+          <label>{t('target_industry')}</label>
+          <input disabled={loading} value={data.target_industry || ""} onChange={e => onChange("target_industry", e.target.value)} placeholder={t('placeholder_target_industry')} style={{ width: "100%", borderColor: errors?.target_industry ? "#ef4444" : undefined, opacity: loading ? 0.6 : 1 }} />
+        </div>
+      </div>
+    )}
     <div className="form-group">
       <label>{t('job_desc_label')}</label>
       <textarea disabled={loading} rows={6} value={data.job_description || ""} onChange={e => onChange("job_description", e.target.value)} placeholder={t('job_desc_placeholder')} style={{ width: "100%", opacity: loading ? 0.6 : 1 }} />
@@ -468,6 +506,11 @@ export const StepQualitiesFlaws = ({ data, onChange, lang = 'en' }: any) => {
     return [...list, item];
   };
 
+  // On fusionne les listes par défaut avec les éléments ajoutés manuellement par l'utilisateur
+  const baseFlaws = (t('flaws_list', { returnObjects: true, defaultValue: ['Impatient', 'Trop exigeant', 'Difficulté à déléguer', 'Tendance à tout contrôler', 'Manque de diplomatie', 'Difficulté à dire non', 'Obstiné', 'Tendance à se disperser', 'Sensible au stress', 'Idéaliste', 'Difficulté à demander de l\'aide'] }) as string[]);
+  const allFlawsToDisplay = Array.from(new Set([...baseFlaws, ...(data.flaws || [])]));
+  const allInterestsToDisplay = Array.from(new Set([...interestsList, ...(Array.isArray(data.interests) ? data.interests : [])]));
+
   return (
   <div className="step-content">
     <h2>{t('qualities_title')}</h2>
@@ -536,7 +579,7 @@ export const StepQualitiesFlaws = ({ data, onChange, lang = 'en' }: any) => {
       </p>
       
       <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: 15 }}>
-          {(t('flaws_list', { returnObjects: true, defaultValue: ['Impatient', 'Trop exigeant', 'Difficulté à déléguer', 'Tendance à tout contrôler', 'Manque de diplomatie', 'Difficulté à dire non', 'Obstiné', 'Tendance à se disperser', 'Sensible au stress', 'Idéaliste', 'Difficulté à demander de l\'aide'] }) as string[]).map((f: string) => {
+          {allFlawsToDisplay.map((f: string) => {
               const isSelected = (data.flaws || []).includes(f);
               return (
                   <button 
@@ -560,10 +603,16 @@ export const StepQualitiesFlaws = ({ data, onChange, lang = 'en' }: any) => {
         onKeyDown={(e) => { 
           if(e.key === 'Enter' && e.currentTarget.value.trim()) { 
             e.preventDefault(); 
-            onChange("flaws", [...(data.flaws || []), e.currentTarget.value.trim()]); 
+            onChange("flaws", Array.from(new Set([...(data.flaws || []), e.currentTarget.value.trim()]))); 
             e.currentTarget.value = ""; 
           } 
         }} 
+        onBlur={(e) => {
+          if(e.currentTarget.value.trim()) {
+            onChange("flaws", Array.from(new Set([...(data.flaws || []), e.currentTarget.value.trim()])));
+            e.currentTarget.value = "";
+          }
+        }}
         style={{ width: "100%", marginBottom: 20, padding: "10px", borderRadius: "8px", border: "1px solid var(--border-color)" }} 
       />
 
@@ -645,7 +694,7 @@ export const StepQualitiesFlaws = ({ data, onChange, lang = 'en' }: any) => {
     <div className="form-group" style={{marginTop: 20}}>
         <label>{t('interests_label')}</label>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", maxHeight: "150px", overflowY: "auto", border: "1px solid var(--border-color)", padding: "10px", borderRadius: "8px" }}>
-            {interestsList.map(i => (
+            {allInterestsToDisplay.map(i => (
                 <button 
                     key={i} 
                     type="button"
@@ -660,7 +709,23 @@ export const StepQualitiesFlaws = ({ data, onChange, lang = 'en' }: any) => {
                 </button>
             ))}
         </div>
-        <input placeholder={t('add_custom_interest')} onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); onChange("interests", [...(Array.isArray(data.interests) ? data.interests : []), e.currentTarget.value]); e.currentTarget.value = ""; } }} style={{marginTop: 5, width: "100%"}} />
+        <input 
+          placeholder={t('add_custom_interest')} 
+          onKeyDown={(e) => { 
+            if(e.key === 'Enter' && e.currentTarget.value.trim()) { 
+              e.preventDefault(); 
+              onChange("interests", Array.from(new Set([...(Array.isArray(data.interests) ? data.interests : []), e.currentTarget.value.trim()]))); 
+              e.currentTarget.value = ""; 
+            } 
+          }} 
+          onBlur={(e) => {
+            if(e.currentTarget.value.trim()) {
+              onChange("interests", Array.from(new Set([...(Array.isArray(data.interests) ? data.interests : []), e.currentTarget.value.trim()])));
+              e.currentTarget.value = "";
+            }
+          }}
+          style={{ marginTop: 5, width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid var(--border-color)" }} 
+        />
     </div>
   </div>
   );
@@ -677,7 +742,7 @@ export const StepFreeText = ({ data, onChange, onAnalyze, loading, lang = 'en' }
     );
 };
 
-export const StepClarification = ({ clarifications, onAnswer, lang = 'en' }: any) => {
+export const StepClarification = ({ clarifications, answers = {}, onAnswer, lang = 'en' }: any) => {
   const { t } = useTranslation();
   if (!clarifications || clarifications.length === 0) return <div className="step-content"><h2>{t('all_good')}</h2><p>{t('profile_complete')}</p></div>;
   return (
@@ -693,7 +758,13 @@ export const StepClarification = ({ clarifications, onAnswer, lang = 'en' }: any
             </div>
             <label style={{fontWeight: "600", fontSize: "1.05em", color: "var(--text-main)", lineHeight: "1.4", marginTop: "2px"}}>{item.question}</label>
           </div>
-          <textarea rows={3} placeholder={t('placeholder_answer')} onBlur={(e) => onAnswer(item.id, e.target.value)} style={{ width: "100%", borderRadius: "8px", borderColor: "var(--border-color)" }} />
+          <textarea 
+            rows={3} 
+            placeholder={t('placeholder_answer')} 
+            defaultValue={answers[item.id] || ""}
+            onBlur={(e) => onAnswer(item.id, e.target.value)} 
+            style={{ width: "100%", borderRadius: "8px", borderColor: "var(--border-color)" }} 
+          />
         </div>
       ))}
     </div>

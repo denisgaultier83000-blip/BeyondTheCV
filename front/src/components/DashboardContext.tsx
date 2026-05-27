@@ -117,6 +117,9 @@ export const DashboardProvider = ({
       if (initialResearchResult) {
         payload.research_data = initialResearchResult;
       }
+      if (initialGapResult) {
+        payload.gap_analysis = initialGapResult;
+      }
 
       const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/dashboard/summary`, {
         method: 'POST',
@@ -136,7 +139,7 @@ export const DashboardProvider = ({
     } finally {
       setIsPilotLoading(false);
     }
-  }, [initialCvData, initialResearchResult]); // La fonction se recrée si les données du CV ou de la recherche changent
+  }, [initialCvData, initialResearchResult, initialGapResult]); // La fonction se recrée si les données du CV, de la recherche ou du Gap changent
 
   // Auto-fetch ultra-robuste quand le CV (mock puis réel) est mis à jour
   useEffect(() => {

@@ -68,6 +68,17 @@ def create_tables():
         print("✅ Table 'user_profiles' created")
 
         cur.execute("""
+            CREATE TABLE IF NOT EXISTS job_applications (
+                id TEXT PRIMARY KEY,
+                user_id TEXT,
+                target_company VARCHAR(255) NOT NULL,
+                target_job VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        print("✅ Table 'job_applications' created")
+
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS products (
                 id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -90,6 +101,23 @@ def create_tables():
             )
         """)
         print("✅ Table 'products' created")
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS documents (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                filename TEXT NOT NULL,
+                path TEXT,
+                type TEXT,
+                media_type TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        print("✅ Table 'documents' created")
+        
+        # Ajout de la colonne application_id de manière sécurisée
+        cur.execute("ALTER TABLE documents ADD COLUMN IF NOT EXISTS application_id TEXT REFERENCES job_applications(id) ON DELETE SET NULL;")
+        print("✅ Column 'application_id' added to documents")
 
         cur.execute("""
             CREATE TABLE IF NOT EXISTS subscription_plans (
@@ -154,6 +182,10 @@ def create_tables():
             )
         """)
         print("✅ Table 'tasks' created")
+        
+        # Ajout de la colonne application_id de manière sécurisée
+        cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS application_id TEXT REFERENCES job_applications(id) ON DELETE CASCADE;")
+        print("✅ Column 'application_id' added to tasks")
 
         # Create indexes for performance
         cur.execute("CREATE INDEX IF NOT EXISTS idx_products_user_id ON products(user_id)")

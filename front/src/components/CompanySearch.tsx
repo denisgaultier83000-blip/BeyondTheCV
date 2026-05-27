@@ -95,6 +95,10 @@ const CompanySearch: React.FC<CompanySearchProps> = ({ candidateData, onAnalysis
             const data = await response.json();
             
             // Transmission de la map des tâches (research, salary) au parent
+            // [FIX] On récupère l'ID du dossier de candidature généré pour le lier aux documents PDF générés ensuite
+            if (data.application_id && candidateData) {
+                candidateData.application_id = data.application_id;
+            }
             if (onAnalysisStarted) {
                 onAnalysisStarted(data);
             }

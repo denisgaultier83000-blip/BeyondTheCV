@@ -9,16 +9,22 @@ import os
 # [FIX EXPERT] Importe DATABASE_URL depuis le module centralisé
 # pour garantir une source de vérité unique pour la connexion.
 # (Résout le crash si exécuté sur Cloud Run)
-from database import DATABASE_URL
+from database import get_database_url
 
 def get_postgres_connection():
-    return psycopg2.connect(DATABASE_URL)
+    db_url = get_database_url()
+    if not db_url:
+        raise ValueError("DATABASE_URL n'est pas défini. Veuillez le configurer dans votre fichier .env (ex: DATABASE_URL=postgresql://user:password@localhost:5432/dbname).")
+    return psycopg2.connect(db_url)
 
 
 def main():
     print("[MIGRATIONS] Starting PostgreSQL initialization...")
     print("-" * 60)
     
+    conn = None
+    cur = None
+
     try:
         conn = get_postgres_connection()
         cur = conn.cursor()
@@ -68,6 +74,19 @@ def main():
         print("✅ Table 'user_profiles' created")
 
         cur.execute("""
+            CREATE TABLE IF NOT EXISTS job_applications (
+                id TEXT PRIMARY KEY,
+                user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+                target_company TEXT,
+                target_job TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                session_hash TEXT,
+                tasks_map JSONB
+            )
+        """)
+        print("✅ Table 'job_applications' created")
+
+        cur.execute("""
             DROP TABLE IF EXISTS products CASCADE;
         """)
         
@@ -94,6 +113,24 @@ def main():
             )
         """)
         print("✅ Table 'products' created")
+
+        cur.execute("""
+            DROP TABLE IF EXISTS documents CASCADE;
+        """)
+        
+        cur.execute("""
+            CREATE TABLE documents (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                filename TEXT NOT NULL,
+                path TEXT,
+                type TEXT,
+                media_type TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                application_id TEXT REFERENCES job_applications(id) ON DELETE CASCADE
+            )
+        """)
+        print("✅ Table 'documents' created")
 
         cur.execute("""
             CREATE TABLE IF NOT EXISTS subscription_plans (
@@ -143,6 +180,48 @@ def main():
         print("✅ Table 'feedbacks' created")
 
         cur.execute("""
+            CREATE TABLE IF NOT EXISTS interview_sessions (
+                id TEXT PRIMARY KEY,
+                user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+                application_id TEXT REFERENCES job_applications(id) ON DELETE CASCADE,
+                question_text TEXT,
+                user_answer TEXT,
+                score INTEGER,
+                feedback JSONB,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        print("✅ Table 'interview_sessions' created")
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS training_sessions (
+                id TEXT PRIMARY KEY,
+                user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+                theme TEXT,
+                question_type TEXT,
+                question_text TEXT,
+                user_answer TEXT,
+                score INTEGER,
+                strengths TEXT,
+                weaknesses TEXT,
+                improved_answer TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        print("✅ Table 'training_sessions' created")
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS generation_cache (
+                cache_key TEXT PRIMARY KEY,
+                user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+                content_type TEXT,
+                result JSONB,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        print("✅ Table 'generation_cache' created")
+
+        cur.execute("""
             DROP TABLE IF EXISTS tasks CASCADE;
         """)
         
@@ -158,7 +237,8 @@ def main():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 started_at TIMESTAMP,
                 completed_at TIMESTAMP,
-                metadata JSONB
+                metadata JSONB,
+                application_id TEXT REFERENCES job_applications(id) ON DELETE CASCADE
             )
         """)
         print("✅ Table 'tasks' created")
@@ -202,8 +282,9 @@ def main():
         traceback.print_exc()
         return False
     finally:
-        if conn:
+        if cur:
             cur.close()
+        if conn:
             conn.close()
 
 

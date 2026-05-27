@@ -11,7 +11,7 @@ const SalaryModal: React.FC<SalaryModalProps> = ({ data, onClose, lang }) => {
   if (!data) return null;
   const { t } = useTranslation();
 
-  const { min, max, currency, commentary } = data;
+  const { min, max, currency, commentary, confidence } = data;
 
   // Helper pour formater la devise
   const formatCurrency = (val: number) => {
@@ -41,7 +41,15 @@ const SalaryModal: React.FC<SalaryModalProps> = ({ data, onClose, lang }) => {
         </button>
         
 		<h2 style={{ textAlign: 'center', color: 'var(--text-main)', marginBottom: '0.5rem', fontSize: '1.8rem' }}>{t('salary_title', 'Baromètre des Salaires')}</h2>
-		<p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '2.5rem' }}>{t('salary_subtitle', 'Estimation basée sur votre profil et le marché')}</p>
+		<p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: confidence ? '1.5rem' : '2.5rem' }}>{t('salary_subtitle', 'Estimation basée sur votre profil et le marché')}</p>
+
+        {confidence && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2.5rem' }}>
+                <span style={{ fontSize: '0.85rem', background: confidence.toLowerCase().includes('haute') || confidence.toLowerCase().includes('high') ? 'rgba(16, 185, 129, 0.1)' : confidence.toLowerCase().includes('faible') || confidence.toLowerCase().includes('low') ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)', color: confidence.toLowerCase().includes('haute') || confidence.toLowerCase().includes('high') ? '#10b981' : confidence.toLowerCase().includes('faible') || confidence.toLowerCase().includes('low') ? '#ef4444' : '#f59e0b', border: `1px solid ${confidence.toLowerCase().includes('haute') || confidence.toLowerCase().includes('high') ? 'rgba(16, 185, 129, 0.2)' : confidence.toLowerCase().includes('faible') || confidence.toLowerCase().includes('low') ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`, padding: '0.3rem 0.8rem', borderRadius: '1rem', fontWeight: 600 }}>
+                    Fiabilité de l'estimation : {confidence}
+                </span>
+            </div>
+        )}
 
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: '1rem', marginBottom: '2rem' }}>
             <div style={{ textAlign: 'center' }}>

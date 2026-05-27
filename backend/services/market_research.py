@@ -1,6 +1,7 @@
 import os
 import json
 import asyncio
+import re
 from datetime import datetime
 from .ai_generator import ai_service
 from .search_service import search_web
@@ -37,14 +38,14 @@ def generate_deterministic_queries(company: str, industry: str) -> list:
     queries = []
     
     # [OPTIMISATION] Requêtes plus naturelles pour Google. Les opérateurs booléens complexes étouffent l'algorithme sémantique.
-    company_context = f'"{company}"'
     
     # [FIX] Ne rechercher l'entreprise que si elle est renseignée
-    if company and company.strip() and company.lower() != "unknown":
+    safe_company = str(company).strip() if company else ""
+    company_context = f'"{safe_company}"'
+    if safe_company and safe_company.lower() != "unknown" and safe_company.lower() != "none":
         queries.extend([
-            f"{company_context} actualités presse {current_year}", # [FIX] Garde cette requête générale
-            f"{company_context} articles de presse {current_year}", # [FIX] Ajout requête spécifique
-            f"{company_context} communiqués de presse {current_year}", # [FIX] Ajout requête spécifique
+            f"{company_context} actualités stratégiques récentes {current_year}", # [NEW] Force la recherche d'actualités chaudes
+            f"{company_context} nouveaux projets ou acquisitions {current_year}", # [NEW] Détecte les pivots de l'entreprise
             f"{company_context} plan stratégique vision",
             f"{company_context} résultats financiers chiffre d'affaires",
             f"{company_context} valeurs culture d'entreprise",
@@ -55,7 +56,8 @@ def generate_deterministic_queries(company: str, industry: str) -> list:
             f"{company_context} rapport ESG RSE durabilité {current_year}" # [NEW] Pour plus de détails sur la culture et les valeurs
         ])
         
-    if industry and industry.strip() and industry.lower() != "unknown":
+    safe_industry = str(industry).strip() if industry else ""
+    if safe_industry and safe_industry.lower() != "unknown" and safe_industry.lower() != "none":
         queries.extend([
             f"{industry} market trends AI sustainability digitalization {current_year}",
             f"{industry} most in-demand skills hard soft skills {current_year}",
@@ -169,7 +171,9 @@ def _enforce_schema(data: dict) -> dict:
     safe_company["usp"] = company.get("usp") or company.get("proposition_valeur") or company.get("enjeux_defis") or company.get("enjeux") or "Non spécifié."
     safe_company["culture_environment"] = company.get("culture_environment") or company.get("culture_environnement") or company.get("culture") or "Non spécifié."
     safe_company["team_structure"] = company.get("team_structure") or company.get("equipe") or company.get("structure_equipe") or "Non spécifié."
-    safe_company["news_links"] = company.get("news_links") or company.get("actualites") or []
+    safe_company["linkedin_url"] = company.get("linkedin_url") or ""
+    safe_company["strategic_challenges"] = company.get("strategic_challenges") or company.get("defis_strategiques") or []
+    safe_company["news_links"] = company.get("news_links") or company.get("actualites") or root.get("news_links") or root.get("actualites") or []
 
     return {
         "market_report": safe_market,
@@ -228,8 +232,7 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
             if task_id:
                 await manager.broadcast(task_id, f"🔎 Recherche : {q}")
             try:
-                # search_web est synchrone (requests), on le déporte dans un thread pour ne pas bloquer
-                return await asyncio.to_thread(search_web, q, api_key)
+                return await search_web(q, api_key)
             except Exception as e:
                 print(f"   [ERROR] Search failed for query '{q}': {e}", flush=True)
                 return None
@@ -249,6 +252,19 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
                 if isinstance(res, dict) and ("Unauthorized" in str(res) or "Forbidden" in str(res) or res.get("message") == "Unauthorized."):
                     api_key_invalid = True
                     break
+                    
+                # [FIX EXPERT] On extrait les "News" en priorité absolue pour garantir de la matière fraîche à l'IA
+                if "news" in res:
+                    for item in res["news"]:
+                        if item.get("link") and item["link"] not in seen_links:
+                            raw_results.append({
+                                "title": f"[ACTUALITÉ] {item.get('title')}",
+                                "snippet": item.get("snippet", ""),
+                                "link": item.get("link"),
+                                "date": item.get("date", "Récemment"),
+                                "source": item.get("source", "Presse")
+                            })
+                            seen_links.add(item["link"])
 
                 if "organic" in res:
                     for item in res["organic"]:
@@ -260,19 +276,6 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
                                 "date": item.get("date", "Recent")
                             })
                             seen_links.add(item["link"])
-                            
-                # [FIX EXPERT] Extraction spécifique des articles de presse et actualités
-                for news_key in ["news", "topStories"]:
-                    if news_key in res:
-                        for item in res[news_key]:
-                            if item.get("link") and item["link"] not in seen_links:
-                                raw_results.append({
-                                    "title": f"[PRESSE] {item.get('title')}",
-                                    "snippet": item.get("snippet", item.get("source", "Actualité")),
-                                    "link": item.get("link"),
-                                    "date": item.get("date", "Récemment")
-                                })
-                                seen_links.add(item["link"])
                 
         if api_key_invalid:
             print("[PIPELINE] 🛑 Serper API key is invalid or expired. Aborting web search.", flush=True)
@@ -287,24 +290,50 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
         if task_id:
             await manager.broadcast(task_id, f"⚠️ Recherche précise échouée. Tentative générique : {fallback_query}")
         try:
-            res = await asyncio.to_thread(search_web, fallback_query, api_key)
+            res = await search_web(fallback_query, api_key)
             if res and "organic" in res:
                 raw_results.append({"title": "Industry Trends", "snippet": str(res["organic"][:3]), "link": "google.com"})
         except Exception as e:
             print(f"   [ERROR] Fallback search failed: {e}", flush=True)
             pass
 
-    # --- ÉTAPE 4 : ANALYSE & SYNTHÈSE (Fusionnée pour robustesse) ---
+    # --- ÉTAPE 3.5 : FILTRAGE OSINT (Scoring via 'actionability') ---
+    news_to_score = [r for r in raw_results if "[ACTUALITÉ]" in str(r.get('title') or '')][:12]
+    valid_news = []
+    
+    if news_to_score:
+        if task_id:
+            await manager.broadcast(task_id, "⚖️ Analyse OSINT : Tri des actualités par impact stratégique...")
+            
+        scoring_prompt_template = load_prompt("osint_scoring.md")
+        if scoring_prompt_template:
+            scoring_prompt = scoring_prompt_template.replace("{company_name}", company or "Secteur").replace("{articles_json}", json.dumps(news_to_score, ensure_ascii=False))
+            try:
+                scoring_result = await ai_service.generate_valid_json(scoring_prompt, provider="openai", system_instruction="Tu es un Analyste OSINT senior. Output STRICT JSON.")
+                scored_articles = scoring_result.get("scored_articles", [])
+                
+                # On ne garde que les articles avec un score d'exploitabilité >= 6
+                valid_urls = [art.get("link") or art.get("original_url") for art in scored_articles if int(art.get("actionability", 0)) >= 6]
+                valid_news = [r for r in news_to_score if r.get("link") in valid_urls]
+                
+                # Sécurité anti-trou noir : si le matching des URLs échoue mais que l'IA avait bien trouvé des articles valides, on bypass le filtre pour ne pas tout perdre
+                if not valid_news and any(int(art.get("actionability", 0)) >= 6 for art in scored_articles):
+                    valid_news = news_to_score
+                print(f"[OSINT] Filtrage terminé : {len(valid_news)} articles hautement exploitables retenus sur {len(news_to_score)}.")
+            except Exception as e:
+                print(f"[OSINT ERROR] Scoring failed: {e}")
+                valid_news = news_to_score
+        else:
+            valid_news = news_to_score
+
+    # --- ÉTAPE 4 : SYNTHÈSE FINALE ---
     # Si pas de résultats, on passe en mode "Connaissances Générales" au lieu de planter
     search_context = ""
     if raw_results:
+        other_sources = [r for r in raw_results if "[ACTUALITÉ]" not in r.get('title', '')][:25]
+        balanced_results = valid_news + other_sources
         if task_id:
-            await manager.broadcast(task_id, f"📊 Formatage de {len(raw_results)} sources pour synthèse...")
-        # [FIX EXPERT] Suppression du goulot d'étranglement (Data Loss).
-        # On sépare les articles de presse et les résultats organiques pour garantir un mix parfait à l'IA.
-        press_results = [r for r in raw_results if "[PRESSE]" in r.get('title', '')]
-        organic_results = [r for r in raw_results if "[PRESSE]" not in r.get('title', '')]
-        balanced_results = press_results[:15] + organic_results[:25]
+            await manager.broadcast(task_id, f"📊 Formatage de {len(balanced_results)} sources de haute qualité pour synthèse...")
         
         context_lines = []
         for i, r in enumerate(balanced_results):
@@ -369,13 +398,18 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
                 "usp": "[String (Enjeux & Défis / Proposition de valeur)]",
                 "culture_environment": "[String]",
                 "team_structure": "[String]",
+                "strategic_challenges": [
+                    "[Défi ultra-spécifique 1]",
+                    "[Défi ultra-spécifique 2]"
+                ],
                 "news_links": [
-                    {
+                    {{
                         "title": "[Article title]",
                         "url": "https://...",
                         "source": "[Media name]",
-                        "date": "[Date]"
-                    }
+                        "date": "[Date]",
+                        "strategic_analysis": "[Actionable strategic advice for the candidate]"
+                    }}
                 ]
             }}
         }}
@@ -395,12 +429,120 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
     # [ROBUSTESSE] Application stricte du schéma pour éviter le crash du frontend
     safe_synthesis = _enforce_schema(final_synthesis)
 
-    # [FIX EXPERT] Tri intelligent : on remonte les articles de presse en priorité absolue
-    # et on augmente la limite visible pour l'utilisateur final.
-    press_sources = [r for r in raw_results if "[PRESSE]" in r.get('title', '')]
-    other_sources = [r for r in raw_results if "[PRESSE]" not in r.get('title', '')]
+    # [FIX EXPERT] Extraction intelligente avec Plus-Value IA
+    news_sources = [r for r in raw_results if "[ACTUALITÉ]" in str(r.get('title') or '')]
+    other_sources = [r for r in raw_results if "[ACTUALITÉ]" not in str(r.get('title') or '')]
     
-    best_sources = (press_sources + other_sources)[:10] # Top 10 des sources
+    # [FIX EXPERT] On fusionne pour parcourir d'abord les vraies actus, puis le reste
+    all_sources = news_sources + other_sources
+    # Copie pour vérifier l'appartenance stricte des URLs générées
+    known_urls = [src.get('link', '') for src in all_sources]
+    
+    # On récupère le tableau d'actualités généré par l'IA contenant son analyse stratégique
+    ai_generated_news = safe_synthesis["company_report"].get("news_links", [])
+    
+    # Extraction intelligente des analyses IA tout en conservant les URLs RÉELLES (issues de Serper)
+    ai_analyses = []
+    if isinstance(ai_generated_news, list):
+        for news in ai_generated_news:
+            if isinstance(news, dict):
+                analysis = news.get('strategic_analysis') or news.get('analyse_strategique') or news.get('conseil_strategique') or news.get('conseil') or ""
+                if analysis or news.get("hidden_meaning") or news.get("interview_relevance"):
+                    ai_analyses.append({
+                        "url": news.get("url", ""),
+                        "title": news.get("title", ""),
+                        "source": news.get("source", "Presse / Web"),
+                        "date": news.get("date", datetime.now().strftime("%Y-%m-%d")),
+                        "analysis": analysis,
+                        "interview_relevance": news.get("interview_relevance"),
+                        "hidden_meaning": news.get("hidden_meaning", "")
+                    })
+
+    real_news_links = []
+        
+    # 1. On parcourt d'abord les analyses générées par l'IA pour trouver leur vraie source Serper
+    for ai_item in ai_analyses:
+        matched_source = None
+        ai_url = str(ai_item.get("url") or "") # [FIX EXPERT] Garantit une string, même si l'IA renvoie {"url": null}
+        ai_title = str(ai_item.get("title") or "") # [FIX EXPERT] Idem pour le titre
+        
+        for r in all_sources:
+            r_title = str(r.get('title') or '').replace('[ACTUALITÉ] ', '')
+            r_url = r.get('link', '#')
+            
+            # 1. Match strict par URL (on ignore les points de suspension ajoutés par l'IA)
+            clean_ai_url = ai_url.replace("...", "").replace("…", "").strip()
+            is_url_match = (r_url != '#' and len(clean_ai_url) > 10 and "lien-vers" not in clean_ai_url and (r_url in clean_ai_url or clean_ai_url in r_url))
+            
+            # 2. Match sémantique par mots communs (au moins 2 mots significatifs de 4+ lettres)
+            r_words = set(w.lower() for w in re.findall(r'\w{4,}', r_title))
+            ai_words = set(w.lower() for w in re.findall(r'\w{4,}', ai_title))
+            is_title_match = len(r_words.intersection(ai_words)) >= 2
+            
+            if is_url_match or is_title_match:
+                matched_source = r
+                break
+                
+        if matched_source:
+            # On a trouvé la source exacte : on utilise l'URL fiable de Serper
+            real_news_links.append({
+                "title": matched_source.get('title', '').replace('[ACTUALITÉ] ', ''),
+                "url": matched_source.get('link', '#'),
+                "source": matched_source.get('source', 'Presse / Web'),
+                "date": matched_source.get('date', datetime.now().strftime("%Y-%m-%d")),
+                "strategic_analysis": ai_item["analysis"],
+                "interview_relevance": ai_item.get("interview_relevance"),
+                "hidden_meaning": ai_item.get("hidden_meaning")
+            })
+            all_sources.remove(matched_source)
+        else:
+            # [FIX EXPERT] On GARDE l'analyse de l'IA même si le mapping strict a échoué (évite le trou noir)
+            import urllib.parse
+            
+            # Si l'URL de l'IA est manifestement fausse, tronquée ou inventée, on génère une recherche Google
+            is_fake_url = (
+                not ai_url 
+                or "example" in ai_url.lower() 
+                or "exemple" in ai_url.lower() 
+                or "lien-vers" in ai_url.lower() 
+                or "..." in ai_url 
+                or "…" in ai_url
+                or not ai_url.startswith("http")
+                or ai_url not in known_urls
+            )
+            safe_company_name = str(company) if company else ""
+            safe_url = f"https://www.google.com/search?q={urllib.parse.quote(ai_title + ' ' + safe_company_name)}" if is_fake_url else ai_url
+            real_news_links.append({
+                "title": ai_title or "Article Stratégique",
+                "url": safe_url,
+                "source": ai_item.get("source", "Presse / Web"),
+                "date": ai_item.get("date", datetime.now().strftime("%Y-%m-%d")),
+                "strategic_analysis": ai_item["analysis"],
+                "interview_relevance": ai_item.get("interview_relevance"),
+                "hidden_meaning": ai_item.get("hidden_meaning")
+            })
+            
+        if len(real_news_links) >= 6:
+            break
+
+    # 2. Si on a moins de 6 actualités analysées, on complète avec de vraies news Serper
+    if len(real_news_links) < 6:
+        for r in all_sources:
+            is_explicit_news = "[ACTUALITÉ]" in str(r.get('title') or '')
+            if is_explicit_news:
+                real_news_links.append({
+                    "title": str(r.get('title') or '').replace('[ACTUALITÉ] ', ''),
+                    "url": r.get('link', '#'),
+                    "source": r.get('source', 'Presse / Web'),
+                    "date": r.get('date', datetime.now().strftime("%Y-%m-%d")),
+                    "strategic_analysis": ""
+                })
+            if len(real_news_links) >= 6:
+                break
+
+    safe_synthesis["company_report"]["news_links"] = real_news_links
+
+    best_sources = (news_sources + other_sources)[:10] # Top 10 des sources
     
     display_sources = []
     for r in best_sources:

@@ -16,41 +16,50 @@
     {\Huge \textbf{\VAR{first_name} \VAR{last_name}}}\\[5pt]
     \VAR{current_role} \\
     % [FIX] Affiche les séparateurs uniquement si les données existent
-    \VAR{email}
-    \BLOCK{if phone} | \VAR{phone}\BLOCK{endif}
-    \BLOCK{if city} | \VAR{city}\BLOCK{endif}
-    \BLOCK{if country}, \VAR{country}\BLOCK{endif}
-    \\ \href{\VAR{linkedin}}{LinkedIn}
+    \VAR{email}\BLOCK{if phone} | \VAR{phone}\BLOCK{endif}\BLOCK{if city} | \VAR{city}\BLOCK{endif}\BLOCK{if country}, \VAR{country}\BLOCK{endif}
+    \BLOCK{if linkedin}
+    \\ \href{https://www.linkedin.com/in/\VAR{linkedin}/}{\VAR{linkedin}}
+    \BLOCK{endif}
 \end{center}
 
 \BLOCK{if bio}
-\section*{Profil}
+\section*{\VAR{translations.profile}}
 \VAR{bio}
 \BLOCK{endif}
 
-\section*{Expérience Professionnelle}
+\section*{\VAR{translations.experience}}
 \BLOCK{for exp in experiences}
-\noindent \textbf{\VAR{exp.role}} \hfill \VAR{exp.start_date} -- \VAR{exp.end_date} \\
-\textit{\VAR{exp.company}}
+\noindent
+\textbf{\VAR{exp.role}} \hfill \VAR{exp.start_date} -- \VAR{exp.end_date} \par
+\vspace{1pt}
+\noindent\textit{\VAR{exp.company}} \par
 \begin{itemize}[noitemsep,topsep=0pt]
     \item \VAR{exp.description}
+    \BLOCK{if exp.success_action}
+    \item \textbf{Succès :} \BLOCK{if exp.success_context}\VAR{exp.success_context} - \BLOCK{endif}\VAR{exp.success_action} \BLOCK{if exp.success_result}-- \textbf{\VAR{exp.success_result}}\BLOCK{endif}
+    \BLOCK{endif}
+    \BLOCK{if exp.failure_action}
+    \item \textbf{Défi :} \BLOCK{if exp.failure_context}\VAR{exp.failure_context} - \BLOCK{endif}\VAR{exp.failure_action} \BLOCK{if exp.failure_lesson}(\textit{\VAR{exp.failure_lesson}})\BLOCK{endif}
+    \BLOCK{endif}
 \end{itemize}
 \vspace{5pt}
 \BLOCK{endfor}
 
-\section*{Formation}
+\section*{\VAR{translations.education}}
 \BLOCK{for edu in educations}
-\noindent \textbf{\VAR{edu.degree}} \hfill \VAR{edu.year} \\
-\textit{\VAR{edu.school}}
+\noindent
+\textbf{\VAR{edu.degree}} \hfill \VAR{edu.year} \par
+\vspace{1pt}
+\noindent\textit{\VAR{edu.school}} \par
 \vspace{5pt}
 \BLOCK{endfor}
 
-\section*{Compétences}
+\section*{\VAR{translations.skills}}
 \BLOCK{if skills.technical}
-\textbf{Techniques:} \VAR{skills.technical} \\
+\noindent\textbf{\VAR{translations.technical}:} \VAR{skills.technical} \\
 \BLOCK{endif}
 \BLOCK{if skills.languages}
-\textbf{Langues:} \VAR{skills.languages}
+\noindent\textbf{\VAR{translations.languages}:} \VAR{skills.languages}
 \BLOCK{endif}
 
 \end{document}

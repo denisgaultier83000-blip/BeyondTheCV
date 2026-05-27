@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDashboard } from './DashboardContext';
-import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass, Mic, Search, Eye, Navigation, Network, Loader2, RotateCcw, CheckSquare, Dumbbell, ArrowUp } from 'lucide-react';
+import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass, Mic, Search, Eye, Navigation, Network, Loader2, RotateCcw, CheckSquare, Dumbbell, ArrowUp, Printer, Building, ShieldAlert, Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PilotBento } from './PilotBento';
 import { GapAnalysisFull } from './GapAnalysisFull';
@@ -18,6 +18,7 @@ import { DashboardCard } from './DashboardCard';
 import FlawCoaching from './FlawCoaching';
 import { ToDoListCard } from './ToDoListCard';
 import TrainingTab from './TrainingTab';
+import { PrintableDossier } from './PrintableDossier';
 
 export const DashboardView = () => {
   const { t } = useTranslation();
@@ -26,12 +27,28 @@ export const DashboardView = () => {
     researchResult, salaryResult, careerGpsResult, careerRadarResult, setCurrentStep,
     jobDecoderResult, hiddenMarketResult, recruiterResult, realityResult, flawCoachingResult,
     globalStatus, triggerResearch,
-    pitchResult, questionsResult, cvResult, gapResult, actionPlanResult
+    pitchResult, questionsResult, cvResult, gapResult, actionPlanResult, customScenariosResult
   } = useDashboard();
 
   // --- GESTION DES NOTIFICATIONS ---
   const [viewedTabs, setViewedTabs] = useState<string[]>(['overview']);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  
+  // --- GESTION DE L'IMPRESSION ---
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [printSelection, setPrintSelection] = useState({
+    cv: true, pitch: true, questions: true, mes: true, flaws: true,
+    gap: true, research: true, decoder: true, gps: true, radar: true,
+    hidden_market: true, todo: true
+  });
+  const togglePrintSelection = (key: keyof typeof printSelection) => {
+    setPrintSelection(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+  const handlePrintConfirm = () => {
+    setIsPrintModalOpen(false);
+    // On laisse le temps à React de passer les props au composant caché avant de déclencher l'impression
+    setTimeout(() => window.print(), 300);
+  };
 
   const handleTabChange = (tab: string, anchor?: string) => {
     setActiveTab(tab);
@@ -51,6 +68,13 @@ export const DashboardView = () => {
     }
   };
 
+  // --- ECOUTEUR GLOBAL POUR LE BOUTON "MES DOCUMENTS" DU HEADER ---
+  useEffect(() => {
+    const handleOpenPrint = () => setIsPrintModalOpen(true);
+    window.addEventListener('open-print-modal', handleOpenPrint);
+    return () => window.removeEventListener('open-print-modal', handleOpenPrint);
+  }, []);
+
   useEffect(() => {
     const handleScroll = () => {
       setShowBackToTop(window.scrollY > 300);
@@ -62,13 +86,13 @@ export const DashboardView = () => {
   const subMenus: Record<string, {label: string, id: string}[]> = {
     interview: [
       { label: t('submenu_pitch', 'Pitch'), id: 'pitch_section' },
-      { label: t('submenu_questionnaire', 'Questionnaire'), id: 'questionnaire_section' },
-      { label: t('submenu_mes', 'Mises en situation'), id: 'mes_section' },
+      { label: t('submenu_questionnaire', 'Questions & Mises en situation'), id: 'questionnaire_section' },
       { label: t('submenu_flaws', 'Parades aux Défauts'), id: 'flaws_section' }
     ],
     market: [
       { label: t('submenu_gap', 'Gap Analysis'), id: 'gap_section' },
-      { label: t('submenu_market', 'Entreprise & Marché'), id: 'analysis_section' },
+      { label: t('submenu_company', 'Entreprise'), id: 'company_section' },
+      { label: t('submenu_market', 'Marché'), id: 'market_section' },
       { label: t('submenu_decoder', 'Décodeur d\'Annonce'), id: 'decoder_section' }
     ],
     career: [
@@ -82,26 +106,53 @@ export const DashboardView = () => {
 
   const isProcessing = globalStatus === "PROCESSING" || globalStatus === "STARTING";
 
+  // Vérification stricte de la disponibilité des données pour éviter les "faux positifs" sur des objets/tableaux vides
+  const isDataReady = (data: any) => {
+    if (!data) return false;
+    if (data.status === "pending" || data.status === "PENDING" || data.status === "processing") return false;
+    if (data.error) return false;
+    if (Array.isArray(data)) return data.length > 0;
+    if (typeof data === 'object') {
+      const keys = Object.keys(data);
+      if (keys.length === 0) return false;
+      return Object.values(data).some(val => val !== null && val !== undefined);
+    }
+    return true;
+  };
+
+  const hasJobDesc = !!(cvData?.job_description && cvData.job_description.trim().length > 0);
+
   // Liste de tous les livrables avec leur état
   const deliverableItems = [
-    { name: t('deliv_cv', "CV & ATS"), tab: "cv", data: cvResult, icon: <FileText size={18}/> },
+    { name: t('deliv_cv', "CV ATS"), tab: "cv", data: cvResult, icon: <FileText size={18}/> },
     { name: t('deliv_pitch', "Pitch de 3 minutes"), tab: "interview", anchor: "pitch_section", data: pitchResult, icon: <Mic size={18}/> },
-    { name: t('deliv_questions', "Questions d'Entretien"), tab: "interview", anchor: "questionnaire_section", data: questionsResult, icon: <MessageSquare size={18}/> },
+    { name: t('deliv_questions', "Questions & Mises en situation"), tab: "interview", anchor: "questionnaire_section", data: questionsResult || customScenariosResult, icon: <MessageSquare size={18}/> },
+    { name: t('deliv_mes', "Mises en situation"), tab: "interview", anchor: "mes_anchor", data: customScenariosResult || cvData, icon: <ShieldAlert size={18}/> },
     { name: t('deliv_flaws', "Parades aux Défauts"), tab: "interview", anchor: "flaws_section", data: flawCoachingResult, icon: <AlertTriangle size={18}/> },
     { name: t('deliv_gap', "Analyse d'Écarts (Gap)"), tab: "market", anchor: "gap_section", data: gapResult, icon: <Target size={18}/> },
-    { name: t('deliv_market', "Rapport Entreprise & Marché"), tab: "market", anchor: "analysis_section", data: researchResult, icon: <Globe size={18}/> },
-    { name: t('deliv_decoder', "Décodeur d'Annonce"), tab: "market", anchor: "decoder_section", data: jobDecoderResult, icon: <Search size={18}/> },
+    { name: t('deliv_company', "Rapport Entreprise"), tab: "market", anchor: "company_section", data: researchResult, icon: <Building size={18}/> },
+    { name: t('deliv_market', "Rapport Marché"), tab: "market", anchor: "market_section", data: researchResult, icon: <Globe size={18}/> },
+    { 
+      name: t('deliv_decoder', "Décodeur d'Annonce"), 
+      tab: "market", 
+      anchor: "decoder_section", 
+      data: jobDecoderResult, 
+      icon: <Search size={18}/>,
+      disabled: !hasJobDesc,
+      disabledReason: t('card_decoder_disabled', "Annonce non renseignée. Ajoutez l'annonce dans votre profil pour l'analyser.")
+    },
     { name: t('deliv_recruiter', "Vue Recruteur"), tab: "career", anchor: "recruiter_section", data: recruiterResult, icon: <Eye size={18}/> },
     { name: t('deliv_gps', "GPS de Carrière"), tab: "career", anchor: "gps_section", data: careerGpsResult, icon: <Navigation size={18}/> },
     { name: t('deliv_radar', "Radar de Carrière"), tab: "career", anchor: "radar_section", data: careerRadarResult, icon: <Compass size={18}/> },
     { name: t('deliv_hidden', "Marché Caché"), tab: "career", anchor: "hidden_section", data: hiddenMarketResult, icon: <Network size={18}/> },
+    { name: t('deliv_simulator', "Simulateur de Carrière"), tab: "career", anchor: "simulator_section", data: cvData, icon: <Play size={18}/> },
     { name: t('deliv_todo', "To-Do List d'Action"), tab: "actions", data: actionPlanResult, icon: <CheckSquare size={18}/> }
   ];
 
   // Calcul des pastilles par onglet
   const hasUnseen = (tabName: string, items: any[]) => {
     if (viewedTabs.includes(tabName)) return false;
-    return items.some(item => !!item);
+    return items.some(item => isDataReady(item));
   };
 
   const cvUnseen = hasUnseen('cv', [cvResult]);
@@ -129,7 +180,7 @@ export const DashboardView = () => {
           <Activity size={18} /> {t('tab_overview', "Vue d'ensemble")}
         </button>
         <button className={`tab-btn ${activeTab === 'cv' ? 'active' : ''}`} onClick={() => handleTabChange('cv')} style={{ position: 'relative' }}>
-          <FileText size={18} /> {t('tab_cv_ats', "CV & ATS")} {cvUnseen && <span className="notification-dot"></span>}
+          <FileText size={18} /> {t('tab_cv_ats', "CV ATS")} {cvUnseen && <span className="notification-dot"></span>}
         </button>
         <button className={`tab-btn ${activeTab === 'interview' ? 'active' : ''}`} onClick={() => handleTabChange('interview')} style={{ position: 'relative' }}>
           <MessageSquare size={18} /> {t('tab_interview_short', "Entretien")} {interviewUnseen && <span className="notification-dot"></span>}
@@ -175,29 +226,47 @@ export const DashboardView = () => {
                   Il s'affiche instantanément. Les analyses terminées en amont (ex: Marché) 
                   seront cliquables immédiatement sans attendre la synthèse IA. */}
               <div className="bento-card col-span-3" style={{ background: 'var(--bg-card)' }}>
-                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                   <div className="bento-header" style={{ marginBottom: '0.5rem' }}><Activity size={20} color="var(--primary)"/> {t('hub_title', 'Centre de Suivi des Analyses')}</div>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                   <div className="bento-header" style={{ marginBottom: 0 }}><Activity size={20} color="var(--primary)"/> {t('hub_title', 'Centre de Suivi des Analyses')}</div>
+                   <button 
+                     onClick={() => setIsPrintModalOpen(true)} 
+                     className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
+                     <Printer size={16} /> Imprimer mon Dossier
+                   </button>
                  </div>
-                 <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: '0 0 1.5rem 0' }}>{t('hub_desc', 'Suivez la génération de vos outils en temps réel et cliquez pour y accéder.')}</p>
+                 <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: '0 0 1rem 0' }}>{t('hub_desc', 'Suivez la génération de vos outils en temps réel et cliquez pour y accéder.')}</p>
                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
                     {deliverableItems.map((item, idx) => {
-                       const isReady = !!item.data;
-                       const isPending = isProcessing && !isReady;
-                       const isNew = isReady && !viewedTabs.includes(item.tab);
+                       const isReady = isDataReady(item.data) && !item.disabled;
+                       const isPending = isProcessing && !isReady && !item.disabled;
+                       const isNew = isReady && !viewedTabs.includes(item.tab) && !item.disabled;
                        return (
-                          <div key={idx} onClick={() => handleTabChange(item.tab, (item as any).anchor)} style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', border: `1px solid ${isReady ? 'var(--primary)' : 'var(--border-color)'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', opacity: isPending ? 0.7 : 1, transition: 'all 0.2s', boxShadow: isNew ? '0 4px 12px rgba(59, 130, 246, 0.15)' : 'none' }} onMouseOver={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')} onMouseOut={(e) => (e.currentTarget.style.transform = 'none')}>
-                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: isReady ? 'var(--text-main)' : 'var(--text-muted)', fontWeight: isReady ? 600 : 400 }}>
-                                <div style={{ color: isReady ? 'var(--primary)' : 'var(--text-muted)', display: 'flex' }}>{item.icon}</div>
-                                <span style={{ fontSize: '0.95rem' }}>{item.name}</span>
+                          <div 
+                             key={idx} 
+                             onClick={() => !item.disabled && handleTabChange(item.tab, (item as any).anchor)} 
+                             style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', border: `1px solid ${isReady ? 'var(--primary)' : 'var(--border-color)'}`, display: 'flex', flexDirection: 'column', gap: '0.5rem', cursor: item.disabled ? 'not-allowed' : 'pointer', opacity: item.disabled ? 0.5 : (isPending ? 0.7 : 1), transition: 'all 0.2s', boxShadow: isNew ? '0 4px 12px rgba(59, 130, 246, 0.15)' : 'none' }} 
+                             onMouseOver={(e) => !item.disabled && (e.currentTarget.style.transform = 'translateY(-2px)')} 
+                             onMouseOut={(e) => !item.disabled && (e.currentTarget.style.transform = 'none')}
+                          >
+                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: isReady ? 'var(--text-main)' : 'var(--text-muted)', fontWeight: isReady ? 600 : 400 }}>
+                                   <div style={{ color: isReady ? 'var(--primary)' : 'var(--text-muted)', display: 'flex' }}>{item.icon}</div>
+                                   <span style={{ fontSize: '0.95rem' }}>{item.name}</span>
+                                </div>
+                                {item.disabled ? null : isNew ? (
+                                   <span style={{ background: '#ef4444', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, animation: 'pulse-new 2s infinite' }}>{t('badge_new', 'NEW')}</span>
+                                ) : isReady ? (
+                                   <span style={{ background: '#dcfce7', color: '#16a34a', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700 }}>{t('badge_ready', 'PRÊT')}</span>
+                                ) : isPending ? (
+                                   <Loader2 size={16} className="spin" color="var(--text-muted)" />
+                                ) : (
+                                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t('badge_pending', 'En attente')}</span>
+                                )}
                              </div>
-                             {isNew ? (
-                                <span style={{ background: '#ef4444', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, animation: 'pulse-new 2s infinite' }}>{t('badge_new', 'NEW')}</span>
-                             ) : isReady ? (
-                                <span style={{ background: '#dcfce7', color: '#16a34a', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700 }}>{t('badge_ready', 'PRÊT')}</span>
-                             ) : isPending ? (
-                                <Loader2 size={16} className="spin" color="var(--text-muted)" />
-                             ) : (
-                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t('badge_pending', 'En attente')}</span>
+                             {item.disabled && item.disabledReason && (
+                               <div style={{ fontSize: '0.75rem', color: 'var(--danger-text)', fontWeight: 600 }}>
+                                 {item.disabledReason}
+                               </div>
                              )}
                           </div>
                        );
@@ -218,9 +287,9 @@ export const DashboardView = () => {
                       data={pilotData} 
                       careerRadarData={careerRadarResult}
                       careerGpsData={careerGpsResult}
-                      onGoToGap={() => handleTabChange('market')} 
-                      onGoToRadar={() => handleTabChange('career')}
-                      onGoToGps={() => handleTabChange('career')}
+                      onGoToGap={() => handleTabChange('market', 'gap_section')} 
+                      onGoToRadar={() => handleTabChange('career', 'radar_section')}
+                      onGoToGps={() => handleTabChange('career', 'gps_section')}
                   />
                   <CareerRealityCheck data={realityResult} score={pilotData?.matchScore} loading={isProcessing && !realityResult} />
                 </>
@@ -246,8 +315,8 @@ export const DashboardView = () => {
              <div id="gap_section">
                <GapAnalysisFull data={gapResult || pilotData} loading={isProcessing && !gapResult} onBack={() => handleTabChange('overview')} />
              </div>
-             <div id="analysis_section">
-               <AnalysisTab researchResult={researchResult} salaryResult={salaryResult} onRefresh={triggerResearch} isRefreshing={globalStatus === "PROCESSING"} />
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+               <AnalysisTab researchResult={researchResult} salaryResult={salaryResult} onRefresh={triggerResearch} isRefreshing={isProcessing} />
              </div>
              <div id="decoder_section">
                <JobDecoder data={jobDecoderResult} loading={isProcessing && !jobDecoderResult} />
@@ -294,6 +363,43 @@ export const DashboardView = () => {
         )}
       </div>
 
+      {/* MODALE D'IMPRESSION */}
+      {isPrintModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ background: 'var(--bg-card)', borderRadius: '1rem', padding: '2rem', maxWidth: '500px', width: '100%', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+            <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>Personnaliser l'impression</h3>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Sélectionnez les éléments que vous souhaitez inclure dans votre dossier (PDF / Papier) :</p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2rem', maxHeight: '50vh', overflowY: 'auto', paddingRight: '1rem' }}>
+              {Object.keys(printSelection).map((key) => {
+                const labels: Record<string, string> = {
+                  cv: "CV ATS", pitch: "Pitch de présentation", questions: "Questions d'entretien", mes: "Mises en situation",
+                  flaws: "Parades aux défauts", gap: "Analyse d'écarts (Gap)", research: "Rapports Entreprise & Marché",
+                  decoder: "Décodeur d'annonce", gps: "GPS de Carrière", radar: "Radar de Carrière",
+                  hidden_market: "Stratégie Marché Caché", todo: "Plan d'action (To-Do)"
+                };
+                return (
+                  <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', color: 'var(--text-main)', fontSize: '0.95rem' }}>
+                    <input type="checkbox" checked={printSelection[key as keyof typeof printSelection]} onChange={() => togglePrintSelection(key as keyof typeof printSelection)} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
+                    {labels[key]}
+                  </label>
+                );
+              })}
+            </div>
+            
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              <button className="btn-secondary" onClick={() => setIsPrintModalOpen(false)}>Annuler</button>
+              <button className="btn-primary" onClick={handlePrintConfirm} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Printer size={16} /> Générer le Document
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Composant d'impression invisible à l'écran */}
+      <PrintableDossier selection={printSelection} />
+
       {/* BOUTON RETOUR EN HAUT */}
       {showBackToTop && (
         <button 
@@ -306,6 +412,14 @@ export const DashboardView = () => {
       )}
 
       <style>{`
+        @media print {
+          .tabs-navigation, .sub-tabs-navigation, .btn-action, .btn-primary, .btn-secondary, .btn-outline, .btn-ghost, .notification-dot, .user-profile-btn, header { display: none !important; }
+          /* On cache tout le contenu interactif du dashboard pour ne laisser que le PrintableDossier */
+          .tab-content, .bento-grid, .dashboard-grid-new, .dashboard-container-new { display: none !important; }
+          .printable-dossier { display: block !important; }
+          body { background: white; margin: 0; padding: 0; }
+          * { color: black !important; }
+        }
         .dashboard-wrapper { display: flex; flex-direction: column; gap: 2rem; width: 100%; }
         
         .tabs-navigation { display: flex; gap: 0.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0; overflow-x: auto; align-items: flex-end; scrollbar-width: none; -ms-overflow-style: none; }
@@ -363,11 +477,6 @@ export const DashboardView = () => {
         .text-muted { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem; }
         
         .editor-placeholder { margin-top: 1.5rem; padding: 2rem; background: var(--bg-secondary); border: 1px dashed var(--border-color); border-radius: 0.5rem; text-align: center; color: var(--text-muted); }
-        
-        .template-selector { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
-        .template-btn { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1rem; border: 2px solid var(--border-color); border-radius: 0.5rem; background: var(--bg-card); cursor: pointer; transition: 0.2s; color: var(--text-muted); }
-        .template-btn:hover { border-color: var(--primary); }
-        .template-btn.active { border-color: var(--primary); color: var(--primary); background: rgba(59, 130, 246, 0.1); }
         
         .progress-bar { width: 100%; height: 8px; background: var(--border-color); border-radius: 4px; margin: 0.5rem 0; overflow: hidden; }
         .progress-fill { height: 100%; background: #16a34a; border-radius: 4px; }

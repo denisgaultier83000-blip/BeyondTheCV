@@ -7,6 +7,7 @@ on:
       - completed
     branches:
       - master
+          - staging
       - staging1
   workflow_dispatch:
 
@@ -57,16 +58,7 @@ jobs:
           script: |
             set -e
 
-            APP_DIR="/app/beyondthecv"
-            
             BRANCH="$TARGET_BRANCH"
-
-            cd "$APP_DIR"
-
-            echo "Deploy branch: $BRANCH"
-
-            git fetch origin
-            git reset --hard "origin/$BRANCH"
 
             if [ "$BRANCH" = "staging" ] || [ "$BRANCH" = "staging1" ]; then
               COMPOSE_FILE="docker-compose.staging.yml"
@@ -85,7 +77,22 @@ jobs:
               exit 1
             fi
 
-            ENV_FILE=$(mktemp)
+            # Isoler physiquement les environnements
+            APP_DIR="/app/beyondthecv-$ENVIRONMENT"
+            mkdir -p "$APP_DIR"
+            cd "$APP_DIR"
+
+            echo "Deploy branch: $BRANCH in $APP_DIR"
+
+            # Clone initial si le dossier vient d'être créé
+            if [ ! -d ".git" ]; then
+              git clone https://github.com/${{ github.repository }}.git .
+            fi
+
+            git fetch origin
+            git reset --hard "origin/$BRANCH"
+
+            ENV_FILE=".env"
 
             SAFE_DB_PASS="${DB_PASS//\$/\$\$}"
             SAFE_JWT_SEC="${JWT_SEC//\$/\$\$}"
@@ -105,21 +112,25 @@ jobs:
             JWT_SECRET='$SAFE_JWT_SEC'
             EOF
 
-            docker network inspect web >/dev/null 2>&1 || docker network create web
+            # [FIX SECURITE] Utiliser un réseau Traefik dédié par environnement pour isoler le staging de la production.
+            WEB_NETWORK="web-${ENVIRONMENT}"
+            docker network inspect "$WEB_NETWORK" >/dev/null 2>&1 || docker network create "$WEB_NETWORK"
+
+            # Libérer de l'espace disque AVANT de télécharger de nouvelles images
+            docker image prune -a -f
 
             docker compose \
               -p "$PROJECT_NAME" \
               -f "$COMPOSE_FILE" \
-              --env-file "$ENV_FILE" \
               pull
 
             docker compose \
               -p "$PROJECT_NAME" \
               -f "$COMPOSE_FILE" \
-              --env-file "$ENV_FILE" \
               up -d --force-recreate --remove-orphans
 
-            rm -f "$ENV_FILE"
+            # Sécurise le fichier pour qu'il reste disponible pour les redémarrages Docker
+            chmod 600 "$ENV_FILE"
 
             docker image prune -f
 

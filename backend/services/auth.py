@@ -25,17 +25,34 @@ async def _insert_user(uid, email, hashed_pw, first, last, created):
 @router.post("/api/auth/token")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     try:
+        # [FIX] On gère la casse de l'email pour garantir un login fiable
+        email = form_data.username.lower().strip()
         async with db.get_connection() as conn:
             # Requête propre et directe
-            cursor = await db.execute(conn, "SELECT * FROM users WHERE email = ?", (form_data.username,))
+            cursor = await db.execute(conn, "SELECT id, email, hashed_password, first_name, last_name, created_at, is_premium FROM users WHERE email = ?", (email,))
             row = await cursor.fetchone()
 
         if not row:
-            print(f"[AUTH ERROR] Échec : Email introuvable en base ({form_data.username})", flush=True)
+            print(f"[AUTH ERROR] Échec : Email introuvable en base ({email})", flush=True)
             raise HTTPException(status_code=401, detail="Identifiants incorrects.")
             
-        # [FIX] Sécurisation absolue : on garantit un dictionnaire peu importe le driver (psycopg2/asyncpg)
-        user_dict = dict(row) if not isinstance(row, dict) else row
+        # [FIX] Sécurisation absolue du mapping pour gérer tuples, sqlite3.Row, asyncpg.Record et dicts
+        if isinstance(row, dict):
+            user_dict = row
+        elif hasattr(row, 'keys'):
+            user_dict = dict(row)
+        elif isinstance(row, tuple):
+            user_dict = {
+                "id": row[0],
+                "email": row[1],
+                "hashed_password": row[2],
+                "first_name": row[3],
+                "last_name": row[4],
+                "created_at": row[5],
+                "is_premium": row[6] if len(row) > 6 else False
+            }
+        else:
+            user_dict = dict(row)
             
         try:
             is_valid = verify_password(form_data.password, user_dict.get("hashed_password", ""))

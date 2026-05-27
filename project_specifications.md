@@ -65,14 +65,11 @@ Les données sont stockées dans un JSON global au fil de la saisie.
 ## 4. PRODUITS DU DASHBOARD
 
 ### A. Onglet CV (Génération Synchrone)
-1. **CV ATS :**
-   - Prévisualisation LaTeX à droite.
-   - Données éditables à gauche.
-   - Bouton "Refresh" : Appel IA + Analyseur de cohérence.
-2. **CV Humain :**
-   - 3 Templates au choix (Couleurs/Polices/Layout).
-   - Prévisualisation LaTeX -> PDF.
-   - Indicateur visuel : Barre de matching (Score d'adéquation).
+- **Format Unique (Optimisé ATS & Recruteur) :**
+  - Prévisualisation LaTeX à droite.
+  - Données éditables à gauche.
+  - Bouton "Refresh" : Appel IA + Analyseur de cohérence.
+  - Indicateur visuel : Jauge de Score ATS avec mots-clés interactifs.
 
 ### B. Onglet Aide à l'Entretien
 1. **Questionnaire Recruteur (IA Pipeline) :**

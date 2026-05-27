@@ -29,8 +29,8 @@ Your output **MUST** be a JSON object with the following structure:
         "threats": ["An external risk (e.g., 'Increased regulatory scrutiny')", "Another external threat (e.g., 'Aggressive pricing from new competitors')"]
     }},
     "recent_developments": [
-        {{ "title": "Most Important Recent News (e.g., 'Acquisition of AI startup')", "summary": "A brief summary of the event and its strategic implication for the company and for the candidate's potential role.", "date": "e.g., October 2023" }},
-        {{ "title": "Key Product Launch or Strategic Shift (e.g., 'Launch of new sustainability program')", "summary": "What it is and why it matters. How does it impact the team the candidate might join?", "date": "e.g., August 2023" }}
+        {{ "title": "Most Important Recent News (e.g., 'Acquisition of AI startup')", "summary": "A brief summary of the event and its strategic implication for the company and for the candidate's potential role.", "date": "Use exact date from the provided context" }},
+        {{ "title": "Key Product Launch or Strategic Shift (e.g., 'Launch of new sustainability program')", "summary": "What it is and why it matters. How does it impact the team the candidate might join?", "date": "Use exact date from the provided context" }}
     ],
     "culture_and_interview": {{
         "work_environment": "Describe the day-to-day culture. Is it fast-paced, formal, collaborative, remote-friendly? Use specific keywords found in employee reviews (e.g., 'data-driven', 'customer-centric').",

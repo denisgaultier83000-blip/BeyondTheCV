@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, AlertCircle, MessageSquare, Target, ShieldAlert, Building, ArrowRight } from 'lucide-react';
 import { formatMarkdown } from '../utils/markdown';
+import DOMPurify from 'dompurify';
 import { FeedbackWidget } from './FeedbackWidget';
 
 interface JobDecoderProps {
@@ -82,7 +83,7 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
             </h4>
             <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-main)', lineHeight: '1.6' }}>
               {realExpectations.map((exp: string, idx: number) => (
-                <li key={idx} style={{ marginBottom: '0.5rem' }} dangerouslySetInnerHTML={formatMarkdown(exp)} />
+                <li key={idx} style={{ marginBottom: '0.5rem' }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatMarkdown(exp).__html) }} />
               ))}
             </ul>
           </div>
@@ -95,7 +96,7 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
               </h4>
               <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-main)', lineHeight: '1.6' }}>
                 {redFlags.map((flag: string, idx: number) => (
-                  <li key={idx} style={{ marginBottom: '0.5rem' }} dangerouslySetInnerHTML={formatMarkdown(flag)} />
+                  <li key={idx} style={{ marginBottom: '0.5rem' }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatMarkdown(flag).__html) }} />
                 ))}
               </ul>
             </div>
@@ -110,7 +111,7 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
             <Building size={18} color="var(--primary)" /> Culture d'Entreprise Déduite
           </h4>
           <p style={{ margin: 0, color: 'var(--text-main)', lineHeight: '1.6', fontSize: '0.95rem' }}>
-            <span dangerouslySetInnerHTML={formatMarkdown(cultureFit)} />
+            <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatMarkdown(cultureFit).__html) }} />
           </p>
         </div>
       )}

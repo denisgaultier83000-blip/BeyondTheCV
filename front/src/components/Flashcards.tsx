@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, RotateCcw, CheckCircle2, Lightbulb, MessageS
 interface Question {
   category?: string;
   question: string;
-  difficulty?: string;
+  difficulty?: number | string;
   trap_type?: string;
   suggested_answer?: string;
   advice?: string;
@@ -157,7 +157,16 @@ export default function Flashcards({ questions }: { questions: Question[] }) {
                   </span>
                 )}
               </div>
-              {currentQ.difficulty && <div style={{ fontSize: '1.2rem', letterSpacing: '0.1em' }} title="Niveau de difficulté">{currentQ.difficulty}</div>}
+              {currentQ.difficulty && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                  <div style={{ fontSize: '1.2rem', letterSpacing: '0.1em', color: '#f59e0b' }} title="Niveau de difficulté">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <span key={i} style={{ color: i < Number(currentQ.difficulty) ? "#f59e0b" : "#e5e7eb" }}>★</span>
+                    ))}
+                  </div>
+                  <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600 }}>(1-Facile, 5-Difficile)</span>
+                </div>
+              )}
             </div>
             
             <h3 style={{ fontSize: '1.4rem', color: 'var(--text-main)', lineHeight: 1.5, margin: '0 0 1.5rem 0', fontWeight: 700 }}>

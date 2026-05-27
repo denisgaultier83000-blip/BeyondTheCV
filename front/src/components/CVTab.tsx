@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDashboard } from './DashboardContext';
-import { FileText, Download, Loader2, RefreshCw, AlertTriangle, Target, CheckCircle2, Plus } from 'lucide-react';
+import { FileText, Download, Loader2, RefreshCw, Target, CheckCircle2, Plus } from 'lucide-react';
 import { authenticatedFetch } from '../utils/auth';
 import { KeywordCoachModal } from './KeywordCoachModal';
 import { API_BASE_URL } from '../config';
@@ -55,6 +55,11 @@ export const CVTab = ({ data }: { data: any }) => {
     payloadData.country = cvData?.country || cvData?.personal_info?.country || payloadData.country;
     payloadData.current_role = cvData?.current_role || payloadData.current_role;
 
+    // [FIX] Nettoyage automatique de l'URL LinkedIn pour ne garder que le pseudo
+    if (payloadData.linkedin) {
+        payloadData.linkedin = payloadData.linkedin.replace(/^(https?:\/\/)?(www\.)?linkedin\.com\/in\//i, '').replace(/\/$/, '');
+    }
+
     // [FIX] S'assurer que le prénom et le nom commencent par une majuscule pour le CV
     const capitalize = (str: string) => str ? str.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : "";
     payloadData.first_name = capitalize(payloadData.first_name);
@@ -73,9 +78,9 @@ export const CVTab = ({ data }: { data: any }) => {
         country: payloadData.country
     };
 
-    // [FIX] On ajoute le texte reformulé généré par le KeywordCoachModal dans la section profil (bio)
+    // [FIX EXPERT] L'IA doit LIRE et INTÉGRER les nouvelles suggestions (sans juste les coller en bas)
     if (extraContent.length > 0) {
-        payloadData.bio = (payloadData.bio ? payloadData.bio + "\n\n" : "") + extraContent.join("\n\n");
+        payloadData.free_text = (payloadData.free_text ? payloadData.free_text + "\n\n" : "") + "Intègre de manière fluide et très professionnelle ces éléments dans les expériences ou compétences :\n" + extraContent.join("\n");
     }
 
     if (!payloadData) {
@@ -85,7 +90,7 @@ export const CVTab = ({ data }: { data: any }) => {
     setPreviewBody({
       action: "CV",
       data: payloadData,
-      skip_ai: true,
+      skip_ai: extraContent.length === 0 && addedKeywords.length === 0, // Force la lecture IA si du contenu manuel est injecté
       preview: true,
       renderer: 'latex'
     });
@@ -121,7 +126,7 @@ export const CVTab = ({ data }: { data: any }) => {
       <div className="cv-header">
         <div className="cv-type-selector">
           <button className="cv-type-btn active">
-            <FileText size={16} /> {t('cv_ats_optimized', 'CV Optimisé ATS')}
+            <FileText size={16} /> {t('cv_ats_optimized', 'CV ATS')}
           </button>
           {/* D'autres boutons pourraient venir ici */}
         </div>

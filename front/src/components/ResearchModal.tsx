@@ -97,15 +97,34 @@ const ResearchModal: React.FC<ResearchModalProps> = ({ data, mode = 'company', o
                         <p style={{...textStyle, fontSize: '0.85rem'}}>{company_report.team_structure}</p>
                     </div>
                   <div style={{ background: 'rgba(225, 29, 72, 0.05)', border: '1px solid rgba(225, 29, 72, 0.2)', padding: '1rem', borderRadius: '8px' }}>
-                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--danger-text)' }}>{t('company_news', 'Dernières actualités')}</h4>
+                      <h4 style={{ margin: '0 0 1rem 0', color: 'var(--danger-text)' }}>{t('company_news', 'Actualités & Leviers Stratégiques')}</h4>
                         {company_report.news_links && company_report.news_links.length > 0 ? (
-                          <ul style={{ margin: 0, paddingLeft: '1.2rem', ...textStyle, fontSize: '0.85rem' }}>
-                            {company_report.news_links.map((link: any, i: number) => (
-                              <li key={i} style={{ marginBottom: '0.25rem' }}>
-                                <a href={link.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--danger-text)', textDecoration: 'none' }}>{link.title}</a>
-                              </li>
-                            ))}
-                          </ul>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            {company_report.news_links.map((link: any, i: number) => {
+                              const urlStr = link.url || '#';
+                              const isDummyUrl = urlStr === '#';
+                              const fullUrl = isDummyUrl ? '#' : (urlStr.startsWith('http') ? urlStr : `https://${urlStr}`);
+                              return (
+                                <div key={i} style={{ background: 'white', padding: '0.75rem', borderRadius: '6px', border: '1px solid rgba(225, 29, 72, 0.2)' }} onClick={(e) => e.stopPropagation()}>
+                                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                    {!isDummyUrl ? (
+                                        <>
+                                            <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(fullUrl)}&sz=16`} alt="source" style={{ width: '16px', height: '16px', marginRight: '8px', borderRadius: '2px', flexShrink: 0 }} />
+                                            <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--danger-text)', textDecoration: 'none', fontWeight: 600, fontSize: '0.9rem' }} onClick={(e) => e.stopPropagation()}>{link.title}</a>
+                                        </>
+                                    ) : (
+                                        <span style={{ color: 'var(--danger-text)', fontWeight: 600, fontSize: '0.9rem' }}>💡 {link.title}</span>
+                                    )}
+                                  </div>
+                                  {link.strategic_analysis && (
+                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', borderLeft: '3px solid var(--danger-text)', paddingLeft: '0.75rem', marginTop: '0.5rem', fontStyle: 'italic', lineHeight: 1.4 }}>
+                                      <strong style={{ color: 'var(--danger-text)', fontStyle: 'normal' }}>Conseil Stratégique :</strong> {link.strategic_analysis}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         ) : (
                           <p style={{...textStyle, fontSize: '0.85rem'}}>{company_report.hot_news || "Aucune actualité récente."}</p>
                         )}
@@ -146,6 +165,11 @@ const ResearchModal: React.FC<ResearchModalProps> = ({ data, mode = 'company', o
                 </div>
 
                 <div>
+                    <h3 style={headingStyle}>Perturbations Majeures (Risques)</h3>
+                    <p style={textStyle}>{market_report.major_disruptions}</p>
+                </div>
+
+                <div>
                     <h3 style={headingStyle}>{t('market_recruitment', 'Dynamique de recrutement')}</h3>
                     <p style={textStyle}>{market_report.recruitment_dynamics}</p>
                 </div>
@@ -173,7 +197,10 @@ const ResearchModal: React.FC<ResearchModalProps> = ({ data, mode = 'company', o
         {sources && sources.length > 0 && (
           <div style={{ marginTop: '2rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
             <button 
-                onClick={() => setSourcesExpanded(!sourcesExpanded)} 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSourcesExpanded(!sourcesExpanded);
+                }} 
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem', color: '#64748b', padding: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500 }}
             >
                 {sourcesExpanded ? `▼ ${t('section_sources', 'Sources')}` : `▶ ${t('section_sources', 'Sources')}`} ({sources.length})

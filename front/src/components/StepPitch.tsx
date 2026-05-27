@@ -1,1 +1,0 @@
-// DEPRECATED: This component is unused. The logic for these fields is now handled in CandidateSteps.tsx (StepProfile and StepTarget).
