@@ -7,7 +7,7 @@ on:
       - completed
     branches:
       - master
-          - staging
+              - staging
       - staging1
   workflow_dispatch:
 
@@ -100,20 +100,21 @@ jobs:
             SAFE_GEM_KEY="${GEM_KEY//\$/\$\$}"
 
             cat <<EOF > "$ENV_FILE"
-            VERSION='$BRANCH'
-            ENVIRONMENT='$ENVIRONMENT'
-            API_HOST='$API_HOST'
-            FRONTEND_URL='$FRONTEND_URL'
-            POSTGRES_USER='$DB_USER'
-            POSTGRES_PASSWORD='$SAFE_DB_PASS'
-            POSTGRES_DB='$DB_NAME'
-            OPENAI_API_KEY='$SAFE_OAI_KEY'
-            GEMINI_API_KEY='$SAFE_GEM_KEY'
-            JWT_SECRET='$SAFE_JWT_SEC'
+            VERSION=${BRANCH}
+            ENVIRONMENT=${ENVIRONMENT}
+            API_HOST=${API_HOST}
+            FRONTEND_URL=${FRONTEND_URL}
+            POSTGRES_USER=${DB_USER}
+            POSTGRES_PASSWORD=${SAFE_DB_PASS}
+            POSTGRES_DB=${DB_NAME}
+            OPENAI_API_KEY=${SAFE_OAI_KEY}
+            GEMINI_API_KEY=${SAFE_GEM_KEY}
+            JWT_SECRET=${SAFE_JWT_SEC}
             EOF
 
-            # [FIX SECURITE] Utiliser un réseau Traefik dédié par environnement pour isoler le staging de la production.
-            WEB_NETWORK="web-${ENVIRONMENT}"
+            # [FIX RESEAU] On reconnecte sur le réseau 'web' standard de Traefik pour rétablir la communication.
+            # L'isolation sécurité reste garantie par les réseaux internes (btcv-staging-internal et btcv-prod-internal).
+            WEB_NETWORK="web"
             docker network inspect "$WEB_NETWORK" >/dev/null 2>&1 || docker network create "$WEB_NETWORK"
 
             # Libérer de l'espace disque AVANT de télécharger de nouvelles images
