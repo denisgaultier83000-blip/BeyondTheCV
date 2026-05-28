@@ -9,7 +9,7 @@ import { DashboardProvider as GlobalProvider, useDashboard as useGlobalDashboard
 import { DashboardProvider as TabProvider } from './components/DashboardContext';
 import { 
   StepImport, StepProfile, StepTarget, StepEducation, StepExperience, 
-  StepQualitiesFlaws, StepFreeText, StepClarification 
+  StepQualitiesFlaws, StepClarification 
 } from './components/CandidateSteps';
 import AdminFeedbacks from './components/AdminFeedbacks';
 import { LandingPage } from './components/LandingPage';
@@ -116,8 +116,7 @@ function AppContent() {
     { id: 0, title: t('step_import', "Import") }, { id: 1, title: t('profile_title') },
     { id: 2, title: t('target_title') }, { id: 3, title: t('education_title') },
     { id: 4, title: t('experience_title') }, { id: 5, title: t('qualities_title') },
-    { id: 6, title: t('express_yourself') }, { id: 7, title: t('clarification_title') },
-    { id: 8, title: t('step_results', "Résultats") }
+    { id: 6, title: t('clarification_title') }, { id: 7, title: t('step_results', "Résultats") }
   ];
 
   // --- Handlers transmis aux composants enfants ---
@@ -257,7 +256,7 @@ function AppContent() {
         try {
           const parsedData = JSON.parse(restoredDataStr);
           setRestoredData(parsedData);
-          setCurrentStep(8); // Redirection immédiate vers le Dashboard
+          setCurrentStep(7); // Redirection immédiate vers le Dashboard
           setToasts(prev => [...prev, { id: Date.now(), text: "Dossier de candidature restauré avec succès." }]);
         } catch (e) {
           console.error("Erreur de parsing des données restaurées", e);
@@ -288,8 +287,7 @@ function AppContent() {
       experiences: data.experiences,
       educations: data.educations,
       skills: data.skills,
-      flaws: data.flaws,
-      free_text: data.free_text
+      flaws: data.flaws
     });
   };
 
@@ -351,16 +349,11 @@ function AppContent() {
           <StepExperience list={cvData?.experiences || []} onAdd={() => handleAddList('experiences', { role: '', company: '', description: '' })} onRemove={(id: number) => handleRemoveList('experiences', id)} onUpdate={(id: number, field: string, val: any) => handleUpdateList('experiences', id, field, val)} />
           <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={() => handleNextStep()}>{t('btn_next')}</button></div>
         </div>);
-      case 5: return (
-        <div className="step-wrapper">
-          <StepQualitiesFlaws data={cvData || {}} onChange={handleChange} successes={[]} onAddSuccess={() => {}} onUpdateSuccess={() => {}} failures={[]} onAddFailure={() => {}} onUpdateFailure={() => {}} />
-          <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={() => handleNextStep()}>{t('btn_next')}</button></div>
-        </div>);
-      case 6:
+    case 5:
         if (["STARTING", "PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus)) return <LoadingScreen title={t('loading_strat_title', "Création de votre profil stratégique...")} description={t('loading_strat_desc', "Analyse de vos expériences et exigences du marché...")} />;
         return (
           <div className="step-wrapper">
-            <StepFreeText data={cvData || {}} onChange={handleChange} />
+          <StepQualitiesFlaws data={cvData || {}} onChange={handleChange} successes={[]} onAddSuccess={() => {}} onUpdateSuccess={() => {}} failures={[]} onAddFailure={() => {}} onUpdateFailure={() => {}} />
             {globalStatus === "FAILED" && (<div className="error-box"><AlertCircle size={16}/><span>{t('generation_error_msg')} {error}</span><button className="btn-link" onClick={() => handleNextStep()}>{t('btn_retry')}</button></div>)}
             <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>
               <button 
@@ -373,7 +366,7 @@ function AppContent() {
                     const currentSignature = getCoreDataSignature(cvData);
                     // Si la signature n'a pas changé et que nous avons déjà des questions
                     if (cvData?.clarifications?.length > 0 && cvData?.last_clarification_signature === currentSignature) {
-                      setCurrentStep(7); // On bypass le handleNextStep (pas d'appel API)
+                    setCurrentStep(6); // On bypass le handleNextStep (pas d'appel API)
                     } else {
                       // Sinon, on sauvegarde la nouvelle signature et on lance l'IA
                       handleChange('last_clarification_signature', currentSignature);
@@ -387,7 +380,7 @@ function AppContent() {
               </button>
             </div>
           </div>);
-      case 7: 
+    case 6: 
         const clarificationAnswers = (cvData?.clarifications || []).reduce((acc: any, curr: any) => {
           if (curr.answer) acc[curr.id] = curr.answer;
           return acc;
@@ -399,7 +392,7 @@ function AppContent() {
           {globalStatus === "FAILED" && (<div className="error-box"><AlertCircle size={16}/><span>{t('error_msg')} {error}</span><button className="btn-link" onClick={() => handleNextStep()}>{t('btn_retry')}</button></div>)}
           <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={(e) => { if (isFrozen) { e.preventDefault(); setShowPaywall(true); } else { handleNextStep(); } }} disabled={["STARTING", "PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus)}>{["STARTING", "PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus) ? t('btn_launching') : t('btn_launch_full_analysis')}</button></div>
         </div>);
-      case 8: return (
+    case 7: return (
         <div className="step-wrapper dashboard-wrapper">
           <TabProvider 
             initialCvData={cvData} 

@@ -159,13 +159,12 @@ async def analyze_free_text_content(text, quality='fast'):
 async def optimize_cv_data(data, target_lang='French', quality='smart'):
     # [FIX] Extraction des mots-clés et clarifications pour forcer l'IA à les utiliser
     clarifications = data.get('clarifications', [])
-    free_text = data.get('free_text', '')
     
     clarifications_str = "\n".join([f"- {c.get('question', '')} : {c.get('answer', '')}" for c in clarifications if isinstance(c, dict) and c.get('answer')])
     
     instructions_candidat = ""
-    if free_text or clarifications_str:
-        instructions_candidat = f"\n⚠️ INSTRUCTIONS SPÉCIFIQUES DU CANDIDAT (MOTS-CLÉS & PRÉCISIONS À INTÉGRER IMPÉRATIVEMENT DANS LES EXPÉRIENCES OU COMPÉTENCES) :\n{free_text}\n{clarifications_str}\nTu dois absolument tisser ces éléments dans le contenu du CV.\n"
+    if clarifications_str:
+        instructions_candidat = f"\n⚠️ INSTRUCTIONS SPÉCIFIQUES DU CANDIDAT (PRÉCISIONS À INTÉGRER IMPÉRATIVEMENT DANS LES EXPÉRIENCES OU COMPÉTENCES) :\n{clarifications_str}\nTu dois absolument tisser ces éléments dans le contenu du CV.\n"
 
     prompt = f"""
     Optimize this CV data for ATS in {target_lang}. Improve wording and keywords.

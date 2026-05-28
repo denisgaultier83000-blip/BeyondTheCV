@@ -168,7 +168,6 @@ export const StepProfile = ({ data, onChange, errors, lang = 'en' }: StepProps) 
 export const StepTarget = ({ data, onChange, errors, loading, lang = 'en' }: StepProps) => {
   // Extraction de i18n et t sans doublon (correction du crash React)
   const { t, i18n } = useTranslation();
-  const [targetType, setTargetType] = useState<'company' | 'industry'>(data.target_type || (data.target_industry && !data.target_company ? 'industry' : 'company'));
   return (
   <div className="step-content">
     <h2>{t('target_title')}</h2>
@@ -188,62 +187,22 @@ export const StepTarget = ({ data, onChange, errors, loading, lang = 'en' }: Ste
             style={{ width: "100%", borderColor: errors?.target_job ? "#ef4444" : undefined, opacity: loading ? 0.6 : 1 }} 
         />
       </div>
+    </div>
+
+    <div className="row">
       <div className="col form-group">
-        <label>{t('contract_type')}</label>
-        <select disabled={loading} value={data.contract_type || ""} onChange={e => onChange("contract_type", e.target.value)} style={{ width: "100%", opacity: loading ? 0.6 : 1 }}>
-          <option value="">{t('select')}</option>
-          <option value="CDI">{t('full_time')}</option>
-          <option value="Freelance">{t('freelance')}</option>
-          <option value="CDD">{t('fixed_term')}</option>
-        </select>
+        <label>{t('target_company')} ({t('optional', 'Optionnel')})</label>
+        <input disabled={loading} value={data.target_company || ""} onChange={e => onChange("target_company", e.target.value)} placeholder={t('placeholder_target_company')} style={{ width: "100%", borderColor: errors?.target_company ? "#ef4444" : undefined, opacity: loading ? 0.6 : 1 }} />
+      </div>
+      <div className="col form-group">
+        <label>{t('target_industry')} ({t('optional', 'Optionnel')})</label>
+        <input disabled={loading} value={data.target_industry || ""} onChange={e => onChange("target_industry", e.target.value)} placeholder={t('placeholder_target_industry')} style={{ width: "100%", borderColor: errors?.target_industry ? "#ef4444" : undefined, opacity: loading ? 0.6 : 1 }} />
       </div>
     </div>
-
-    <div className="form-group" style={{ marginTop: 15, marginBottom: 15 }}>
-      <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('target_type_label', 'Quel est votre objectif ?')}</label>
-      <div style={{ display: 'flex', gap: '20px' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-          <input 
-            type="radio" 
-            value="company" 
-            checked={targetType === 'company'} 
-            onChange={() => { setTargetType('company'); onChange('target_type', 'company'); }} 
-            disabled={loading}
-          />
-          {t('target_type_company', 'Je cible une entreprise précise')}
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-          <input 
-            type="radio" 
-            value="industry" 
-            checked={targetType === 'industry'} 
-            onChange={() => { setTargetType('industry'); onChange('target_type', 'industry'); onChange('target_company', ''); }} 
-            disabled={loading}
-          />
-          {t('target_type_industry', "Je cible un secteur d'activité en général")}
-        </label>
-      </div>
-    </div>
-
-    {targetType === 'company' && (
-      <div className="row">
-        <div className="col form-group">
-          <label>{t('target_company')}</label>
-          <input disabled={loading} value={data.target_company || ""} onChange={e => onChange("target_company", e.target.value)} placeholder={t('placeholder_target_company')} style={{ width: "100%", borderColor: errors?.target_company ? "#ef4444" : undefined, opacity: loading ? 0.6 : 1 }} />
-        </div>
-        <div className="col form-group">
-          <label>{t('target_industry')} ({t('optional', 'Optionnel')})</label>
-          <input disabled={loading} value={data.target_industry || ""} onChange={e => onChange("target_industry", e.target.value)} placeholder={t('placeholder_target_industry')} style={{ width: "100%", borderColor: errors?.target_industry ? "#ef4444" : undefined, opacity: loading ? 0.6 : 1 }} />
-        </div>
-      </div>
-    )}
-    {targetType === 'industry' && (
-      <div className="row">
-        <div className="col form-group">
-          <label>{t('target_industry')}</label>
-          <input disabled={loading} value={data.target_industry || ""} onChange={e => onChange("target_industry", e.target.value)} placeholder={t('placeholder_target_industry')} style={{ width: "100%", borderColor: errors?.target_industry ? "#ef4444" : undefined, opacity: loading ? 0.6 : 1 }} />
-        </div>
-      </div>
+    {errors?.target_industry && !data.target_company && !data.target_industry && (
+      <p style={{ color: "#ef4444", fontSize: "0.85rem", marginTop: "-10px", marginBottom: "15px" }}>
+        Veuillez renseigner au moins une entreprise ou un secteur d'activité.
+      </p>
     )}
     <div className="form-group">
       <label>{t('job_desc_label')}</label>
@@ -304,34 +263,6 @@ export const StepTarget = ({ data, onChange, errors, loading, lang = 'en' }: Ste
           <option value="onsite">{t('onsite')}</option>
         </select>
       </div>
-    </div>
-    
-    <div className="form-group" style={{ marginTop: 15 }}>
-      <label>{t('availability_label', 'Disponibilité')}</label>
-      <select 
-        disabled={loading} 
-        value={['immediate', '1_month', '3_months'].includes(data.availability) ? data.availability : (data.availability ? 'Autre' : '')} 
-        onChange={(e) => onChange("availability", e.target.value)} 
-        style={{ width: "100%", opacity: loading ? 0.6 : 1 }}
-      >
-        <option value="">{t('select', 'Sélectionnez...')}</option>
-        <option value="immediate">{t('availability_immediate', 'Immédiate')}</option>
-        <option value="1_month">{t('availability_1_month', '1 mois (Préavis)')}</option>
-        <option value="3_months">{t('availability_3_months', '3 mois (Préavis)')}</option>
-        <option value="Autre">{t('availability_other', 'Autre (Préciser)...')}</option>
-      </select>
-
-      {(!['immediate', '1_month', '3_months', ''].includes(data.availability || '') || data.availability === "Autre") && (
-        <input 
-          type="text" 
-          placeholder={t('availability_custom_placeholder', 'Précisez (ex: Dans 5 mois, Mi-Septembre)...')} 
-          value={data.availability === "Autre" ? "" : data.availability} 
-          onChange={(e) => onChange("availability", e.target.value)} 
-          className="form-control"
-          style={{ width: "100%", marginTop: '0.5rem' }}
-          autoFocus
-        />
-      )}
     </div>
   </div>
   );
@@ -416,26 +347,6 @@ export const StepExperience = ({ list, onAdd, onRemove, onUpdate, lang = 'en', o
                 <Sparkles size={12} /> {t('optimize', "Améliorer")}
               </button>
             )}
-          </div>
-
-          {/* SUCCÈS */}
-          <div style={{ marginTop: 15, padding: 15, background: "rgba(16, 185, 129, 0.1)", borderRadius: 8, border: "1px solid var(--success)" }}>
-            <label style={{ color: "var(--success)", fontWeight: "bold", marginBottom: 10, display: "block" }}>{t('success_mark_title', '🏆 Succès marquant')}</label>
-            <div style={{ display: "grid", gap: 10 }}>
-              <input placeholder={t('success_context_placeholder', "Contexte (ex: Projet en retard...)")} value={exp.success_context || ""} onChange={e => onUpdate(exp.id, "success_context", e.target.value)} style={{ width: "100%" }} />
-              <input placeholder={t('success_action_placeholder', "Action (ex: J'ai réorganisé le planning...)")} value={exp.success_action || ""} onChange={e => onUpdate(exp.id, "success_action", e.target.value)} style={{ width: "100%" }} />
-              <input placeholder={t('success_result_placeholder', "Résultats (ex: Livré à temps, +15% perf...)")} value={exp.success_result || ""} onChange={e => onUpdate(exp.id, "success_result", e.target.value)} style={{ width: "100%" }} />
-            </div>
-          </div>
-
-          {/* ÉCHECS */}
-          <div style={{ marginTop: 15, padding: 15, background: "rgba(239, 68, 68, 0.1)", borderRadius: 8, border: "1px solid var(--danger-text)" }}>
-            <label style={{ color: "var(--danger-text)", fontWeight: "bold", marginBottom: 10, display: "block" }}>{t('failure_mark_title', '📉 Challenge / Échec surmonté')}</label>
-            <div style={{ display: "grid", gap: 10 }}>
-              <input placeholder={t('failure_context_placeholder', "Contexte (ex: Erreur de communication...)")} value={exp.failure_context || ""} onChange={e => onUpdate(exp.id, "failure_context", e.target.value)} style={{ width: "100%" }} />
-              <input placeholder={t('failure_action_placeholder', "Action (ex: J'ai organisé un point hebdo...)")} value={exp.failure_action || ""} onChange={e => onUpdate(exp.id, "failure_action", e.target.value)} style={{ width: "100%" }} />
-              <input placeholder={t('failure_lesson_placeholder', "Enseignements (ex: Importance du feedback...)")} value={exp.failure_lesson || ""} onChange={e => onUpdate(exp.id, "failure_lesson", e.target.value)} style={{ width: "100%" }} />
-            </div>
           </div>
         </div>
       </div>
@@ -729,17 +640,6 @@ export const StepQualitiesFlaws = ({ data, onChange, lang = 'en' }: any) => {
     </div>
   </div>
   );
-};
-
-export const StepFreeText = ({ data, onChange, onAnalyze, loading, lang = 'en' }: any) => {
-    const { t } = useTranslation();
-    return (
-    <div className="step-content">
-        <h2>{t('express_yourself')}</h2>
-        <p style={{fontSize: "0.9em", color: "var(--text-muted)"}}>{t('express_desc')}</p>
-        <textarea rows={8} value={data.free_text} onChange={e => onChange("free_text", e.target.value)} placeholder={t('express_placeholder')} style={{ width: "100%" }} />
-    </div>
-    );
 };
 
 export const StepClarification = ({ clarifications, answers = {}, onAnswer, lang = 'en' }: any) => {

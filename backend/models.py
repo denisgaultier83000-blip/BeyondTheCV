@@ -104,7 +104,6 @@ class FullCVData(BaseModel):
     languages: Any = []
     clarifications: Any = []
     target_job: Optional[str] = ""
-    target_type: Optional[str] = Field(None, description="Type de cible: 'company' ou 'industry'")
     target_company: Optional[str] = None
     target_industry: Optional[str] = None
     job_description: Optional[str] = Field(None, description="Description brute de l'offre d'emploi")
