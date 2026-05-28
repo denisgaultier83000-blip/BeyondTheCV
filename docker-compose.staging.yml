@@ -41,7 +41,7 @@ services:
 
     networks:
       - btcv-staging-internal
-      - web-staging
+      - web
 
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/')\" || exit 1"]
@@ -52,7 +52,7 @@ services:
 
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=web-staging"
+      - "traefik.docker.network=web"
 
       - "traefik.http.routers.btcv-api-staging.rule=Host(`api-staging.beyondthecv.app`)"
       - "traefik.http.routers.btcv-api-staging.entrypoints=websecure"
@@ -70,11 +70,11 @@ services:
       ENVIRONMENT: staging
 
     networks:
-      - web-staging
+      - web
 
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=web-staging"
+      - "traefik.docker.network=web"
 
       - "traefik.http.routers.btcv-front-staging.rule=Host(`staging.beyondthecv.app`)"
       - "traefik.http.routers.btcv-front-staging.entrypoints=websecure"
@@ -86,7 +86,7 @@ services:
 networks:
   btcv-staging-internal:
     driver: bridge
-  web-staging:
+  web:
     external: true
 
 volumes:

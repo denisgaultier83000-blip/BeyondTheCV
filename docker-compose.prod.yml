@@ -41,7 +41,7 @@ services:
 
     networks:
       - btcv-prod-internal
-      - web-production
+      - web
 
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/')\" || exit 1"]
@@ -52,7 +52,7 @@ services:
 
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=web-production"
+      - "traefik.docker.network=web"
 
       - "traefik.http.routers.btcv-api-prod.rule=Host(`api.beyondthecv.app`)"
       - "traefik.http.routers.btcv-api-prod.entrypoints=websecure"
@@ -83,11 +83,11 @@ services:
       ENVIRONMENT: production
 
     networks:
-      - web-production
+      - web
 
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=web-production"
+      - "traefik.docker.network=web"
 
       - "traefik.http.routers.btcv-front-prod.rule=Host(`beyondthecv.app`) || Host(`www.beyondthecv.app`)"
       - "traefik.http.routers.btcv-front-prod.entrypoints=websecure"
@@ -102,7 +102,7 @@ services:
 networks:
   btcv-prod-internal:
     driver: bridge
-  web-production:
+  web:
     external: true
 
 volumes:
