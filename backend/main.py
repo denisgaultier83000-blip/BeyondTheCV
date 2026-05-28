@@ -231,7 +231,9 @@ async def rate_limiter(request: Request):
     
     request_history[client_ip].append(now)
 
-app = FastAPI(title="BeyondTheCV API", lifespan=lifespan)
+# [FIX SECURITE] Activation du Rate Limiter sur toutes les routes de l'API
+from fastapi import Depends
+app = FastAPI(title="BeyondTheCV API", lifespan=lifespan, dependencies=[Depends(rate_limiter)])
 
 # --- CORS CONFIGURATION ---
 cors_origins = [
@@ -241,8 +243,6 @@ cors_origins = [
     "https://www.beyondthecv.app", # Allow production domain (www)
     "https://beyondthecv.app",     # Allow production domain (apex)
     "https://staging.beyondthecv.app", # [FIX EXPERT] Autoriser le domaine de staging
-    "https://beyond-the-cv-front.vercel.app",
-    "https://beyondthecv-frontend-service-746792482004.europe-west1.run.app"
 ]
 
 # Ajout dynamique via variable d’environnement
@@ -279,7 +279,6 @@ async def log_requests(request: Request, call_next):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
-    allow_origin_regex=r"^(https://.*\.vercel\.app|https://.*\.run\.app)$", # [FIX EXPERT] Syntaxe regex sécurisée pour Starlette
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

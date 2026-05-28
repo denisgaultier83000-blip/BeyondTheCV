@@ -891,7 +891,7 @@ async def generate_clarifications(data: FullCVData, current_user: dict = Depends
     return res
 
 @router.post("/parse-linkedin")
-async def parse_linkedin_pdf(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+async def parse_linkedin_pdf(file: UploadFile = File(...), current_user: dict = Depends(require_active_subscription)):
     """
     Extrait les données d'un PDF LinkedIn pour pré-remplir le formulaire.
     """
@@ -1182,7 +1182,8 @@ async def generate_document(request: GenerateRequest, current_user: dict = Depen
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/render")
-async def render_final_cv(cv_final_data: CVFinal, preview: bool = Query(False), current_user: dict = Depends(get_current_user)):
+# [FIX SECURITE] On bloque le rendu PDF si l'abonnement est expiré pour éviter les abus CPU
+async def render_final_cv(cv_final_data: CVFinal, preview: bool = Query(False), current_user: dict = Depends(require_active_subscription)):
     try:
         # Transformation simplifiée pour LaTeX (logique extraite de main.py)
         latex_data = cv_final_data.dict(include={'first_name', 'last_name', 'email', 'phone', 'linkedin', 'city', 'country', 'current_role'})
@@ -1559,56 +1560,16 @@ async def submit_feedback(request: FeedbackPayload, current_user: dict = Depends
     user_id = current_user.get("id")
     now = datetime.now()
 
-    # Liste des stratégies d'insertion adaptatives pour épouser n'importe quel état du schéma.
-    insert_strategies = [
-        # 1. Le schéma parfait
-        ("INSERT INTO feedbacks (user_id, feature, is_positive, comments, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-         (user_id, request.feature, request.is_positive, actual_comments, request.job_type, now)),
-         
-        # 1.5 Schéma corrompu (is_positive est un TEXT)
-        ("INSERT INTO feedbacks (user_id, feature, is_positive, comments, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-         (user_id, request.feature, str(request.is_positive), actual_comments, request.job_type, now)),
-        
-        # 2. Hybride (is_positive existe, mais comments s'appelle reason)
-        ("INSERT INTO feedbacks (user_id, feature, is_positive, reason, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-         (user_id, request.feature, request.is_positive, actual_comments, request.job_type, now)),
-
-        # 3. Ancien schéma (feedback est un BOOLEAN, comments s'appelle reason)
-        ("INSERT INTO feedbacks (user_id, feature, feedback, reason, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-         (user_id, request.feature, request.is_positive, actual_comments, request.job_type, now)),
-
-        # 4. Ancien schéma corrompu (feedback est un TEXT)
-        ("INSERT INTO feedbacks (user_id, feature, feedback, reason, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-         (user_id, request.feature, str(request.is_positive), actual_comments, request.job_type, now)),
-         
-        # 5. Fallbacks sans job_type (si cette colonne n'a jamais été créée)
-        ("INSERT INTO feedbacks (user_id, feature, is_positive, comments, created_at) VALUES (?, ?, ?, ?, ?)",
-         (user_id, request.feature, request.is_positive, actual_comments, now)),
-         
-        ("INSERT INTO feedbacks (user_id, feature, is_positive, reason, created_at) VALUES (?, ?, ?, ?, ?)",
-         (user_id, request.feature, request.is_positive, actual_comments, now)),
-
-        ("INSERT INTO feedbacks (user_id, feature, feedback, reason, created_at) VALUES (?, ?, ?, ?, ?)",
-         (user_id, request.feature, request.is_positive, actual_comments, now)),
-
-        ("INSERT INTO feedbacks (user_id, feature, feedback, reason, created_at) VALUES (?, ?, ?, ?, ?)",
-         (user_id, request.feature, str(request.is_positive), actual_comments, now)),
-    ]
-
-    last_error = ""
-    for query, params in insert_strategies:
-        try:
-            async with db.get_connection() as conn:
-                await db.execute(conn, query, params)
-                if hasattr(conn, 'commit'):
-                    await conn.commit() if asyncio.iscoroutinefunction(conn.commit) else conn.commit()
-            return {"status": "success", "message": "Feedback enregistré"}
-        except Exception as e:
-            last_error = str(e)
-            pass
-
-    print(f"[FEEDBACK CRITICAL ERROR] Toutes les stratégies d'insertion ont échoué. Dernière erreur: {last_error}", flush=True)
-    raise HTTPException(status_code=500, detail="Erreur interne lors de l'enregistrement du feedback")
+    # [FIX] Utilisation de l'unique requête correspondant au schéma définitif de production
+    try:
+        async with db.get_connection() as conn:
+            await db.execute(conn, 
+                "INSERT INTO feedbacks (user_id, feature, is_positive, comments, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                (user_id, request.feature, request.is_positive, actual_comments, request.job_type, now))
+        return {"status": "success", "message": "Feedback enregistré"}
+    except Exception as e:
+        print(f"[FEEDBACK ERROR] Impossible d'enregistrer le feedback: {e}", flush=True)
+        raise HTTPException(status_code=500, detail="Erreur interne lors de l'enregistrement du feedback.")
 
 @router.get("/feedbacks")
 async def get_feedbacks(current_user: dict = Depends(get_current_user)):

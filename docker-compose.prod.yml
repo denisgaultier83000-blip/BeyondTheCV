@@ -59,9 +59,9 @@ services:
       - "traefik.http.routers.btcv-api-prod.tls.certresolver=le"
       - "traefik.http.routers.btcv-api-prod.service=btcv-api-prod"
 
-      # Déclaration du Rate Limiter (ex: 50 requêtes/sec en moyenne, burst de 100 max)
-      - "traefik.http.middlewares.btcv-api-ratelimit.ratelimit.average=50"
-      - "traefik.http.middlewares.btcv-api-ratelimit.ratelimit.burst=100"
+      # [FIX SECURITE] Durcissement : 5 req/sec suffisent pour un usage humain de l'API
+      - "traefik.http.middlewares.btcv-api-ratelimit.ratelimit.average=5"
+      - "traefik.http.middlewares.btcv-api-ratelimit.ratelimit.burst=20"
       
       # Déclaration des Headers de Sécurité
       - "traefik.http.middlewares.btcv-security.headers.customFrameOptionsValue=SAMEORIGIN"

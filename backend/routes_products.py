@@ -20,6 +20,7 @@ from db_schemas import (
 from db_services import (
     ProductService, SubscriptionService
 )
+from security import get_current_user
 
 router = APIRouter(prefix="/api", tags=["products", "subscriptions"])
 
@@ -27,15 +28,16 @@ router = APIRouter(prefix="/api", tags=["products", "subscriptions"])
 
 @router.post("/products", response_model=ProductResponse, tags=["products"])
 def create_product(
-    user_id: str = Query(...),
     product_type: str = Query(...),
     filename: str = Query(...),
     title: Optional[str] = Query(None),
     description: Optional[str] = Query(None),
-    file: Optional[UploadFile] = File(None)
+    file: Optional[UploadFile] = File(None),
+    current_user: dict = Depends(get_current_user)
 ):
     """Create a new product."""
     try:
+        user_id = current_user["id"]
         # Save file if provided
         file_path = None
         file_size = None
@@ -86,9 +88,12 @@ def create_product(
 def get_user_products(
     user_id: str,
     limit: int = Query(100, ge=1, le=1000),
-    offset: int = Query(0, ge=0)
+    offset: int = Query(0, ge=0),
+    current_user: dict = Depends(get_current_user)
 ):
     """Get all products for a user."""
+    if user_id != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized to view these products")
     try:
         products = ProductService.get_user_products(user_id, limit, offset)
         return products
@@ -96,12 +101,14 @@ def get_user_products(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/products/{product_id}", response_model=ProductResponse, tags=["products"])
-def get_product(product_id: str):
+def get_product(product_id: str, current_user: dict = Depends(get_current_user)):
     """Get a specific product."""
     try:
         product = ProductService.get_product_by_id(product_id)
         if not product:
             raise HTTPException(status_code=404, detail="Product not found")
+        if product.get("user_id") != current_user["id"]:
+            raise HTTPException(status_code=403, detail="Not authorized to access this product")
         return product
     except HTTPException:
         raise
@@ -109,13 +116,13 @@ def get_product(product_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/products/{product_id}/download", tags=["products"])
-def record_product_download(product_id: str):
+def record_product_download(product_id: str, current_user: dict = Depends(get_current_user)):
     """Record a product download."""
     try:
         # Verify product exists
         product = ProductService.get_product_by_id(product_id)
-        if not product:
-            raise HTTPException(status_code=404, detail="Product not found")
+        if not product or product.get("user_id") != current_user["id"]:
+            raise HTTPException(status_code=404, detail="Product not found or access denied")
         
         ProductService.record_download(product_id)
         return {"status": "success", "message": "Download recorded"}
@@ -125,12 +132,12 @@ def record_product_download(product_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/products/{product_id}/print", tags=["products"])
-def record_product_print(product_id: str):
+def record_product_print(product_id: str, current_user: dict = Depends(get_current_user)):
     """Record a product print."""
     try:
         product = ProductService.get_product_by_id(product_id)
-        if not product:
-            raise HTTPException(status_code=404, detail="Product not found")
+        if not product or product.get("user_id") != current_user["id"]:
+            raise HTTPException(status_code=404, detail="Product not found or access denied")
         
         ProductService.record_print(product_id)
         return {"status": "success", "message": "Print recorded"}
@@ -140,12 +147,12 @@ def record_product_print(product_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/products/{product_id}", tags=["products"])
-def delete_product(product_id: str):
+def delete_product(product_id: str, current_user: dict = Depends(get_current_user)):
     """Delete a product (soft delete)."""
     try:
         product = ProductService.get_product_by_id(product_id)
-        if not product:
-            raise HTTPException(status_code=404, detail="Product not found")
+        if not product or product.get("user_id") != current_user["id"]:
+            raise HTTPException(status_code=404, detail="Product not found or access denied")
         
         ProductService.delete_product(product_id)
         return {"status": "success", "message": "Product deleted"}
