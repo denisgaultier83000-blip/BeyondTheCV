@@ -42,6 +42,10 @@ async def start_research(request: ResearchRequest, background_tasks: BackgroundT
     target_company = req_dict.get("target_company") or candidate_data.get("target_company") or "Général"
     target_job = req_dict.get("target_job") or candidate_data.get("target_job") or "Poste non spécifié"
 
+    # [FIX EXPERT] Injection de l'user_id pour le système de cache (évite "unknown_user" et le crash SQL cache_key=null)
+    req_dict["user_id"] = current_user["id"]
+    candidate_data["user_id"] = current_user["id"]
+
     async with db.get_connection() as conn:
         # 1. Création de la session de candidature
         await db.execute(conn,

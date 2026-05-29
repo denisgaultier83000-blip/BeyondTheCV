@@ -58,8 +58,20 @@ class AIGenerator:
         self.circuit_breaker_threshold = 2
 
     def _resolve_best_gemini_model(self):
-        """Sélection directe du meilleur modèle pour éviter les latences de découverte et les erreurs 502 de l'API list."""
-        return "gemini-1.5-flash"
+        """Sélection du meilleur modèle avec découverte automatique ou fallback."""
+        if self.gemini_client:
+            try:
+                models = list(self.gemini_client.models.list())
+                for m in models:
+                    name = m.name.replace("models/", "")
+                    if "flash" in name and "embedding" not in name:
+                        # Préférer les versions 2.x
+                        if "2.5" in name: return "gemini-2.5-flash"
+                        if "2.0" in name: return "gemini-2.0-flash"
+                        return name
+            except Exception as e:
+                print(f"[AI WARNING] Discovery failed: {e}. Fallback to default.", flush=True)
+        return "gemini-2.0-flash"
             
     async def _get_gemini_model(self) -> str:
         if self.gemini_model_name:
@@ -233,7 +245,7 @@ class AIGenerator:
         )
         return response.choices[0].message.content
 
-    async def _call_gemini(self, prompt, system_instruction, model="gemini-1.5-flash"):
+    async def _call_gemini(self, prompt, system_instruction, model="gemini-2.0-flash"):
         if not self.gemini_client:
             raise ValueError("Clé Gemini non configurée.")
         
