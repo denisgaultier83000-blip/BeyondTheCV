@@ -924,10 +924,15 @@ async def parse_linkedin_pdf(file: UploadFile = File(...), current_user: dict = 
 @router.post("/start")
 async def start_cv_generation(background_tasks: BackgroundTasks, data: dict = Body(...), current_user: dict = Depends(require_active_subscription)):
     task_id = str(uuid.uuid4())
+    
+    # [FIX EXPERT] Injection du user_id dans le payload pour activer le cache
+    data["user_id"] = current_user["id"]
+    
     async with db.get_connection() as conn:
+        # [FIX EXPERT] Enregistrement de la tâche avec le bon user_id pour la traçabilité
         await db.execute(conn, 
-            "INSERT INTO tasks (id, status, result, created_at) VALUES (?, ?, ?, ?)", 
-            (task_id, "PENDING", None, datetime.now()))
+            "INSERT INTO tasks (id, user_id, status, result, created_at) VALUES (?, ?, ?, ?, ?)", 
+            (task_id, current_user["id"], "PENDING", None, datetime.now()))
     background_tasks.add_task(process_cv_draft_in_background, task_id, data)
     return {"task_id": task_id, "status": "PENDING"}
 
@@ -1402,9 +1407,16 @@ async def start_analysis(background_tasks: BackgroundTasks, data: dict = Body(..
 @router.post("/analyze-completeness")
 async def analyze_completeness(background_tasks: BackgroundTasks, payload: dict = Body(...), current_user: dict = Depends(require_active_subscription)):
     task_id = str(uuid.uuid4())
+    
+    # [FIX EXPERT] Injection du user_id dans le payload pour activer le cache
+    payload["user_id"] = current_user["id"]
+    if "data" in payload and isinstance(payload["data"], dict):
+        payload["data"]["user_id"] = current_user["id"]
+        
     async with db.get_connection() as conn:
-        await db.execute(conn, "INSERT INTO tasks (id, status, result, created_at) VALUES (?, ?, ?, ?)", 
-                         (task_id, "PENDING", None, datetime.now()))
+        # [FIX EXPERT] Enregistrement de la tâche avec le bon user_id pour la traçabilité
+        await db.execute(conn, "INSERT INTO tasks (id, user_id, status, result, created_at) VALUES (?, ?, ?, ?, ?)", 
+                         (task_id, current_user["id"], "PENDING", None, datetime.now()))
     
     background_tasks.add_task(process_completeness_in_background, task_id, payload)
     return {"task_id": task_id, "status": "PENDING"}

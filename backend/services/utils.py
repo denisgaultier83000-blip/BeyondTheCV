@@ -191,6 +191,11 @@ async def get_cached_content(cache_key: str):
 
 async def set_cached_content(cache_key: str, user_id: str, content_type: str, result: any):
     """Sauvegarde le résultat généré en cache."""
+    # [FIX EXPERT] Défense : Ne jamais tenter d'insérer en base si la clé de cache est None
+    if not cache_key:
+        print(f"[CACHE WARNING] Impossible de sauvegarder '{content_type}' : cache_key est nulle.", flush=True)
+        return
+        
     try:
         async with db.get_connection() as conn:
             result_str = json.dumps(result, default=str)
