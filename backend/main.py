@@ -147,6 +147,24 @@ async def lifespan(app: FastAPI):
             
             # 3. Lancer les migrations maintenant que la connexion est possible.
             init_db()
+            
+            # [FIX EXPERT] Création de la table de cache manquante pour éviter les erreurs SQL
+            try:
+                with db.get_sync_connection() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute("""
+                            CREATE TABLE IF NOT EXISTS generation_cache (
+                                cache_key TEXT PRIMARY KEY,
+                                user_id TEXT NOT NULL,
+                                content_type TEXT NOT NULL,
+                                result JSONB,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            )
+                        """)
+                    conn.commit()
+            except Exception as e:
+                print(f"[DB WARNING] Failed to create generation_cache table: {e}", flush=True)
+                
             print("[DB] Database initialized successfully.", flush=True)
         except Exception as e:
             print(f"[DB CRITICAL] Database initialization failed: {e}", flush=True)

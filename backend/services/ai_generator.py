@@ -59,7 +59,7 @@ class AIGenerator:
 
     def _resolve_best_gemini_model(self):
         """Sélection directe du meilleur modèle pour éviter les latences de découverte et les erreurs 502 de l'API list."""
-        return "gemini-1.5-flash-latest"
+        return "gemini-1.5-flash"
             
     async def _get_gemini_model(self) -> str:
         if self.gemini_model_name:
@@ -233,7 +233,7 @@ class AIGenerator:
         )
         return response.choices[0].message.content
 
-    async def _call_gemini(self, prompt, system_instruction, model="gemini-1.5-flash-latest"):
+    async def _call_gemini(self, prompt, system_instruction, model="gemini-1.5-flash"):
         if not self.gemini_client:
             raise ValueError("Clé Gemini non configurée.")
         
