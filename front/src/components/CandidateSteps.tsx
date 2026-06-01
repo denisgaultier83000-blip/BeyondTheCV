@@ -709,7 +709,7 @@ export const StepReview = (props: any) => {
 
   useEffect(() => {
       const timer = setInterval(() => {
-          setAnimatedScore(prev => {
+          setAnimatedScore((prev: number) => {
               if (prev === targetScore) {
                   clearInterval(timer);
                   return prev;
@@ -723,7 +723,7 @@ export const StepReview = (props: any) => {
 
   const handleConfirmAdd = (originalKw: string) => {
       if (kwInput.trim()) {
-          if (!addedKeywords.includes(originalKw)) setAddedKeywords(prev => [...prev, originalKw]);
+          if (!addedKeywords.includes(originalKw)) setAddedKeywords((prev: string[]) => [...prev, originalKw]);
           setEditingKw(null);
           // Optionnel: Mettre à jour les skills dans le formulaire
           if (onChange) {
