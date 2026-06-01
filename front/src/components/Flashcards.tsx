@@ -17,17 +17,24 @@ export default function Flashcards({ questions }: { questions: Question[] }) {
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const intentionalStopRef = useRef(false);
 
   useEffect(() => {
     return () => {
-      if (recognitionRef.current) recognitionRef.current.stop();
+      if (recognitionRef.current) {
+        intentionalStopRef.current = true;
+        recognitionRef.current.stop();
+      }
     };
   }, []);
 
   const toggleRecording = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isRecording) {
-      if (recognitionRef.current) recognitionRef.current.stop();
+      if (recognitionRef.current) {
+        intentionalStopRef.current = true; // [FIX] On signale que l'arrêt est manuel et volontaire
+        recognitionRef.current.stop();
+      }
       setIsRecording(false);
       return;
     }
@@ -44,6 +51,11 @@ export default function Flashcards({ questions }: { questions: Question[] }) {
     recognition.lang = 'fr-FR';
     recognition.continuous = true;
     recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      intentionalStopRef.current = false; // [FIX] On réinitialise le flag à chaque (re)démarrage
+      setIsRecording(true);
+    };
 
     let baselineAnswer = userAnswers[currentIndex] || "";
 
@@ -62,13 +74,25 @@ export default function Flashcards({ questions }: { questions: Question[] }) {
       }
     };
 
-    recognition.onerror = () => setIsRecording(false);
-    recognition.onend = () => setIsRecording(false);
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error:", event.error);
+      intentionalStopRef.current = true; // [FIX] En cas d'erreur, on ne veut pas redémarrer en boucle
+      setIsRecording(false);
+    };
+    recognition.onend = () => {
+      // [FIX EXPERT] Logique de redémarrage automatique pour contrer les timeouts du navigateur.
+      if (intentionalStopRef.current) {
+        setIsRecording(false); // Arrêt définitif (clic utilisateur ou erreur).
+      } else {
+        // L'API s'est arrêtée seule (timeout de silence), on la relance discrètement.
+        try { recognition.start(); } catch(err) { setIsRecording(false); }
+      }
+    };
 
     try {
       recognition.start();
       recognitionRef.current = recognition;
-      setIsRecording(true);
+      // setIsRecording(true); // [FIX] Déplacé dans `onstart` pour un état plus fiable.
     } catch (err) {
       setIsRecording(false);
     }

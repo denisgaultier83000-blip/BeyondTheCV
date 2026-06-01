@@ -1254,20 +1254,20 @@ async def orchestrate_dashboard_tasks(tasks_map: dict, cv_dict: dict):
     await asyncio.sleep(0.5) # Micro-délai pour garantir la priorité
 
     if "pitch" in tasks_map: fire("pitch", process_pitch_in_background(tasks_map["pitch"], cv_dict))
-    if "recruiter_view" in tasks_map: fire("recruiter_view", process_recruiter_view_in_background(tasks_map["recruiter_view"], cv_dict))
     if "reality_check" in tasks_map: fire("reality_check", process_reality_check_in_background(tasks_map["reality_check"], cv_dict))
     if "flaw_coaching" in tasks_map: fire("flaw_coaching", process_flaw_coaching_in_background(tasks_map["flaw_coaching"], cv_dict))
     if "custom_scenarios" in tasks_map: fire("custom_scenarios", process_custom_scenarios_in_background(tasks_map["custom_scenarios"], cv_dict))
 
-    await asyncio.sleep(0.5)
+    # NOUVEAU: TÂCHES FUSIONNÉES Executive Summary (1 seule requête IA au lieu de 3)
+    exec_tasks = {k: tasks_map[k] for k in ["one_liner", "career_radar", "recruiter_view"] if k in tasks_map}
+    if exec_tasks: fire(exec_tasks, process_executive_summary_in_background(exec_tasks, cv_dict))
 
-    if "career_radar" in tasks_map: fire("career_radar", process_career_radar_in_background(tasks_map["career_radar"], cv_dict))
+    await asyncio.sleep(0.5)
     if "questions" in tasks_map: fire("questions", process_questions_in_background(tasks_map["questions"], cv_dict))
 
     await asyncio.sleep(0.5)
 
     if "career_gps" in tasks_map: fire("career_gps", process_career_gps_in_background(tasks_map["career_gps"], cv_dict))
-    if "one_liner" in tasks_map: fire("one_liner", process_oneliner_in_background(tasks_map["one_liner"], cv_dict))
     if "action_plan" in tasks_map: fire("action_plan", process_action_plan_in_background(tasks_map["action_plan"], cv_dict))
         
     # TÂCHES FUSIONNÉES : Market Strategy

@@ -786,17 +786,20 @@ async def get_training_stats(current_user: dict = Depends(require_active_subscri
             total_weight += weight
             
             if theme not in theme_data:
-                theme_data[theme] = {"score": 0, "weight": 0}
+                theme_data[theme] = {"score": 0, "weight": 0, "count": 0}
             theme_data[theme]["score"] += score * weight
             theme_data[theme]["weight"] += weight
+            theme_data[theme]["count"] += 1
             
         global_score = min(100, max(0, round(total_weighted_score / total_weight))) if total_weight > 0 else 0
         
         theme_scores = {}
+        theme_counts = {}
         for theme, data in theme_data.items():
             theme_scores[theme] = min(100, max(0, round(data["score"] / data["weight"]))) if data["weight"] > 0 else 0
+            theme_counts[theme] = data["count"]
             
-        return {"global_score": global_score, "total_sessions": len(rows), "theme_scores": theme_scores}
+        return {"global_score": global_score, "total_sessions": len(rows), "theme_scores": theme_scores, "theme_counts": theme_counts}
     except Exception as e:
         print(f"[DB WARNING] Failed to fetch training stats: {e}")
         return {"global_score": 0, "total_sessions": 0, "theme_scores": {}}
@@ -1500,36 +1503,27 @@ async def get_dashboard_summary(data: FullCVData, current_user: dict = Depends(r
         # Le Dashboard se mettra à jour automatiquement dès qu'il sera prêt via le polling.
         gap_analysis_task = asyncio.sleep(0)
 
-        key_strengths_prompt = f"""
-        Analyse ce profil et résume-le en 3 forces clés percutantes.
-        Exemple: "Leadership opérationnel", "Gestion du risque", "Prise de décision en environnement critique".
-        Ne retourne QUE le JSON.
+        dashboard_summary_prompt = f"""
+        Analyse ce profil et le poste visé.
+        
+        ATTENTES :
+        1. "key_strengths" : 3 forces clés percutantes (ex: "Leadership opérationnel", "Gestion du risque").
+        2. "application_strategy" : Stratégie de candidature en 3 points prioritaires. ATTENTION: Si le profil contient des failles de FOND critiques (ex: "fainéant"), le point n°1 DOIT ÊTRE un recadrage ferme.
+        
+        ⚠️ RÈGLE D'OR : IGNORE TOTALEMENT les erreurs de forme (absence de majuscules, fautes de frappe).
         
         PROFIL: {json.dumps(cv_lean_dict, default=str)}
         
         OUTPUT LANGUAGE: {target_lang}
-        ⚠️ INSTRUCTION CRITIQUE : Ne recopie JAMAIS "Force 1", "Force 2". Tu DOIS générer les vraies forces du candidat.
-        FORMAT JSON STRICT: {{"key_strengths": ["Force 1", "Force 2", "Force 3"]}}
+        FORMAT JSON STRICT: 
+        {{
+            "key_strengths": ["Force 1", "Force 2", "Force 3"],
+            "application_strategy": ["Priorité 1", "Priorité 2", "Priorité 3"]
+        }}
         """
-        key_strengths_task = ai_service.generate(key_strengths_prompt, provider="gemini", system_instruction=f"Tu es un expert en branding personnel. Langue: {target_lang}.", bypass_queue=True)
+        dashboard_summary_task = ai_service.generate_valid_json(dashboard_summary_prompt, provider="gemini", system_instruction=f"Tu es un coach de carrière stratégique. Langue: {target_lang}.", bypass_queue=True)
 
-        application_strategy_prompt = f"""
-        Analyse ce profil et le poste visé. Propose une stratégie de candidature en 3 points prioritaires.
-        Exemple: "Cibler les entreprises industrielles", "Valoriser l'expérience opérationnelle".
-        ATTENTION: Si le profil contient des failles de FOND critiques (défauts professionnels suicidaires comme "fainéant", "menteur", agressivité), 
-        le point n°1 de la stratégie DOIT ÊTRE un recadrage bienveillant mais ferme.
-        ⚠️ RÈGLE D'OR : IGNORE TOTALEMENT les erreurs de forme (absence de majuscules, fautes de frappe, accents manquants, mots en majuscules). Le texte brut est un brouillon informel adressé au coach et sera formaté automatiquement plus tard. Ne fais JAMAIS de remarques sur la typographie.
-        Ne retourne QUE le JSON.
-        
-        PROFIL: {json.dumps(cv_lean_dict, default=str)}
-        
-        OUTPUT LANGUAGE: {target_lang}
-        ⚠️ INSTRUCTION CRITIQUE : Ne recopie JAMAIS "Priorité 1", "Priorité 2". Tu DOIS générer de vraies stratégies actionnables.
-        FORMAT JSON STRICT: {{"application_strategy": ["Priorité 1", "Priorité 2", "Priorité 3"]}}
-        """
-        application_strategy_task = ai_service.generate(application_strategy_prompt, provider="gemini", system_instruction=f"Tu es un coach de carrière stratégique. Langue: {target_lang}.", bypass_queue=True)
-
-        results = await asyncio.gather(gap_analysis_task, key_strengths_task, application_strategy_task)
+        results = await asyncio.gather(gap_analysis_task, dashboard_summary_task)
         
         if has_cached_gap:
             gap_analysis_result = cached_gap
@@ -1542,23 +1536,25 @@ async def get_dashboard_summary(data: FullCVData, current_user: dict = Depends(r
                 else:
                     gap_analysis_result = clean_ai_json_response(raw_gap)
                 
-        key_strengths_result = clean_ai_json_response(results[1])
-        application_strategy_result = clean_ai_json_response(results[2])
+        dashboard_summary_result = results[1]
+        if "error" in dashboard_summary_result:
+            raise Exception(dashboard_summary_result["error"])
 
         match_score = gap_analysis_result.get("match_score")
         if match_score is None:
             match_score = 0
             
-        strategy_list = application_strategy_result.get("application_strategy", [])
+        strategy_list = dashboard_summary_result.get("application_strategy", [])
         recommended_strategy = " ".join(strategy_list) if isinstance(strategy_list, list) else str(strategy_list)
         
         raw_gaps = gap_analysis_result.get("missing_gaps", [])
         gaps_matrix = [{"skill": gap, "impact": "Bloquant pour les ATS", "action": "À développer ou justifier"} for gap in raw_gaps]
 
-        return {
+        # [FIX EXPERT] On met en cache la réponse pour accélérer les futurs rechargements
+        summary_payload = {
             "matchScore": match_score,
             "summary": f"Votre profil correspond à {match_score}% des attentes du poste visé. {len(raw_gaps)} compétences sont à renforcer.",
-            "strengths": key_strengths_result.get("key_strengths", []),
+            "strengths": dashboard_summary_result.get("key_strengths", []),
             "gapsMatrix": gaps_matrix,
             "recommendedStrategy": recommended_strategy,
             "analysis_stats": {
@@ -1567,6 +1563,9 @@ async def get_dashboard_summary(data: FullCVData, current_user: dict = Depends(r
                 "gaps_identified": len(gap_analysis_result.get("missing_gaps", []))
             }
         }
+        await set_cached_content(cache_key, current_user["id"], "dashboard_summary", summary_payload)
+
+        return summary_payload
     except Exception as e:
         error_msg = str(e).lower()
         if "timeout" in error_msg:
