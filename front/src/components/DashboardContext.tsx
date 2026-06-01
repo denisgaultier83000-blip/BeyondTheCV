@@ -139,7 +139,9 @@ export const DashboardProvider = ({
     } finally {
       setIsPilotLoading(false);
     }
-  }, [initialCvData, initialResearchResult, initialGapResult]); // La fonction se recrée si les données du CV, de la recherche ou du Gap changent
+  // [FIX EXPERT] On évite le re-rendu infini en stringifiant les objets dans les dépendances.
+  // Sinon, React recrée la fonction à chaque rendu parent (changement de référence mémoire), ce qui spamme le backend.
+  }, [JSON.stringify(initialCvData), JSON.stringify(initialResearchResult), JSON.stringify(initialGapResult)]); 
 
   // Auto-fetch ultra-robuste quand le CV (mock puis réel) est mis à jour
   useEffect(() => {

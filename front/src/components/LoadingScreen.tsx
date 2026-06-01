@@ -11,6 +11,7 @@ interface LoadingScreenProps {
 export function LoadingScreen({ title, description, messages }: LoadingScreenProps) {
   const { t } = useTranslation();
   const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
+  const [progress, setProgress] = useState(0);
 
   const activeMessages = messages || [
     t('ls_msg_1', "Analyse des données..."),
@@ -29,6 +30,19 @@ export function LoadingScreen({ title, description, messages }: LoadingScreenPro
     return () => clearInterval(interval);
   }, [activeMessages.length]);
 
+  // [FIX EXPERT] Barre de progression asymptotique : tend vers 95% sans jamais s'arrêter
+  useEffect(() => {
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = (Date.now() - startTime) / 1000; // secondes écoulées
+      // t=0 -> 0%, t=20s -> ~60%, t=60s -> ~90%
+      const newProgress = 95 * (1 - Math.exp(-elapsed / 20));
+      setProgress(newProgress);
+    }, 100);
+    
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="step-wrapper" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
       <Loader2 className="spin" size={48} color="var(--primary)" style={{ marginBottom: '1.5rem' }} />
@@ -41,7 +55,7 @@ export function LoadingScreen({ title, description, messages }: LoadingScreenPro
           <span className="pulsing-text">{t('ls_please_wait', "Veuillez patienter")}</span>
         </div>
         <div style={{ width: '100%', height: '8px', background: 'var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
-          <div style={{ height: '100%', background: 'var(--primary)', animation: 'loading-bar 60s cubic-bezier(0.05, 0.7, 0.1, 1) forwards' }}></div>
+          <div style={{ height: '100%', width: `${progress}%`, background: 'var(--primary)', transition: 'width 0.1s linear' }}></div>
         </div>
       </div>
 

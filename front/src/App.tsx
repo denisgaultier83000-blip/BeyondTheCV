@@ -116,7 +116,7 @@ function AppContent() {
     { id: 0, title: t('step_import', "Import") }, { id: 1, title: t('profile_title') },
     { id: 2, title: t('target_title') }, { id: 3, title: t('education_title') },
     { id: 4, title: t('experience_title') }, { id: 5, title: t('qualities_title') },
-    { id: 6, title: t('clarification_title') }, { id: 7, title: t('step_results', "Résultats") }
+    { id: 7, title: t('clarification_title') }, { id: 8, title: t('step_results', "Résultats") }
   ];
 
   // --- Handlers transmis aux composants enfants ---
@@ -256,7 +256,7 @@ function AppContent() {
         try {
           const parsedData = JSON.parse(restoredDataStr);
           setRestoredData(parsedData);
-          setCurrentStep(7); // Redirection immédiate vers le Dashboard
+          setCurrentStep(8); // Redirection immédiate vers le Dashboard
           setToasts(prev => [...prev, { id: Date.now(), text: "Dossier de candidature restauré avec succès." }]);
         } catch (e) {
           console.error("Erreur de parsing des données restaurées", e);
@@ -366,7 +366,7 @@ function AppContent() {
                     const currentSignature = getCoreDataSignature(cvData);
                     // Si la signature n'a pas changé et que nous avons déjà des questions
                     if (cvData?.clarifications?.length > 0 && cvData?.last_clarification_signature === currentSignature) {
-                    setCurrentStep(6); // On bypass le handleNextStep (pas d'appel API)
+                    setCurrentStep(7); // On bypass le handleNextStep (pas d'appel API)
                     } else {
                       // Sinon, on sauvegarde la nouvelle signature et on lance l'IA
                       handleChange('last_clarification_signature', currentSignature);
@@ -380,7 +380,17 @@ function AppContent() {
               </button>
             </div>
           </div>);
-    case 6: 
+    case 6:
+      // [FIX EXPERT] Composant fantôme pour réaligner la machine à états du DashboardContext
+      // Le contexte attend de "quitter l'étape 6" pour déclencher l'API analyze-completeness.
+      useEffect(() => {
+        const timer = setTimeout(() => {
+          handleNextStep();
+        }, 100);
+        return () => clearTimeout(timer);
+      }, []);
+      return <LoadingScreen title={t('loading_strat_title', "Création de votre profil stratégique...")} description={t('loading_strat_desc', "Analyse de vos expériences et exigences du marché...")} />;
+    case 7: 
         const clarificationAnswers = (cvData?.clarifications || []).reduce((acc: any, curr: any) => {
           if (curr.answer) acc[curr.id] = curr.answer;
           return acc;
@@ -392,7 +402,7 @@ function AppContent() {
           {globalStatus === "FAILED" && (<div className="error-box"><AlertCircle size={16}/><span>{t('error_msg')} {error}</span><button className="btn-link" onClick={() => handleNextStep()}>{t('btn_retry')}</button></div>)}
           <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={(e) => { if (isFrozen) { e.preventDefault(); setShowPaywall(true); } else { handleNextStep(); } }} disabled={["STARTING", "PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus)}>{["STARTING", "PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus) ? t('btn_launching') : t('btn_launch_full_analysis')}</button></div>
         </div>);
-    case 7: return (
+    case 8: return (
         <div className="step-wrapper dashboard-wrapper">
           <TabProvider 
             initialCvData={cvData} 

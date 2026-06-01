@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDashboard } from './DashboardContext';
 import { FileText, Download, Loader2, RefreshCw, Target, CheckCircle2, Plus } from 'lucide-react';
 import { authenticatedFetch } from '../utils/auth';
@@ -14,6 +14,7 @@ export const CVTab = ({ data }: { data: any }) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Logique interactive des mots-clés
   const payload = gapResult || data || {};
@@ -87,14 +88,19 @@ export const CVTab = ({ data }: { data: any }) => {
       return;
     }
 
-    setPreviewBody({
-      action: "CV",
-      data: payloadData,
-      skip_ai: extraContent.length === 0 && addedKeywords.length === 0, // Force la lecture IA si du contenu manuel est injecté
-      preview: true,
-      renderer: 'latex'
-    });
-    setRefreshTrigger(prev => prev + 1);
+    // [FIX EXPERT] Debounce pour éviter le spam de requêtes LaTeX sur le serveur
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    
+    debounceTimerRef.current = setTimeout(() => {
+      setPreviewBody({
+        action: "CV",
+        data: payloadData,
+        skip_ai: extraContent.length === 0 && addedKeywords.length === 0,
+        preview: true,
+        renderer: 'latex'
+      });
+      setRefreshTrigger(prev => prev + 1);
+    }, 800);
   };
 
   const handleApplyKeyword = (newText: string) => {
@@ -115,6 +121,13 @@ export const CVTab = ({ data }: { data: any }) => {
   // [FIX] Ajout des dépendances manquantes. React déclenchera generatePreview naturellement après mise à jour.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cvResult, addedKeywords, extraContent]);
+
+  // [FIX EXPERT] Nettoyage du timer au démontage pour éviter les fuites de mémoire
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, []);
 
 
   return (

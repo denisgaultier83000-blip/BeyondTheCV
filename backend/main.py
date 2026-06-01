@@ -280,7 +280,7 @@ async def log_requests(request: Request, call_next):
         print(f"[CRITICAL] Uncaught Exception in {request.url.path}: {e}", flush=True)
         import traceback
         traceback.print_exc()
-        response = JSONResponse(status_code=500, content={"detail": "Internal Server Error", "error": str(e)})
+        response = JSONResponse(status_code=500, content={"detail": "Internal Server Error", "error": "Une erreur interne critique est survenue."})
 
     process_time = (time.time() - start_time) * 1000
     try:

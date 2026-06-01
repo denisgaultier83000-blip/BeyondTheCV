@@ -708,15 +708,18 @@ export const StepReview = (props: any) => {
   const [animatedScore, setAnimatedScore] = useState(baseScore);
 
   useEffect(() => {
-      let current = animatedScore;
-      if (current === targetScore) return;
-      const step = targetScore > current ? 1 : -1;
       const timer = setInterval(() => {
-          if (current === targetScore) clearInterval(timer);
-          else { current += step; setAnimatedScore(current); }
+          setAnimatedScore(prev => {
+              if (prev === targetScore) {
+                  clearInterval(timer);
+                  return prev;
+              }
+              const step = targetScore > prev ? 1 : -1;
+              return prev + step;
+          });
       }, 20);
       return () => clearInterval(timer);
-  }, [targetScore, animatedScore]);
+  }, [targetScore]);
 
   const handleConfirmAdd = (originalKw: string) => {
       if (kwInput.trim()) {

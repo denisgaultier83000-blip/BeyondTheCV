@@ -37,6 +37,9 @@ async def start_research(request: ResearchRequest, background_tasks: BackgroundT
     if not application_id:
         application_id = str(uuid.uuid4())
         candidate_data["application_id"] = application_id
+        
+    # [FIX EXPERT] Ré-affectation pour garantir que le dictionnaire modifié n'est pas orphelin
+    req_dict["candidate_data"] = candidate_data
     
     # [FIX EXPERT] Prévention du crash SQL (NOT NULL constraint) si la valeur est None
     target_company = req_dict.get("target_company") or candidate_data.get("target_company") or "Général"

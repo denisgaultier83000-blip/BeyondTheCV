@@ -134,9 +134,10 @@ async def require_active_subscription(current_user: dict = Depends(get_current_u
 
 def _generate_smart_filename(data: dict, doc_type: str = "CV", ext: str = "pdf") -> str:
     """Génère un nom de fichier propre et explicite: Type_Nom_Poste_Entreprise_Date.ext"""
-    last_name = data.get('last_name', 'Candidat').strip()
-    target_job = data.get('target_job', data.get('target_role_primary', '')).strip()
-    target_company = data.get('target_company', '').strip()
+    # [FIX EXPERT] Sécurisation contre les valeurs "null" JSON qui font crasher le .strip() (AttributeError)
+    last_name = (data.get('last_name') or 'Candidat').strip()
+    target_job = (data.get('target_job') or data.get('target_role_primary') or '').strip()
+    target_company = (data.get('target_company') or '').strip()
     
     # Nettoyage strict (Alphanumérique + espaces transformés en tirets du bas)
     last_name = re.sub(r'[^A-Za-z0-9 ]', '', last_name).replace(' ', '')
@@ -345,6 +346,9 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
     """Évalue une réponse donnée par le candidat à une question d'entretien (Micro ou Texte)."""
     prompt_template = load_prompt(get_prompt_path("evaluate_interview_answer.md"))
     
+    # [FIX EXPERT] Sécurisation de l'input utilisateur pour empêcher la cassure du prompt (Prompt Injection)
+    safe_user_answer = request.user_answer.replace('"', '\\"')
+
     final_prompt = f"""
     {prompt_template}
     
@@ -353,7 +357,7 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
     CADRE ATTENDU / SUGGESTION : "{request.suggested_framework}"
     
     RÉPONSE DU CANDIDAT :
-    "{request.user_answer}"
+    "{safe_user_answer}"
     """
     
     try:
@@ -685,13 +689,16 @@ async def evaluate_training_answer(request: TrainingEvaluateRequest, current_use
     """Évalue la réponse à l'entraînement, renvoie le feedback et le sauvegarde en DB."""
     prompt_template = load_prompt(get_prompt_path("evaluate_interview_answer.md"))
     
+    # [FIX EXPERT] Sécurisation de l'input utilisateur pour empêcher la cassure du prompt
+    safe_user_answer = request.user_answer.replace('"', '\\"')
+
     final_prompt = f"""
     {prompt_template}
     
     QUESTION POSÉE : "{request.question_text}"
     CATÉGORIE / ATTENTE : "{request.theme} - {request.question_type}"
     RÉPONSE DU CANDIDAT :
-    "{request.user_answer}"
+    "{safe_user_answer}"
     """
     
     try:
@@ -1327,14 +1334,18 @@ async def start_analysis(background_tasks: BackgroundTasks, data: dict = Body(..
                             t_map = json.loads(t_map_raw) if isinstance(t_map_raw, str) else t_map_raw
                         # [VERIFICATION CRITIQUE] On s'assure que c'est une session COMPLÈTE et non une session issue d'un "is_partial_start"
                         if "cv_analysis" in t_map and "recruiter_view" in t_map:
-                            print(f"[START_ANALYSIS] Session restored for hash {session_hash}", flush=True)
-                            return {
-                                "message": "Session restored",
-                                "application_id": app_id,
-                                "tasks": t_map,
-                                "task_id": t_map.get("cv_analysis") or t_map.get("market_research"),
-                                "salary_task_id": t_map.get("salary_estimation")
-                            }
+                            # [FIX EXPERT] On vérifie que les tâches existent réellement en base de données.
+                            # Si l'utilisateur a purgé son historique, on ne doit pas restaurer une session fantôme (évite les 404 en boucle).
+                            cursor = await db.execute(conn, "SELECT 1 FROM tasks WHERE id = ?", (t_map["cv_analysis"],))
+                            if await cursor.fetchone():
+                                print(f"[START_ANALYSIS] Session restored for hash {session_hash}", flush=True)
+                                return {
+                                    "message": "Session restored",
+                                    "application_id": app_id,
+                                    "tasks": t_map,
+                                    "task_id": t_map.get("cv_analysis") or t_map.get("market_research"),
+                                    "salary_task_id": t_map.get("salary_estimation")
+                                }
                 except Exception as e:
                     print(f"[DB WARNING] Failed to restore session: {e}")
 
@@ -1383,7 +1394,8 @@ async def start_analysis(background_tasks: BackgroundTasks, data: dict = Body(..
                 "target_job": cv_dict.get('target_job'),
                 "candidate_data": cv_dict,
                 "provider": cv_dict.get('provider'),
-                "target_language": cv_dict.get('target_language')
+                "target_language": cv_dict.get('target_language'),
+                "user_id": current_user["id"]
             }
             background_tasks.add_task(process_research_in_background, tasks_map["market_research"], research_payload)
         else:

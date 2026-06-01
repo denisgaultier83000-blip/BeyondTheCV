@@ -27,19 +27,18 @@ def clean_ai_json_response(response_text: str):
         if not response_text:
             return {}
             
-        # 0. Nettoyage préventif des balises markdown qui rendent le JSON invalide
-        clean_text = response_text.replace("```json", "").replace("```", "").strip()
-
-        # 1. Tentative d'extraction par Regex 
-        # [ROBUSTESSE] Supporte les objets {} et les tableaux []
-        match = re.search(r'(\{.*\}|\[.*\])', clean_text, re.DOTALL)
-        if not match:
-            print("[CLEANING] No explicit JSON block found, attempting to parse raw text...")
-        if match:
-            json_str = match.group(0)
+        # [FIX EXPERT] Suppression du .replace() global qui corrompait les données si le candidat
+        # avait lui-même du markdown dans son texte. L'extraction par index (O(n)) suffit amplement.
+        first_brace, last_brace = response_text.find('{'), response_text.rfind('}')
+        first_bracket, last_bracket = response_text.find('['), response_text.rfind(']')
+        
+        # On prend le bloc le plus large (objet ou tableau) pour ignorer le blabla avant et après
+        if first_brace != -1 and last_brace != -1 and (first_bracket == -1 or first_brace < first_bracket):
+            json_str = response_text[first_brace:last_brace+1]
+        elif first_bracket != -1 and last_bracket != -1:
+            json_str = response_text[first_bracket:last_bracket+1]
         else:
-            # Fallback : nettoyage basique si pas d'accolades trouvées
-            json_str = clean_text
+            json_str = response_text.strip()
         
         # 2. Parsing
         return json.loads(json_str)
