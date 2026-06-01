@@ -21,6 +21,7 @@ export default function TrainingTab() {
   const [score, setScore] = useState(0);
   const [totalSessions, setTotalSessions] = useState(0);
   const [themeScores, setThemeScores] = useState<Record<string, number>>({});
+  const [themeCounts, setThemeCounts] = useState<Record<string, number>>({});
   const [selectedTheme, setSelectedTheme] = useState('Gestion de crise');
   const [selectedType, setSelectedType] = useState('MES');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -46,6 +47,7 @@ export default function TrainingTab() {
         setScore(data.global_score);
         setTotalSessions(data.total_sessions);
         setThemeScores(data.theme_scores || {});
+        setThemeCounts(data.theme_counts || {});
       }
     } catch (err) {
       console.error("Erreur récupération stats", err);
@@ -148,7 +150,21 @@ export default function TrainingTab() {
   };
 
   // [FIX EXPERT] On remplace la note du "Fond" par la vraie note vocale calculée par le VocalPitchTrainer
-  const oralPitchScore = themeScores['Pitch Vocal'] || 0;
+  const oralPitchScore = themeScores['Pitch Vocal'] ?? 0;
+  const oralPitchSessions = themeCounts['Pitch Vocal'] ?? 0;
+
+  // Calcul des stats spécifiques Q/A (Tout sauf le Pitch)
+  const qaTotalSessions = totalSessions - oralPitchSessions;
+  let qaScore = 0;
+  if (qaTotalSessions > 0) {
+      let totalQaScore = 0;
+      Object.entries(themeScores).forEach(([theme, tScore]) => {
+          if (theme !== 'Pitch Vocal') {
+              totalQaScore += tScore * (themeCounts[theme] ?? 0);
+          }
+      });
+      qaScore = Math.round(totalQaScore / qaTotalSessions);
+  }
 
   // Fonction de sécurité pour afficher les objets JSON de l'IA (Pitch Vocal) sans faire crasher React
   const renderSafeText = (item: any) => {
@@ -199,18 +215,21 @@ export default function TrainingTab() {
           {/* Barres de progression (Remplace le Radar) */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', padding: '1rem' }}>
             {themes.map(t => {
-              const tScore = themeScores[t] || 0;
-              const tColor = getScoreColor(tScore);
+              const tScore = themeScores[t] ?? 0;
+              const tCount = themeCounts[t] ?? 0;
+              const tColor = tCount > 0 ? getScoreColor(tScore) : 'var(--text-muted)';
               return (
-                <div key={t}>
+                <div key={t} style={{ opacity: tCount > 0 ? 1 : 0.5 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                    <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>{t}</span>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                      {t} <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)' }}>({tCount} session{tCount > 1 ? 's' : ''})</span>
+                    </span>
                     <span style={{ fontSize: '1.1rem', fontWeight: 800, color: tColor }}>
-                      {tScore / 10} <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>/ 10</span>
+                      {tCount > 0 ? tScore / 10 : '-'} <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>/ 10</span>
                     </span>
                   </div>
                   <div style={{ width: '100%', height: '8px', background: 'var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
-                    <div style={{ width: `${tScore}%`, height: '100%', background: tColor, transition: 'width 0.8s ease-out' }} />
+                    <div style={{ width: `${tCount > 0 ? tScore : 0}%`, height: '100%', background: tColor, transition: 'width 0.8s ease-out' }} />
                   </div>
                 </div>
               );
