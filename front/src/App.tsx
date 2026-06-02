@@ -22,6 +22,18 @@ import { API_BASE_URL } from './config';
 import { authenticatedFetch } from './utils/auth';
 import './index.css';
 
+// Composant fantôme séparé pour isoler le cycle de vie du useEffect
+function Step6Ghost({ onNext, t }: { onNext: () => void, t: any }) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onNext();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [onNext]);
+
+  return <LoadingScreen title={t('loading_strat_title', "Création de votre profil stratégique...")} description={t('loading_strat_desc', "Analyse de vos expériences et exigences du marché...")} />;
+}
+
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -382,14 +394,7 @@ function AppContent() {
           </div>);
     case 6:
       // [FIX EXPERT] Composant fantôme pour réaligner la machine à états du DashboardContext
-      // Le contexte attend de "quitter l'étape 6" pour déclencher l'API analyze-completeness.
-      useEffect(() => {
-        const timer = setTimeout(() => {
-          handleNextStep();
-        }, 100);
-        return () => clearTimeout(timer);
-      }, []);
-      return <LoadingScreen title={t('loading_strat_title', "Création de votre profil stratégique...")} description={t('loading_strat_desc', "Analyse de vos expériences et exigences du marché...")} />;
+      return <Step6Ghost onNext={handleNextStep} t={t} />;
     case 7: 
         const clarificationAnswers = (cvData?.clarifications || []).reduce((acc: any, curr: any) => {
           if (curr.answer) acc[curr.id] = curr.answer;

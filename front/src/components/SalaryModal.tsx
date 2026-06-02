@@ -8,8 +8,9 @@ interface SalaryModalProps {
 }
 
 const SalaryModal: React.FC<SalaryModalProps> = ({ data, onClose, lang }) => {
-  if (!data) return null;
   const { t } = useTranslation();
+
+  if (!data) return null;
 
   const { min, max, currency, commentary, confidence } = data;
 

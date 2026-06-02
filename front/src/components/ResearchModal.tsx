@@ -9,9 +9,10 @@ interface ResearchModalProps {
 }
 
 const ResearchModal: React.FC<ResearchModalProps> = ({ data, mode = 'company', onClose }) => {
-  if (!data) return null;
   const { t } = useTranslation();
   const [sourcesExpanded, setSourcesExpanded] = useState(false);
+
+  if (!data) return null;
 
   // [FIX] Support rétroactif pour les anciennes données (brief/deep_dive)
   const { company, market_report, company_report, sources, brief, deep_dive } = data;

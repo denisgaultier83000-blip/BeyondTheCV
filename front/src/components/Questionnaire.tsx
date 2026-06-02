@@ -35,8 +35,11 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
   const { t } = useTranslation();
   
   // --- GESTION DE LA PERSISTANCE (GLOBAL STATE) ---
-  let dashboard: any = null;
-  try { dashboard = useDashboard(); } catch(e) {} // Évite le crash si utilisé hors du Dashboard
+  // [FIX EXPERT] Ne jamais encapsuler un Hook dans un bloc try/catch.
+  // Si le contexte est optionnel, c'est la logique interne du Hook (DashboardContext)
+  // qui doit renvoyer "null" au lieu de throw une exception.
+  const dashboard = useDashboard();
+  
   const cvData = dashboard?.cvData;
   const updateFormData = dashboard?.updateFormData;
   
