@@ -193,6 +193,8 @@ async def generate_interview_questions(data, quality='smart'):
     target_company = data.get('target_company', 'Entreprise cible')
     job_desc = data.get('job_description', '')
     
+    interview_type = data.get('meta', {}).get('interview_type') or data.get('interview_type', 'Non précisé')
+    
     job_context = f"Poste visé : {target_job} chez {target_company}"
     if job_desc and len(job_desc) > 50:
         job_context += f"\nDESCRIPTION DE L'OFFRE (CRITIQUE POUR CRÉER LES 4 MISES EN SITUATION) :\n{job_desc}"
@@ -203,6 +205,7 @@ async def generate_interview_questions(data, quality='smart'):
     
     CONTEXTE CIBLE :
     {job_context}
+    Type d'entretien prévu : {interview_type}
     
     CONTEXTE CANDIDAT :
     Adresse : {address}, {city}

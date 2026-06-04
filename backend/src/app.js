@@ -196,6 +196,22 @@ function postProcessQuestions(raw, limit = 40) {
   return cleaned.slice(0, limit);
 }
 
+function getTrainingMode(interviewDateStr) {
+  if (!interviewDateStr || String(interviewDateStr).toLowerCase() === 'unknown') {
+    return "Standard (Progression normale)";
+  }
+  const interviewDate = new Date(interviewDateStr);
+  if (isNaN(interviewDate.getTime())) {
+    // Si le candidat a saisi du texte libre (ex: "La semaine prochaine")
+    return `Adapté à la contrainte de date fournie : "${interviewDateStr}"`;
+  }
+  const daysUntil = Math.ceil((interviewDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  if (daysUntil <= 1) return "Commando (Urgence extrême, focus sur le pitch et 3 objections clés)";
+  if (daysUntil <= 4) return "Intensif (3 à 4 jours, focus sur les STARs et le stress-test)";
+  if (daysUntil <= 10) return "Structuré (1 semaine, progression logique étape par étape)";
+  return "Progressif (Entraînement espacé en profondeur)";
+}
+
 // -----------------------------
 // LaTeX Generator
 // -----------------------------
@@ -575,18 +591,27 @@ export function createApp(opts = {}) {
       const form = req.body?.form || {};
       const cvText = buildCvTextFromForm(form);
 
+      const meta = req.body?.meta || {};
+      const interviewType = safeStr(meta.interview_type) || "Non précisé";
+
       const system = [
         "You are a senior recruiter and interview coach.",
         "Analyze the CV and generate interview questions a recruiter is most likely to ask.",
         "You MUST avoid sensitive or discriminatory topics (race, religion, health, politics, etc.).",
         `Output language must strictly match: ${outputLanguage}.`,
         "You are NOT grading the candidate. You are estimating question probability.",
+        `CRITICAL INSTRUCTION: Adapt the focus to the Interview Type (${interviewType}).`,
+        "- If 'rh': Focus on cultural fit, motivation, stability, and red flags.",
+        "- If 'manager': Focus on impact, autonomy, conflict resolution, and teamwork.",
+        "- If 'tech': Focus on technical problem solving, limits of expertise, and failures.",
+        "- If 'final': Focus on vision, strategic alignment, leadership, and overall impact."
       ].join(" ");
 
       const user = [
         "CV TEXT:",
         cvText,
         "",
+        `Interview Type: ${interviewType}`,
         "Generate the 30 most probable interview questions.",
         "Return JSON only, matching the schema.",
         "Cultural/context questions MUST be based on locations or names found in the CV. Do not invent entities not present.",
@@ -631,6 +656,8 @@ export function createApp(opts = {}) {
       const cvText = buildCvTextFromForm(form);
       const company = req.body?.company_name || "Unknown Company";
 
+      const trainingMode = getTrainingMode(meta.interview_date);
+
       const system = `You are an expert recruiter and career coach. Analyze the candidate profile.
 1. Identify inconsistencies (gaps, overlaps, weak skills vs seniority, lack of metrics). Generate challenging questions.
 2. If a target company is provided ('${company}'), generate specific questions.
@@ -638,6 +665,7 @@ export function createApp(opts = {}) {
 4. Estimate salary range (include currency) based on role and location.
 5. Analyze job market state for this role.
 6. Generate a tailored training plan (training_plan) and strategy (strategy_advice) based on the interview constraints (date, format, type, time available, stress level).
+   -> IMPORTANT INSTRUCTION for training_plan: Apply the following mode -> ${trainingMode}
 Output JSON.`;
 
       const user = `CV TEXT:\n${cvText}\n\nTarget Role: ${meta.target_roles?.[0] || 'Unknown'}\nLocation: ${meta.primary_country || 'Unknown'}\nInterview Date: ${meta.interview_date || 'Unknown'}\nInterview Type: ${meta.interview_type || 'Unknown'}\nInterview Format: ${meta.interview_format || 'Unknown'}\nAvailable Time/Day: ${meta.available_time || 'Unknown'}\nCandidate Stress Level: ${meta.stress_level || 'Unknown'}`;
