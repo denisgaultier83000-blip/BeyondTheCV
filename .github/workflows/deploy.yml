@@ -7,8 +7,9 @@ on:
       - completed
     branches:
       - master
-              - staging
+      - staging
       - staging1
+      - staging2
   workflow_dispatch:
 
 jobs:
@@ -46,6 +47,7 @@ jobs:
           DB_NAME: ${{ secrets.POSTGRES_DB }}
           OAI_KEY: ${{ secrets.OPENAI_API_KEY }}
           GEM_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SERPER_KEY: ${{ secrets.SERPER_API_KEY }}
           JWT_SEC: ${{ secrets.JWT_SECRET }}
           
           # [FIX EXPERT] Sécurisation de la variable de branche pour éviter les injections bash sur ton serveur
@@ -54,13 +56,13 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: DB_USER,DB_PASS,DB_NAME,OAI_KEY,GEM_KEY,JWT_SEC,TARGET_BRANCH,FRONTEND_URL
+          envs: DB_USER,DB_PASS,DB_NAME,OAI_KEY,GEM_KEY,SERPER_KEY,JWT_SEC,TARGET_BRANCH,FRONTEND_URL
           script: |
             set -e
 
             BRANCH="$TARGET_BRANCH"
 
-            if [ "$BRANCH" = "staging" ] || [ "$BRANCH" = "staging1" ]; then
+            if [ "$BRANCH" = "staging" ] || [ "$BRANCH" = "staging1" ] || [ "$BRANCH" = "staging2" ]; then
               COMPOSE_FILE="docker-compose.staging.yml"
               PROJECT_NAME="btcv-staging"
               ENVIRONMENT="staging"
@@ -98,6 +100,7 @@ jobs:
             SAFE_JWT_SEC="${JWT_SEC//\$/\$\$}"
             SAFE_OAI_KEY="${OAI_KEY//\$/\$\$}"
             SAFE_GEM_KEY="${GEM_KEY//\$/\$\$}"
+            SAFE_SERPER_KEY="${SERPER_KEY//\$/\$\$}"
 
             cat <<EOF > "$ENV_FILE"
             VERSION=${BRANCH}
@@ -109,11 +112,11 @@ jobs:
             POSTGRES_DB=${DB_NAME}
             OPENAI_API_KEY=${SAFE_OAI_KEY}
             GEMINI_API_KEY=${SAFE_GEM_KEY}
+            SERPER_API_KEY=${SAFE_SERPER_KEY}
             JWT_SECRET=${SAFE_JWT_SEC}
             EOF
 
-            # [FIX RESEAU] On reconnecte sur le réseau 'web' standard de Traefik pour rétablir la communication.
-            # L'isolation sécurité reste garantie par les réseaux internes (btcv-staging-internal et btcv-prod-internal).
+            # [FIX RESEAU] Reconnexion au réseau global 'web' utilisé par Traefik
             WEB_NETWORK="web"
             docker network inspect "$WEB_NETWORK" >/dev/null 2>&1 || docker network create "$WEB_NETWORK"
 
