@@ -5,11 +5,15 @@ on:
     branches:
       - master
       - staging1
+      - staging2
   workflow_dispatch:
 
 env:
   # Désactive l'avertissement de dépréciation Node.js dans GitHub Actions
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  VERSION: ""
+  BACKEND_IMAGE: ""
+  FRONTEND_IMAGE: ""
 
 permissions:
   contents: read
@@ -66,6 +70,6 @@ jobs:
           tags: |
             ${{ env.FRONTEND_IMAGE }}:${{ env.VERSION }}
           build-args: |
-            VITE_API_URL=${{ (github.ref_name == 'staging' || github.ref_name == 'staging1') && 'https://api-staging.beyondthecv.app' || 'https://api.beyondthecv.app' }}
+            VITE_API_URL=${{ (github.ref_name == 'staging' || github.ref_name == 'staging1' || github.ref_name == 'staging2') && 'https://api-staging.beyondthecv.app' || 'https://api.beyondthecv.app' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
