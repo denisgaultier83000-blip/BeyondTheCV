@@ -25,7 +25,7 @@ Les données sont stockées dans un JSON global au fil de la saisie.
 
 ### Page 1 : Identité & Poste Actuel
 - Données personnelles + Poste actuel.
-- Servira de base pour le CV et la génération de questions.
+- Servira de base pour l'extraction de vos arguments d'entretien et la génération de questions.
 
 ### Page 2 : Cible & Mobilité (TRIGGER ASYNC)
 - **Inputs :** Entreprise visée, Pays, Télétravail.
@@ -64,12 +64,10 @@ Les données sont stockées dans un JSON global au fil de la saisie.
 
 ## 4. PRODUITS DU DASHBOARD
 
-### A. Onglet CV (Génération Synchrone)
-- **Format Unique (Optimisé ATS & Recruteur) :**
-  - Prévisualisation LaTeX à droite.
-  - Données éditables à gauche.
-  - Bouton "Refresh" : Appel IA + Analyseur de cohérence.
-  - Indicateur visuel : Jauge de Score ATS avec mots-clés interactifs.
+### A. Onglet Dossier Stratégique
+- Affichage du plan de bataille.
+- Impression PDF du dossier de préparation (PrintableDossier).
+- Traduction du parcours en arguments clés.
 
 ### B. Onglet Aide à l'Entretien
 1. **Questionnaire Recruteur (IA Pipeline) :**

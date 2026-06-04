@@ -189,8 +189,10 @@ export default function TrainingTab() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem' }}>
               <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Entretien (Q/A)</div>
-                <div style={{ fontSize: '2.5rem', fontWeight: 800, color: getScoreColor(score), margin: '0.5rem 0' }}>{score / 10} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ 10</span></div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Sur {totalSessions} sessions.</div>
+                <div style={{ fontSize: '2.5rem', fontWeight: 800, color: qaTotalSessions > 0 ? getScoreColor(qaScore) : 'var(--text-muted)', margin: '0.5rem 0' }}>
+                  {qaTotalSessions > 0 ? qaScore / 10 : '-'} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ 10</span>
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Sur {qaTotalSessions} session{qaTotalSessions > 1 ? 's' : ''}.</div>
               </div>
               
               <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>

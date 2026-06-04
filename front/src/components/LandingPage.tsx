@@ -242,8 +242,8 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
 
           <div className="lp-card">
             <div className="lp-icon-wrapper"><FileText size={24} strokeWidth={2} /></div>
-            <h3 className="lp-card-title">Passez les robots, marquez les humains</h3>
-            <p className="lp-card-desc">Obtenez un CV au format "ATS" optimisé pour franchir les algorithmes RH et marquer l'esprit du décideur final.</p>
+            <h3 className="lp-card-title">Transformez votre passé en arguments</h3>
+            <p className="lp-card-desc">Fini la chronologie ennuyeuse. Obtenez vos preuves concrètes, vos angles de discours et vos exemples STAR prêts à être dégainés le jour J.</p>
           </div>
         </div>
       </section>
@@ -297,7 +297,7 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
             <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" /> <strong>Dossier d'investigation complet</strong> (OSINT)</div>
             <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" /> <strong>Coaching Q&A</strong> (Méthode STAR, Parades défauts)</div>
             <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" /> <strong>Simulateur Vocal & Pitch</strong> (Analyse IA)</div>
-            <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" /> <strong>CV Optimisé (ATS)</strong></div>
+            <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" /> <strong>Arguments & Exemples STAR</strong></div>
           </div>
 
           <button onClick={onStart} className="lp-cta-main" style={{ width: '100%', justifyContent: 'center' }}>
