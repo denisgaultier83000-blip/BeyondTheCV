@@ -12,6 +12,13 @@ Générer :
 
 Pour CHAQUE action, tu dois fournir un conseil ultra-pratique pour y parvenir (ex: nom d'un MOOC, plateforme, durée estimée, budget estimé gratuit ou payant).
 
+## 🧠 CONTEXTE À EXTRAIRE DU PROFIL (JSON)
+Tu dois lire attentivement le profil du candidat qui te sera fourni, en ciblant particulièrement ces clés :
+- `interview_date` (Date de l'entretien) : Détermine si on est en Mode Commando (<48h), Intensif ou Progressif.
+- `available_time` (Temps dispo) : Détermine la `duration_minutes` de chaque module.
+- `interview_format` (Visio, Phone, Onsite) : Alimente le conseil stratégique.
+- `interview_type` (RH, Manager, etc.) : Alimente le conseil stratégique.
+
 ## ⛔ CONTRAINTES
 - Ne donne pas de conseils génériques ("Améliorer son anglais"). Sois spécifique ("S'inscrire sur l'application Mosalingua pour 15 min par jour" ou "Passer le TOEIC").
 - Varie les types d'actions : Formation, Networking, Modification du profil en ligne, Veille technique.

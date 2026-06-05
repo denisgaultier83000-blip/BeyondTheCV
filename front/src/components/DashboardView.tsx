@@ -18,6 +18,7 @@ import FlawCoaching from './FlawCoaching';
 import { ToDoListCard } from './ToDoListCard';
 import TrainingTab from './TrainingTab';
 import { PrintableDossier } from './PrintableDossier';
+import { TrainingPlanTimeline } from './TrainingPlanTimeline';
 
 export const DashboardView = () => {
   const { t } = useTranslation();

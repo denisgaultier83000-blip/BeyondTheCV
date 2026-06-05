@@ -190,7 +190,9 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
             // Ajouts spécifiques pour garantir la compatibilité avec la route d'entraînement
             theme: q.category,
             question_type: q.type,
-            question_text: questionText
+            question_text: questionText,
+            interview_format: cvData?.interview_format,
+            stress_level: cvData?.stress_level
         }),
       });
       

@@ -113,7 +113,14 @@ export default function TrainingTab() {
       const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/evaluate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ theme: activeQuestion.category, question_type: activeQuestion.type, question_text: activeQuestion.question, user_answer: userAnswer })
+        body: JSON.stringify({ 
+          theme: activeQuestion.category, 
+          question_type: activeQuestion.type, 
+          question_text: activeQuestion.question, 
+          user_answer: userAnswer,
+          interview_format: cvData?.interview_format,
+          stress_level: cvData?.stress_level
+        })
       });
       const data = await res.json();
       setFeedback(data.feedback);
