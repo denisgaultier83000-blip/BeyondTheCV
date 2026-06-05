@@ -62,13 +62,13 @@ jobs:
 
             BRANCH="$TARGET_BRANCH"
 
-            if [ "$BRANCH" = "staging" ] || [ "$BRANCH" = "staging1" ] || [ "$BRANCH" = "staging2" ]; then
+            if [ "$BRANCH" = "staging" ] || [ "$BRANCH" = "staging1" ]; then
               COMPOSE_FILE="docker-compose.staging.yml"
               PROJECT_NAME="btcv-staging"
               ENVIRONMENT="staging"
               API_HOST="api-staging.beyondthecv.app"
               FRONTEND_URL="https://staging.beyondthecv.app"
-            elif [ "$BRANCH" = "master" ]; then
+            elif [ "$BRANCH" = "staging2" ]; then
               COMPOSE_FILE="docker-compose.prod.yml"
               PROJECT_NAME="btcv-prod"
               ENVIRONMENT="production"
