@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDashboard } from './DashboardContext';
-import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass, Mic, Search, Eye, Navigation, Network, Loader2, RotateCcw, CheckSquare, Dumbbell, ArrowUp, Printer, Building, ShieldAlert, Play } from 'lucide-react';
+import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass, Mic, Search, Eye, Navigation, Network, Loader2, RotateCcw, CheckSquare, Dumbbell, ArrowUp, Printer, Building, ShieldAlert, Play, Calendar, UserCheck, Monitor, HeartPulse, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PilotBento } from './PilotBento';
 import { GapAnalysisFull } from './GapAnalysisFull';
-import { CVTab } from './CVTab';
 import { InterviewTab } from './InterviewTab';
 import { AnalysisTab } from './AnalysisTab';
 import { CareerGPS } from './CareerGPS';
@@ -37,7 +36,7 @@ export const DashboardView = () => {
   // --- GESTION DE L'IMPRESSION ---
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [printSelection, setPrintSelection] = useState({
-    cv: true, pitch: true, questions: true, mes: true, flaws: true,
+    pitch: true, questions: true, mes: true, flaws: true,
     gap: true, research: true, decoder: true, gps: true, radar: true,
     hidden_market: true, todo: true
   });
@@ -124,7 +123,6 @@ export const DashboardView = () => {
 
   // Liste de tous les livrables avec leur état
   const deliverableItems = [
-    { name: t('deliv_cv', "CV ATS"), tab: "cv", data: cvResult, icon: <FileText size={18}/> },
     { name: t('deliv_pitch', "Pitch de 3 minutes"), tab: "interview", anchor: "pitch_section", data: pitchResult, icon: <Mic size={18}/> },
     { name: t('deliv_questions', "Questions & Mises en situation"), tab: "interview", anchor: "questionnaire_section", data: questionsResult || customScenariosResult, icon: <MessageSquare size={18}/> },
     { name: t('deliv_mes', "Mises en situation"), tab: "interview", anchor: "mes_anchor", data: customScenariosResult || cvData, icon: <ShieldAlert size={18}/> },
@@ -155,7 +153,6 @@ export const DashboardView = () => {
     return items.some(item => isDataReady(item));
   };
 
-  const cvUnseen = hasUnseen('cv', [cvResult]);
   const interviewUnseen = hasUnseen('interview', [pitchResult, questionsResult, flawCoachingResult]);
   const marketUnseen = hasUnseen('market', [gapResult, researchResult, jobDecoderResult]);
   const careerUnseen = hasUnseen('career', [careerGpsResult, careerRadarResult, hiddenMarketResult, recruiterResult]);
@@ -171,6 +168,12 @@ export const DashboardView = () => {
   // La condition de chargement est maintenant robuste grâce à l'état explicite `isPilotLoading`
   const isLoadingOverview = isPilotLoading || !pilotData;
 
+  // --- EXTRACTION DU CONTEXTE CANDIDAT ---
+  const meta = cvData?.meta || cvData || {};
+  const interviewTypeLabels: Record<string, string> = { rh: 'Ressources Humaines', manager: 'Manager / Opérationnel', tech: 'Équipe Technique', final: 'Direction (Final)' };
+  const formatLabels: Record<string, string> = { visio: 'Visioconférence', phone: 'Téléphone', onsite: 'En Présentiel' };
+  const stressLabels: Record<string, string> = { low: 'Confiant', medium: 'Stress Modéré', high: 'Stress Élevé' };
+
   return (
     <div className="dashboard-wrapper">
       {/* GROUPE NAVIGATION : Onglets + Sous-menus collés */}
@@ -178,9 +181,6 @@ export const DashboardView = () => {
       <div className={`tabs-navigation ${subMenus[activeTab] ? 'has-sub' : ''}`}>
         <button className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => handleTabChange('overview')}>
           <Activity size={18} /> {t('tab_overview', "Vue d'ensemble")}
-        </button>
-        <button className={`tab-btn ${activeTab === 'cv' ? 'active' : ''}`} onClick={() => handleTabChange('cv')} style={{ position: 'relative' }}>
-          <FileText size={18} /> {t('tab_cv_ats', "CV ATS")} {cvUnseen && <span className="notification-dot"></span>}
         </button>
         <button className={`tab-btn ${activeTab === 'interview' ? 'active' : ''}`} onClick={() => handleTabChange('interview')} style={{ position: 'relative' }}>
           <MessageSquare size={18} /> {t('tab_interview_short', "Entretien")} {interviewUnseen && <span className="notification-dot"></span>}
@@ -297,10 +297,6 @@ export const DashboardView = () => {
             </div>
         )}
         
-        {activeTab === 'cv' && (
-           <CVTab data={pilotData} />
-        )}
-
         {activeTab === 'interview' && (
            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
              <InterviewTab />
@@ -373,7 +369,7 @@ export const DashboardView = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2rem', maxHeight: '50vh', overflowY: 'auto', paddingRight: '1rem' }}>
               {Object.keys(printSelection).map((key) => {
                 const labels: Record<string, string> = {
-                  cv: "CV ATS", pitch: "Pitch de présentation", questions: "Questions d'entretien", mes: "Mises en situation",
+                  pitch: "Pitch de présentation", questions: "Questions d'entretien", mes: "Mises en situation",
                   flaws: "Parades aux défauts", gap: "Analyse d'écarts (Gap)", research: "Rapports Entreprise & Marché",
                   decoder: "Décodeur d'annonce", gps: "GPS de Carrière", radar: "Radar de Carrière",
                   hidden_market: "Stratégie Marché Caché", todo: "Plan d'action (To-Do)"

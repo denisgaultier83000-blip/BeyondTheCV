@@ -700,20 +700,12 @@ export const StepReview = (props: any) => {
     data, onChange, 
     experiences, onUpdateExperience, onAddExperience, onRemoveExperience,
     educations, onUpdateEducation, onAddEducation, onRemoveEducation,
-    onPreview,
     onBack,
-    onGenerate,
-    loading,
-    cvMode,
-    cvAnalysis,
-    pitchData,
     gapAnalysis, // [NEW] On importe les données d'analyse
     lang = 'en'
   } = props;
 
   const { t } = useTranslation();
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [loadingPreview, setLoadingPreview] = useState(false);
   const [activeTab, setActiveTab] = useState<string | null>("profile");
 
   // --- LOGIQUE JAUGE ATS & MOTS CLES ---
@@ -757,21 +749,6 @@ export const StepReview = (props: any) => {
       }
   };
   const scoreColor = animatedScore >= 80 ? '#10b981' : animatedScore >= 50 ? '#f59e0b' : '#ef4444';
-
-  const refreshPreview = async () => {
-    if (onPreview) {
-      setLoadingPreview(true);
-      const url = await onPreview({ design_variant: "1", cvMode: "ATS" });
-      setPreviewUrl(url);
-      setLoadingPreview(false);
-    }
-  };
-
-  // Charger la prévisualisation au montage
-  useEffect(() => {
-    refreshPreview();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const Accordion = ({ title, id, children }: any) => (
     <div style={{ border: "1px solid var(--border-color)", borderRadius: 8, marginBottom: 10, overflow: "hidden" }}>
@@ -824,34 +801,15 @@ export const StepReview = (props: any) => {
           </Accordion>
         </div>
 
-        {/* RIGHT COLUMN: PREVIEW */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", border: "1px solid var(--border-color)", borderRadius: 8, background: "#525659", overflow: "hidden" }}>
-          <div style={{ padding: 10, background: "var(--bg-secondary)", borderBottom: "1px solid var(--border-color)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontWeight: "bold" }}>{t('live_preview')}</span>
-            
-            {/* Badge Format Unique */}
-            <div style={{ background: "var(--bg-card)", color: "var(--primary)", padding: "4px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: "bold", border: "1px solid var(--primary)" }}>
-              {t('unique_format_badge', 'Format Unique (Optimisé)')}
-            </div>
-
-            <button 
-              type="button" 
-              onClick={refreshPreview} 
-              className="btn-primary" 
-              style={{ padding: "5px 15px", fontSize: "12px", display: 'flex', alignItems: 'center', gap: 6 }}
-              disabled={loadingPreview}
-            >
-              {loadingPreview ? <><Loader2 size={14} className="spin" /> {t('generating')}</> : <><RefreshCw size={14} /> {t('refresh_preview')}</>}
-            </button>
-          </div>
-          
+        {/* RIGHT COLUMN: SCORE & KEYWORDS */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", border: "1px solid var(--border-color)", borderRadius: 8, background: "var(--bg-card)", overflow: "hidden" }}>
           {/* ZONE DE SCORE */}
-          <div style={{ padding: "15px", background: "var(--bg-secondary)", borderBottom: "1px solid var(--border-color)" }}>
+          <div style={{ padding: "20px", flex: 1, display: 'flex', flexDirection: 'column' }}>
               
               {/* JAUGE ATS & MOTS CLES INTERACTIFS */}
-              <div style={{ marginBottom: cvAnalysis?.score_analysis ? '1.5rem' : '0', paddingBottom: cvAnalysis?.score_analysis ? '1.5rem' : '0', borderBottom: cvAnalysis?.score_analysis ? '1px dashed var(--border-color)' : 'none' }}>
+              <div>
                   <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Target size={16} color={scoreColor} /> {t('ats_score_title', "Score d'Adéquation ATS")}
+                      <Target size={20} color={scoreColor} /> {t('ats_score_title', "Score d'Adéquation ATS")}
                   </h4>
                   <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.5rem' }}>
                       <div style={{ width: `${animatedScore}%`, height: '100%', background: scoreColor, transition: 'width 0.1s linear, background 0.5s ease-in-out' }}></div>
@@ -859,7 +817,7 @@ export const StepReview = (props: any) => {
                   <div style={{ fontSize: '0.85rem', color: scoreColor, fontWeight: 600 }}>{animatedScore}/100 - {animatedScore >= 80 ? t('score_excellent', "Excellent") : animatedScore >= 50 ? t('score_average', "Moyen") : t('score_improve', "À améliorer")}</div>
 
                   {missingKeywords.length > 0 && (
-                      <div style={{ marginTop: '1rem', background: 'var(--bg-card)', padding: '1rem', borderRadius: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                      <div style={{ marginTop: '1.5rem', background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
                           <h5 style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: 'var(--danger-text)' }}>{t('missing_keywords', 'Mots-clés manquants')}</h5>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                               {missingKeywords.map((kw: string, i: number) => {
@@ -882,38 +840,6 @@ export const StepReview = (props: any) => {
                       </div>
                   )}
               </div>
-
-              {cvAnalysis?.score_analysis && (
-                 <>
-                {cvAnalysis.score_analysis && (
-                    <ScoreGauge 
-                        score={cvAnalysis.score_analysis.global_score} 
-                        label={t('recruiter_readability', "📄 Lisibilité Recruteur")} 
-                        critique={cvAnalysis.score_analysis.critique}
-                        metrics={[
-                            { label: t('metric_reading', "Lecture"), value: cvAnalysis.score_analysis.readability },
-                            { label: t('metric_value', "Valeur"), value: cvAnalysis.score_analysis.perceived_value },
-                            { label: t('metric_noise', "Bruit"), value: cvAnalysis.score_analysis.noise_level }
-                        ]}
-                    />
-                )}
-
-                {/* Cross Analysis: Wahou Effect */}
-                {cvAnalysis?.score_analysis && pitchData?.analysis && Math.abs(cvAnalysis.score_analysis.global_score - pitchData.analysis.global_score) > 1.5 && (
-                    <div style={{ fontSize: "12px", padding: "8px", background: "#fff7ed", border: "1px solid #fdba74", borderRadius: "6px", color: "#c2410c" }}>
-                        ⚠️ <b>{t('gap_detected_warning', "Écart détecté :")}</b> {cvAnalysis.score_analysis.global_score > pitchData.analysis.global_score ? t('gap_cv_better_pitch', "Ton CV est clair, mais ton pitch dilue ta valeur.") : t('gap_pitch_better_cv', "Ton pitch est convaincant, mais ton CV ne le reflète pas.")}
-                    </div>
-                )}
-                 </>
-              )}
-          </div>
-
-          <div style={{ flex: 1, position: "relative" }}>
-             {previewUrl ? (
-               <iframe src={previewUrl} style={{ width: "100%", height: "100%", border: "none" }} title="CV Preview" />
-             ) : (
-               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "white" }}>{loadingPreview ? t('loading_preview') : t('preview_unavailable')}</div>
-             )}
           </div>
         </div>
       </div>
