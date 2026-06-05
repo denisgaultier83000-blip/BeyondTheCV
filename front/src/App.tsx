@@ -431,6 +431,8 @@ function AppContent() {
             onTriggerResearch={triggerResearch}
           >
             <DashboardView />
+            {/* Exemple d'intégration si vous appelez ApplicationDossier depuis App.tsx : */}
+            {/* <ApplicationDossier onGoToTraining={() => { setActiveTab('training'); setCurrentStep(8); }} /> */}
           </TabProvider>
         </div>);
       default: return null;

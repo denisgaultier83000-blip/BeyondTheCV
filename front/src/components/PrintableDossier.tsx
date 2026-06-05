@@ -167,6 +167,11 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
       <style>{`
         .printable-dossier { display: none; }
         @media print {
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
           @page { margin: 2cm 1.5cm 2cm 1.5cm; }
           body * { visibility: hidden !important; }
           .printable-dossier { display: block !important; }
