@@ -13,9 +13,10 @@ export interface InterviewContextData {
 interface Props {
   data: Partial<InterviewContextData>;
   onChange: (data: Partial<InterviewContextData>) => void;
+  errors?: Record<string, boolean>;
 }
 
-export const InterviewContextForm: React.FC<Props> = ({ data, onChange }) => {
+export const InterviewContextForm: React.FC<Props> = ({ data, onChange, errors }) => {
   const { t } = useTranslation();
 
   const handleChange = (field: keyof InterviewContextData, value: string) => {
@@ -45,8 +46,17 @@ export const InterviewContextForm: React.FC<Props> = ({ data, onChange }) => {
             placeholder={t('interview_date_placeholder')}
             value={data.interview_date || ''}
             onChange={(e) => handleChange('interview_date', e.target.value)}
-            className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#6DBEF7] focus:border-[#6DBEF7] outline-none transition-all"
+            className={`w-full border rounded-lg p-3 outline-none transition-all ${
+              errors?.interview_date 
+                ? 'border-[#ef4444] focus:ring-2 focus:ring-[#ef4444]' 
+                : 'border-gray-300 focus:ring-2 focus:ring-[#6DBEF7] focus:border-[#6DBEF7]'
+            }`}
           />
+          {errors?.interview_date && (
+            <p style={{ color: "#ef4444", fontSize: "0.85rem", marginTop: "0.5rem", marginBottom: 0 }}>
+              Veuillez renseigner une date ou indiquer "Je ne sais pas".
+            </p>
+          )}
         </div>
 
         {/* Format de l'entretien */}

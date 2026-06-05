@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Settings2,
   History,
+  Lightbulb
 } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 import Questionnaire from './Questionnaire';
@@ -17,7 +18,7 @@ import { useDashboard } from './DashboardContext';
 import { VocalPitchTrainer } from './VocalPitchTrainer';
 
 export default function TrainingTab() {
-  const { cvData, updateFormData, pitchResult } = useDashboard();
+  const { cvData, updateFormData, pitchResult, actionPlanResult } = useDashboard();
   const [score, setScore] = useState(0);
   const [totalSessions, setTotalSessions] = useState(0);
   const [themeScores, setThemeScores] = useState<Record<string, number>>({});
@@ -181,6 +182,17 @@ export default function TrainingTab() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       
+      {/* --- CONSEIL STRATÉGIQUE (IA) --- */}
+      {actionPlanResult?.strategy_advice && (
+        <DashboardCard title="Conseil Stratégique d'Entretien" icon={<Lightbulb size={24} />}>
+          <div style={{ background: 'rgba(59, 130, 246, 0.05)', borderLeft: '4px solid var(--primary)', padding: '1.5rem', borderRadius: '0.5rem' }}>
+            <p style={{ margin: 0, color: 'var(--text-main)', fontSize: '1rem', lineHeight: '1.6' }}>
+              {actionPlanResult.strategy_advice}
+            </p>
+          </div>
+        </DashboardCard>
+      )}
+
       {/* --- SECTION STATISTIQUES --- */}
       <DashboardCard title="Tableau de Chasse" icon={<Activity size={24} />}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', alignItems: 'center' }}>

@@ -37,6 +37,14 @@ Le pitch DOIT IMPÉRATIVEMENT être rédigé à la **première personne du singu
 - Aucun superlatif non justifié.
 - **RYTHME ET DENSITÉ :** Le pitch doit être suffisamment dense pour montrer l'expertise, mais concis pour garder l'attention. Développe les arguments avec des exemples tangibles. Chaque section doit s'enchaîner naturellement avec la suivante.
 
+## 👤 ADAPTATION AU TYPE D'ENTRETIEN ET FORMAT
+L'angle du pitch DOIT s'adapter au "Type d'interlocuteur" :
+- Si **rh** : Focus sur la motivation, les valeurs, et l'adéquation avec la culture de l'entreprise.
+- Si **manager** : Focus sur les réussites opérationnelles (chiffres, projets livrés), l'autonomie et l'efficacité.
+- Si **tech** : Focus sur l'expertise technique, la complexité des environnements gérés et la méthodologie.
+- Si **final** (Direction) : Focus sur la vision, l'impact business, le leadership et l'alignement avec les objectifs de l'entreprise.
+Si le format est **visio** ou **téléphone**, fais des phrases encore plus courtes pour garantir un rythme vocal dynamique sans perdre l'interlocuteur.
+
 ## 🏗️ STRUCTURE ATTENDUE (Souple, non mécanique)
 1. **Accroche** : Positionne immédiatement le profil.
 2. **Axes forts** : 1 à 3 points caractérisant la valeur.

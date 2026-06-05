@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Printer, Trash2, Download, Eye, Briefcase, Calendar, CheckCircle2, ArrowLeft, Loader2, Building, Target, Mic, LineChart, MessageSquare } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
+import { TrainingPlanTimeline } from './TrainingPlanTimeline';
 
 interface ApplicationDossierProps {
   appId: string;
@@ -152,6 +153,13 @@ export function ApplicationDossier({ appId, onBack, onOpenDeliverable }: Applica
           Supprimer
         </button>
       </div>
+
+      {/* --- TIMELINE D'ENTRAÎNEMENT (Si disponible) --- */}
+      {deliverablesData.actionPlanResult?.training_plan && (
+        <div style={{ marginBottom: '3rem', animation: 'fadeIn 0.5s ease-out' }}>
+          <TrainingPlanTimeline plan={deliverablesData.actionPlanResult.training_plan} />
+        </div>
+      )}
 
       {/* --- LISTE DES LIVRABLES --- */}
       <h3 style={{ fontSize: '1.25rem', color: 'var(--text-main)', marginBottom: '1.5rem', borderBottom: '2px solid var(--border-color)', paddingBottom: '0.5rem' }}>

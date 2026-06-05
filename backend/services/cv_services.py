@@ -83,6 +83,8 @@ class TrainingEvaluateRequest(BaseModel):
     user_answer: str
     target_job: Optional[str] = "Candidat"
     target_company: Optional[str] = "Entreprise cible"
+    interview_format: Optional[str] = "Non précisé"
+    stress_level: Optional[str] = "medium"
 
 class VocalPitchRequest(BaseModel):
     transcript: str
@@ -289,6 +291,9 @@ async def generate_pitch(data, quality='smart'):
     target_lang = normalize_language(data.get('target_language', 'fr'))
     clarifications_str = "\n".join([f"Q: {c.get('question')}\nA: {c.get('answer')}" for c in clarifications if c.get('answer')])
     
+    interview_type = data.get('meta', {}).get('interview_type') or data.get('interview_type', 'Non précisé')
+    interview_format = data.get('meta', {}).get('interview_format') or data.get('interview_format', 'Non précisé')
+    
     # [NEW] Injection des données de recherche asynchrone (Entreprise & Marché)
     research_context = ""
     rd = data.get("research_data")
@@ -307,6 +312,10 @@ async def generate_pitch(data, quality='smart'):
     CLARIFICATIONS APPORTÉES :
     {clarifications_str}
     {research_context}
+    
+    CONTRAINTE D'ENTRETIEN :
+    - Type d'interlocuteur : {interview_type}
+    - Format : {interview_format}
     
     OUTPUT LANGUAGE: {target_lang}
     """
@@ -700,8 +709,14 @@ async def evaluate_training_answer(request: TrainingEvaluateRequest, current_use
     
     QUESTION POSÉE : "{request.question_text}"
     CATÉGORIE / ATTENTE : "{request.theme} - {request.question_type}"
+    FORMAT DE L'ENTRETIEN : "{request.interview_format}"
+    NIVEAU DE STRESS DU CANDIDAT : "{request.stress_level}"
     RÉPONSE DU CANDIDAT :
     "{safe_user_answer}"
+    
+    INSTRUCTION DE COACHING EXPERT :
+    - Si le stress est élevé ("high"), sois particulièrement rassurant et valorise les forces (strengths) avant d'aborder les faiblesses.
+    - Si le format est "visio" ou "phone", ajoute un micro-conseil logistique ou vocal dans l'improved_answer (ex: regard caméra, sourire audible).
     """
     
     try:

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import RadarChart from './RadarChart'; // Import the new component
 import { API_BASE_URL } from "../config";
+import { InterviewContextForm } from './InterviewContextForm';
 import { authenticatedFetch } from "../utils/auth";
 
 interface StepProps {
@@ -207,6 +208,29 @@ export const StepTarget = ({ data, onChange, errors, loading, lang = 'en' }: Ste
     <div className="form-group">
       <label>{t('job_desc_label')}</label>
       <textarea disabled={loading} rows={6} value={data.job_description || ""} onChange={e => onChange("job_description", e.target.value)} placeholder={t('job_desc_placeholder')} style={{ width: "100%", opacity: loading ? 0.6 : 1 }} />
+    </div>
+
+    {/* --- [NOUVEAU] Contexte de l'entretien --- */}
+    <div style={{ marginTop: '2rem', animation: 'fadeIn 0.5s ease-out' }}>
+      <InterviewContextForm
+        data={{
+          interview_date: data.interview_date,
+          interview_format: data.interview_format,
+          interview_type: data.interview_type,
+          available_time: data.available_time,
+          stress_level: data.stress_level,
+        }}
+        onChange={(newContextData) => {
+          // Itère sur les nouvelles données et met à jour l'état parent champ par champ.
+          // Cela assure la compatibilité avec la gestion d'état existante.
+          for (const [key, value] of Object.entries(newContextData)) {
+            if (data[key] !== value) { // Optimisation pour ne mettre à jour que ce qui a changé
+              onChange(key, value);
+            }
+          }
+        }}
+        errors={errors}
+      />
     </div>
 
     {/* [NOUVEAU] Champ explicite pour la langue cible du CV */}
