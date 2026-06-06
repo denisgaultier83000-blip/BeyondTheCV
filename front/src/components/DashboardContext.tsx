@@ -100,7 +100,7 @@ export const DashboardProvider = ({
   }, [onUpdateFormData]);
 
   // État de navigation interne
-  const [activeTab, setActiveTab] = useState<string>('overview');
+  const [activeTab, setActiveTab] = useState<string>('cockpit');
 
   // État des données de la vue Bento (Résumé)
   const [pilotData, setPilotData] = useState<any>(null);

@@ -15,7 +15,6 @@ import { CareerSimulator } from './CareerSimulator';
 import { RecruiterView } from './RecruiterView';
 import { DashboardCard } from './DashboardCard';
 import FlawCoaching from './FlawCoaching';
-import { ToDoListCard } from './ToDoListCard';
 import TrainingTab from './TrainingTab';
 import { PrintableDossier } from './PrintableDossier';
 import { TrainingPlanTimeline } from './TrainingPlanTimeline';
@@ -32,7 +31,7 @@ export const DashboardView = () => {
   } = useDashboard();
 
   // --- GESTION DES NOTIFICATIONS ---
-  const [viewedTabs, setViewedTabs] = useState<string[]>(['overview']);
+  const [viewedTabs, setViewedTabs] = useState<string[]>(['cockpit']);
   const [showBackToTop, setShowBackToTop] = useState(false);
   
   // --- GESTION DE L'IMPRESSION ---
@@ -146,7 +145,6 @@ export const DashboardView = () => {
     { name: t('deliv_radar', "Radar de Carrière"), tab: "career", anchor: "radar_section", data: careerRadarResult, icon: <Compass size={18}/> },
     { name: t('deliv_hidden', "Marché Caché"), tab: "career", anchor: "hidden_section", data: hiddenMarketResult, icon: <Network size={18}/> },
     { name: t('deliv_simulator', "Simulateur de Carrière"), tab: "career", anchor: "simulator_section", data: cvData, icon: <Play size={18}/> },
-    { name: t('deliv_todo', "To-Do List d'Action"), tab: "actions", data: actionPlanResult, icon: <CheckSquare size={18}/> },
     { name: t('cockpit_title', "Cockpit Stratégique"), tab: "cockpit", anchor: "cockpit_section", data: actionPlanResult, icon: <Target size={18}/> }
   ];
 
@@ -159,12 +157,11 @@ export const DashboardView = () => {
   const interviewUnseen = hasUnseen('interview', [pitchResult, questionsResult, flawCoachingResult]);
   const marketUnseen = hasUnseen('market', [gapResult, researchResult, jobDecoderResult]);
   const careerUnseen = hasUnseen('career', [careerGpsResult, careerRadarResult, hiddenMarketResult, recruiterResult]);
-  const actionsUnseen = hasUnseen('actions', [actionPlanResult]);
   const cockpitUnseen = hasUnseen('cockpit', [actionPlanResult]);
 
   // [FIX CRITIQUE] On force le chargement du résumé si les données sont absentes pour briser la boucle de crash
   useEffect(() => {
-    if (activeTab === 'overview' && !pilotData && typeof fetchPilotData === 'function') {
+    if ((activeTab === 'overview' || activeTab === 'cockpit') && !pilotData && typeof fetchPilotData === 'function') {
       fetchPilotData();
     }
   }, [activeTab, pilotData, fetchPilotData]);
@@ -183,26 +180,23 @@ export const DashboardView = () => {
       {/* GROUPE NAVIGATION : Onglets + Sous-menus collés */}
       <div style={{ display: 'flex', flexDirection: 'column' }}>
       <div className={`tabs-navigation ${subMenus[activeTab] ? 'has-sub' : ''}`}>
+        <button className={`tab-btn ${activeTab === 'cockpit' ? 'active' : ''}`} onClick={() => handleTabChange('cockpit')} style={{ position: 'relative' }}>
+          <Target size={18} /> {t('cockpit_title', "Cockpit Stratégique")} {cockpitUnseen && <span className="notification-dot"></span>}
+        </button>
         <button className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => handleTabChange('overview')}>
           <Activity size={18} /> {t('tab_overview', "Vue d'ensemble")}
         </button>
-        <button className={`tab-btn ${activeTab === 'cockpit' ? 'active' : ''}`} onClick={() => handleTabChange('cockpit')} style={{ position: 'relative' }}>
-          <Target size={18} /> {t('tab_cv', "Dossier Stratégique")} {cockpitUnseen && <span className="notification-dot"></span>}
-        </button>
         <button className={`tab-btn ${activeTab === 'interview' ? 'active' : ''}`} onClick={() => handleTabChange('interview')} style={{ position: 'relative' }}>
           <MessageSquare size={18} /> {t('tab_interview_short', "Entretien")} {interviewUnseen && <span className="notification-dot"></span>}
+        </button>
+        <button className={`tab-btn ${activeTab === 'training' ? 'active' : ''}`} onClick={() => handleTabChange('training')}>
+          <Dumbbell size={18} /> {t('tab_training', "S'entrainer")}
         </button>
         <button className={`tab-btn ${activeTab === 'market' ? 'active' : ''}`} onClick={() => handleTabChange('market')} style={{ position: 'relative' }}>
           <Globe size={18} /> {t('tab_market_offer', "Marché & Offre")} {marketUnseen && <span className="notification-dot"></span>}
         </button>
         <button className={`tab-btn ${activeTab === 'career' ? 'active' : ''}`} onClick={() => handleTabChange('career')} style={{ position: 'relative' }}>
           <Compass size={18} /> {t('tab_strategy', "Stratégie & Trajectoires")} {careerUnseen && <span className="notification-dot"></span>}
-        </button>
-        <button className={`tab-btn ${activeTab === 'actions' ? 'active' : ''}`} onClick={() => handleTabChange('actions')} style={{ position: 'relative' }}>
-          <CheckSquare size={18} /> {t('tab_actions', "Actions")} {actionsUnseen && <span className="notification-dot"></span>}
-        </button>
-        <button className={`tab-btn ${activeTab === 'training' ? 'active' : ''}`} onClick={() => handleTabChange('training')}>
-          <Dumbbell size={18} /> {t('tab_training', "S'entrainer")}
         </button>
       </div>
 
@@ -365,12 +359,6 @@ export const DashboardView = () => {
              <div id="simulator_section">
                <CareerSimulator candidateData={cvData} />
              </div>
-           </div>
-        )}
-
-        {activeTab === 'actions' && (
-           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-             <ToDoListCard data={actionPlanResult} loading={isProcessing && !actionPlanResult} />
            </div>
         )}
 
