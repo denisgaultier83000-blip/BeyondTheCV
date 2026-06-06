@@ -19,6 +19,7 @@ import { ToDoListCard } from './ToDoListCard';
 import TrainingTab from './TrainingTab';
 import { PrintableDossier } from './PrintableDossier';
 import { TrainingPlanTimeline } from './TrainingPlanTimeline';
+import { CockpitTab } from './CockpitTab';
 
 export const DashboardView = () => {
   const { t } = useTranslation();
@@ -145,7 +146,8 @@ export const DashboardView = () => {
     { name: t('deliv_radar', "Radar de Carrière"), tab: "career", anchor: "radar_section", data: careerRadarResult, icon: <Compass size={18}/> },
     { name: t('deliv_hidden', "Marché Caché"), tab: "career", anchor: "hidden_section", data: hiddenMarketResult, icon: <Network size={18}/> },
     { name: t('deliv_simulator', "Simulateur de Carrière"), tab: "career", anchor: "simulator_section", data: cvData, icon: <Play size={18}/> },
-    { name: t('deliv_todo', "To-Do List d'Action"), tab: "actions", data: actionPlanResult, icon: <CheckSquare size={18}/> }
+    { name: t('deliv_todo', "To-Do List d'Action"), tab: "actions", data: actionPlanResult, icon: <CheckSquare size={18}/> },
+    { name: t('cockpit_title', "Cockpit Stratégique"), tab: "cockpit", anchor: "cockpit_section", data: actionPlanResult, icon: <Target size={18}/> }
   ];
 
   // Calcul des pastilles par onglet
@@ -158,6 +160,7 @@ export const DashboardView = () => {
   const marketUnseen = hasUnseen('market', [gapResult, researchResult, jobDecoderResult]);
   const careerUnseen = hasUnseen('career', [careerGpsResult, careerRadarResult, hiddenMarketResult, recruiterResult]);
   const actionsUnseen = hasUnseen('actions', [actionPlanResult]);
+  const cockpitUnseen = hasUnseen('cockpit', [actionPlanResult]);
 
   // [FIX CRITIQUE] On force le chargement du résumé si les données sont absentes pour briser la boucle de crash
   useEffect(() => {
@@ -182,6 +185,9 @@ export const DashboardView = () => {
       <div className={`tabs-navigation ${subMenus[activeTab] ? 'has-sub' : ''}`}>
         <button className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => handleTabChange('overview')}>
           <Activity size={18} /> {t('tab_overview', "Vue d'ensemble")}
+        </button>
+        <button className={`tab-btn ${activeTab === 'cockpit' ? 'active' : ''}`} onClick={() => handleTabChange('cockpit')} style={{ position: 'relative' }}>
+          <Target size={18} /> {t('tab_cv', "Dossier Stratégique")} {cockpitUnseen && <span className="notification-dot"></span>}
         </button>
         <button className={`tab-btn ${activeTab === 'interview' ? 'active' : ''}`} onClick={() => handleTabChange('interview')} style={{ position: 'relative' }}>
           <MessageSquare size={18} /> {t('tab_interview_short', "Entretien")} {interviewUnseen && <span className="notification-dot"></span>}
@@ -298,6 +304,21 @@ export const DashboardView = () => {
             </div>
         )}
         
+        {activeTab === 'cockpit' && (
+           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }} id="cockpit_section">
+             {actionPlanResult ? (
+               <CockpitTab 
+                 actionPlanData={actionPlanResult}
+                 interviewDate={meta.interview_date || "Non définie"}
+                 interviewFormat={formatLabels[meta.interview_format] || meta.interview_format || "Non défini"}
+                 interviewTarget={interviewTypeLabels[meta.interview_type] || meta.interview_type || "Non défini"}
+               />
+             ) : (
+               <div className="bento-card skeleton-pulse" style={{ minHeight: '400px' }}></div>
+             )}
+           </div>
+        )}
+
         {activeTab === 'interview' && (
            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
              <InterviewTab />

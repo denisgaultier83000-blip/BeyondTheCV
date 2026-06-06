@@ -98,8 +98,14 @@ class OSINTPipeline:
         
         all_articles = []
         # Recherches en parallèle pour des performances optimales
+        sem = asyncio.Semaphore(5) # Limite à 5 requêtes concurrentes
+        
+        async def fetch_with_sem(session, q):
+            async with sem:
+                return await self.fetch_serper_async(session, q)
+
         async with aiohttp.ClientSession() as session:
-            tasks = [self.fetch_serper_async(session, q) for q in queries]
+            tasks = [fetch_with_sem(session, q) for q in queries]
             results = await asyncio.gather(*tasks)
             for res in results:
                 all_articles.extend(res)
