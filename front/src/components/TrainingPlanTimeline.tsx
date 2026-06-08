@@ -5,6 +5,7 @@ export interface TrainingModule {
   day: string;
   module: string;
   duration_minutes: number;
+  focus?: string;
 }
 
 interface Props {

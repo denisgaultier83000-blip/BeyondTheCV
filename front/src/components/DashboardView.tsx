@@ -20,6 +20,16 @@ import { PrintableDossier } from './PrintableDossier';
 import { TrainingPlanTimeline } from './TrainingPlanTimeline';
 import { CockpitTab } from './CockpitTab';
 
+interface DeliverableItem {
+  name: string;
+  tab: string;
+  anchor: string;
+  data: any;
+  icon: JSX.Element;
+  disabled?: boolean;
+  disabledReason?: string;
+}
+
 export const DashboardView = () => {
   const { t } = useTranslation();
   const { 
@@ -136,7 +146,7 @@ export const DashboardView = () => {
   const hasJobDesc = !!(cvData?.job_description && cvData.job_description.trim().length > 0);
 
   // Liste de tous les livrables avec leur état
-  const deliverableItems = [
+  const deliverableItems: DeliverableItem[] = [
     { name: t('deliv_pitch', "Pitch de 3 minutes"), tab: "interview", anchor: "pitch_section", data: pitchResult, icon: <Mic size={18}/> },
     { name: t('deliv_questions', "Questions & Mises en situation"), tab: "interview", anchor: "questionnaire_section", data: questionsResult || customScenariosResult, icon: <MessageSquare size={18}/> },
     { name: t('deliv_mes', "Mises en situation"), tab: "interview", anchor: "mes_anchor", data: customScenariosResult || cvData, icon: <ShieldAlert size={18}/> },
@@ -266,7 +276,7 @@ export const DashboardView = () => {
                        return (
                           <div 
                              key={idx} 
-                             onClick={() => !item.disabled && !isPending && handleTabChange(item.tab, (item as any).anchor)} 
+                             onClick={() => !item.disabled && !isPending && handleTabChange(item.tab, item.anchor)} 
                              style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', border: `1px solid ${isReady ? 'var(--primary)' : 'var(--border-color)'}`, display: 'flex', flexDirection: 'column', gap: '0.5rem', cursor: (item.disabled || isPending) ? 'not-allowed' : 'pointer', opacity: item.disabled ? 0.5 : (isPending ? 0.7 : 1), transition: 'all 0.2s', boxShadow: isNew ? '0 4px 12px rgba(59, 130, 246, 0.15)' : 'none' }} 
                              onMouseOver={(e) => !item.disabled && !isPending && (e.currentTarget.style.transform = 'translateY(-2px)')} 
                              onMouseOut={(e) => !item.disabled && !isPending && (e.currentTarget.style.transform = 'none')}
@@ -326,8 +336,8 @@ export const DashboardView = () => {
                <CockpitTab 
                  actionPlanData={actionPlanResult}
                  interviewDate={meta.interview_date || "Non définie"}
-                 interviewFormat={formatLabels[meta.interview_format] || meta.interview_format || "Non défini"}
-                 interviewTarget={interviewTypeLabels[meta.interview_type] || meta.interview_type || "Non défini"}
+                 interviewFormat={meta.interview_format ? (formatLabels[meta.interview_format as string] || meta.interview_format) : "Non défini"}
+                 interviewTarget={meta.interview_type ? (interviewTypeLabels[meta.interview_type as string] || meta.interview_type) : "Non défini"}
                />
              ) : (
                <div className="bento-card skeleton-pulse" style={{ minHeight: '400px' }}></div>

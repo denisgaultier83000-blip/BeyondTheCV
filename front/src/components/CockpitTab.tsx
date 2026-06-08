@@ -7,6 +7,7 @@ interface TrainingModule {
   module: string;
   duration_minutes: number;
   stage?: 'current' | 'upcoming';
+  focus?: string;
 }
 
 interface ActionTask {
