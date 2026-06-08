@@ -10,7 +10,11 @@ import {
   History,
   Lightbulb,
   Lock,
-  TrendingUp
+  TrendingUp,
+  Mic,
+  Send,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 import Questionnaire from './Questionnaire';
