@@ -787,12 +787,26 @@ async def generate_extra_scenarios(data: dict = Body(...), current_user: dict = 
             return cached
 
         prompt_template = load_prompt("mise_en_situation.md")
+        job_desc = data.get('job_description', '')
+        
+        context_job = f"Poste visé : {target_job}"
+        if job_desc and len(job_desc) > 50:
+            context_job += f"\nDESCRIPTION DE L'OFFRE :\n{job_desc[:5000]}"
+            
+        # [FIX EXPERT] Whitelist ultra-stricte : on ne garde que ce qui est utile à la création de scénarios (économie de tokens massive)
+        clean_data = {
+            "experiences": data.get("experiences", []),
+            "skills": data.get("skills", []),
+            "work_style": data.get("work_style", [])
+        }
         
         final_prompt = f"""
         {prompt_template or "Génère 3 catégories de mises en situation avec des scénarios de crise."}
         
-        POSTE VISÉ : {target_job}
-        PROFIL DU CANDIDAT : {json.dumps(_sanitize_data_for_ai(data, strict=True), default=str)}
+        CIBLE :
+        {context_job}
+        
+        PROFIL DU CANDIDAT : {json.dumps(clean_data, ensure_ascii=False, default=str)}
         
         OUTPUT STRICT JSON.
         LANGUAGE: {target_lang}
@@ -1184,8 +1198,10 @@ async def generate_document(request: GenerateRequest, current_user: dict = Depen
                 if isinstance(q, dict):
                     questions.append({
                         "category": cat_label, 
+                        "axis": q.get("axis", cat_label),
                         "question": q.get("question", ""), 
-                        "suggested_answer": q.get("strategy", "Stratégie"), # On affiche la stratégie dans le champ réponse
+                        "suggested_answer": q.get("intention", q.get("strategy", "Stratégie")), 
+                        "intention": q.get("intention", q.get("strategy", "")),
                         "score": 100,
                         "advice": "Posez cette question pour montrer votre vision stratégique." if is_french else "Ask this to demonstrate strategic vision."
                     })
@@ -1590,7 +1606,14 @@ async def get_dashboard_summary(data: FullCVData, current_user: dict = Depends(r
         recommended_strategy = " ".join(strategy_list) if isinstance(strategy_list, list) else str(strategy_list)
         
         raw_gaps = gap_analysis_result.get("missing_gaps", [])
-        gaps_matrix = [{"skill": gap, "impact": "Bloquant pour les ATS", "action": "À développer ou justifier"} for gap in raw_gaps]
+        gaps_matrix = []
+        for gap in raw_gaps:
+            if isinstance(gap, dict):
+                skill_name = gap.get("skill") or gap.get("name") or gap.get("description") or str(gap)
+                est_time = gap.get("estimated_time") or gap.get("time_to_bridge")
+                gaps_matrix.append({"skill": skill_name, "impact": "Bloquant pour les ATS", "action": "À développer ou justifier", "estimated_time": est_time})
+            else:
+                gaps_matrix.append({"skill": gap, "impact": "Bloquant pour les ATS", "action": "À développer ou justifier"})
 
         # [FIX EXPERT] On met en cache la réponse pour accélérer les futurs rechargements
         summary_payload = {

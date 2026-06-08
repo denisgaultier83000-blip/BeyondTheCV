@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ShieldAlert, Clock, Zap, Target, CheckCircle2, Circle } from 'lucide-react';
+import { ShieldAlert, Clock, Zap, Target, CheckCircle2, Circle, Mic, CalendarDays, Timer, Lock } from 'lucide-react';
 
 interface TrainingModule {
   day: string;
   module: string;
   duration_minutes: number;
+  stage?: 'current' | 'upcoming';
 }
 
 interface ActionTask {
   task: string;
   advice: string;
+  estimated_duration?: string;
 }
 
 interface CockpitProps {
@@ -71,78 +73,95 @@ export const CockpitTab: React.FC<CockpitProps> = ({
         </div>
       </div>
 
-      <div className="bento-card">
-        <h3 style={{ fontSize: '1.25rem', margin: '0 0 1.5rem 0', fontWeight: 'bold', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Zap size={20} color="#f59e0b" />
-          Feuille de Route (Plan de Bataille)
-        </h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
         
-        <div style={{ position: 'relative', borderLeft: '2px solid var(--border-color)', marginLeft: '12px', paddingLeft: '24px', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        {/* PHASE 1: IMMÉDIAT (Action Plan) */}
+        <div className="bento-card" style={{ borderTop: '4px solid #f59e0b' }}>
+          <h3 style={{ fontSize: '1.1rem', margin: '0 0 1.5rem 0', fontWeight: 800, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <Zap size={20} />
+            Actions Commando (One-Off)
+          </h3>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '-1rem', marginBottom: '1.5rem' }}>À faire immédiatement pour sécuriser votre préparation logistique.</p>
           
-          {/* PHASE 1: IMMÉDIAT (Action Plan) */}
-          {plan.length > 0 && (
-            <div style={{ position: 'relative' }}>
-               <div style={{ position: 'absolute', width: '16px', height: '16px', background: '#f59e0b', borderRadius: '50%', left: '-33px', top: '2px', border: '3px solid var(--bg-card)' }}></div>
-               <div style={{ marginBottom: '1rem', fontSize: '0.9rem', fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Phase 1 : Actions Immédiates (Aujourd'hui)
-               </div>
-               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {plan.map((item, idx) => {
-                    const isChecked = checkedItems.includes(idx);
-                    return (
-                      <div 
-                        key={idx} 
-                        onClick={() => toggleCheck(idx)}
-                        style={{ 
-                          display: 'flex', gap: '1rem', padding: '1rem', 
-                          background: isChecked ? 'rgba(34, 197, 94, 0.05)' : 'var(--bg-secondary)', 
-                          borderRadius: '0.75rem', 
-                          border: `1px solid ${isChecked ? 'var(--success)' : 'var(--border-color)'}`,
-                          cursor: 'pointer', transition: 'all 0.2s',
-                          opacity: isChecked ? 0.7 : 1
-                        }}
-                      >
-                        <div style={{ marginTop: '2px', color: isChecked ? 'var(--success)' : 'var(--text-muted)', transition: 'color 0.2s' }}>
-                          {isChecked ? <CheckCircle2 size={22} /> : <Circle size={22} />}
-                        </div>
-                        <div>
-                          <h4 style={{ margin: '0 0 0.25rem 0', fontWeight: 600, color: isChecked ? 'var(--text-muted)' : 'var(--text-main)', textDecoration: isChecked ? 'line-through' : 'none', transition: 'all 0.2s' }}>{item.task}</h4>
-                          <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>{item.advice}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-               </div>
-            </div>
-          )}
-
-          {/* PHASE 2: ENTRAINEMENT (Training Plan) */}
-          {training.length > 0 && (
-            <div style={{ position: 'relative' }}>
-               <div style={{ position: 'absolute', width: '16px', height: '16px', background: 'var(--primary)', borderRadius: '50%', left: '-33px', top: '2px', border: '3px solid var(--bg-card)' }}></div>
-               <div style={{ marginBottom: '1rem', fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Phase 2 : Entraînement Régulier
-               </div>
-               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {training.map((planItem, idx) => (
-                    <div key={idx} style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '0.5rem', padding: '0.25rem 0.5rem', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-                            {planItem.day}
-                         </div>
-                         <span style={{ fontWeight: 500, color: 'var(--text-main)', fontSize: '0.95rem' }}>{planItem.module}</span>
-                      </div>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600, background: 'var(--primary)', color: 'white', padding: '0.25rem 0.5rem', borderRadius: '0.5rem', whiteSpace: 'nowrap' }}>
-                        {planItem.duration_minutes} {t('cockpit_duration', 'min')}
-                      </span>
+          {plan.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {plan.map((item, idx) => {
+                const isChecked = checkedItems.includes(idx);
+                return (
+                  <div 
+                    key={idx} 
+                    onClick={() => toggleCheck(idx)}
+                    style={{ 
+                      display: 'flex', gap: '1rem', padding: '1rem', 
+                      background: isChecked ? 'rgba(34, 197, 94, 0.05)' : 'var(--bg-secondary)', 
+                      borderRadius: '0.75rem', 
+                      border: `1px solid ${isChecked ? 'var(--success)' : 'var(--border-color)'}`,
+                      cursor: 'pointer', transition: 'all 0.2s',
+                      opacity: isChecked ? 0.6 : 1,
+                      boxShadow: isChecked ? 'none' : '0 2px 4px rgba(0,0,0,0.02)'
+                    }}
+                  >
+                    <div style={{ marginTop: '2px', color: isChecked ? 'var(--success)' : 'var(--text-muted)', transition: 'color 0.2s' }}>
+                      {isChecked ? <CheckCircle2 size={24} /> : <Circle size={24} />}
                     </div>
-                  ))}
-               </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '0.25rem' }}>
+                        <h4 style={{ margin: 0, fontWeight: 700, color: isChecked ? 'var(--text-muted)' : 'var(--text-main)', textDecoration: isChecked ? 'line-through' : 'none', transition: 'all 0.2s', fontSize: '1rem' }}>{item.task}</h4>
+                        {item.estimated_duration && (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 700, color: '#f59e0b', background: 'rgba(245, 158, 11, 0.1)', padding: '0.2rem 0.5rem', borderRadius: '1rem', whiteSpace: 'nowrap' }}>
+                            <Timer size={12} /> {item.estimated_duration}
+                          </span>
+                        )}
+                      </div>
+                      <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.5, textDecoration: isChecked ? 'line-through' : 'none' }}>{item.advice}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
+          ) : (
+            <div className="skeleton-pulse" style={{ height: '200px', borderRadius: '0.75rem' }}></div>
           )}
+        </div>
 
-          {plan.length === 0 && training.length === 0 && (
-            <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', margin: 0 }}>Génération en cours ou données non disponibles...</p>
+        {/* PHASE 2: ENTRAINEMENT (Training Plan) */}
+        <div className="bento-card" style={{ borderTop: '4px solid #8b5cf6' }}>
+          <h3 style={{ fontSize: '1.1rem', margin: '0 0 1.5rem 0', fontWeight: 800, color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <Mic size={20} />
+            Rituels Vocaux (Répétitions)
+          </h3>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '-1rem', marginBottom: '1.5rem' }}>Votre routine quotidienne. La maîtrise vient par la répétition à voix haute.</p>
+          
+          {training.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {training.map((planItem, idx) => {
+                const isUpcoming = planItem.stage === 'upcoming';
+                const accentColor = isUpcoming ? '#94a3b8' : '#8b5cf6'; // Gris ardoise si futur, sinon Violet
+                
+                return (
+                  <div key={idx} style={{ background: isUpcoming ? 'var(--bg-card)' : 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', border: `1px ${isUpcoming ? 'dashed' : 'solid'} var(--border-color)`, display: 'flex', gap: '1rem', alignItems: 'flex-start', opacity: isUpcoming ? 0.7 : 1 }}>
+                    {/* Icon Calendrier stylisé */}
+                    <div style={{ background: isUpcoming ? 'transparent' : '#f8fafc', border: `1px solid ${isUpcoming ? 'transparent' : '#e2e8f0'}`, borderRadius: '0.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'hidden', minWidth: '55px', flexShrink: 0 }}>
+                      <div style={{ background: accentColor, color: 'white', width: '100%', fontSize: '0.65rem', fontWeight: 800, textAlign: 'center', padding: '0.2rem 0', textTransform: 'uppercase' }}>
+                        {isUpcoming ? <Lock size={12} style={{ margin: '0 auto' }} /> : "JOUR"}
+                      </div>
+                      <div style={{ padding: '0.4rem 0', fontWeight: 800, color: isUpcoming ? 'var(--text-muted)' : 'var(--text-main)', fontSize: '0.9rem' }}>{planItem.day.replace('J-', '-')}</div>
+                    </div>
+                    
+                    <div style={{ flex: 1 }}>
+                      <h4 style={{ margin: '0 0 0.25rem 0', fontWeight: 700, color: isUpcoming ? 'var(--text-muted)' : 'var(--text-main)', fontSize: '1rem' }}>{planItem.module}</h4>
+                      <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>{planItem.focus || "Répétez cet exercice chronométré à voix haute."}</p>
+                    </div>
+                    
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 700, background: isUpcoming ? '#f1f5f9' : 'rgba(139, 92, 246, 0.1)', color: accentColor, padding: '0.3rem 0.6rem', borderRadius: '1rem', whiteSpace: 'nowrap' }}>
+                      {isUpcoming ? 'Prochaine étape' : `${planItem.duration_minutes} min`}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="skeleton-pulse" style={{ height: '200px', borderRadius: '0.75rem' }}></div>
           )}
         </div>
       </div>

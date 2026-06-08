@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Target, Star, BarChart, FileDown, AlertTriangle, Sparkles } from 'lucide-react';
+import { Target, Star, BarChart, FileDown, AlertTriangle, Sparkles, Clock } from 'lucide-react';
 import Gauge from './Gauge'; // Import du nouveau composant
 
 interface DiagnosticData {
@@ -11,7 +11,7 @@ interface DiagnosticData {
   strengths?: string[];
   key_strengths: string[];
   skills_to_bridge?: string[];
-  gapsMatrix?: { skill: string, impact: string, action: string }[];
+  gapsMatrix?: { skill: string, impact: string, action: string, estimated_time?: string }[];
   application_strategy?: string[];
   recommendedStrategy?: string;
   analysis_stats: {
@@ -93,9 +93,14 @@ export default function DiagnosticDashboard({ data, candidateName, targetJob, on
         <StatCard icon={<AlertTriangle size={24} color="var(--danger)" />} title="Compétences à combler">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {(data.gapsMatrix?.length ? data.gapsMatrix : (data.skills_to_bridge || []).map(s => ({ skill: s, action: '' }))).slice(0, 3).map((gap: any, i) => (
-              <div key={i} style={{ background: 'var(--danger-bg)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--danger-border)' }}>
-                <strong style={{ color: 'var(--danger-text)' }}>{gap.skill || gap}</strong>
-                {gap.action && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{gap.action}</div>}
+              <div key={i} style={{ background: 'var(--danger-bg)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--danger-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+                <div>
+                  <strong style={{ color: 'var(--danger-text)' }}>{gap.skill || gap}</strong>
+                  {gap.action && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{gap.action}</div>}
+                </div>
+                {gap.estimated_time && (
+                  <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: 'var(--bg-card)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '1rem', color: 'var(--danger-text)', display: 'flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap', fontWeight: 600 }}><Clock size={12} /> {gap.estimated_time}</span>
+                )}
               </div>
             ))}
             {(!data.gapsMatrix?.length && !data.skills_to_bridge?.length) && <span style={{ color: 'var(--text-muted)' }}>Aucun écart majeur détecté.</span>}

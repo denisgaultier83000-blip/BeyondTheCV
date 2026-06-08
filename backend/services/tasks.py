@@ -1185,7 +1185,14 @@ async def process_custom_scenarios_in_background(task_id: str, data: dict):
         
         context_job = f"Poste visé : {target_job}"
         if job_desc and len(job_desc) > 50:
-            context_job += f"\nDESCRIPTION DE L'OFFRE :\n{job_desc}"
+            context_job += f"\nDESCRIPTION DE L'OFFRE :\n{job_desc[:5000]}"
+            
+        # [FIX EXPERT] Whitelist stricte pour empêcher le JSON brut de faire exploser la limite de tokens.
+        clean_data = {
+            "experiences": data.get("experiences", []),
+            "skills": data.get("skills", []),
+            "work_style": data.get("work_style", [])
+        }
             
         final_prompt = f"""
         {prompt_template}
@@ -1194,7 +1201,7 @@ async def process_custom_scenarios_in_background(task_id: str, data: dict):
         {context_job}
         
         PROFIL CANDIDAT :
-        {json.dumps(data, indent=2, ensure_ascii=False, default=str)}
+        {json.dumps(clean_data, indent=2, ensure_ascii=False, default=str)}
         
         OUTPUT LANGUAGE: {target_lang}
         """

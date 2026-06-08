@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useDashboard } from './DashboardContext';
-import { Mic, MessageSquare, Play, Pause, RotateCcw, BrainCircuit, ArrowLeft, History, Loader2, RefreshCw } from 'lucide-react';
+import { Mic, MessageSquare, Play, Pause, RotateCcw, BrainCircuit, ArrowLeft, History, Loader2, RefreshCw, Lightbulb } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DashboardCard } from './DashboardCard';
 import { SituationSimulator } from './SituationSimulator';
@@ -257,6 +257,10 @@ export const InterviewTab = () => {
   };
 
   const questionsArray = getQuestionsArray(questionsResult);
+  
+  const standardQuestions = questionsArray.filter(q => q.category !== "Questions à poser au recruteur" && q.category !== "Questions to Ask Recruiter");
+  const smartQuestions = questionsArray.filter(q => q.category === "Questions à poser au recruteur" || q.category === "Questions to Ask Recruiter");
+  
   const scenariosArray = getScenariosAsQuestions(customScenariosResult);
   const mergedQuestions = [...questionsArray, ...scenariosArray];
 
@@ -362,12 +366,38 @@ export const InterviewTab = () => {
               </div>
               {mergedQuestions.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                  {questionsArray.length > 0 && (
-                    <Questionnaire questions={questionsArray} hideHeader={true} />
+                      {standardQuestions.length > 0 && (
+                        <Questionnaire questions={standardQuestions} hideHeader={true} />
                   )}
                   {scenariosArray.length > 0 && (
                     <div id="mes_anchor"><Questionnaire questions={scenariosArray} hideHeader={true} /></div>
                   )}
+                      {smartQuestions.length > 0 && (
+                        <div style={{ marginTop: '1rem' }}>
+                          <h3 style={{ color: 'var(--text-main)', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem' }}>
+                            <Lightbulb size={22} color="var(--primary)" /> Vos questions de fin d'entretien
+                          </h3>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            {smartQuestions.map((q, idx) => (
+                              <div key={idx} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.3rem 0.75rem', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)', borderRadius: '1rem', textTransform: 'uppercase' }}>
+                                  {q.axis || "Stratégie"}
+                                </span>
+                                <h4 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)', margin: '1.25rem 0' }}>
+                                  {q.question}
+                                </h4>
+                                <div style={{ background: 'var(--bg-card)', borderLeft: '4px solid #f59e0b', borderRadius: '0 0.5rem 0.5rem 0', padding: '1.25rem', display: 'flex', gap: '1rem', alignItems: 'flex-start', border: '1px solid var(--border-color)', borderLeftWidth: '4px' }}>
+                                  <span style={{ fontSize: '1.25rem' }}>💡</span>
+                                  <div>
+                                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#b45309', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pourquoi la poser ?</div>
+                                    <div style={{ fontSize: '0.95rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>{q.intention || q.advice || q.suggested_answer}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                 </div>
               ) : (
                 <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>

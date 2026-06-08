@@ -8,7 +8,9 @@ import {
   MessageSquare,
   Settings2,
   History,
-  Lightbulb
+  Lightbulb,
+  Lock,
+  TrendingUp
 } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 import Questionnaire from './Questionnaire';
@@ -186,6 +188,8 @@ export default function TrainingTab() {
     return String(item);
   };
 
+  const upcomingModules = actionPlanResult?.training_plan?.filter((t: any) => t.stage === 'upcoming') || [];
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       
@@ -196,6 +200,25 @@ export default function TrainingTab() {
             <p style={{ margin: 0, color: 'var(--text-main)', fontSize: '1rem', lineHeight: '1.6' }}>
               {actionPlanResult.strategy_advice}
             </p>
+          </div>
+        </DashboardCard>
+      )}
+
+      {/* --- MODULES D'ANTICIPATION --- */}
+      {upcomingModules.length > 0 && (
+        <DashboardCard title="Anticipation & Prochains Rounds" icon={<TrendingUp size={24} />}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {upcomingModules.map((mod: any, idx: number) => (
+              <div key={idx} style={{ background: 'var(--bg-secondary)', border: '1px dashed var(--border-color)', borderRadius: '1rem', padding: '1.5rem', display: 'flex', gap: '1.25rem', alignItems: 'flex-start', opacity: 0.8 }}>
+                <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: '0.75rem', borderRadius: '0.75rem', color: 'var(--text-muted)' }}>
+                  <Lock size={24} />
+                </div>
+                <div>
+                  <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontWeight: 700, fontSize: '1.05rem' }}>{mod.module}</h4>
+                  <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.5 }}>{mod.focus}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </DashboardCard>
       )}
