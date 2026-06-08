@@ -123,6 +123,14 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
                 clean_data['personal_info'].pop(k, None)
                 
     if strict:
+        # [OPTIMISATION TOKENS] Limitation stricte de la taille des textes libres
+        if 'free_text' in clean_data and isinstance(clean_data['free_text'], str):
+            clean_data['free_text'] = clean_data['free_text'][:3000]
+        if 'job_description' in clean_data and isinstance(clean_data['job_description'], str):
+            clean_data['job_description'] = clean_data['job_description'][:5000]
+        if 'bio' in clean_data and isinstance(clean_data['bio'], str):
+            clean_data['bio'] = clean_data['bio'][:1500]
+
         # Purge des listes : suppression des IDs aléatoires qui cassent la signature du cache
         for list_key in ['experiences', 'educations', 'projects', 'skills', 'languages', 'clarifications', 'work_style', 'relational_style', 'professional_approach', 'interests', 'flaws']:
             if list_key in clean_data and isinstance(clean_data[list_key], list):
@@ -134,6 +142,12 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
                         keys_to_remove = [k for k in item_copy.keys() if k in ['id', '_id', 'created_at', 'updated_at', 'createdAt', 'updatedAt'] or k.startswith('ui_') or k.startswith('is')]
                         for k in keys_to_remove:
                             item_copy.pop(k, None)
+                            
+                        # [OPTIMISATION TOKENS] Limitation de la taille des descriptions internes
+                        if 'description' in item_copy and isinstance(item_copy['description'], str):
+                            item_copy['description'] = item_copy['description'][:2000]
+                        if 'bullets' in item_copy and isinstance(item_copy['bullets'], list):
+                            item_copy['bullets'] = [str(b)[:500] for b in item_copy['bullets']]
                         clean_list.append(item_copy)
                     else:
                         clean_list.append(item)

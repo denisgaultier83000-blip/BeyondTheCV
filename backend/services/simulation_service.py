@@ -86,7 +86,9 @@ async def simulate_situation(request: SituationSimulationRequest, current_user: 
     {json.dumps(_sanitize_for_prompt(request.candidate_profile), indent=2, ensure_ascii=False, default=str)}
     
     USER ANSWER:
-    {request.user_answer}
+    <user_answer>
+    {request.user_answer.strip()}
+    </user_answer>
     """
     
     try:

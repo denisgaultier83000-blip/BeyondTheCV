@@ -24,8 +24,9 @@ Principes de qualité :
 - Chaque question doit donner envie au recruteur de répondre
 - Le candidat doit paraître réfléchi, pas opportuniste
 
-Structure obligatoire :
-- 5 questions numérotées
+Contraintes de format (JSON STRICT) :
+- La sortie DOIT être un objet JSON valide et strict.
+- AUCUN texte textuel avant ou après le JSON.
 - 1 phrase maximum par question
 - Ton professionnel, naturel, posé
 
@@ -39,3 +40,16 @@ Axes à couvrir (1 question par axe) :
 Règle d’or :
 Si une question pourrait être posée par n’importe quel autre candidat,
 elle est invalide et doit être remplacée.
+
+## 📦 SORTIE ATTENDUE (JSON STRICT)
+```json
+{
+  "questions": [
+    {
+      "axis": "L'axe couvert (ex: Priorités et enjeux à court terme)",
+      "question": "La question précise, unique et percutante à poser au recruteur.",
+      "intention": "Courte explication de ce que le candidat cherche à démontrer ou découvrir via cette question."
+    }
+  ]
+}
+```

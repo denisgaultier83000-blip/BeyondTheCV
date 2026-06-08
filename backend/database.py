@@ -4,6 +4,7 @@ import urllib.parse
 from contextlib import asynccontextmanager, contextmanager
 from dotenv import load_dotenv
 import asyncio
+import threading
 
 # Chargement robuste du .env (Docker vs Local)
 current_dir = os.path.dirname(__file__)
@@ -75,9 +76,11 @@ def get_database_url():
 DATABASE_URL = None # [FIX LIFECYCLE] L'URL est maintenant calculée et assignée dans le lifespan de main.py pour éviter les I/O à l'import.
 try:
     import psycopg2
+    from psycopg2 import pool as psycopg2_pool
     print("[DB] Module 'psycopg2' loaded successfully.", flush=True)
 except ImportError:
     psycopg2 = None
+    psycopg2_pool = None
     print("[CRITICAL] Module 'psycopg2' not found. FIX: Run rebuild Docker", flush=True)
 
 try:
@@ -92,6 +95,10 @@ class Database:
     def __init__(self):
         self.db_type = "postgres"
         self.database_url = None # Sera configuré par le lifespan dans main.py
+        self._async_pool = None
+        self._sync_pool = None
+        self._async_lock = asyncio.Lock()
+        self._sync_lock = threading.Lock()
         
         # [FIX EXPERT] L'initialisation ne doit pas se faire lors de l'import du module.
         # Elle est désormais déléguée exclusivement au gestionnaire 'lifespan' de FastAPI (main.py).
@@ -112,43 +119,67 @@ class Database:
             print(f"[DB] Error initializing PostgreSQL: {e}", flush=True)
             raise
 
+    async def close_pools(self):
+        """Ferme proprement les pools de connexions."""
+        if self._async_pool:
+            await self._async_pool.close()
+            self._async_pool = None
+        if self._sync_pool:
+            self._sync_pool.closeall()
+            self._sync_pool = None
+
     @asynccontextmanager
     async def get_connection(self):
         """Get async database connection."""
         if not self.database_url:
             raise RuntimeError("Database not configured. Lifespan may have failed.")
         if asyncpg:
-            # Use asyncpg for PostgreSQL async connections
-            conn = await asyncpg.connect(self.database_url)
-            try:
+            if not self._async_pool:
+                async with self._async_lock:
+                    if not self._async_pool:
+                        # [OPTIMISATION] Pool asynchrone pour encaisser un pic de trafic
+                        self._async_pool = await asyncpg.create_pool(self.database_url, min_size=5, max_size=50)
+            async with self._async_pool.acquire() as conn:
                 yield conn
-            finally:
-                await conn.close()
         else:
             # [FIX ROBUSTESSE] Encapsulation de la connexion synchrone dans un try/except
             # pour intercepter les erreurs de bas niveau (ex: socket cassé) avant qu'elles ne fassent crasher le processus.
             conn = None
             try:
-                conn = await asyncio.to_thread(psycopg2.connect, self.database_url)
+                conn = await asyncio.to_thread(self._get_sync_conn)
                 yield conn
             except Exception as e:
                 print(f"[DB CRITICAL] Failed to connect with psycopg2 fallback: {e}", flush=True)
                 raise  # On relève l'exception pour que l'appelant puisse la gérer.
             finally:
                 if conn:
-                    # La fermeture de la connexion est aussi une opération bloquante.
-                    await asyncio.to_thread(conn.close)
+                    # On rend la connexion au pool plutôt que de la détruire
+                    await asyncio.to_thread(self._release_sync_conn, conn)
+                    
+    def _get_sync_conn(self):
+        if not self._sync_pool:
+            with self._sync_lock:
+                if not self._sync_pool:
+                    if not psycopg2_pool:
+                        raise RuntimeError("psycopg2.pool n'est pas disponible.")
+                    # [OPTIMISATION] Pool synchrone (Threadé) pour les tâches de fond
+                    self._sync_pool = psycopg2_pool.ThreadedConnectionPool(5, 50, dsn=self.database_url)
+        return self._sync_pool.getconn()
+        
+    def _release_sync_conn(self, conn):
+        if self._sync_pool and conn:
+            self._sync_pool.putconn(conn)
 
     @contextmanager
     def get_sync_connection(self):
         """Get synchronous database connection."""
         if not self.database_url:
             raise RuntimeError("Database not configured. Lifespan may have failed.")
-        conn = psycopg2.connect(self.database_url)
+        conn = self._get_sync_conn()
         try:
             yield conn
         finally:
-            conn.close()
+            self._release_sync_conn(conn)
 
     async def execute(self, conn, query, params=()):
         """Helper robuste pour exécuter des requêtes (conversion SQLite (?) vers PostgreSQL native)."""

@@ -309,8 +309,10 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str):
     try:
         while True:
             await websocket.receive_text()
-    except WebSocketDisconnect:
-        manager.disconnect(websocket, task_id)
+    except Exception:
+        pass # On ignore silencieusement les coupures réseau abruptes (RuntimeError, CancelledError)
+    finally:
+        manager.disconnect(websocket, task_id) # Garanti d'être exécuté à 100%, libérant la mémoire
 
 @router.get("/api/admin/migrate-archives")
 async def migrate_archives():

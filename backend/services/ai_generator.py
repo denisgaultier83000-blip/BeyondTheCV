@@ -85,13 +85,14 @@ class AIGenerator:
         """Sélection directe du modèle OpenAI."""
         return "gpt-4o-mini"
 
-    async def generate(self, prompt: str, provider: str = None, system_instruction: str = None, bypass_queue: bool = False) -> str:
+    async def generate(self, prompt: str, provider: str = None, system_instruction: str = None, bypass_queue: bool = False, json_mode: bool = False) -> str:
         """
         Fonction unique pour appeler l'IA.
         :param prompt: Le texte à envoyer.
         :param provider: 'openai' ou 'gemini'. Si None, utilise le défaut.
         :param system_instruction: Instruction système (ex: "Tu es un expert RH").
         :param bypass_queue: Si True, contourne le sémaphore global pour une exécution immédiate.
+        :param json_mode: Si True, force le provider à renvoyer un objet JSON strict.
         """
         # Logique simplifiée et robuste : on utilise le modèle résolu au démarrage
         target_provider = provider or self.default_provider
@@ -110,7 +111,7 @@ class AIGenerator:
 
         async def _run():
             try:
-                res = await self._execute_provider(target_provider, prompt, system_instruction)
+                res = await self._execute_provider(target_provider, prompt, system_instruction, json_mode=json_mode, bypass_queue=bypass_queue)
                 self.provider_failures[target_provider] = max(0, self.provider_failures[target_provider] - 1)
                 return res
                     
@@ -120,7 +121,7 @@ class AIGenerator:
                 # 🔄 SYSTÈME DE FALLBACK AUTOMATIQUE GLOBAL
                 print(f"[AI] ⚠️ {target_provider.capitalize()} a échoué ({str(e)}). Auto-fallback vers {fallback_provider}...", flush=True)
                 try:
-                    res = await self._execute_provider(fallback_provider, prompt, system_instruction)
+                    res = await self._execute_provider(fallback_provider, prompt, system_instruction, json_mode=json_mode, bypass_queue=bypass_queue)
                     self.provider_failures[fallback_provider] = max(0, self.provider_failures[fallback_provider] - 1)
                     return res
                 except Exception as fallback_e:
@@ -129,12 +130,9 @@ class AIGenerator:
                     print(f"[AI] 💀 FATAL: {msg}", flush=True)
                     raise RuntimeError(msg)
 
-        if bypass_queue:
-            return await _run()
-            
-        # Le sémaphore met les requêtes excédentaires en file d'attente au lieu de spammer l'API
-        async with self._semaphore:
-            return await _run()
+        # L'acquisition du sémaphore est déléguée au plus près de l'appel réseau 
+        # pour éviter les deadlocks (starvation) pendant les retry/sleeps.
+        return await _run()
 
     async def generate_valid_json(self, prompt: str, provider: str = None, system_instruction: str = None, bypass_queue: bool = False) -> dict:
         """
@@ -148,7 +146,7 @@ class AIGenerator:
         
         if not AsyncRetrying:
             try:
-                res_str = await self.generate(prompt, provider, system_instruction, bypass_queue)
+                res_str = await self.generate(prompt, provider, system_instruction, bypass_queue, json_mode=True)
                 return clean_ai_json_response(res_str)
             except Exception as e:
                 return {"error": str(e), "type": "api_error"}
@@ -161,7 +159,7 @@ class AIGenerator:
         ):
             with attempt:
                 try:
-                    res_str = await self.generate(current_prompt, provider, system_instruction, bypass_queue)
+                    res_str = await self.generate(current_prompt, provider, system_instruction, bypass_queue, json_mode=True)
                     parsed = clean_ai_json_response(res_str)
                     if "error" in parsed:
                         current_prompt = prompt + f"\n\n⚠️ ATTENTION : Ta réponse précédente n'était pas un JSON valide.\nErreur retournée : {parsed['error']}\nExtrait de ce que tu as envoyé : {res_str[:150]}...\nMerci de CORRIGER ce format et de retourner STRICTEMENT un JSON valide."
@@ -172,13 +170,13 @@ class AIGenerator:
                     # Erreur d'API (Timeout, Quota, etc.), on renvoie l'erreur pour que le frontend gère
                     return {"error": str(e), "type": "api_error"}
 
-    async def _execute_provider(self, target_provider: str, prompt: str, system_instruction: str) -> str:
+    async def _execute_provider(self, target_provider: str, prompt: str, system_instruction: str, json_mode: bool = False, bypass_queue: bool = False) -> str:
         """Exécute l'appel vers le provider spécifique de manière isolée."""
         if target_provider == "openai":
             if not self.openai_client:
                 raise ValueError("OpenAI client not configured (Missing API Key).")
             model_name = await self._get_openai_model()
-            return await self._attempt_call(self._call_openai, model_name, prompt, system_instruction)
+            return await self._attempt_call(self._call_openai, model_name, bypass_queue, prompt, system_instruction, json_mode=json_mode)
             
         elif target_provider == "gemini":
             if not self.gemini_client:
@@ -186,19 +184,23 @@ class AIGenerator:
             model_name = await self._get_gemini_model()
             if not model_name:
                 raise ValueError("Gemini initialized but no model found during discovery.")
-            return await self._attempt_call(self._call_gemini, model_name, prompt, system_instruction)
+            return await self._attempt_call(self._call_gemini, model_name, bypass_queue, prompt, system_instruction, json_mode=json_mode)
             
         raise ValueError(f"Provider '{target_provider}' is unknown or not supported.")
 
-    async def _attempt_call(self, func, model_name, *args, **kwargs):
+    async def _attempt_call(self, func, model_name, bypass_queue, *args, **kwargs):
         """Exécute une fonction d'appel IA avec retries pour les erreurs transitoires."""
         max_retries = 1
         base_delay = 1.0
         
         for attempt in range(max_retries + 1):
             try:
-                # [CIRCUIT BREAKER] Timeout étendu à 60s pour absorber les pics de charge d'OpenAI
-                return await asyncio.wait_for(func(*args, model=model_name, **kwargs), timeout=60.0)
+                # [OPTIMISATION SÉMAPHORE] Acquis uniquement pendant la requête réseau
+                if bypass_queue:
+                    return await asyncio.wait_for(func(*args, model=model_name, **kwargs), timeout=60.0)
+                else:
+                    async with self._semaphore:
+                        return await asyncio.wait_for(func(*args, model=model_name, **kwargs), timeout=60.0)
             except asyncio.TimeoutError:
                 print(f"[AI] ⏱️ Timeout (60s) sur {model_name}. Le provider bloque.", flush=True)
                 if attempt < max_retries:
@@ -229,7 +231,7 @@ class AIGenerator:
                 else:
                     raise e # Épuisement des retries
 
-    async def _call_openai(self, prompt, system_instruction, model="gpt-4-turbo"):
+    async def _call_openai(self, prompt, system_instruction, model="gpt-4-turbo", json_mode=False):
         if not self.openai_client:
             raise ValueError("Clé OpenAI non configurée.")
         
@@ -238,14 +240,18 @@ class AIGenerator:
             messages.append({"role": "system", "content": system_instruction})
         messages.append({"role": "user", "content": prompt})
 
-        response = await self.openai_client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=0.7
-        )
+        kwargs = {
+            "model": model,
+            "messages": messages,
+            "temperature": 0.7
+        }
+        if json_mode:
+            kwargs["response_format"] = {"type": "json_object"}
+
+        response = await self.openai_client.chat.completions.create(**kwargs)
         return response.choices[0].message.content
 
-    async def _call_gemini(self, prompt, system_instruction, model="gemini-2.0-flash"):
+    async def _call_gemini(self, prompt, system_instruction, model="gemini-2.0-flash", json_mode=False):
         if not self.gemini_client:
             raise ValueError("Clé Gemini non configurée.")
         
@@ -253,8 +259,13 @@ class AIGenerator:
         # print(f"[AI] Using Gemini model: {model}", flush=True)
         
         config = None
-        if system_instruction:
-            config = types.GenerateContentConfig(system_instruction=system_instruction)
+        if system_instruction or json_mode:
+            config_kwargs = {}
+            if system_instruction:
+                config_kwargs["system_instruction"] = system_instruction
+            if json_mode:
+                config_kwargs["response_mime_type"] = "application/json"
+            config = types.GenerateContentConfig(**config_kwargs)
 
         # [FIX] Utilisation de l'API asynchrone native du nouveau SDK (aio)
         # Évite les deadlocks de threads causés par le client HTTPX synchrone sous-jacent

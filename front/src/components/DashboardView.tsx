@@ -106,6 +106,19 @@ export const DashboardView = () => {
 
   const isProcessing = globalStatus === "PROCESSING" || globalStatus === "STARTING";
 
+  // --- GESTION DES TIMEOUTS ET MESSAGES DE PATIENCE ---
+  const [longLoading, setLongLoading] = useState(false);
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    if (isProcessing) {
+      // Déclenche un message rassurant après 15 secondes pour éviter la frustration
+      timeoutId = setTimeout(() => setLongLoading(true), 15000);
+    } else {
+      setLongLoading(false);
+    }
+    return () => clearTimeout(timeoutId);
+  }, [isProcessing]);
+
   // Vérification stricte de la disponibilité des données pour éviter les "faux positifs" sur des objets/tableaux vides
   const isDataReady = (data: any) => {
     if (!data) return false;
@@ -231,11 +244,20 @@ export const DashboardView = () => {
                    <div className="bento-header" style={{ marginBottom: 0 }}><Activity size={20} color="var(--primary)"/> {t('hub_title', 'Centre de Suivi des Analyses')}</div>
                    <button 
                      onClick={() => setIsPrintModalOpen(true)} 
-                     className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
+                     disabled={isProcessing}
+                     className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem', opacity: isProcessing ? 0.5 : 1, cursor: isProcessing ? 'not-allowed' : 'pointer' }}>
                      <Printer size={16} /> Imprimer mon Dossier
                    </button>
                  </div>
                  <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: '0 0 1rem 0' }}>{t('hub_desc', 'Suivez la génération de vos outils en temps réel et cliquez pour y accéder.')}</p>
+               
+               {isProcessing && longLoading && (
+                 <div style={{ padding: '0.75rem', backgroundColor: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)', borderRadius: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500, animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}>
+                   <Loader2 size={16} className="spin" />
+                   {t('hub_long_loading', "L'analyse IA est très approfondie et prend un peu plus de temps. Merci de patienter (jusqu'à 60 secondes)...")}
+                 </div>
+               )}
+               
                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
                     {deliverableItems.map((item, idx) => {
                        const isReady = isDataReady(item.data) && !item.disabled;
@@ -244,10 +266,10 @@ export const DashboardView = () => {
                        return (
                           <div 
                              key={idx} 
-                             onClick={() => !item.disabled && handleTabChange(item.tab, (item as any).anchor)} 
-                             style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', border: `1px solid ${isReady ? 'var(--primary)' : 'var(--border-color)'}`, display: 'flex', flexDirection: 'column', gap: '0.5rem', cursor: item.disabled ? 'not-allowed' : 'pointer', opacity: item.disabled ? 0.5 : (isPending ? 0.7 : 1), transition: 'all 0.2s', boxShadow: isNew ? '0 4px 12px rgba(59, 130, 246, 0.15)' : 'none' }} 
-                             onMouseOver={(e) => !item.disabled && (e.currentTarget.style.transform = 'translateY(-2px)')} 
-                             onMouseOut={(e) => !item.disabled && (e.currentTarget.style.transform = 'none')}
+                             onClick={() => !item.disabled && !isPending && handleTabChange(item.tab, (item as any).anchor)} 
+                             style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', border: `1px solid ${isReady ? 'var(--primary)' : 'var(--border-color)'}`, display: 'flex', flexDirection: 'column', gap: '0.5rem', cursor: (item.disabled || isPending) ? 'not-allowed' : 'pointer', opacity: item.disabled ? 0.5 : (isPending ? 0.7 : 1), transition: 'all 0.2s', boxShadow: isNew ? '0 4px 12px rgba(59, 130, 246, 0.15)' : 'none' }} 
+                             onMouseOver={(e) => !item.disabled && !isPending && (e.currentTarget.style.transform = 'translateY(-2px)')} 
+                             onMouseOut={(e) => !item.disabled && !isPending && (e.currentTarget.style.transform = 'none')}
                           >
                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: isReady ? 'var(--text-main)' : 'var(--text-muted)', fontWeight: isReady ? 600 : 400 }}>

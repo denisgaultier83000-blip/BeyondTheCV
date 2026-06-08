@@ -193,12 +193,23 @@ async def lifespan(app: FastAPI):
         print(f"[FATAL STARTUP ERROR] {e}", flush=True)
         # [FIX EXPERT] On re-lève l'exception globale pour FORCER le crash de FastAPI.
         raise
+    
     yield
+    
+    # --- Shutdown Phase ---
+    print("[SHUTDOWN] Fermeture des pools de connexions à la base de données...", flush=True)
+    try:
+        await db.close_pools()
+        print("[SHUTDOWN] ✅ Pools de connexions fermés avec succès.", flush=True)
+    except Exception as e:
+        print(f"[SHUTDOWN ERROR] ❌ Impossible de fermer proprement les pools : {e}", flush=True)
 
 # --- Rate Limiting (Anti-Abuse) ---
 RATE_LIMIT_WINDOW = APP_CONFIG.get("rate_limit_window", 60)
 RATE_LIMIT_MAX_REQUESTS = APP_CONFIG.get("rate_limit_max_requests", 100)
+MAX_TRACKED_IPS = 10000 # [ANTI-OOM] Limite absolue du nombre d'IPs suivies en RAM
 request_history: Dict[str, List[float]] = defaultdict(list)
+_last_cleanup_time = time.time()
 
 def get_local_ip():
     """Récupère l'adresse IP locale de la machine sur le réseau."""
@@ -219,6 +230,7 @@ async def rate_limiter(request: Request):
     """
     Simple in-memory rate limiter to prevent abuse.
     """
+    global _last_cleanup_time
     # Allow health check without limit
     if request.url.path == "/":
         return
@@ -232,16 +244,22 @@ async def rate_limiter(request: Request):
         
     now = time.time()
     
-    # Clean up old timestamps for the current IP (Sliding Window)
-    request_history[client_ip] = [t for t in request_history[client_ip] if now - t < RATE_LIMIT_WINDOW]
-    
-    # [ROBUSTESSE] Garbage Collection: On 1% of requests, clean up the whole dict to prevent memory leaks from old IPs
-    if random.random() < 0.01:
+    # [OPTIMISATION] Nettoyage temporel prédictible (toutes les 60s) au lieu d'aléatoire (1%).
+    # Évite de bloquer l'Event Loop de manière imprévisible lors des pics de trafic.
+    if now - _last_cleanup_time > 60:
+        _last_cleanup_time = now
         stale_ips = [ip for ip, timestamps in request_history.items() if not timestamps or now - timestamps[-1] > RATE_LIMIT_WINDOW]
         for ip in stale_ips:
             del request_history[ip]
-        if stale_ips:
-            print(f"[CLEANUP] Purged {len(stale_ips)} stale IPs from rate limiter history.")
+            
+    # [SÉCURITÉ ANTI-OOM] Limite stricte de taille. Empêche un attaquant de forger
+    # des milliers de faux "X-Forwarded-For" pour faire exploser la RAM du serveur.
+    if len(request_history) > MAX_TRACKED_IPS:
+        request_history.clear() # O(1) flush : sauve le serveur du crash
+        print("[SECURITY WARNING] Rate limiter memory flushed due to massive unique IP volume (DDoS).", flush=True)
+
+    # Clean up old timestamps for the current IP (Sliding Window)
+    request_history[client_ip] = [t for t in request_history[client_ip] if now - t < RATE_LIMIT_WINDOW]
 
     if len(request_history[client_ip]) >= RATE_LIMIT_MAX_REQUESTS:
         print(f"[SECURITY] Rate limit exceeded for IP: {client_ip}")
