@@ -30,6 +30,7 @@ interface DashboardContextType {
   triggerResearch: () => Promise<void>;
   fetchPilotData: () => Promise<void>;
   updateFormData?: (key: string, value: any) => void;
+  pilotError: string | null;
 }
 
 interface DashboardProviderProps {
@@ -105,12 +106,14 @@ export const DashboardProvider = ({
   // État des données de la vue Bento (Résumé)
   const [pilotData, setPilotData] = useState<any>(null);
   const [isPilotLoading, setIsPilotLoading] = useState<boolean>(false);
+  const [pilotError, setPilotError] = useState<string | null>(null);
 
   // Mémoïsation de la fonction d'appel pour éviter les re-rendus infinis dans les useEffect
   const fetchPilotData = useCallback(async () => {
     if (!initialCvData) return;
     
     setIsPilotLoading(true);
+    setPilotError(null);
     try {
       // [FIX] On injecte les résultats de marché pour une synthèse beaucoup plus riche
       const payload = { ...initialCvData };
@@ -131,10 +134,13 @@ export const DashboardProvider = ({
         const data = await response.json();
         setPilotData(data);
       } else {
-        const errData = await response.text();
-        console.error(`[DashboardContext] Failed to fetch pilot data. Status: ${response.status}`, errData);
+        let errMsg = `Erreur serveur (${response.status})`;
+        try { const errObj = await response.json(); errMsg = errObj.detail || errMsg; } catch(e) {}
+        setPilotError(errMsg);
+        console.error(`[DashboardContext] Failed to fetch pilot data. Status: ${response.status}`, errMsg);
       }
     } catch (error) {
+      setPilotError(error.message || "Erreur réseau (Timeout). L'intelligence artificielle met trop de temps à répondre.");
       console.error("[DashboardContext] Error fetching pilot data:", error);
     } finally {
       setIsPilotLoading(false);
@@ -173,6 +179,7 @@ export const DashboardProvider = ({
       setCurrentStep: onSetCurrentStep,
       triggerResearch: onTriggerResearch,
       updateFormData: handleUpdateFormData
+      pilotError
     }}>
       {children}
     </DashboardContext.Provider>

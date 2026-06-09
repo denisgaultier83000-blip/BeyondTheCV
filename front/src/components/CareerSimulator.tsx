@@ -1,6 +1,6 @@
 // e:\BeyondTheCV\front\src\components\CareerSimulator.tsx
 import React, { useState } from 'react';
-import { Play, TrendingUp, DollarSign, Clock, ArrowRight, Loader2 } from 'lucide-react';
+import { Play, TrendingUp, DollarSign, Clock, ArrowRight, Loader2, AlertTriangle } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { formatMarkdown } from '../utils/markdown';
@@ -14,6 +14,7 @@ export function CareerSimulator({ candidateData }: SimulatorProps) {
   const [action, setAction] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const predefinedActions = [
     "Certification PMP",
@@ -28,6 +29,7 @@ export function CareerSimulator({ candidateData }: SimulatorProps) {
     setLoading(true);
     setAction(simAction); // Update input if clicked from list
     setResult(null);
+    setError(null);
 
     try {
       const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/simulate-career`, {
@@ -39,12 +41,17 @@ export function CareerSimulator({ candidateData }: SimulatorProps) {
         }),
       });
       
-      if (!response.ok) throw new Error("Simulation failed");
+      if (!response.ok) {
+        let errMsg = "Échec de la simulation.";
+        try { const errObj = await response.json(); errMsg = errObj.detail || errMsg; } catch(e) {}
+        throw new Error(errMsg);
+      }
       const data = await response.json();
       // Accepte le format encapsulé OU le format direct à la racine
       setResult(data.simulation || data);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      setError(e.message || "Une erreur est survenue lors de la communication avec l'IA. Veuillez réessayer.");
     } finally {
       setLoading(false);
     }

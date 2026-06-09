@@ -33,7 +33,7 @@ interface DeliverableItem {
 export const DashboardView = () => {
   const { t } = useTranslation();
   const { 
-    activeTab, setActiveTab, pilotData, isPilotLoading, cvData, fetchPilotData,
+    activeTab, setActiveTab, pilotData, isPilotLoading, pilotError, cvData, fetchPilotData,
     researchResult, salaryResult, careerGpsResult, careerRadarResult, setCurrentStep,
     jobDecoderResult, hiddenMarketResult, recruiterResult, realityResult, flawCoachingResult,
     globalStatus, triggerResearch,
@@ -184,13 +184,13 @@ export const DashboardView = () => {
 
   // [FIX CRITIQUE] On force le chargement du résumé si les données sont absentes pour briser la boucle de crash
   useEffect(() => {
-    if ((activeTab === 'overview' || activeTab === 'cockpit') && !pilotData && typeof fetchPilotData === 'function') {
+    if ((activeTab === 'overview' || activeTab === 'cockpit') && !pilotData && !pilotError && typeof fetchPilotData === 'function') {
       fetchPilotData();
     }
-  }, [activeTab, pilotData, fetchPilotData]);
+  }, [activeTab, pilotData, pilotError, fetchPilotData]);
 
   // La condition de chargement est maintenant robuste grâce à l'état explicite `isPilotLoading`
-  const isLoadingOverview = isPilotLoading || !pilotData;
+  const isLoadingOverview = isPilotLoading || (!pilotData && !pilotError);
 
   // --- EXTRACTION DU CONTEXTE CANDIDAT ---
   const meta = cvData?.meta || cvData || {};
@@ -313,6 +313,15 @@ export const DashboardView = () => {
                    <div className="bento-card row-span-2 skeleton-pulse" style={{ minHeight: '350px' }}></div>
                    <div className="bento-card col-span-2 skeleton-pulse" style={{ minHeight: '150px' }}></div>
                    <div className="bento-card col-span-2 skeleton-pulse" style={{ minHeight: '150px' }}></div>
+                </div>
+              ) : pilotError ? (
+                <div className="bento-card col-span-3" style={{ textAlign: 'center', padding: '3rem 1rem', border: '1px solid var(--danger-text)', background: 'var(--bg-card)' }}>
+                  <AlertTriangle size={48} color="var(--danger-text)" style={{ margin: '0 auto 1rem auto' }} />
+                  <h3 style={{ color: 'var(--danger-text)', marginBottom: '0.5rem' }}>Analyse momentanément interrompue</h3>
+                  <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>{pilotError}</p>
+                  <button onClick={fetchPilotData} className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <RotateCcw size={16} /> Réessayer
+                  </button>
                 </div>
               ) : (
                 <>

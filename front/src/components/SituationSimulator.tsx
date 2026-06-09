@@ -60,6 +60,7 @@ export function SituationSimulator() {
   const [isGeneratingMore, setIsGeneratingMore] = useState(false);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
 
   // État local initialisé avec les données du contexte (évite la perte de couleur au changement d'onglet)
@@ -89,6 +90,7 @@ export function SituationSimulator() {
     setMode(null);
     setUserAnswer("");
     setAiFeedback(null);
+    setError(null);
     setShowPassiveModel(false);
   };
 
@@ -178,6 +180,7 @@ export function SituationSimulator() {
     
     setIsSubmitting(true);
     setAiFeedback(null);
+    setError(null);
 
     try {
       // Appel API Réel
@@ -192,7 +195,11 @@ export function SituationSimulator() {
         }),
       });
 
-      if (!response.ok) throw new Error("API call failed");
+      if (!response.ok) {
+        let errMsg = "Erreur de communication avec le serveur.";
+        try { const errObj = await response.json(); errMsg = errObj.detail || errMsg; } catch(e) {}
+        throw new Error(errMsg);
+      }
       const data = await response.json();
       setAiFeedback(data.feedback);
       const scId = selectedScenario.id || selectedScenario.title;
@@ -203,10 +210,9 @@ export function SituationSimulator() {
       if (updateFormData) {
         updateFormData("simulatorScores", { ...localScores, [scId]: Number(data.feedback.score) });
       }
-    } catch (error) {
-      console.error("Erreur lors de l'analyse IA :", error);
-      // Le mock a été supprimé pour ne plus écraser la vraie note (ex: 4/10) en cas d'erreur de rendu.
-      alert(t('sim_api_error', "Une erreur de communication avec le serveur est survenue."));
+    } catch (err: any) {
+      console.error("Erreur lors de l'analyse IA :", err);
+      setError(err.message || t('sim_api_error', "Une erreur de communication avec l'IA est survenue."));
     } finally {
       setIsSubmitting(false);
     }
@@ -427,6 +433,13 @@ export function SituationSimulator() {
                     </button>
                   </div>
                   
+                  {/* AFFICHER L'ERREUR GRACIEUSE */}
+                  {error && (
+                    <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.2)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--danger-text)' }}>
+                      <AlertTriangle size={18} /> {error}
+                    </div>
+                  )}
+
                   <textarea 
                     value={userAnswer}
                     onChange={e => setUserAnswer(e.target.value)}

@@ -17,6 +17,7 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", onSuccess }: VocalPi
   const [seconds, setSeconds] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
   
   const recognitionRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
@@ -38,6 +39,7 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", onSuccess }: VocalPi
     setTranscript("");
     setSeconds(0);
     setResult(null);
+    setError(null);
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'fr-FR';
@@ -83,6 +85,7 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", onSuccess }: VocalPi
 
   const analyzePitch = async () => {
     setIsAnalyzing(true);
+    setError(null);
     try {
       const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/evaluate-vocal-pitch`, {
         method: 'POST',
@@ -93,13 +96,17 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", onSuccess }: VocalPi
           target_job: targetJob
         })
       });
-      if (!response.ok) throw new Error("Erreur lors de l'analyse");
+      if (!response.ok) {
+        let errMsg = "Erreur lors de l'analyse";
+        try { const errObj = await response.json(); errMsg = errObj.detail || errMsg; } catch(e) {}
+        throw new Error(errMsg);
+      }
       const data = await response.json();
       setResult(data);
       if (onSuccess) onSuccess();
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert("L'analyse a échoué. Veuillez réessayer.");
+      setError(e.message || "L'analyse a échoué. L'IA a mis trop de temps à répondre.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -117,6 +124,11 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", onSuccess }: VocalPi
         <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 1rem 0' }}>
           <Mic size={24} color="#8b5cf6" /> Simulateur de Pitch Vocal (Sans filet)
         </h2>
+        {error && (
+          <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.2)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: 'var(--danger-text)', maxWidth: '600px', margin: '0 auto 1.5rem auto' }}>
+            <AlertTriangle size={18} /> {error}
+          </div>
+        )}
         <p style={{ color: 'var(--text-muted)', maxWidth: '600px', margin: '0 auto' }}>
           Enregistrez votre présentation personnelle spontanément. L'IA analysera votre rythme, vos tics de langage et l'impact de votre structure.
         </p>

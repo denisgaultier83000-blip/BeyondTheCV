@@ -48,6 +48,18 @@ export function CareerRealityCheck({ data, loading, error, score }: Props) {
     return styles[type] || { color: '#475569', icon: '✨' };
   };
 
+  // Parseur minimaliste pour interpréter le **gras** (Markdown) renvoyé par l'IA
+  const formatMarkdown = (text: string) => {
+    if (!text) return null;
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i} style={{ color: 'var(--text-main)', fontWeight: 700 }}>{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+  };
+
   const style = getArchetypeStyle(archetype);
 
   return (
@@ -75,7 +87,7 @@ export function CareerRealityCheck({ data, loading, error, score }: Props) {
           <h2 style={{ fontSize: '2.5rem', margin: 0, fontWeight: 800, color: 'var(--text-main)' }}>
             {style.icon} {archetype}
           </h2>
-          <p style={{ fontSize: '1.1rem', color: 'var(--text-muted)', marginTop: '0.5rem', fontStyle: 'italic' }}>"{tagline}"</p>
+          <p style={{ fontSize: '1.1rem', color: 'var(--text-muted)', marginTop: '0.5rem', fontStyle: 'italic' }}>"{formatMarkdown(tagline)}"</p>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
@@ -94,12 +106,17 @@ export function CareerRealityCheck({ data, loading, error, score }: Props) {
           </div>
         </div>
 
-        {/* Viral Action */}
-        <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontStyle: 'italic', maxWidth: '60%' }}>Partagez votre archétype pour challenger votre réseau.</div>
-          <button onClick={handleCopy} className="btn-secondary" style={{ background: '#0077b5', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', cursor: 'pointer' }}>
-            {copied ? <Check size={18} /> : <Linkedin size={18} />} {copied ? 'Texte Copié !' : 'Copier le Post LinkedIn'}
-          </button>
+        {/* Viral Action Preview */}
+        <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <div style={{ color: 'var(--text-main)', fontSize: '1rem', fontWeight: 600 }}>Partagez votre archétype sur LinkedIn</div>
+            <button onClick={handleCopy} className="btn-secondary" style={{ background: '#0077b5', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', cursor: 'pointer', padding: '0.5rem 1rem' }}>
+              {copied ? <Check size={16} /> : <Linkedin size={16} />} {copied ? 'Texte Copié !' : 'Copier le Post'}
+            </button>
+          </div>
+          <div style={{ background: 'var(--bg-body)', padding: '1.25rem', borderRadius: '0.5rem', border: '1px dashed var(--border-color)', color: 'var(--text-muted)', fontSize: '0.95rem', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+            {formatMarkdown(linkedin_post) || <span style={{ fontStyle: 'italic' }}>Post LinkedIn en cours de génération...</span>}
+          </div>
         </div>
       </div>
     </DashboardCard>
