@@ -11,7 +11,8 @@ from .market_research import perform_market_research
 from .utils import (
     load_prompt, clean_ai_json_response, normalize_language, 
     _generate_cache_key, get_cached_content, set_cached_content,
-    _CACHE_LOCKS
+    _CACHE_LOCKS,
+    _sanitize_data_for_ai
 )
 
 # --- CONFIGURATION DES CHEMINS ---
@@ -154,7 +155,7 @@ async def _run_salary_logic(task_id: str, candidate_data: dict):
         elif remote_pref == 'full':
             geo_context = f"in {target_country} (Full Remote context)"
 
-        prompt = f"Estimate a realistic salary range (low, mid, high) for this profile {geo_context}.\n\nSPECIAL INSTRUCTION: If location is Remote/International, use USD or EUR and explain in 'commentary' that salary depends on Company HQ location. Write the 'commentary' in {target_lang}.\n\nPROFILE:\n{json.dumps(candidate_data, indent=2, ensure_ascii=False, default=str)}\n\n⚠️ INSTRUCTION CRITIQUE : Ne recopie JAMAIS les valeurs d'exemple du JSON. Tu DOIS calculer de vrais montants basés sur le marché actuel pour ce profil précis.\nRespond in STRICT JSON: {{\"salary_range\": {{\"low\": 0, \"mid\": 0, \"high\": 0}}, \"currency\": \"EUR\", \"confidence\": \"Haute | Moyenne | Faible\", \"commentary\": \"...\"}}\nIMPORTANT: 'low', 'mid', 'high' MUST be integers."
+        prompt = f"Estimate a realistic salary range (low, mid, high) for this profile {geo_context}.\n\nSPECIAL INSTRUCTION: If location is Remote/International, use USD or EUR and explain in 'commentary' that salary depends on Company HQ location. Write the 'commentary' in {target_lang}.\n\nPROFILE:\n{json.dumps(_sanitize_data_for_ai(candidate_data, strict=True), indent=2, ensure_ascii=False, default=str)}\n\n⚠️ INSTRUCTION CRITIQUE : Ne recopie JAMAIS les valeurs d'exemple du JSON. Tu DOIS calculer de vrais montants basés sur le marché actuel pour ce profil précis.\nRespond in STRICT JSON: {{\"salary_range\": {{\"low\": 0, \"mid\": 0, \"high\": 0}}, \"currency\": \"EUR\", \"confidence\": \"Haute | Moyenne | Faible\", \"commentary\": \"...\"}}\nIMPORTANT: 'low', 'mid', 'high' MUST be integers."
         
         result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are a compensation expert. You must output STRICT JSON.")
         if "error" in result:
@@ -182,7 +183,7 @@ async def _run_cv_draft_logic(task_id: str, source_data: dict):
         if is_cached: return
 
         prompt_template = load_prompt(get_prompt_path("master_prompt.md"))
-        context_str = json.dumps(source_data, indent=2, ensure_ascii=False, default=str)
+        context_str = json.dumps(_sanitize_data_for_ai(source_data, strict=True), indent=2, ensure_ascii=False, default=str)
         final_prompt = f"{prompt_template}\n\nINPUT DATA:\n{context_str}"
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are the AI for BeyondTheCV. Output STRICT JSON.")
         if "error" not in result:
@@ -208,7 +209,7 @@ async def _run_completeness_logic(task_id: str, payload: dict):
         if is_cached: return
 
         target_lang = normalize_language(data_to_analyze.get('target_language', 'French'))
-        text_content = json.dumps(data_to_analyze, indent=2, ensure_ascii=False, default=str) if isinstance(data_to_analyze, dict) else str(data_to_analyze)
+        text_content = json.dumps(_sanitize_data_for_ai(data_to_analyze, strict=True), indent=2, ensure_ascii=False, default=str) if isinstance(data_to_analyze, dict) else str(data_to_analyze)
         
         prompt = f"""
         Analyze the candidate's profile completeness with a specific focus on generating a strong Elevator Pitch.
@@ -246,7 +247,7 @@ async def _run_cv_analysis_logic(task_id: str, cv_data: dict):
         prompt_template = load_prompt(get_prompt_path("master_prompt.md"))
         target_lang = normalize_language(cv_data.get('target_language', 'French'))
         target_country = cv_data.get('target_country', 'International')
-        user_prompt = f"Voici les données JSON du candidat :\n{json.dumps(cv_data, ensure_ascii=False, default=str)}\nAnalyse ce profil. CONTEXTE CULTUREL : {target_country}. IMPORTANT: OUTPUT STRICTLY IN {target_lang.upper()}."
+        user_prompt = f"Voici les données JSON du candidat :\n{json.dumps(_sanitize_data_for_ai(cv_data, strict=True), ensure_ascii=False, default=str)}\nAnalyse ce profil. CONTEXTE CULTUREL : {target_country}. IMPORTANT: OUTPUT STRICTLY IN {target_lang.upper()}."
         result_json = await ai_service.generate_valid_json(prompt=user_prompt, provider="openai", system_instruction=prompt_template)
         if "error" not in result_json:
             await set_cached_content(cache_key, user_id, "cv_analysis", result_json)
@@ -530,7 +531,7 @@ async def _run_career_radar_logic(task_id: str, data: dict):
         {prompt_template}
         
         PROFIL CANDIDAT :
-        {json.dumps(data, indent=2, ensure_ascii=False, default=str)}
+        {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
         
         CIBLE ACTUELLE DU CANDIDAT (POUR ANCRER LES TRAJECTOIRES) :
         {target_context}
@@ -571,7 +572,7 @@ async def _run_recruiter_view_logic(task_id: str, data: dict):
         {prompt_template}
         
         CANDIDAT :
-        {json.dumps(data, indent=2, ensure_ascii=False, default=str)}
+        {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
         
         OUTPUT LANGUAGE: {target_lang}
         """
@@ -612,7 +613,7 @@ async def _run_oneliner_logic(task_id: str, data: dict):
         Exemple : "Officier spécialisé en cyberdéfense avec 10 ans d’expérience dans les environnements critiques, orienté gestion du risque et leadership opérationnel."
         
         CANDIDAT :
-        {json.dumps(data, indent=2, ensure_ascii=False, default=str)}
+        {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
         
         OUTPUT STRICT JSON: {{ "one_liner": "..." }}
         LANGUAGE: {target_lang}
@@ -657,7 +658,7 @@ async def _run_risk_analysis_logic(task_id: str, data: dict):
         
         POSTE VISÉ : {data.get('target_role_primary', 'Inconnu')}
         DESCRIPTION : {data.get('job_description', '')}
-        PROFIL : {json.dumps(data, indent=2, ensure_ascii=False, default=str)}
+        PROFIL : {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
         
         OUTPUT STRICT JSON:
         {{
@@ -744,7 +745,7 @@ async def _run_hidden_market_logic(task_id: str, data: dict):
         {prompt_template}
         
         PROFIL CANDIDAT :
-        {json.dumps(data, indent=2, ensure_ascii=False, default=str)}
+        {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
         
         CIBLE :
         Poste : {data.get('target_job', '')}
@@ -794,7 +795,7 @@ async def _run_career_gps_logic(task_id: str, data: dict):
         {prompt_template}
         
         PROFIL DU VOYAGEUR (CANDIDAT) :
-        {json.dumps(data, indent=2, ensure_ascii=False, default=str)}
+        {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
         
         DESTINATION SOUHAITÉE :
         {destination_context}
@@ -835,7 +836,7 @@ async def _run_reality_check_logic(task_id: str, data: dict):
         {prompt_template}
         
         CANDIDAT :
-        {json.dumps(data, indent=2, ensure_ascii=False, default=str)}
+        {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
         
         OUTPUT LANGUAGE: {target_lang}
         """
@@ -881,7 +882,7 @@ async def _run_profile_validation_logic(task_id: str, data: dict):
         6. Si une phrase est trop informelle, reformule-la.
 
         PROFIL BRUT DU CANDIDAT :
-        {json.dumps(data, indent=2, ensure_ascii=False, default=str)}
+        {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
 
         OUTPUT STRICT JSON:
         {{
@@ -968,7 +969,7 @@ async def process_executive_summary_in_background(task_ids: dict, data: dict):
         Tu es un expert RH de haut niveau. Ta mission est d'analyser ce profil sous 3 angles différents et de renvoyer un JSON unique.
         
         PROFIL CANDIDAT :
-        {json.dumps(data, indent=2, ensure_ascii=False, default=str)}
+        {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
         
         POSTE VISÉ : {target_role}
         
@@ -1066,7 +1067,7 @@ async def process_market_strategy_in_background(task_ids: dict, data: dict):
         Ta mission est d'analyser le poste visé et le profil du candidat sous 3 angles différents, et de renvoyer un JSON unique.
         
         PROFIL CANDIDAT :
-        {json.dumps(data, indent=2, ensure_ascii=False, default=str)}
+        {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
         
         CIBLE :
         Poste : {target_role}
@@ -1144,13 +1145,8 @@ async def process_action_plan_in_background(task_id: str, cv_dict: dict):
         except:
             prompt_template = "Génère un plan d'action JSON."
             
-        # Nettoyage manuel (RGPD/Poids) pour rendre la tâche autonome
-        safe_data = cv_dict.copy() if isinstance(cv_dict, dict) else {}
-        if 'personal_info' in safe_data and isinstance(safe_data['personal_info'], dict):
-            safe_data['personal_info'] = safe_data['personal_info'].copy()
-            for key in ['email', 'phone', 'address', 'linkedin', 'city']:
-                safe_data['personal_info'].pop(key, None)
-        safe_data.pop('research_data', None)
+        # [FIX EXPERT] Nettoyage strict pour éviter l'effet d'écho (Hallucinations)
+        safe_data = _sanitize_data_for_ai(cv_dict, strict=True)
             
         prompt = f"{prompt_template}\n\nPROFIL:\n{json.dumps(safe_data, ensure_ascii=False, default=str)}\n\nOUTPUT LANGUAGE: {target_lang}"
         
