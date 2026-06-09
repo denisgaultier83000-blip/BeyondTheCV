@@ -178,7 +178,7 @@ export const DashboardProvider = ({
       globalStatus: initialGlobalStatus,
       setCurrentStep: onSetCurrentStep,
       triggerResearch: onTriggerResearch,
-      updateFormData: handleUpdateFormData
+      updateFormData: handleUpdateFormData,
       pilotError
     }}>
       {children}
