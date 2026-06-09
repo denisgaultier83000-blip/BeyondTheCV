@@ -41,6 +41,9 @@ def get_database_url():
             _, project_id = google.auth.default()
             project_id = project_id or os.getenv("GOOGLE_CLOUD_PROJECT")
             
+            if not project_id and "/" not in secret_name:
+                raise ValueError("Impossible de déterminer le 'project_id' Google Cloud. Veuillez définir GOOGLE_CLOUD_PROJECT.")
+            
             # Construction du chemin du secret (si le nom court est fourni)
             if "/" not in secret_name:
                 name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
@@ -52,14 +55,30 @@ def get_database_url():
             
             # Analyse du JSON contenant les credentials
             credentials = json.loads(secret_payload)
-            # [FIX EXPERT] Encodage URL obligatoire pour protéger les caractères spéciaux (@, ?, /, #)
-            user = urllib.parse.quote(credentials.get("username", credentials.get("user", "")), safe="")
-            password = urllib.parse.quote(credentials.get("password", ""), safe="")
-            dbname = urllib.parse.quote(credentials.get("dbname", credentials.get("database", "beyondthecv")), safe="")
-            instance = credentials.get("instance_connection_name", "beyondthecv:europe-west1:btcv-prod-db-france")
             
-            # Construction de la chaîne de connexion pour Cloud SQL Auth Proxy
-            return f"postgresql://{user}:{password}@/{dbname}?host=/cloudsql/{instance}"
+            # [FIX SÉCURITÉ] Conversion explicite en String pour éviter un TypeError
+            # si le JSON contient des valeurs 'null' ou des entiers sans guillemets.
+            raw_user = credentials.get("username") or credentials.get("user") or ""
+            raw_password = credentials.get("password") or ""
+            raw_dbname = credentials.get("dbname") or credentials.get("database") or "beyondthecv"
+            
+            # [FIX EXPERT] Encodage URL des caractères spéciaux (@, ?, /, #, %, etc.)
+            user = urllib.parse.quote(str(raw_user), safe="")
+            password = urllib.parse.quote(str(raw_password), safe="")
+            dbname = urllib.parse.quote(str(raw_dbname), safe="")
+            
+            db_host = credentials.get("host")
+            db_port = credentials.get("port", "5432")
+            instance = credentials.get("instance_connection_name")
+            
+            if instance:
+                # [OPTIMISATION] Encodage du query parameter 'host' car l'instance contient des ":" (ex: project:region:db)
+                encoded_host = urllib.parse.quote(f"/cloudsql/{instance}", safe="")
+                return f"postgresql://{user}:{password}@/{dbname}?host={encoded_host}"
+            elif db_host:
+                return f"postgresql://{user}:{password}@{db_host}:{db_port}/{dbname}"
+            else:
+                raise ValueError("Le secret JSON doit contenir soit 'instance_connection_name' (Cloud SQL) soit 'host' (TCP).")
         except Exception as e:
             print(f"[CRITICAL] Erreur lors de la récupération des secrets : {e}", flush=True)
             # [FIX EXPERT] Forcer un crash explicite au lieu d'un échec silencieux.
@@ -71,6 +90,8 @@ def get_database_url():
     fallback_url = os.getenv("DATABASE_URL", "")
     if not fallback_url:
         print("[WARNING] Ni DATABASE_SECRET_NAME ni DATABASE_URL ne sont définis. Tentative de connexion par défaut (localhost).", flush=True)
+    # [NOTE] Si vous utilisez une DATABASE_URL locale avec des caractères spéciaux dans le mot de passe,
+    # vous devez les encoder vous-même au format URL (ex: le '@' devient '%40', le '#' devient '%23').
     return fallback_url
 
 DATABASE_URL = None # [FIX LIFECYCLE] L'URL est maintenant calculée et assignée dans le lifespan de main.py pour éviter les I/O à l'import.

@@ -76,6 +76,19 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
     return (Object.values(payload).find(v => Array.isArray(v)) as any[]) || [];
   };
 
+  // Parseur minimaliste pour interpréter le **gras** (Markdown) renvoyé par l'IA lors de l'impression
+  const formatMarkdown = (text: string | undefined | null): React.ReactNode => {
+    if (!text) return null;
+    if (typeof text !== 'string') return text as any;
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i} style={{ color: '#0f172a', fontWeight: 700 }}>{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+  };
+
   const getScenariosAsQuestions = (data: any): any[] => {
     if (!data) return [];
     let actualData = data.result !== undefined ? data.result : data;
@@ -111,22 +124,6 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
   const questionsArray = getQuestionsArray(questionsResult);
   const scenariosArray = getScenariosAsQuestions(customScenariosResult);
   const pitch = pitchResult?.pitch || pitchResult;
-  let todoList = actionPlanResult?.action_plan || actionPlanResult?.tasks || actionPlanResult?.phases || actionPlanResult;
-  
-  // Nettoyage et formatage du plan d'action s'il a été retourné sous forme d'objet dictionnaire
-  if (todoList && typeof todoList === 'object' && !Array.isArray(todoList)) {
-    const arr: any[] = [];
-    Object.entries(todoList).forEach(([k, v]) => {
-      if (Array.isArray(v)) {
-        arr.push({ phase: k, actions: v });
-      } else if (typeof v === 'string') {
-        arr.push({ phase: k, actions: [v] });
-      } else if (typeof v === 'object' && v !== null) {
-        arr.push({ phase: k, actions: [JSON.stringify(v)] });
-      }
-    });
-    if (arr.length > 0) todoList = arr;
-  }
 
   const renderImprovedAnswer = (answer: any) => {
     if (!answer) return "N/A";
@@ -172,13 +169,13 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
             print-color-adjust: exact !important;
             color-adjust: exact !important;
           }
-          @page { margin: 2cm 1.5cm 2cm 1.5cm; }
+          @page { margin: 1.5cm; }
           body * { visibility: hidden !important; }
           .printable-dossier { display: block !important; }
           .printable-dossier, .printable-dossier * { visibility: visible !important; }
           .printable-dossier { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; box-sizing: border-box; }
-          .page-break { page-break-before: always; }
-          .avoid-break { page-break-inside: avoid; }
+          .page-break { page-break-before: always; break-before: page; }
+          .avoid-break { page-break-inside: avoid; break-inside: avoid; }
           h1, h2, h3, h4 { color: #0f172a; margin-top: 0; }
           .print-section { margin-bottom: 2rem; max-width: 100%; box-sizing: border-box; }
           .print-box { border: 1px solid #cbd5e1; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; background: #f8fafc; box-sizing: border-box; width: 100%; word-wrap: break-word; overflow-wrap: break-word; }
@@ -270,9 +267,44 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
       {/* 1. Stratégie */}
       {selection.gap !== false && (
         <div className="print-section avoid-break">
-          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🎯 Stratégie de Candidature</h2>
+          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🎯 Stratégie & Adéquation</h2>
           <div className="print-box">
-            <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, fontSize: '1.1rem' }}>{pilotData?.recommendedStrategy || "Stratégie non générée."}</p>
+            <h3 style={{ color: '#0f172a', marginBottom: '0.5rem' }}>Stratégie recommandée</h3>
+            <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, fontSize: '1.1rem', marginBottom: '1.5rem' }}>{formatMarkdown(pilotData?.recommendedStrategy) || "Stratégie non générée."}</p>
+            
+            {gapData?.missing_gaps && gapData.missing_gaps.length > 0 && (
+              <>
+                <h3 style={{ color: '#dc2626', marginBottom: '0.5rem' }}>Compétences à combler (Écarts)</h3>
+                <ul style={{ margin: '0 0 1.5rem 0', paddingLeft: '1.5rem', color: '#dc2626' }}>
+                  {gapData.missing_gaps.map((gap: any, idx: number) => {
+                    const skill = typeof gap === 'string' ? gap : gap.skill;
+                    const time = gap.estimated_time;
+                    return (
+                      <li key={idx} style={{ marginBottom: '0.25rem' }}>
+                        {formatMarkdown(skill)} {time && <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>(⏱️ {time})</span>}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            )}
+
+            {gapData?.recommended_adjustments && gapData.recommended_adjustments.length > 0 && (
+              <>
+                <h3 style={{ color: '#8b5cf6', marginBottom: '0.5rem' }}>Actions correctives suggérées</h3>
+                <ul style={{ margin: '0', paddingLeft: '1.5rem', color: '#8b5cf6' }}>
+                  {gapData.recommended_adjustments.map((adj: any, idx: number) => {
+                    const action = typeof adj === 'string' ? adj : adj.action;
+                    const time = adj.estimated_time;
+                    return (
+                      <li key={idx} style={{ marginBottom: '0.25rem' }}>
+                        {formatMarkdown(action)} {time && <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>(⏱️ {time})</span>}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -297,19 +329,19 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
                     {(route.steps || []).map((step: any, i: number) => (
                       <li key={i} style={{ marginBottom: '0.5rem' }}>
                         {step.icon && <span style={{ marginRight: '0.5rem' }}>{step.icon}</span>}
-                        <strong>{(step.name || "").replace(/\*\*/g, '')}</strong>
-                        {step.impact && <span style={{ color: '#64748b', fontSize: '0.9rem' }}> (Impact : {step.impact})</span>}
+                        {formatMarkdown(step.name || "")}
+                        {step.impact && <span style={{ color: step.impact_color || '#64748b', fontSize: '0.9rem', fontWeight: 'bold' }}> (Impact : {step.impact})</span>}
                       </li>
                     ))}
                   </ul>
                   {route.obstacles && route.obstacles.length > 0 && (
                     <>
                       <h4 style={{ color: '#dc2626', margin: '0 0 0.5rem 0' }}>Obstacles & Risques</h4>
-                      <ul style={{ margin: '0', paddingLeft: '1.2rem', color: '#dc2626' }}>
+                      <ul style={{ margin: '0', paddingLeft: '1.2rem', color: '#b91c1c' }}>
                         {route.obstacles.map((obs: any, i: number) => (
                           <li key={i} style={{ marginBottom: '0.5rem' }}>
                             {obs.icon && <span style={{ marginRight: '0.5rem' }}>{obs.icon}</span>}
-                            {(obs.text || (typeof obs === 'string' ? obs : '')).replace(/\*\*/g, '')}
+                            {formatMarkdown(obs.text || (typeof obs === 'string' ? obs : ''))}
                           </li>
                         ))}
                       </ul>
@@ -331,8 +363,8 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
               <h3 style={{ color: '#0f172a', margin: '0 0 0.5rem 0' }}>{traj.title || traj.role || traj.name} - {traj.match_percent}%</h3>
               <p style={{ margin: '0 0 0.25rem 0' }}><strong>Temps estimé :</strong> {traj.time_to_reach}</p>
               <p style={{ margin: '0 0 0.25rem 0' }}><strong>Potentiel Salarial :</strong> {traj.salary_potential}</p>
-              <p style={{ margin: '0 0 0.25rem 0' }}><strong>Pourquoi :</strong> {traj.rationale || traj.why}</p>
-              <p style={{ margin: 0 }}><strong>Écarts (Gap) :</strong> {traj.gap || traj.missing}</p>
+              <p style={{ margin: '0 0 0.25rem 0', lineHeight: 1.5 }}><strong>Pourquoi :</strong> {formatMarkdown(traj.rationale || traj.why)}</p>
+              <p style={{ margin: 0, lineHeight: 1.5 }}><strong>Écarts (Gap) :</strong> {formatMarkdown(traj.gap || traj.missing)}</p>
             </div>
           )) : (
             <div className="print-box avoid-break">
@@ -352,7 +384,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
                 <h3 style={{ color: '#0f172a', fontSize: '1.1rem' }}>Jargon décodé</h3>
                 <ul>
                   {(jobDecoderResult.reality_check || []).map((item: any, idx: number) => (
-                    <li key={idx} style={{ marginBottom: '0.25rem' }}><strong>{item.jargon} :</strong> {item.translation}</li>
+                    <li key={idx} style={{ marginBottom: '0.25rem', lineHeight: 1.5 }}><strong>{item.jargon} :</strong> {formatMarkdown(item.translation)}</li>
                   ))}
                 </ul>
                 {jobDecoderResult.real_expectations && (
@@ -360,7 +392,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
                     <h3 style={{ color: '#0f172a', fontSize: '1.1rem', marginTop: '1rem' }}>Vraies attentes</h3>
                     <ul>
                       {(jobDecoderResult.real_expectations || []).map((item: string, idx: number) => (
-                        <li key={idx} style={{ marginBottom: '0.25rem' }}>{item}</li>
+                        <li key={idx} style={{ marginBottom: '0.25rem', lineHeight: 1.5 }}>{formatMarkdown(item)}</li>
                       ))}
                     </ul>
                   </>
@@ -460,7 +492,12 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
           <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>💬 Questions d'Entretien</h2>
           {questionsArray.map((q: any, idx: number) => (
             <div key={idx} className="print-box avoid-break">
-              <h3 style={{ color: '#0f172a', fontSize: '1.1rem', margin: '0 0 0.5rem 0' }}>Q : {q.question || q.text}</h3>
+              <h3 style={{ color: '#0f172a', fontSize: '1.1rem', margin: '0 0 0.5rem 0' }}>{q.category === "Questions à poser au recruteur" || q.category === "Questions to Ask Recruiter" ? "💡 Question à poser :" : "Q :"} {formatMarkdown(q.question || q.text)}</h3>
+              
+              {q.intention && (
+                <p style={{ margin: '0 0 0.5rem 0', color: '#b45309', fontStyle: 'italic', fontSize: '0.95rem' }}><strong>Intention visée :</strong> {formatMarkdown(q.intention)}</p>
+              )}
+
               {q.user_answer ? (
                 <>
                   <p style={{ margin: '0.5rem 0', color: '#475569' }}><strong>Votre réponse :</strong> {q.user_answer}</p>
@@ -475,7 +512,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
                 <div style={{ background: '#f1f5f9', padding: '1rem', borderRadius: '6px', marginTop: '0.75rem', border: '1px dashed #cbd5e1' }}>
                   <p style={{ margin: '0 0 0.5rem 0', color: '#64748b', fontStyle: 'italic', fontSize: '0.9rem' }}>Non répondu lors de l'entraînement.</p>
                   <p style={{ margin: 0, color: '#0f172a', fontSize: '0.95rem', lineHeight: '1.5' }}>
-                    <strong style={{ color: '#3b82f6' }}>💡 Conseil du coach :</strong> {(q.suggested_answer || q.answer || q.advice || "À vous de jouer !").replace(/^(Suggestion|Conseil)\s*:\s*/i, '')}
+                    <strong style={{ color: '#3b82f6' }}>💡 Conseil du coach :</strong> {formatMarkdown((q.suggested_answer || q.answer || q.advice || "À vous de jouer !").replace(/^(Suggestion|Conseil)\s*:\s*/i, ''))}
                   </p>
                 </div>
               )}

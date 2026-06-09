@@ -10,7 +10,8 @@ from .market_research import perform_market_research
 # Import des utilitaires pour éviter le cycle
 from .utils import (
     load_prompt, clean_ai_json_response, normalize_language, 
-    _generate_cache_key, get_cached_content, set_cached_content
+    _generate_cache_key, get_cached_content, set_cached_content,
+    _CACHE_LOCKS
 )
 
 # --- CONFIGURATION DES CHEMINS ---
@@ -334,7 +335,6 @@ async def _run_questions_logic(task_id: str, candidate_data: dict):
         user_id = candidate_data.get("user_id", "unknown_user")
         cache_key = _generate_cache_key(user_id, "interview_questions", candidate_data)
         
-        from .utils import _CACHE_LOCKS
         if cache_key not in _CACHE_LOCKS:
             _CACHE_LOCKS[cache_key] = asyncio.Lock()
             
@@ -1220,6 +1220,9 @@ async def process_custom_scenarios_in_background(task_id: str, data: dict):
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", err)
         await manager.broadcast(task_id, "Erreur", status="FAILED", data=err)
 
+# [FIX EXPERT] Set global pour protéger les sous-tâches du Garbage Collector de Python
+_active_orchestrator_tasks = set()
+
 async def orchestrate_dashboard_tasks(tasks_map: dict, cv_dict: dict):
     """
     Enterprise-grade Orchestrator:
@@ -1252,7 +1255,11 @@ async def orchestrate_dashboard_tasks(tasks_map: dict, cv_dict: dict):
                     except Exception as db_err:
                         print(f"[ORCHESTRATOR DB ERROR] Impossible de MAJ le statut pour {tid}: {db_err}", flush=True)
                         
-        asyncio.create_task(safe_coro())
+        # [FIX EXPERT] Garde une référence forte de la tâche pour éviter sa destruction
+        # silencieuse par le Garbage Collector quand l'orchestrateur a fini de s'exécuter.
+        task = asyncio.create_task(safe_coro())
+        _active_orchestrator_tasks.add(task)
+        task.add_done_callback(_active_orchestrator_tasks.discard)
 
     if "profile_validation" in tasks_map: fire("profile_validation", process_profile_validation_in_background(tasks_map["profile_validation"], cv_dict))
     if "cv_analysis" in tasks_map: fire("cv_analysis", process_cv_analysis_in_background(tasks_map["cv_analysis"], cv_dict))

@@ -164,8 +164,13 @@ def delete_product(product_id: str, current_user: dict = Depends(get_current_use
 # ==================== SUBSCRIPTION ROUTES ====================
 
 @router.post("/subscriptions/{user_id}/extend", response_model=SubscriptionExtensionResponse, tags=["subscriptions"])
-def extend_subscription(user_id: str, plan_id: str, price_paid_cents: int):
+def extend_subscription(user_id: str, plan_id: str, price_paid_cents: int, current_user: dict = Depends(get_current_user)):
     """Extend a user's subscription."""
+    # [SÉCURITÉ CRITIQUE] Empêche un attaquant d'étendre son abonnement sans payer (Auth Bypass + IDOR)
+    if user_id != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    # NOTE: Idéalement, cette route devrait être restreinte à un compte Administrateur,
+    # puisque tes Webhooks Stripe (payment.py) s'occupent déjà de gérer l'extension de manière sécurisée.
     try:
         extension_id = SubscriptionService.extend_subscription(
             user_id=user_id,
@@ -186,8 +191,11 @@ def extend_subscription(user_id: str, plan_id: str, price_paid_cents: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/subscriptions/{user_id}", tags=["subscriptions"])
-def get_user_subscription(user_id: str):
+def get_user_subscription(user_id: str, current_user: dict = Depends(get_current_user)):
     """Get user's subscription details."""
+    # [SÉCURITÉ CRITIQUE] Empêche la fuite de données d'abonnement (IDOR)
+    if user_id != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized to view this subscription")
     try:
         subscription = SubscriptionService.get_user_subscription(user_id)
         if not subscription:

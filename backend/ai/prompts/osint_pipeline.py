@@ -61,7 +61,9 @@ class OSINTPipeline:
             'Content-Type': 'application/json'
         }
         try:
-            async with session.post(url, headers=headers, data=payload) as response:
+            # [FIX EXPERT] Ajout d'un timeout strict. Par défaut, aiohttp attend 5 minutes !
+            timeout = aiohttp.ClientTimeout(total=10.0, connect=5.0)
+            async with session.post(url, headers=headers, data=payload, timeout=timeout) as response:
                 response.raise_for_status()
                 data = await response.json()
                 return data.get("organic", [])

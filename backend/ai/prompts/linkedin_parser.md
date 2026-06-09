@@ -8,7 +8,7 @@ Extraire les informations clés du texte brut d'un profil LinkedIn et les struct
 
 ## ⛔ CONTRAINTES IMPÉRATIVES
 - **Ne pas inventer :** Si une information n'est pas présente, laisse le champ vide (`""`).
-- **Nettoyage :** Ignore les en-têtes et pieds de page de LinkedIn (ex: "Page 1 of 3", "Contact Jean Dupont on LinkedIn").
+- **Nettoyage :** Ignore les en-têtes/pieds de page (ex: "Page 1 of 3", "Contact X on LinkedIn"). Supprime TOUS les émojis dans les prénoms, noms, titres et noms d'entreprises. Ignore totalement les artefacts générés par les logos (URLs d'images mortes, caractères Unicode indéchiffrables, textes alternatifs de logos).
 - **Robustesse multilingue :** Les titres de sections varient selon la langue du PDF (ex: "Experience" / "Expérience", "Summary" / "Résumé", "Top Skills" / "Compétences principales").
 - **Formatage :**
   - **Sauts de lignes (PDF)** : Le PDF casse souvent les phrases au milieu. Reconstruis les phrases logiques. Si l'utilisateur utilisait des puces (• ou -), préserve la liste proprement avec des retours à la ligne `\n`.

@@ -5,6 +5,7 @@ But : Purger manuellement la table des tâches et le cache IA pour repartir sur 
 Utilisation :
   python purge_tasks.py failed   -> Supprime uniquement les tâches en statut 'FAILED'
   python purge_tasks.py old      -> Supprime les tâches de plus de 24h
+  python purge_tasks.py cache    -> Vide TOTALEMENT le cache IA (sans toucher à l'historique des tâches)
   python purge_tasks.py all      -> Vide TOTALEMENT la table 'tasks' et la table 'generation_cache'
 """
 import sys
@@ -30,6 +31,11 @@ def purge(mode):
             cur.execute("DELETE FROM tasks WHERE created_at < NOW() - INTERVAL '1 day'")
             print(f"   ✅ {cur.rowcount} tâches supprimées.")
             
+        elif mode == "cache":
+            print("🧠 Purge totale du Cache IA en cours...")
+            cur.execute("DELETE FROM generation_cache")
+            print(f"   ✅ {cur.rowcount} entrées de cache supprimées. Les prochaines requêtes solliciteront l'IA.")
+            
         elif mode == "all":
             print("🧨 PURGE TOTALE EN COURS...")
             cur.execute("DELETE FROM tasks")
@@ -40,7 +46,7 @@ def purge(mode):
             print(f"   ✅ {cache_deleted} entrées de cache supprimées.")
             
         else:
-            print("⚠️ Mode inconnu. Utilisez : failed, old, ou all.")
+            print("⚠️ Mode inconnu. Utilisez : failed, old, cache, ou all.")
             return
             
         conn.commit()

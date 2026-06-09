@@ -1,5 +1,6 @@
 import os
 import asyncio
+import time
 import random
 from dotenv import load_dotenv
 import json
@@ -26,6 +27,8 @@ try:
 except ImportError:
     AsyncOpenAI = None
     print("[AI WARNING] 'openai' library not found. OpenAI will be disabled.", flush=True)
+    
+from .utils import clean_ai_json_response
 
 class AIGenerator:
     def __init__(self):
@@ -55,7 +58,9 @@ class AIGenerator:
         
         # [CIRCUIT BREAKER] Gestion globale des pannes de providers
         self.provider_failures = {"gemini": 0, "openai": 0}
+        self.provider_last_failure = {"gemini": 0.0, "openai": 0.0}
         self.circuit_breaker_threshold = 2
+        self.circuit_breaker_timeout = 300 # [FIX] 5 minutes de pénalité avant réessai
 
     def _resolve_best_gemini_model(self):
         """Sélection du meilleur modèle avec découverte automatique ou fallback."""
@@ -99,9 +104,14 @@ class AIGenerator:
         
         # [CIRCUIT BREAKER] Auto-switch si le provider par défaut est hors-service
         if not provider and self.provider_failures.get(target_provider, 0) >= self.circuit_breaker_threshold:
-            fallback = "openai" if target_provider == "gemini" else "gemini"
-            print(f"[AI CIRCUIT BREAKER] {target_provider} est ignoré suite à de multiples échecs. Routage direct vers {fallback}.", flush=True)
-            target_provider = fallback
+            # Vérification du temps de pénalité (état Half-Open)
+            if time.time() - self.provider_last_failure.get(target_provider, 0.0) > self.circuit_breaker_timeout:
+                print(f"[AI CIRCUIT BREAKER] 🔄 Fin de la pénalité pour {target_provider}. Tentative de réactivation (Half-Open)...", flush=True)
+                self.provider_failures[target_provider] = self.circuit_breaker_threshold - 1 # On lui redonne 1 chance
+            else:
+                fallback = "openai" if target_provider == "gemini" else "gemini"
+                print(f"[AI CIRCUIT BREAKER] 🛑 {target_provider} est ignoré (hors-service). Routage direct vers {fallback}.", flush=True)
+                target_provider = fallback
             
         fallback_provider = "openai" if target_provider == "gemini" else "gemini"
 
@@ -118,6 +128,7 @@ class AIGenerator:
             except Exception as e:
                 
                 self.provider_failures[target_provider] += 1
+                self.provider_last_failure[target_provider] = time.time()
                 # 🔄 SYSTÈME DE FALLBACK AUTOMATIQUE GLOBAL
                 print(f"[AI] ⚠️ {target_provider.capitalize()} a échoué ({str(e)}). Auto-fallback vers {fallback_provider}...", flush=True)
                 try:
@@ -126,6 +137,7 @@ class AIGenerator:
                     return res
                 except Exception as fallback_e:
                     self.provider_failures[fallback_provider] += 1
+                    self.provider_last_failure[fallback_provider] = time.time()
                     msg = f"Both providers failed. Primary: {e!r} | Fallback: {fallback_e!r}"
                     print(f"[AI] 💀 FATAL: {msg}", flush=True)
                     raise RuntimeError(msg)
@@ -139,8 +151,6 @@ class AIGenerator:
         Appelle l'IA et garantit une sortie JSON valide. 
         En cas d'erreur de parsing, relance l'IA avec un message de correction via Tenacity.
         """
-        from .utils import clean_ai_json_response
-        
         # [FIX] Force l'IA à ne pas utiliser de Markdown dans les réponses JSON pour éviter les **xxxx** à l'affichage
         prompt = prompt + "\n\n⚠️ CRITICAL INSTRUCTION: DO NOT use any markdown formatting (like **bold** or *italic*) inside the JSON values. Return raw, unformatted plain text only."
         
@@ -153,8 +163,8 @@ class AIGenerator:
             
         current_prompt = prompt
         async for attempt in AsyncRetrying(
-            stop=stop_after_attempt(3), # 3 tentatives max
-            wait=wait_exponential(multiplier=1, min=2, max=10), # Backoff exponentiel (2s, 4s, 8s...)
+            stop=stop_after_attempt(4), # [OPTIMISATION] 4 tentatives max pour réparer un JSON corrompu
+            wait=wait_exponential(multiplier=0.5, min=1, max=8), # [OPTIMISATION] Backoff plus agressif (1s, 2s, 4s, 8s)
             reraise=True
         ):
             with attempt:
@@ -190,8 +200,8 @@ class AIGenerator:
 
     async def _attempt_call(self, func, model_name, bypass_queue, *args, **kwargs):
         """Exécute une fonction d'appel IA avec retries pour les erreurs transitoires."""
-        max_retries = 1
-        base_delay = 1.0
+        max_retries = 2 # [OPTIMISATION] 3 essais totaux par provider (0, 1, 2) avant de basculer (fallback)
+        base_delay = 0.5 # [OPTIMISATION] Délai de base ultra-court pour absorber les micro-pannes 502/503
         
         for attempt in range(max_retries + 1):
             try:

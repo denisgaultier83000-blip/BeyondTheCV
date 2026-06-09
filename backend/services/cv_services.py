@@ -42,7 +42,8 @@ from .tasks import (
 )
 from .utils import (
     clean_ai_json_response, normalize_language, load_prompt, _get_sortable_date_tuple,
-    _sanitize_data_for_ai, _generate_cache_key, get_cached_content, set_cached_content
+    _sanitize_data_for_ai, _generate_cache_key, get_cached_content, set_cached_content,
+    _CACHE_LOCKS
 )
 from .tasks import get_prompt_path
 from .websocket_manager import manager
@@ -406,8 +407,6 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
         
         # [FIX EXPERT] Sécurisation anti-concurrence (Lock) pour éviter l'écrasement des JSON (Read-Modify-Write)
         # si le candidat évalue plusieurs réponses exactement en même temps.
-        from .utils import _CACHE_LOCKS
-        import asyncio
         user_lock_key = f"eval_{current_user['id']}"
         if user_lock_key not in _CACHE_LOCKS:
             _CACHE_LOCKS[user_lock_key] = asyncio.Lock()
@@ -1760,13 +1759,25 @@ async def get_feedbacks(current_user: dict = Depends(get_current_user)):
 
 @router.delete("/cache")
 async def purge_cache(content_type: Optional[str] = Query(None), current_user: dict = Depends(require_active_subscription)):
-    """Permet au Frontend de forcer la suppression du cache (Ex: Bouton 'Générer d'autres questions')."""
+    """
+    Permet au Frontend de forcer la suppression du cache.
+    Supprime le type de contenu spécifié ET les caches composites qui en dépendent (ex: résumé de dashboard).
+    """
     try:
         async with db.get_connection() as conn:
+            user_id = current_user["id"]
             if content_type:
-                await db.execute(conn, "DELETE FROM generation_cache WHERE user_id = ? AND content_type = ?", (current_user["id"], content_type))
+                # [FIX EXPERT] Purger un élément doit aussi purger les synthèses qui en dépendent.
+                types_to_delete = [content_type]
+                
+                # Caches composites qui agrègent plusieurs résultats
+                composite_types = ['dashboard_summary', 'executive_summary', 'market_strategy']
+                types_to_delete.extend(composite_types)
+                
+                for ct in set(types_to_delete): # Utilise set() pour éviter les doublons
+                    await db.execute(conn, "DELETE FROM generation_cache WHERE user_id = ? AND content_type = ?", (user_id, ct))
             else:
-                await db.execute(conn, "DELETE FROM generation_cache WHERE user_id = ?", (current_user["id"],))
+                await db.execute(conn, "DELETE FROM generation_cache WHERE user_id = ?", (user_id,))
         return {"status": "success", "message": "Cache purgé avec succès pour forcer une nouvelle génération."}
     except Exception as e:
         print(f"[DB WARNING] Failed to purge cache (table might be missing): {e}")

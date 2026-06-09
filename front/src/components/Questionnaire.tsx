@@ -53,6 +53,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
   const [isRecording, setIsRecording] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
   const [feedbacks, setFeedbacks] = useState<Record<string, any>>(cvData?.[feedbacksKey] || {});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [showFeedbackDetails, setShowFeedbackDetails] = useState<Record<string, boolean>>({});
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
@@ -104,7 +105,8 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
   const handleRetry = (qKey: string) => {
     const newF = {...feedbacks}; delete newF[qKey];
     const newA = {...userAnswers}; delete newA[qKey];
-    setFeedbacks(newF); setUserAnswers(newA);
+    const newE = {...errors}; delete newE[qKey];
+    setFeedbacks(newF); setUserAnswers(newA); setErrors(newE);
     if (updateFormData) { updateFormData(feedbacksKey, newF); updateFormData(userAnswersKey, newA); }
     
     setActiveMode(prev => ({...prev, [qKey]: true}));
@@ -173,6 +175,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
     if (!answer) return;
     
     setIsSubmitting(qKey);
+    setErrors(prev => ({ ...prev, [qKey]: "" }));
     
     // Sécurisation des clés pour l'envoi API
     const questionText = q.question || q.text || "Question non spécifiée";
@@ -196,7 +199,11 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
         }),
       });
       
-      if (!response.ok) throw new Error("API call failed");
+      if (!response.ok) {
+        let errMsg = "Erreur de communication avec le serveur.";
+        try { const errObj = await response.json(); errMsg = errObj.detail || errMsg; } catch(e) {}
+        throw new Error(errMsg);
+      }
       const data = await response.json();
       const newFeedbacks = { ...feedbacks, [qKey]: data.feedback };
       setFeedbacks(newFeedbacks);
@@ -210,9 +217,9 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
       setActiveMode(prev => ({ ...prev, [qKey]: false }));
       
       if (onEvaluateSuccess) onEvaluateSuccess();
-    } catch (error) {
-      console.error(error);
-      alert("Erreur lors de l'évaluation par l'IA. La route backend doit être configurée.");
+    } catch (error: any) {
+      console.error("Erreur lors de l'évaluation IA :", error);
+      setErrors(prev => ({ ...prev, [qKey]: error.message || "Une erreur de communication avec l'IA est survenue. Veuillez réessayer." }));
     } finally {
       setIsSubmitting(null);
     }
@@ -392,6 +399,13 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                     </button>
                  </div>
                  
+                 {/* AFFICHER L'ERREUR GRACIEUSE ICI */}
+                 {errors[qKey] && (
+                    <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.2)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--danger-text)' }}>
+                      <AlertTriangle size={18} /> {errors[qKey]}
+                    </div>
+                 )}
+                 
                  <textarea 
                     value={userAnswers[qKey] || ""}
                     onChange={(e) => setUserAnswers(prev => ({ ...prev, [qKey]: e.target.value }))}
@@ -403,7 +417,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                  />
 
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <button onClick={() => setActiveMode(prev => ({...prev, [qKey]: false}))} className="btn-ghost" style={{ fontSize: '0.85rem' }} disabled={isSubmittingThis}>{t('btn_cancel', 'Annuler')}</button>
+                    <button onClick={() => { setActiveMode(prev => ({...prev, [qKey]: false})); setErrors(prev => ({...prev, [qKey]: ""})); }} className="btn-ghost" style={{ fontSize: '0.85rem' }} disabled={isSubmittingThis}>{t('btn_cancel', 'Annuler')}</button>
                     <button onClick={() => handleSubmit(qKey, q)} disabled={!(userAnswers[qKey] || "").trim() || isSubmittingThis} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
                       {isSubmittingThis ? <><Loader2 size={16} className="spin" /> {t('q_ai_analyzing', 'Analyse IA en cours...')}</> : <><Send size={16} /> {t('q_analyze_answer', 'Analyser ma réponse')}</>}
                     </button>
