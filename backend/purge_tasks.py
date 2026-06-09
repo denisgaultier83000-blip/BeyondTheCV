@@ -10,15 +10,17 @@ Utilisation :
 """
 import sys
 import psycopg2
-from database import DATABASE_URL
+from database import get_database_url
 
 def purge(mode):
-    if not DATABASE_URL:
+    db_url = get_database_url()
+    
+    if not db_url:
         print("❌ La variable DATABASE_URL est introuvable. Vérifiez votre fichier .env.")
         return
 
     try:
-        conn = psycopg2.connect(DATABASE_URL)
+        conn = psycopg2.connect(db_url)
         cur = conn.cursor()
 
         if mode == "failed":
