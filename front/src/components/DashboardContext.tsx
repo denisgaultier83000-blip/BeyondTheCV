@@ -139,7 +139,7 @@ export const DashboardProvider = ({
         setPilotError(errMsg);
         console.error(`[DashboardContext] Failed to fetch pilot data. Status: ${response.status}`, errMsg);
       }
-    } catch (error) {
+    } catch (error: any) {
       setPilotError(error.message || "Erreur réseau (Timeout). L'intelligence artificielle met trop de temps à répondre.");
       console.error("[DashboardContext] Error fetching pilot data:", error);
     } finally {

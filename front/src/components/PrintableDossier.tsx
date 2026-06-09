@@ -567,50 +567,44 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
         </div>
       )}
 
-      {/* 4. Historique des questions */}
+      {/* 4. Cockpit Stratégique (Plan d'action) */}
       {(selection.todo !== false) && (
         <div className="print-section page-break">
-          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>✅ Plan d'Action (To-Do List)</h2>
-          <div className="print-box">
-            {Array.isArray(todoList) ? todoList.map((step: any, i: number) => {
-              // Nouveau cas : L'IA renvoie directement un tableau de tâches simples (task/advice)
-              if (step.task && step.advice) {
+          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>✅ Cockpit Stratégique (Plan d'Action)</h2>
+          
+          {actionPlanResult?.action_plan && (
+            <div className="print-box avoid-break">
+              <h3 style={{ color: '#f59e0b', margin: '0 0 1rem 0' }}>⚡ Actions Commando (Immédiates)</h3>
+              {actionPlanResult.action_plan.map((step: any, i: number) => (
+                <div key={i} style={{ marginBottom: '1.5rem' }}>
+                  <h4 style={{ color: '#0f172a', margin: '0 0 0.25rem 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>{step.task}</span>
+                    {step.estimated_duration && <span style={{ color: '#f59e0b', fontSize: '0.85rem' }}>⏱️ {step.estimated_duration}</span>}
+                  </h4>
+                  <p style={{ margin: 0, color: '#475569', lineHeight: '1.5' }}>{step.advice}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {actionPlanResult?.training_plan && (
+            <div className="print-box avoid-break">
+              <h3 style={{ color: '#8b5cf6', margin: '0 0 1rem 0' }}>🎙️ Rituels Vocaux (Entraînement)</h3>
+              {actionPlanResult.training_plan.map((step: any, i: number) => {
+                const isUpcoming = step.stage === 'upcoming';
+                const accentColor = isUpcoming ? '#94a3b8' : '#8b5cf6';
                 return (
-                  <div key={i} style={{ marginBottom: '1.5rem' }}>
-                    <h4 style={{ color: '#2563eb', margin: '0 0 0.5rem 0' }}>{step.task}</h4>
-                    <ul style={{ margin: 0, paddingLeft: '1.5rem' }}>
-                      <li style={{ marginBottom: '0.25rem', color: '#475569', lineHeight: '1.5' }}>{step.advice}</li>
-                    </ul>
+                  <div key={i} style={{ marginBottom: '1rem', paddingLeft: '1rem', borderLeft: `3px solid ${accentColor}`, opacity: isUpcoming ? 0.7 : 1 }}>
+                    <h4 style={{ color: '#0f172a', margin: '0 0 0.25rem 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>{isUpcoming ? '🔒' : '📅'} {step.day.replace('J-', '-')} : {step.module}</span>
+                      <span style={{ color: accentColor, fontSize: '0.85rem' }}>{isUpcoming ? 'Anticipation' : `⏱️ ${step.duration_minutes} min`}</span>
+                    </h4>
+                    <p style={{ margin: 0, color: '#475569', lineHeight: '1.5' }}>{step.focus}</p>
                   </div>
                 );
-              }
-
-              // Ancien cas : L'IA renvoie des phases complexes
-              const title = typeof step === 'string' ? `Étape ${i+1}` : (step.phase || step.title || step.step || step.name || `Étape ${i+1}`);
-              let actions = [];
-              if (typeof step === 'string') {
-                actions = [step];
-              } else {
-                const rawActions = step.actions || step.tasks || step.items || step.description || step.details;
-                if (Array.isArray(rawActions)) actions = rawActions;
-                else if (rawActions) actions = [rawActions];
-                else if (step.task) actions = [step];
-              }
-              return (
-              <div key={i} style={{ marginBottom: '1.5rem' }}>
-                <h4 style={{ color: '#2563eb', margin: '0 0 0.5rem 0', textTransform: 'capitalize' }}>{title.replace(/_/g, ' ')}</h4>
-                <ul style={{ margin: 0, paddingLeft: '1.5rem' }}>
-                  {actions.map((act: any, j: number) => (
-                    <li key={j} style={{ marginBottom: '0.25rem', color: '#475569', lineHeight: '1.5' }}>
-                      {typeof act === 'string' ? act : (act.task ? `${act.task}${act.advice ? ` : ${act.advice}` : ''}` : JSON.stringify(act))}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}) : (
-              <p>Plan d'action non disponible.</p>
-            )}
-          </div>
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>
