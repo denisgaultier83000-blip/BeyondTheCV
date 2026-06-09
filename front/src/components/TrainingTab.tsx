@@ -398,7 +398,7 @@ export default function TrainingTab() {
                 </div>
                 <h4 style={{ margin: 0, color: 'var(--text-main)' }}>Analyse de votre réponse</h4>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
                 <div><strong style={{ color: '#10b981' }}>Points forts :</strong><ul style={{ margin: '0.5rem 0', paddingLeft: '1.2rem', fontSize: '0.9rem' }}>{Array.isArray(feedback.strengths) ? feedback.strengths.map((s: any, i: number) => <li key={i}>{renderSafeText(s)}</li>) : <li>{renderSafeText(feedback.strengths)}</li>}</ul></div>
                 <div><strong style={{ color: '#ef4444' }}>À améliorer :</strong><ul style={{ margin: '0.5rem 0', paddingLeft: '1.2rem', fontSize: '0.9rem' }}>{Array.isArray(feedback.weaknesses) ? feedback.weaknesses.map((w: any, i: number) => <li key={i}>{renderSafeText(w)}</li>) : <li>{renderSafeText(feedback.weaknesses)}</li>}</ul></div>
               </div>
@@ -435,7 +435,7 @@ export default function TrainingTab() {
                     <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-muted)' }}><strong>Votre réponse :</strong> {q.userAnswer}</p>
                   </div>
                   {fb && (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.9rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', fontSize: '0.9rem' }}>
                       <div>
                         <strong style={{ color: '#10b981' }}>{q.type === 'Vocal' ? 'Métriques :' : 'Points forts :'}</strong>
                         <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.2rem' }}>{Array.isArray(fb.strengths) ? fb.strengths.map((s: any, i: number) => <li key={i}>{renderSafeText(s)}</li>) : <li>{renderSafeText(fb.strengths)}</li>}</ul>

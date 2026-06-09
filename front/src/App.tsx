@@ -16,6 +16,7 @@ import { LandingPage } from './components/LandingPage';
 import { CGU } from './components/CGU';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { LegalNotice } from './components/LegalNotice';
+import ResetPassword from './components/ResetPassword';
 import { LoadingScreen } from './components/LoadingScreen';
 import DocumentsModal from './components/DocumentsModal';
 import { API_BASE_URL } from './config';
@@ -448,6 +449,11 @@ function AppContent() {
 
   if (showAdmin) return (
     <div className="app-container"><main className="main-content" style={{ paddingTop: '2rem' }}><button onClick={() => setShowAdmin(false)} className="btn-outline" style={{ marginBottom: '2rem' }}>← Retour</button><AdminFeedbacks /></main></div>);
+
+  // Interception de la route pour le mot de passe oublié
+  if (location.pathname === '/reset-password') {
+    return <ResetPassword />;
+  }
 
   // [FIX] Sécurisation du parsing JSON du nom d'utilisateur pour éviter la page blanche au login
   let parsedUserName = undefined;

@@ -590,6 +590,22 @@ export const DashboardView = () => {
           100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
         .spin { animation: spin 1s linear infinite; } @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* --- RESPONSIVE & MOBILE OPTIMIZATIONS --- */
+        @media (max-width: 768px) {
+          .bento-grid { grid-template-columns: 1fr !important; }
+          .bento-card.col-span-2, .bento-card.col-span-3 { grid-column: span 1 !important; }
+          .bento-card.row-span-2 { grid-row: auto !important; }
+          .pitch-grid, .analysis-grid, .cv-content-split { grid-template-columns: 1fr !important; }
+          .dashboard-wrapper { gap: 1rem !important; }
+          .tabs-navigation { padding-bottom: 0.5rem; }
+          .sub-tabs-navigation { padding: 0.75rem 1rem !important; justify-content: flex-start !important; flex-wrap: nowrap !important; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+          .sub-tabs-navigation::-webkit-scrollbar { display: none; }
+          .bento-card { padding: 1.25rem !important; }
+          
+          /* Prévention des dépassements de texte (Mots/URL trop longs) */
+          .bento-card p, .bento-card h3, .bento-card h4, .bento-card div { overflow-wrap: break-word; word-break: break-word; hyphens: auto; }
+        }
       `}</style>
     </div>
   );

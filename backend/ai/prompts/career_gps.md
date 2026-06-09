@@ -17,7 +17,7 @@ Tracer la route optimale entre le profil actuel du candidat et son poste cible, 
   - **"Immédiat à 3 mois"** : Uniquement si le candidat possède DÉJÀ 90% des compétences (évolution naturelle).
   - **"6 à 18 mois"** : Si une certification, un portfolio ou une formation courte est requise.
   - **"2 à 5 ans"** : Pour un poste de niveau Direction (C-Level) ou un pivot total nécessitant d'accumuler une nouvelle expérience terrain.
-- **OBSTACLES TANGIBLES :** Interdiction d'utiliser des freins génériques ("C'est difficile"). Nomme les VRAIS obstacles RH : "Baisse de salaire inévitable la 1ère année", "Plafond de verre lié au diplôme", "Manque de réseau des anciens dans ce secteur".
+- **OBSTACLES TANGIBLES :** Identifie EXCLUSIVEMENT des freins RH concrets, précis et chiffrables (ex: "Baisse de salaire inévitable la 1ère année", "Plafond de verre lié à l'absence de master", "Nécessité de construire un réseau de zéro"). Bannis toute formulation floue.
 
 ⚠️ **IMPORTANT :** Tu DOIS utiliser le format **Markdown** (gras avec `**`) pour mettre en évidence les mots-clés dans les champs textuels. 
 Pour chaque étape et obstacle, ajoute un champ `"icon"` contenant UN SEUL émoji représentatif. NE METS PAS l'émoji dans le nom de l'étape.

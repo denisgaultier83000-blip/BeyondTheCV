@@ -52,7 +52,7 @@ const Teleprompter = ({ fullPitchText, setIsTeleprompterOpen, isDark, t }: { ful
       
       <div id="teleprompter-scroll-container" style={{ flex: 1, overflowY: 'auto', padding: '8rem 2rem 15rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', scrollbarWidth: 'thin' }}>
         {fullPitchText.split('\n\n').map((p: string, i: number) => (
-          <p key={i} style={{ maxWidth: '800px', width: '100%', fontSize: '2.5rem', fontWeight: 700, lineHeight: 1.6, marginBottom: '3rem', color: textColor, textAlign: 'center' }}>{p}</p>
+          <p key={i} style={{ maxWidth: '800px', width: '100%', fontSize: 'clamp(1.5rem, 5vw, 2.5rem)', fontWeight: 700, lineHeight: 1.6, marginBottom: '3rem', color: textColor, textAlign: 'center' }}>{p}</p>
         ))}
       </div>
 

@@ -65,7 +65,7 @@ export default function DiagnosticDashboard({ data, candidateName, targetJob, on
   );
 
   return (
-    <div style={{ background: 'var(--bg-secondary)', padding: '2rem', borderRadius: '1rem' }}>
+    <div style={{ background: 'var(--bg-secondary)', padding: 'clamp(1rem, 4vw, 2rem)', borderRadius: '1rem' }}>
       {/* En-tête */}
       <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
         <h1 style={{ fontSize: '2rem', color: 'var(--text-main)', margin: 0 }}>Career Intelligence Report</h1>
@@ -75,7 +75,7 @@ export default function DiagnosticDashboard({ data, candidateName, targetJob, on
       </div>
 
       {/* Grille de diagnostic */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', alignItems: 'stretch' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '1.5rem', alignItems: 'stretch' }}>
         
         {/* 1. Score d'adéquation */}
         <StatCard icon={<Target size={24} color={scoreColor} />} title="Score d’adéquation">

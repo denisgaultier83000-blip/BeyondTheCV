@@ -11,7 +11,7 @@ Analyser le profil du candidat pour identifier des trajectoires de carrière log
 - Poste visé actuel (pour référence)
 
 ## ⛔ CONTRAINTES STRICTES (ANTI-ABSURDITÉ)
-- **RÉALISME ABSOLU :** Ne propose AUCUNE trajectoire qui nécessiterait de reprendre des études longues (ex: un comptable ne devient pas médecin). Le pivot doit être réalisable en **moins de 12 à 18 mois** via une certification, une VAE ou de l'auto-formation.
+- **RÉALISME ABSOLU :** Propose UNIQUEMENT des trajectoires professionnelles de proximité. Le pivot doit être réalisable en **moins de 12 à 18 mois** via une certification, une VAE ou de l'auto-formation courte.
 - **TRANSFERT DE COMPÉTENCES :** Chaque trajectoire doit exploiter au moins **60% de l'expertise métier ou des hard skills** actuels du candidat. Le lien doit être indiscutable.
 - **PAS DE DÉVALORISATION :** Préserve le niveau de séniorité global du candidat (un Directeur ne devient pas Assistant).
 - **VARIÉTÉ DES PIVOTS :** Tu dois proposer exactement ces 3 niveaux de transition :

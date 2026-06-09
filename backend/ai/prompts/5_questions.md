@@ -13,11 +13,9 @@ Entrées disponibles :
 - Niveau de séniorité du candidat
 
 Contraintes impératives :
-- Les questions doivent être adaptées spécifiquement à CE candidat
+- Les questions doivent être hyper-spécifiques à CE candidat et à CETTE entreprise.
 - Les questions doivent être crédibles à l’oral
-- Aucune question générique ou “copiable”
-- Aucune question flatteuse ou naïve
-- Aucune question RH basique (salaire, télétravail, congés, etc.)
+- Les questions doivent porter EXCLUSIVEMENT sur la stratégie, la vision, les défis du poste et l'équipe. BANNIS les sujets administratifs.
 
 Principes de qualité :
 - Chaque question doit révéler une intention intelligente
