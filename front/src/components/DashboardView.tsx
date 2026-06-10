@@ -150,8 +150,35 @@ export const DashboardView = () => {
   const stressLabels: Record<string, string> = { low: 'Confiant', medium: 'Stress Modéré', high: 'Stress Élevé' };
 
   // Détection du Mode Commando (Entretien dans < 48h)
-  const dateStr = (meta.interview_date || "").toLowerCase();
-  const isCommando = dateStr.includes("aujourd'hui") || dateStr.includes("today") || dateStr.includes("demain") || dateStr.includes("tomorrow") || dateStr.includes("24h") || dateStr.includes("48h") || dateStr.includes("2 jours");
+  const getDaysUntilInterview = (dateStr: string): number => {
+    if (!dateStr) return 999;
+    const lowerStr = dateStr.toLowerCase().trim();
+    
+    // 1. Détection des chaînes relatives
+    if (lowerStr.includes("aujourd'hui") || lowerStr.includes("today") || lowerStr.includes("ce jour")) return 0;
+    if (lowerStr.includes("demain") || lowerStr.includes("tomorrow") || lowerStr.includes("24h") || lowerStr.includes("24 h")) return 1;
+    if (lowerStr.includes("48h") || lowerStr.includes("48 h") || lowerStr.includes("2 jours") || lowerStr.includes("2 days")) return 2;
+    
+    // 2. Détection des dates exactes (YYYY-MM-DD ou DD/MM/YYYY)
+    let match = lowerStr.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    let parsedDate: Date | null = null;
+    if (match) {
+      parsedDate = new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]));
+    } else {
+      match = lowerStr.match(/(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+      if (match) parsedDate = new Date(parseInt(match[3]), parseInt(match[2]) - 1, parseInt(match[1]));
+    }
+    
+    if (parsedDate && !isNaN(parsedDate.getTime())) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      parsedDate.setHours(0, 0, 0, 0);
+      const diffTime = parsedDate.getTime() - today.getTime();
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+    return 999;
+  };
+  const isCommando = getDaysUntilInterview(meta.interview_date || "") <= 2;
   const commandoReason = t('commando_disabled_reason', "Désactivé (Urgence : Entretien imminent)");
 
   const hasJobDesc = !!(cvData?.job_description && cvData.job_description.trim().length > 0);
