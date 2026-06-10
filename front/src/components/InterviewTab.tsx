@@ -74,7 +74,7 @@ const Teleprompter = ({ fullPitchText, setIsTeleprompterOpen, isDark, t }: { ful
 };
 
 export const InterviewTab = () => {
-  const { pitchResult, questionsResult, customScenariosResult, globalStatus, cvData } = useDashboard();
+  const { pitchResult, questionsResult, customScenariosResult, globalStatus, cvData, updateFormData } = useDashboard();
   const { t } = useTranslation();
   const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false);
   const [isDark] = useState(() => document.body.classList.contains('dark-mode'));
@@ -91,21 +91,41 @@ export const InterviewTab = () => {
   useEffect(() => {
     if (pitchResult) {
       const p = pitchResult?.pitch || pitchResult;
+      const savedPitch = cvData?.editablePitch;
       setEditablePitch({
-        accroche: p?.accroche || "",
-        preuve: p?.preuve || "",
-        valeur: p?.valeur || "",
-        projection: p?.projection || ""
+        accroche: savedPitch?.accroche || p?.accroche || "",
+        preuve: savedPitch?.preuve || p?.preuve || "",
+        valeur: savedPitch?.valeur || p?.valeur || "",
+        projection: savedPitch?.projection || p?.projection || ""
       });
       setPitchAnalysis(p?.analysis || null);
     }
   }, [pitchResult]);
 
   const handlePitchChange = (field: keyof typeof editablePitch, value: string) => {
-    setEditablePitch(prev => ({ ...prev, [field]: value }));
+    const newPitch = { ...editablePitch, [field]: value };
+    setEditablePitch(newPitch);
+    if (updateFormData) {
+      updateFormData('editablePitch', newPitch);
+    }
   };
 
   const fullPitchText = [editablePitch.accroche, editablePitch.preuve, editablePitch.valeur, editablePitch.projection].filter(Boolean).join('\n\n');
+
+  const handleResetPitch = () => {
+    if (!window.confirm(t('confirm_reset_pitch', "Voulez-vous vraiment annuler vos modifications et restaurer le pitch original généré par l'IA ?"))) return;
+    const p = pitchResult?.pitch || pitchResult;
+    const originalPitch = {
+      accroche: p?.accroche || "",
+      preuve: p?.preuve || "",
+      valeur: p?.valeur || "",
+      projection: p?.projection || ""
+    };
+    setEditablePitch(originalPitch);
+    if (updateFormData) {
+      updateFormData('editablePitch', originalPitch);
+    }
+  };
 
   const handleEvaluatePitch = async () => {
     setIsEvaluatingPitch(true);
@@ -280,9 +300,14 @@ export const InterviewTab = () => {
           errorText={t('pitch_error', "Le pitch n'a pas pu être généré.")}
           featureId="pitch_3_min"
           headerAction={pitchResult && (
-            <button className="btn-primary" onClick={() => setIsTeleprompterOpen(true)}>
-              <Play size={16} style={{ marginRight: '0.5rem' }} /> {t('teleprompter_mode', 'Mode Téléprompteur')}
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button onClick={handleResetPitch} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} title="Restaurer le pitch généré par l'IA">
+                <RotateCcw size={16} /> {t('btn_reset', 'Réinitialiser')}
+              </button>
+              <button className="btn-primary" onClick={() => setIsTeleprompterOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
+                <Play size={16} /> {t('teleprompter_mode', 'Téléprompteur')}
+              </button>
+            </div>
           )}
         >
           {pitchResult && (

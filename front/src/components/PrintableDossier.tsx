@@ -139,7 +139,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
 
   const questionsArray = getQuestionsArray(questionsResult);
   const scenariosArray = getScenariosAsQuestions(customScenariosResult);
-  const pitch = pitchResult?.pitch || pitchResult;
+  const pitch = cvData?.editablePitch || pitchResult?.pitch || pitchResult;
 
   const renderImprovedAnswer = (answer: any) => {
     if (!answer) return "N/A";
@@ -193,6 +193,11 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
           .page-break { page-break-before: always; break-before: page; }
           .avoid-break { page-break-inside: avoid; break-inside: avoid; }
           h1, h2, h3, h4 { color: #0f172a; margin-top: 0; }
+          .print-section p, .print-box p {
+            white-space: pre-wrap; /* Respecte les sauts de ligne de l'utilisateur */
+            word-break: break-word; /* Casse les mots très longs pour éviter le débordement */
+            line-height: 1.6; /* Améliore la lisibilité des longs paragraphes */
+          }
           .print-section { margin-bottom: 2rem; max-width: 100%; box-sizing: border-box; }
           .print-box { border: 1px solid #cbd5e1; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; background: #f8fafc; box-sizing: border-box; width: 100%; word-wrap: break-word; overflow-wrap: break-word; }
           p, div, span, li, h3, h4 { max-width: 100%; }

@@ -58,6 +58,19 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
 
+  // [FIX EXPERT] Sauvegarde automatique des réponses à la sortie du composant
+  // pour éviter la perte de données si l'utilisateur navigue sans soumettre.
+  const userAnswersRef = useRef(userAnswers);
+  useEffect(() => {
+      userAnswersRef.current = userAnswers;
+  });
+
+  useEffect(() => {
+      return () => {
+          if (updateFormData) updateFormData(userAnswersKey, userAnswersRef.current);
+      };
+  }, [updateFormData, userAnswersKey]);
+
   // [FIX EXPERT] On utilise le texte de la question comme clé unique 
   // pour éviter que les réponses ne bavent d'un index à l'autre (ex: Index 0 Question = Index 0 MES)
   const getKey = (q: any, idx: number): string => {
@@ -409,7 +422,6 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                  <textarea 
                     value={userAnswers[qKey] || ""}
                     onChange={(e) => setUserAnswers(prev => ({ ...prev, [qKey]: e.target.value }))}
-                    onBlur={() => updateFormData && updateFormData(userAnswersKey, { ...userAnswers })}
                     placeholder={t('q_answer_placeholder', "Commencez à parler ou tapez votre réponse ici...")}
                     rows={4}
                     disabled={isSubmittingThis}
