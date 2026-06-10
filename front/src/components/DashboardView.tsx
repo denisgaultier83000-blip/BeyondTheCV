@@ -143,6 +143,17 @@ export const DashboardView = () => {
     return true;
   };
 
+  // --- EXTRACTION DU CONTEXTE CANDIDAT ---
+  const meta = cvData?.meta || cvData || {};
+  const interviewTypeLabels: Record<string, string> = { rh: 'Ressources Humaines', manager: 'Manager / Opérationnel', tech: 'Équipe Technique', final: 'Direction (Final)' };
+  const formatLabels: Record<string, string> = { visio: 'Visioconférence', phone: 'Téléphone', onsite: 'En Présentiel' };
+  const stressLabels: Record<string, string> = { low: 'Confiant', medium: 'Stress Modéré', high: 'Stress Élevé' };
+
+  // Détection du Mode Commando (Entretien dans < 48h)
+  const dateStr = (meta.interview_date || "").toLowerCase();
+  const isCommando = dateStr.includes("aujourd'hui") || dateStr.includes("today") || dateStr.includes("demain") || dateStr.includes("tomorrow") || dateStr.includes("24h") || dateStr.includes("48h") || dateStr.includes("2 jours");
+  const commandoReason = t('commando_disabled_reason', "Désactivé (Urgence : Entretien imminent)");
+
   const hasJobDesc = !!(cvData?.job_description && cvData.job_description.trim().length > 0);
 
   // Liste de tous les livrables avec leur état
@@ -191,12 +202,6 @@ export const DashboardView = () => {
 
   // La condition de chargement est maintenant robuste grâce à l'état explicite `isPilotLoading`
   const isLoadingOverview = isPilotLoading || (!pilotData && !pilotError);
-
-  // --- EXTRACTION DU CONTEXTE CANDIDAT ---
-  const meta = cvData?.meta || cvData || {};
-  const interviewTypeLabels: Record<string, string> = { rh: 'Ressources Humaines', manager: 'Manager / Opérationnel', tech: 'Équipe Technique', final: 'Direction (Final)' };
-  const formatLabels: Record<string, string> = { visio: 'Visioconférence', phone: 'Téléphone', onsite: 'En Présentiel' };
-  const stressLabels: Record<string, string> = { low: 'Confiant', medium: 'Stress Modéré', high: 'Stress Élevé' };
 
   return (
     <div className="dashboard-wrapper">
