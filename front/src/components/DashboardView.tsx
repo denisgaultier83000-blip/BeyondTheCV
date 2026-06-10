@@ -160,13 +160,13 @@ export const DashboardView = () => {
       anchor: "decoder_section", 
       data: jobDecoderResult, 
       icon: <Search size={18}/>,
-      disabled: !hasJobDesc,
-      disabledReason: t('card_decoder_disabled', "Annonce non renseignée. Ajoutez l'annonce dans votre profil pour l'analyser.")
+      disabled: !hasJobDesc || (isCommando && !jobDecoderResult),
+      disabledReason: !hasJobDesc ? t('card_decoder_disabled', "Annonce non renseignée. Ajoutez l'annonce dans votre profil pour l'analyser.") : (isCommando ? commandoReason : undefined)
     },
-    { name: t('deliv_recruiter', "Vue Recruteur"), tab: "career", anchor: "recruiter_section", data: recruiterResult, icon: <Eye size={18}/> },
-    { name: t('deliv_gps', "GPS de Carrière"), tab: "career", anchor: "gps_section", data: careerGpsResult, icon: <Navigation size={18}/> },
-    { name: t('deliv_radar', "Radar de Carrière"), tab: "career", anchor: "radar_section", data: careerRadarResult, icon: <Compass size={18}/> },
-    { name: t('deliv_hidden', "Marché Caché"), tab: "career", anchor: "hidden_section", data: hiddenMarketResult, icon: <Network size={18}/> },
+    { name: t('deliv_recruiter', "Vue Recruteur"), tab: "career", anchor: "recruiter_section", data: recruiterResult, icon: <Eye size={18}/>, disabled: isCommando && !recruiterResult, disabledReason: isCommando ? commandoReason : undefined },
+    { name: t('deliv_gps', "GPS de Carrière"), tab: "career", anchor: "gps_section", data: careerGpsResult, icon: <Navigation size={18}/>, disabled: isCommando && !careerGpsResult, disabledReason: isCommando ? commandoReason : undefined },
+    { name: t('deliv_radar', "Radar de Carrière"), tab: "career", anchor: "radar_section", data: careerRadarResult, icon: <Compass size={18}/>, disabled: isCommando && !careerRadarResult, disabledReason: isCommando ? commandoReason : undefined },
+    { name: t('deliv_hidden', "Marché Caché"), tab: "career", anchor: "hidden_section", data: hiddenMarketResult, icon: <Network size={18}/>, disabled: isCommando && !hiddenMarketResult, disabledReason: isCommando ? commandoReason : undefined },
     { name: t('deliv_simulator', "Simulateur de Carrière"), tab: "career", anchor: "simulator_section", data: cvData, icon: <Play size={18}/> },
     { name: t('cockpit_title', "Cockpit Stratégique"), tab: "cockpit", anchor: "cockpit_section", data: actionPlanResult, icon: <Target size={18}/> }
   ];
@@ -333,7 +333,7 @@ export const DashboardView = () => {
                       onGoToRadar={() => handleTabChange('career', 'radar_section')}
                       onGoToGps={() => handleTabChange('career', 'gps_section')}
                   />
-                  <CareerRealityCheck data={realityResult} score={pilotData?.matchScore} loading={isProcessing && !realityResult} />
+                  <CareerRealityCheck data={realityResult} score={pilotData?.matchScore} loading={isProcessing && !realityResult && !isCommando} />
                 </>
               )}
             </div>
@@ -371,32 +371,42 @@ export const DashboardView = () => {
              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                <AnalysisTab researchResult={researchResult} salaryResult={salaryResult} onRefresh={triggerResearch} isRefreshing={isProcessing} />
              </div>
-             <div id="decoder_section">
-               <JobDecoder data={jobDecoderResult} loading={isProcessing && !jobDecoderResult} />
-             </div>
+             {(!isCommando || jobDecoderResult) && (
+               <div id="decoder_section">
+                 <JobDecoder data={jobDecoderResult} loading={isProcessing && !jobDecoderResult} />
+               </div>
+             )}
            </div>
         )}
 
         {activeTab === 'career' && (
            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-             <div id="recruiter_section">
-               <RecruiterView data={recruiterResult} loading={isProcessing && !recruiterResult} />
-             </div>
-             <div id="gps_section">
-               <DashboardCard title="GPS de Carrière" icon={<Navigation size={24} />} featureId="career_gps" loading={isProcessing && !careerGpsResult} error={!isProcessing && !careerGpsResult}>
-                 <CareerGPS data={careerGpsResult} />
-               </DashboardCard>
-             </div>
-             <div id="radar_section">
-               <DashboardCard title="Radar de Carrière" icon={<Compass size={24} />} featureId="career_radar" loading={isProcessing && !careerRadarResult} error={!isProcessing && !careerRadarResult}>
-                 <CareerRadar data={careerRadarResult} />
-               </DashboardCard>
-             </div>
-             <div id="hidden_section">
-               <DashboardCard title="Marché Caché & Réseau" icon={<Network size={24} />} featureId="hidden_market" loading={isProcessing && !hiddenMarketResult} error={!isProcessing && !hiddenMarketResult}>
-                 <HiddenMarket data={hiddenMarketResult} />
-               </DashboardCard>
-             </div>
+             {(!isCommando || recruiterResult) && (
+               <div id="recruiter_section">
+                 <RecruiterView data={recruiterResult} loading={isProcessing && !recruiterResult} />
+               </div>
+             )}
+             {(!isCommando || careerGpsResult) && (
+               <div id="gps_section">
+                 <DashboardCard title="GPS de Carrière" icon={<Navigation size={24} />} featureId="career_gps" loading={isProcessing && !careerGpsResult} error={!isProcessing && !careerGpsResult}>
+                   <CareerGPS data={careerGpsResult} />
+                 </DashboardCard>
+               </div>
+             )}
+             {(!isCommando || careerRadarResult) && (
+               <div id="radar_section">
+                 <DashboardCard title="Radar de Carrière" icon={<Compass size={24} />} featureId="career_radar" loading={isProcessing && !careerRadarResult} error={!isProcessing && !careerRadarResult}>
+                   <CareerRadar data={careerRadarResult} />
+                 </DashboardCard>
+               </div>
+             )}
+             {(!isCommando || hiddenMarketResult) && (
+               <div id="hidden_section">
+                 <DashboardCard title="Marché Caché & Réseau" icon={<Network size={24} />} featureId="hidden_market" loading={isProcessing && !hiddenMarketResult} error={!isProcessing && !hiddenMarketResult}>
+                   <HiddenMarket data={hiddenMarketResult} />
+                 </DashboardCard>
+               </div>
+             )}
              <div id="simulator_section">
                <CareerSimulator candidateData={cvData} />
              </div>

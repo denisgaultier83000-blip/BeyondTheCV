@@ -16,6 +16,7 @@ export function ApplicationDossier({ appId, onBack, onOpenDeliverable, onGoToTra
   const [appData, setAppData] = useState<any>(null);
   const [deliverablesData, setDeliverablesData] = useState<any>({});
   const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadDossier = async () => {
@@ -28,8 +29,7 @@ export function ApplicationDossier({ appId, onBack, onOpenDeliverable, onGoToTra
         setDeliverablesData(json.data);
       } catch (err) {
         console.error(err);
-        alert("Impossible de charger ce dossier.");
-        onBack();
+      setError("Impossible de charger le contenu de ce dossier.");
       } finally {
         setLoading(false);
       }
@@ -42,6 +42,7 @@ export function ApplicationDossier({ appId, onBack, onOpenDeliverable, onGoToTra
     if (!window.confirm("Êtes-vous sûr de vouloir supprimer définitivement ce dossier et toutes ses analyses ?")) return;
     
     setIsDeleting(true);
+    setError(null);
     try {
       const response = await authenticatedFetch(`${API_BASE_URL}/api/applications/${appId}`, {
         method: 'DELETE'
@@ -50,7 +51,7 @@ export function ApplicationDossier({ appId, onBack, onOpenDeliverable, onGoToTra
       onBack();
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de la suppression.");
+      setError("Erreur lors de la suppression de la candidature.");
       setIsDeleting(false);
     }
   };
@@ -66,6 +67,16 @@ export function ApplicationDossier({ appId, onBack, onOpenDeliverable, onGoToTra
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
         <Loader2 className="spin" size={48} color="var(--primary)" style={{ marginBottom: '1rem' }} />
         <p>Ouverture du dossier sécurisé...</p>
+      </div>
+    );
+  }
+
+  if (error && !appData) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem' }}>
+        <AlertTriangle size={48} color="var(--danger-text)" style={{ marginBottom: '1rem' }} />
+        <p style={{ color: 'var(--danger-text)', marginBottom: '2rem', fontSize: '1.1rem' }}>{error}</p>
+        <button onClick={onBack} className="btn-secondary">Retour à mes dossiers</button>
       </div>
     );
   }
@@ -138,6 +149,12 @@ export function ApplicationDossier({ appId, onBack, onOpenDeliverable, onGoToTra
       <button onClick={onBack} className="btn-ghost" style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         <ArrowLeft size={18} /> Retour à mes dossiers
       </button>
+
+    {error && (
+      <div style={{ background: 'rgba(239, 68, 68, 0.05)', color: 'var(--danger-text)', padding: '1rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.2)', marginBottom: '2rem' }}>
+        <AlertTriangle size={18} /> {error}
+      </div>
+    )}
 
       {/* --- VUE SYNTHÈSE DU DOSSIER --- */}
       <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginBottom: '2rem', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)' }}>

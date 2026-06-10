@@ -220,14 +220,36 @@ export function SituationSimulator() {
 
   const handleGenerateMore = async () => {
     setIsGeneratingMore(true);
+    setError(null);
     try {
-      // Point d'accroche pour la future route de regénération
-      // await authenticatedFetch(`${API_BASE_URL}/api/cv/generate-extra-scenarios`, { method: 'POST', ... });
-      setTimeout(() => {
-        alert(t('sim_wip_feature', "Fonctionnalité en cours de raccordement. L'IA générera bientôt de nouveaux cas à la volée !"));
-        setIsGeneratingMore(false);
-      }, 1000);
-    } catch (e) {
+      // 1. Purge du cache existant pour forcer l'IA à inventer de NOUVEAUX scénarios inédits
+      await authenticatedFetch(`${API_BASE_URL}/api/cv/cache?content_type=extra_scenarios`, { method: 'DELETE' });
+      
+      // 2. Génération des nouveaux cas
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/generate-extra-scenarios`, { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cvData)
+      });
+      
+      if (!response.ok) {
+        let errMsg = "Impossible de générer de nouveaux scénarios.";
+        try { const errObj = await response.json(); errMsg = errObj.detail || errMsg; } catch(err) {}
+        throw new Error(errMsg);
+      }
+      
+      const newScenarios = await response.json();
+      if (newScenarios.categories && newScenarios.categories.length > 0) {
+        // Remplacement par les nouveaux scénarios générés par l'IA
+        setScenarios(newScenarios.categories);
+        if (updateFormData) {
+          updateFormData("customScenariosResult", newScenarios);
+        }
+      }
+    } catch (e: any) {
+      console.error(e);
+      setError(e.message || "Erreur lors de la génération de nouveaux cas.");
+    } finally {
       setIsGeneratingMore(false);
     }
   };

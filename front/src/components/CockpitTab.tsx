@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ShieldAlert, Clock, Zap, Target, CheckCircle2, Circle, Mic, CalendarDays, Timer, Lock, RefreshCw, Loader2 } from 'lucide-react';
+import { ShieldAlert, Clock, Zap, Target, CheckCircle2, Circle, Mic, CalendarDays, Timer, Lock, RefreshCw, Loader2, AlertTriangle } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { useDashboard } from './DashboardContext';
@@ -41,6 +41,7 @@ export const CockpitTab: React.FC<CockpitProps> = ({
   const [checkedItems, setCheckedItems] = useState<number[]>([]);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [localData, setLocalData] = useState(actionPlanData);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setLocalData(actionPlanData);
@@ -49,6 +50,7 @@ export const CockpitTab: React.FC<CockpitProps> = ({
   const handleRegenerate = async () => {
     if (!window.confirm("Voulez-vous forcer l'IA à calculer une nouvelle stratégie d'action ?")) return;
     setIsRegenerating(true);
+    setError(null);
     try {
       const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/regenerate/action-plan`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cvData)
@@ -58,7 +60,7 @@ export const CockpitTab: React.FC<CockpitProps> = ({
       setLocalData(newData);
       if (updateFormData) updateFormData('actionPlanResult', newData);
     } catch (e) {
-      alert("Erreur lors de la regénération. Veuillez réessayer.");
+      setError("Erreur lors de la regénération. Veuillez réessayer.");
     } finally {
       setIsRegenerating(false);
     }
@@ -94,6 +96,12 @@ export const CockpitTab: React.FC<CockpitProps> = ({
             </div>
           </div>
         </div>
+
+        {error && (
+          <div style={{ background: 'rgba(239, 68, 68, 0.05)', color: 'var(--danger-text)', padding: '0.75rem 1rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.2)', margin: '0 1.5rem 1.5rem 1.5rem' }}>
+            <AlertTriangle size={18} /> {error}
+          </div>
+        )}
 
         <div style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
           <h3 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0' }}>
@@ -184,6 +192,11 @@ export const CockpitTab: React.FC<CockpitProps> = ({
                     <div style={{ flex: 1 }}>
                       <h4 style={{ margin: '0 0 0.25rem 0', fontWeight: 700, color: isUpcoming ? 'var(--text-muted)' : 'var(--text-main)', fontSize: '1rem' }}>{planItem.module}</h4>
                       <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>{planItem.focus || "Répétez cet exercice chronométré à voix haute."}</p>
+                      {isUpcoming && (
+                        <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: '#64748b', fontStyle: 'italic', display: 'flex', alignItems: 'flex-start', gap: '0.25rem' }}>
+                          <span style={{ fontSize: '1rem', lineHeight: 1 }}>💡</span> Cette étape s'activera lors de votre prochain round d'entretien. Concentrez-vous sur l'immédiat !
+                        </div>
+                      )}
                     </div>
                     
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 700, background: isUpcoming ? '#f1f5f9' : 'rgba(139, 92, 246, 0.1)', color: accentColor, padding: '0.3rem 0.6rem', borderRadius: '1rem', whiteSpace: 'nowrap' }}>

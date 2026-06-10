@@ -88,6 +88,22 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
       return part;
     });
   };
+  
+  // Parseur de sécurité pour éviter les NaN si l'IA renvoie du texte (ex: "85/100" ou "Excellent") au lieu d'un nombre
+  const formatSafeScore100 = (score: any, fallback = "N/A"): string => {
+    if (score === undefined || score === null) return fallback;
+    const num = typeof score === 'number' ? score : parseInt(String(score).replace(/[^\d-]/g, ''), 10);
+    if (isNaN(num)) return fallback;
+    return String(num);
+  };
+
+  const formatSafeScore10 = (score: any): string => {
+    if (score === undefined || score === null) return "N/A";
+    // Extrait les nombres avec potentiellement une décimale
+    const num = typeof score === 'number' ? score : parseFloat(String(score).replace(/,/g, '.').replace(/[^\d.-]/g, ''));
+    if (isNaN(num)) return "N/A";
+    return (num / 10).toFixed(1);
+  };
 
   const getScenariosAsQuestions = (data: any): any[] => {
     if (!data) return [];
@@ -244,7 +260,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
         <h1 style={{ fontSize: '3.5rem', marginBottom: '1rem', color: '#0f172a' }}>Dossier de Préparation</h1>
         <h2 style={{ fontSize: '1.8rem', color: '#475569' }}>Candidat : {cvData?.first_name} {cvData?.last_name}</h2>
         <h3 style={{ fontSize: '1.5rem', color: '#64748b' }}>Cible : {cvData?.target_job} {cvData?.target_company ? `chez ${cvData.target_company}` : ''}</h3>
-        <p style={{ marginTop: '4rem', fontSize: '1.4rem' }}>Score d'Adéquation global : <strong>{pilotData?.matchScore || 0}/100</strong></p>
+        <p style={{ marginTop: '4rem', fontSize: '1.4rem' }}>Score d'Adéquation global : <strong>{formatSafeScore100(pilotData?.matchScore, "0")}/100</strong></p>
       </div>
 
       {/* Pitch */}
@@ -322,7 +338,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
                 <>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid #cbd5e1', paddingBottom: '0.5rem' }}>
                     <span><strong>Temps estimé :</strong> {route.estimated_time || "N/A"}</span>
-                    <span><strong>Probabilité :</strong> {route.probability || "N/A"}%</span>
+                    <span><strong>Probabilité :</strong> {formatSafeScore100(route.probability)}%</span>
                   </div>
                   <h4 style={{ color: '#0f172a', margin: '0 0 0.5rem 0' }}>Étapes Clés</h4>
                   <ul style={{ margin: '0 0 1rem 0', paddingLeft: '1.2rem' }}>
@@ -360,7 +376,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
           <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>📡 Radar de Carrière (Trajectoires)</h2>
           {careerRadarResult.trajectories ? careerRadarResult.trajectories.map((traj: any, idx: number) => (
             <div key={idx} className="print-box avoid-break">
-              <h3 style={{ color: '#0f172a', margin: '0 0 0.5rem 0' }}>{traj.title || traj.role || traj.name} - {traj.match_percent}%</h3>
+              <h3 style={{ color: '#0f172a', margin: '0 0 0.5rem 0' }}>{traj.title || traj.role || traj.name} - {formatSafeScore100(traj.match_percent)}%</h3>
               <p style={{ margin: '0 0 0.25rem 0' }}><strong>Temps estimé :</strong> {traj.time_to_reach}</p>
               <p style={{ margin: '0 0 0.25rem 0' }}><strong>Potentiel Salarial :</strong> {traj.salary_potential}</p>
               <p style={{ margin: '0 0 0.25rem 0', lineHeight: 1.5 }}><strong>Pourquoi :</strong> {formatMarkdown(traj.rationale || traj.why)}</p>
@@ -503,7 +519,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
                   <p style={{ margin: '0.5rem 0', color: '#475569' }}><strong>Votre réponse :</strong> {q.user_answer}</p>
                   {q.evaluation && (
                     <div style={{ background: '#dcfce7', padding: '1rem', borderRadius: '4px', marginTop: '0.5rem', border: '1px solid #bbf7d0' }}>
-                      <p style={{ margin: '0 0 0.5rem 0', color: '#166534', fontWeight: 'bold' }}>Feedback IA (Score: {(q.evaluation.score/10).toFixed(1)}/10)</p>
+                      <p style={{ margin: '0 0 0.5rem 0', color: '#166534', fontWeight: 'bold' }}>Feedback IA (Score: {formatSafeScore10(q.evaluation.score)}/10)</p>
                       <div style={{ margin: 0, color: '#166534' }}>{renderImprovedAnswer(q.evaluation.improved_answer || q.evaluation.feedback)}</div>
                     </div>
                   )}
@@ -533,7 +549,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
                   <p style={{ margin: '0.5rem 0', color: '#475569' }}><strong>Votre action :</strong> {q.user_answer}</p>
                   {q.evaluation && (
                     <div style={{ background: '#dcfce7', padding: '1rem', borderRadius: '4px', marginTop: '0.5rem', border: '1px solid #bbf7d0' }}>
-                      <p style={{ margin: '0 0 0.5rem 0', color: '#166534', fontWeight: 'bold' }}>Feedback IA (Score: {(q.evaluation.score/10).toFixed(1)}/10)</p>
+                      <p style={{ margin: '0 0 0.5rem 0', color: '#166534', fontWeight: 'bold' }}>Feedback IA (Score: {formatSafeScore10(q.evaluation.score)}/10)</p>
                       <div style={{ margin: 0, color: '#166534' }}>{renderImprovedAnswer(q.evaluation.improved_answer || q.evaluation.feedback)}</div>
                     </div>
                   )}

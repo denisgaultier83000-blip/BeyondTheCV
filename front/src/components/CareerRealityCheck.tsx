@@ -30,6 +30,7 @@ export function CareerRealityCheck({ data, loading, error, score }: Props) {
   const { archetype, tagline, market_position, top_3_skills, linkedin_post } = reality_check || {
     archetype: '', tagline: '', market_position: '', top_3_skills: [], linkedin_post: ''
   };
+  const safeTopSkills = Array.isArray(top_3_skills) ? top_3_skills : [];
 
   const handleCopy = () => {
     navigator.clipboard.writeText(linkedin_post);
@@ -99,9 +100,11 @@ export function CareerRealityCheck({ data, loading, error, score }: Props) {
           <div style={{ borderLeft: '1px solid var(--border-color)', paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>FORCES MAJEURES</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-              {top_3_skills.map((skill, i) => (
+              {safeTopSkills.length > 0 ? safeTopSkills.map((skill, i) => (
                 <span key={i} style={{ background: 'var(--bg-card)', padding: '0.25rem 0.75rem', borderRadius: '1rem', fontSize: '0.8rem', border: '1px solid var(--border-color)', color: 'var(--text-main)' }}>{skill}</span>
-              ))}
+              )) : (
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Non spécifiées</span>
+              )}
             </div>
           </div>
         </div>

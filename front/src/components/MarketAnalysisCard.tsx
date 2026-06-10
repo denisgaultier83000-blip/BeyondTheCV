@@ -60,9 +60,10 @@ export function MarketAnalysisCard({ data, salaryData, loading, error }: MarketA
   const tensionScore = tensionRaw <= 10 ? tensionRaw : tensionRaw / 10;
   const tensionIndex = report.tension_index || report.indice_tension || "Forte demande";
   
-  const low = salaryData?.salary_range?.low ? `${salaryData.salary_range.low}k€` : "N/A";
-  const mid = salaryData?.salary_range?.mid ? `${salaryData.salary_range.mid}k€` : "N/A";
-  const high = salaryData?.salary_range?.high ? `${salaryData.salary_range.high}k€` : "N/A";
+  const currencySymbol = salaryData?.currency === 'USD' ? '$' : '€';
+  const low = salaryData?.salary_range?.low ? `${salaryData.salary_range.low}k${currencySymbol}` : "N/A";
+  const mid = salaryData?.salary_range?.mid ? `${salaryData.salary_range.mid}k${currencySymbol}` : "N/A";
+  const high = salaryData?.salary_range?.high ? `${salaryData.salary_range.high}k${currencySymbol}` : "N/A";
   const comment = salaryData?.commentary || report.salary_barometer || report.barometre_salaires || report.salaires || "Baromètre non disponible";
   const dynamics = report.recruitment_dynamics || report.dynamique_recrutement || "Données de marché en attente...";
   const trends = report.trends || report.tendances || "Analyse des tendances en cours...";

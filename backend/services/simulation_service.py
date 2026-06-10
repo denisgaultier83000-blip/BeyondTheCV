@@ -1,6 +1,7 @@
 import json
 from fastapi import APIRouter, HTTPException, Body, Depends
 from typing import Optional, Dict, Any
+from pydantic import BaseModel
 
 from models import (
     SimulationRequest,
@@ -25,6 +26,11 @@ def _sanitize_for_prompt(data: dict) -> dict:
             if pii_key in safe_data['personal_info']:
                 del safe_data['personal_info'][pii_key]
     return safe_data
+
+class NegotiationSimulationRequest(BaseModel):
+    candidate_profile: dict
+    recruiter_prompt: str
+    user_answer: str
 
 @router.post("/coach-keyword")
 async def coach_keyword(request: dict = Body(...), current_user: dict = Depends(get_current_user)):
@@ -168,3 +174,51 @@ async def simulate_situation(request: SituationSimulationRequest, current_user: 
         return {"feedback": feedback}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Situation simulation failed: {str(e)}")
+
+@router.post("/simulate-negotiation")
+async def simulate_negotiation(request: NegotiationSimulationRequest, current_user: dict = Depends(get_current_user)):
+    """Analyse la façon dont le candidat négocie ou défend son salaire face à une objection du recruteur."""
+    target_lang = normalize_language(request.candidate_profile.get('target_language', 'French'))
+    salary_expectations = request.candidate_profile.get('salary_expectations', 'Non spécifié')
+    target_job = request.candidate_profile.get('target_job', 'Poste visé')
+    
+    prompt = f"""
+    Tu es un Directeur des Ressources Humaines et un Négociateur Expert.
+    Ta mission est d'évaluer la façon dont le candidat défend ses prétentions salariales.
+    
+    CONTEXTE :
+    Poste visé : {target_job}
+    Profil du candidat : {json.dumps(_sanitize_for_prompt(request.candidate_profile), default=str)}
+    Prétentions salariales du candidat : {salary_expectations}
+    
+    LE RECRUTEUR A DÉCLARÉ : "{request.recruiter_prompt}"
+    RÉPONSE DU CANDIDAT : "{request.user_answer}"
+    
+    Évalue la réponse du candidat :
+    - Est-il trop agressif ou au contraire trop timide ?
+    - S'est-il justifié par ses besoins personnels (mauvais) ou par sa valeur ajoutée/ROI (excellent) ?
+    - A-t-il gardé la porte ouverte à la négociation (avantages, primes) ?
+    
+    OUTPUT STRICT JSON:
+    {{
+        "score": 75,
+        "strengths": ["..."],
+        "weaknesses": ["..."],
+        "improved_answer": "La réponse idéale mot à mot (méthode d'ancrage, ouverture, ou justification par la valeur)."
+    }}
+    LANGUAGE: {target_lang}
+    """
+    try:
+        feedback = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are an Expert Salary Negotiator. Output STRICT JSON.")
+        
+        # Sanitisation des tableaux
+        if not isinstance(feedback.get("strengths"), list):
+            s = feedback.get("strengths")
+            feedback["strengths"] = [s] if s and isinstance(s, str) else []
+        if not isinstance(feedback.get("weaknesses"), list):
+            w = feedback.get("weaknesses")
+            feedback["weaknesses"] = [w] if w and isinstance(w, str) else []
+            
+        return {"feedback": feedback}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Negotiation simulation failed: {str(e)}")

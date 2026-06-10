@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ThumbsUp, ThumbsDown, MessageSquare, Activity, BarChart3, ArrowLeft, Trash2, Loader2 } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, MessageSquare, Activity, BarChart3, ArrowLeft, Trash2, Loader2, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { authenticatedFetch } from '../utils/auth';
 import { API_ROUTES } from '../api/routes';
@@ -25,6 +25,7 @@ export default function AdminFeedbacks() {
   // --- GESTION DE LA SÉCURITÉ ---
   const [authPass, setAuthPass] = useState('');
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     if (sessionStorage.getItem('admin_auth') === 'true') {
@@ -36,9 +37,10 @@ export default function AdminFeedbacks() {
     e.preventDefault();
     if (authPass === 'beyond2026') {
       setIsAuthorized(true);
+      setAuthError(null);
       sessionStorage.setItem('admin_auth', 'true');
     } else {
-      alert('Mot de passe incorrect');
+      setAuthError('Mot de passe incorrect');
     }
   };
 
@@ -78,7 +80,7 @@ export default function AdminFeedbacks() {
       }
       setFeedbacks(prev => prev.filter(f => f.id !== id));
     } catch (err: any) {
-      alert(err.message);
+      setError(err.message || "Erreur lors de la suppression");
     } finally {
       setDeletingId(null);
     }
@@ -88,6 +90,7 @@ export default function AdminFeedbacks() {
     return (
       <div style={{ maxWidth: '400px', margin: '100px auto', padding: '2.5rem', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px solid var(--border-color)', textAlign: 'center', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}>
         <h2 style={{ marginBottom: '1.5rem', color: 'var(--text-main)' }}>Accès Restreint</h2>
+        {authError && <div style={{ color: 'var(--danger-text)', marginBottom: '1rem', fontSize: '0.9rem' }}>{authError}</div>}
         <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <input 
             type="password" 

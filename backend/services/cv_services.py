@@ -1319,32 +1319,39 @@ async def start_analysis(background_tasks: BackgroundTasks, data: dict = Body(..
     if 'educations' in cv_dict and isinstance(cv_dict['educations'], list):
         cv_dict['educations'].sort(key=lambda edu: _get_sortable_date_tuple(edu.get('end_date') or edu.get('endDate') or edu.get('date') or ''), reverse=True)
     
+    # [MOTEUR DE PLANIFICATION COUCHE 1]
+    days_until = _get_days_until_interview(cv_dict.get('interview_date', ''))
+    is_commando = days_until <= 2  # Mode Commando (Moins de 48h)
+
     if cv_dict.get('is_partial_start'):
         if cv_dict.get('target_company') or cv_dict.get('target_industry'):
             tasks_map["market_research"] = str(uuid.uuid4())
             tasks_map["salary_estimation"] = str(uuid.uuid4()) # Ajout explicite pour le frontend
     else:
+        # Tâches prioritaires (Toujours exécutées)
         tasks_map["cv_analysis"] = str(uuid.uuid4())
         tasks_map["pitch"] = str(uuid.uuid4())
         tasks_map["questions"] = str(uuid.uuid4())
         tasks_map["gap_analysis"] = str(uuid.uuid4())
         tasks_map["salary_estimation"] = str(uuid.uuid4())
-        tasks_map["career_radar"] = str(uuid.uuid4())
-        tasks_map["recruiter_view"] = str(uuid.uuid4())
-        tasks_map["one_liner"] = str(uuid.uuid4())
-        tasks_map["risk_analysis"] = str(uuid.uuid4())
         
-        # [FIX] On ne lance le Job Decoder QUE si une annonce a été fournie (évite les hallucinations)
-        if cv_dict.get('job_description') and str(cv_dict.get('job_description')).strip():
-            tasks_map["job_decoder"] = str(uuid.uuid4())
-        tasks_map["hidden_market"] = str(uuid.uuid4())
-        tasks_map["career_gps"] = str(uuid.uuid4())
-        tasks_map["reality_check"] = str(uuid.uuid4())
         tasks_map["profile_validation"] = str(uuid.uuid4())
         tasks_map["flaw_coaching"] = str(uuid.uuid4())
         tasks_map["action_plan"] = str(uuid.uuid4())
         tasks_map["custom_scenarios"] = str(uuid.uuid4())
         
+        # Tâches long terme (Désactivées en urgence pour gagner du temps et des tokens)
+        if not is_commando:
+            tasks_map["career_radar"] = str(uuid.uuid4())
+            tasks_map["recruiter_view"] = str(uuid.uuid4())
+            tasks_map["one_liner"] = str(uuid.uuid4())
+            tasks_map["risk_analysis"] = str(uuid.uuid4())
+            if cv_dict.get('job_description') and str(cv_dict.get('job_description')).strip():
+                tasks_map["job_decoder"] = str(uuid.uuid4())
+            tasks_map["hidden_market"] = str(uuid.uuid4())
+            tasks_map["career_gps"] = str(uuid.uuid4())
+            tasks_map["reality_check"] = str(uuid.uuid4())
+            
         if cv_dict.get('target_company') or cv_dict.get('target_industry'):
             tasks_map["market_research"] = str(uuid.uuid4())
 

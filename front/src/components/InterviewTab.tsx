@@ -10,6 +10,7 @@ import Flashcards from './Flashcards';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
+import SalaryNegotiator from './SalaryNegotiator';
 
 // --- LOGIQUE TÉLÉPROMPTEUR DÉPLACÉE ICI (À LA RACINE) ---
 const Teleprompter = ({ fullPitchText, setIsTeleprompterOpen, isDark, t }: { fullPitchText: string, setIsTeleprompterOpen: any, isDark: boolean, t: any }) => {
@@ -407,6 +408,10 @@ export const InterviewTab = () => {
             </>
           )}
         </DashboardCard>
+        </div>
+
+        <div id="negotiation_section">
+          <SalaryNegotiator />
         </div>
 
       </div>
