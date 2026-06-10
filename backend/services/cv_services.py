@@ -1782,3 +1782,38 @@ async def purge_cache(content_type: Optional[str] = Query(None), current_user: d
     except Exception as e:
         print(f"[DB WARNING] Failed to purge cache (table might be missing): {e}")
         return {"status": "success", "message": "Cache purge skipped (table missing)."}
+
+@router.post("/regenerate/action-plan")
+async def regenerate_action_plan_route(data: dict = Body(...), current_user: dict = Depends(require_active_subscription)):
+    """Force la regénération du plan d'action et met à jour l'historique."""
+    target_lang = normalize_language(data.get('target_language', 'French'))
+    try:
+        prompt_template = load_prompt(get_prompt_path("action_plan.md"))
+    except:
+        prompt_template = "Génère un plan d'action JSON."
+        
+    safe_data = _sanitize_data_for_ai(data, strict=True)
+    prompt = f"{prompt_template}\n\nPROFIL:\n{json.dumps(safe_data, ensure_ascii=False, default=str)}\n\nOUTPUT LANGUAGE: {target_lang}"
+    
+    try:
+        result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are a Career Coach.")
+        if "error" in result:
+            raise HTTPException(status_code=500, detail=result["error"])
+        
+        user_id = current_user["id"]
+        cache_key = _generate_cache_key(user_id, "action_plan", data)
+        await set_cached_content(cache_key, user_id, "action_plan", result)
+        
+        # [FIX EXPERT] Sauvegarde persistante dans l'historique (pour résister à un rechargement de page F5)
+        async with db.get_connection() as conn:
+            cursor = await db.execute(conn, "SELECT id, tasks_map FROM job_applications WHERE user_id = ? ORDER BY created_at DESC LIMIT 1", (user_id,))
+            row = await cursor.fetchone()
+            if row:
+                t_map = row[1] if isinstance(row, tuple) else row.get("tasks_map")
+                if t_map:
+                    tasks_map = json.loads(t_map) if isinstance(t_map, str) else t_map
+                    if "action_plan" in tasks_map:
+                        await db.execute(conn, "UPDATE tasks SET result = ? WHERE id = ?", (json.dumps(result), tasks_map["action_plan"]))
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

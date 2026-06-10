@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ShieldAlert, Clock, Zap, Target, CheckCircle2, Circle, Mic, CalendarDays, Timer, Lock } from 'lucide-react';
+import { ShieldAlert, Clock, Zap, Target, CheckCircle2, Circle, Mic, CalendarDays, Timer, Lock, RefreshCw, Loader2 } from 'lucide-react';
+import { API_BASE_URL } from '../config';
+import { authenticatedFetch } from '../utils/auth';
+import { useDashboard } from './DashboardContext';
 
 interface TrainingModule {
   day: string;
@@ -34,12 +37,37 @@ export const CockpitTab: React.FC<CockpitProps> = ({
   interviewTarget 
 }) => {
   const { t } = useTranslation();
+  const { cvData, updateFormData } = useDashboard();
   const [checkedItems, setCheckedItems] = useState<number[]>([]);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [localData, setLocalData] = useState(actionPlanData);
+
+  useEffect(() => {
+    setLocalData(actionPlanData);
+  }, [actionPlanData]);
+
+  const handleRegenerate = async () => {
+    if (!window.confirm("Voulez-vous forcer l'IA à calculer une nouvelle stratégie d'action ?")) return;
+    setIsRegenerating(true);
+    try {
+      const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/regenerate/action-plan`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cvData)
+      });
+      if (!res.ok) throw new Error("Erreur réseau");
+      const newData = await res.json();
+      setLocalData(newData);
+      if (updateFormData) updateFormData('actionPlanResult', newData);
+    } catch (e) {
+      alert("Erreur lors de la regénération. Veuillez réessayer.");
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
 
   // Sécurisation des données en cas de génération partielle de l'IA
-  const plan = actionPlanData?.action_plan || [];
-  const training = actionPlanData?.training_plan || [];
-  const advice = actionPlanData?.strategy_advice || "Aucun conseil stratégique disponible pour le moment.";
+  const plan = localData?.action_plan || [];
+  const training = localData?.training_plan || [];
+  const advice = localData?.strategy_advice || "Aucun conseil stratégique disponible pour le moment.";
   
   const dateStr = interviewDate || "";
   const displayDate = dateStr ? `Entretien : ${dateStr}` : "Date non définie";
@@ -57,9 +85,13 @@ export const CockpitTab: React.FC<CockpitProps> = ({
             <Target size={24} color="var(--primary)" />
             {t('cockpit_title', 'Cockpit Stratégique')}
           </h2>
-          <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger-text)', padding: '0.5rem 1rem', borderRadius: '2rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-            <Clock size={16} />
-            {displayDate}
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <button onClick={handleRegenerate} disabled={isRegenerating} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-card)', padding: '0.5rem 1rem', borderRadius: '2rem' }}>
+              {isRegenerating ? <Loader2 size={16} className="spin" /> : <RefreshCw size={16} />} {isRegenerating ? "Calcul IA..." : "Régénérer"}
+            </button>
+            <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger-text)', padding: '0.5rem 1rem', borderRadius: '2rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+              <Clock size={16} /> {displayDate}
+            </div>
           </div>
         </div>
 
