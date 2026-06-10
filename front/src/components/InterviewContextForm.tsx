@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Calendar, Monitor, UserCheck, Clock, HeartPulse } from 'lucide-react';
+import { Calendar, Monitor, UserCheck, Clock, HeartPulse, Award, Compass, DollarSign, MessageCircle } from 'lucide-react';
 
 export interface InterviewContextData {
   interview_date: string;
@@ -8,6 +8,10 @@ export interface InterviewContextData {
   interview_type: string;
   available_time: string;
   stress_level: string;
+  seniority_level: string;
+  current_situation: string;
+  salary_expectations: string;
+  coaching_style: string;
 }
 
 interface Props {
@@ -34,9 +38,9 @@ export const InterviewContextForm: React.FC<Props> = ({ data, onChange, errors }
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Date de l'entretien */}
-        <div className="col-span-1 md:col-span-2">
+        <div className="col-span-1 md:col-span-3">
           <label className="flex items-center gap-2 text-sm font-medium text-[#446285] mb-2">
             <Calendar className="w-4 h-4" />
             {t('interview_date')}
@@ -77,6 +81,26 @@ export const InterviewContextForm: React.FC<Props> = ({ data, onChange, errors }
           </select>
         </div>
 
+        {/* Niveau du poste / Séniorité */}
+        <div>
+          <label className="flex items-center gap-2 text-sm font-medium text-[#446285] mb-2">
+            <Award className="w-4 h-4" />
+            Niveau d'expérience visé
+          </label>
+          <select
+            value={data.seniority_level || ''}
+            onChange={(e) => handleChange('seniority_level', e.target.value)}
+            className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#6DBEF7] focus:border-[#6DBEF7] outline-none bg-white transition-all"
+          >
+            <option value="" disabled>{t('select')}</option>
+            <option value="junior">Junior / Débutant</option>
+            <option value="mid">Confirmé (Mid-level)</option>
+            <option value="senior">Senior / Expert</option>
+            <option value="manager">Manager / Lead</option>
+            <option value="director">Direction (C-Level)</option>
+          </select>
+        </div>
+
         {/* Type d'interlocuteur */}
         <div>
           <label className="flex items-center gap-2 text-sm font-medium text-[#446285] mb-2">
@@ -93,6 +117,26 @@ export const InterviewContextForm: React.FC<Props> = ({ data, onChange, errors }
             <option value="manager">{t('type_manager')}</option>
             <option value="tech">{t('type_tech')}</option>
             <option value="final">{t('type_final')}</option>
+          </select>
+        </div>
+
+        {/* Situation actuelle / Profil atypique */}
+        <div>
+          <label className="flex items-center gap-2 text-sm font-medium text-[#446285] mb-2">
+            <Compass className="w-4 h-4" />
+            Situation actuelle
+          </label>
+          <select
+            value={data.current_situation || ''}
+            onChange={(e) => handleChange('current_situation', e.target.value)}
+            className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#6DBEF7] focus:border-[#6DBEF7] outline-none bg-white transition-all"
+          >
+            <option value="" disabled>{t('select')}</option>
+            <option value="employed">En poste (Écoute active)</option>
+            <option value="job_seeker">En recherche active</option>
+            <option value="career_change">Reconversion professionnelle</option>
+            <option value="military_transition">Transition Militaire / Public</option>
+            <option value="student">Étudiant / Jeune Diplômé</option>
           </select>
         </div>
 
@@ -114,6 +158,24 @@ export const InterviewContextForm: React.FC<Props> = ({ data, onChange, errors }
           </select>
         </div>
 
+        {/* Style de coaching */}
+        <div>
+          <label className="flex items-center gap-2 text-sm font-medium text-[#446285] mb-2">
+            <MessageCircle className="w-4 h-4" />
+            Style de Coaching IA
+          </label>
+          <select
+            value={data.coaching_style || ''}
+            onChange={(e) => handleChange('coaching_style', e.target.value)}
+            className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#6DBEF7] focus:border-[#6DBEF7] outline-none bg-white transition-all"
+          >
+            <option value="" disabled>{t('select')}</option>
+            <option value="supportive">Bienveillant & Rassurant</option>
+            <option value="demanding">Exigeant & Direct</option>
+            <option value="commando">Commando (Sans filtre, intense)</option>
+          </select>
+        </div>
+
         {/* Niveau de stress */}
         <div>
           <label className="flex items-center gap-2 text-sm font-medium text-[#446285] mb-2">
@@ -130,6 +192,21 @@ export const InterviewContextForm: React.FC<Props> = ({ data, onChange, errors }
             <option value="medium">{t('stress_medium')}</option>
             <option value="high">{t('stress_high')}</option>
           </select>
+        </div>
+
+        {/* Salaire visé */}
+        <div>
+          <label className="flex items-center gap-2 text-sm font-medium text-[#446285] mb-2">
+            <DollarSign className="w-4 h-4" />
+            Prétentions Salariales
+          </label>
+          <input
+            type="text"
+            placeholder="Ex: 45k€, Négociable..."
+            value={data.salary_expectations || ''}
+            onChange={(e) => handleChange('salary_expectations', e.target.value)}
+            className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#6DBEF7] focus:border-[#6DBEF7] outline-none bg-white transition-all"
+          />
         </div>
       </div>
     </div>

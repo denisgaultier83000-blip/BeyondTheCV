@@ -45,6 +45,11 @@ L'angle du pitch DOIT s'adapter au "Type d'interlocuteur" :
 - Si **final** (Direction) : Focus sur la vision, l'impact business, le leadership et l'alignement avec les objectifs de l'entreprise.
 Si le format est **visio** ou **téléphone**, fais des phrases encore plus courtes pour garantir un rythme vocal dynamique sans perdre l'interlocuteur.
 
+## 🚀 ADAPTATION AU NIVEAU ET À LA SITUATION
+- **Séniorité :** Ajuste le niveau de langage et les arguments selon le `seniority_level`. Un Junior parlera d'apprentissage rapide et de potentiel. Un profil Direction parlera de vision et de retour sur investissement.
+- **Reconversion & Profil Atypique :** Si le profil indique une reconversion ou une transition depuis l'armée (`current_situation`), le pitch DOIT ABSOLUMENT faire le pont entre l'ancien monde et le nouveau. Montre en quoi les compétences passées sont une force rare pour l'entreprise cible (ex: "Mes années d'officier m'ont appris à décider dans l'incertitude, une compétence vitale pour vos opérations").
+- **Salaire :** Même si les `salary_expectations` sont fournies, tu NE DOIS JAMAIS en parler dans le Pitch. C'est beaucoup trop tôt.
+
 ## 🏗️ STRUCTURE ATTENDUE (Souple, non mécanique)
 1. **Accroche** : Positionne immédiatement le profil.
 2. **Axes forts** : 1 à 3 points caractérisant la valeur.

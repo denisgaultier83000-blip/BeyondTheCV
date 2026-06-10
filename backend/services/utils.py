@@ -109,7 +109,9 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
             'personal_info', 'experiences', 'educations', 'projects', 'skills', 
             'languages', 'interests', 'flaws', 'clarifications', 'bio', 
             'work_style', 'relational_style', 'professional_approach', 'free_text',
-            'job_description', 'remote_preference'
+            'job_description', 'remote_preference', 'interview_date', 'interview_format',
+            'interview_type', 'available_time', 'stress_level', 'seniority_level',
+            'current_situation', 'salary_expectations', 'coaching_style'
         }
         clean_data = {k: v for k, v in clean_data.items() if k in allowed_keys}
         

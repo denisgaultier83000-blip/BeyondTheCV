@@ -219,6 +219,10 @@ export const StepTarget = ({ data, onChange, errors, loading, lang = 'en' }: Ste
           interview_type: data.interview_type,
           available_time: data.available_time,
           stress_level: data.stress_level,
+          seniority_level: data.seniority_level,
+          current_situation: data.current_situation,
+          salary_expectations: data.salary_expectations,
+          coaching_style: data.coaching_style,
         }}
         onChange={(newContextData) => {
           // Itère sur les nouvelles données et met à jour l'état parent champ par champ.
