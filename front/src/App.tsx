@@ -63,11 +63,11 @@ function AppContent() {
   const {
     isAuthenticated, setIsAuthenticated,
     currentStep, setCurrentStep,
-    cvResult, gapResult, actionPlanResult,
+    gapResult, actionPlanResult,
     researchResult, salaryResult,
-    careerGpsResult, careerRadarResult, jobDecoderResult,
+    jobDecoderResult,
     pitchResult, questionsResult,
-    hiddenMarketResult, recruiterResult, realityResult, flawCoachingResult,
+    recruiterResult, realityResult, flawCoachingResult,
     globalStatus, error,
     customScenariosResult,
     handleNextStep,
@@ -412,17 +412,13 @@ function AppContent() {
         <div className="step-wrapper dashboard-wrapper">
           <TabProvider 
             initialCvData={cvData} 
-            initialCvResult={restoredData?.cvResult || cvResult} 
             initialGapResult={restoredData?.gapResult || gapResult} 
             initialActionPlanResult={restoredData?.actionPlanResult || actionPlanResult} 
             initialResearchResult={restoredData?.researchResult || researchResult} 
             initialSalaryResult={restoredData?.salaryResult || salaryResult} 
-            initialCareerGpsResult={restoredData?.careerGpsResult || careerGpsResult} 
-            initialCareerRadarResult={restoredData?.careerRadarResult || careerRadarResult} 
             initialJobDecoderResult={restoredData?.jobDecoderResult || jobDecoderResult} 
             initialPitchResult={restoredData?.pitchResult || pitchResult} 
             initialQuestionsResult={restoredData?.questionsResult || questionsResult} 
-            initialHiddenMarketResult={restoredData?.hiddenMarketResult || hiddenMarketResult} 
             initialRecruiterResult={restoredData?.recruiterResult || recruiterResult} 
             initialRealityResult={restoredData?.realityResult || realityResult} 
             initialFlawCoachingResult={restoredData?.flawCoachingResult || flawCoachingResult} 

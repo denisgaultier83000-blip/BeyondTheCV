@@ -32,15 +32,11 @@ interface DashboardContextType {
 interface DashboardProviderProps {
   children: ReactNode;
   initialResearchResult?: any;
-  initialCvResult?: any;
   initialGapResult?: any;
   initialSalaryResult?: any;
-  initialCareerGpsResult?: any;
-  initialCareerRadarResult?: any;
   initialJobDecoderResult?: any;
   initialPitchResult?: any;
   initialQuestionsResult?: any;
-  initialHiddenMarketResult?: any;
   initialRecruiterResult?: any;
   initialRealityResult?: any;
   initialFlawCoachingResult?: any;
@@ -60,16 +56,12 @@ const DashboardContext = createContext<DashboardContextType | null>(null);
 export const DashboardProvider = ({
   children,
   initialCvData = null,
-  initialCvResult = null,
   initialGapResult = null,
   initialResearchResult = null,
   initialSalaryResult = null,
-  initialCareerGpsResult = null,
-  initialCareerRadarResult = null,
   initialJobDecoderResult = null,
   initialPitchResult = null,
   initialQuestionsResult = null,
-  initialHiddenMarketResult = null,
   initialRecruiterResult = null,
   initialRealityResult = null,
   initialFlawCoachingResult = null,

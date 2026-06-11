@@ -95,6 +95,9 @@ class EvaluatePitchRequest(BaseModel):
     target_job: Optional[str] = "Candidat"
     target_language: Optional[str] = "fr"
 
+class BulkStatusRequest(BaseModel):
+    task_ids: List[str]
+
 def _remove_file_safe(path: str):
     """Supprime un fichier temporaire après son envoi sans crasher en cas d'erreur."""
     try:

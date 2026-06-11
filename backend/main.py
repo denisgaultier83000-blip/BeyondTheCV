@@ -206,7 +206,8 @@ async def lifespan(app: FastAPI):
 
 # --- Rate Limiting (Anti-Abuse) ---
 RATE_LIMIT_WINDOW = APP_CONFIG.get("rate_limit_window", 60)
-RATE_LIMIT_MAX_REQUESTS = APP_CONFIG.get("rate_limit_max_requests", 100)
+# [FIX] Forcé à 1000 (même si le fichier config indique 100) pour supporter le polling simultané des tâches IA
+RATE_LIMIT_MAX_REQUESTS = max(APP_CONFIG.get("rate_limit_max_requests", 1000), 1000)
 MAX_TRACKED_IPS = 10000 # [ANTI-OOM] Limite absolue du nombre d'IPs suivies en RAM
 request_history: Dict[str, List[float]] = defaultdict(list)
 _last_cleanup_time = time.time()
