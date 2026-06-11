@@ -320,7 +320,7 @@ export function SituationSimulator() {
                 <Tooltip 
                   contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
                   itemStyle={{ color: 'var(--primary)', fontWeight: 'bold' }}
-                  formatter={(value: number, name: string, props: any) => [`${value}/100`, props.payload.exercice]}
+                  formatter={(value: any, name: any, props: any) => [`${value}/100`, props.payload.exercice]}
                   labelStyle={{ color: 'var(--text-muted)', marginBottom: '0.25rem', fontSize: '0.85rem' }}
                 />
                 <Area type="monotone" dataKey="score" stroke="var(--primary)" strokeWidth={3} fillOpacity={1} fill="url(#colorScore)" activeDot={{ r: 6, fill: 'var(--primary)', stroke: 'var(--bg-card)', strokeWidth: 2 }} />
