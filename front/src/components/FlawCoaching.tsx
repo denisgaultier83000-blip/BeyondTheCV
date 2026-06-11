@@ -31,18 +31,29 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
 
   // Helper pour styliser l'impact du défaut
   const getImpactConfig = (level: string) => {
-    switch(level?.toLowerCase()) {
-      case 'high': return { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)', border: 'rgba(239, 68, 68, 0.2)', label: t('flaw_risk_critical', 'Risque Critique pour ce poste'), icon: <AlertTriangle size={14}/> };
-      case 'medium': return { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', border: 'rgba(245, 158, 11, 0.2)', label: t('flaw_risk_moderate', 'Point de vigilance modéré'), icon: <AlertCircle size={14}/> };
-      case 'low': return { color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', border: 'rgba(16, 185, 129, 0.2)', label: t('flaw_risk_acceptable', 'Risque Faible / Acceptable'), icon: <Info size={14}/> };
-      default: return { color: 'var(--text-muted)', bg: 'var(--bg-secondary)', border: 'var(--border-color)', label: t('flaw_risk_watch', 'Impact à surveiller'), icon: <Info size={14}/> };
+    const l = level?.toLowerCase() || '';
+    if (l.includes('p1') || l.includes('high') || l.includes('critique')) {
+      return { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)', border: 'rgba(239, 68, 68, 0.2)', label: t('flaw_risk_critical', 'Risque Critique pour ce poste'), icon: <AlertTriangle size={14}/> };
     }
+    if (l.includes('p2') || l.includes('medium') || l.includes('vigilance')) {
+      return { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', border: 'rgba(245, 158, 11, 0.2)', label: t('flaw_risk_moderate', 'Point de vigilance modéré'), icon: <AlertCircle size={14}/> };
+    }
+    if (l.includes('p3') || l.includes('low') || l.includes('mineur')) {
+      return { color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', border: 'rgba(16, 185, 129, 0.2)', label: t('flaw_risk_acceptable', 'Risque Faible / Acceptable'), icon: <Info size={14}/> };
+    }
+    return { color: 'var(--text-muted)', bg: 'var(--bg-secondary)', border: 'var(--border-color)', label: t('flaw_risk_watch', 'Impact à surveiller'), icon: <Info size={14}/> };
   };
 
   // Calcul des statistiques de risque global
-  const highRiskCount = coachingList.filter((item: any) => item.impact_level?.toLowerCase() === 'high').length;
-  const mediumRiskCount = coachingList.filter((item: any) => item.impact_level?.toLowerCase() === 'medium').length;
-  const lowRiskCount = coachingList.filter((item: any) => item.impact_level?.toLowerCase() === 'low').length;
+  const highRiskCount = coachingList.filter((item: any) => {
+    return (item.impact_level?.toLowerCase() || '').match(/p1|high|critique/);
+  }).length;
+  const mediumRiskCount = coachingList.filter((item: any) => {
+    return (item.impact_level?.toLowerCase() || '').match(/p2|medium|vigilance/);
+  }).length;
+  const lowRiskCount = coachingList.filter((item: any) => {
+    return (item.impact_level?.toLowerCase() || '').match(/p3|low|mineur/);
+  }).length;
   const totalWithImpact = highRiskCount + mediumRiskCount + lowRiskCount;
 
   let globalRiskLabel = "En attente";

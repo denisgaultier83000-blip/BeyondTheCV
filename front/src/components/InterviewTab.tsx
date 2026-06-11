@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useDashboard } from './DashboardContext';
-import { Mic, MessageSquare, Play, Pause, RotateCcw, BrainCircuit, ArrowLeft, History, Loader2, RefreshCw, Lightbulb } from 'lucide-react';
+import { Mic, MessageSquare, Play, Pause, RotateCcw, BrainCircuit, ArrowLeft, History, Loader2, RefreshCw, Lightbulb, Activity } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DashboardCard } from './DashboardCard';
 import { SituationSimulator } from './SituationSimulator';
@@ -11,6 +11,7 @@ import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
 import SalaryNegotiator from './SalaryNegotiator';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 // --- LOGIQUE TÉLÉPROMPTEUR DÉPLACÉE ICI (À LA RACINE) ---
 const Teleprompter = ({ fullPitchText, setIsTeleprompterOpen, isDark, t }: { fullPitchText: string, setIsTeleprompterOpen: any, isDark: boolean, t: any }) => {
@@ -373,6 +374,35 @@ export const InterviewTab = () => {
               <h3 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)' }}>Historique de vos réponses</h3>
               {historyData.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>Aucune réponse enregistrée pour le moment.</p> : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {historyData.length > 0 && (
+                    <div style={{ marginBottom: '1.5rem', height: '220px' }}>
+                      <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-main)', marginBottom: '1rem' }}><Activity size={18} color="var(--primary)" /> Votre courbe d'évolution</h4>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={[...historyData].reverse().map(item => ({
+                          name: new Date(item.created_at).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' }),
+                          score: item.score,
+                          exercice: item.question ? item.question.substring(0, 20) + '...' : 'Simulation'
+                        }))} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="colorScoreHistory" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
+                              <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" opacity={0.5} />
+                          <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                          <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
+                          <Tooltip 
+                            contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
+                            itemStyle={{ color: 'var(--primary)', fontWeight: 'bold' }}
+                            formatter={(value: any, name: any, props: any) => [`${value}/100`, props.payload.exercice]}
+                            labelStyle={{ color: 'var(--text-muted)', marginBottom: '0.25rem', fontSize: '0.85rem' }}
+                          />
+                          <Area type="monotone" dataKey="score" stroke="var(--primary)" strokeWidth={3} fillOpacity={1} fill="url(#colorScoreHistory)" activeDot={{ r: 6, fill: 'var(--primary)', stroke: 'var(--bg-card)', strokeWidth: 2 }} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
                   {historyData.map((item, idx) => (
                     <div key={idx} style={{ padding: '1rem', background: 'var(--bg-card)', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{new Date(item.created_at).toLocaleDateString()} - Score : {item.score}/100</div>

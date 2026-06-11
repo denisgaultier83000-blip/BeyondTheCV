@@ -21,7 +21,10 @@ export default function SalaryNegotiator() {
 
   // Le recruteur utilise l'estimation basse du marché de l'IA pour créer la tension
   const currencySymbol = salaryResult?.currency === 'USD' ? '$' : '€';
+  const marketLowNum = salaryResult?.salary_range?.low;
+  const marketHighNum = salaryResult?.salary_range?.high;
   const marketLow = salaryResult?.salary_range?.low ? `${salaryResult.salary_range.low}k${currencySymbol}` : "légèrement inférieur à ce que vous demandez";
+  const marketHigh = marketHighNum ? `${marketHighNum}k${currencySymbol}` : "";
   const recruiterPrompt = `Votre profil est très intéressant, mais vos prétentions salariales (${expectations}) sont au-dessus de notre grille. Notre budget maximum pour ce poste est de ${marketLow}. Qu'en pensez-vous ?`;
 
   const handleEvaluate = async () => {
@@ -64,6 +67,35 @@ export default function SalaryNegotiator() {
         L'argent ne doit pas être un sujet tabou. Défendez vos prétentions salariales face à l'objection du recruteur.
       </p>
 
+      {/* --- GRAPHIQUE DES SALAIRES --- */}
+      {marketLowNum && marketHighNum && (
+        <div style={{ marginBottom: '2rem', padding: '2.5rem 1.5rem 3.5rem 1.5rem', background: 'var(--bg-secondary)', borderRadius: '0.75rem', border: '1px dashed var(--border-color)' }}>
+          <h4 style={{ margin: '0 0 2.5rem 0', fontSize: '0.95rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center' }}>Le rapport de force</h4>
+          
+          <div style={{ position: 'relative', height: '12px', background: 'var(--bg-card)', borderRadius: '6px', margin: '0 2rem' }}>
+            {/* Grille de l'entreprise (simulée jusqu'au Low du marché pour la tension) */}
+            <div style={{ position: 'absolute', left: '0%', width: '30%', height: '100%', background: 'rgba(59, 130, 246, 0.2)', borderRadius: '6px 0 0 6px' }}></div>
+            <div style={{ position: 'absolute', left: '30%', height: '100%', width: '4px', background: '#3b82f6', borderRadius: '2px', zIndex: 2 }}></div>
+            <div style={{ position: 'absolute', left: '30%', top: '20px', transform: 'translateX(-50%)', fontSize: '0.85rem', fontWeight: 600, color: '#3b82f6', whiteSpace: 'nowrap', textAlign: 'center' }}>
+              Budget Max<br/>{marketLow}
+            </div>
+
+            {/* Marché réel */}
+            <div style={{ position: 'absolute', left: '30%', right: '10%', height: '100%', borderTop: '2px dashed #10b981', borderBottom: '2px dashed #10b981', opacity: 0.5 }}></div>
+            <div style={{ position: 'absolute', right: '10%', height: '100%', width: '4px', background: '#10b981', borderRadius: '2px', zIndex: 2 }}></div>
+            <div style={{ position: 'absolute', right: '10%', top: '20px', transform: 'translateX(-50%)', fontSize: '0.85rem', fontWeight: 600, color: '#10b981', whiteSpace: 'nowrap', textAlign: 'center' }}>
+              Marché Haut<br/>{marketHigh}
+            </div>
+
+            {/* Vos Prétentions */}
+            <div style={{ position: 'absolute', left: '70%', top: '-15px', height: '42px', width: '4px', background: '#ef4444', borderRadius: '2px', zIndex: 3, boxShadow: '0 0 10px rgba(239, 68, 68, 0.5)' }}></div>
+            <div style={{ position: 'absolute', left: '70%', top: '-35px', transform: 'translateX(-50%)', fontSize: '0.9rem', fontWeight: 800, color: '#ef4444', whiteSpace: 'nowrap', background: 'var(--bg-card)', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', border: '1px solid #ef4444' }}>
+              Vos Prétentions ({expectations})
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Objection du Recruteur */}
       <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', borderLeft: '4px solid var(--primary)', marginBottom: '1.5rem' }}>
         <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Le Recruteur :</div>
@@ -88,7 +120,7 @@ export default function SalaryNegotiator() {
             style={{ width: '100%', background: 'var(--bg-body)', border: '1px solid var(--border-color)', borderRadius: '0.5rem', padding: '1rem', color: 'var(--text-main)', fontFamily: 'inherit', resize: 'vertical' }}
           />
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button onClick={handleEvaluate} disabled={isEvaluating || !userAnswer.trim()} className="btn-primary" style={{ background: '#10b981', borderColor: '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button onClick={handleEvaluate} disabled={isEvaluating || !userAnswer.trim()} className="btn-primary" style={{ background: (isEvaluating || !userAnswer.trim()) ? '' : '#10b981', borderColor: (isEvaluating || !userAnswer.trim()) ? '' : '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               {isEvaluating ? <Loader2 size={18} className="spin" /> : <Send size={18} />}
               {isEvaluating ? "Analyse en cours..." : "Tenter de négocier"}
             </button>
