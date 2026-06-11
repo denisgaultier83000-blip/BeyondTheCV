@@ -232,33 +232,6 @@ async def _run_completeness_logic(task_id: str, payload: dict):
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", fallback)
         await manager.broadcast(task_id, "Analyse terminée (Fallback)", status="COMPLETED", data=fallback)
 
-async def process_cv_analysis_in_background(task_id: str, cv_data: dict):
-    print(f"[Task {task_id}] 🧠 Starting Full CV Analysis (Async)...")
-    await _run_cv_analysis_logic(task_id, cv_data)
-
-async def _run_cv_analysis_logic(task_id: str, cv_data: dict):
-    await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
-    try:
-        user_id = cv_data.get("user_id", "unknown_user")
-        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "cv_analysis", cv_data, "Analyse récupérée en cache")
-        if is_cached: return
-
-        await manager.broadcast(task_id, "Analyse approfondie du CV en cours...")
-        prompt_template = load_prompt(get_prompt_path("master_prompt.md"))
-        target_lang = normalize_language(cv_data.get('target_language', 'French'))
-        target_country = cv_data.get('target_country', 'International')
-        user_prompt = f"Voici les données JSON du candidat :\n{json.dumps(_sanitize_data_for_ai(cv_data, strict=True), ensure_ascii=False, default=str)}\nAnalyse ce profil. CONTEXTE CULTUREL : {target_country}. IMPORTANT: OUTPUT STRICTLY IN {target_lang.upper()}."
-        result_json = await ai_service.generate_valid_json(prompt=user_prompt, provider="openai", system_instruction=prompt_template)
-        if "error" not in result_json:
-            await set_cached_content(cache_key, user_id, "cv_analysis", result_json)
-        await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result_json)
-        await manager.broadcast(task_id, "Analyse CV terminée.", status="COMPLETED", data=result_json)
-    except Exception as e:
-        await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", {"error": str(e)})
-        err = {"error": str(e)}
-        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", err)
-        await manager.broadcast(task_id, "Erreur", status="FAILED", data=err)
-
 async def process_pitch_in_background(task_id: str, candidate_data: dict):
     print(f"[Task {task_id}] 🎤 Starting Pitch (Async)...")
     await _run_pitch_logic(task_id, candidate_data)

@@ -7,7 +7,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
   const { 
     cvData, pilotData, researchResult, gapResult, flawCoachingResult, 
     pitchResult, questionsResult, customScenariosResult, actionPlanResult,
-    careerRadarResult, careerGpsResult, jobDecoderResult, hiddenMarketResult
+    jobDecoderResult
   } = useDashboard();
   const [interviewHistory, setInterviewHistory] = useState<any[]>([]);
   const [trainingHistory, setTrainingHistory] = useState<any[]>([]);
@@ -330,71 +330,6 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
         </div>
       )}
 
-      {/* GPS de Carrière */}
-      {selection.gps !== false && careerGpsResult && (
-        <div className="print-section page-break">
-          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🧭 GPS de Carrière</h2>
-          <div className="print-box avoid-break">
-            {(() => {
-              const gpsData = careerGpsResult.career_gps_result || careerGpsResult;
-              const route = gpsData.route || gpsData;
-              if (!route || !route.steps) return renderGeneric(gpsData);
-              return (
-                <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid #cbd5e1', paddingBottom: '0.5rem' }}>
-                    <span><strong>Temps estimé :</strong> {route.estimated_time || "N/A"}</span>
-                    <span><strong>Probabilité :</strong> {formatSafeScore100(route.probability)}%</span>
-                  </div>
-                  <h4 style={{ color: '#0f172a', margin: '0 0 0.5rem 0' }}>Étapes Clés</h4>
-                  <ul style={{ margin: '0 0 1rem 0', paddingLeft: '1.2rem' }}>
-                    {(route.steps || []).map((step: any, i: number) => (
-                      <li key={i} style={{ marginBottom: '0.5rem' }}>
-                        {step.icon && <span style={{ marginRight: '0.5rem' }}>{step.icon}</span>}
-                        {formatMarkdown(step.name || "")}
-                        {step.impact && <span style={{ color: step.impact_color || '#64748b', fontSize: '0.9rem', fontWeight: 'bold' }}> (Impact : {step.impact})</span>}
-                      </li>
-                    ))}
-                  </ul>
-                  {route.obstacles && route.obstacles.length > 0 && (
-                    <>
-                      <h4 style={{ color: '#dc2626', margin: '0 0 0.5rem 0' }}>Obstacles & Risques</h4>
-                      <ul style={{ margin: '0', paddingLeft: '1.2rem', color: '#b91c1c' }}>
-                        {route.obstacles.map((obs: any, i: number) => (
-                          <li key={i} style={{ marginBottom: '0.5rem' }}>
-                            {obs.icon && <span style={{ marginRight: '0.5rem' }}>{obs.icon}</span>}
-                            {formatMarkdown(obs.text || (typeof obs === 'string' ? obs : ''))}
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
-                </>
-              );
-            })()}
-          </div>
-        </div>
-      )}
-
-      {/* Radar de Carrière */}
-      {selection.radar !== false && careerRadarResult && (
-        <div className="print-section page-break">
-          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>📡 Radar de Carrière (Trajectoires)</h2>
-          {careerRadarResult.trajectories ? careerRadarResult.trajectories.map((traj: any, idx: number) => (
-            <div key={idx} className="print-box avoid-break">
-              <h3 style={{ color: '#0f172a', margin: '0 0 0.5rem 0' }}>{traj.title || traj.role || traj.name} - {formatSafeScore100(traj.match_percent)}%</h3>
-              <p style={{ margin: '0 0 0.25rem 0' }}><strong>Temps estimé :</strong> {traj.time_to_reach}</p>
-              <p style={{ margin: '0 0 0.25rem 0' }}><strong>Potentiel Salarial :</strong> {traj.salary_potential}</p>
-              <p style={{ margin: '0 0 0.25rem 0', lineHeight: 1.5 }}><strong>Pourquoi :</strong> {formatMarkdown(traj.rationale || traj.why)}</p>
-              <p style={{ margin: 0, lineHeight: 1.5 }}><strong>Écarts (Gap) :</strong> {formatMarkdown(traj.gap || traj.missing)}</p>
-            </div>
-          )) : (
-            <div className="print-box avoid-break">
-              {renderGeneric(careerRadarResult)}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Décodeur d'Annonce */}
       {selection.decoder !== false && jobDecoderResult && (
         <div className="print-section page-break">
@@ -466,44 +401,6 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
               ))}
             </div>
           )}
-        </div>
-      )}
-
-      {/* Marché Caché */}
-      {selection.hidden_market !== false && hiddenMarketResult && (
-        <div className="print-section page-break">
-          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🕸️ Stratégie Marché Caché</h2>
-          <div className="print-box avoid-break">
-            {hiddenMarketResult.target_profiles ? (
-              <>
-                <h3 style={{ color: '#0f172a', fontSize: '1.1rem' }}>Profils à cibler</h3>
-                <ul>
-                  {(hiddenMarketResult.target_profiles || []).map((item: any, idx: number) => (
-                    <li key={idx} style={{ marginBottom: '0.25rem' }}><strong>{item.role} :</strong> {item.reason}</li>
-                  ))}
-                </ul>
-                {hiddenMarketResult.outreach_message && (
-                  <>
-                    <h3 style={{ color: '#0f172a', fontSize: '1.1rem', marginTop: '1rem' }}>Message d'approche suggéré</h3>
-                    <div style={{ background: '#f1f5f9', padding: '1rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
-                      <p style={{ margin: '0 0 0.5rem 0' }}><strong>Objet :</strong> {hiddenMarketResult.outreach_message?.subject}</p>
-                      <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{hiddenMarketResult.outreach_message?.body}</p>
-                    </div>
-                  </>
-                )}
-                {hiddenMarketResult.networking_tips && (
-                  <>
-                    <h3 style={{ color: '#0f172a', fontSize: '1.1rem', marginTop: '1rem' }}>Astuces Réseau</h3>
-                    <ul>
-                      {hiddenMarketResult.networking_tips.map((item: string, idx: number) => (
-                        <li key={idx} style={{ marginBottom: '0.25rem' }}>{item}</li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-              </>
-            ) : renderGeneric(hiddenMarketResult)}
-          </div>
         </div>
       )}
 

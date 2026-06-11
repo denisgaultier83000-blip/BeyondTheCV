@@ -1,17 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDashboard } from './DashboardContext';
-import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass, Mic, Search, Eye, Navigation, Network, Loader2, RotateCcw, CheckSquare, Dumbbell, ArrowUp, Printer, Building, ShieldAlert, Play, Calendar, UserCheck, Monitor, HeartPulse, Zap } from 'lucide-react';
+import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass, Mic, Search, Eye, Navigation, Network, Loader2, RotateCcw, CheckSquare, Dumbbell, ArrowUp, Printer, Building, ShieldAlert, Calendar, UserCheck, Monitor, HeartPulse, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PilotBento } from './PilotBento';
 import { GapAnalysisFull } from './GapAnalysisFull';
 import { InterviewTab } from './InterviewTab';
 import { AnalysisTab } from './AnalysisTab';
-import { CareerGPS } from './CareerGPS';
-import { CareerRadar } from './CareerRadar';
 import { JobDecoder } from './JobDecoder';
-import { HiddenMarket } from './HiddenMarket';
 import { CareerRealityCheck } from './CareerRealityCheck';
-import { CareerSimulator } from './CareerSimulator';
 import { RecruiterView } from './RecruiterView';
 import { DashboardCard } from './DashboardCard';
 import FlawCoaching from './FlawCoaching';
@@ -34,10 +30,10 @@ export const DashboardView = () => {
   const { t } = useTranslation();
   const { 
     activeTab, setActiveTab, pilotData, isPilotLoading, pilotError, cvData, fetchPilotData,
-    researchResult, salaryResult, careerGpsResult, careerRadarResult, setCurrentStep,
-    jobDecoderResult, hiddenMarketResult, recruiterResult, realityResult, flawCoachingResult,
+    researchResult, salaryResult, setCurrentStep,
+    jobDecoderResult, recruiterResult, realityResult, flawCoachingResult,
     globalStatus, triggerResearch,
-    pitchResult, questionsResult, cvResult, gapResult, actionPlanResult, customScenariosResult
+    pitchResult, questionsResult, gapResult, actionPlanResult, customScenariosResult
   } = useDashboard();
 
   // --- GESTION DES NOTIFICATIONS ---
@@ -48,8 +44,7 @@ export const DashboardView = () => {
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [printSelection, setPrintSelection] = useState({
     pitch: true, questions: true, mes: true, flaws: true,
-    gap: true, research: true, decoder: true, gps: true, radar: true,
-    hidden_market: true, todo: true
+    gap: true, research: true, decoder: true, todo: true
   });
   const togglePrintSelection = (key: keyof typeof printSelection) => {
     setPrintSelection(prev => ({ ...prev, [key]: !prev[key] }));
@@ -94,6 +89,10 @@ export const DashboardView = () => {
   }, []);
 
   const subMenus: Record<string, {label: string, id: string}[]> = {
+    overview: [
+      { label: t('submenu_hub', 'Centre de Suivi'), id: 'hub_section' },
+      { label: t('submenu_recruiter', 'Vue Recruteur'), id: 'recruiter_section' }
+    ],
     interview: [
       { label: t('submenu_pitch', 'Pitch'), id: 'pitch_section' },
       { label: t('submenu_questionnaire', 'Questions & Mises en situation'), id: 'questionnaire_section' },
@@ -104,13 +103,6 @@ export const DashboardView = () => {
       { label: t('submenu_company', 'Entreprise'), id: 'company_section' },
       { label: t('submenu_market', 'Marché'), id: 'market_section' },
       { label: t('submenu_decoder', 'Décodeur d\'Annonce'), id: 'decoder_section' }
-    ],
-    career: [
-      { label: t('submenu_recruiter', 'Vue Recruteur'), id: 'recruiter_section' },
-      { label: t('submenu_gps', 'GPS de Carrière'), id: 'gps_section' },
-      { label: t('submenu_radar', 'Radar de Carrière'), id: 'radar_section' },
-      { label: t('submenu_hidden', 'Marché Caché'), id: 'hidden_section' },
-      { label: t('submenu_simulator', 'Simulateur'), id: 'simulator_section' }
     ]
   };
 
@@ -201,11 +193,7 @@ export const DashboardView = () => {
       disabled: !hasJobDesc || (isCommando && !jobDecoderResult),
       disabledReason: !hasJobDesc ? t('card_decoder_disabled', "Annonce non renseignée. Ajoutez l'annonce dans votre profil pour l'analyser.") : (isCommando ? commandoReason : undefined)
     },
-    { name: t('deliv_recruiter', "Vue Recruteur"), tab: "career", anchor: "recruiter_section", data: recruiterResult, icon: <Eye size={18}/>, disabled: isCommando && !recruiterResult, disabledReason: isCommando ? commandoReason : undefined },
-    { name: t('deliv_gps', "GPS de Carrière"), tab: "career", anchor: "gps_section", data: careerGpsResult, icon: <Navigation size={18}/>, disabled: isCommando && !careerGpsResult, disabledReason: isCommando ? commandoReason : undefined },
-    { name: t('deliv_radar', "Radar de Carrière"), tab: "career", anchor: "radar_section", data: careerRadarResult, icon: <Compass size={18}/>, disabled: isCommando && !careerRadarResult, disabledReason: isCommando ? commandoReason : undefined },
-    { name: t('deliv_hidden', "Marché Caché"), tab: "career", anchor: "hidden_section", data: hiddenMarketResult, icon: <Network size={18}/>, disabled: isCommando && !hiddenMarketResult, disabledReason: isCommando ? commandoReason : undefined },
-    { name: t('deliv_simulator', "Simulateur de Carrière"), tab: "career", anchor: "simulator_section", data: cvData, icon: <Play size={18}/> },
+    { name: t('deliv_recruiter', "Vue Recruteur"), tab: "overview", anchor: "recruiter_section", data: recruiterResult, icon: <Eye size={18}/>, disabled: isCommando && !recruiterResult, disabledReason: isCommando ? commandoReason : undefined },
     { name: t('cockpit_title', "Cockpit Stratégique"), tab: "cockpit", anchor: "cockpit_section", data: actionPlanResult, icon: <Target size={18}/> }
   ];
 
@@ -217,7 +205,6 @@ export const DashboardView = () => {
 
   const interviewUnseen = hasUnseen('interview', [pitchResult, questionsResult, flawCoachingResult]);
   const marketUnseen = hasUnseen('market', [gapResult, researchResult, jobDecoderResult]);
-  const careerUnseen = hasUnseen('career', [careerGpsResult, careerRadarResult, hiddenMarketResult, recruiterResult]);
   const cockpitUnseen = hasUnseen('cockpit', [actionPlanResult]);
 
   // [FIX CRITIQUE] On force le chargement du résumé si les données sont absentes pour briser la boucle de crash
@@ -250,9 +237,6 @@ export const DashboardView = () => {
         <button className={`tab-btn ${activeTab === 'market' ? 'active' : ''}`} onClick={() => handleTabChange('market')} style={{ position: 'relative' }}>
           <Globe size={18} /> {t('tab_market_offer', "Marché & Offre")} {marketUnseen && <span className="notification-dot"></span>}
         </button>
-        <button className={`tab-btn ${activeTab === 'career' ? 'active' : ''}`} onClick={() => handleTabChange('career')} style={{ position: 'relative' }}>
-          <Compass size={18} /> {t('tab_strategy', "Stratégie & Trajectoires")} {careerUnseen && <span className="notification-dot"></span>}
-        </button>
       </div>
 
       {/* SOUS-MENUS */}
@@ -281,7 +265,7 @@ export const DashboardView = () => {
               {/* [FIX ARCHITECTURE] Le Hub est sorti de la condition de chargement. 
                   Il s'affiche instantanément. Les analyses terminées en amont (ex: Marché) 
                   seront cliquables immédiatement sans attendre la synthèse IA. */}
-              <div className="bento-card col-span-3" style={{ background: 'var(--bg-card)' }}>
+              <div className="bento-card col-span-3" id="hub_section" style={{ background: 'var(--bg-card)' }}>
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                    <div className="bento-header" style={{ marginBottom: 0 }}><Activity size={20} color="var(--primary)"/> {t('hub_title', 'Centre de Suivi des Analyses')}</div>
                    <button 
@@ -359,13 +343,14 @@ export const DashboardView = () => {
                 <>
                   <PilotBento 
                       data={pilotData} 
-                      careerRadarData={careerRadarResult}
-                      careerGpsData={careerGpsResult}
                       onGoToGap={() => handleTabChange('market', 'gap_section')} 
-                      onGoToRadar={() => handleTabChange('career', 'radar_section')}
-                      onGoToGps={() => handleTabChange('career', 'gps_section')}
                   />
                   <CareerRealityCheck data={realityResult} score={pilotData?.matchScore} loading={isProcessing && !realityResult && !isCommando} />
+                  {(!isCommando || recruiterResult) && (
+                    <div id="recruiter_section">
+                      <RecruiterView data={recruiterResult} loading={isProcessing && !recruiterResult} />
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -411,40 +396,6 @@ export const DashboardView = () => {
            </div>
         )}
 
-        {activeTab === 'career' && (
-           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-             {(!isCommando || recruiterResult) && (
-               <div id="recruiter_section">
-                 <RecruiterView data={recruiterResult} loading={isProcessing && !recruiterResult} />
-               </div>
-             )}
-             {(!isCommando || careerGpsResult) && (
-               <div id="gps_section">
-                 <DashboardCard title="GPS de Carrière" icon={<Navigation size={24} />} featureId="career_gps" loading={isProcessing && !careerGpsResult} error={!isProcessing && !careerGpsResult}>
-                   <CareerGPS data={careerGpsResult} />
-                 </DashboardCard>
-               </div>
-             )}
-             {(!isCommando || careerRadarResult) && (
-               <div id="radar_section">
-                 <DashboardCard title="Radar de Carrière" icon={<Compass size={24} />} featureId="career_radar" loading={isProcessing && !careerRadarResult} error={!isProcessing && !careerRadarResult}>
-                   <CareerRadar data={careerRadarResult} />
-                 </DashboardCard>
-               </div>
-             )}
-             {(!isCommando || hiddenMarketResult) && (
-               <div id="hidden_section">
-                 <DashboardCard title="Marché Caché & Réseau" icon={<Network size={24} />} featureId="hidden_market" loading={isProcessing && !hiddenMarketResult} error={!isProcessing && !hiddenMarketResult}>
-                   <HiddenMarket data={hiddenMarketResult} />
-                 </DashboardCard>
-               </div>
-             )}
-             <div id="simulator_section">
-               <CareerSimulator candidateData={cvData} />
-             </div>
-           </div>
-        )}
-
         {activeTab === 'training' && (
            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
              <TrainingTab />
@@ -464,8 +415,7 @@ export const DashboardView = () => {
                 const labels: Record<string, string> = {
                   pitch: "Pitch de présentation", questions: "Questions d'entretien", mes: "Mises en situation",
                   flaws: "Parades aux défauts", gap: "Analyse d'écarts (Gap)", research: "Rapports Entreprise & Marché",
-                  decoder: "Décodeur d'annonce", gps: "GPS de Carrière", radar: "Radar de Carrière",
-                  hidden_market: "Stratégie Marché Caché", todo: "Plan d'action (To-Do)"
+                  decoder: "Décodeur d'annonce", todo: "Plan d'action (To-Do)"
                 };
                 return (
                   <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', color: 'var(--text-main)', fontSize: '0.95rem' }}>

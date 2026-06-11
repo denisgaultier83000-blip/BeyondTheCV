@@ -44,15 +44,17 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
     return { color: 'var(--text-muted)', bg: 'var(--bg-secondary)', border: 'var(--border-color)', label: t('flaw_risk_watch', 'Impact à surveiller'), icon: <Info size={14}/> };
   };
 
+  const getLevel = (item: any) => item.impact_level || item.impact || item.severity || item.niveau || item.risk_level || '';
+
   // Calcul des statistiques de risque global
   const highRiskCount = coachingList.filter((item: any) => {
-    return (item.impact_level?.toLowerCase() || '').match(/p1|high|critique/);
+    return getLevel(item).toLowerCase().match(/p1|high|critique/);
   }).length;
   const mediumRiskCount = coachingList.filter((item: any) => {
-    return (item.impact_level?.toLowerCase() || '').match(/p2|medium|vigilance/);
+    return getLevel(item).toLowerCase().match(/p2|medium|vigilance/);
   }).length;
   const lowRiskCount = coachingList.filter((item: any) => {
-    return (item.impact_level?.toLowerCase() || '').match(/p3|low|mineur/);
+    return getLevel(item).toLowerCase().match(/p3|low|mineur/);
   }).length;
   const totalWithImpact = highRiskCount + mediumRiskCount + lowRiskCount;
 
@@ -118,14 +120,15 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
             {coachingList.map((item: any, idx: number) => {
-              const impact = getImpactConfig(item.impact_level);
+              const level = getLevel(item);
+              const impact = getImpactConfig(level);
               return (
-              <div key={idx} style={{ background: 'var(--bg-card)', borderRadius: '16px', padding: '1.5rem', border: `1px solid ${item.impact_level ? impact.border : 'var(--border-color)'}`, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+              <div key={idx} style={{ background: 'var(--bg-card)', borderRadius: '16px', padding: '1.5rem', border: `1px solid ${level ? impact.border : 'var(--border-color)'}`, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
                   <h3 style={{ margin: 0, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem' }}>
                     <AlertTriangle size={22} color={impact.color} /> {item.flaw || item.defaut || item.name || t('flaw_addressed', "Défaut abordé")}
                   </h3>
-                  {item.impact_level && (
+                  {level && (
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: impact.bg, color: impact.color, border: `1px solid ${impact.border}`, padding: '0.25rem 0.75rem', borderRadius: '2rem', fontSize: '0.85rem', fontWeight: 600 }}>
                       {impact.icon} {impact.label}
                     </span>

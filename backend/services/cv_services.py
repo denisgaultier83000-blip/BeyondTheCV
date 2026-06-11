@@ -20,22 +20,16 @@ from .latex import generate_pdf_from_latex
 from .docx_generator import generate_cv_docx
 from .tasks import (
     process_cv_draft_in_background,
-    process_cv_analysis_in_background,
     process_research_in_background,
     process_salary_in_background,
     process_completeness_in_background,
     update_task_status_sync,
-    process_profile_validation_in_background,
     process_gap_analysis_in_background,
     process_pitch_in_background,
     process_recruiter_view_in_background,
     process_reality_check_in_background,
     process_flaw_coaching_in_background,
-    process_career_radar_in_background,
     process_questions_in_background,
-    process_career_gps_in_background,
-    process_oneliner_in_background,
-    process_market_strategy_in_background,
     run_gap_analysis_and_get_result,
     orchestrate_dashboard_tasks,
     process_action_plan_in_background,
@@ -1421,17 +1415,17 @@ async def start_analysis(background_tasks: BackgroundTasks, data: dict = Body(..
                         if t_map_raw:
                             t_map = json.loads(t_map_raw) if isinstance(t_map_raw, str) else t_map_raw
                         # [VERIFICATION CRITIQUE] On s'assure que c'est une session COMPLÈTE et non une session issue d'un "is_partial_start"
-                        if "cv_analysis" in t_map and "recruiter_view" in t_map:
+                        if "gap_analysis" in t_map and "recruiter_view" in t_map:
                             # [FIX EXPERT] On vérifie que les tâches existent réellement en base de données.
                             # Si l'utilisateur a purgé son historique, on ne doit pas restaurer une session fantôme (évite les 404 en boucle).
-                            cursor = await db.execute(conn, "SELECT 1 FROM tasks WHERE id = ?", (t_map["cv_analysis"],))
+                            cursor = await db.execute(conn, "SELECT 1 FROM tasks WHERE id = ?", (t_map["gap_analysis"],))
                             if await cursor.fetchone():
                                 print(f"[START_ANALYSIS] Session restored for hash {session_hash}", flush=True)
                                 return {
                                     "message": "Session restored",
                                     "application_id": app_id,
                                     "tasks": t_map,
-                                    "task_id": t_map.get("cv_analysis") or t_map.get("market_research"),
+                                    "task_id": t_map.get("gap_analysis") or t_map.get("market_research"),
                                     "salary_task_id": t_map.get("salary_estimation")
                                 }
                 except Exception as e:
@@ -1500,7 +1494,7 @@ async def start_analysis(background_tasks: BackgroundTasks, data: dict = Body(..
         "message": "Pipeline started",
         "application_id": application_id,
         "tasks": tasks_map,
-        "task_id": tasks_map.get("cv_analysis") or tasks_map.get("market_research"),
+        "task_id": tasks_map.get("gap_analysis") or tasks_map.get("market_research"),
         "salary_task_id": tasks_map.get("salary_estimation")
     }
 
