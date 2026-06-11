@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { DollarSign, MessageSquare, Send, Loader2, AlertTriangle, CheckCircle2, RefreshCw, Lightbulb } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { DollarSign, MessageSquare, Send, Loader2, AlertTriangle, CheckCircle2, RefreshCw, Lightbulb, Mic, MicOff } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
@@ -7,15 +7,67 @@ import { useDashboard } from './DashboardContext';
 import { useTranslation } from 'react-i18next';
 
 export default function SalaryNegotiator() {
-  const { cvData, salaryResult } = useDashboard();
+  const { cvData, salaryResult, updateFormData } = useDashboard();
   const { t } = useTranslation();
   
   const [userAnswer, setUserAnswer] = useState('');
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [feedback, setFeedback] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  
+  const [history, setHistory] = useState<any[]>(cvData?.negotiationHistory || []);
 
   const expectations = cvData?.salary_expectations;
+
+  // --- GESTION DE LA RECONNAISSANCE VOCALE (Speech-to-Text) ---
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
+
+  const toggleRecording = () => {
+    if (isRecording) {
+      if (recognitionRef.current) recognitionRef.current.stop();
+      setIsRecording(false);
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert(t('sim_mic_unsupported', "La reconnaissance vocale n'est pas supportée par votre navigateur."));
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'fr-FR';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    let baselineAnswer = userAnswer;
+
+    recognition.onresult = (event: any) => {
+      let interimTranscript = '';
+      let finalTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
+        else interimTranscript += event.results[i][0].transcript;
+      }
+      if (finalTranscript) baselineAnswer += (baselineAnswer ? ' ' : '') + finalTranscript;
+      setUserAnswer(baselineAnswer + interimTranscript);
+    };
+
+    recognition.onerror = () => setIsRecording(false);
+    recognition.onend = () => setIsRecording(false);
+
+    recognition.start();
+    recognitionRef.current = recognition;
+    setIsRecording(true);
+  };
   
   if (!expectations) return null; // Ne s'affiche que si le candidat a rempli ses prétentions
 
@@ -23,9 +75,46 @@ export default function SalaryNegotiator() {
   const currencySymbol = salaryResult?.currency === 'USD' ? '$' : '€';
   const marketLowNum = salaryResult?.salary_range?.low;
   const marketHighNum = salaryResult?.salary_range?.high;
-  const marketLow = salaryResult?.salary_range?.low ? `${salaryResult.salary_range.low}k${currencySymbol}` : "légèrement inférieur à ce que vous demandez";
-  const marketHigh = marketHighNum ? `${marketHighNum}k${currencySymbol}` : "";
+
+  // Formatage propre pour s'assurer que 60000 devienne bien 60k
+  const formatDisplayK = (num: any) => {
+    if (!num) return "";
+    let n = Number(num);
+    if (isNaN(n)) return `${num}${currencySymbol}`;
+    if (n > 1000) n = Math.round(n / 1000);
+    return `${n}k${currencySymbol}`;
+  };
+
+  const marketLow = marketLowNum ? formatDisplayK(marketLowNum) : "légèrement inférieur à ce que vous demandez";
+  const marketHigh = marketHighNum ? formatDisplayK(marketHighNum) : "";
   const recruiterPrompt = `Votre profil est très intéressant, mais vos prétentions salariales (${expectations}) sont au-dessus de notre grille. Notre budget maximum pour ce poste est de ${marketLow}. Qu'en pensez-vous ?`;
+
+  // Calcul dynamique de la position des prétentions sur le graphique (en %)
+  let expectationPos = 70; // Position par défaut
+  if (expectations && marketLowNum && marketHighNum) {
+    let expMatch = expectations.match(/\d+([.,]\d+)?/);
+    let expNum = expMatch ? parseFloat(expMatch[0].replace(',', '.')) : NaN;
+    
+    let lowNum = Number(marketLowNum);
+    let highNum = Number(marketHighNum);
+
+    // Normalisation en "k" si les valeurs sont des milliers (ex: 60000 -> 60)
+    if (!isNaN(expNum) && expNum > 1000) expNum = expNum / 1000;
+    if (!isNaN(lowNum) && lowNum > 1000) lowNum = lowNum / 1000;
+    if (!isNaN(highNum) && highNum > 1000) highNum = highNum / 1000;
+
+    if (!isNaN(expNum) && !isNaN(lowNum) && !isNaN(highNum) && highNum > lowNum) {
+      if (expNum <= lowNum) {
+        expectationPos = 10 + (expNum / lowNum) * 20; // Entre 10% et 30% (Zone Budget Max)
+      } else if (expNum > lowNum && expNum <= highNum) {
+        const ratio = (expNum - lowNum) / (highNum - lowNum);
+        expectationPos = 30 + (ratio * 60); // Entre 30% et 90% (Au milieu du marché)
+      } else {
+        const ratio = Math.min((expNum - highNum) / (highNum * 0.5), 1); 
+        expectationPos = 90 + (ratio * 8); // Entre 90% et 98% (Hors budget / Trop haut)
+      }
+    }
+  }
 
   const handleEvaluate = async () => {
     if (!userAnswer.trim()) return;
@@ -51,6 +140,13 @@ export default function SalaryNegotiator() {
 
       const data = await res.json();
       setFeedback(data.feedback);
+      
+      // Sauvegarde dans l'historique local (sera persisté par le parent)
+      const newHistory = [{ date: new Date().toISOString(), userAnswer, feedback: data.feedback }, ...history];
+      setHistory(newHistory);
+      if (updateFormData) {
+        updateFormData('negotiationHistory', newHistory);
+      }
     } catch (err: any) {
       setError(err.message || "L'évaluation a échoué. Veuillez réessayer.");
     } finally {
@@ -60,9 +156,19 @@ export default function SalaryNegotiator() {
 
   return (
     <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginTop: '2rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-      <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#10b981', margin: '0 0 1rem 0', fontSize: '1.2rem' }}>
-        <DollarSign size={24} /> Entraînement : Négociation Salariale
-      </h3>
+      <style>{`
+        @keyframes pulse-record {
+          0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+          70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+      `}</style>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#10b981', margin: 0, fontSize: '1.2rem' }}>
+          <DollarSign size={24} /> Entraînement : Négociation Salariale
+        </h3>
+      </div>
+
       <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
         L'argent ne doit pas être un sujet tabou. Défendez vos prétentions salariales face à l'objection du recruteur.
       </p>
@@ -88,8 +194,8 @@ export default function SalaryNegotiator() {
             </div>
 
             {/* Vos Prétentions */}
-            <div style={{ position: 'absolute', left: '70%', top: '-15px', height: '42px', width: '4px', background: '#ef4444', borderRadius: '2px', zIndex: 3, boxShadow: '0 0 10px rgba(239, 68, 68, 0.5)' }}></div>
-            <div style={{ position: 'absolute', left: '70%', top: '-35px', transform: 'translateX(-50%)', fontSize: '0.9rem', fontWeight: 800, color: '#ef4444', whiteSpace: 'nowrap', background: 'var(--bg-card)', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', border: '1px solid #ef4444' }}>
+            <div style={{ position: 'absolute', left: `${expectationPos}%`, top: '-15px', height: '42px', width: '4px', background: '#ef4444', borderRadius: '2px', zIndex: 3, boxShadow: '0 0 10px rgba(239, 68, 68, 0.5)', transition: 'left 0.5s ease-out' }}></div>
+            <div style={{ position: 'absolute', left: `${expectationPos}%`, top: '-35px', transform: 'translateX(-50%)', fontSize: '0.9rem', fontWeight: 800, color: '#ef4444', whiteSpace: 'nowrap', background: 'var(--bg-card)', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', border: '1px solid #ef4444', transition: 'left 0.5s ease-out' }}>
               Vos Prétentions ({expectations})
             </div>
           </div>
@@ -119,7 +225,13 @@ export default function SalaryNegotiator() {
             disabled={isEvaluating}
             style={{ width: '100%', background: 'var(--bg-body)', border: '1px solid var(--border-color)', borderRadius: '0.5rem', padding: '1rem', color: 'var(--text-main)', fontFamily: 'inherit', resize: 'vertical' }}
           />
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+            <button 
+              onClick={toggleRecording} 
+              className={`btn-${isRecording ? 'primary' : 'secondary'}`} 
+              style={{ background: isRecording ? '#ef4444' : undefined, borderColor: isRecording ? '#ef4444' : undefined, color: isRecording ? 'white' : undefined, animation: isRecording ? 'pulse-record 1.5s infinite' : 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
+            </button>
             <button onClick={handleEvaluate} disabled={isEvaluating || !userAnswer.trim()} className="btn-primary" style={{ background: (isEvaluating || !userAnswer.trim()) ? '' : '#10b981', borderColor: (isEvaluating || !userAnswer.trim()) ? '' : '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               {isEvaluating ? <Loader2 size={18} className="spin" /> : <Send size={18} />}
               {isEvaluating ? "Analyse en cours..." : "Tenter de négocier"}

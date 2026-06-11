@@ -178,7 +178,7 @@ export const DashboardView = () => {
   // Liste de tous les livrables avec leur état
   const deliverableItems: DeliverableItem[] = [
     { name: t('deliv_pitch', "Pitch de 3 minutes"), tab: "interview", anchor: "pitch_section", data: pitchResult, icon: <Mic size={18}/> },
-    { name: t('deliv_questions', "Questions & Mises en situation"), tab: "interview", anchor: "questionnaire_section", data: questionsResult || customScenariosResult, icon: <MessageSquare size={18}/> },
+    { name: t('card_interview_title', "Questionnaire d'Entretien"), tab: "interview", anchor: "questionnaire_section", data: questionsResult, icon: <MessageSquare size={18}/> },
     { name: t('deliv_mes', "Mises en situation"), tab: "interview", anchor: "mes_anchor", data: customScenariosResult || cvData, icon: <ShieldAlert size={18}/> },
     { name: t('deliv_flaws', "Parades aux Défauts"), tab: "interview", anchor: "flaws_section", data: flawCoachingResult, icon: <AlertTriangle size={18}/> },
     { name: t('deliv_gap', "Analyse d'Écarts (Gap)"), tab: "market", anchor: "gap_section", data: gapResult, icon: <Target size={18}/> },

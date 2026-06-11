@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   AlertCircle
 } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { DashboardCard } from './DashboardCard';
 import Questionnaire from './Questionnaire';
 import { API_BASE_URL } from '../config';
@@ -41,6 +42,7 @@ export default function TrainingTab() {
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [feedback, setFeedback] = useState<any>(null);
   const [trainingHistory, setTrainingHistory] = useState<any[]>([]);
+  const [interviewHistory, setInterviewHistory] = useState<any[]>([]);
 
   const themes = ['Management', 'Gestion de crise', 'Négociation', 'Leadership', 'Communication'];
   const types = [{ id: 'Classique', label: 'Questions Classiques' }, { id: 'MES', label: 'Mises en Situation' }];
@@ -63,10 +65,17 @@ export default function TrainingTab() {
 
   const fetchHistory = async () => {
     try {
-      const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/history`);
-      if (res.ok) {
-        const data = await res.json();
+      const [trainRes, intRes] = await Promise.all([
+        authenticatedFetch(`${API_BASE_URL}/api/cv/training/history`),
+        authenticatedFetch(`${API_BASE_URL}/api/cv/interview/history`)
+      ]);
+      if (trainRes.ok) {
+        const data = await trainRes.json();
         setTrainingHistory(data.history || []);
+      }
+      if (intRes.ok) {
+        const data = await intRes.json();
+        setInterviewHistory(data.history || []);
       }
     } catch (err) {
       console.error("Erreur récupération historique", err);
@@ -167,18 +176,31 @@ export default function TrainingTab() {
   const oralPitchScore = themeScores['Pitch Vocal'] ?? 0;
   const oralPitchSessions = themeCounts['Pitch Vocal'] ?? 0;
 
-  // Calcul des stats spécifiques Q/A (Tout sauf le Pitch)
-  const qaTotalSessions = totalSessions - oralPitchSessions;
-  let qaScore = 0;
-  if (qaTotalSessions > 0) {
-      let totalQaScore = 0;
-      Object.entries(themeScores).forEach(([theme, tScore]) => {
-          if (theme !== 'Pitch Vocal') {
-              totalQaScore += tScore * (themeCounts[theme] ?? 0);
-          }
-      });
-      qaScore = Math.round(totalQaScore / qaTotalSessions);
+  // --- FUSION DES HISTORIQUES (PITCH + MES + ENTRETIEN + NEGO) ---
+  const negoHistory = cvData?.negotiationHistory || [];
+  const unifiedHistory = [
+    ...trainingHistory.map(h => ({ ...h, source: 'training', date: new Date(h.created_at || Date.now()) })),
+    ...interviewHistory.map(h => ({ ...h, source: 'interview', category: "Question d'entretien", type: 'Classique', userAnswer: h.user_answer, score: h.score, date: new Date(h.created_at || Date.now()) })),
+    ...negoHistory.map(h => ({ ...h, source: 'negotiation', category: 'Négociation Salariale', type: 'Négo', question: "Défense des prétentions salariales", score: h.feedback?.score || 0, date: new Date(h.date || Date.now()) }))
+  ].sort((a, b) => b.date.getTime() - a.date.getTime());
+
+  // Calcul des stats Négo
+  const negoTotalSessions = negoHistory.length;
+  const negoScore = negoTotalSessions > 0 ? Math.round(negoHistory.reduce((acc: number, h: any) => acc + (h.feedback?.score || 0), 0) / negoTotalSessions) : 0;
+
+  // Calcul des stats spécifiques Q/A (Training Q&A + Interview Q&A)
+  const trainingQACount = totalSessions - oralPitchSessions;
+  let trainingQATotalScore = 0;
+  if (trainingQACount > 0) {
+    Object.entries(themeScores).forEach(([theme, tScore]) => {
+      if (theme !== 'Pitch Vocal') trainingQATotalScore += tScore * (themeCounts[theme] ?? 0);
+    });
   }
+  const interviewQACount = interviewHistory.length;
+  const interviewQATotalScore = interviewHistory.reduce((acc, h) => acc + (h.score || 0), 0);
+
+  const qaTotalSessions = trainingQACount + interviewQACount;
+  const qaScore = qaTotalSessions > 0 ? Math.round((trainingQATotalScore + interviewQATotalScore) / qaTotalSessions) : 0;
 
   // Fonction de sécurité pour afficher les objets JSON de l'IA (Pitch Vocal) sans faire crasher React
   const renderSafeText = (item: any) => {
@@ -228,40 +250,72 @@ export default function TrainingTab() {
       )}
 
       {/* --- SECTION STATISTIQUES --- */}
-      <DashboardCard title="Tableau de Chasse" icon={<Activity size={24} />}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', alignItems: 'center' }}>
+      <DashboardCard title="Statistiques Globales & Évolution" icon={<Activity size={24} />}>
+        {/* TOP STATS */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+          <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Questions & Situations</div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 800, color: qaTotalSessions > 0 ? getScoreColor(qaScore) : 'var(--text-muted)', margin: '0.5rem 0' }}>
+              {qaTotalSessions > 0 ? (qaScore / 10).toFixed(1) : '-'} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ 10</span>
+            </div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{qaTotalSessions} session{qaTotalSessions > 1 ? 's' : ''}</div>
+          </div>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem' }}>
-              <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Entretien (Q/A)</div>
-                <div style={{ fontSize: '2.5rem', fontWeight: 800, color: qaTotalSessions > 0 ? getScoreColor(qaScore) : 'var(--text-muted)', margin: '0.5rem 0' }}>
-                  {qaTotalSessions > 0 ? qaScore / 10 : '-'} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ 10</span>
-                </div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Sur {qaTotalSessions} session{qaTotalSessions > 1 ? 's' : ''}.</div>
-              </div>
-              
-              <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Entraînement Oral (Pitch)</div>
-                <div style={{ fontSize: '2.5rem', fontWeight: 800, color: oralPitchScore > 0 ? getScoreColor(oralPitchScore) : 'var(--text-muted)', margin: '0.5rem 0' }}>
-                  {oralPitchScore > 0 ? (oralPitchScore / 10).toFixed(1) : '-'} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ 10</span>
-                </div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Évaluation de la prosodie et du débit.</div>
-              </div>
+          <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Pitch Vocal</div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 800, color: oralPitchScore > 0 ? getScoreColor(oralPitchScore) : 'var(--text-muted)', margin: '0.5rem 0' }}>
+              {oralPitchScore > 0 ? (oralPitchScore / 10).toFixed(1) : '-'} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ 10</span>
             </div>
-
-            <div style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
-              <div style={{ fontSize: '0.9rem', color: 'var(--primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Award size={18} /> Conseil du Coach
-              </div>
-              <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
-                Identifiez vos points faibles ci-contre et ciblez vos prochaines sessions sur ces thématiques pour équilibrer votre profil.
-              </p>
-            </div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{oralPitchSessions} session{oralPitchSessions > 1 ? 's' : ''}</div>
           </div>
 
-          {/* Barres de progression (Remplace le Radar) */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', padding: '1rem' }}>
+          <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Négociation Salariale</div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 800, color: negoTotalSessions > 0 ? getScoreColor(negoScore) : 'var(--text-muted)', margin: '0.5rem 0' }}>
+              {negoTotalSessions > 0 ? (negoScore / 10).toFixed(1) : '-'} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ 10</span>
+            </div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{negoTotalSessions} session{negoTotalSessions > 1 ? 's' : ''}</div>
+          </div>
+        </div>
+
+        {/* CHART EVOLUTION */}
+        {unifiedHistory.length > 0 && (
+          <div style={{ marginBottom: '2.5rem', height: '260px' }}>
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-main)', marginBottom: '1rem' }}><TrendingUp size={18} color="var(--primary)" /> Votre courbe de progression globale</h4>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={[...unifiedHistory].reverse().map(item => {
+                  const fb = item.feedback || item.evaluation;
+                  return {
+                    name: item.date.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' }),
+                    score: fb?.score ?? item.score ?? 0,
+                    exercice: item.type === 'Vocal' ? 'Pitch' : item.source === 'negotiation' ? 'Négociation' : 'Simulation'
+                  }
+              })} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorScoreGlobal" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" opacity={0.5} />
+                <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
+                <Tooltip 
+                  contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
+                  itemStyle={{ color: 'var(--primary)', fontWeight: 'bold' }}
+                  formatter={(value: any, name: any, props: any) => [`${value}/100`, props.payload.exercice]}
+                  labelStyle={{ color: 'var(--text-muted)', marginBottom: '0.25rem', fontSize: '0.85rem' }}
+                />
+                <Area type="monotone" dataKey="score" stroke="var(--primary)" strokeWidth={3} fillOpacity={1} fill="url(#colorScoreGlobal)" activeDot={{ r: 6, fill: 'var(--primary)', stroke: 'var(--bg-card)', strokeWidth: 2 }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* THEMES DETAILS */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', paddingTop: '2rem', borderTop: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>Détail par thématique</h4>
             {themes.map(t => {
               const tScore = themeScores[t] ?? 0;
               const tCount = themeCounts[t] ?? 0;
@@ -282,6 +336,15 @@ export default function TrainingTab() {
                 </div>
               );
             })}
+          </div>
+          
+          <div style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+            <div style={{ fontSize: '0.9rem', color: 'var(--primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Award size={18} /> Conseil du Coach
+            </div>
+            <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
+              Votre tableau de chasse consolide désormais tous vos entraînements (Pitch, Mises en situation, Négociation de salaire). Identifiez vos points faibles et ciblez vos prochaines sessions sur ces thématiques pour équilibrer votre profil avant l'entretien !
+            </p>
           </div>
         </div>
       </DashboardCard>
@@ -414,25 +477,29 @@ export default function TrainingTab() {
       )}
 
       {/* --- HISTORIQUE D'ENTRAÎNEMENT --- */}
-      {!activeQuestion && trainingHistory && trainingHistory.length > 0 && (
-        <DashboardCard title="Historique d'Entraînement" icon={<History size={24} />}>
+      {!activeQuestion && unifiedHistory.length > 0 && (
+        <DashboardCard title="Archives & Corrections" icon={<History size={24} />}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {[...(Array.isArray(trainingHistory) ? trainingHistory : [])].reverse().map((q: any, index: number) => {
+            {unifiedHistory.map((q: any, index: number) => {
               const fb = q.feedback || q.evaluation;
-              const score10 = (fb?.score || 0) / 10;
+              const rawScore = fb?.score ?? q.score ?? 0;
+              const score10 = rawScore / 10;
               const scoreColor = score10 >= 8 ? '#10b981' : score10 >= 5 ? '#f59e0b' : '#ef4444';
 
               return (
                 <div key={q.id || index} style={{ padding: '1.5rem', background: 'var(--bg-secondary)', borderRadius: '1rem', border: '1px solid var(--border-color)', borderLeft: `6px solid ${scoreColor}` }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '1.1rem' }}>{q.category} <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 400 }}>• {q.type}</span></div>
-                    <div style={{ background: scoreColor, color: 'white', padding: '0.25rem 1rem', borderRadius: '1rem', fontWeight: 'bold', fontSize: '1.1rem' }}>
-                      {score10} / 10
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div>
+                      <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '1.1rem' }}>{q.category} <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 400 }}>• {q.type}</span></div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 500, marginTop: '0.25rem' }}>{q.date.toLocaleString('fr-FR')} • Source : {q.source === 'training' ? 'Entraînement Libre' : q.source === 'interview' ? 'Questions Entretien' : 'Négociation'}</div>
+                    </div>
+                    <div style={{ background: scoreColor, color: 'white', padding: '0.25rem 1rem', borderRadius: '1rem', fontWeight: 'bold', fontSize: '1.1rem', alignSelf: 'center' }}>
+                      {score10.toFixed(1)} / 10
                     </div>
                   </div>
                   <p style={{ margin: '0 0 1rem 0', color: 'var(--text-main)', fontSize: '1rem' }}><strong>Question :</strong> {q.question}</p>
                   <div style={{ background: 'var(--bg-card)', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1rem', border: '1px solid var(--border-color)' }}>
-                    <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-muted)' }}><strong>Votre réponse :</strong> {q.userAnswer}</p>
+                    <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-muted)' }}><strong>Votre réponse :</strong> {q.userAnswer || q.user_answer}</p>
                   </div>
                   {fb && (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', fontSize: '0.9rem' }}>
@@ -444,6 +511,12 @@ export default function TrainingTab() {
                         <strong style={{ color: '#ef4444' }}>{q.type === 'Vocal' ? 'Diagnostic :' : 'À améliorer :'}</strong>
                         <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.2rem' }}>{Array.isArray(fb.weaknesses) ? fb.weaknesses.map((w: any, i: number) => <li key={i}>{renderSafeText(w)}</li>) : <li>{renderSafeText(fb.weaknesses)}</li>}</ul>
                       </div>
+                      {fb.improved_answer && (
+                        <div style={{ gridColumn: '1 / -1', background: 'rgba(16, 185, 129, 0.05)', padding: '1rem', borderRadius: '0.5rem', borderLeft: '3px solid #10b981', marginTop: '0.5rem' }}>
+                          <strong style={{ color: '#10b981' }}>Réponse du Coach :</strong>
+                          <p style={{ margin: '0.25rem 0 0 0', color: 'var(--text-main)', fontStyle: 'italic' }}>"{fb.improved_answer}"</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

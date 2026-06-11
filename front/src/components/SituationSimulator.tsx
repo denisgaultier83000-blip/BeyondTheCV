@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BrainCircuit, Eye, Edit3, CheckCircle2, AlertTriangle, Lightbulb, MessageSquare, ArrowLeft, Target, ChevronDown, ChevronUp, Loader2, Send, Users, ListChecks, Shield, Award, RefreshCw, X, Mic, MicOff, Activity } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BrainCircuit, Eye, Edit3, CheckCircle2, AlertTriangle, Lightbulb, MessageSquare, ArrowLeft, Target, ChevronDown, ChevronUp, Loader2, Send, Users, ListChecks, Shield, Award, RefreshCw, X, Mic, MicOff } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
@@ -66,7 +65,6 @@ export function SituationSimulator() {
 
   // État local initialisé avec les données du contexte (évite la perte de couleur au changement d'onglet)
   const [localScores, setLocalScores] = useState<Record<string, number>>(cvData?.simulatorScores || {});
-  const [scoreHistory, setScoreHistory] = useState<any[]>([]);
 
   // Synchronisation avec les données du serveur au chargement
   useEffect(() => {
@@ -74,29 +72,6 @@ export function SituationSimulator() {
       setLocalScores(cvData.simulatorScores);
     }
   }, [cvData?.simulatorScores]);
-
-  // Chargement de l'historique d'entraînement pour alimenter le graphique
-  useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/interview/history`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.history && data.history.length > 0) {
-            const formattedData = data.history.map((item: any) => ({
-              name: new Date(item.created_at).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' }),
-              score: item.score,
-              exercice: item.question ? item.question.substring(0, 20) + '...' : 'Simulation'
-            })).reverse(); // On inverse pour avoir l'ordre chronologique de gauche à droite
-            setScoreHistory(formattedData);
-          }
-        }
-      } catch (e) {
-        console.error("Erreur de récupération de l'historique", e);
-      }
-    };
-    fetchHistory();
-  }, []);
 
   // Utilitaire pour déterminer le thème de la carte en fonction du score
   const getScoreTheme = (score100?: number) => {
@@ -235,13 +210,6 @@ export function SituationSimulator() {
       if (updateFormData) {
         updateFormData("simulatorScores", { ...localScores, [scId]: Number(data.feedback.score) });
       }
-
-      // Mise à jour en temps réel du graphique sans recharger la page
-      setScoreHistory(prev => [...prev, {
-        name: new Date().toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' }),
-        score: Number(data.feedback.score),
-        exercice: selectedScenario.title.substring(0, 20) + '...'
-      }]);
     } catch (err: any) {
       console.error("Erreur lors de l'analyse IA :", err);
       setError(err.message || t('sim_api_error', "Une erreur de communication avec l'IA est survenue."));
@@ -299,36 +267,6 @@ export function SituationSimulator() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', animation: 'fadeIn 0.3s ease-out' }}>
-      {/* --- GRAPHIQUE DE PROGRESSION --- */}
-      {scoreHistory.length > 0 && (
-        <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
-          <h3 style={{ margin: '0 0 1.5rem 0', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.25rem' }}>
-            <Activity size={24} color="var(--primary)" /> Votre courbe d'évolution
-          </h3>
-          <div style={{ width: '100%', height: '220px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={scoreHistory} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" opacity={0.5} />
-                <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
-                <Tooltip 
-                  contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
-                  itemStyle={{ color: 'var(--primary)', fontWeight: 'bold' }}
-                  formatter={(value: any, name: any, props: any) => [`${value}/100`, props.payload.exercice]}
-                  labelStyle={{ color: 'var(--text-muted)', marginBottom: '0.25rem', fontSize: '0.85rem' }}
-                />
-                <Area type="monotone" dataKey="score" stroke="var(--primary)" strokeWidth={3} fillOpacity={1} fill="url(#colorScore)" activeDot={{ r: 6, fill: 'var(--primary)', stroke: 'var(--bg-card)', strokeWidth: 2 }} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
 
       {/* --- VUE LISTE TOUJOURS VISIBLE --- */}
       {scenarios.map((category, index) => {
