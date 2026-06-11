@@ -179,9 +179,9 @@ export default function TrainingTab() {
   // --- FUSION DES HISTORIQUES (PITCH + MES + ENTRETIEN + NEGO) ---
   const negoHistory = cvData?.negotiationHistory || [];
   const unifiedHistory = [
-    ...trainingHistory.map(h => ({ ...h, source: 'training', date: new Date(h.created_at || Date.now()) })),
-    ...interviewHistory.map(h => ({ ...h, source: 'interview', category: "Question d'entretien", type: 'Classique', userAnswer: h.user_answer, score: h.score, date: new Date(h.created_at || Date.now()) })),
-    ...negoHistory.map(h => ({ ...h, source: 'negotiation', category: 'Négociation Salariale', type: 'Négo', question: "Défense des prétentions salariales", score: h.feedback?.score || 0, date: new Date(h.date || Date.now()) }))
+    ...trainingHistory.map((h: any) => ({ ...h, source: 'training', date: new Date(h.created_at || Date.now()) })),
+    ...interviewHistory.map((h: any) => ({ ...h, source: 'interview', category: "Question d'entretien", type: 'Classique', userAnswer: h.user_answer, score: h.score, date: new Date(h.created_at || Date.now()) })),
+    ...negoHistory.map((h: any) => ({ ...h, source: 'negotiation', category: 'Négociation Salariale', type: 'Négo', question: "Défense des prétentions salariales", score: h.feedback?.score || 0, date: new Date(h.date || Date.now()) }))
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
   // Calcul des stats Négo
@@ -197,7 +197,7 @@ export default function TrainingTab() {
     });
   }
   const interviewQACount = interviewHistory.length;
-  const interviewQATotalScore = interviewHistory.reduce((acc, h) => acc + (h.score || 0), 0);
+  const interviewQATotalScore = interviewHistory.reduce((acc: number, h: any) => acc + (h.score || 0), 0);
 
   const qaTotalSessions = trainingQACount + interviewQACount;
   const qaScore = qaTotalSessions > 0 ? Math.round((trainingQATotalScore + interviewQATotalScore) / qaTotalSessions) : 0;
