@@ -457,7 +457,6 @@ export const DashboardView = () => {
           .tab-content, .bento-grid, .dashboard-grid-new, .dashboard-container-new { display: none !important; }
           .printable-dossier { display: block !important; }
           body { background: white; margin: 0; padding: 0; }
-          * { color: black !important; }
         }
         .dashboard-wrapper { display: flex; flex-direction: column; gap: 2rem; width: 100%; }
         

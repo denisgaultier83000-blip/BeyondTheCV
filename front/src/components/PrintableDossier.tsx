@@ -200,6 +200,11 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
           }
           .print-section { margin-bottom: 2rem; max-width: 100%; box-sizing: border-box; }
           .print-box { border: 1px solid #cbd5e1; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; background: #f8fafc; box-sizing: border-box; width: 100%; word-wrap: break-word; overflow-wrap: break-word; }
+          .print-box-red { border: 1px solid #fca5a5; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; background: #fef2f2 !important; box-sizing: border-box; width: 100%; word-wrap: break-word; overflow-wrap: break-word; }
+          .print-box-green { border: 1px solid #86efac; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; background: #f0fdf4 !important; box-sizing: border-box; width: 100%; word-wrap: break-word; overflow-wrap: break-word; }
+          .print-box-purple { border: 1px solid #d8b4fe; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; background: #faf5ff !important; box-sizing: border-box; width: 100%; word-wrap: break-word; overflow-wrap: break-word; }
+          .print-box-orange { border: 1px solid #fcd34d; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; background: #fffbeb !important; box-sizing: border-box; width: 100%; word-wrap: break-word; overflow-wrap: break-word; }
+          .print-box-success { background: #dcfce7 !important; border: 1px solid #bbf7d0; padding: 1rem; border-radius: 6px; margin-top: 0.5rem; }
           p, div, span, li, h3, h4 { max-width: 100%; }
           
           /* Logo sur la première page uniquement */
@@ -261,7 +266,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
       </div>
 
       {/* 1. Page de Garde & Stratégie */}
-      <div className="print-section text-center" style={{ textAlign: 'center', marginBottom: '4rem', paddingTop: '4rem' }}>
+      <div className="print-section text-center" style={{ textAlign: 'center', marginBottom: '4rem', padding: '4rem 2rem', background: '#f8fafc', borderTop: '8px solid #0f172a', borderBottom: '8px solid #0f172a', borderRadius: '8px' }}>
         <h1 style={{ fontSize: '3.5rem', marginBottom: '1rem', color: '#0f172a' }}>Dossier de Préparation</h1>
         <h2 style={{ fontSize: '1.8rem', color: '#475569' }}>Candidat : {cvData?.first_name} {cvData?.last_name}</h2>
         <h3 style={{ fontSize: '1.5rem', color: '#64748b' }}>Cible : {cvData?.target_job} {cvData?.target_company ? `chez ${cvData.target_company}` : ''}</h3>
@@ -291,11 +296,12 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
           <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🎯 Stratégie & Adéquation</h2>
           <div className="print-box">
             <h3 style={{ color: '#0f172a', marginBottom: '0.5rem' }}>Stratégie recommandée</h3>
-            <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, fontSize: '1.1rem', marginBottom: '1.5rem' }}>{formatMarkdown(pilotData?.recommendedStrategy) || "Stratégie non générée."}</p>
-            
+            <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, fontSize: '1.1rem', margin: 0 }}>{formatMarkdown(pilotData?.recommendedStrategy) || "Stratégie non générée."}</p>
+          </div>
+
             {gapData?.missing_gaps && gapData.missing_gaps.length > 0 && (
-              <>
-                <h3 style={{ color: '#dc2626', marginBottom: '0.5rem' }}>Compétences à combler (Écarts)</h3>
+              <div className="print-box-red avoid-break">
+                <h3 style={{ color: '#dc2626', marginTop: 0, marginBottom: '0.5rem' }}>⚠️ Compétences à combler (Écarts)</h3>
                 <ul style={{ margin: '0 0 1.5rem 0', paddingLeft: '1.5rem', color: '#dc2626' }}>
                   {gapData.missing_gaps.map((gap: any, idx: number) => {
                     const skill = typeof gap === 'string' ? gap : gap.skill;
@@ -307,12 +313,12 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
                     );
                   })}
                 </ul>
-              </>
+              </div>
             )}
 
             {gapData?.recommended_adjustments && gapData.recommended_adjustments.length > 0 && (
-              <>
-                <h3 style={{ color: '#8b5cf6', marginBottom: '0.5rem' }}>Actions correctives suggérées</h3>
+              <div className="print-box-purple avoid-break">
+                <h3 style={{ color: '#7c3aed', marginTop: 0, marginBottom: '0.5rem' }}>💡 Actions correctives suggérées</h3>
                 <ul style={{ margin: '0', paddingLeft: '1.5rem', color: '#8b5cf6' }}>
                   {gapData.recommended_adjustments.map((adj: any, idx: number) => {
                     const action = typeof adj === 'string' ? adj : adj.action;
@@ -324,9 +330,8 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
                     );
                   })}
                 </ul>
-              </>
+              </div>
             )}
-          </div>
         </div>
       )}
 
@@ -334,38 +339,38 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
       {selection.decoder !== false && jobDecoderResult && (
         <div className="print-section page-break">
           <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🕵️ Décodeur d'Annonce</h2>
-          <div className="print-box avoid-break">
             {jobDecoderResult.reality_check ? (
               <>
-                <h3 style={{ color: '#0f172a', fontSize: '1.1rem' }}>Jargon décodé</h3>
-                <ul>
+                <div className="print-box avoid-break">
+                <h3 style={{ color: '#0f172a', fontSize: '1.1rem', marginTop: 0 }}>Jargon décodé</h3>
+                <ul style={{ margin: 0 }}>
                   {(jobDecoderResult.reality_check || []).map((item: any, idx: number) => (
                     <li key={idx} style={{ marginBottom: '0.25rem', lineHeight: 1.5 }}><strong>{item.jargon} :</strong> {formatMarkdown(item.translation)}</li>
                   ))}
                 </ul>
+                </div>
                 {jobDecoderResult.real_expectations && (
-                  <>
-                    <h3 style={{ color: '#0f172a', fontSize: '1.1rem', marginTop: '1rem' }}>Vraies attentes</h3>
-                    <ul>
+                  <div className="print-box-green avoid-break">
+                    <h3 style={{ color: '#16a34a', fontSize: '1.1rem', marginTop: 0 }}>✅ Véritables attentes</h3>
+                    <ul style={{ color: '#15803d', margin: 0 }}>
                       {(jobDecoderResult.real_expectations || []).map((item: string, idx: number) => (
                         <li key={idx} style={{ marginBottom: '0.25rem', lineHeight: 1.5 }}>{formatMarkdown(item)}</li>
                       ))}
                     </ul>
-                  </>
+                  </div>
                 )}
                 {jobDecoderResult.red_flags && jobDecoderResult.red_flags.length > 0 && (
-                  <>
-                    <h3 style={{ color: '#dc2626', fontSize: '1.1rem', marginTop: '1rem' }}>Signaux d'alerte</h3>
-                    <ul>
+                  <div className="print-box-red avoid-break">
+                    <h3 style={{ color: '#dc2626', fontSize: '1.1rem', marginTop: 0 }}>🚩 Signaux d'alerte</h3>
+                    <ul style={{ color: '#b91c1c', margin: 0 }}>
                       {jobDecoderResult.red_flags.map((item: string, idx: number) => (
                         <li key={idx} style={{ color: '#dc2626', marginBottom: '0.25rem' }}>{item}</li>
                       ))}
                     </ul>
-                  </>
+                  </div>
                 )}
               </>
-            ) : renderGeneric(jobDecoderResult)}
-          </div>
+            ) : <div className="print-box avoid-break">{renderGeneric(jobDecoderResult)}</div>}
         </div>
       )}
 
@@ -420,7 +425,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
                 <>
                   <p style={{ margin: '0.5rem 0', color: '#475569' }}><strong>Votre réponse :</strong> {q.user_answer}</p>
                   {q.evaluation && (
-                    <div style={{ background: '#dcfce7', padding: '1rem', borderRadius: '4px', marginTop: '0.5rem', border: '1px solid #bbf7d0' }}>
+                    <div className="print-box-success">
                       <p style={{ margin: '0 0 0.5rem 0', color: '#166534', fontWeight: 'bold' }}>Feedback IA (Score: {formatSafeScore10(q.evaluation.score)}/10)</p>
                       <div style={{ margin: 0, color: '#166534' }}>{renderImprovedAnswer(q.evaluation.improved_answer || q.evaluation.feedback)}</div>
                     </div>
@@ -450,7 +455,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
                 <>
                   <p style={{ margin: '0.5rem 0', color: '#475569' }}><strong>Votre action :</strong> {q.user_answer}</p>
                   {q.evaluation && (
-                    <div style={{ background: '#dcfce7', padding: '1rem', borderRadius: '4px', marginTop: '0.5rem', border: '1px solid #bbf7d0' }}>
+                    <div className="print-box-success">
                       <p style={{ margin: '0 0 0.5rem 0', color: '#166534', fontWeight: 'bold' }}>Feedback IA (Score: {formatSafeScore10(q.evaluation.score)}/10)</p>
                       <div style={{ margin: 0, color: '#166534' }}>{renderImprovedAnswer(q.evaluation.improved_answer || q.evaluation.feedback)}</div>
                     </div>
@@ -474,7 +479,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
         <div className="print-section page-break">
           <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🛡️ Parades aux Défauts</h2>
           {flaws.map((flaw: any, idx: number) => (
-            <div key={idx} className="print-box avoid-break">
+            <div key={idx} className="print-box-red avoid-break">
               <h3 style={{ color: '#dc2626' }}>{flaw.flaw || flaw.defaut}</h3>
               <p><strong>Risque perçu :</strong> {flaw.impact_justification}</p>
               <p><strong>Réponse courte :</strong> "{flaw.short_answer || flaw.reponse_courte}"</p>
@@ -487,17 +492,17 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
 
       {/* 4. Cockpit Stratégique (Plan d'action) */}
       {(selection.todo !== false) && (
-        <div className="print-section page-break">
+        <div className="print-section page-break" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
           <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>✅ Cockpit Stratégique (Plan d'Action)</h2>
           
           {actionPlanResult?.action_plan && (
-            <div className="print-box avoid-break">
-              <h3 style={{ color: '#f59e0b', margin: '0 0 1rem 0' }}>⚡ Actions Commando (Immédiates)</h3>
+            <div className="print-box-orange avoid-break">
+              <h3 style={{ color: '#d97706', margin: '0 0 1rem 0', marginTop: 0 }}>⚡ Actions Commando (Immédiates)</h3>
               {actionPlanResult.action_plan.map((step: any, i: number) => (
                 <div key={i} style={{ marginBottom: '1.5rem' }}>
-                  <h4 style={{ color: '#0f172a', margin: '0 0 0.25rem 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h4 style={{ color: '#92400e', margin: '0 0 0.25rem 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span>{step.task}</span>
-                    {step.estimated_duration && <span style={{ color: '#f59e0b', fontSize: '0.85rem' }}>⏱️ {step.estimated_duration}</span>}
+                    {step.estimated_duration && <span style={{ color: '#d97706', fontSize: '0.85rem' }}>⏱️ {step.estimated_duration}</span>}
                   </h4>
                   <p style={{ margin: 0, color: '#475569', lineHeight: '1.5' }}>{step.advice}</p>
                 </div>
@@ -506,14 +511,14 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
           )}
 
           {actionPlanResult?.training_plan && (
-            <div className="print-box avoid-break">
-              <h3 style={{ color: '#8b5cf6', margin: '0 0 1rem 0' }}>🎙️ Rituels Vocaux (Entraînement)</h3>
+            <div className="print-box-purple avoid-break">
+              <h3 style={{ color: '#7c3aed', margin: '0 0 1rem 0', marginTop: 0 }}>🎙️ Rituels Vocaux (Entraînement)</h3>
               {actionPlanResult.training_plan.map((step: any, i: number) => {
                 const isUpcoming = step.stage === 'upcoming';
-                const accentColor = isUpcoming ? '#94a3b8' : '#8b5cf6';
+                const accentColor = isUpcoming ? '#94a3b8' : '#7c3aed';
                 return (
                   <div key={i} style={{ marginBottom: '1rem', paddingLeft: '1rem', borderLeft: `3px solid ${accentColor}`, opacity: isUpcoming ? 0.7 : 1 }}>
-                    <h4 style={{ color: '#0f172a', margin: '0 0 0.25rem 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h4 style={{ color: '#5b21b6', margin: '0 0 0.25rem 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>{isUpcoming ? '🔒' : '📅'} {step.day.replace('J-', '-')} : {step.module}</span>
                       <span style={{ color: accentColor, fontSize: '0.85rem' }}>{isUpcoming ? 'Anticipation' : `⏱️ ${step.duration_minutes} min`}</span>
                     </h4>
