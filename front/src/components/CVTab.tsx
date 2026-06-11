@@ -8,7 +8,7 @@ import PdfPreviewer from './PdfPreviewer';
 import { useTranslation } from 'react-i18next';
 
 export const CVTab = ({ data }: { data: any }) => {
-  const { cvData, cvResult, gapResult } = useDashboard();
+  const { cvData, gapResult } = useDashboard();
   const { t } = useTranslation();
   const [previewBody, setPreviewBody] = useState<any>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -33,7 +33,7 @@ export const CVTab = ({ data }: { data: any }) => {
   const preparePreviewData = () => {
     // [FIX CRITIQUE] On utilise les données optimisées par l'IA si elles existent
     // On fusionne pour s'assurer d'avoir les skills à jour ajoutés manuellement
-    const payloadData = { ...(cvResult?.optimized_data || cvResult || cvData) };
+    const payloadData = { ...(cvData) };
     
     // [FIX CRITIQUE] On injecte les skills saisis ET les mots-clés acceptés via le coach
     // On s'assure que skills reste un tableau (Array) car le template LaTeX du backend itère dessus.
@@ -120,7 +120,7 @@ export const CVTab = ({ data }: { data: any }) => {
     preparePreviewData();
   // [FIX] Ajout des dépendances manquantes. React déclenchera generatePreview naturellement après mise à jour.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cvResult, addedKeywords, extraContent]);
+  }, [cvData, addedKeywords, extraContent]);
 
   // [FIX EXPERT] Nettoyage du timer au démontage pour éviter les fuites de mémoire
   useEffect(() => {

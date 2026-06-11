@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Loader2, CheckCircle2, Activity, Shield, Target, Mic, MessageSquare, Search, Eye, FileText, DollarSign, BrainCircuit } from 'lucide-react';
 
 interface LoadingScreenProps {
-  tasks: { [key: string]: string }; // e.g., { pitch: 'uuid1', gap_analysis: 'uuid2' }
-  taskStatuses: { [key: string]: string }; // e.g., { uuid1: 'COMPLETED', uuid2: 'RUNNING' }
+  tasks?: { [key: string]: string }; // e.g., { pitch: 'uuid1', gap_analysis: 'uuid2' }
+  taskStatuses?: { [key: string]: string }; // e.g., { uuid1: 'COMPLETED', uuid2: 'RUNNING' }
+  title?: string;
+  description?: string;
 }
 
 const proTips = [
@@ -27,7 +29,7 @@ const hackerLines = [
   "Finalizing strategic battle plan...",
 ];
 
-export const LoadingScreen: React.FC<LoadingScreenProps> = ({ tasks, taskStatuses }) => {
+export const LoadingScreen: React.FC<LoadingScreenProps> = ({ tasks = {}, taskStatuses = {}, title, description }) => {
   const [currentTip, setCurrentTip] = useState('');
   const [currentHackerLine, setCurrentHackerLine] = useState('');
 
@@ -169,8 +171,8 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ tasks, taskStatuse
         }
       `}</style>
 
-      <h1 className="loading-title"><BrainCircuit size={32} /> Initialisation du Poste de Commandement...</h1>
-      <p className="loading-subtitle">Votre profil est en cours d'analyse par nos modèles stratégiques. Nous préparons vos arguments, anticipons les questions pièges et décodons le marché pour vous.</p>
+      <h1 className="loading-title"><BrainCircuit size={32} /> {title || "Initialisation du Poste de Commandement..."}</h1>
+      <p className="loading-subtitle">{description || "Votre profil est en cours d'analyse par nos modèles stratégiques. Nous préparons vos arguments, anticipons les questions pièges et décodons le marché pour vous."}</p>
 
       <div className="analysis-grid">
         <div className="task-checklist">
