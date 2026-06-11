@@ -1230,8 +1230,6 @@ async def orchestrate_dashboard_tasks(tasks_map: dict, cv_dict: dict):
         _active_orchestrator_tasks.add(task)
         task.add_done_callback(_active_orchestrator_tasks.discard)
 
-    if "profile_validation" in tasks_map: fire("profile_validation", process_profile_validation_in_background(tasks_map["profile_validation"], cv_dict))
-    if "cv_analysis" in tasks_map: fire("cv_analysis", process_cv_analysis_in_background(tasks_map["cv_analysis"], cv_dict))
     if "gap_analysis" in tasks_map: fire("gap_analysis", process_gap_analysis_in_background(tasks_map["gap_analysis"], cv_dict))
     
     await asyncio.sleep(0.5) # Micro-délai pour garantir la priorité
@@ -1241,20 +1239,15 @@ async def orchestrate_dashboard_tasks(tasks_map: dict, cv_dict: dict):
     if "flaw_coaching" in tasks_map: fire("flaw_coaching", process_flaw_coaching_in_background(tasks_map["flaw_coaching"], cv_dict))
     if "custom_scenarios" in tasks_map: fire("custom_scenarios", process_custom_scenarios_in_background(tasks_map["custom_scenarios"], cv_dict))
 
-    # NOUVEAU: TÂCHES FUSIONNÉES Executive Summary (1 seule requête IA au lieu de 3)
-    exec_tasks = {k: tasks_map[k] for k in ["one_liner", "career_radar", "recruiter_view"] if k in tasks_map}
-    if exec_tasks: fire(exec_tasks, process_executive_summary_in_background(exec_tasks, cv_dict))
+    if "recruiter_view" in tasks_map: fire("recruiter_view", process_recruiter_view_in_background(tasks_map["recruiter_view"], cv_dict))
 
     await asyncio.sleep(0.5)
     if "questions" in tasks_map: fire("questions", process_questions_in_background(tasks_map["questions"], cv_dict))
 
     await asyncio.sleep(0.5)
 
-    if "career_gps" in tasks_map: fire("career_gps", process_career_gps_in_background(tasks_map["career_gps"], cv_dict))
     if "action_plan" in tasks_map: fire("action_plan", process_action_plan_in_background(tasks_map["action_plan"], cv_dict))
         
-    # TÂCHES FUSIONNÉES : Market Strategy
-    strategy_tasks = {k: tasks_map[k] for k in ["job_decoder", "risk_analysis", "hidden_market"] if k in tasks_map}
-    if strategy_tasks: fire(strategy_tasks, process_market_strategy_in_background(strategy_tasks, cv_dict))
+    if "job_decoder" in tasks_map: fire("job_decoder", process_job_decoder_in_background(tasks_map["job_decoder"], cv_dict))
 
     print("[ORCHESTRATOR] ✅ All tasks queued successfully. Semaphore is handling the flow.", flush=True)

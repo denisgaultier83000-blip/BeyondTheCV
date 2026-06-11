@@ -161,6 +161,33 @@ async def lifespan(app: FastAPI):
                                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                             )
                         """)
+                        cur.execute("""
+                            CREATE TABLE IF NOT EXISTS training_sessions (
+                                id TEXT PRIMARY KEY,
+                                user_id TEXT NOT NULL,
+                                theme TEXT,
+                                question_type TEXT,
+                                question_text TEXT,
+                                user_answer TEXT,
+                                score INTEGER,
+                                strengths JSONB,
+                                weaknesses JSONB,
+                                improved_answer TEXT,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            )
+                        """)
+                        cur.execute("""
+                            CREATE TABLE IF NOT EXISTS interview_sessions (
+                                id TEXT PRIMARY KEY,
+                                user_id TEXT NOT NULL,
+                                application_id TEXT,
+                                question_text TEXT,
+                                user_answer TEXT,
+                                score INTEGER,
+                                feedback JSONB,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            )
+                        """)
                     conn.commit()
             except Exception as e:
                 print(f"[DB WARNING] Failed to create generation_cache table: {e}", flush=True)

@@ -1347,27 +1347,20 @@ async def start_analysis(background_tasks: BackgroundTasks, data: dict = Body(..
             tasks_map["salary_estimation"] = str(uuid.uuid4()) # Ajout explicite pour le frontend
     else:
         # Tâches prioritaires (Toujours exécutées)
-        tasks_map["cv_analysis"] = str(uuid.uuid4())
         tasks_map["pitch"] = str(uuid.uuid4())
         tasks_map["questions"] = str(uuid.uuid4())
         tasks_map["gap_analysis"] = str(uuid.uuid4())
         tasks_map["salary_estimation"] = str(uuid.uuid4())
         
-        tasks_map["profile_validation"] = str(uuid.uuid4())
         tasks_map["flaw_coaching"] = str(uuid.uuid4())
         tasks_map["action_plan"] = str(uuid.uuid4())
         tasks_map["custom_scenarios"] = str(uuid.uuid4())
         
         # Tâches long terme (Désactivées en urgence pour gagner du temps et des tokens)
         if not is_commando:
-            tasks_map["career_radar"] = str(uuid.uuid4())
             tasks_map["recruiter_view"] = str(uuid.uuid4())
-            tasks_map["one_liner"] = str(uuid.uuid4())
-            tasks_map["risk_analysis"] = str(uuid.uuid4())
             if cv_dict.get('job_description') and str(cv_dict.get('job_description')).strip():
                 tasks_map["job_decoder"] = str(uuid.uuid4())
-            tasks_map["hidden_market"] = str(uuid.uuid4())
-            tasks_map["career_gps"] = str(uuid.uuid4())
             tasks_map["reality_check"] = str(uuid.uuid4())
             
         if cv_dict.get('target_company') or cv_dict.get('target_industry'):
