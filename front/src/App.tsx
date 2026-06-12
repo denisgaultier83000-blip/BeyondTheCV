@@ -137,7 +137,10 @@ function AppContent() {
   const handleUpdateList = (listName: string, id: string | number, field: string, val: any) => setFormData((prev: any) => ({ ...(prev || {}), [listName]: (prev?.[listName] || []).map((item: any) => item.id === id ? { ...item, [field]: val } : item) }));
   const handleAddList = (listName: string, defaultItem: any) => setFormData((prev: any) => ({ ...(prev || {}), [listName]: [...(prev?.[listName] || []), { ...defaultItem, id: Date.now() }] }));
   const handleRemoveList = (listName: string, id: string | number) => setFormData((prev: any) => ({ ...(prev || {}), [listName]: (prev?.[listName] || []).filter((item: any) => item.id !== id) }));
-  const handleLanguageChange = (lang: string) => i18n.changeLanguage(lang);
+  const handleLanguageChange = (lang: string) => {
+    i18n.changeLanguage(lang);
+    setFormData((prev: any) => ({ ...(prev || {}), target_language: lang }));
+  };
 
   // --- Fonction de Sauvegarde Silencieuse (Auto-Save) ---
   const saveProfileToDB = async (data: any) => {

@@ -39,11 +39,12 @@ export const CockpitTab: React.FC<CockpitProps> = ({
 }) => {
   const { t } = useTranslation();
   const { cvData, updateFormData } = useDashboard();
-  const [checkedItems, setCheckedItems] = useState<number[]>([]);
+  const [checkedItems, setCheckedItems] = useState<number[]>(cvData?.cockpitCheckedItems || []);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [localData, setLocalData] = useState(actionPlanData);
   const [error, setError] = useState<string | null>(null);
   const [isOralModalOpen, setIsOralModalOpen] = useState(false);
+  const [hasFiredConfetti, setHasFiredConfetti] = useState(false);
 
   useEffect(() => {
     setLocalData(actionPlanData);
@@ -60,7 +61,11 @@ export const CockpitTab: React.FC<CockpitProps> = ({
       if (!res.ok) throw new Error("Erreur réseau");
       const newData = await res.json();
       setLocalData(newData);
-      if (updateFormData) updateFormData('actionPlanResult', newData);
+      setCheckedItems([]); // On vide la sélection locale
+      if (updateFormData) {
+        updateFormData('actionPlanResult', newData);
+        updateFormData('cockpitCheckedItems', []); // On vide la sélection sauvegardée
+      }
     } catch (e) {
       setError("Erreur lors de la regénération. Veuillez réessayer.");
     } finally {
@@ -95,7 +100,11 @@ export const CockpitTab: React.FC<CockpitProps> = ({
   const displayDate = dateStr ? `Entretien : ${dateStr}` : "Date non définie";
 
   const toggleCheck = (idx: number) => {
-    setCheckedItems(prev => prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]);
+    setCheckedItems(prev => {
+      const newChecked = prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx];
+      if (updateFormData) updateFormData('cockpitCheckedItems', newChecked);
+      return newChecked;
+    });
   };
 
   const handleVocalScoreUpdate = (score: number) => {
@@ -118,6 +127,32 @@ export const CockpitTab: React.FC<CockpitProps> = ({
     progressPercentage = Math.round(bestVocalScore);
   }
   const readinessColor = progressPercentage === 100 ? '#10b981' : progressPercentage >= 50 ? '#f59e0b' : '#ef4444';
+
+  useEffect(() => {
+    if (progressPercentage === 100 && !hasFiredConfetti) {
+      setHasFiredConfetti(true);
+      const triggerConfetti = () => {
+        const confettiConfig = {
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6'],
+          zIndex: 10000
+        };
+        if ((window as any).confetti) {
+          (window as any).confetti(confettiConfig);
+          return;
+        }
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js';
+        script.onload = () => (window as any).confetti(confettiConfig);
+        document.body.appendChild(script);
+      };
+      triggerConfetti();
+    } else if (progressPercentage < 100) {
+      setHasFiredConfetti(false);
+    }
+  }, [progressPercentage, hasFiredConfetti]);
 
   return (
     <div className="animate-fade-in w-full" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
