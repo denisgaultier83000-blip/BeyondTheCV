@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ShieldAlert, Clock, Zap, Target, CheckCircle2, Circle, Mic, CalendarDays, Timer, Lock, RefreshCw, Loader2, AlertTriangle } from 'lucide-react';
+import { ShieldAlert, Clock, Zap, Target, CheckCircle2, Circle, Mic, CalendarDays, Timer, Lock, RefreshCw, Loader2, AlertTriangle, Flame, Activity } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { useDashboard } from './DashboardContext';
@@ -78,37 +78,52 @@ export const CockpitTab: React.FC<CockpitProps> = ({
     setCheckedItems(prev => prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]);
   };
 
+  // Calcul de la jauge de préparation
+  const progressPercentage = plan.length > 0 ? Math.round((checkedItems.length / plan.length) * 100) : 0;
+  const readinessColor = progressPercentage === 100 ? '#10b981' : progressPercentage >= 50 ? '#f59e0b' : '#ef4444';
+
   return (
     <div className="animate-fade-in w-full" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* 1. EN-TÊTE WAR ROOM & POSTURE */}
-      <div className="bento-card" style={{ background: 'linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%)', borderLeft: '4px solid var(--primary)' }}>
+      <div className="bento-card" style={{ background: 'linear-gradient(135deg, #0F2650 0%, #1e3a8a 100%)', color: 'white', border: 'none', boxShadow: '0 10px 25px -5px rgba(15, 38, 80, 0.4)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-          <h2 style={{ fontSize: '1.5rem', margin: 0, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-main)' }}>
-            <Target size={24} color="var(--primary)" />
+          <h2 style={{ fontSize: '1.5rem', margin: 0, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'white', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            <Target size={24} color="#6DBEF7" />
             {t('cockpit_title', 'Cockpit Stratégique')}
           </h2>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <button onClick={handleRegenerate} disabled={isRegenerating} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-card)', padding: '0.5rem 1rem', borderRadius: '2rem' }}>
+            <button onClick={handleRegenerate} disabled={isRegenerating} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '0.5rem 1rem', borderRadius: '2rem', transition: 'all 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}>
               {isRegenerating ? <Loader2 size={16} className="spin" /> : <RefreshCw size={16} />} {isRegenerating ? "Calcul IA..." : "Régénérer"}
             </button>
-            <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger-text)', padding: '0.5rem 1rem', borderRadius: '2rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-              <Clock size={16} /> {displayDate}
+            <div style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', padding: '0.5rem 1rem', borderRadius: '2rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.4)', boxShadow: '0 0 10px rgba(239, 68, 68, 0.2)' }}>
+              <Activity size={16} style={{ animation: 'pulse 2s infinite' }} /> {displayDate}
             </div>
           </div>
         </div>
 
+        {/* Jauge de Préparation Globale */}
+        <div style={{ background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '0.75rem', marginBottom: '1.5rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+            <span style={{ fontSize: '0.85rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Niveau de Préparation au Combat</span>
+            <span style={{ fontWeight: 800, color: readinessColor, fontSize: '1.1rem' }}>{progressPercentage}%</span>
+          </div>
+          <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+            <div style={{ width: `${progressPercentage}%`, height: '100%', background: readinessColor, transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1), background 0.5s ease' }} />
+          </div>
+        </div>
+
         {error && (
-          <div style={{ background: 'rgba(239, 68, 68, 0.05)', color: 'var(--danger-text)', padding: '0.75rem 1rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.2)', margin: '0 1.5rem 1.5rem 1.5rem' }}>
+          <div style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', padding: '0.75rem 1rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.4)', marginBottom: '1.5rem' }}>
             <AlertTriangle size={18} /> {error}
           </div>
         )}
 
-        <div style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
-          <h3 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0' }}>
-            <ShieldAlert size={16} />
+        <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1.25rem', borderRadius: '0.75rem', borderLeft: '4px solid #f59e0b' }}>
+          <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#fcd34d', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0' }}>
+            <ShieldAlert size={16} style={{ animation: 'pulse 2s infinite' }} />
             {t('cockpit_strategy_title', "Conseil Stratégique d'Urgence")} ({interviewFormat} - {interviewTarget})
           </h3>
-          <p style={{ color: 'var(--text-main)', margin: 0, lineHeight: 1.6, fontSize: '0.95rem' }}>
+          <p style={{ color: '#f8fafc', margin: 0, lineHeight: 1.6, fontSize: '0.95rem' }}>
             {advice}
           </p>
         </div>
@@ -117,12 +132,19 @@ export const CockpitTab: React.FC<CockpitProps> = ({
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '1.5rem' }}>
         
         {/* PHASE 1: IMMÉDIAT (Action Plan) */}
-        <div className="bento-card" style={{ borderTop: '4px solid #f59e0b' }}>
-          <h3 style={{ fontSize: '1.1rem', margin: '0 0 1.5rem 0', fontWeight: 800, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            <Zap size={20} />
-            Actions Commando (One-Off)
-          </h3>
-          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '-1rem', marginBottom: '1.5rem' }}>À faire immédiatement pour sécuriser votre préparation logistique.</p>
+        <div className="bento-card" style={{ borderTop: '4px solid #ef4444', boxShadow: '0 4px 20px -5px rgba(239, 68, 68, 0.1)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+            <div>
+              <h3 style={{ fontSize: '1.1rem', margin: '0 0 0.25rem 0', fontWeight: 800, color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <Flame size={20} />
+                Actions Commando
+              </h3>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', margin: 0 }}>À faire immédiatement pour sécuriser la logistique.</p>
+            </div>
+            <div style={{ background: progressPercentage === 100 ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg-secondary)', color: progressPercentage === 100 ? '#10b981' : 'var(--text-muted)', padding: '0.25rem 0.75rem', borderRadius: '1rem', fontSize: '0.85rem', fontWeight: 700, border: `1px solid ${progressPercentage === 100 ? 'rgba(16, 185, 129, 0.2)' : 'var(--border-color)'}` }}>
+              {checkedItems.length} / {plan.length}
+            </div>
+          </div>
           
           {plan.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

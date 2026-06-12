@@ -14,6 +14,7 @@ import FlawCoaching from './FlawCoaching';
 import TrainingTab from './TrainingTab';
 import { PrintableDossier } from './PrintableDossier';
 import { TrainingPlanTimeline } from './TrainingPlanTimeline';
+import { CockpitTab } from './CockpitTab';
 
 interface DeliverableItem {
   name: string;
@@ -32,11 +33,11 @@ export const DashboardView = () => {
     researchResult, salaryResult, setCurrentStep,
     jobDecoderResult, recruiterResult, realityResult, flawCoachingResult,
     globalStatus, triggerResearch,
-    pitchResult, questionsResult, gapResult, customScenariosResult
+    pitchResult, questionsResult, gapResult, customScenariosResult, actionPlanResult
   } = useDashboard();
 
   // --- GESTION DES NOTIFICATIONS ---
-  const [viewedTabs, setViewedTabs] = useState<string[]>(['overview']);
+  const [viewedTabs, setViewedTabs] = useState<string[]>(['cockpit']);
   const [showBackToTop, setShowBackToTop] = useState(false);
   
   // --- GESTION DE L'IMPRESSION ---
@@ -203,10 +204,11 @@ export const DashboardView = () => {
 
   const interviewUnseen = hasUnseen('interview', [pitchResult, questionsResult, flawCoachingResult]);
   const marketUnseen = hasUnseen('market', [gapResult, researchResult, jobDecoderResult]);
+  const cockpitUnseen = hasUnseen('cockpit', [actionPlanResult]);
 
   // [FIX CRITIQUE] On force le chargement du résumé si les données sont absentes pour briser la boucle de crash
   useEffect(() => {
-    if (activeTab === 'overview' && !pilotData && !pilotError && typeof fetchPilotData === 'function') {
+    if ((activeTab === 'overview' || activeTab === 'cockpit') && !pilotData && !pilotError && typeof fetchPilotData === 'function') {
       fetchPilotData();
     }
   }, [activeTab, pilotData, pilotError, fetchPilotData]);
@@ -219,6 +221,9 @@ export const DashboardView = () => {
       {/* GROUPE NAVIGATION : Onglets + Sous-menus collés */}
       <div style={{ display: 'flex', flexDirection: 'column' }}>
       <div className={`tabs-navigation ${subMenus[activeTab] ? 'has-sub' : ''}`}>
+        <button className={`tab-btn ${activeTab === 'cockpit' ? 'active' : ''}`} onClick={() => handleTabChange('cockpit')} style={{ position: 'relative' }}>
+          <Target size={18} /> {t('cockpit_title', "Cockpit Stratégique")} {cockpitUnseen && <span className="notification-dot"></span>}
+        </button>
         <button className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => handleTabChange('overview')}>
           <Activity size={18} /> {t('tab_overview', "Vue d'ensemble")}
         </button>
