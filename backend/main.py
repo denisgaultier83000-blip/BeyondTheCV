@@ -147,6 +147,51 @@ async def lifespan(app: FastAPI):
             
             # 3. Lancer les migrations maintenant que la connexion est possible.
             init_db()
+            
+            # [FIX EXPERT] Création de la table de cache manquante pour éviter les erreurs SQL
+            try:
+                with db.get_sync_connection() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute("""
+                            CREATE TABLE IF NOT EXISTS generation_cache (
+                                cache_key TEXT PRIMARY KEY,
+                                user_id TEXT NOT NULL,
+                                content_type TEXT NOT NULL,
+                                result JSONB,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            )
+                        """)
+                        cur.execute("""
+                            CREATE TABLE IF NOT EXISTS training_sessions (
+                                id TEXT PRIMARY KEY,
+                                user_id TEXT NOT NULL,
+                                theme TEXT,
+                                question_type TEXT,
+                                question_text TEXT,
+                                user_answer TEXT,
+                                score INTEGER,
+                                strengths JSONB,
+                                weaknesses JSONB,
+                                improved_answer TEXT,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            )
+                        """)
+                        cur.execute("""
+                            CREATE TABLE IF NOT EXISTS interview_sessions (
+                                id TEXT PRIMARY KEY,
+                                user_id TEXT NOT NULL,
+                                application_id TEXT,
+                                question_text TEXT,
+                                user_answer TEXT,
+                                score INTEGER,
+                                feedback JSONB,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            )
+                        """)
+                    conn.commit()
+            except Exception as e:
+                print(f"[DB WARNING] Failed to create generation_cache table: {e}", flush=True)
+                
             print("[DB] Database initialized successfully.", flush=True)
         except Exception as e:
             print(f"[DB CRITICAL] Database initialization failed: {e}", flush=True)
@@ -175,12 +220,24 @@ async def lifespan(app: FastAPI):
         print(f"[FATAL STARTUP ERROR] {e}", flush=True)
         # [FIX EXPERT] On re-lève l'exception globale pour FORCER le crash de FastAPI.
         raise
+    
     yield
+    
+    # --- Shutdown Phase ---
+    print("[SHUTDOWN] Fermeture des pools de connexions à la base de données...", flush=True)
+    try:
+        await db.close_pools()
+        print("[SHUTDOWN] ✅ Pools de connexions fermés avec succès.", flush=True)
+    except Exception as e:
+        print(f"[SHUTDOWN ERROR] ❌ Impossible de fermer proprement les pools : {e}", flush=True)
 
 # --- Rate Limiting (Anti-Abuse) ---
 RATE_LIMIT_WINDOW = APP_CONFIG.get("rate_limit_window", 60)
-RATE_LIMIT_MAX_REQUESTS = APP_CONFIG.get("rate_limit_max_requests", 100)
+# [FIX] Forcé à 1000 (même si le fichier config indique 100) pour supporter le polling simultané des tâches IA
+RATE_LIMIT_MAX_REQUESTS = max(APP_CONFIG.get("rate_limit_max_requests", 1000), 1000)
+MAX_TRACKED_IPS = 10000 # [ANTI-OOM] Limite absolue du nombre d'IPs suivies en RAM
 request_history: Dict[str, List[float]] = defaultdict(list)
+_last_cleanup_time = time.time()
 
 def get_local_ip():
     """Récupère l'adresse IP locale de la machine sur le réseau."""
@@ -201,6 +258,7 @@ async def rate_limiter(request: Request):
     """
     Simple in-memory rate limiter to prevent abuse.
     """
+    global _last_cleanup_time
     # Allow health check without limit
     if request.url.path == "/":
         return
@@ -214,16 +272,22 @@ async def rate_limiter(request: Request):
         
     now = time.time()
     
-    # Clean up old timestamps for the current IP (Sliding Window)
-    request_history[client_ip] = [t for t in request_history[client_ip] if now - t < RATE_LIMIT_WINDOW]
-    
-    # [ROBUSTESSE] Garbage Collection: On 1% of requests, clean up the whole dict to prevent memory leaks from old IPs
-    if random.random() < 0.01:
+    # [OPTIMISATION] Nettoyage temporel prédictible (toutes les 60s) au lieu d'aléatoire (1%).
+    # Évite de bloquer l'Event Loop de manière imprévisible lors des pics de trafic.
+    if now - _last_cleanup_time > 60:
+        _last_cleanup_time = now
         stale_ips = [ip for ip, timestamps in request_history.items() if not timestamps or now - timestamps[-1] > RATE_LIMIT_WINDOW]
         for ip in stale_ips:
             del request_history[ip]
-        if stale_ips:
-            print(f"[CLEANUP] Purged {len(stale_ips)} stale IPs from rate limiter history.")
+            
+    # [SÉCURITÉ ANTI-OOM] Limite stricte de taille. Empêche un attaquant de forger
+    # des milliers de faux "X-Forwarded-For" pour faire exploser la RAM du serveur.
+    if len(request_history) > MAX_TRACKED_IPS:
+        request_history.clear() # O(1) flush : sauve le serveur du crash
+        print("[SECURITY WARNING] Rate limiter memory flushed due to massive unique IP volume (DDoS).", flush=True)
+
+    # Clean up old timestamps for the current IP (Sliding Window)
+    request_history[client_ip] = [t for t in request_history[client_ip] if now - t < RATE_LIMIT_WINDOW]
 
     if len(request_history[client_ip]) >= RATE_LIMIT_MAX_REQUESTS:
         print(f"[SECURITY] Rate limit exceeded for IP: {client_ip}")
@@ -231,7 +295,9 @@ async def rate_limiter(request: Request):
     
     request_history[client_ip].append(now)
 
-app = FastAPI(title="BeyondTheCV API", lifespan=lifespan)
+# [FIX SECURITE] Activation du Rate Limiter sur toutes les routes de l'API
+from fastapi import Depends
+app = FastAPI(title="BeyondTheCV API", lifespan=lifespan, dependencies=[Depends(rate_limiter)])
 
 # --- CORS CONFIGURATION ---
 cors_origins = [
@@ -241,8 +307,6 @@ cors_origins = [
     "https://www.beyondthecv.app", # Allow production domain (www)
     "https://beyondthecv.app",     # Allow production domain (apex)
     "https://staging.beyondthecv.app", # [FIX EXPERT] Autoriser le domaine de staging
-    "https://beyond-the-cv-front.vercel.app",
-    "https://beyondthecv-frontend-service-746792482004.europe-west1.run.app"
 ]
 
 # Ajout dynamique via variable d’environnement
@@ -262,7 +326,7 @@ async def log_requests(request: Request, call_next):
         print(f"[CRITICAL] Uncaught Exception in {request.url.path}: {e}", flush=True)
         import traceback
         traceback.print_exc()
-        response = JSONResponse(status_code=500, content={"detail": "Internal Server Error", "error": str(e)})
+        response = JSONResponse(status_code=500, content={"detail": "Internal Server Error", "error": "Une erreur interne critique est survenue."})
 
     process_time = (time.time() - start_time) * 1000
     try:
@@ -279,7 +343,6 @@ async def log_requests(request: Request, call_next):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
-    allow_origin_regex=r"^(https://.*\.vercel\.app|https://.*\.run\.app)$", # [FIX EXPERT] Syntaxe regex sécurisée pour Starlette
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

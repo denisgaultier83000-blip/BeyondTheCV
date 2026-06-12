@@ -30,6 +30,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
+      SERPER_API_KEY: ${SERPER_API_KEY}
       JWT_SECRET: ${JWT_SECRET}
       ENVIRONMENT: production
       # Injection dynamique pour les CORS
@@ -59,9 +60,9 @@ services:
       - "traefik.http.routers.btcv-api-prod.tls.certresolver=le"
       - "traefik.http.routers.btcv-api-prod.service=btcv-api-prod"
 
-      # Déclaration du Rate Limiter (ex: 50 requêtes/sec en moyenne, burst de 100 max)
+      # [FIX SECURITE] Assouplissement : Permettre le polling intensif du Dashboard (10 tâches en parallèle)
       - "traefik.http.middlewares.btcv-api-ratelimit.ratelimit.average=50"
-      - "traefik.http.middlewares.btcv-api-ratelimit.ratelimit.burst=100"
+      - "traefik.http.middlewares.btcv-api-ratelimit.ratelimit.burst=200"
       
       # Déclaration des Headers de Sécurité
       - "traefik.http.middlewares.btcv-security.headers.customFrameOptionsValue=SAMEORIGIN"

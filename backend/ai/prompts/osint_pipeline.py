@@ -61,7 +61,9 @@ class OSINTPipeline:
             'Content-Type': 'application/json'
         }
         try:
-            async with session.post(url, headers=headers, data=payload) as response:
+            # [FIX EXPERT] Ajout d'un timeout strict. Par défaut, aiohttp attend 5 minutes !
+            timeout = aiohttp.ClientTimeout(total=10.0, connect=5.0)
+            async with session.post(url, headers=headers, data=payload, timeout=timeout) as response:
                 response.raise_for_status()
                 data = await response.json()
                 return data.get("organic", [])
@@ -98,8 +100,14 @@ class OSINTPipeline:
         
         all_articles = []
         # Recherches en parallèle pour des performances optimales
+        sem = asyncio.Semaphore(5) # Limite à 5 requêtes concurrentes
+        
+        async def fetch_with_sem(session, q):
+            async with sem:
+                return await self.fetch_serper_async(session, q)
+
         async with aiohttp.ClientSession() as session:
-            tasks = [self.fetch_serper_async(session, q) for q in queries]
+            tasks = [fetch_with_sem(session, q) for q in queries]
             results = await asyncio.gather(*tasks)
             for res in results:
                 all_articles.extend(res)

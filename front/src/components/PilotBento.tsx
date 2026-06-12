@@ -4,12 +4,8 @@ import Gauge from './Gauge';
 
 export const PilotBento = ({ 
   data, 
-  careerRadarData,
-  careerGpsData,
   onGoToGap,
-  onGoToRadar,
-  onGoToGps
-}: { data: any, careerRadarData?: any, careerGpsData?: any, onGoToGap: () => void, onGoToRadar?: () => void, onGoToGps?: () => void }) => {
+}: { data: any, onGoToGap: () => void }) => {
   const [animatedScore, setAnimatedScore] = useState(0);
 
   // Données mockées d'attente si pilotData n'est pas encore redescendu du backend
@@ -91,46 +87,6 @@ export const PilotBento = ({
           {displayData.recommendedStrategy || "Analyse de la stratégie en cours..."}
         </p>
       </div>
-      
-      {/* CARTE BENTO : CAREER GPS (Premium Insight) */}
-      {careerGpsData?.route && (
-        <div className="bento-card col-span-3">
-          <div className="bento-header" style={{ color: 'var(--primary)' }}>
-            <Navigation size={20} /> GPS de Carrière
-          </div>
-          
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flex: 1 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.25rem' }}>Départ</div>
-              <div style={{ fontWeight: 600, fontSize: '1.05rem', color: 'var(--text-main)' }}>{careerGpsData.current_position?.role || "Position Actuelle"}</div>
-            </div>
-            
-            <div style={{ flex: 1, margin: '0 1rem', height: '2px', background: 'var(--border-color)', position: 'relative' }}>
-               <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', fontSize: '0.8rem', color: 'var(--text-main)', background: 'var(--bg-card)', padding: '0 12px', borderRadius: '12px', border: '1px solid var(--border-color)', whiteSpace: 'nowrap' }}>
-                  {careerGpsData.route.estimated_time || "Calcul en cours"}
-               </div>
-            </div>
-            
-            <div style={{ flex: 1, textAlign: 'right' }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.25rem' }}>Cible</div>
-              <div style={{ fontWeight: 600, fontSize: '1.05rem', color: 'var(--text-main)' }}>{careerGpsData.destination?.target_role || "Poste Visé"}</div>
-            </div>
-          </div>
-
-          <button 
-            onClick={onGoToGps} 
-            className="btn-secondary"
-            style={{ 
-              width: '100%', padding: '0.75rem', borderRadius: '0.5rem', 
-              cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600,
-              display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem',
-              transition: 'all 0.2s'
-            }}
-          >
-            Voir la feuille de route <ArrowRight size={16} />
-          </button>
-        </div>
-      )}
     </div>
   );
 };

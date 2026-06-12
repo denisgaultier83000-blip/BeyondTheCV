@@ -1,9 +1,10 @@
 # BEYOND THE CV — SPÉCIFICATIONS TECHNIQUES & FONCTIONNELLES
 
 ## 1. VISION PRODUIT
-Application de coaching pour chercheurs d'emploi. L'objectif n'est pas seulement de produire un CV, mais de fournir une stratégie complète (analyse de marché, préparation à l'entretien, positionnement).
+Plateforme de coaching stratégique et de préparation aux entretiens d'embauche (Focus 100% Entretien). L'objectif est d'abandonner l'approche "générateur de CV" pour se concentrer exclusivement sur la posture, le discours, la stratégie de contournement des failles et l'entraînement sous pression.
 
 **Cible :** Internationale (Multi-langues : 10 langues principales).
+**Identité :** Un "Poste de commandement" (War Room) pour le candidat.
 
 ## 2. STACK TECHNIQUE & DESIGN
 - **Frontend :** React, Lucide React icons.
@@ -25,7 +26,7 @@ Les données sont stockées dans un JSON global au fil de la saisie.
 
 ### Page 1 : Identité & Poste Actuel
 - Données personnelles + Poste actuel.
-- Servira de base pour le CV et la génération de questions.
+- Sert de base purement textuelle pour que l'IA connaisse le candidat.
 
 ### Page 2 : Cible & Mobilité (TRIGGER ASYNC)
 - **Inputs :** Entreprise visée, Pays, Télétravail.
@@ -55,21 +56,20 @@ Les données sont stockées dans un JSON global au fil de la saisie.
   2. Gap Analysis (Adéquation).
   3. Questionnaire Entretien.
   4. Pitch.
+  5. Plan de Bataille (Training Plan).
   *Note : Ces tâches tournent en fond pendant que l'utilisateur arrive sur le dashboard.*
 
-### Page 8 / Fin : Dashboard
-- Point d'atterrissage. Affichage progressif des résultats.
+### Page 8 / Fin : Le Cockpit Stratégique (Dashboard)
+- Point d'atterrissage hyper-visuel concentré sur les KPI de l'entretien (Score de Fit, Red Flags, Conseils de Posture).
 
 ---
 
 ## 4. PRODUITS DU DASHBOARD
 
-### A. Onglet CV (Génération Synchrone)
-- **Format Unique (Optimisé ATS & Recruteur) :**
-  - Prévisualisation LaTeX à droite.
-  - Données éditables à gauche.
-  - Bouton "Refresh" : Appel IA + Analyseur de cohérence.
-  - Indicateur visuel : Jauge de Score ATS avec mots-clés interactifs.
+### A. Onglet Cockpit (Ancien "Dossier")
+- **Vue War Room :** Affichage de l'adéquation au poste, du nombre de failles identifiées, et du temps restant avant l'entretien.
+- **Conseil Stratégique d'Urgence :** Posture dictée par l'IA selon l'audience (RH vs Manager) et le format (Visio vs Présentiel).
+- **La Timeline :** Affichage du plan d'entraînement jour par jour (Mode Commando ou Progressif).
 
 ### B. Onglet Aide à l'Entretien
 1. **Questionnaire Recruteur (IA Pipeline) :**
@@ -160,20 +160,19 @@ Cet onglet permet au candidat de s'entraîner activement en répondant à des qu
 
 ---
 
-## 6. UX / UI DASHBOARD DIAGNOSTIC
+## 6. UX / UI COCKPIT STRATÉGIQUE
 
-L'écran d'accueil après analyse doit être un **Tableau de Bord de Pilotage** (et non du texte brut).
+L'écran d'accueil après analyse rompt totalement avec la notion de "Dossier de candidature". Il s'agit d'un **Tableau de Bord de Pilotage (Cockpit)**.
 
 ### Composants Clés :
-1. **Score d'adéquation (Jauge) :** Note /100 + Résumé court.
-2. **Forces Principales :** 3 points forts clés.
-3. **Matrice des Lacunes :** Tableau {Compétence manquante | Impact | Action}.
-4. **Stratégie Recommandée :** Priorités d'action.
+1. **Bandeau de Contexte :** Date, Audience cible, Format (Visio/Présentiel), État d'esprit du candidat.
+2. **Alerte de Posture :** Conseil direct de l'IA (ex: "Face à ce RH, évitez le jargon tech, souriez à la caméra").
+3. **Scorecards KPI :** Match Score (%), Gaps Identifiés, Questions Pièges générées.
+4. **Timeline de Bataille :** Le programme des révisions jour par jour.
 
 ### Boutons d'action rapides :
-- Télécharger CV (ATS/Humain).
-- Voir Pitch.
-- Préparer Entretien.
+- Exporter le Rapport de Bataille (PDF).
+- Lancer une session de simulation (S'entraîner).
 
 ### Modules Spéciaux :
 - **Recruiter View :** "Voir mon profil comme un recruteur" (Points qui rassurent vs Doutes/Risques perçus).

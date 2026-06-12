@@ -110,7 +110,7 @@ async def _analyze_search_results(results: list, company: str, provider: str = N
     if external_prompt:
         # [FIX EXPERT] Découplage total
         prompt = external_prompt.replace("{company}", company or "Non spécifiée") \
-                                .replace("{results}", json.dumps(results[:40], default=str)) \
+                                .replace("{results}", json.dumps(results[:20], default=str)) \
                                 .replace("{lang}", lang) \
                                 .replace("{current_date}", datetime.now().strftime("%Y-%m-%d"))
     else:
@@ -119,7 +119,7 @@ async def _analyze_search_results(results: list, company: str, provider: str = N
         Extract key facts: Financials, Strategy, Culture, Competitors, Products, News, Recruitment Process.
         
         SEARCH RESULTS:
-        {json.dumps(results[:40], default=str)}
+        {json.dumps(results[:20], default=str)}
         
         OUTPUT STRICT JSON:
         {{
@@ -330,14 +330,18 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
     # Si pas de résultats, on passe en mode "Connaissances Générales" au lieu de planter
     search_context = ""
     if raw_results:
-        other_sources = [r for r in raw_results if "[ACTUALITÉ]" not in r.get('title', '')][:25]
-        balanced_results = valid_news + other_sources
+        # [OPTIMISATION TOKENS] Réduction du bruit pour éviter l'effet "Lost in the Middle".
+        # On conserve les 8 meilleures actualités et les 12 meilleures sources organiques (Total = 20 max).
+        other_sources = [r for r in raw_results if "[ACTUALITÉ]" not in r.get('title', '')][:12]
+        balanced_results = valid_news[:8] + other_sources
         if task_id:
-            await manager.broadcast(task_id, f"📊 Formatage de {len(balanced_results)} sources de haute qualité pour synthèse...")
+            await manager.broadcast(task_id, f"📊 Formatage de {len(balanced_results)} sources hyper-qualitatives pour synthèse...")
         
         context_lines = []
         for i, r in enumerate(balanced_results):
-            context_lines.append(f"Source [{i+1}] : {r.get('title', 'Sans titre')}\nLien: {r.get('link', '')}\nDate: {r.get('date', 'Récemment')}\nExtrait: {r.get('snippet', '')}\n")
+            # [OPTIMISATION TOKENS] Tronquer les snippets à 400 caractères max pour éviter les anomalies SEO
+            snippet = str(r.get('snippet', ''))[:400]
+            context_lines.append(f"Source [{i+1}] : {r.get('title', 'Sans titre')}\nLien: {r.get('link', '')}\nDate: {r.get('date', 'Récemment')}\nExtrait: {snippet}...\n")
         search_context = "\n".join(context_lines)
     else:
         if task_id:

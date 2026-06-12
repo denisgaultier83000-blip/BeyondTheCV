@@ -185,32 +185,34 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
       {/* HERO SECTION */}
       <section className="lp-hero">
         <h1 className="lp-hero-title">
-          Les meilleurs candidats ne répondent pas aux questions.<br/>Ils contrôlent la conversation.
+          Ne subissez plus l'entretien.<br/>Pilotez la conversation.
         </h1>
         <p className="lp-hero-subtitle">
-          Le CV n'est qu'un ticket d'entrée. <strong>Beyond The CV</strong> est votre stratège personnel pour décoder l'entreprise visée, identifier ses priorités invisibles et structurer le discours qui décrochera le poste. Réservé aux profils exigeants.
+          Le CV n'est qu'un ticket d'entrée. <strong>Beyond The CV</strong> est votre plateforme d'Intelligence Stratégique pour décoder votre cible, anticiper ses failles et structurer un discours exécutif implacable. Pensé pour les cadres et dirigeants.
         </p>
         <button onClick={onStart} className="lp-cta-main">
-          Démarrer mon analyse stratégique <ArrowRight size={18} />
+          Démarrer l'audit de mon profil <ArrowRight size={18} />
         </button>
         
         <div style={{ marginTop: '4rem', padding: '0 1rem' }}>
+          {/* EMPLACEMENT CAPTURE D'ÉCRAN N°1 : Le Cockpit / Hub Central */}
           <img 
             src={darkMode ? "/dashboard-preview-night.png" : "/dashboard-preview.png"} 
             alt="Aperçu du Dashboard Beyond The CV" 
             style={{ maxWidth: '1000px', width: '100%', height: 'auto', display: 'block', margin: '0 auto', borderRadius: '0.75rem', border: '4px solid var(--bg-card)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }} 
           />
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '1rem' }}>*Aperçu du Cockpit Stratégique</p>
         </div>
       </section>
 
       {/* PROBLEM (AGITATION) SECTION */}
       <section className="lp-section dark">
         <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-          <h2 className="lp-section-title">Vous vous battez avec les mêmes armes que tout le monde.</h2>
+          <h2 className="lp-section-title">L'improvisation n'a pas sa place à ce niveau de responsabilité.</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginTop: '1.5rem', lineHeight: 1.7 }}>
-            Vous envoyez des CV dans le vide. Vous attendez qu'on vous rappelle. Et quand vous obtenez un entretien, vous vous contentez de réciter votre parcours.
+            La majorité des candidats se contentent de réciter la chronologie de leur CV. Ils subissent l'entretien et manquent de vision sur les véritables enjeux du recrutement.
             <br/><br/>
-            Le problème n'est pas votre parcours. <strong>Le problème est votre niveau de préparation stratégique.</strong>
+            Votre parcours a de la valeur. <strong>Notre rôle est d'en faire un avantage concurrentiel décisif</strong> grâce à la méthode STAR et à une analyse des signaux faibles du marché.
           </p>
         </div>
       </section>
@@ -218,32 +220,32 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
       {/* BENEFITS SECTION */}
       <section className="lp-section">
         <div style={{ textAlign: 'center' }}>
-          <h2 className="lp-section-title">4 piliers pour transformer une candidature en évidence</h2>
+          <h2 className="lp-section-title">L'arsenal complet du candidat exigeant</h2>
         </div>
 
         <div className="lp-grid-4">
           <div className="lp-card">
             <div className="lp-icon-wrapper"><Search size={24} strokeWidth={2} /></div>
-            <h3 className="lp-card-title">Lisez dans les pensées de votre cible</h3>
-            <p className="lp-card-desc">Notre moteur d'analyse consolide : actualités, enjeux marché, culture réelle et signaux stratégiques pour vous donner un coup d'avance.</p>
+            <h3 className="lp-card-title">Intelligence Économique (OSINT)</h3>
+            <p className="lp-card-desc">Notre algorithme scanne le web pour décoder la santé financière, l'ADN, la culture et les derniers défis stratégiques de votre entreprise cible.</p>
           </div>
           
           <div className="lp-card">
             <div className="lp-icon-wrapper"><Mic size={24} strokeWidth={2} /></div>
-            <h3 className="lp-card-title">Prenez le contrôle des 3 premières minutes</h3>
-            <p className="lp-card-desc">Obtenez un pitch d'introduction implacable, structuré selon la Pyramide de Minto. Entraînez-vous vocalement face à notre simulateur.</p>
+            <h3 className="lp-card-title">Simulateur Vocal d'Impact</h3>
+            <p className="lp-card-desc">Testez votre discours d'introduction en conditions réelles. L'IA évalue votre débit (mots/minute), vos tics de langage et la force de vos exemples.</p>
           </div>
 
           <div className="lp-card">
             <div className="lp-icon-wrapper"><ShieldQuestion size={24} strokeWidth={2} /></div>
-            <h3 className="lp-card-title">Anticipez vos propres failles</h3>
-            <p className="lp-card-desc">L'algorithme compare votre parcours à la réalité du marché et vous montre vos faiblesses avant que le recruteur ne le fasse.</p>
+            <h3 className="lp-card-title">Anticipation des Failles</h3>
+            <p className="lp-card-desc">Cartographie de vos écarts face à l'offre d'emploi (Gap Analysis) et génération d'arguments défensifs pour contrer chaque objection du recruteur.</p>
           </div>
 
           <div className="lp-card">
             <div className="lp-icon-wrapper"><FileText size={24} strokeWidth={2} /></div>
-            <h3 className="lp-card-title">Passez les robots, marquez les humains</h3>
-            <p className="lp-card-desc">Obtenez un CV au format "ATS" optimisé pour franchir les algorithmes RH et marquer l'esprit du décideur final.</p>
+            <h3 className="lp-card-title">Méthode STAR & Scénarios</h3>
+            <p className="lp-card-desc">Finies les réponses évasives. Structurez vos réussites en situations concrètes et testez votre sang-froid avec nos scénarios de gestion de crise sur mesure.</p>
           </div>
         </div>
       </section>
@@ -255,9 +257,9 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
         </div>
         <div className="lp-testimonial-box">
           <p style={{ fontStyle: 'italic', color: 'var(--text-muted)', fontSize: '1.1rem', lineHeight: 1.7 }}>
-            "Je pensais savoir me vendre. Beyond The CV m'a mis face à une réalité brutale : je ne racontais qu'une chronologie ennuyeuse. Le rapport OSINT et le simulateur vocal m'ont permis de décrocher un poste de Direction avec 15% de salaire en plus."
+            "En tant que directeur, je pensais savoir me vendre. L'outil m'a mis face à une réalité brutale : je n'étais pas assez concret. Le rapport sur les défis de l'entreprise cible et le simulateur vocal m'ont permis de négocier mon package avec un aplomb que je n'aurais pas eu seul."
           </p>
-          <p style={{ fontWeight: 600, marginTop: '1.5rem', color: 'var(--text-main)', textAlign: 'right' }}>— Marc D., Directeur des Opérations (C-Level)</p>
+          <p style={{ fontWeight: 600, marginTop: '1.5rem', color: 'var(--text-main)', textAlign: 'right' }}>— Alexandre D., Directeur des Opérations (C-Level)</p>
         </div>
       </section>
 
@@ -268,16 +270,16 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
         </div>
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
           <div className="lp-faq-item">
-            <p className="lp-faq-question">J'ai déjà un bon CV, ai-je besoin de ça ?</p>
-            <p className="lp-faq-answer">Un bon CV vous obtient un rendez-vous. Il ne vous donne pas la répartie pour répondre aux questions pièges, ni la connaissance des défis internes de l'entreprise. Nous préparons la phase orale et stratégique.</p>
+            <p className="lp-faq-question">Je suis un profil senior, cette plateforme est-elle adaptée ?</p>
+            <p className="lp-faq-answer">Absolument. BeyondTheCV a été conçu précisément pour les cadres, managers et dirigeants. L'IA adapte son niveau d'exigence et son vocabulaire à votre séniorité pour évaluer votre leadership et votre vision stratégique.</p>
           </div>
           <div className="lp-faq-item">
             <p className="lp-faq-question">Est-ce que ça va me prendre des heures ?</p>
-            <p className="lp-faq-answer">Non. Vous importez vos données, le système travaille en tâche de fond. En moins de 5 minutes, vous accédez à votre Tableau de Bord de Pilotage avec les premières analyses.</p>
+            <p className="lp-faq-answer">Non. Importez votre PDF LinkedIn ou votre CV en un clic. L'Intelligence Artificielle travaille en tâche de fond. En quelques minutes, vous accédez à votre Cockpit Stratégique et à votre plan d'action logistique immédiat.</p>
           </div>
           <div className="lp-faq-item">
             <p className="lp-faq-question">Et concernant le prix ?</p>
-            <p className="lp-faq-answer">Combien vous coûte une opportunité ratée pour un poste à 80K€, 100K€ ou 150K€ ? Beyond The CV est l'investissement le plus rentable de votre transition professionnelle. Un tarif net pour un avantage décisif.</p>
+            <p className="lp-faq-answer">Combien vous coûte une opportunité manquée ou une négociation salariale mal préparée ? BeyondTheCV est un investissement unique (One-Off) sans abonnement caché, directement rentabilisé dès votre premier entretien.</p>
           </div>
         </div>
       </section>
@@ -290,18 +292,18 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
             Pas d'abonnement toxique. Un tarif net pour un avantage décisif.
           </p>
           
-          <div style={{ fontSize: '3.5rem', fontWeight: 700, color: 'var(--primary)', margin: '1.5rem 0' }}>99 €</div>
-          <p style={{ fontWeight: 600, color: 'var(--text-muted)', marginBottom: '2.5rem' }}>Accès valable 4 mois. Renouvelable pour 20€.</p>
+          <div style={{ fontSize: '3.5rem', fontWeight: 700, color: 'var(--primary)', margin: '1.5rem 0' }}>129 €</div>
+          <p style={{ fontWeight: 600, color: 'var(--text-muted)', marginBottom: '2.5rem' }}>Accès complet de 4 mois. Renouvelable pour 30€ si votre recherche se prolonge.</p>
           
           <div style={{ textAlign: 'left', maxWidth: '400px', margin: '0 auto 2.5rem auto' }}>
-            <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" /> <strong>Dossier d'investigation complet</strong> (OSINT)</div>
-            <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" /> <strong>Coaching Q&A</strong> (Méthode STAR, Parades défauts)</div>
-            <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" /> <strong>Simulateur Vocal & Pitch</strong> (Analyse IA)</div>
-            <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" /> <strong>CV Optimisé (ATS)</strong></div>
+            <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" /> <strong>Dossier de Renseignement</strong> (OSINT Entreprise)</div>
+            <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" /> <strong>Simulateur Vocal d'Entretien</strong> (Micro Actif)</div>
+            <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" /> <strong>Scénarios de Crise & Parades</strong></div>
+            <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" /> <strong>Décodeur du jargon RH</strong> (Gap Analysis)</div>
           </div>
 
           <button onClick={onStart} className="lp-cta-main" style={{ width: '100%', justifyContent: 'center' }}>
-            Démarrer mon analyse stratégique
+            Créer mon profil candidat
           </button>
         </div>
       </section>

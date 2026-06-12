@@ -7,7 +7,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
   const { 
     cvData, pilotData, researchResult, gapResult, flawCoachingResult, 
     pitchResult, questionsResult, customScenariosResult, actionPlanResult,
-    careerRadarResult, careerGpsResult, jobDecoderResult, hiddenMarketResult
+    jobDecoderResult
   } = useDashboard();
   const [interviewHistory, setInterviewHistory] = useState<any[]>([]);
   const [trainingHistory, setTrainingHistory] = useState<any[]>([]);
@@ -76,6 +76,35 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
     return (Object.values(payload).find(v => Array.isArray(v)) as any[]) || [];
   };
 
+  // Parseur minimaliste pour interpréter le **gras** (Markdown) renvoyé par l'IA lors de l'impression
+  const formatMarkdown = (text: string | undefined | null): React.ReactNode => {
+    if (!text) return null;
+    if (typeof text !== 'string') return text as any;
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i} style={{ color: '#0f172a', fontWeight: 700 }}>{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+  };
+  
+  // Parseur de sécurité pour éviter les NaN si l'IA renvoie du texte (ex: "85/100" ou "Excellent") au lieu d'un nombre
+  const formatSafeScore100 = (score: any, fallback = "N/A"): string => {
+    if (score === undefined || score === null) return fallback;
+    const num = typeof score === 'number' ? score : parseInt(String(score).replace(/[^\d-]/g, ''), 10);
+    if (isNaN(num)) return fallback;
+    return String(num);
+  };
+
+  const formatSafeScore10 = (score: any): string => {
+    if (score === undefined || score === null) return "N/A";
+    // Extrait les nombres avec potentiellement une décimale
+    const num = typeof score === 'number' ? score : parseFloat(String(score).replace(/,/g, '.').replace(/[^\d.-]/g, ''));
+    if (isNaN(num)) return "N/A";
+    return (num / 10).toFixed(1);
+  };
+
   const getScenariosAsQuestions = (data: any): any[] => {
     if (!data) return [];
     let actualData = data.result !== undefined ? data.result : data;
@@ -110,23 +139,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
 
   const questionsArray = getQuestionsArray(questionsResult);
   const scenariosArray = getScenariosAsQuestions(customScenariosResult);
-  const pitch = pitchResult?.pitch || pitchResult;
-  let todoList = actionPlanResult?.action_plan || actionPlanResult?.tasks || actionPlanResult?.phases || actionPlanResult;
-  
-  // Nettoyage et formatage du plan d'action s'il a été retourné sous forme d'objet dictionnaire
-  if (todoList && typeof todoList === 'object' && !Array.isArray(todoList)) {
-    const arr: any[] = [];
-    Object.entries(todoList).forEach(([k, v]) => {
-      if (Array.isArray(v)) {
-        arr.push({ phase: k, actions: v });
-      } else if (typeof v === 'string') {
-        arr.push({ phase: k, actions: [v] });
-      } else if (typeof v === 'object' && v !== null) {
-        arr.push({ phase: k, actions: [JSON.stringify(v)] });
-      }
-    });
-    if (arr.length > 0) todoList = arr;
-  }
+  const pitch = cvData?.editablePitch || pitchResult?.pitch || pitchResult;
 
   const renderImprovedAnswer = (answer: any) => {
     if (!answer) return "N/A";
@@ -167,16 +180,31 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
       <style>{`
         .printable-dossier { display: none; }
         @media print {
-          @page { margin: 2cm 1.5cm 2cm 1.5cm; }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+          @page { margin: 1.5cm; }
           body * { visibility: hidden !important; }
           .printable-dossier { display: block !important; }
           .printable-dossier, .printable-dossier * { visibility: visible !important; }
           .printable-dossier { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; box-sizing: border-box; }
-          .page-break { page-break-before: always; }
-          .avoid-break { page-break-inside: avoid; }
+          .page-break { page-break-before: always; break-before: page; }
+          .avoid-break { page-break-inside: avoid; break-inside: avoid; }
           h1, h2, h3, h4 { color: #0f172a; margin-top: 0; }
+          .print-section p, .print-box p {
+            white-space: pre-wrap; /* Respecte les sauts de ligne de l'utilisateur */
+            word-break: break-word; /* Casse les mots très longs pour éviter le débordement */
+            line-height: 1.6; /* Améliore la lisibilité des longs paragraphes */
+          }
           .print-section { margin-bottom: 2rem; max-width: 100%; box-sizing: border-box; }
           .print-box { border: 1px solid #cbd5e1; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; background: #f8fafc; box-sizing: border-box; width: 100%; word-wrap: break-word; overflow-wrap: break-word; }
+          .print-box-red { border: 1px solid #fca5a5; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; background: #fef2f2 !important; box-sizing: border-box; width: 100%; word-wrap: break-word; overflow-wrap: break-word; }
+          .print-box-green { border: 1px solid #86efac; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; background: #f0fdf4 !important; box-sizing: border-box; width: 100%; word-wrap: break-word; overflow-wrap: break-word; }
+          .print-box-purple { border: 1px solid #d8b4fe; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; background: #faf5ff !important; box-sizing: border-box; width: 100%; word-wrap: break-word; overflow-wrap: break-word; }
+          .print-box-orange { border: 1px solid #fcd34d; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; background: #fffbeb !important; box-sizing: border-box; width: 100%; word-wrap: break-word; overflow-wrap: break-word; }
+          .print-box-success { background: #dcfce7 !important; border: 1px solid #bbf7d0; padding: 1rem; border-radius: 6px; margin-top: 0.5rem; }
           p, div, span, li, h3, h4 { max-width: 100%; }
           
           /* Logo sur la première page uniquement */
@@ -238,11 +266,11 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
       </div>
 
       {/* 1. Page de Garde & Stratégie */}
-      <div className="print-section text-center" style={{ textAlign: 'center', marginBottom: '4rem', paddingTop: '4rem' }}>
+      <div className="print-section text-center" style={{ textAlign: 'center', marginBottom: '4rem', padding: '4rem 2rem', background: '#f8fafc', borderTop: '8px solid #0f172a', borderBottom: '8px solid #0f172a', borderRadius: '8px' }}>
         <h1 style={{ fontSize: '3.5rem', marginBottom: '1rem', color: '#0f172a' }}>Dossier de Préparation</h1>
         <h2 style={{ fontSize: '1.8rem', color: '#475569' }}>Candidat : {cvData?.first_name} {cvData?.last_name}</h2>
         <h3 style={{ fontSize: '1.5rem', color: '#64748b' }}>Cible : {cvData?.target_job} {cvData?.target_company ? `chez ${cvData.target_company}` : ''}</h3>
-        <p style={{ marginTop: '4rem', fontSize: '1.4rem' }}>Score d'Adéquation global : <strong>{pilotData?.matchScore || 0}/100</strong></p>
+        <p style={{ marginTop: '4rem', fontSize: '1.4rem' }}>Score d'Adéquation global : <strong>{formatSafeScore100(pilotData?.matchScore, "0")}/100</strong></p>
       </div>
 
       {/* Pitch */}
@@ -265,75 +293,45 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
       {/* 1. Stratégie */}
       {selection.gap !== false && (
         <div className="print-section avoid-break">
-          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🎯 Stratégie de Candidature</h2>
+          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🎯 Stratégie & Adéquation</h2>
           <div className="print-box">
-            <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, fontSize: '1.1rem' }}>{pilotData?.recommendedStrategy || "Stratégie non générée."}</p>
+            <h3 style={{ color: '#0f172a', marginBottom: '0.5rem' }}>Stratégie recommandée</h3>
+            <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, fontSize: '1.1rem', margin: 0 }}>{formatMarkdown(pilotData?.recommendedStrategy) || "Stratégie non générée."}</p>
           </div>
-        </div>
-      )}
 
-      {/* GPS de Carrière */}
-      {selection.gps !== false && careerGpsResult && (
-        <div className="print-section page-break">
-          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🧭 GPS de Carrière</h2>
-          <div className="print-box avoid-break">
-            {(() => {
-              const gpsData = careerGpsResult.career_gps_result || careerGpsResult;
-              const route = gpsData.route || gpsData;
-              if (!route || !route.steps) return renderGeneric(gpsData);
-              return (
-                <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid #cbd5e1', paddingBottom: '0.5rem' }}>
-                    <span><strong>Temps estimé :</strong> {route.estimated_time || "N/A"}</span>
-                    <span><strong>Probabilité :</strong> {route.probability || "N/A"}%</span>
-                  </div>
-                  <h4 style={{ color: '#0f172a', margin: '0 0 0.5rem 0' }}>Étapes Clés</h4>
-                  <ul style={{ margin: '0 0 1rem 0', paddingLeft: '1.2rem' }}>
-                    {(route.steps || []).map((step: any, i: number) => (
-                      <li key={i} style={{ marginBottom: '0.5rem' }}>
-                        {step.icon && <span style={{ marginRight: '0.5rem' }}>{step.icon}</span>}
-                        <strong>{(step.name || "").replace(/\*\*/g, '')}</strong>
-                        {step.impact && <span style={{ color: '#64748b', fontSize: '0.9rem' }}> (Impact : {step.impact})</span>}
+            {gapData?.missing_gaps && gapData.missing_gaps.length > 0 && (
+              <div className="print-box-red avoid-break">
+                <h3 style={{ color: '#dc2626', marginTop: 0, marginBottom: '0.5rem' }}>⚠️ Compétences à combler (Écarts)</h3>
+                <ul style={{ margin: '0 0 1.5rem 0', paddingLeft: '1.5rem', color: '#dc2626' }}>
+                  {gapData.missing_gaps.map((gap: any, idx: number) => {
+                    const skill = typeof gap === 'string' ? gap : gap.skill;
+                    const time = gap.estimated_time;
+                    return (
+                      <li key={idx} style={{ marginBottom: '0.25rem' }}>
+                        {formatMarkdown(skill)} {time && <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>(⏱️ {time})</span>}
                       </li>
-                    ))}
-                  </ul>
-                  {route.obstacles && route.obstacles.length > 0 && (
-                    <>
-                      <h4 style={{ color: '#dc2626', margin: '0 0 0.5rem 0' }}>Obstacles & Risques</h4>
-                      <ul style={{ margin: '0', paddingLeft: '1.2rem', color: '#dc2626' }}>
-                        {route.obstacles.map((obs: any, i: number) => (
-                          <li key={i} style={{ marginBottom: '0.5rem' }}>
-                            {obs.icon && <span style={{ marginRight: '0.5rem' }}>{obs.icon}</span>}
-                            {(obs.text || (typeof obs === 'string' ? obs : '')).replace(/\*\*/g, '')}
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
-                </>
-              );
-            })()}
-          </div>
-        </div>
-      )}
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
 
-      {/* Radar de Carrière */}
-      {selection.radar !== false && careerRadarResult && (
-        <div className="print-section page-break">
-          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>📡 Radar de Carrière (Trajectoires)</h2>
-          {careerRadarResult.trajectories ? careerRadarResult.trajectories.map((traj: any, idx: number) => (
-            <div key={idx} className="print-box avoid-break">
-              <h3 style={{ color: '#0f172a', margin: '0 0 0.5rem 0' }}>{traj.title || traj.role || traj.name} - {traj.match_percent}%</h3>
-              <p style={{ margin: '0 0 0.25rem 0' }}><strong>Temps estimé :</strong> {traj.time_to_reach}</p>
-              <p style={{ margin: '0 0 0.25rem 0' }}><strong>Potentiel Salarial :</strong> {traj.salary_potential}</p>
-              <p style={{ margin: '0 0 0.25rem 0' }}><strong>Pourquoi :</strong> {traj.rationale || traj.why}</p>
-              <p style={{ margin: 0 }}><strong>Écarts (Gap) :</strong> {traj.gap || traj.missing}</p>
-            </div>
-          )) : (
-            <div className="print-box avoid-break">
-              {renderGeneric(careerRadarResult)}
-            </div>
-          )}
+            {gapData?.recommended_adjustments && gapData.recommended_adjustments.length > 0 && (
+              <div className="print-box-purple avoid-break">
+                <h3 style={{ color: '#7c3aed', marginTop: 0, marginBottom: '0.5rem' }}>💡 Actions correctives suggérées</h3>
+                <ul style={{ margin: '0', paddingLeft: '1.5rem', color: '#8b5cf6' }}>
+                  {gapData.recommended_adjustments.map((adj: any, idx: number) => {
+                    const action = typeof adj === 'string' ? adj : adj.action;
+                    const time = adj.estimated_time;
+                    return (
+                      <li key={idx} style={{ marginBottom: '0.25rem' }}>
+                        {formatMarkdown(action)} {time && <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>(⏱️ {time})</span>}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
         </div>
       )}
 
@@ -341,38 +339,38 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
       {selection.decoder !== false && jobDecoderResult && (
         <div className="print-section page-break">
           <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🕵️ Décodeur d'Annonce</h2>
-          <div className="print-box avoid-break">
             {jobDecoderResult.reality_check ? (
               <>
-                <h3 style={{ color: '#0f172a', fontSize: '1.1rem' }}>Jargon décodé</h3>
-                <ul>
+                <div className="print-box avoid-break">
+                <h3 style={{ color: '#0f172a', fontSize: '1.1rem', marginTop: 0 }}>Jargon décodé</h3>
+                <ul style={{ margin: 0 }}>
                   {(jobDecoderResult.reality_check || []).map((item: any, idx: number) => (
-                    <li key={idx} style={{ marginBottom: '0.25rem' }}><strong>{item.jargon} :</strong> {item.translation}</li>
+                    <li key={idx} style={{ marginBottom: '0.25rem', lineHeight: 1.5 }}><strong>{item.jargon} :</strong> {formatMarkdown(item.translation)}</li>
                   ))}
                 </ul>
+                </div>
                 {jobDecoderResult.real_expectations && (
-                  <>
-                    <h3 style={{ color: '#0f172a', fontSize: '1.1rem', marginTop: '1rem' }}>Vraies attentes</h3>
-                    <ul>
+                  <div className="print-box-green avoid-break">
+                    <h3 style={{ color: '#16a34a', fontSize: '1.1rem', marginTop: 0 }}>✅ Véritables attentes</h3>
+                    <ul style={{ color: '#15803d', margin: 0 }}>
                       {(jobDecoderResult.real_expectations || []).map((item: string, idx: number) => (
-                        <li key={idx} style={{ marginBottom: '0.25rem' }}>{item}</li>
+                        <li key={idx} style={{ marginBottom: '0.25rem', lineHeight: 1.5 }}>{formatMarkdown(item)}</li>
                       ))}
                     </ul>
-                  </>
+                  </div>
                 )}
                 {jobDecoderResult.red_flags && jobDecoderResult.red_flags.length > 0 && (
-                  <>
-                    <h3 style={{ color: '#dc2626', fontSize: '1.1rem', marginTop: '1rem' }}>Signaux d'alerte</h3>
-                    <ul>
+                  <div className="print-box-red avoid-break">
+                    <h3 style={{ color: '#dc2626', fontSize: '1.1rem', marginTop: 0 }}>🚩 Signaux d'alerte</h3>
+                    <ul style={{ color: '#b91c1c', margin: 0 }}>
                       {jobDecoderResult.red_flags.map((item: string, idx: number) => (
                         <li key={idx} style={{ color: '#dc2626', marginBottom: '0.25rem' }}>{item}</li>
                       ))}
                     </ul>
-                  </>
+                  </div>
                 )}
               </>
-            ) : renderGeneric(jobDecoderResult)}
-          </div>
+            ) : <div className="print-box avoid-break">{renderGeneric(jobDecoderResult)}</div>}
         </div>
       )}
 
@@ -411,57 +409,24 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
         </div>
       )}
 
-      {/* Marché Caché */}
-      {selection.hidden_market !== false && hiddenMarketResult && (
-        <div className="print-section page-break">
-          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🕸️ Stratégie Marché Caché</h2>
-          <div className="print-box avoid-break">
-            {hiddenMarketResult.target_profiles ? (
-              <>
-                <h3 style={{ color: '#0f172a', fontSize: '1.1rem' }}>Profils à cibler</h3>
-                <ul>
-                  {(hiddenMarketResult.target_profiles || []).map((item: any, idx: number) => (
-                    <li key={idx} style={{ marginBottom: '0.25rem' }}><strong>{item.role} :</strong> {item.reason}</li>
-                  ))}
-                </ul>
-                {hiddenMarketResult.outreach_message && (
-                  <>
-                    <h3 style={{ color: '#0f172a', fontSize: '1.1rem', marginTop: '1rem' }}>Message d'approche suggéré</h3>
-                    <div style={{ background: '#f1f5f9', padding: '1rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
-                      <p style={{ margin: '0 0 0.5rem 0' }}><strong>Objet :</strong> {hiddenMarketResult.outreach_message?.subject}</p>
-                      <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{hiddenMarketResult.outreach_message?.body}</p>
-                    </div>
-                  </>
-                )}
-                {hiddenMarketResult.networking_tips && (
-                  <>
-                    <h3 style={{ color: '#0f172a', fontSize: '1.1rem', marginTop: '1rem' }}>Astuces Réseau</h3>
-                    <ul>
-                      {hiddenMarketResult.networking_tips.map((item: string, idx: number) => (
-                        <li key={idx} style={{ marginBottom: '0.25rem' }}>{item}</li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-              </>
-            ) : renderGeneric(hiddenMarketResult)}
-          </div>
-        </div>
-      )}
-
       {/* Questions d'entretien */}
       {selection.questions !== false && questionsArray.length > 0 && (
         <div className="print-section page-break">
           <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>💬 Questions d'Entretien</h2>
           {questionsArray.map((q: any, idx: number) => (
             <div key={idx} className="print-box avoid-break">
-              <h3 style={{ color: '#0f172a', fontSize: '1.1rem', margin: '0 0 0.5rem 0' }}>Q : {q.question || q.text}</h3>
+              <h3 style={{ color: '#0f172a', fontSize: '1.1rem', margin: '0 0 0.5rem 0' }}>{q.category === "Questions à poser au recruteur" || q.category === "Questions to Ask Recruiter" ? "💡 Question à poser :" : "Q :"} {formatMarkdown(q.question || q.text)}</h3>
+              
+              {q.intention && (
+                <p style={{ margin: '0 0 0.5rem 0', color: '#b45309', fontStyle: 'italic', fontSize: '0.95rem' }}><strong>Intention visée :</strong> {formatMarkdown(q.intention)}</p>
+              )}
+
               {q.user_answer ? (
                 <>
                   <p style={{ margin: '0.5rem 0', color: '#475569' }}><strong>Votre réponse :</strong> {q.user_answer}</p>
                   {q.evaluation && (
-                    <div style={{ background: '#dcfce7', padding: '1rem', borderRadius: '4px', marginTop: '0.5rem', border: '1px solid #bbf7d0' }}>
-                      <p style={{ margin: '0 0 0.5rem 0', color: '#166534', fontWeight: 'bold' }}>Feedback IA (Score: {(q.evaluation.score/10).toFixed(1)}/10)</p>
+                    <div className="print-box-success">
+                      <p style={{ margin: '0 0 0.5rem 0', color: '#166534', fontWeight: 'bold' }}>Feedback IA (Score: {formatSafeScore10(q.evaluation.score)}/10)</p>
                       <div style={{ margin: 0, color: '#166534' }}>{renderImprovedAnswer(q.evaluation.improved_answer || q.evaluation.feedback)}</div>
                     </div>
                   )}
@@ -470,7 +435,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
                 <div style={{ background: '#f1f5f9', padding: '1rem', borderRadius: '6px', marginTop: '0.75rem', border: '1px dashed #cbd5e1' }}>
                   <p style={{ margin: '0 0 0.5rem 0', color: '#64748b', fontStyle: 'italic', fontSize: '0.9rem' }}>Non répondu lors de l'entraînement.</p>
                   <p style={{ margin: 0, color: '#0f172a', fontSize: '0.95rem', lineHeight: '1.5' }}>
-                    <strong style={{ color: '#3b82f6' }}>💡 Conseil du coach :</strong> {(q.suggested_answer || q.answer || q.advice || "À vous de jouer !").replace(/^(Suggestion|Conseil)\s*:\s*/i, '')}
+                    <strong style={{ color: '#3b82f6' }}>💡 Conseil du coach :</strong> {formatMarkdown((q.suggested_answer || q.answer || q.advice || "À vous de jouer !").replace(/^(Suggestion|Conseil)\s*:\s*/i, ''))}
                   </p>
                 </div>
               )}
@@ -490,8 +455,8 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
                 <>
                   <p style={{ margin: '0.5rem 0', color: '#475569' }}><strong>Votre action :</strong> {q.user_answer}</p>
                   {q.evaluation && (
-                    <div style={{ background: '#dcfce7', padding: '1rem', borderRadius: '4px', marginTop: '0.5rem', border: '1px solid #bbf7d0' }}>
-                      <p style={{ margin: '0 0 0.5rem 0', color: '#166534', fontWeight: 'bold' }}>Feedback IA (Score: {(q.evaluation.score/10).toFixed(1)}/10)</p>
+                    <div className="print-box-success">
+                      <p style={{ margin: '0 0 0.5rem 0', color: '#166534', fontWeight: 'bold' }}>Feedback IA (Score: {formatSafeScore10(q.evaluation.score)}/10)</p>
                       <div style={{ margin: 0, color: '#166534' }}>{renderImprovedAnswer(q.evaluation.improved_answer || q.evaluation.feedback)}</div>
                     </div>
                   )}
@@ -514,7 +479,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
         <div className="print-section page-break">
           <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🛡️ Parades aux Défauts</h2>
           {flaws.map((flaw: any, idx: number) => (
-            <div key={idx} className="print-box avoid-break">
+            <div key={idx} className="print-box-red avoid-break">
               <h3 style={{ color: '#dc2626' }}>{flaw.flaw || flaw.defaut}</h3>
               <p><strong>Risque perçu :</strong> {flaw.impact_justification}</p>
               <p><strong>Réponse courte :</strong> "{flaw.short_answer || flaw.reponse_courte}"</p>
@@ -525,50 +490,44 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
         </div>
       )}
 
-      {/* 4. Historique des questions */}
+      {/* 4. Cockpit Stratégique (Plan d'action) */}
       {(selection.todo !== false) && (
-        <div className="print-section page-break">
-          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>✅ Plan d'Action (To-Do List)</h2>
-          <div className="print-box">
-            {Array.isArray(todoList) ? todoList.map((step: any, i: number) => {
-              // Nouveau cas : L'IA renvoie directement un tableau de tâches simples (task/advice)
-              if (step.task && step.advice) {
+        <div className="print-section page-break" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
+          <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>✅ Cockpit Stratégique (Plan d'Action)</h2>
+          
+          {actionPlanResult?.action_plan && (
+            <div className="print-box-orange avoid-break">
+              <h3 style={{ color: '#d97706', margin: '0 0 1rem 0', marginTop: 0 }}>⚡ Actions Prioritaires (Immédiates)</h3>
+              {actionPlanResult.action_plan.map((step: any, i: number) => (
+                <div key={i} style={{ marginBottom: '1.5rem' }}>
+                  <h4 style={{ color: '#92400e', margin: '0 0 0.25rem 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>{step.task}</span>
+                    {step.estimated_duration && <span style={{ color: '#d97706', fontSize: '0.85rem' }}>⏱️ {step.estimated_duration}</span>}
+                  </h4>
+                  <p style={{ margin: 0, color: '#475569', lineHeight: '1.5' }}>{step.advice}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {actionPlanResult?.training_plan && (
+            <div className="print-box-purple avoid-break">
+              <h3 style={{ color: '#7c3aed', margin: '0 0 1rem 0', marginTop: 0 }}>🎙️ Rituels Vocaux (Entraînement)</h3>
+              {actionPlanResult.training_plan.map((step: any, i: number) => {
+                const isUpcoming = step.stage === 'upcoming';
+                const accentColor = isUpcoming ? '#94a3b8' : '#7c3aed';
                 return (
-                  <div key={i} style={{ marginBottom: '1.5rem' }}>
-                    <h4 style={{ color: '#2563eb', margin: '0 0 0.5rem 0' }}>{step.task}</h4>
-                    <ul style={{ margin: 0, paddingLeft: '1.5rem' }}>
-                      <li style={{ marginBottom: '0.25rem', color: '#475569', lineHeight: '1.5' }}>{step.advice}</li>
-                    </ul>
+                  <div key={i} style={{ marginBottom: '1rem', paddingLeft: '1rem', borderLeft: `3px solid ${accentColor}`, opacity: isUpcoming ? 0.7 : 1 }}>
+                    <h4 style={{ color: '#5b21b6', margin: '0 0 0.25rem 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>{isUpcoming ? '🔒' : '📅'} {step.day.replace('J-', '-')} : {step.module}</span>
+                      <span style={{ color: accentColor, fontSize: '0.85rem' }}>{isUpcoming ? 'Anticipation' : `⏱️ ${step.duration_minutes} min`}</span>
+                    </h4>
+                    <p style={{ margin: 0, color: '#475569', lineHeight: '1.5' }}>{step.focus}</p>
                   </div>
                 );
-              }
-
-              // Ancien cas : L'IA renvoie des phases complexes
-              const title = typeof step === 'string' ? `Étape ${i+1}` : (step.phase || step.title || step.step || step.name || `Étape ${i+1}`);
-              let actions = [];
-              if (typeof step === 'string') {
-                actions = [step];
-              } else {
-                const rawActions = step.actions || step.tasks || step.items || step.description || step.details;
-                if (Array.isArray(rawActions)) actions = rawActions;
-                else if (rawActions) actions = [rawActions];
-                else if (step.task) actions = [step];
-              }
-              return (
-              <div key={i} style={{ marginBottom: '1.5rem' }}>
-                <h4 style={{ color: '#2563eb', margin: '0 0 0.5rem 0', textTransform: 'capitalize' }}>{title.replace(/_/g, ' ')}</h4>
-                <ul style={{ margin: 0, paddingLeft: '1.5rem' }}>
-                  {actions.map((act: any, j: number) => (
-                    <li key={j} style={{ marginBottom: '0.25rem', color: '#475569', lineHeight: '1.5' }}>
-                      {typeof act === 'string' ? act : (act.task ? `${act.task}${act.advice ? ` : ${act.advice}` : ''}` : JSON.stringify(act))}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}) : (
-              <p>Plan d'action non disponible.</p>
-            )}
-          </div>
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -13,19 +13,18 @@ Entrées disponibles :
 - Niveau de séniorité du candidat
 
 Contraintes impératives :
-- Les questions doivent être adaptées spécifiquement à CE candidat
+- Les questions doivent être hyper-spécifiques à CE candidat et à CETTE entreprise.
 - Les questions doivent être crédibles à l’oral
-- Aucune question générique ou “copiable”
-- Aucune question flatteuse ou naïve
-- Aucune question RH basique (salaire, télétravail, congés, etc.)
+- Les questions doivent porter EXCLUSIVEMENT sur la stratégie, la vision, les défis du poste et l'équipe. BANNIS les sujets administratifs.
 
 Principes de qualité :
 - Chaque question doit révéler une intention intelligente
 - Chaque question doit donner envie au recruteur de répondre
 - Le candidat doit paraître réfléchi, pas opportuniste
 
-Structure obligatoire :
-- 5 questions numérotées
+Contraintes de format (JSON STRICT) :
+- La sortie DOIT être un objet JSON valide et strict.
+- AUCUN texte textuel avant ou après le JSON.
 - 1 phrase maximum par question
 - Ton professionnel, naturel, posé
 
@@ -39,3 +38,16 @@ Axes à couvrir (1 question par axe) :
 Règle d’or :
 Si une question pourrait être posée par n’importe quel autre candidat,
 elle est invalide et doit être remplacée.
+
+## 📦 SORTIE ATTENDUE (JSON STRICT)
+```json
+{
+  "questions": [
+    {
+      "axis": "L'axe couvert (ex: Priorités et enjeux à court terme)",
+      "question": "La question précise, unique et percutante à poser au recruteur.",
+      "intention": "Courte explication de ce que le candidat cherche à démontrer ou découvrir via cette question."
+    }
+  ]
+}
+```

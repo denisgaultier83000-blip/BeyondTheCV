@@ -18,9 +18,10 @@ interface JobDecoderModalProps {
 }
 
 export default function JobDecoderModal({ data, onClose }: JobDecoderModalProps) {
-  if (!data) return null;
   const { t } = useTranslation();
   
+  if (!data) return null;
+
   // Résolution robuste des données (Support de l'encapsulation IA potentielle)
   const decoder: DecoderData = data.decoder || data.job_decoder_result || data;
 

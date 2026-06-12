@@ -37,10 +37,17 @@ async def start_research(request: ResearchRequest, background_tasks: BackgroundT
     if not application_id:
         application_id = str(uuid.uuid4())
         candidate_data["application_id"] = application_id
+        
+    # [FIX EXPERT] Ré-affectation pour garantir que le dictionnaire modifié n'est pas orphelin
+    req_dict["candidate_data"] = candidate_data
     
     # [FIX EXPERT] Prévention du crash SQL (NOT NULL constraint) si la valeur est None
     target_company = req_dict.get("target_company") or candidate_data.get("target_company") or "Général"
     target_job = req_dict.get("target_job") or candidate_data.get("target_job") or "Poste non spécifié"
+
+    # [FIX EXPERT] Injection de l'user_id pour le système de cache (évite "unknown_user" et le crash SQL cache_key=null)
+    req_dict["user_id"] = current_user["id"]
+    candidate_data["user_id"] = current_user["id"]
 
     async with db.get_connection() as conn:
         # 1. Création de la session de candidature
@@ -302,8 +309,10 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str):
     try:
         while True:
             await websocket.receive_text()
-    except WebSocketDisconnect:
-        manager.disconnect(websocket, task_id)
+    except Exception:
+        pass # On ignore silencieusement les coupures réseau abruptes (RuntimeError, CancelledError)
+    finally:
+        manager.disconnect(websocket, task_id) # Garanti d'être exécuté à 100%, libérant la mémoire
 
 @router.get("/api/admin/migrate-archives")
 async def migrate_archives():

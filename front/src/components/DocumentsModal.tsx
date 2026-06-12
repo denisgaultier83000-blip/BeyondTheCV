@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { authenticatedFetch } from "../utils/auth";
 import { API_ROUTES } from "../api/routes";
 import { API_BASE_URL } from "../config";
-import { Briefcase, Calendar, ChevronRight, ArrowLeft, FileText, Mic, MessageSquare, Building, BrainCircuit, Download, Trash2, FolderOpen, Printer, Eye } from 'lucide-react';
+import { Briefcase, Calendar, ChevronRight, ArrowLeft, FileText, Mic, MessageSquare, Building, BrainCircuit, Download, Trash2, FolderOpen, Printer, Eye, AlertTriangle } from 'lucide-react';
 
 interface Document {
   id: string;
@@ -30,6 +30,7 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
   const [selectedApp, setSelectedApp] = useState<ApplicationSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDocuments();
@@ -66,12 +67,13 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
       document.body.removeChild(a);
     } catch (e) {
       console.error(e);
-      alert(t('error_download', "Erreur lors du téléchargement"));
+      setActionError(t('error_download', "Erreur lors du téléchargement du document."));
     }
   };
 
   const handleDelete = async (docId: string) => {
     if (!window.confirm(t('confirm_delete_doc', "Êtes-vous sûr de vouloir supprimer ce document ?"))) return;
+    setActionError(null);
 
     try {
       const response = await authenticatedFetch(API_ROUTES.DOCUMENTS.DELETE(docId), {
@@ -92,7 +94,7 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
       }
     } catch (e) {
       console.error(e);
-      alert(t('error_delete', "Erreur lors de la suppression"));
+      setActionError(t('error_delete', "Erreur lors de la suppression du document."));
     }
   };
 
@@ -100,6 +102,7 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
   const handleDeleteApplication = async (e: React.MouseEvent, appId: string) => {
     e.stopPropagation(); // Évite de cliquer sur la carte et de l'ouvrir
     if (!window.confirm(t('confirm_delete_app', "Voulez-vous vraiment supprimer tout ce dossier et son contenu ?"))) return;
+    setActionError(null);
 
     try {
       const response = await authenticatedFetch(`${API_BASE_URL}/api/applications/${appId}`, {
@@ -110,12 +113,13 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
       setApplications(prev => prev.filter(app => app.id !== appId));
     } catch (e) {
       console.error(e);
-      alert(t('error_delete', "Erreur lors de la suppression"));
+      setActionError(t('error_delete', "Erreur lors de la suppression du dossier."));
     }
   };
 
   // [FIX EXPERT] Fonction pour recharger le contexte complet d'une ancienne candidature
   const handleResumeApplication = async (appId: string) => {
+    setActionError(null);
     try {
       setLoading(true);
       const response = await authenticatedFetch(`${API_BASE_URL}/api/applications/${appId}/load`);
@@ -129,7 +133,7 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
       window.location.reload(); 
     } catch (e) {
       console.error(e);
-      alert(t('error_load_app', "Erreur lors de la restauration de la candidature."));
+      setActionError(t('error_load_app', "Erreur lors de la restauration de la candidature."));
       setLoading(false);
     }
   };
@@ -160,6 +164,12 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
         </div>
 
         <div style={{ padding: "24px", overflowY: "auto", flex: 1 }}>
+      {actionError && (
+        <div style={{ background: 'rgba(239, 68, 68, 0.05)', color: 'var(--danger-text)', padding: '1rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.2)', marginBottom: '1.5rem' }}>
+          <AlertTriangle size={18} /> {actionError}
+        </div>
+      )}
+
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
               <p style={{ color: "var(--text-muted)" }}>{t('loading', 'Chargement de vos dossiers...')}</p>

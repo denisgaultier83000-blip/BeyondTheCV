@@ -11,6 +11,14 @@ Tracer la route optimale entre le profil actuel du candidat et son poste cible, 
 - Profil complet (Compétences, Expérience)
 - Poste Cible (Destination)
 
+## ⛔ CONTRAINTES STRICTES (RÉALISME & LOGIQUE)
+- **PROBABILITÉS MATHÉMATIQUES :** Une transition de carrière n'est jamais garantie à 100%. Le maximum autorisé est 90% (pour une évolution naturelle très sûre). Si l'écart de compétences est énorme (changement radical de métier ou de secteur), la probabilité DOIT chuter sous les 40%.
+- **DÉLAIS RÉALISTES (TIME-TO-HIRE) :**
+  - **"Immédiat à 3 mois"** : Uniquement si le candidat possède DÉJÀ 90% des compétences (évolution naturelle).
+  - **"6 à 18 mois"** : Si une certification, un portfolio ou une formation courte est requise.
+  - **"2 à 5 ans"** : Pour un poste de niveau Direction (C-Level) ou un pivot total nécessitant d'accumuler une nouvelle expérience terrain.
+- **OBSTACLES TANGIBLES :** Identifie EXCLUSIVEMENT des freins RH concrets, précis et chiffrables (ex: "Baisse de salaire inévitable la 1ère année", "Plafond de verre lié à l'absence de master", "Nécessité de construire un réseau de zéro"). Bannis toute formulation floue.
+
 ⚠️ **IMPORTANT :** Tu DOIS utiliser le format **Markdown** (gras avec `**`) pour mettre en évidence les mots-clés dans les champs textuels. 
 Pour chaque étape et obstacle, ajoute un champ `"icon"` contenant UN SEUL émoji représentatif. NE METS PAS l'émoji dans le nom de l'étape.
 Enfin, pour chaque étape, attribue une couleur hexadécimale dans `impact_color` reflétant l'urgence : `#ef4444` (Critique/High), `#f59e0b` (Élevé/Medium), ou `#3b82f6` (Moyen/Low).

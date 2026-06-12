@@ -9,18 +9,31 @@ import { DashboardProvider as GlobalProvider, useDashboard as useGlobalDashboard
 import { DashboardProvider as TabProvider } from './components/DashboardContext';
 import { 
   StepImport, StepProfile, StepTarget, StepEducation, StepExperience, 
-  StepQualitiesFlaws, StepFreeText, StepClarification 
+  StepQualitiesFlaws, StepClarification 
 } from './components/CandidateSteps';
 import AdminFeedbacks from './components/AdminFeedbacks';
 import { LandingPage } from './components/LandingPage';
 import { CGU } from './components/CGU';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { LegalNotice } from './components/LegalNotice';
+import ResetPassword from './components/ResetPassword';
 import { LoadingScreen } from './components/LoadingScreen';
 import DocumentsModal from './components/DocumentsModal';
 import { API_BASE_URL } from './config';
 import { authenticatedFetch } from './utils/auth';
 import './index.css';
+
+// Composant fantôme séparé pour isoler le cycle de vie du useEffect
+function Step6Ghost({ onNext, t }: { onNext: () => void, t: any }) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onNext();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [onNext]);
+
+  return <LoadingScreen title={t('loading_strat_title', "Création de votre profil stratégique...")} description={t('loading_strat_desc', "Analyse de vos expériences et exigences du marché...")} />;
+}
 
 function AppContent() {
   const navigate = useNavigate();
@@ -50,11 +63,11 @@ function AppContent() {
   const {
     isAuthenticated, setIsAuthenticated,
     currentStep, setCurrentStep,
-    cvResult, gapResult, actionPlanResult,
+    gapResult, actionPlanResult,
     researchResult, salaryResult,
-    careerGpsResult, careerRadarResult, jobDecoderResult,
+    jobDecoderResult,
     pitchResult, questionsResult,
-    hiddenMarketResult, recruiterResult, realityResult, flawCoachingResult,
+    recruiterResult, realityResult, flawCoachingResult,
     globalStatus, error,
     customScenariosResult,
     handleNextStep,
@@ -116,8 +129,7 @@ function AppContent() {
     { id: 0, title: t('step_import', "Import") }, { id: 1, title: t('profile_title') },
     { id: 2, title: t('target_title') }, { id: 3, title: t('education_title') },
     { id: 4, title: t('experience_title') }, { id: 5, title: t('qualities_title') },
-    { id: 6, title: t('express_yourself') }, { id: 7, title: t('clarification_title') },
-    { id: 8, title: t('step_results', "Résultats") }
+    { id: 7, title: t('clarification_title') }, { id: 8, title: t('step_results', "Résultats") }
   ];
 
   // --- Handlers transmis aux composants enfants ---
@@ -125,7 +137,10 @@ function AppContent() {
   const handleUpdateList = (listName: string, id: string | number, field: string, val: any) => setFormData((prev: any) => ({ ...(prev || {}), [listName]: (prev?.[listName] || []).map((item: any) => item.id === id ? { ...item, [field]: val } : item) }));
   const handleAddList = (listName: string, defaultItem: any) => setFormData((prev: any) => ({ ...(prev || {}), [listName]: [...(prev?.[listName] || []), { ...defaultItem, id: Date.now() }] }));
   const handleRemoveList = (listName: string, id: string | number) => setFormData((prev: any) => ({ ...(prev || {}), [listName]: (prev?.[listName] || []).filter((item: any) => item.id !== id) }));
-  const handleLanguageChange = (lang: string) => i18n.changeLanguage(lang);
+  const handleLanguageChange = (lang: string) => {
+    i18n.changeLanguage(lang);
+    setFormData((prev: any) => ({ ...(prev || {}), target_language: lang }));
+  };
 
   // --- Fonction de Sauvegarde Silencieuse (Auto-Save) ---
   const saveProfileToDB = async (data: any) => {
@@ -202,21 +217,25 @@ function AppContent() {
     }
   };
 
-  // --- IMPORT LINKEDIN ---
-  const handleLinkedInImport = async (file: File) => {
+  // --- IMPORT CV / LINKEDIN ---
+  const handleCVImport = async (payload: File | string) => {
     setIsImportLoading(true);
     try {
       const uploadData = new FormData();
-      uploadData.append('file', file);
+      if (typeof payload === "string") {
+        uploadData.append('raw_text', payload);
+      } else {
+        uploadData.append('file', payload);
+      }
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE_URL}/api/cv/parse-linkedin`, {
+      const res = await fetch(`${API_BASE_URL}/api/cv/parse-cv`, {
         method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: uploadData
       });
-      if (!res.ok) throw new Error("Erreur d'analyse du PDF");
+      if (!res.ok) throw new Error("Erreur d'analyse du document");
       const parsedData = await res.json();
       const frontendData = transformProfileForFrontend(parsedData);
       setFormData((prev: any) => ({ ...prev, ...frontendData }));
-      setToasts(prev => [...prev, { id: Date.now(), text: "Profil importé avec succès !" }]);
+      setToasts(prev => [...prev, { id: Date.now(), text: "Données extraites avec succès !" }]);
       setCurrentStep(1);
     } catch (e) {
       console.error(e);
@@ -288,8 +307,7 @@ function AppContent() {
       experiences: data.experiences,
       educations: data.educations,
       skills: data.skills,
-      flaws: data.flaws,
-      free_text: data.free_text
+      flaws: data.flaws
     });
   };
 
@@ -300,7 +318,7 @@ function AppContent() {
     switch(currentStep) {
       case 0: return (
         <div className="step-wrapper">
-          <StepImport onUpload={handleLinkedInImport} loading={isImportLoading} />
+          <StepImport onUpload={handleCVImport} loading={isImportLoading} />
           {/* [FIX] Bouton secondaire repoussé à droite */}
           <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-outline" onClick={() => setCurrentStep(1)}>{t('or_fill_manually', 'Ou remplir manuellement')}</button></div>
         </div>);
@@ -351,16 +369,11 @@ function AppContent() {
           <StepExperience list={cvData?.experiences || []} onAdd={() => handleAddList('experiences', { role: '', company: '', description: '' })} onRemove={(id: number) => handleRemoveList('experiences', id)} onUpdate={(id: number, field: string, val: any) => handleUpdateList('experiences', id, field, val)} />
           <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={() => handleNextStep()}>{t('btn_next')}</button></div>
         </div>);
-      case 5: return (
-        <div className="step-wrapper">
-          <StepQualitiesFlaws data={cvData || {}} onChange={handleChange} successes={[]} onAddSuccess={() => {}} onUpdateSuccess={() => {}} failures={[]} onAddFailure={() => {}} onUpdateFailure={() => {}} />
-          <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={() => handleNextStep()}>{t('btn_next')}</button></div>
-        </div>);
-      case 6:
+    case 5:
         if (["STARTING", "PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus)) return <LoadingScreen title={t('loading_strat_title', "Création de votre profil stratégique...")} description={t('loading_strat_desc', "Analyse de vos expériences et exigences du marché...")} />;
         return (
           <div className="step-wrapper">
-            <StepFreeText data={cvData || {}} onChange={handleChange} />
+          <StepQualitiesFlaws data={cvData || {}} onChange={handleChange} successes={[]} onAddSuccess={() => {}} onUpdateSuccess={() => {}} failures={[]} onAddFailure={() => {}} onUpdateFailure={() => {}} />
             {globalStatus === "FAILED" && (<div className="error-box"><AlertCircle size={16}/><span>{t('generation_error_msg')} {error}</span><button className="btn-link" onClick={() => handleNextStep()}>{t('btn_retry')}</button></div>)}
             <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>
               <button 
@@ -373,7 +386,7 @@ function AppContent() {
                     const currentSignature = getCoreDataSignature(cvData);
                     // Si la signature n'a pas changé et que nous avons déjà des questions
                     if (cvData?.clarifications?.length > 0 && cvData?.last_clarification_signature === currentSignature) {
-                      setCurrentStep(7); // On bypass le handleNextStep (pas d'appel API)
+                    setCurrentStep(7); // On bypass le handleNextStep (pas d'appel API)
                     } else {
                       // Sinon, on sauvegarde la nouvelle signature et on lance l'IA
                       handleChange('last_clarification_signature', currentSignature);
@@ -387,7 +400,10 @@ function AppContent() {
               </button>
             </div>
           </div>);
-      case 7: 
+    case 6:
+      // [FIX EXPERT] Composant fantôme pour réaligner la machine à états du DashboardContext
+      return <Step6Ghost onNext={handleNextStep} t={t} />;
+    case 7: 
         const clarificationAnswers = (cvData?.clarifications || []).reduce((acc: any, curr: any) => {
           if (curr.answer) acc[curr.id] = curr.answer;
           return acc;
@@ -399,21 +415,17 @@ function AppContent() {
           {globalStatus === "FAILED" && (<div className="error-box"><AlertCircle size={16}/><span>{t('error_msg')} {error}</span><button className="btn-link" onClick={() => handleNextStep()}>{t('btn_retry')}</button></div>)}
           <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={(e) => { if (isFrozen) { e.preventDefault(); setShowPaywall(true); } else { handleNextStep(); } }} disabled={["STARTING", "PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus)}>{["STARTING", "PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus) ? t('btn_launching') : t('btn_launch_full_analysis')}</button></div>
         </div>);
-      case 8: return (
+    case 8: return (
         <div className="step-wrapper dashboard-wrapper">
           <TabProvider 
             initialCvData={cvData} 
-            initialCvResult={restoredData?.cvResult || cvResult} 
             initialGapResult={restoredData?.gapResult || gapResult} 
             initialActionPlanResult={restoredData?.actionPlanResult || actionPlanResult} 
             initialResearchResult={restoredData?.researchResult || researchResult} 
             initialSalaryResult={restoredData?.salaryResult || salaryResult} 
-            initialCareerGpsResult={restoredData?.careerGpsResult || careerGpsResult} 
-            initialCareerRadarResult={restoredData?.careerRadarResult || careerRadarResult} 
             initialJobDecoderResult={restoredData?.jobDecoderResult || jobDecoderResult} 
             initialPitchResult={restoredData?.pitchResult || pitchResult} 
             initialQuestionsResult={restoredData?.questionsResult || questionsResult} 
-            initialHiddenMarketResult={restoredData?.hiddenMarketResult || hiddenMarketResult} 
             initialRecruiterResult={restoredData?.recruiterResult || recruiterResult} 
             initialRealityResult={restoredData?.realityResult || realityResult} 
             initialFlawCoachingResult={restoredData?.flawCoachingResult || flawCoachingResult} 
@@ -423,6 +435,8 @@ function AppContent() {
             onTriggerResearch={triggerResearch}
           >
             <DashboardView />
+            {/* Exemple d'intégration si vous appelez ApplicationDossier depuis App.tsx : */}
+            {/* <ApplicationDossier onGoToTraining={() => { setActiveTab('training'); setCurrentStep(8); }} /> */}
           </TabProvider>
         </div>);
       default: return null;
@@ -438,6 +452,11 @@ function AppContent() {
 
   if (showAdmin) return (
     <div className="app-container"><main className="main-content" style={{ paddingTop: '2rem' }}><button onClick={() => setShowAdmin(false)} className="btn-outline" style={{ marginBottom: '2rem' }}>← Retour</button><AdminFeedbacks /></main></div>);
+
+  // Interception de la route pour le mot de passe oublié
+  if (location.pathname === '/reset-password') {
+    return <ResetPassword />;
+  }
 
   // [FIX] Sécurisation du parsing JSON du nom d'utilisateur pour éviter la page blanche au login
   let parsedUserName = undefined;

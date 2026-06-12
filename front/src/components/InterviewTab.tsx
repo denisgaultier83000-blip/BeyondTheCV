@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useDashboard } from './DashboardContext';
-import { Mic, MessageSquare, Play, Pause, RotateCcw, BrainCircuit, ArrowLeft, History, Loader2, RefreshCw } from 'lucide-react';
+import { Mic, MessageSquare, Play, Pause, RotateCcw, BrainCircuit, ArrowLeft, Loader2, RefreshCw, Lightbulb } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DashboardCard } from './DashboardCard';
 import { SituationSimulator } from './SituationSimulator';
@@ -10,14 +10,74 @@ import Flashcards from './Flashcards';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
+import SalaryNegotiator from './SalaryNegotiator';
+
+// --- LOGIQUE TÉLÉPROMPTEUR DÉPLACÉE ICI (À LA RACINE) ---
+const Teleprompter = ({ fullPitchText, setIsTeleprompterOpen, isDark, t }: { fullPitchText: string, setIsTeleprompterOpen: any, isDark: boolean, t: any }) => {
+  const [timer, setTimer] = useState(180);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (isTimerRunning) {
+      timerRef.current = setInterval(() => setTimer(prev => (prev > 0 ? prev - 1 : 0)), 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [isTimerRunning]);
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const toggleTimer = () => setIsTimerRunning(prev => !prev);
+  const resetTimer = () => {
+    setIsTimerRunning(false);
+    setTimer(180);
+    const container = document.getElementById('teleprompter-scroll-container');
+    if (container) container.scrollTop = 0;
+  };
+
+  const bgColor = isDark ? '#000000' : '#FFFFFF';
+  const textColor = isDark ? '#FFFFFF' : '#000000';
+  const controlBg = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+
+  return createPortal(
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: bgColor, zIndex: 999999, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <button onClick={() => setIsTeleprompterOpen(false)} style={{ position: 'absolute', top: '2rem', left: '2rem', background: controlBg, color: textColor, border: 'none', padding: '0.75rem 1.5rem', borderRadius: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', cursor: 'pointer', zIndex: 10 }}>
+        <ArrowLeft size={20} /> {t('btn_back', 'Retour')}
+      </button>
+      
+      <div id="teleprompter-scroll-container" style={{ flex: 1, overflowY: 'auto', padding: '8rem 2rem 15rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', scrollbarWidth: 'thin' }}>
+        {fullPitchText.split('\n\n').map((p: string, i: number) => (
+          <p key={i} style={{ maxWidth: '800px', width: '100%', fontSize: 'clamp(1.5rem, 5vw, 2.5rem)', fontWeight: 700, lineHeight: 1.6, marginBottom: '3rem', color: textColor, textAlign: 'center' }}>{p}</p>
+        ))}
+      </div>
+
+      <div style={{ position: 'absolute', bottom: '2rem', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: '1rem', background: bgColor, padding: '1rem 2rem', borderRadius: '1rem', boxShadow: isDark ? '0 -10px 40px rgba(255,255,255,0.05)' : '0 -10px 40px rgba(0,0,0,0.1)', zIndex: 100000, border: `1px solid ${controlBg}` }}>
+        <div style={{ background: controlBg, padding: '0.5rem 1.5rem', borderRadius: '2rem', fontSize: '2rem', color: textColor, fontFamily: 'monospace', fontWeight: 'bold' }}>
+          {formatTime(timer)}
+        </div>
+        <button onClick={toggleTimer} style={{ width: '60px', height: '60px', borderRadius: '50%', background: controlBg, color: textColor, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {isTimerRunning ? <Pause size={28} /> : <Play size={28} style={{ marginLeft: '4px' }} />}
+        </button>
+        <button onClick={resetTimer} style={{ width: '60px', height: '60px', borderRadius: '50%', background: controlBg, color: textColor, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <RotateCcw size={24} />
+        </button>
+      </div>
+    </div>,
+    document.body
+  );
+};
 
 export const InterviewTab = () => {
-  const { pitchResult, questionsResult, customScenariosResult, globalStatus, cvData } = useDashboard();
+  const { pitchResult, questionsResult, customScenariosResult, globalStatus, cvData, updateFormData } = useDashboard();
   const { t } = useTranslation();
   const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false);
   const [isDark] = useState(() => document.body.classList.contains('dark-mode'));
-  const [showHistory, setShowHistory] = useState(false);
-  const [historyData, setHistoryData] = useState<any[]>([]);
 
   const [pitchAnalysis, setPitchAnalysis] = useState<any>(null);
   const [isEvaluatingPitch, setIsEvaluatingPitch] = useState(false);
@@ -29,81 +89,40 @@ export const InterviewTab = () => {
   useEffect(() => {
     if (pitchResult) {
       const p = pitchResult?.pitch || pitchResult;
+      const savedPitch = cvData?.editablePitch;
       setEditablePitch({
-        accroche: p?.accroche || "",
-        preuve: p?.preuve || "",
-        valeur: p?.valeur || "",
-        projection: p?.projection || ""
+        accroche: savedPitch?.accroche || p?.accroche || "",
+        preuve: savedPitch?.preuve || p?.preuve || "",
+        valeur: savedPitch?.valeur || p?.valeur || "",
+        projection: savedPitch?.projection || p?.projection || ""
       });
       setPitchAnalysis(p?.analysis || null);
     }
   }, [pitchResult]);
 
   const handlePitchChange = (field: keyof typeof editablePitch, value: string) => {
-    setEditablePitch(prev => ({ ...prev, [field]: value }));
+    const newPitch = { ...editablePitch, [field]: value };
+    setEditablePitch(newPitch);
+    if (updateFormData) {
+      updateFormData('editablePitch', newPitch);
+    }
   };
 
   const fullPitchText = [editablePitch.accroche, editablePitch.preuve, editablePitch.valeur, editablePitch.projection].filter(Boolean).join('\n\n');
 
-  // --- LOGIQUE TÉLÉPROMPTEUR DÉPLACÉE ICI ---
-  const Teleprompter = () => {
-    const [timer, setTimer] = useState(180);
-    const [isTimerRunning, setIsTimerRunning] = useState(false);
-    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-    useEffect(() => {
-      if (isTimerRunning) {
-        timerRef.current = setInterval(() => setTimer(prev => (prev > 0 ? prev - 1 : 0)), 1000);
-      } else {
-        if (timerRef.current) clearInterval(timerRef.current);
-      }
-      return () => { if (timerRef.current) clearInterval(timerRef.current); };
-    }, [isTimerRunning]);
-
-    const formatTime = (seconds: number) => {
-      const minutes = Math.floor(seconds / 60);
-      const secs = seconds % 60;
-      return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  const handleResetPitch = () => {
+    if (!window.confirm(t('confirm_reset_pitch', "Voulez-vous vraiment annuler vos modifications et restaurer le pitch original généré par l'IA ?"))) return;
+    const p = pitchResult?.pitch || pitchResult;
+    const originalPitch = {
+      accroche: p?.accroche || "",
+      preuve: p?.preuve || "",
+      valeur: p?.valeur || "",
+      projection: p?.projection || ""
     };
-
-    const toggleTimer = () => setIsTimerRunning(prev => !prev);
-    const resetTimer = () => {
-      setIsTimerRunning(false);
-      setTimer(180);
-      const container = document.getElementById('teleprompter-scroll-container');
-      if (container) container.scrollTop = 0;
-    };
-
-    const bgColor = isDark ? '#000000' : '#FFFFFF';
-    const textColor = isDark ? '#FFFFFF' : '#000000';
-    const controlBg = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
-
-    return createPortal(
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: bgColor, zIndex: 999999, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <button onClick={() => setIsTeleprompterOpen(false)} style={{ position: 'absolute', top: '2rem', left: '2rem', background: controlBg, color: textColor, border: 'none', padding: '0.75rem 1.5rem', borderRadius: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', cursor: 'pointer', zIndex: 10 }}>
-          <ArrowLeft size={20} /> {t('btn_back', 'Retour')}
-        </button>
-        
-        <div id="teleprompter-scroll-container" style={{ flex: 1, overflowY: 'auto', padding: '8rem 2rem 15rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', scrollbarWidth: 'thin' }}>
-          {fullPitchText.split('\n\n').map((p, i) => (
-            <p key={i} style={{ maxWidth: '800px', width: '100%', fontSize: '2.5rem', fontWeight: 700, lineHeight: 1.6, marginBottom: '3rem', color: textColor, textAlign: 'center' }}>{p}</p>
-          ))}
-        </div>
-
-        <div style={{ position: 'absolute', bottom: '2rem', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: '1rem', background: bgColor, padding: '1rem 2rem', borderRadius: '1rem', boxShadow: isDark ? '0 -10px 40px rgba(255,255,255,0.05)' : '0 -10px 40px rgba(0,0,0,0.1)', zIndex: 100000, border: `1px solid ${controlBg}` }}>
-          <div style={{ background: controlBg, padding: '0.5rem 1.5rem', borderRadius: '2rem', fontSize: '2rem', color: textColor, fontFamily: 'monospace', fontWeight: 'bold' }}>
-            {formatTime(timer)}
-          </div>
-          <button onClick={toggleTimer} style={{ width: '60px', height: '60px', borderRadius: '50%', background: controlBg, color: textColor, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {isTimerRunning ? <Pause size={28} /> : <Play size={28} style={{ marginLeft: '4px' }} />}
-          </button>
-          <button onClick={resetTimer} style={{ width: '60px', height: '60px', borderRadius: '50%', background: controlBg, color: textColor, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <RotateCcw size={24} />
-          </button>
-        </div>
-      </div>,
-      document.body
-    );
+    setEditablePitch(originalPitch);
+    if (updateFormData) {
+      updateFormData('editablePitch', originalPitch);
+    }
   };
 
   const handleEvaluatePitch = async () => {
@@ -128,22 +147,6 @@ export const InterviewTab = () => {
       setIsEvaluatingPitch(false);
     }
   };
-
-  const fetchHistory = async () => {
-    try {
-      const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/interview/history`);
-      if (res.ok) {
-        const data = await res.json();
-        setHistoryData(data.history || []);
-      }
-    } catch (e) {
-      console.error("Erreur de récupération de l'historique", e);
-    }
-  };
-
-  useEffect(() => {
-    if (showHistory) fetchHistory();
-  }, [showHistory]);
 
   const handlePurgeCache = async () => {
     if (window.confirm(t('confirm_purge', "Voulez-vous effacer vos anciennes réponses et forcer l'IA à regénérer un nouveau set de questions au prochain chargement ?"))) {
@@ -257,12 +260,16 @@ export const InterviewTab = () => {
   };
 
   const questionsArray = getQuestionsArray(questionsResult);
+  
+  const standardQuestions = questionsArray.filter(q => q.category !== "Questions à poser au recruteur" && q.category !== "Questions to Ask Recruiter");
+  const smartQuestions = questionsArray.filter(q => q.category === "Questions à poser au recruteur" || q.category === "Questions to Ask Recruiter");
+  
   const scenariosArray = getScenariosAsQuestions(customScenariosResult);
   const mergedQuestions = [...questionsArray, ...scenariosArray];
 
   return (
     <>
-      {isTeleprompterOpen && <Teleprompter />}
+      {isTeleprompterOpen && <Teleprompter fullPitchText={fullPitchText} isDark={isDark} setIsTeleprompterOpen={setIsTeleprompterOpen} t={t} />}
       <div className="interview-tab-container">
         
         <div id="pitch_section">
@@ -275,9 +282,14 @@ export const InterviewTab = () => {
           errorText={t('pitch_error', "Le pitch n'a pas pu être généré.")}
           featureId="pitch_3_min"
           headerAction={pitchResult && (
-            <button className="btn-primary" onClick={() => setIsTeleprompterOpen(true)}>
-              <Play size={16} style={{ marginRight: '0.5rem' }} /> {t('teleprompter_mode', 'Mode Téléprompteur')}
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button onClick={handleResetPitch} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} title="Restaurer le pitch généré par l'IA">
+                <RotateCcw size={16} /> {t('btn_reset', 'Réinitialiser')}
+              </button>
+              <button className="btn-primary" onClick={() => setIsTeleprompterOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
+                <Play size={16} /> {t('teleprompter_mode', 'Téléprompteur')}
+              </button>
+            </div>
           )}
         >
           {pitchResult && (
@@ -332,42 +344,48 @@ export const InterviewTab = () => {
               <button onClick={handlePurgeCache} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} title="Effacer l'historique d'entraînement du profil">
                 <RotateCcw size={16} /> Purger le cache
               </button>
-              <button onClick={() => setShowHistory(!showHistory)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
-                <History size={16} /> {showHistory ? "Masquer les archives" : "Archives de mes réponses"}
-              </button>
             </div>
           }
         >
-          {showHistory && (
-            <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginBottom: '1.5rem' }}>
-              <h3 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)' }}>Historique de vos réponses</h3>
-              {historyData.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>Aucune réponse enregistrée pour le moment.</p> : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {historyData.map((item, idx) => (
-                    <div key={idx} style={{ padding: '1rem', background: 'var(--bg-card)', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{new Date(item.created_at).toLocaleDateString()} - Score : {item.score}/100</div>
-                      <div style={{ fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.5rem' }}>Q : {item.question}</div>
-                      <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: '0.5rem' }}>R : "{item.user_answer}"</div>
-                      <div style={{ color: '#166534', background: '#dcfce7', padding: '0.5rem', borderRadius: '0.25rem', fontSize: '0.9rem' }}>Feedback : {item.feedback?.improved_answer || "Bonne réponse."}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-          {questionsResult && !showHistory && (
+          {questionsResult && (
             <>
               <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "1.5rem", fontStyle: "italic", background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
                 * Légende : ★ (1-Facile) à ★★★★★ (5-Très Difficile)
               </div>
               {mergedQuestions.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                  {questionsArray.length > 0 && (
-                    <Questionnaire questions={questionsArray} hideHeader={true} />
+                      {standardQuestions.length > 0 && (
+                        <Questionnaire questions={standardQuestions} hideHeader={true} />
                   )}
                   {scenariosArray.length > 0 && (
                     <div id="mes_anchor"><Questionnaire questions={scenariosArray} hideHeader={true} /></div>
                   )}
+                      {smartQuestions.length > 0 && (
+                        <div style={{ marginTop: '1rem' }}>
+                          <h3 style={{ color: 'var(--text-main)', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem' }}>
+                            <Lightbulb size={22} color="var(--primary)" /> Vos questions de fin d'entretien
+                          </h3>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            {smartQuestions.map((q, idx) => (
+                              <div key={idx} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.3rem 0.75rem', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)', borderRadius: '1rem', textTransform: 'uppercase' }}>
+                                  {q.axis || "Stratégie"}
+                                </span>
+                                <h4 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)', margin: '1.25rem 0' }}>
+                                  {q.question}
+                                </h4>
+                                <div style={{ background: 'var(--bg-card)', borderLeft: '4px solid #f59e0b', borderRadius: '0 0.5rem 0.5rem 0', padding: '1.25rem', display: 'flex', gap: '1rem', alignItems: 'flex-start', border: '1px solid var(--border-color)', borderLeftWidth: '4px' }}>
+                                  <span style={{ fontSize: '1.25rem' }}>💡</span>
+                                  <div>
+                                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#b45309', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pourquoi la poser ?</div>
+                                    <div style={{ fontSize: '0.95rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>{q.intention || q.advice || q.suggested_answer}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                 </div>
               ) : (
                 <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
@@ -377,6 +395,10 @@ export const InterviewTab = () => {
             </>
           )}
         </DashboardCard>
+        </div>
+
+        <div id="negotiation_section">
+          <SalaryNegotiator />
         </div>
 
       </div>

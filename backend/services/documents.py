@@ -39,8 +39,11 @@ async def download_document(doc_id: str, current_user: dict = Depends(get_curren
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File missing on server.")
     
-    # Security check
-    if not os.path.abspath(file_path).startswith(os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))):
+    # [FIX EXPERT] Sécurité : Prévention du Path Traversal par répertoire voisin
+    # (startswith est vulnérable si le dossier ciblé est "/app/backend_secrets")
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    abs_file_path = os.path.abspath(file_path)
+    if os.path.commonpath([base_dir, abs_file_path]) != base_dir:
         raise HTTPException(status_code=403, detail="Access denied.")
         
     return FileResponse(path=file_path, filename=doc["filename"], media_type=doc.get("media_type", "application/octet-stream"))
@@ -56,9 +59,14 @@ async def delete_document(doc_id: str, current_user: dict = Depends(get_current_
         await db.execute(conn, "DELETE FROM documents WHERE id = ? AND user_id = ?", (doc_id, current_user["id"]))
         await conn.commit()
         
-        if row["path"] and os.path.exists(row["path"]):
-            try:
-                os.remove(row["path"])
-            except Exception:
-                pass
+        file_path = row["path"]
+        if file_path and os.path.exists(file_path):
+            # [FIX EXPERT] Sécurité : Empêche un attaquant de supprimer des fichiers système
+            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+            abs_file_path = os.path.abspath(file_path)
+            if os.path.commonpath([base_dir, abs_file_path]) == base_dir:
+                try:
+                    os.remove(file_path)
+                except Exception:
+                    pass
     return {"status": "success", "id": doc_id}

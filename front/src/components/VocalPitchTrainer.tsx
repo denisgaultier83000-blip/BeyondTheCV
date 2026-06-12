@@ -3,13 +3,16 @@ import { Mic, Square, Play, RotateCcw, Loader2, Activity, MessageSquare, AlertTr
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { useTranslation } from 'react-i18next';
+import { RechargeModal } from './RechargeModal';
 
 interface VocalPitchTrainerProps {
   targetJob?: string;
+  targetCompany?: string;
+  jobDescription?: string;
   onSuccess?: () => void;
 }
 
-export const VocalPitchTrainer = ({ targetJob = "Candidat", onSuccess }: VocalPitchTrainerProps) => {
+export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDescription, onSuccess }: VocalPitchTrainerProps) => {
   const { t } = useTranslation();
   
   const [isRecording, setIsRecording] = useState(false);
@@ -17,6 +20,8 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", onSuccess }: VocalPi
   const [seconds, setSeconds] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [showRechargeModal, setShowRechargeModal] = useState(false);
   
   const recognitionRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
@@ -38,6 +43,7 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", onSuccess }: VocalPi
     setTranscript("");
     setSeconds(0);
     setResult(null);
+    setError(null);
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'fr-FR';
@@ -83,6 +89,7 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", onSuccess }: VocalPi
 
   const analyzePitch = async () => {
     setIsAnalyzing(true);
+    setError(null);
     try {
       const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/evaluate-vocal-pitch`, {
         method: 'POST',
@@ -90,16 +97,23 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", onSuccess }: VocalPi
         body: JSON.stringify({
           transcript: transcript.trim(),
           duration_seconds: seconds,
-          target_job: targetJob
+          target_job: targetJob,
+          target_company: targetCompany,
+          job_description: jobDescription
         })
       });
-      if (!response.ok) throw new Error("Erreur lors de l'analyse");
+      if (!response.ok) {
+        if (response.status === 402) setShowRechargeModal(true);
+        let errMsg = "Erreur lors de l'analyse";
+        try { const errObj = await response.json(); errMsg = errObj.detail || errMsg; } catch(e) {}
+        throw new Error(errMsg);
+      }
       const data = await response.json();
       setResult(data);
       if (onSuccess) onSuccess();
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert("L'analyse a échoué. Veuillez réessayer.");
+      setError(e.message || "L'analyse a échoué. L'IA a mis trop de temps à répondre.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -113,10 +127,21 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", onSuccess }: VocalPi
 
   return (
     <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
+      <style>{`
+        @keyframes soundWave {
+          0%, 100% { transform: scaleY(0.3); }
+          50% { transform: scaleY(1); }
+        }
+      `}</style>
       <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
         <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 1rem 0' }}>
           <Mic size={24} color="#8b5cf6" /> Simulateur de Pitch Vocal (Sans filet)
         </h2>
+        {error && (
+          <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.2)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: 'var(--danger-text)', maxWidth: '600px', margin: '0 auto 1.5rem auto' }}>
+            <AlertTriangle size={18} /> {error}
+          </div>
+        )}
         <p style={{ color: 'var(--text-muted)', maxWidth: '600px', margin: '0 auto' }}>
           Enregistrez votre présentation personnelle spontanément. L'IA analysera votre rythme, vos tics de langage et l'impact de votre structure.
         </p>
@@ -124,8 +149,20 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", onSuccess }: VocalPi
 
       {!result && !isAnalyzing && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', padding: '2rem', background: 'var(--bg-secondary)', borderRadius: '1rem' }}>
-          <div style={{ fontSize: '3rem', fontWeight: 'bold', fontFamily: 'monospace', color: isRecording ? '#ef4444' : 'var(--text-main)' }}>
-            {formatTime(seconds)}
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ fontSize: '3rem', fontWeight: 'bold', fontFamily: 'monospace', color: isRecording ? '#ef4444' : 'var(--text-main)' }}>
+              {formatTime(seconds)}
+            </div>
+            {isRecording && (
+              <div style={{ position: 'absolute', right: '-40px', display: 'flex', alignItems: 'center', gap: '4px', height: '36px' }}>
+                {[0, 0.2, 0.4, 0.1, 0.3].map((delay, i) => (
+                  <div
+                    key={i}
+                    style={{ width: '5px', height: '100%', backgroundColor: '#ef4444', borderRadius: '3px', animation: `soundWave 1s ease-in-out infinite`, animationDelay: `${delay}s`, transformOrigin: 'center' }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
           
           {isRecording ? (
@@ -172,9 +209,14 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", onSuccess }: VocalPi
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
             <div style={{ padding: '1.5rem', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '0.75rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
-              <h3 style={{ margin: '0 0 1rem 0', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><MessageSquare size={18} /> Diagnostic du Coach</h3>
-              <p style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)', fontSize: '0.95rem' }}><strong>Rythme :</strong> {result.feedback.pace_and_silences}</p>
-              <p style={{ margin: 0, color: 'var(--text-main)', fontSize: '0.95rem' }}><strong>Structure :</strong> {result.feedback.structure_and_clarity}</p>
+              <h3 style={{ margin: '0 0 1.5rem 0', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><MessageSquare size={18} /> Diagnostic du Coach</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <p style={{ margin: 0, color: 'var(--text-main)', fontSize: '0.95rem' }}><strong>🗣️ Rythme :</strong> {result.feedback.pace_and_silences}</p>
+                <p style={{ margin: 0, color: 'var(--text-main)', fontSize: '0.95rem' }}><strong>🏗️ Structure :</strong> {result.feedback.structure_and_clarity}</p>
+                <p style={{ margin: 0, color: 'var(--text-main)', fontSize: '0.95rem' }}><strong>⏱️ Impact & Longueur :</strong> {result.feedback.impact_and_length}</p>
+                <p style={{ margin: 0, color: 'var(--text-main)', fontSize: '0.95rem' }}><strong>🎯 Pertinence :</strong> {result.feedback.relevance_to_target}</p>
+                <p style={{ margin: 0, color: 'var(--text-main)', fontSize: '0.95rem' }}><strong>📊 Exemples (STAR) :</strong> {result.feedback.examples_precision}</p>
+              </div>
             </div>
             
             <div style={{ padding: '1.5rem', background: 'rgba(139, 92, 246, 0.05)', borderRadius: '0.75rem', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
@@ -197,6 +239,7 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", onSuccess }: VocalPi
           </div>
         </div>
       )}
+      <RechargeModal isOpen={showRechargeModal} onClose={() => setShowRechargeModal(false)} />
       <style>{`@keyframes pulse-record { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }`}</style>
     </div>
   );

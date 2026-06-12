@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDashboard } from './DashboardContext';
 import { FileText, Download, Loader2, RefreshCw, Target, CheckCircle2, Plus } from 'lucide-react';
 import { authenticatedFetch } from '../utils/auth';
@@ -8,12 +8,13 @@ import PdfPreviewer from './PdfPreviewer';
 import { useTranslation } from 'react-i18next';
 
 export const CVTab = ({ data }: { data: any }) => {
-  const { cvData, cvResult, gapResult } = useDashboard();
+  const { cvData, gapResult } = useDashboard();
   const { t } = useTranslation();
   const [previewBody, setPreviewBody] = useState<any>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Logique interactive des mots-clés
   const payload = gapResult || data || {};
@@ -32,7 +33,7 @@ export const CVTab = ({ data }: { data: any }) => {
   const preparePreviewData = () => {
     // [FIX CRITIQUE] On utilise les données optimisées par l'IA si elles existent
     // On fusionne pour s'assurer d'avoir les skills à jour ajoutés manuellement
-    const payloadData = { ...(cvResult?.optimized_data || cvResult || cvData) };
+    const payloadData = { ...(cvData) };
     
     // [FIX CRITIQUE] On injecte les skills saisis ET les mots-clés acceptés via le coach
     // On s'assure que skills reste un tableau (Array) car le template LaTeX du backend itère dessus.
@@ -87,14 +88,19 @@ export const CVTab = ({ data }: { data: any }) => {
       return;
     }
 
-    setPreviewBody({
-      action: "CV",
-      data: payloadData,
-      skip_ai: extraContent.length === 0 && addedKeywords.length === 0, // Force la lecture IA si du contenu manuel est injecté
-      preview: true,
-      renderer: 'latex'
-    });
-    setRefreshTrigger(prev => prev + 1);
+    // [FIX EXPERT] Debounce pour éviter le spam de requêtes LaTeX sur le serveur
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    
+    debounceTimerRef.current = setTimeout(() => {
+      setPreviewBody({
+        action: "CV",
+        data: payloadData,
+        skip_ai: extraContent.length === 0 && addedKeywords.length === 0,
+        preview: true,
+        renderer: 'latex'
+      });
+      setRefreshTrigger(prev => prev + 1);
+    }, 800);
   };
 
   const handleApplyKeyword = (newText: string) => {
@@ -114,7 +120,14 @@ export const CVTab = ({ data }: { data: any }) => {
     preparePreviewData();
   // [FIX] Ajout des dépendances manquantes. React déclenchera generatePreview naturellement après mise à jour.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cvResult, addedKeywords, extraContent]);
+  }, [cvData, addedKeywords, extraContent]);
+
+  // [FIX EXPERT] Nettoyage du timer au démontage pour éviter les fuites de mémoire
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, []);
 
 
   return (

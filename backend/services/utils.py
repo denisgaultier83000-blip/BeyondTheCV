@@ -27,19 +27,18 @@ def clean_ai_json_response(response_text: str):
         if not response_text:
             return {}
             
-        # 0. Nettoyage préventif des balises markdown qui rendent le JSON invalide
-        clean_text = response_text.replace("```json", "").replace("```", "").strip()
-
-        # 1. Tentative d'extraction par Regex 
-        # [ROBUSTESSE] Supporte les objets {} et les tableaux []
-        match = re.search(r'(\{.*\}|\[.*\])', clean_text, re.DOTALL)
-        if not match:
-            print("[CLEANING] No explicit JSON block found, attempting to parse raw text...")
-        if match:
-            json_str = match.group(0)
+        # [FIX EXPERT] Suppression du .replace() global qui corrompait les données si le candidat
+        # avait lui-même du markdown dans son texte. L'extraction par index (O(n)) suffit amplement.
+        first_brace, last_brace = response_text.find('{'), response_text.rfind('}')
+        first_bracket, last_bracket = response_text.find('['), response_text.rfind(']')
+        
+        # On prend le bloc le plus large (objet ou tableau) pour ignorer le blabla avant et après
+        if first_brace != -1 and last_brace != -1 and (first_bracket == -1 or first_brace < first_bracket):
+            json_str = response_text[first_brace:last_brace+1]
+        elif first_bracket != -1 and last_bracket != -1:
+            json_str = response_text[first_bracket:last_bracket+1]
         else:
-            # Fallback : nettoyage basique si pas d'accolades trouvées
-            json_str = clean_text
+            json_str = response_text.strip()
         
         # 2. Parsing
         return json.loads(json_str)
@@ -110,7 +109,9 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
             'personal_info', 'experiences', 'educations', 'projects', 'skills', 
             'languages', 'interests', 'flaws', 'clarifications', 'bio', 
             'work_style', 'relational_style', 'professional_approach', 'free_text',
-            'job_description', 'remote_preference'
+            'job_description', 'remote_preference', 'interview_date', 'interview_format',
+            'interview_type', 'available_time', 'stress_level', 'seniority_level',
+            'current_situation', 'salary_expectations', 'coaching_style'
         }
         clean_data = {k: v for k, v in clean_data.items() if k in allowed_keys}
         
@@ -124,6 +125,14 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
                 clean_data['personal_info'].pop(k, None)
                 
     if strict:
+        # [OPTIMISATION TOKENS] Limitation stricte de la taille des textes libres
+        if 'free_text' in clean_data and isinstance(clean_data['free_text'], str):
+            clean_data['free_text'] = clean_data['free_text'][:3000]
+        if 'job_description' in clean_data and isinstance(clean_data['job_description'], str):
+            clean_data['job_description'] = clean_data['job_description'][:5000]
+        if 'bio' in clean_data and isinstance(clean_data['bio'], str):
+            clean_data['bio'] = clean_data['bio'][:1500]
+
         # Purge des listes : suppression des IDs aléatoires qui cassent la signature du cache
         for list_key in ['experiences', 'educations', 'projects', 'skills', 'languages', 'clarifications', 'work_style', 'relational_style', 'professional_approach', 'interests', 'flaws']:
             if list_key in clean_data and isinstance(clean_data[list_key], list):
@@ -135,6 +144,12 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
                         keys_to_remove = [k for k in item_copy.keys() if k in ['id', '_id', 'created_at', 'updated_at', 'createdAt', 'updatedAt'] or k.startswith('ui_') or k.startswith('is')]
                         for k in keys_to_remove:
                             item_copy.pop(k, None)
+                            
+                        # [OPTIMISATION TOKENS] Limitation de la taille des descriptions internes
+                        if 'description' in item_copy and isinstance(item_copy['description'], str):
+                            item_copy['description'] = item_copy['description'][:2000]
+                        if 'bullets' in item_copy and isinstance(item_copy['bullets'], list):
+                            item_copy['bullets'] = [str(b)[:500] for b in item_copy['bullets']]
                         clean_list.append(item_copy)
                     else:
                         clean_list.append(item)
@@ -191,6 +206,11 @@ async def get_cached_content(cache_key: str):
 
 async def set_cached_content(cache_key: str, user_id: str, content_type: str, result: any):
     """Sauvegarde le résultat généré en cache."""
+    # [FIX EXPERT] Défense : Ne jamais tenter d'insérer en base si la clé de cache est None
+    if not cache_key:
+        print(f"[CACHE WARNING] Impossible de sauvegarder '{content_type}' : cache_key est nulle.", flush=True)
+        return
+        
     try:
         async with db.get_connection() as conn:
             result_str = json.dumps(result, default=str)

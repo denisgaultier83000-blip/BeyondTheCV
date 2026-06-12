@@ -10,7 +10,9 @@ from .market_research import perform_market_research
 # Import des utilitaires pour éviter le cycle
 from .utils import (
     load_prompt, clean_ai_json_response, normalize_language, 
-    _generate_cache_key, get_cached_content, set_cached_content
+    _generate_cache_key, get_cached_content, set_cached_content,
+    _CACHE_LOCKS,
+    _sanitize_data_for_ai
 )
 
 # --- CONFIGURATION DES CHEMINS ---
@@ -153,7 +155,7 @@ async def _run_salary_logic(task_id: str, candidate_data: dict):
         elif remote_pref == 'full':
             geo_context = f"in {target_country} (Full Remote context)"
 
-        prompt = f"Estimate a realistic salary range (low, mid, high) for this profile {geo_context}.\n\nSPECIAL INSTRUCTION: If location is Remote/International, use USD or EUR and explain in 'commentary' that salary depends on Company HQ location. Write the 'commentary' in {target_lang}.\n\nPROFILE:\n{json.dumps(candidate_data, indent=2, ensure_ascii=False, default=str)}\n\n⚠️ INSTRUCTION CRITIQUE : Ne recopie JAMAIS les valeurs d'exemple du JSON. Tu DOIS calculer de vrais montants basés sur le marché actuel pour ce profil précis.\nRespond in STRICT JSON: {{\"salary_range\": {{\"low\": 0, \"mid\": 0, \"high\": 0}}, \"currency\": \"EUR\", \"confidence\": \"Haute | Moyenne | Faible\", \"commentary\": \"...\"}}\nIMPORTANT: 'low', 'mid', 'high' MUST be integers."
+        prompt = f"Estimate a realistic salary range (low, mid, high) for this profile {geo_context}.\n\nSPECIAL INSTRUCTION: If location is Remote/International, use USD or EUR and explain in 'commentary' that salary depends on Company HQ location. Write the 'commentary' in {target_lang}.\n\nPROFILE:\n{json.dumps(_sanitize_data_for_ai(candidate_data, strict=True), indent=2, ensure_ascii=False, default=str)}\n\n⚠️ INSTRUCTION CRITIQUE : Ne recopie JAMAIS les valeurs d'exemple du JSON. Tu DOIS calculer de vrais montants basés sur le marché actuel pour ce profil précis.\nRespond in STRICT JSON: {{\"salary_range\": {{\"low\": 0, \"mid\": 0, \"high\": 0}}, \"currency\": \"EUR\", \"confidence\": \"Haute | Moyenne | Faible\", \"commentary\": \"...\"}}\nIMPORTANT: 'low', 'mid', 'high' MUST be integers."
         
         result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are a compensation expert. You must output STRICT JSON.")
         if "error" in result:
@@ -181,9 +183,9 @@ async def _run_cv_draft_logic(task_id: str, source_data: dict):
         if is_cached: return
 
         prompt_template = load_prompt(get_prompt_path("master_prompt.md"))
-        context_str = json.dumps(source_data, indent=2, ensure_ascii=False, default=str)
+        context_str = json.dumps(_sanitize_data_for_ai(source_data, strict=True), indent=2, ensure_ascii=False, default=str)
         final_prompt = f"{prompt_template}\n\nINPUT DATA:\n{context_str}"
-        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are the AI for BeyondTheCV.")
+        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are the AI for BeyondTheCV. Output STRICT JSON.")
         if "error" not in result:
             await set_cached_content(cache_key, user_id, "cv_draft", result)
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
@@ -207,7 +209,7 @@ async def _run_completeness_logic(task_id: str, payload: dict):
         if is_cached: return
 
         target_lang = normalize_language(data_to_analyze.get('target_language', 'French'))
-        text_content = json.dumps(data_to_analyze, indent=2, ensure_ascii=False, default=str) if isinstance(data_to_analyze, dict) else str(data_to_analyze)
+        text_content = json.dumps(_sanitize_data_for_ai(data_to_analyze, strict=True), indent=2, ensure_ascii=False, default=str) if isinstance(data_to_analyze, dict) else str(data_to_analyze)
         
         prompt = f"""
         Analyze the candidate's profile completeness with a specific focus on generating a strong Elevator Pitch.
@@ -229,33 +231,6 @@ async def _run_completeness_logic(task_id: str, payload: dict):
         fallback = {"score": 50, "quality": "Moyen", "missing_info": [], "suggestions": [], "clarifications": []}
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", fallback)
         await manager.broadcast(task_id, "Analyse terminée (Fallback)", status="COMPLETED", data=fallback)
-
-async def process_cv_analysis_in_background(task_id: str, cv_data: dict):
-    print(f"[Task {task_id}] 🧠 Starting Full CV Analysis (Async)...")
-    await _run_cv_analysis_logic(task_id, cv_data)
-
-async def _run_cv_analysis_logic(task_id: str, cv_data: dict):
-    await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
-    try:
-        user_id = cv_data.get("user_id", "unknown_user")
-        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "cv_analysis", cv_data, "Analyse récupérée en cache")
-        if is_cached: return
-
-        await manager.broadcast(task_id, "Analyse approfondie du CV en cours...")
-        prompt_template = load_prompt(get_prompt_path("master_prompt.md"))
-        target_lang = normalize_language(cv_data.get('target_language', 'French'))
-        target_country = cv_data.get('target_country', 'International')
-        user_prompt = f"Voici les données JSON du candidat :\n{json.dumps(cv_data, ensure_ascii=False, default=str)}\nAnalyse ce profil. CONTEXTE CULTUREL : {target_country}. IMPORTANT: OUTPUT STRICTLY IN {target_lang.upper()}."
-        result_json = await ai_service.generate_valid_json(prompt=user_prompt, provider="openai", system_instruction=prompt_template)
-        if "error" not in result_json:
-            await set_cached_content(cache_key, user_id, "cv_analysis", result_json)
-        await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result_json)
-        await manager.broadcast(task_id, "Analyse CV terminée.", status="COMPLETED", data=result_json)
-    except Exception as e:
-        await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", {"error": str(e)})
-        err = {"error": str(e)}
-        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", err)
-        await manager.broadcast(task_id, "Erreur", status="FAILED", data=err)
 
 async def process_pitch_in_background(task_id: str, candidate_data: dict):
     print(f"[Task {task_id}] 🎤 Starting Pitch (Async)...")
@@ -334,7 +309,6 @@ async def _run_questions_logic(task_id: str, candidate_data: dict):
         user_id = candidate_data.get("user_id", "unknown_user")
         cache_key = _generate_cache_key(user_id, "interview_questions", candidate_data)
         
-        from .utils import _CACHE_LOCKS
         if cache_key not in _CACHE_LOCKS:
             _CACHE_LOCKS[cache_key] = asyncio.Lock()
             
@@ -530,7 +504,7 @@ async def _run_career_radar_logic(task_id: str, data: dict):
         {prompt_template}
         
         PROFIL CANDIDAT :
-        {json.dumps(data, indent=2, ensure_ascii=False, default=str)}
+        {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
         
         CIBLE ACTUELLE DU CANDIDAT (POUR ANCRER LES TRAJECTOIRES) :
         {target_context}
@@ -538,7 +512,7 @@ async def _run_career_radar_logic(task_id: str, data: dict):
         OUTPUT LANGUAGE: {target_lang}
         """
         
-        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are a Career Strategist.")
+        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are a Career Strategist. Output STRICT JSON.")
         
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
@@ -571,12 +545,12 @@ async def _run_recruiter_view_logic(task_id: str, data: dict):
         {prompt_template}
         
         CANDIDAT :
-        {json.dumps(data, indent=2, ensure_ascii=False, default=str)}
+        {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
         
         OUTPUT LANGUAGE: {target_lang}
         """
         
-        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an empathetic, strategic Career Coach. Help the candidate succeed.")
+        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an empathetic, strategic Career Coach. Help the candidate succeed. Output STRICT JSON.")
         
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
@@ -612,13 +586,13 @@ async def _run_oneliner_logic(task_id: str, data: dict):
         Exemple : "Officier spécialisé en cyberdéfense avec 10 ans d’expérience dans les environnements critiques, orienté gestion du risque et leadership opérationnel."
         
         CANDIDAT :
-        {json.dumps(data, indent=2, ensure_ascii=False, default=str)}
+        {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
         
         OUTPUT STRICT JSON: {{ "one_liner": "..." }}
         LANGUAGE: {target_lang}
         """
         
-        result = await ai_service.generate_valid_json(prompt, provider="gemini", system_instruction="You are a Personal Branding Expert.")
+        result = await ai_service.generate_valid_json(prompt, provider="gemini", system_instruction="You are a Personal Branding Expert. Output STRICT JSON.")
         
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
@@ -657,7 +631,7 @@ async def _run_risk_analysis_logic(task_id: str, data: dict):
         
         POSTE VISÉ : {data.get('target_role_primary', 'Inconnu')}
         DESCRIPTION : {data.get('job_description', '')}
-        PROFIL : {json.dumps(data, indent=2, ensure_ascii=False, default=str)}
+        PROFIL : {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
         
         OUTPUT STRICT JSON:
         {{
@@ -711,7 +685,7 @@ async def _run_job_decoder_logic(task_id: str, data: dict):
         OUTPUT LANGUAGE: {target_lang}
         """
         
-        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are a Job Market Analyst.")
+        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are a Job Market Analyst. Output STRICT JSON.")
         
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
@@ -744,7 +718,7 @@ async def _run_hidden_market_logic(task_id: str, data: dict):
         {prompt_template}
         
         PROFIL CANDIDAT :
-        {json.dumps(data, indent=2, ensure_ascii=False, default=str)}
+        {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
         
         CIBLE :
         Poste : {data.get('target_job', '')}
@@ -754,7 +728,7 @@ async def _run_hidden_market_logic(task_id: str, data: dict):
         OUTPUT LANGUAGE: {target_lang}
         """
         
-        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are a Networking Strategist.")
+        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are a Networking Strategist. Output STRICT JSON.")
         
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
@@ -794,7 +768,7 @@ async def _run_career_gps_logic(task_id: str, data: dict):
         {prompt_template}
         
         PROFIL DU VOYAGEUR (CANDIDAT) :
-        {json.dumps(data, indent=2, ensure_ascii=False, default=str)}
+        {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
         
         DESTINATION SOUHAITÉE :
         {destination_context}
@@ -802,7 +776,7 @@ async def _run_career_gps_logic(task_id: str, data: dict):
         OUTPUT LANGUAGE: {target_lang}
         """
         
-        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are a Career Navigation System.")
+        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are a Career Navigation System. Output STRICT JSON.")
         
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
@@ -835,12 +809,12 @@ async def _run_reality_check_logic(task_id: str, data: dict):
         {prompt_template}
         
         CANDIDAT :
-        {json.dumps(data, indent=2, ensure_ascii=False, default=str)}
+        {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
         
         OUTPUT LANGUAGE: {target_lang}
         """
         
-        result = await ai_service.generate_valid_json(final_prompt, provider="gemini", system_instruction="You are a Personal Branding Expert.")
+        result = await ai_service.generate_valid_json(final_prompt, provider="gemini", system_instruction="You are a Personal Branding Expert. Output STRICT JSON.")
         
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
@@ -881,7 +855,7 @@ async def _run_profile_validation_logic(task_id: str, data: dict):
         6. Si une phrase est trop informelle, reformule-la.
 
         PROFIL BRUT DU CANDIDAT :
-        {json.dumps(data, indent=2, ensure_ascii=False, default=str)}
+        {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
 
         OUTPUT STRICT JSON:
         {{
@@ -968,7 +942,7 @@ async def process_executive_summary_in_background(task_ids: dict, data: dict):
         Tu es un expert RH de haut niveau. Ta mission est d'analyser ce profil sous 3 angles différents et de renvoyer un JSON unique.
         
         PROFIL CANDIDAT :
-        {json.dumps(data, indent=2, ensure_ascii=False, default=str)}
+        {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
         
         POSTE VISÉ : {target_role}
         
@@ -1002,7 +976,7 @@ async def process_executive_summary_in_background(task_ids: dict, data: dict):
         LANGUAGE: {target_lang}
         """
         
-        result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are an Executive Profiler.")
+        result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are an Executive Profiler. Output STRICT JSON.")
         
         if "error" in result:
             raise Exception(result["error"])
@@ -1066,7 +1040,7 @@ async def process_market_strategy_in_background(task_ids: dict, data: dict):
         Ta mission est d'analyser le poste visé et le profil du candidat sous 3 angles différents, et de renvoyer un JSON unique.
         
         PROFIL CANDIDAT :
-        {json.dumps(data, indent=2, ensure_ascii=False, default=str)}
+        {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
         
         CIBLE :
         Poste : {target_role}
@@ -1104,7 +1078,7 @@ async def process_market_strategy_in_background(task_ids: dict, data: dict):
         LANGUAGE: {target_lang}
         """
         
-        result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are a Strategic Career Advisor.")
+        result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are a Strategic Career Advisor. Output STRICT JSON.")
         
         if "error" in result:
             raise Exception(result["error"])
@@ -1144,13 +1118,8 @@ async def process_action_plan_in_background(task_id: str, cv_dict: dict):
         except:
             prompt_template = "Génère un plan d'action JSON."
             
-        # Nettoyage manuel (RGPD/Poids) pour rendre la tâche autonome
-        safe_data = cv_dict.copy() if isinstance(cv_dict, dict) else {}
-        if 'personal_info' in safe_data and isinstance(safe_data['personal_info'], dict):
-            safe_data['personal_info'] = safe_data['personal_info'].copy()
-            for key in ['email', 'phone', 'address', 'linkedin', 'city']:
-                safe_data['personal_info'].pop(key, None)
-        safe_data.pop('research_data', None)
+        # [FIX EXPERT] Nettoyage strict pour éviter l'effet d'écho (Hallucinations)
+        safe_data = _sanitize_data_for_ai(cv_dict, strict=True)
             
         prompt = f"{prompt_template}\n\nPROFIL:\n{json.dumps(safe_data, ensure_ascii=False, default=str)}\n\nOUTPUT LANGUAGE: {target_lang}"
         
@@ -1185,7 +1154,14 @@ async def process_custom_scenarios_in_background(task_id: str, data: dict):
         
         context_job = f"Poste visé : {target_job}"
         if job_desc and len(job_desc) > 50:
-            context_job += f"\nDESCRIPTION DE L'OFFRE :\n{job_desc}"
+            context_job += f"\nDESCRIPTION DE L'OFFRE :\n{job_desc[:5000]}"
+            
+        # [FIX EXPERT] Whitelist stricte pour empêcher le JSON brut de faire exploser la limite de tokens.
+        clean_data = {
+            "experiences": data.get("experiences", []),
+            "skills": data.get("skills", []),
+            "work_style": data.get("work_style", [])
+        }
             
         final_prompt = f"""
         {prompt_template}
@@ -1194,7 +1170,7 @@ async def process_custom_scenarios_in_background(task_id: str, data: dict):
         {context_job}
         
         PROFIL CANDIDAT :
-        {json.dumps(data, indent=2, ensure_ascii=False, default=str)}
+        {json.dumps(clean_data, indent=2, ensure_ascii=False, default=str)}
         
         OUTPUT LANGUAGE: {target_lang}
         """
@@ -1212,6 +1188,9 @@ async def process_custom_scenarios_in_background(task_id: str, data: dict):
         err = {"error": str(e)}
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", err)
         await manager.broadcast(task_id, "Erreur", status="FAILED", data=err)
+
+# [FIX EXPERT] Set global pour protéger les sous-tâches du Garbage Collector de Python
+_active_orchestrator_tasks = set()
 
 async def orchestrate_dashboard_tasks(tasks_map: dict, cv_dict: dict):
     """
@@ -1245,33 +1224,30 @@ async def orchestrate_dashboard_tasks(tasks_map: dict, cv_dict: dict):
                     except Exception as db_err:
                         print(f"[ORCHESTRATOR DB ERROR] Impossible de MAJ le statut pour {tid}: {db_err}", flush=True)
                         
-        asyncio.create_task(safe_coro())
+        # [FIX EXPERT] Garde une référence forte de la tâche pour éviter sa destruction
+        # silencieuse par le Garbage Collector quand l'orchestrateur a fini de s'exécuter.
+        task = asyncio.create_task(safe_coro())
+        _active_orchestrator_tasks.add(task)
+        task.add_done_callback(_active_orchestrator_tasks.discard)
 
-    if "profile_validation" in tasks_map: fire("profile_validation", process_profile_validation_in_background(tasks_map["profile_validation"], cv_dict))
-    if "cv_analysis" in tasks_map: fire("cv_analysis", process_cv_analysis_in_background(tasks_map["cv_analysis"], cv_dict))
     if "gap_analysis" in tasks_map: fire("gap_analysis", process_gap_analysis_in_background(tasks_map["gap_analysis"], cv_dict))
     
     await asyncio.sleep(0.5) # Micro-délai pour garantir la priorité
 
     if "pitch" in tasks_map: fire("pitch", process_pitch_in_background(tasks_map["pitch"], cv_dict))
-    if "recruiter_view" in tasks_map: fire("recruiter_view", process_recruiter_view_in_background(tasks_map["recruiter_view"], cv_dict))
     if "reality_check" in tasks_map: fire("reality_check", process_reality_check_in_background(tasks_map["reality_check"], cv_dict))
     if "flaw_coaching" in tasks_map: fire("flaw_coaching", process_flaw_coaching_in_background(tasks_map["flaw_coaching"], cv_dict))
     if "custom_scenarios" in tasks_map: fire("custom_scenarios", process_custom_scenarios_in_background(tasks_map["custom_scenarios"], cv_dict))
 
-    await asyncio.sleep(0.5)
+    if "recruiter_view" in tasks_map: fire("recruiter_view", process_recruiter_view_in_background(tasks_map["recruiter_view"], cv_dict))
 
-    if "career_radar" in tasks_map: fire("career_radar", process_career_radar_in_background(tasks_map["career_radar"], cv_dict))
+    await asyncio.sleep(0.5)
     if "questions" in tasks_map: fire("questions", process_questions_in_background(tasks_map["questions"], cv_dict))
 
     await asyncio.sleep(0.5)
 
-    if "career_gps" in tasks_map: fire("career_gps", process_career_gps_in_background(tasks_map["career_gps"], cv_dict))
-    if "one_liner" in tasks_map: fire("one_liner", process_oneliner_in_background(tasks_map["one_liner"], cv_dict))
     if "action_plan" in tasks_map: fire("action_plan", process_action_plan_in_background(tasks_map["action_plan"], cv_dict))
         
-    # TÂCHES FUSIONNÉES : Market Strategy
-    strategy_tasks = {k: tasks_map[k] for k in ["job_decoder", "risk_analysis", "hidden_market"] if k in tasks_map}
-    if strategy_tasks: fire(strategy_tasks, process_market_strategy_in_background(strategy_tasks, cv_dict))
+    if "job_decoder" in tasks_map: fire("job_decoder", process_job_decoder_in_background(tasks_map["job_decoder"], cv_dict))
 
     print("[ORCHESTRATOR] ✅ All tasks queued successfully. Semaphore is handling the flow.", flush=True)

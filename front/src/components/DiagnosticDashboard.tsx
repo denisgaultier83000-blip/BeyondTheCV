@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Target, Star, BarChart, FileDown, AlertTriangle, Sparkles } from 'lucide-react';
+import { Target, Star, BarChart, FileDown, AlertTriangle, Sparkles, Clock } from 'lucide-react';
 import Gauge from './Gauge'; // Import du nouveau composant
 
 interface DiagnosticData {
@@ -11,7 +11,7 @@ interface DiagnosticData {
   strengths?: string[];
   key_strengths: string[];
   skills_to_bridge?: string[];
-  gapsMatrix?: { skill: string, impact: string, action: string }[];
+  gapsMatrix?: { skill: string, impact: string, action: string, estimated_time?: string }[];
   application_strategy?: string[];
   recommendedStrategy?: string;
   analysis_stats: {
@@ -40,18 +40,32 @@ export default function DiagnosticDashboard({ data, candidateName, targetJob, on
   const scoreColorClass = getScoreColorClass(scoreValue);
   const scoreColor = `var(--${scoreColorClass})`;
 
+  // Parseur minimaliste pour interpréter le **gras** (Markdown) renvoyé par l'IA
+  const formatMarkdown = (text: string) => {
+    if (!text) return null;
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i} style={{ color: 'var(--text-main)', fontWeight: 700 }}>{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+  };
+
   const StatCard = ({ icon, title, children }: { icon: React.ReactNode, title: string, children: React.ReactNode }) => (
-    <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)' }}>
+    <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
         {icon}
         <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-main)' }}>{title}</h3>
       </div>
-      {children}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+        {children}
+      </div>
     </div>
   );
 
   return (
-    <div style={{ background: 'var(--bg-secondary)', padding: '2rem', borderRadius: '1rem' }}>
+    <div style={{ background: 'var(--bg-secondary)', padding: 'clamp(1rem, 4vw, 2rem)', borderRadius: '1rem' }}>
       {/* En-tête */}
       <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
         <h1 style={{ fontSize: '2rem', color: 'var(--text-main)', margin: 0 }}>Career Intelligence Report</h1>
@@ -61,7 +75,7 @@ export default function DiagnosticDashboard({ data, candidateName, targetJob, on
       </div>
 
       {/* Grille de diagnostic */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '1.5rem', alignItems: 'stretch' }}>
         
         {/* 1. Score d'adéquation */}
         <StatCard icon={<Target size={24} color={scoreColor} />} title="Score d’adéquation">
@@ -69,7 +83,7 @@ export default function DiagnosticDashboard({ data, candidateName, targetJob, on
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
             <Gauge score={scoreValue} color={scoreColor} />
             </div>
-          <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>{data.summary || data.match_summary || "Analyse IA en cours..."}</p>
+          <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: 1.6 }}>{formatMarkdown(data.summary || data.match_summary) || "Analyse IA en cours..."}</p>
           
           <button onClick={() => onAction("View Gap Analysis")} className="btn-primary" style={{ width: '100%', marginTop: '1rem' }}>
             Explorer l'Analyse des Écarts
@@ -81,8 +95,8 @@ export default function DiagnosticDashboard({ data, candidateName, targetJob, on
         <StatCard icon={<Star size={24} color="var(--warning)" />} title="Vos 3 forces clés">
           <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {(data.strengths?.length ? data.strengths : data.key_strengths || []).map((strength, i) => (
-              <li key={i} style={{ background: 'var(--success-bg)', padding: '0.75rem', borderRadius: '0.5rem', color: 'var(--success-text)', fontWeight: 500, border: '1px solid var(--success-border)' }}>
-                {strength}
+              <li key={i} style={{ background: 'var(--success-bg)', padding: '0.75rem', borderRadius: '0.5rem', color: 'var(--success-text)', fontWeight: 500, border: '1px solid var(--success-border)', lineHeight: 1.5 }}>
+                {formatMarkdown(strength)}
               </li>
             ))}
             {!(data.strengths?.length) && !(data.key_strengths?.length) && <span style={{ color: 'var(--text-muted)' }}>Aucune force détectée.</span>}
@@ -93,9 +107,14 @@ export default function DiagnosticDashboard({ data, candidateName, targetJob, on
         <StatCard icon={<AlertTriangle size={24} color="var(--danger)" />} title="Compétences à combler">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {(data.gapsMatrix?.length ? data.gapsMatrix : (data.skills_to_bridge || []).map(s => ({ skill: s, action: '' }))).slice(0, 3).map((gap: any, i) => (
-              <div key={i} style={{ background: 'var(--danger-bg)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--danger-border)' }}>
-                <strong style={{ color: 'var(--danger-text)' }}>{gap.skill || gap}</strong>
-                {gap.action && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{gap.action}</div>}
+              <div key={i} style={{ background: 'var(--danger-bg)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--danger-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+                <div>
+                  <strong style={{ color: 'var(--danger-text)', display: 'block', lineHeight: 1.4 }}>{formatMarkdown(gap.skill || gap)}</strong>
+                  {gap.action && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem', lineHeight: 1.5 }}>{formatMarkdown(gap.action)}</div>}
+                </div>
+                {gap.estimated_time && (
+                  <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: 'var(--bg-card)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '1rem', color: 'var(--danger-text)', display: 'flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap', fontWeight: 600 }}><Clock size={12} /> {gap.estimated_time}</span>
+                )}
               </div>
             ))}
             {(!data.gapsMatrix?.length && !data.skills_to_bridge?.length) && <span style={{ color: 'var(--text-muted)' }}>Aucun écart majeur détecté.</span>}
@@ -106,11 +125,11 @@ export default function DiagnosticDashboard({ data, candidateName, targetJob, on
         {/* 4. Stratégie de candidature */}
         <StatCard icon={<BarChart size={24} color="var(--primary)" />} title="Stratégie de candidature">
           {data.recommendedStrategy ? (
-            <p style={{ color: 'var(--text-muted)', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{data.recommendedStrategy}</p>
+            <p style={{ color: 'var(--text-muted)', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{formatMarkdown(data.recommendedStrategy)}</p>
           ) : (
             <ul style={{ margin: 0, padding: '0 0 0 1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {(data.application_strategy || []).map((strat, i) => (
-                <li key={i} style={{ color: 'var(--text-muted)' }}>{strat}</li>
+                <li key={i} style={{ color: 'var(--text-muted)', lineHeight: 1.5 }}>{formatMarkdown(strat)}</li>
               ))}
             </ul>
           )}

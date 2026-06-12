@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, X, Target, CheckCircle, Lightbulb } from 'lucide-react';
+import { AlertTriangle, X, Target, CheckCircle, Lightbulb, Clock } from 'lucide-react';
 import Gauge from './Gauge';
 import { FeedbackWidget } from './FeedbackWidget';
 
@@ -20,7 +20,8 @@ export const GapAnalysisFull = ({ data, loading, onBack }: { data: any, loading?
   };
 
   const scoreColor = getScoreColor(match_score);
-  const renderItem = (item: any) => typeof item === 'string' ? item : item?.skill || item?.name || item?.description || item?.action || JSON.stringify(item);
+  const renderText = (item: any) => typeof item === 'string' ? item : item?.skill || item?.name || item?.description || item?.action || JSON.stringify(item);
+  const renderTime = (item: any) => typeof item === 'object' ? item?.estimated_time || item?.time_to_bridge || item?.time : null;
 
   return (
     <>
@@ -44,7 +45,12 @@ export const GapAnalysisFull = ({ data, loading, onBack }: { data: any, loading?
           <div style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--primary)', margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Target size={20} /> Ce qui est attendu pour le poste</h3>
             <ul style={{ listStyleType: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {key_needs_from_job.map((item: any, i: number) => <li key={i} style={{ display: 'flex', gap: '0.5rem', color: 'var(--text-main)' }}><span style={{color: 'var(--primary)'}}>•</span> {renderItem(item)}</li>)}
+              {key_needs_from_job.map((item: any, i: number) => (
+                <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', color: 'var(--text-main)' }}>
+                  <span style={{color: 'var(--primary)', marginTop: '2px'}}>•</span> 
+                  <span style={{flex: 1}}>{renderText(item)}</span>
+                </li>
+              ))}
             </ul>
           </div>
         )}
@@ -53,7 +59,12 @@ export const GapAnalysisFull = ({ data, loading, onBack }: { data: any, loading?
           <div style={{ background: 'rgba(34, 197, 94, 0.05)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--success)', margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle size={20} /> Vos compétences en adéquation</h3>
             <ul style={{ listStyleType: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {matching_skills.map((item: any, i: number) => <li key={i} style={{ display: 'flex', gap: '0.5rem', color: 'var(--text-main)' }}><span style={{color: 'var(--success)'}}>✓</span> {renderItem(item)}</li>)}
+              {matching_skills.map((item: any, i: number) => (
+                <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', color: 'var(--text-main)' }}>
+                  <span style={{color: 'var(--success)', marginTop: '2px'}}>✓</span> 
+                  <span style={{flex: 1}}>{renderText(item)}</span>
+                </li>
+              ))}
             </ul>
           </div>
         )}
@@ -62,7 +73,16 @@ export const GapAnalysisFull = ({ data, loading, onBack }: { data: any, loading?
           <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--danger-text)', margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><AlertTriangle size={20} /> Écarts & Compétences manquantes</h3>
             <ul style={{ listStyleType: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {missing_gaps.map((item: any, i: number) => <li key={i} style={{ display: 'flex', gap: '0.5rem', color: 'var(--text-main)' }}><span style={{color: 'var(--danger-text)'}}>•</span> {renderItem(item)}</li>)}
+              {missing_gaps.map((item: any, i: number) => {
+                const time = renderTime(item);
+                return (
+                  <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', color: 'var(--text-main)' }}>
+                    <span style={{color: 'var(--danger-text)', marginTop: '2px'}}>•</span> 
+                    <span style={{flex: 1}}>{renderText(item)}</span>
+                    {time && <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: 'var(--bg-card)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '1rem', color: 'var(--danger-text)', display: 'flex', alignItems: 'center', gap: '0.3rem', whiteSpace: 'nowrap', fontWeight: 600 }}><Clock size={12} /> {time}</span>}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
@@ -71,7 +91,16 @@ export const GapAnalysisFull = ({ data, loading, onBack }: { data: any, loading?
           <div style={{ background: 'rgba(139, 92, 246, 0.05)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#8b5cf6', margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Lightbulb size={20} /> Actions Recommandées</h3>
             <ul style={{ listStyleType: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {recommended_adjustments.map((item: any, i: number) => <li key={i} style={{ display: 'flex', gap: '0.5rem', color: 'var(--text-main)' }}><span style={{color: '#8b5cf6'}}>➜</span> {renderItem(item)}</li>)}
+              {recommended_adjustments.map((item: any, i: number) => {
+                const time = renderTime(item);
+                return (
+                  <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', color: 'var(--text-main)' }}>
+                    <span style={{color: '#8b5cf6', marginTop: '2px'}}>➜</span> 
+                    <span style={{flex: 1}}>{renderText(item)}</span>
+                    {time && <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: 'var(--bg-card)', border: '1px solid rgba(139, 92, 246, 0.2)', borderRadius: '1rem', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.3rem', whiteSpace: 'nowrap', fontWeight: 600 }}><Clock size={12} /> {time}</span>}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}

@@ -1,19 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Printer, Trash2, Download, Eye, Briefcase, Calendar, CheckCircle2, ArrowLeft, Loader2, Building, Target, Mic, LineChart, MessageSquare } from 'lucide-react';
+import { FileText, Printer, Trash2, Download, Eye, Briefcase, Calendar, CheckCircle2, ArrowLeft, Loader2, Building, Target, Mic, LineChart, MessageSquare, AlertTriangle, Zap, UserCheck, Monitor, HeartPulse } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
+import { TrainingPlanTimeline } from './TrainingPlanTimeline';
 
 interface ApplicationDossierProps {
   appId: string;
   onBack: () => void;
   onOpenDeliverable: (type: string, data: any) => void;
+  onGoToTraining?: () => void; // Prop optionnelle pour basculer d'onglet
 }
 
-export function ApplicationDossier({ appId, onBack, onOpenDeliverable }: ApplicationDossierProps) {
+export function ApplicationDossier({ appId, onBack, onOpenDeliverable, onGoToTraining }: ApplicationDossierProps) {
   const [loading, setLoading] = useState(true);
   const [appData, setAppData] = useState<any>(null);
   const [deliverablesData, setDeliverablesData] = useState<any>({});
   const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadDossier = async () => {
@@ -26,8 +29,7 @@ export function ApplicationDossier({ appId, onBack, onOpenDeliverable }: Applica
         setDeliverablesData(json.data);
       } catch (err) {
         console.error(err);
-        alert("Impossible de charger ce dossier.");
-        onBack();
+      setError("Impossible de charger le contenu de ce dossier.");
       } finally {
         setLoading(false);
       }
@@ -40,6 +42,7 @@ export function ApplicationDossier({ appId, onBack, onOpenDeliverable }: Applica
     if (!window.confirm("Êtes-vous sûr de vouloir supprimer définitivement ce dossier et toutes ses analyses ?")) return;
     
     setIsDeleting(true);
+    setError(null);
     try {
       const response = await authenticatedFetch(`${API_BASE_URL}/api/applications/${appId}`, {
         method: 'DELETE'
@@ -48,7 +51,7 @@ export function ApplicationDossier({ appId, onBack, onOpenDeliverable }: Applica
       onBack();
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de la suppression.");
+      setError("Erreur lors de la suppression de la candidature.");
       setIsDeleting(false);
     }
   };
@@ -68,7 +71,29 @@ export function ApplicationDossier({ appId, onBack, onOpenDeliverable }: Applica
     );
   }
 
+  if (error && !appData) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem' }}>
+        <AlertTriangle size={48} color="var(--danger-text)" style={{ marginBottom: '1rem' }} />
+        <p style={{ color: 'var(--danger-text)', marginBottom: '2rem', fontSize: '1.1rem' }}>{error}</p>
+        <button onClick={onBack} className="btn-secondary">Retour à mes dossiers</button>
+      </div>
+    );
+  }
+
   if (!appData) return null;
+
+  // --- EXTRACTION DU CONTEXTE (META) ---
+  const meta = deliverablesData.form?.meta || deliverablesData.meta || {};
+  const interviewTypeLabels: Record<string, string> = { rh: 'Ressources Humaines', manager: 'Manager / Opérationnel', tech: 'Équipe Technique', final: 'Direction (Final)' };
+  const formatLabels: Record<string, string> = { visio: 'Visioconférence', phone: 'Téléphone', onsite: 'En Présentiel' };
+  const stressLabels: Record<string, string> = { low: 'Confiant', medium: 'Stress Modéré', high: 'Stress Élevé' };
+
+  // --- EXTRACTION DES KPI ---
+  const matchScore = deliverablesData.gapResult?.match_score || deliverablesData.gapResult?.score_adequation || 0;
+  const missingGapsCount = deliverablesData.gapResult?.missing_gaps?.length || deliverablesData.gapResult?.lacunes?.length || 0;
+  const questionsCount = deliverablesData.questionsResult?.questions?.length || 0;
+  const hasStrategyAdvice = !!deliverablesData.actionPlanResult?.strategy_advice;
 
   // Mapping dynamique des livrables selon les JSON disponibles dans `deliverablesData`
   const availableDeliverables = [
@@ -111,10 +136,25 @@ export function ApplicationDossier({ appId, onBack, onOpenDeliverable }: Applica
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '2rem 1rem', animation: 'fadeIn 0.3s ease-out' }}>
+      <style>{`
+        @media print {
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+        }
+      `}</style>
       
       <button onClick={onBack} className="btn-ghost" style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         <ArrowLeft size={18} /> Retour à mes dossiers
       </button>
+
+    {error && (
+      <div style={{ background: 'rgba(239, 68, 68, 0.05)', color: 'var(--danger-text)', padding: '1rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.2)', marginBottom: '2rem' }}>
+        <AlertTriangle size={18} /> {error}
+      </div>
+    )}
 
       {/* --- VUE SYNTHÈSE DU DOSSIER --- */}
       <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginBottom: '2rem', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)' }}>
@@ -153,9 +193,16 @@ export function ApplicationDossier({ appId, onBack, onOpenDeliverable }: Applica
         </button>
       </div>
 
-      {/* --- LISTE DES LIVRABLES --- */}
-      <h3 style={{ fontSize: '1.25rem', color: 'var(--text-main)', marginBottom: '1.5rem', borderBottom: '2px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-        Livrables disponibles ({availableDeliverables.length})
+      {/* --- TIMELINE D'ENTRAÎNEMENT (Si disponible) --- */}
+      {deliverablesData.actionPlanResult?.training_plan && (
+        <div style={{ marginBottom: '3rem', animation: 'fadeIn 0.5s ease-out' }}>
+          <TrainingPlanTimeline plan={deliverablesData.actionPlanResult.training_plan} />
+        </div>
+      )}
+
+      {/* --- RESSOURCES ET RAPPORTS --- */}
+      <h3 style={{ fontSize: '1.25rem', color: 'var(--text-main)', marginBottom: '1.5rem', borderBottom: '2px solid var(--border-color)', paddingBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <FileText size={20} /> Base de données de l'Entretien
       </h3>
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -184,7 +231,7 @@ export function ApplicationDossier({ appId, onBack, onOpenDeliverable }: Applica
               </div>
             </div>
             
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <div className="no-print" style={{ display: 'flex', gap: '0.5rem' }}>
               <button 
                 onClick={() => onOpenDeliverable(item.id, item.data)}
                 className="btn-secondary" 

@@ -6,6 +6,7 @@ import ScoreGauge from './ScoreGauge';
 import { useDashboard } from './DashboardContext'; // [NEW] Importer le hook
 import { useTranslation } from 'react-i18next';
 import scenariosData from './scenarios.json';
+import { RechargeModal } from './RechargeModal';
 
 // --- TYPES ---
 
@@ -60,6 +61,8 @@ export function SituationSimulator() {
   const [isGeneratingMore, setIsGeneratingMore] = useState(false);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showRechargeModal, setShowRechargeModal] = useState(false);
   const recognitionRef = useRef<any>(null);
 
   // État local initialisé avec les données du contexte (évite la perte de couleur au changement d'onglet)
@@ -89,6 +92,7 @@ export function SituationSimulator() {
     setMode(null);
     setUserAnswer("");
     setAiFeedback(null);
+    setError(null);
     setShowPassiveModel(false);
   };
 
@@ -178,6 +182,7 @@ export function SituationSimulator() {
     
     setIsSubmitting(true);
     setAiFeedback(null);
+    setError(null);
 
     try {
       // Appel API Réel
@@ -192,7 +197,12 @@ export function SituationSimulator() {
         }),
       });
 
-      if (!response.ok) throw new Error("API call failed");
+      if (!response.ok) {
+        if (response.status === 402) setShowRechargeModal(true);
+        let errMsg = "Erreur de communication avec le serveur.";
+        try { const errObj = await response.json(); errMsg = errObj.detail || errMsg; } catch(e) {}
+        throw new Error(errMsg);
+      }
       const data = await response.json();
       setAiFeedback(data.feedback);
       const scId = selectedScenario.id || selectedScenario.title;
@@ -203,10 +213,9 @@ export function SituationSimulator() {
       if (updateFormData) {
         updateFormData("simulatorScores", { ...localScores, [scId]: Number(data.feedback.score) });
       }
-    } catch (error) {
-      console.error("Erreur lors de l'analyse IA :", error);
-      // Le mock a été supprimé pour ne plus écraser la vraie note (ex: 4/10) en cas d'erreur de rendu.
-      alert(t('sim_api_error', "Une erreur de communication avec le serveur est survenue."));
+    } catch (err: any) {
+      console.error("Erreur lors de l'analyse IA :", err);
+      setError(err.message || t('sim_api_error', "Une erreur de communication avec l'IA est survenue."));
     } finally {
       setIsSubmitting(false);
     }
@@ -214,14 +223,37 @@ export function SituationSimulator() {
 
   const handleGenerateMore = async () => {
     setIsGeneratingMore(true);
+    setError(null);
     try {
-      // Point d'accroche pour la future route de regénération
-      // await authenticatedFetch(`${API_BASE_URL}/api/cv/generate-extra-scenarios`, { method: 'POST', ... });
-      setTimeout(() => {
-        alert(t('sim_wip_feature', "Fonctionnalité en cours de raccordement. L'IA générera bientôt de nouveaux cas à la volée !"));
-        setIsGeneratingMore(false);
-      }, 1000);
-    } catch (e) {
+      // 1. Purge du cache existant pour forcer l'IA à inventer de NOUVEAUX scénarios inédits
+      await authenticatedFetch(`${API_BASE_URL}/api/cv/cache?content_type=extra_scenarios`, { method: 'DELETE' });
+      
+      // 2. Génération des nouveaux cas
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/generate-extra-scenarios`, { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cvData)
+      });
+      
+      if (!response.ok) {
+        if (response.status === 402) setShowRechargeModal(true);
+        let errMsg = "Impossible de générer de nouveaux scénarios.";
+        try { const errObj = await response.json(); errMsg = errObj.detail || errMsg; } catch(err) {}
+        throw new Error(errMsg);
+      }
+      
+      const newScenarios = await response.json();
+      if (newScenarios.categories && newScenarios.categories.length > 0) {
+        // Remplacement par les nouveaux scénarios générés par l'IA
+        setScenarios(newScenarios.categories);
+        if (updateFormData) {
+          updateFormData("customScenariosResult", newScenarios);
+        }
+      }
+    } catch (e: any) {
+      console.error(e);
+      setError(e.message || "Erreur lors de la génération de nouveaux cas.");
+    } finally {
       setIsGeneratingMore(false);
     }
   };
@@ -239,6 +271,7 @@ export function SituationSimulator() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', animation: 'fadeIn 0.3s ease-out' }}>
+
       {/* --- VUE LISTE TOUJOURS VISIBLE --- */}
       {scenarios.map((category, index) => {
         const mastered = isCategoryMastered(category);
@@ -427,6 +460,13 @@ export function SituationSimulator() {
                     </button>
                   </div>
                   
+                  {/* AFFICHER L'ERREUR GRACIEUSE */}
+                  {error && (
+                    <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.2)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--danger-text)' }}>
+                      <AlertTriangle size={18} /> {error}
+                    </div>
+                  )}
+
                   <textarea 
                     value={userAnswer}
                     onChange={e => setUserAnswer(e.target.value)}

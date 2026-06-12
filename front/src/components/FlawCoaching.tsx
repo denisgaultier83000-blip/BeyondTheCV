@@ -31,18 +31,31 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
 
   // Helper pour styliser l'impact du défaut
   const getImpactConfig = (level: string) => {
-    switch(level?.toLowerCase()) {
-      case 'high': return { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)', border: 'rgba(239, 68, 68, 0.2)', label: t('flaw_risk_critical', 'Risque Critique pour ce poste'), icon: <AlertTriangle size={14}/> };
-      case 'medium': return { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', border: 'rgba(245, 158, 11, 0.2)', label: t('flaw_risk_moderate', 'Point de vigilance modéré'), icon: <AlertCircle size={14}/> };
-      case 'low': return { color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', border: 'rgba(16, 185, 129, 0.2)', label: t('flaw_risk_acceptable', 'Risque Faible / Acceptable'), icon: <Info size={14}/> };
-      default: return { color: 'var(--text-muted)', bg: 'var(--bg-secondary)', border: 'var(--border-color)', label: t('flaw_risk_watch', 'Impact à surveiller'), icon: <Info size={14}/> };
+    const l = level?.toLowerCase() || '';
+    if (l.includes('p1') || l.includes('high') || l.includes('critique')) {
+      return { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)', border: 'rgba(239, 68, 68, 0.2)', label: t('flaw_risk_critical', 'Risque Critique pour ce poste'), icon: <AlertTriangle size={14}/> };
     }
+    if (l.includes('p2') || l.includes('medium') || l.includes('vigilance')) {
+      return { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', border: 'rgba(245, 158, 11, 0.2)', label: t('flaw_risk_moderate', 'Point de vigilance modéré'), icon: <AlertCircle size={14}/> };
+    }
+    if (l.includes('p3') || l.includes('low') || l.includes('mineur')) {
+      return { color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', border: 'rgba(16, 185, 129, 0.2)', label: t('flaw_risk_acceptable', 'Risque Faible / Acceptable'), icon: <Info size={14}/> };
+    }
+    return { color: 'var(--text-muted)', bg: 'var(--bg-secondary)', border: 'var(--border-color)', label: t('flaw_risk_watch', 'Impact à surveiller'), icon: <Info size={14}/> };
   };
 
+  const getLevel = (item: any) => item.impact_level || item.impact || item.severity || item.niveau || item.risk_level || '';
+
   // Calcul des statistiques de risque global
-  const highRiskCount = coachingList.filter((item: any) => item.impact_level?.toLowerCase() === 'high').length;
-  const mediumRiskCount = coachingList.filter((item: any) => item.impact_level?.toLowerCase() === 'medium').length;
-  const lowRiskCount = coachingList.filter((item: any) => item.impact_level?.toLowerCase() === 'low').length;
+  const highRiskCount = coachingList.filter((item: any) => {
+    return getLevel(item).toLowerCase().match(/p1|high|critique/);
+  }).length;
+  const mediumRiskCount = coachingList.filter((item: any) => {
+    return getLevel(item).toLowerCase().match(/p2|medium|vigilance/);
+  }).length;
+  const lowRiskCount = coachingList.filter((item: any) => {
+    return getLevel(item).toLowerCase().match(/p3|low|mineur/);
+  }).length;
   const totalWithImpact = highRiskCount + mediumRiskCount + lowRiskCount;
 
   let globalRiskLabel = "En attente";
@@ -107,14 +120,15 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
             {coachingList.map((item: any, idx: number) => {
-              const impact = getImpactConfig(item.impact_level);
+              const level = getLevel(item);
+              const impact = getImpactConfig(level);
               return (
-              <div key={idx} style={{ background: 'var(--bg-card)', borderRadius: '16px', padding: '1.5rem', border: `1px solid ${item.impact_level ? impact.border : 'var(--border-color)'}`, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+              <div key={idx} style={{ background: 'var(--bg-card)', borderRadius: '16px', padding: '1.5rem', border: `1px solid ${level ? impact.border : 'var(--border-color)'}`, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
                   <h3 style={{ margin: 0, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem' }}>
                     <AlertTriangle size={22} color={impact.color} /> {item.flaw || item.defaut || item.name || t('flaw_addressed', "Défaut abordé")}
                   </h3>
-                  {item.impact_level && (
+                  {level && (
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: impact.bg, color: impact.color, border: `1px solid ${impact.border}`, padding: '0.25rem 0.75rem', borderRadius: '2rem', fontSize: '0.85rem', fontWeight: 600 }}>
                       {impact.icon} {impact.label}
                     </span>
