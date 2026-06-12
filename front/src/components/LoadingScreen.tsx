@@ -54,7 +54,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ tasks = {}, taskSt
     { key: 'pitch', label: 'Génération du pitch stratégique', icon: <Mic size={18} /> },
     { key: 'questions', label: 'Création du questionnaire personnalisé', icon: <MessageSquare size={18} /> },
     { key: 'flaw_coaching', label: 'Préparation des parades aux défauts', icon: <Shield size={18} /> },
-    { key: 'action_plan', label: 'Élaboration du plan de bataille', icon: <FileText size={18} /> },
+    { key: 'action_plan', label: 'Élaboration du plan d\'action', icon: <FileText size={18} /> },
     { key: 'salary_estimation', label: 'Estimation de la fourchette salariale', icon: <DollarSign size={18} /> },
   ];
 

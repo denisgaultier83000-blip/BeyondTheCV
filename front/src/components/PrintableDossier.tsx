@@ -497,7 +497,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
           
           {actionPlanResult?.action_plan && (
             <div className="print-box-orange avoid-break">
-              <h3 style={{ color: '#d97706', margin: '0 0 1rem 0', marginTop: 0 }}>⚡ Actions Commando (Immédiates)</h3>
+              <h3 style={{ color: '#d97706', margin: '0 0 1rem 0', marginTop: 0 }}>⚡ Actions Prioritaires (Immédiates)</h3>
               {actionPlanResult.action_plan.map((step: any, i: number) => (
                 <div key={i} style={{ marginBottom: '1.5rem' }}>
                   <h4 style={{ color: '#92400e', margin: '0 0 0.25rem 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

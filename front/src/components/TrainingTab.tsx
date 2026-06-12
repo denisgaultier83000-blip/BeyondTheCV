@@ -343,7 +343,7 @@ export default function TrainingTab() {
               <Award size={18} /> Conseil du Coach
             </div>
             <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
-              Votre tableau de chasse consolide désormais tous vos entraînements (Pitch, Mises en situation, Négociation de salaire). Identifiez vos points faibles et ciblez vos prochaines sessions sur ces thématiques pour équilibrer votre profil avant l'entretien !
+            Votre tableau de bord consolide désormais tous vos entraînements (Pitch, Mises en situation, Négociation de salaire). Identifiez vos points faibles et ciblez vos prochaines sessions sur ces thématiques pour équilibrer votre profil avant l'entretien !
             </p>
           </div>
         </div>

@@ -172,7 +172,7 @@ export const InterviewContextForm: React.FC<Props> = ({ data, onChange, errors }
             <option value="" disabled>{t('select')}</option>
             <option value="supportive">Bienveillant & Rassurant</option>
             <option value="demanding">Exigeant & Direct</option>
-            <option value="commando">Commando (Sans filtre, intense)</option>
+            <option value="commando">Intense (Sans filtre, direct)</option>
           </select>
         </div>
 

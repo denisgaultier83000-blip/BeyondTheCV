@@ -141,7 +141,7 @@ export const CockpitTab: React.FC<CockpitProps> = ({
         {/* Jauge de Préparation Globale */}
         <div style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', marginBottom: '1.5rem', border: '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '0.85rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Niveau de Préparation au Combat</span>
+            <span style={{ fontSize: '0.85rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Niveau de Préparation</span>
             <span style={{ fontWeight: 800, color: readinessColor, fontSize: '1.1rem' }}>{progressPercentage}%</span>
           </div>
           <div style={{ width: '100%', height: '8px', background: 'var(--border-color)', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.5rem' }}>
@@ -178,7 +178,7 @@ export const CockpitTab: React.FC<CockpitProps> = ({
             <div>
               <h3 style={{ fontSize: '1.1rem', margin: '0 0 0.25rem 0', fontWeight: 800, color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 <Flame size={20} />
-                Actions Commando
+                Actions Prioritaires
               </h3>
               <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', margin: 0 }}>À faire immédiatement pour sécuriser la logistique.</p>
             </div>
