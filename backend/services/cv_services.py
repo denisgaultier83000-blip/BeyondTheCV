@@ -1,10 +1,11 @@
 import os
 import uuid
 import json
+import io
 import asyncio
 import re
 from datetime import datetime, timezone
-from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks, Body, Depends, Query
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks, Body, Depends, Query
 from fastapi.responses import JSONResponse, FileResponse
 from starlette.background import BackgroundTask
 from pypdf import PdfReader
@@ -1003,6 +1004,102 @@ async def parse_linkedin_pdf(file: UploadFile = File(...), current_user: dict = 
         return parsed_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'analyse du PDF : {str(e)}")
+
+@router.post("/parse-cv")
+async def parse_cv_upload(
+    file: UploadFile = File(None),
+    raw_text: str = Form(None),
+    current_user: dict = Depends(require_active_subscription)
+):
+    """
+    Extrait le texte d'un CV (PDF, DOCX ou copié-collé) et renvoie les données 
+    structurées via l'IA pour pré-remplir le formulaire d'inscription.
+    """
+    text_content = ""
+    
+    # 1. Extraction du texte selon la source
+    if file:
+        # 🛡️ Protection 1 : Limite de taille en RAM (ex: 5 Mo)
+        MAX_FILE_SIZE = 5 * 1024 * 1024
+        if getattr(file, "size", 0) > MAX_FILE_SIZE:
+            raise HTTPException(status_code=413, detail="Le fichier est trop volumineux (limite : 5 Mo).")
+            
+        # 🛡️ Protection 2 : Type MIME réel (Anti-spoofing)
+        valid_mimes = ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]
+        if file.content_type and file.content_type not in valid_mimes:
+            raise HTTPException(status_code=415, detail="Fichier corrompu ou type non supporté (Un vrai PDF ou DOCX est attendu).")
+
+        file_content = await file.read()
+        filename = file.filename.lower()
+        
+        if filename.endswith(".pdf"):
+            try:
+                pdf_reader = PdfReader(io.BytesIO(file_content))
+                
+                # 🛡️ Protection 3 : PDF protégés par mot de passe
+                if pdf_reader.is_encrypted:
+                    raise HTTPException(status_code=400, detail="Ce PDF est protégé par un mot de passe. Veuillez utiliser un document non verrouillé.")
+                    
+                for page in pdf_reader.pages:
+                    extracted = page.extract_text()
+                    if extracted:
+                        text_content += extracted + "\n"
+            except HTTPException:
+                raise # Laisse passer nos propres erreurs HTTP
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Erreur de lecture du PDF : {e}")
+                
+        elif filename.endswith(".docx"):
+            try:
+                import docx
+                doc = docx.Document(io.BytesIO(file_content))
+                for para in doc.paragraphs:
+                    text_content += para.text + "\n"
+            except ImportError:
+                raise HTTPException(status_code=500, detail="La librairie python-docx n'est pas installée. Veuillez lancer : pip install python-docx")
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Erreur de lecture du fichier DOCX : {e}")
+        else:
+            raise HTTPException(status_code=400, detail="Format de fichier non supporté. Veuillez utiliser un PDF ou un DOCX.")
+            
+    elif raw_text:
+        text_content = raw_text
+    else:
+        raise HTTPException(status_code=400, detail="Veuillez fournir un fichier (PDF/DOCX) ou du texte brut.")
+
+    if not text_content.strip():
+        raise HTTPException(
+            status_code=400, 
+            detail="Aucun texte n'a pu être lu dans ce document. S'il s'agit d'un CV scanné (format image), veuillez utiliser l'option Copier-Coller."
+        )
+
+    # 2. Appel au service IA pour structurer la donnée
+    try:
+        # Sécurité : Tronquer à ~30 000 caractères pour éviter l'abus de tokens / engorgement IA
+        max_chars = 30000
+        if len(text_content) > max_chars:
+            text_content = text_content[:max_chars]
+
+        prompt_template = load_prompt(get_prompt_path("cv_parser.md"))
+        
+        final_prompt = f"{prompt_template}\n\nVOICI LE TEXTE BRUT DU CV À ANALYSER :\n{text_content}"
+        
+        parsed_data = await ai_service.generate_valid_json(
+            final_prompt, 
+            provider="gemini", # On utilise Gemini pour le parsing car sa fenêtre de contexte longue et sa rapidité excellent dans ce domaine.
+            system_instruction="You are an ATS CV Parser. Output STRICT JSON."
+        )
+        
+        # Intercepter les erreurs de l'IA (ex: Filtre de sécurité, timeout)
+        if isinstance(parsed_data, dict) and "error" in parsed_data:
+            raise HTTPException(status_code=400, detail=f"L'IA n'a pas pu analyser ce document : {parsed_data['error']}")
+            
+        return parsed_data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur lors de l'analyse IA : {str(e)}")
 
 @router.post("/start")
 async def start_cv_generation(background_tasks: BackgroundTasks, data: dict = Body(...), current_user: dict = Depends(require_active_subscription)):

@@ -14,7 +14,6 @@ import FlawCoaching from './FlawCoaching';
 import TrainingTab from './TrainingTab';
 import { PrintableDossier } from './PrintableDossier';
 import { TrainingPlanTimeline } from './TrainingPlanTimeline';
-import { CockpitTab } from './CockpitTab';
 
 interface DeliverableItem {
   name: string;
@@ -33,11 +32,11 @@ export const DashboardView = () => {
     researchResult, salaryResult, setCurrentStep,
     jobDecoderResult, recruiterResult, realityResult, flawCoachingResult,
     globalStatus, triggerResearch,
-    pitchResult, questionsResult, gapResult, actionPlanResult, customScenariosResult
+    pitchResult, questionsResult, gapResult, customScenariosResult
   } = useDashboard();
 
   // --- GESTION DES NOTIFICATIONS ---
-  const [viewedTabs, setViewedTabs] = useState<string[]>(['cockpit']);
+  const [viewedTabs, setViewedTabs] = useState<string[]>(['overview']);
   const [showBackToTop, setShowBackToTop] = useState(false);
   
   // --- GESTION DE L'IMPRESSION ---
@@ -193,8 +192,7 @@ export const DashboardView = () => {
       disabled: !hasJobDesc || (isCommando && !jobDecoderResult),
       disabledReason: !hasJobDesc ? t('card_decoder_disabled', "Annonce non renseignée. Ajoutez l'annonce dans votre profil pour l'analyser.") : (isCommando ? commandoReason : undefined)
     },
-    { name: t('deliv_recruiter', "Vue Recruteur"), tab: "overview", anchor: "recruiter_section", data: recruiterResult, icon: <Eye size={18}/>, disabled: isCommando && !recruiterResult, disabledReason: isCommando ? commandoReason : undefined },
-    { name: t('cockpit_title', "Cockpit Stratégique"), tab: "cockpit", anchor: "cockpit_section", data: actionPlanResult, icon: <Target size={18}/> }
+    { name: t('deliv_recruiter', "Vue Recruteur"), tab: "overview", anchor: "recruiter_section", data: recruiterResult, icon: <Eye size={18}/>, disabled: isCommando && !recruiterResult, disabledReason: isCommando ? commandoReason : undefined }
   ];
 
   // Calcul des pastilles par onglet
@@ -205,11 +203,10 @@ export const DashboardView = () => {
 
   const interviewUnseen = hasUnseen('interview', [pitchResult, questionsResult, flawCoachingResult]);
   const marketUnseen = hasUnseen('market', [gapResult, researchResult, jobDecoderResult]);
-  const cockpitUnseen = hasUnseen('cockpit', [actionPlanResult]);
 
   // [FIX CRITIQUE] On force le chargement du résumé si les données sont absentes pour briser la boucle de crash
   useEffect(() => {
-    if ((activeTab === 'overview' || activeTab === 'cockpit') && !pilotData && !pilotError && typeof fetchPilotData === 'function') {
+    if (activeTab === 'overview' && !pilotData && !pilotError && typeof fetchPilotData === 'function') {
       fetchPilotData();
     }
   }, [activeTab, pilotData, pilotError, fetchPilotData]);
@@ -222,9 +219,6 @@ export const DashboardView = () => {
       {/* GROUPE NAVIGATION : Onglets + Sous-menus collés */}
       <div style={{ display: 'flex', flexDirection: 'column' }}>
       <div className={`tabs-navigation ${subMenus[activeTab] ? 'has-sub' : ''}`}>
-        <button className={`tab-btn ${activeTab === 'cockpit' ? 'active' : ''}`} onClick={() => handleTabChange('cockpit')} style={{ position: 'relative' }}>
-          <Target size={18} /> {t('cockpit_title', "Cockpit Stratégique")} {cockpitUnseen && <span className="notification-dot"></span>}
-        </button>
         <button className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => handleTabChange('overview')}>
           <Activity size={18} /> {t('tab_overview', "Vue d'ensemble")}
         </button>
@@ -356,21 +350,6 @@ export const DashboardView = () => {
             </div>
         )}
         
-        {activeTab === 'cockpit' && (
-           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }} id="cockpit_section">
-             {actionPlanResult ? (
-               <CockpitTab 
-                 actionPlanData={actionPlanResult}
-                 interviewDate={meta.interview_date || "Non définie"}
-                 interviewFormat={meta.interview_format ? (formatLabels[meta.interview_format as string] || meta.interview_format) : "Non défini"}
-                 interviewTarget={meta.interview_type ? (interviewTypeLabels[meta.interview_type as string] || meta.interview_type) : "Non défini"}
-               />
-             ) : (
-               <div className="bento-card skeleton-pulse" style={{ minHeight: '400px' }}></div>
-             )}
-           </div>
-        )}
-
         {activeTab === 'interview' && (
            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
              <InterviewTab />

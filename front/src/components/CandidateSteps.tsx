@@ -45,9 +45,12 @@ const COUNTRIES = [
   { code: "AE", name: "United Arab Emirates" }
 ];
 
-export const StepImport = ({ onUpload, loading, lang = 'en' }: { onUpload?: (file: File) => void, loading?: boolean, lang?: string }) => {
+export const StepImport = ({ onUpload, loading, lang = 'en' }: { onUpload?: (payload: File | string) => void, loading?: boolean, lang?: string }) => {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadMethod, setUploadMethod] = useState<'file' | 'text'>('file');
+  const [rawText, setRawText] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0 && onUpload) {
@@ -55,37 +58,102 @@ export const StepImport = ({ onUpload, loading, lang = 'en' }: { onUpload?: (fil
     }
   };
 
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0 && onUpload) {
+      const file = e.dataTransfer.files[0];
+      if (file.name.toLowerCase().endsWith('.pdf') || file.name.toLowerCase().endsWith('.docx')) {
+        onUpload(file);
+      } else {
+        alert(t('invalid_file_type', 'Format non supporté. Veuillez utiliser un fichier PDF ou DOCX.'));
+      }
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleTextSubmit = () => {
+    if (rawText.trim() && onUpload) {
+      onUpload(rawText);
+    }
+  };
+
   return (
     <div className="step-content">
       <div style={{ textAlign: "center", marginBottom: "2rem" }}>
-        <Linkedin size={48} color="#0a66c2" style={{ marginBottom: "1rem" }} />
-        <h2>{t('import_linkedin_title', 'Importez votre profil LinkedIn')}</h2>
+        <FileText size={48} color="var(--primary)" style={{ marginBottom: "1rem" }} />
+        <h2>{t('import_cv_title', 'Importez votre CV ou Profil LinkedIn')}</h2>
         <p style={{ color: "var(--text-muted)", fontSize: "1rem", maxWidth: "600px", margin: "0 auto" }}>
-          {t('import_linkedin_desc', 'Pour garantir une analyse parfaite de votre profil, nous utilisons exclusivement le format standard de LinkedIn. Téléchargez votre profil en 3 clics.')}
+          {t('import_cv_desc', "Gagnez du temps ! L'IA va extraire vos données pour pré-remplir automatiquement le formulaire. Vous pourrez vérifier et corriger ensuite.")}
         </p>
       </div>
 
-      <div style={{ display: "flex", gap: "1.5rem", justifyContent: "center", marginBottom: "2rem" }}>
-        <div style={{ background: "var(--bg-secondary)", padding: "1rem 1.5rem", borderRadius: "0.5rem", flex: 1, maxWidth: "250px", textAlign: "center" }}>
-          <div style={{ fontWeight: "bold", color: "var(--primary)", marginBottom: "0.5rem" }}>{t('step_1', 'Étape 1')}</div>
-          <div style={{ fontSize: "0.9rem", color: "var(--text-main)" }}>{t('import_step1_desc', 'Allez sur votre profil LinkedIn.')}</div>
-        </div>
-        <div style={{ background: "var(--bg-secondary)", padding: "1rem 1.5rem", borderRadius: "0.5rem", flex: 1, maxWidth: "250px", textAlign: "center" }}>
-          <div style={{ fontWeight: "bold", color: "var(--primary)", marginBottom: "0.5rem" }}>{t('step_2', 'Étape 2')}</div>
-          <div style={{ fontSize: "0.9rem", color: "var(--text-main)" }}>{t('import_step2_desc', 'Cliquez sur le bouton')} <b>{t('import_btn_more', '"Plus"')}</b>.</div>
-        </div>
-        <div style={{ background: "var(--bg-secondary)", padding: "1rem 1.5rem", borderRadius: "0.5rem", flex: 1, maxWidth: "250px", textAlign: "center" }}>
-          <div style={{ fontWeight: "bold", color: "var(--primary)", marginBottom: "0.5rem" }}>{t('step_3', 'Étape 3')}</div>
-          <div style={{ fontSize: "0.9rem", color: "var(--text-main)" }}>{t('import_step3_desc', 'Choisissez')} <b>{t('import_btn_pdf', '"Enregistrer au format PDF"')}</b>.</div>
-        </div>
+      <div style={{ display: "flex", justifyContent: "center", gap: "1rem", marginBottom: "2rem" }}>
+        <button 
+          className={`btn-secondary ${uploadMethod === 'file' ? 'active' : ''}`}
+          style={{ background: uploadMethod === 'file' ? 'var(--primary)' : 'var(--bg-secondary)', color: uploadMethod === 'file' ? 'white' : 'var(--text-main)', border: '1px solid var(--border-color)', padding: '0.5rem 1.5rem', borderRadius: '2rem', fontWeight: 600 }}
+          onClick={() => setUploadMethod('file')}
+        >
+          Fichier (PDF, DOCX)
+        </button>
+        <button 
+          className={`btn-secondary ${uploadMethod === 'text' ? 'active' : ''}`}
+          style={{ background: uploadMethod === 'text' ? 'var(--primary)' : 'var(--bg-secondary)', color: uploadMethod === 'text' ? 'white' : 'var(--text-main)', border: '1px solid var(--border-color)', padding: '0.5rem 1.5rem', borderRadius: '2rem', fontWeight: 600 }}
+          onClick={() => setUploadMethod('text')}
+        >
+          Copier-Coller
+        </button>
       </div>
 
-      <div onClick={() => !loading && fileInputRef.current?.click()} style={{ border: "2px dashed #0a66c2", background: "rgba(10, 102, 194, 0.05)", padding: "3rem", textAlign: "center", borderRadius: "1rem", cursor: loading ? "not-allowed" : "pointer", transition: "all 0.2s" }}>
-        <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf" style={{ display: "none" }} />
-        {loading ? <Loader2 size={32} className="spin" color="#0a66c2" /> : <UploadCloud size={32} color="#0a66c2" />}
-        <h3 style={{ marginTop: "1rem", color: "#0a66c2" }}>{loading ? t('analysis_in_progress', "Analyse en cours...") : t('import_upload_btn', "Cliquez ici pour charger votre PDF LinkedIn")}</h3>
-        <p style={{ color: "var(--text-muted)", margin: 0, fontSize: "0.9rem" }}>{t('import_format_accepted', "Format accepté : .pdf uniquement")}</p>
-      </div>
+      {uploadMethod === 'file' ? (
+        <div 
+          onDrop={handleDrop} 
+          onDragOver={handleDragOver} 
+          onDragLeave={handleDragLeave}
+          onClick={() => !loading && fileInputRef.current?.click()} 
+          style={{ 
+            border: `2px dashed ${isDragging ? 'var(--primary)' : 'var(--border-color)'}`, 
+            background: isDragging ? 'rgba(59, 130, 246, 0.05)' : 'var(--bg-secondary)', 
+            padding: "3rem", textAlign: "center", borderRadius: "1rem", 
+            cursor: loading ? "not-allowed" : "pointer", transition: "all 0.2s" 
+          }}
+        >
+          <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf,.docx" style={{ display: "none" }} />
+          {loading ? <Loader2 size={32} className="spin" color="var(--primary)" /> : <UploadCloud size={32} color={isDragging ? "var(--primary)" : "var(--text-muted)"} />}
+          <h3 style={{ marginTop: "1rem", color: isDragging ? "var(--primary)" : "var(--text-main)" }}>
+            {loading ? t('analysis_in_progress', "Analyse en cours...") : t('import_upload_btn', "Glissez votre fichier ici ou cliquez pour parcourir")}
+          </h3>
+          <p style={{ color: "var(--text-muted)", margin: 0, fontSize: "0.9rem" }}>{t('import_format_accepted', "Formats acceptés : PDF, DOCX")}</p>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <textarea 
+            value={rawText} 
+            onChange={(e) => setRawText(e.target.value)} 
+            placeholder={t('import_text_placeholder', "Collez ici le texte brut de votre CV ou de votre profil LinkedIn...")}
+            rows={10}
+            style={{ width: "100%", padding: "1rem", borderRadius: "0.5rem", border: "1px solid var(--border-color)", background: "var(--bg-secondary)", color: "var(--text-main)", resize: "vertical", fontFamily: "inherit" }}
+            disabled={loading}
+          />
+          <button 
+            onClick={handleTextSubmit} 
+            disabled={loading || !rawText.trim()} 
+            className="btn-primary" 
+            style={{ alignSelf: "flex-end", padding: "0.75rem 2rem" }}
+          >
+            {loading ? <><Loader2 size={18} className="spin" /> {t('analysis_in_progress', "Analyse en cours...")}</> : t('btn_analyze', 'Analyser le texte')}
+          </button>
+        </div>
+      )}
     </div>
   );
 };

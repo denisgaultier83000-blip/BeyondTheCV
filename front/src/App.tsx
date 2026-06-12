@@ -214,21 +214,25 @@ function AppContent() {
     }
   };
 
-  // --- IMPORT LINKEDIN ---
-  const handleLinkedInImport = async (file: File) => {
+  // --- IMPORT CV / LINKEDIN ---
+  const handleCVImport = async (payload: File | string) => {
     setIsImportLoading(true);
     try {
       const uploadData = new FormData();
-      uploadData.append('file', file);
+      if (typeof payload === "string") {
+        uploadData.append('raw_text', payload);
+      } else {
+        uploadData.append('file', payload);
+      }
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE_URL}/api/cv/parse-linkedin`, {
+      const res = await fetch(`${API_BASE_URL}/api/cv/parse-cv`, {
         method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: uploadData
       });
-      if (!res.ok) throw new Error("Erreur d'analyse du PDF");
+      if (!res.ok) throw new Error("Erreur d'analyse du document");
       const parsedData = await res.json();
       const frontendData = transformProfileForFrontend(parsedData);
       setFormData((prev: any) => ({ ...prev, ...frontendData }));
-      setToasts(prev => [...prev, { id: Date.now(), text: "Profil importé avec succès !" }]);
+      setToasts(prev => [...prev, { id: Date.now(), text: "Données extraites avec succès !" }]);
       setCurrentStep(1);
     } catch (e) {
       console.error(e);
@@ -311,7 +315,7 @@ function AppContent() {
     switch(currentStep) {
       case 0: return (
         <div className="step-wrapper">
-          <StepImport onUpload={handleLinkedInImport} loading={isImportLoading} />
+          <StepImport onUpload={handleCVImport} loading={isImportLoading} />
           {/* [FIX] Bouton secondaire repoussé à droite */}
           <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-outline" onClick={() => setCurrentStep(1)}>{t('or_fill_manually', 'Ou remplir manuellement')}</button></div>
         </div>);
