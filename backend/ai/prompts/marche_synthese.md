@@ -76,7 +76,17 @@ Ton analyse doit être orientée "action" : que dire, quelles questions poser, c
         "strategic_analysis": "[PLUS-VALUE IA : En 1 ou 2 phrases concrètes, explique pourquoi cette actualité est un levier pour le candidat.]",
         "interview_relevance": 8,
         "hidden_meaning": "[Traduction du discours corporate en réalité interne (ex: Repositionnement défensif, rachat pour tuer la concurrence...).]"
+      },
+      {
+        "title": "[Copie stricte du titre de l'article 2]",
+        "url": "[Copie stricte de l'URL de l'article 2]",
+        "source": "[Nom de la source]",
+        "date": "[Date de l'article 2]",
+        "strategic_analysis": "[Levier stratégique pour l'entretien...]",
+        "interview_relevance": 7,
+        "hidden_meaning": "[Traduction du discours...]"
       }
+      // ... (GÉNÈRE OBLIGATOIREMENT JUSQU'À 6 ARTICLES AU TOTAL selon ce modèle) ...
     ]
   }
 }
