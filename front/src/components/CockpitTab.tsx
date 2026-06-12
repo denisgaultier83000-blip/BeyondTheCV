@@ -67,9 +67,11 @@ export const CockpitTab: React.FC<CockpitProps> = ({
   };
 
   // Sécurisation des données en cas de génération partielle de l'IA
-  const plan = localData?.action_plan || [];
-  const training = localData?.training_plan || [];
-  const advice = localData?.strategy_advice || "Aucun conseil stratégique disponible pour le moment.";
+  // Extraction de "result" si le backend englobe la réponse lors du polling
+  const actualData = localData?.result !== undefined ? localData.result : localData;
+  const plan = actualData?.action_plan || actualData?.actionPlan || [];
+  const training = actualData?.training_plan || actualData?.trainingPlan || [];
+  const advice = actualData?.strategy_advice || actualData?.strategyAdvice || "Aucun conseil stratégique disponible pour le moment.";
   
   const dateStr = interviewDate || "";
   const displayDate = dateStr ? `Entretien : ${dateStr}` : "Date non définie";
