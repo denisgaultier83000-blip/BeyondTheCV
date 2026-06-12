@@ -26,7 +26,7 @@ Ton analyse doit être orientée "action" : que dire, quelles questions poser, c
 - **LECTURE CACHÉE & GUERRE AU JARGON :** BANNIS les phrases zombies ("croissance durable", "entreprise innovante"). Tu DOIS fournir la vraie traduction. Si la presse dit "L'entreprise investit massivement dans l'IA suite à des trimestres difficiles", tu traduis : "Repositionnement défensif, ils cherchent désespérément un relais de croissance."
 - **LA PEUR DU DIRIGEANT :** Dans tes analyses, identifie ce qui empêche le DRH ou le CEO de dormir la nuit (Le VRAI problème caché).
 - **PRÉPARATION PSYCHOLOGIQUE :** Déduis l'état d'esprit attendu. S'ils sont en hypercroissance -> "Ils cherchent quelqu'un qui tolère le chaos et l'autonomie". S'ils sont en restructuration -> "Ils cherchent un profil processé, stable et rassurant."
-- **REVUE DE PRESSE & ACTUALITÉS (TRÈS IMPORTANT) :** Tu DOIS extraire ABSOLUMENT TOUS LES ARTICLES fournis dans le `{search_context}` (jusqu'à 6 maximum). Il est STRICTEMENT INTERDIT de s'arrêter à un seul article si le contexte en contient plusieurs. ⚠️ COPIE EXACTEMENT LE TITRE ET LE LIEN FOURNIS DANS LE CONTEXTE. N'invente jamais d'URL. 
+- **REVUE DE PRESSE & ACTUALITÉS (TRÈS IMPORTANT) :** Tu DOIS extraire ABSOLUMENT TOUS LES ARTICLES pertinents fournis dans le `{search_context}` (jusqu'à 6 maximum). Il est STRICTEMENT INTERDIT de s'arrêter à un seul article si le contexte en contient plusieurs. Ton tableau `news_links` doit contenir plusieurs objets ! ⚠️ COPIE EXACTEMENT LE TITRE ET LE LIEN FOURNIS DANS LE CONTEXTE. N'invente jamais d'URL. 
   - Tu dois utiliser exclusivement les URLs fournies dans le contexte.
   - Tu n'as pas le droit de modifier, raccourcir, compléter ou inventer une URL.
   - Si aucune URL n'est disponible, n'invente pas d'article.
@@ -38,7 +38,7 @@ Ton analyse doit être orientée "action" : que dire, quelles questions poser, c
 - **LANGUE :** La sortie doit être en `{target_lang}`.
 
 ## 📦 SORTIE ATTENDUE (JSON STRICT)
-⚠️ IMPÉRATIF : Le JSON ci-dessous n'est qu'un modèle. Tu DOIS remplacer toutes les descriptions entre crochets `[...]` par tes véritables analyses sourcées.
+⚠️ IMPÉRATIF : Le JSON ci-dessous n'est qu'un modèle. Tu DOIS remplacer toutes les descriptions entre crochets `[...]` par tes véritables analyses sourcées. Ne mets AUCUN commentaire de type `//` dans le JSON final, retourne uniquement une structure valide avec de multiples articles dans `news_links`.
 ```json
 {
   "market_report": {
@@ -69,28 +69,32 @@ Ton analyse doit être orientée "action" : que dire, quelles questions poser, c
     ],
     "news_links": [
       {
-        "title": "[Copie stricte du titre depuis le contexte]",
-        "url": "[Copie stricte de l'URL depuis le contexte]",
-        "source": "[Nom du média (ex: Les Echos, Le Figaro, L'Usine Nouvelle)]",
-        "date": "[Copie EXACTE de la date depuis le contexte, ou 'Récemment' si absente]",
-        "strategic_analysis": "[PLUS-VALUE IA : En 1 ou 2 phrases concrètes, explique pourquoi cette actualité est un levier pour le candidat.]",
-        "interview_relevance": 8,
-        "hidden_meaning": "[Traduction du discours corporate en réalité interne (ex: Repositionnement défensif, rachat pour tuer la concurrence...).]"
+        "title": "[Titre de l'article 1]",
+        "url": "[URL de l'article 1]",
+        "source": "[Source 1]",
+        "date": "[Date 1]",
+        "strategic_analysis": "[Analyse 1]",
+        "interview_relevance": 9,
+        "hidden_meaning": "[Sens caché 1]"
       },
       {
-        "title": "[Copie stricte du titre de l'article 2]",
-        "url": "[Copie stricte de l'URL de l'article 2]",
-        "source": "[Nom de la source]",
-        "date": "[Date de l'article 2]",
-        "strategic_analysis": "[Levier stratégique pour l'entretien...]",
+        "title": "[Titre de l'article 2]",
+        "url": "[URL de l'article 2]",
+        "source": "[Source 2]",
+        "date": "[Date 2]",
+        "strategic_analysis": "[Analyse 2]",
         "interview_relevance": 7,
-        "hidden_meaning": "[Traduction du discours...]"
+        "hidden_meaning": "[Sens caché 2]"
       },
       {
-        "title": "[Titre de l'article 3, etc... TU DOIS BOUCLER SUR TOUS LES ARTICLES DU CONTEXTE]",
-        "url": "[URL de l'article 3]"
+        "title": "[Titre de l'article 3, etc...]",
+        "url": "[URL de l'article 3]",
+        "source": "[Source 3]",
+        "date": "[Date 3]",
+        "strategic_analysis": "[Analyse 3]",
+        "interview_relevance": 8,
+        "hidden_meaning": "[Sens caché 3]"
       }
-      // ... (GÉNÈRE LA SUITE POUR TOUS LES AUTRES ARTICLES PRÉSENTS DANS EL CONTEXTE) ...
     ]
   }
 }

@@ -50,6 +50,12 @@ export const CockpitTab: React.FC<CockpitProps> = ({
     setLocalData(actionPlanData);
   }, [actionPlanData]);
 
+  useEffect(() => {
+    if (cvData?.cockpitCheckedItems) {
+      setCheckedItems(cvData.cockpitCheckedItems);
+    }
+  }, [cvData?.cockpitCheckedItems]);
+
   const handleRegenerate = async () => {
     if (!window.confirm("Voulez-vous forcer l'IA à calculer une nouvelle stratégie d'action ?")) return;
     setIsRegenerating(true);
@@ -65,6 +71,15 @@ export const CockpitTab: React.FC<CockpitProps> = ({
       if (updateFormData) {
         updateFormData('actionPlanResult', newData);
         updateFormData('cockpitCheckedItems', []); // On vide la sélection sauvegardée
+      }
+      // Hard-sync pour forcer la persistance au-delà du contexte local
+      const currentDataRaw = localStorage.getItem("cvData");
+      if (currentDataRaw) {
+        try {
+          const parsed = JSON.parse(currentDataRaw);
+          parsed.cockpitCheckedItems = [];
+          localStorage.setItem("cvData", JSON.stringify(parsed));
+        } catch (e) {}
       }
     } catch (e) {
       setError("Erreur lors de la regénération. Veuillez réessayer.");
@@ -100,11 +115,24 @@ export const CockpitTab: React.FC<CockpitProps> = ({
   const displayDate = dateStr ? `Entretien : ${dateStr}` : "Date non définie";
 
   const toggleCheck = (idx: number) => {
-    setCheckedItems(prev => {
-      const newChecked = prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx];
-      if (updateFormData) updateFormData('cockpitCheckedItems', newChecked);
-      return newChecked;
-    });
+    const newChecked = checkedItems.includes(idx) ? checkedItems.filter(i => i !== idx) : [...checkedItems, idx];
+    setCheckedItems(newChecked);
+    
+    if (updateFormData) {
+      updateFormData('cockpitCheckedItems', newChecked);
+    }
+    
+    // Hard-sync pour forcer la persistance et éviter la perte lors du changement d'onglet
+    const currentDataRaw = localStorage.getItem("cvData");
+    if (currentDataRaw) {
+      try {
+        const parsed = JSON.parse(currentDataRaw);
+        parsed.cockpitCheckedItems = newChecked;
+        localStorage.setItem("cvData", JSON.stringify(parsed));
+        // Sauvegarde silencieuse en DB pour garantir la synchro
+        authenticatedFetch(`${API_BASE_URL}/api/cv/me/profile`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(parsed) }).catch(() => {});
+      } catch (e) {}
+    }
   };
 
   const handleVocalScoreUpdate = (score: number) => {
