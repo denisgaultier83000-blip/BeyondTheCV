@@ -258,6 +258,17 @@ export const DashboardView = () => {
 
       {/* Contenu de l'onglet actif */}
       <div className="tab-content">
+        {activeTab === 'cockpit' && (
+           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }} id="cockpit_section">
+             <CockpitTab 
+               actionPlanData={actionPlanResult || { status: isProcessing ? 'PROCESSING' : globalStatus }}
+               interviewDate={meta.interview_date || "Non définie"}
+               interviewFormat={meta.interview_format ? (formatLabels[meta.interview_format as string] || meta.interview_format) : "Non défini"}
+               interviewTarget={meta.interview_type ? (interviewTypeLabels[meta.interview_type as string] || meta.interview_type) : "Non défini"}
+             />
+           </div>
+        )}
+
         {activeTab === 'overview' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               
