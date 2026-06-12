@@ -54,6 +54,7 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
+          provenance: false
           tags: |
             ${{ env.BACKEND_IMAGE }}:${{ env.VERSION }}
           # Utilisation du cache GitHub Actions pour accélérer les builds
@@ -67,6 +68,7 @@ jobs:
           context: ./front
           file: ./front/Dockerfile
           push: true
+          provenance: false
           tags: |
             ${{ env.FRONTEND_IMAGE }}:${{ env.VERSION }}
           build-args: |
