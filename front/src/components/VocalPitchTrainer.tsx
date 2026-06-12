@@ -6,10 +6,12 @@ import { useTranslation } from 'react-i18next';
 
 interface VocalPitchTrainerProps {
   targetJob?: string;
+  targetCompany?: string;
+  jobDescription?: string;
   onSuccess?: () => void;
 }
 
-export const VocalPitchTrainer = ({ targetJob = "Candidat", onSuccess }: VocalPitchTrainerProps) => {
+export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDescription, onSuccess }: VocalPitchTrainerProps) => {
   const { t } = useTranslation();
   
   const [isRecording, setIsRecording] = useState(false);
@@ -93,7 +95,9 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", onSuccess }: VocalPi
         body: JSON.stringify({
           transcript: transcript.trim(),
           duration_seconds: seconds,
-          target_job: targetJob
+          target_job: targetJob,
+          target_company: targetCompany,
+          job_description: jobDescription
         })
       });
       if (!response.ok) {
@@ -202,9 +206,14 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", onSuccess }: VocalPi
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
             <div style={{ padding: '1.5rem', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '0.75rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
-              <h3 style={{ margin: '0 0 1rem 0', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><MessageSquare size={18} /> Diagnostic du Coach</h3>
-              <p style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)', fontSize: '0.95rem' }}><strong>Rythme :</strong> {result.feedback.pace_and_silences}</p>
-              <p style={{ margin: 0, color: 'var(--text-main)', fontSize: '0.95rem' }}><strong>Structure :</strong> {result.feedback.structure_and_clarity}</p>
+              <h3 style={{ margin: '0 0 1.5rem 0', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><MessageSquare size={18} /> Diagnostic du Coach</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <p style={{ margin: 0, color: 'var(--text-main)', fontSize: '0.95rem' }}><strong>🗣️ Rythme :</strong> {result.feedback.pace_and_silences}</p>
+                <p style={{ margin: 0, color: 'var(--text-main)', fontSize: '0.95rem' }}><strong>🏗️ Structure :</strong> {result.feedback.structure_and_clarity}</p>
+                <p style={{ margin: 0, color: 'var(--text-main)', fontSize: '0.95rem' }}><strong>⏱️ Impact & Longueur :</strong> {result.feedback.impact_and_length}</p>
+                <p style={{ margin: 0, color: 'var(--text-main)', fontSize: '0.95rem' }}><strong>🎯 Pertinence :</strong> {result.feedback.relevance_to_target}</p>
+                <p style={{ margin: 0, color: 'var(--text-main)', fontSize: '0.95rem' }}><strong>📊 Exemples (STAR) :</strong> {result.feedback.examples_precision}</p>
+              </div>
             </div>
             
             <div style={{ padding: '1.5rem', background: 'rgba(139, 92, 246, 0.05)', borderRadius: '0.75rem', border: '1px solid rgba(139, 92, 246, 0.2)' }}>

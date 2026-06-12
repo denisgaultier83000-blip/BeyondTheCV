@@ -351,7 +351,12 @@ export default function TrainingTab() {
       </DashboardCard>
 
       {/* --- NOUVEAU MODULE : ENTRAÎNEMENT AU PITCH VOCAL --- */}
-      <VocalPitchTrainer targetJob={cvData?.target_job || cvData?.target_role_primary || "Candidat"} onSuccess={fetchStats} />
+      <VocalPitchTrainer 
+        targetJob={cvData?.target_job || cvData?.target_role_primary || "Candidat"} 
+        targetCompany={cvData?.target_company}
+        jobDescription={cvData?.job_description}
+        onSuccess={fetchStats} 
+      />
 
       {/* --- SECTION CONFIGURATION --- */}
       <DashboardCard title="Nouvelle Session d'Entraînement" icon={<Settings2 size={24} />}>

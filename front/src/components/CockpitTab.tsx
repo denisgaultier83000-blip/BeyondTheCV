@@ -354,6 +354,8 @@ export const CockpitTab: React.FC<CockpitProps> = ({
         isOpen={isOralModalOpen} 
         onClose={() => setIsOralModalOpen(false)} 
         targetJob={interviewTarget} 
+        targetCompany={cvData?.target_company}
+        jobDescription={cvData?.job_description}
         targetLanguage={cvData?.target_language || 'fr'} 
         onScoreUpdate={handleVocalScoreUpdate}
       />

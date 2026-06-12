@@ -89,6 +89,8 @@ class VocalPitchRequest(BaseModel):
     transcript: str
     duration_seconds: int
     target_job: Optional[str] = "Candidat"
+    target_company: Optional[str] = ""
+    job_description: Optional[str] = ""
     target_language: Optional[str] = "fr"
 
 class EvaluatePitchRequest(BaseModel):
@@ -617,21 +619,28 @@ async def evaluate_vocal_pitch(request: VocalPitchRequest, current_user: dict = 
 
     prompt = f"""
     Tu es un Expert en Prise de Parole en Public et Coach de Carrière de très haut niveau.
-    Ta mission est d'analyser la transcription d'un pitch vocal SPONTANÉ (sans script) et de fournir un feedback hyper-actionnable.
+    Ta mission est d'analyser la transcription d'un pitch vocal SPONTANÉ (sans script) et de fournir un feedback sans complaisance, tant sur la FORME que sur le FOND.
 
-    POSTE VISÉ : {request.target_job}
-    DURÉE DE L'ENREGISTREMENT : {request.duration_seconds} secondes
-    MOTS PRONONCÉS : {word_count}
-    DÉBIT (Words Per Minute) : {wpm} mots / minute. (Pour info: 130-150 = conversationnel, >160 = trop rapide/stressé, <110 = trop lent/hésitant).
+    CONTEXTE DE L'ENTRETIEN :
+    - Poste visé : {request.target_job}
+    - Entreprise cible : {request.target_company or 'Non spécifiée'}
+    - Description de l'offre : {request.job_description or 'Non spécifiée'}
+
+    MÉTRIQUES DE FORME :
+    - DURÉE : {request.duration_seconds} secondes. (Un pitch idéal doit être dense mais concis, entre 90 et 180 secondes).
+    - MOTS PRONONCÉS : {word_count}
+    - DÉBIT (Words Per Minute) : {wpm} mots/minute. (130-150 = conversationnel idéal, >160 = trop rapide/stressé, <110 = trop lent/hésitant).
 
     TRANSCRIPTION DU PITCH :
     "{request.transcript}"
 
     ANALYSE ATTENDUE :
-    1. Tics de langage : Traque les mots parasites ("euh", "du coup", "en fait", "voilà").
-    2. Rythme : Analyse le WPM et repère l'absence de silence ou les hésitations.
-    3. Structure : Le candidat est-il clair ? Y a-t-il une vraie accroche et une conclusion ?
-    4. Micro-exercices : Propose 2 petits exercices pratiques pour corriger les défauts ciblés.
+    1. Tics de langage : Liste les mots parasites ("euh", "du coup", "en fait").
+    2. Rythme (Débit) : Le candidat parle-t-il trop vite ? Fait-il des pauses stratégiques ?
+    3. Clarté & Structure : Le discours a-t-il une accroche percutante et une conclusion claire ?
+    4. Impact & Longueur : Le discours est-il captivant ou ennuyeux ? Est-il trop long ou trop bref ?
+    5. Précision des exemples : Le candidat donne-t-il des faits concrets, des chiffres ou des méthodes (STAR), ou reste-t-il vague ("je gère des projets") ?
+    6. Lien avec l'offre & l'entreprise : Le pitch fait-il explicitement le pont entre les besoins spécifiques de cette entreprise et l'expertise du candidat ? S'il récite son CV sans faire de lien, pénalise-le.
 
     OUTPUT STRICT JSON:
     {{
@@ -642,8 +651,11 @@ async def evaluate_vocal_pitch(request: VocalPitchRequest, current_user: dict = 
             "filler_words_detected": ["euh", "du coup"]
         }},
         "feedback": {{
-            "pace_and_silences": "Diagnostic précis sur le rythme...",
-            "structure_and_clarity": "Diagnostic sur la clarté et l'impact...",
+            "pace_and_silences": "Diagnostic sur le rythme et les silences...",
+            "structure_and_clarity": "Diagnostic sur la structure...",
+            "impact_and_length": "Analyse de la force de persuasion et de la durée...",
+            "examples_precision": "Analyse de la densité des exemples (chiffres, faits réels)...",
+            "relevance_to_target": "Analyse de la personnalisation (Lien avec l'entreprise et l'offre)...",
             "actionable_advice": ["Conseil 1", "Conseil 2"]
         }},
         "micro_exercises": [

@@ -9,11 +9,13 @@ interface OralSimulatorModalProps {
   isOpen: boolean;
   onClose: () => void;
   targetJob: string;
+  targetCompany?: string;
+  jobDescription?: string;
   targetLanguage?: string;
   onScoreUpdate?: (score: number) => void;
 }
 
-export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetLanguage = 'fr', onScoreUpdate }: OralSimulatorModalProps) {
+export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetCompany, jobDescription, targetLanguage = 'fr', onScoreUpdate }: OralSimulatorModalProps) {
   const { t } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -124,6 +126,8 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetL
           transcript,
           duration_seconds: duration || 1, // Évite la division par zéro
           target_job: targetJob,
+          target_company: targetCompany,
+          job_description: jobDescription,
           target_language: targetLanguage
         })
       });
@@ -245,9 +249,14 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetL
               </div>
 
               <div style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
-                <h4 style={{ margin: '0 0 0.75rem 0', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Activity size={18} /> Diagnostic du Coach</h4>
-                <p style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', color: 'var(--text-main)', lineHeight: 1.6 }}><strong>Rythme :</strong> {feedback.feedback?.pace_and_silences}</p>
-                <p style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', color: 'var(--text-main)', lineHeight: 1.6 }}><strong>Clarté :</strong> {feedback.feedback?.structure_and_clarity}</p>
+                <h4 style={{ margin: '0 0 1rem 0', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Activity size={18} /> Diagnostic du Coach</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                  <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-main)', lineHeight: 1.6 }}><strong>🗣️ Rythme :</strong> {feedback.feedback?.pace_and_silences}</p>
+                  <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-main)', lineHeight: 1.6 }}><strong>🏗️ Structure :</strong> {feedback.feedback?.structure_and_clarity}</p>
+                  <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-main)', lineHeight: 1.6 }}><strong>⏱️ Impact & Longueur :</strong> {feedback.feedback?.impact_and_length}</p>
+                  <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-main)', lineHeight: 1.6 }}><strong>🎯 Ciblage (Offre) :</strong> {feedback.feedback?.relevance_to_target}</p>
+                  <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-main)', lineHeight: 1.6, gridColumn: '1 / -1' }}><strong>📊 Exemples (STAR) :</strong> {feedback.feedback?.examples_precision}</p>
+                </div>
                 <h5 style={{ margin: '1rem 0 0.5rem 0', color: 'var(--text-main)', fontSize: '0.95rem' }}>🎯 Actions rapides :</h5>
                 <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.5 }}>{feedback.feedback?.actionable_advice?.map((a: string, i: number) => <li key={i} style={{ marginBottom: '0.25rem' }}>{a}</li>)}</ul>
               </div>
