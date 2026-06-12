@@ -62,7 +62,7 @@ jobs:
 
             BRANCH="$TARGET_BRANCH"
 
-            if [ "$BRANCH" = "staging" ] || [ "$BRANCH" = "staging1" ]; then
+            if [ "$BRANCH" = "staging" ] || [ "$BRANCH" = "staging2" ]; then
               COMPOSE_FILE="docker-compose.staging.yml"
               PROJECT_NAME="btcv-staging"
               ENVIRONMENT="staging"
