@@ -68,7 +68,7 @@ jobs:
               ENVIRONMENT="staging"
               API_HOST="api-staging.beyondthecv.app"
               FRONTEND_URL="https://staging.beyondthecv.app"
-            elif [ "$BRANCH" = "staging2" ]; then
+            elif [ "$BRANCH" = "master" ]; then
               COMPOSE_FILE="docker-compose.prod.yml"
               PROJECT_NAME="btcv-prod"
               ENVIRONMENT="production"
