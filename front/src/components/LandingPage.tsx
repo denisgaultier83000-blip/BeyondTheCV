@@ -140,15 +140,44 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
           font-size: 0.95rem;
           flex-grow: 1;
         }
-        .lp-pricing {
+        .lp-pricing-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          gap: 2rem;
+          margin: 4rem auto;
+          max-width: 1100px;
+        }
+        .lp-pricing-card {
           background: var(--bg-card);
           border-radius: 1rem;
-          padding: 4rem 3rem;
+          padding: 3rem 2rem;
           text-align: center;
-          margin: 4rem auto;
-          max-width: 700px;
           border: 1px solid var(--border-color);
           box-shadow: 0 25px 50px -12px rgba(0,0,0,0.05);
+          display: flex;
+          flex-direction: column;
+          transition: transform 0.3s;
+        }
+        .lp-pricing-card.popular {
+          border: 2px solid var(--primary);
+          transform: scale(1.05);
+          box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.1);
+          position: relative;
+        }
+        .lp-popular-badge {
+          position: absolute;
+          top: -14px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: var(--primary);
+          color: white;
+          padding: 0.35rem 1.25rem;
+          border-radius: 2rem;
+          font-size: 0.85rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          white-space: nowrap;
         }
         .lp-check-item {
           display: flex;
@@ -179,6 +208,11 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
         .lp-faq-answer {
           color: var(--text-muted);
           margin-top: 0.75rem;
+        }
+        @media (max-width: 768px) {
+          .lp-pricing-card.popular {
+            transform: scale(1);
+          }
         }
       `}</style>
 
@@ -286,25 +320,60 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
 
       {/* PRICING / FINAL CTA SECTION */}
       <section className="lp-section dark">
-        <div className="lp-pricing">
-          <h2 style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-main)' }}>Un investissement clair.</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', marginTop: '0.5rem', maxWidth: '450px', margin: '0.5rem auto 0 auto' }}>
-            Pas d'abonnement toxique. Un tarif net pour un avantage décisif.
+        <div style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-main)' }}>Choisissez votre préparation.</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', marginTop: '0.5rem' }}>
+            Pas d'abonnement toxique. Des séances d'entraînement plafonnées pour maîtriser des modèles IA de pointe.
           </p>
-          
-          <div style={{ fontSize: '3.5rem', fontWeight: 700, color: 'var(--primary)', margin: '1.5rem 0' }}>129 €</div>
-          <p style={{ fontWeight: 600, color: 'var(--text-muted)', marginBottom: '2.5rem' }}>Accès complet de 4 mois. Renouvelable pour 30€ si votre recherche se prolonge.</p>
-          
-          <div style={{ textAlign: 'left', maxWidth: '400px', margin: '0 auto 2.5rem auto' }}>
-            <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" /> <strong>Dossier de Renseignement</strong> (OSINT Entreprise)</div>
-            <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" /> <strong>Simulateur Vocal d'Entretien</strong> (Micro Actif)</div>
-            <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" /> <strong>Scénarios de Crise & Parades</strong></div>
-            <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" /> <strong>Décodeur du jargon RH</strong> (Gap Analysis)</div>
+        </div>
+        
+        <div className="lp-pricing-grid">
+          {/* Offre Express */}
+          <div className="lp-pricing-card">
+            <h3 style={{ fontSize: '1.25rem', color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>Offre Express</h3>
+            <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.95rem' }}>Pour un entretien imminent.</p>
+            <div style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--text-main)', margin: '1.5rem 0 0.5rem 0' }}>39 €</div>
+            <p style={{ fontWeight: 600, color: 'var(--text-muted)', marginBottom: '2rem' }}>Accès 14 jours</p>
+            <div style={{ textAlign: 'left', flexGrow: 1, marginBottom: '2rem' }}>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> 1 candidature</div>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Analyse profil & offre rapide</div>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Pitch & 8 questions probables</div>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> <strong>3 séances d'entraînement IA</strong></div>
+            </div>
+            <button onClick={onStart} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>Sélectionner</button>
           </div>
 
-          <button onClick={onStart} className="lp-cta-main" style={{ width: '100%', justifyContent: 'center' }}>
-            Créer mon profil candidat
-          </button>
+          {/* Offre Stratégique */}
+          <div className="lp-pricing-card popular">
+            <div className="lp-popular-badge">Recommandé</div>
+            <h3 style={{ fontSize: '1.25rem', color: 'var(--primary)', margin: '0 0 0.5rem 0' }}>Offre Stratégique</h3>
+            <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.95rem' }}>La préparation intégrale.</p>
+            <div style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--primary)', margin: '1.5rem 0 0.5rem 0' }}>119 €</div>
+            <p style={{ fontWeight: 600, color: 'var(--text-muted)', marginBottom: '2rem' }}>Accès 4 mois</p>
+            <div style={{ textAlign: 'left', flexGrow: 1, marginBottom: '2rem' }}>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> 1 candidature complète</div>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Dossier Renseignement (OSINT)</div>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Décodeur d'annonce & Gap Analysis</div>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> <strong>15 séances d'entraînement IA</strong></div>
+              <div className="lp-check-item" style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}><CheckCircle2 size={14} color="var(--text-muted)" style={{ flexShrink: 0 }} /> Recharges possibles (10 séances / 9€)</div>
+            </div>
+            <button onClick={onStart} className="lp-cta-main" style={{ width: '100%', justifyContent: 'center' }}>Créer mon profil</button>
+          </div>
+
+          {/* Offre Intensive */}
+          <div className="lp-pricing-card">
+            <h3 style={{ fontSize: '1.25rem', color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>Offre Intensive</h3>
+            <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.95rem' }}>Pour les très gros enjeux.</p>
+            <div style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--text-main)', margin: '1.5rem 0 0.5rem 0' }}>219 €</div>
+            <p style={{ fontWeight: 600, color: 'var(--text-muted)', marginBottom: '2rem' }}>Accès 4 mois</p>
+            <div style={{ textAlign: 'left', flexGrow: 1, marginBottom: '2rem' }}>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Tout le pack Stratégique</div>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> OSINT Entreprise actualisable</div>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Stress Test & Négociation salaire</div>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> <strong>30 séances d'entraînement IA</strong></div>
+            </div>
+            <button onClick={onStart} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>Sélectionner</button>
+          </div>
         </div>
       </section>
       

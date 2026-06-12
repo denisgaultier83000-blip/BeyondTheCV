@@ -139,3 +139,24 @@ jobs:
             docker image prune -f
 
             echo "Deploy finished: $ENVIRONMENT"
+
+      - name: Slack/Discord Notification (Success)
+        if: success() && (github.event.workflow_run.head_branch == 'master' || github.ref_name == 'master')
+        env:
+          WEBHOOK_URL: ${{ secrets.NOTIFICATION_WEBHOOK_URL }}
+        run: |
+          if [ -n "$WEBHOOK_URL" ]; then
+            # Format compatible avec Slack (et Discord si on ajoute /slack à la fin de l'URL Discord)
+            PAYLOAD='{"text": "✅ 🚀 *Déploiement Réussi* : BeyondTheCV est en ligne sur la Production !"}'
+            curl -X POST -H 'Content-type: application/json' --data "$PAYLOAD" $WEBHOOK_URL
+          fi
+
+      - name: Slack/Discord Notification (Failure)
+        if: failure() && (github.event.workflow_run.head_branch == 'master' || github.ref_name == 'master')
+        env:
+          WEBHOOK_URL: ${{ secrets.NOTIFICATION_WEBHOOK_URL }}
+        run: |
+          if [ -n "$WEBHOOK_URL" ]; then
+            PAYLOAD='{"text": "❌ 🚨 *Échec du Déploiement* : Le déploiement de BeyondTheCV sur la Production a échoué. Veuillez vérifier les logs GitHub Actions."}'
+            curl -X POST -H 'Content-type: application/json' --data "$PAYLOAD" $WEBHOOK_URL
+          fi
