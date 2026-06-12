@@ -67,11 +67,27 @@ export const CockpitTab: React.FC<CockpitProps> = ({
   };
 
   // Sécurisation des données en cas de génération partielle de l'IA
-  // Extraction de "result" si le backend englobe la réponse lors du polling
-  const actualData: any = (localData as any)?.result !== undefined ? (localData as any).result : localData;
-  const plan: ActionTask[] = actualData?.action_plan || actualData?.actionPlan || [];
-  const training: TrainingModule[] = actualData?.training_plan || actualData?.trainingPlan || [];
-  const advice = actualData?.strategy_advice || actualData?.strategyAdvice || "Aucun conseil stratégique disponible pour le moment.";
+  const getParsedData = (data: any) => {
+    if (!data) return {};
+    let parsed = (data as any).result !== undefined ? (data as any).result : data;
+    let depth = 0;
+    // Boucle pour casser la double-stringification (très fréquent avec les données stockées en JSONB)
+    while (typeof parsed === 'string' && depth < 5) {
+      try {
+        const match = parsed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+        parsed = JSON.parse(match ? match[1] : parsed);
+        depth++;
+      } catch(e) {
+        break;
+      }
+    }
+    return parsed || {};
+  };
+
+  const actualData = getParsedData(localData);
+  const plan: ActionTask[] = actualData.action_plan || actualData.actionPlan || [];
+  const training: TrainingModule[] = actualData.training_plan || actualData.trainingPlan || [];
+  const advice = actualData.strategy_advice || actualData.strategyAdvice || "Aucun conseil stratégique disponible pour le moment.";
   
   const dateStr = interviewDate || "";
   const displayDate = dateStr ? `Entretien : ${dateStr}` : "Date non définie";
@@ -185,7 +201,9 @@ export const CockpitTab: React.FC<CockpitProps> = ({
               })}
             </div>
           ) : (
-            <div className="skeleton-pulse" style={{ height: '200px', borderRadius: '0.75rem' }}></div>
+            <div className="skeleton-pulse" style={{ height: '200px', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.95rem' }}>
+              {(localData as any)?.status === 'PENDING' || (localData as any)?.status === 'PROCESSING' ? <><Loader2 className="spin" size={18} style={{ marginRight: '8px' }} /> Stratégie d'actions en cours de calcul...</> : "Aucune action disponible."}
+            </div>
           )}
         </div>
 
@@ -231,7 +249,9 @@ export const CockpitTab: React.FC<CockpitProps> = ({
               })}
             </div>
           ) : (
-            <div className="skeleton-pulse" style={{ height: '200px', borderRadius: '0.75rem' }}></div>
+            <div className="skeleton-pulse" style={{ height: '200px', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.95rem' }}>
+              {(localData as any)?.status === 'PENDING' || (localData as any)?.status === 'PROCESSING' ? <><Loader2 className="spin" size={18} style={{ marginRight: '8px' }} /> Planification de l'entraînement en cours...</> : "Aucun entraînement disponible."}
+            </div>
           )}
         </div>
       </div>
