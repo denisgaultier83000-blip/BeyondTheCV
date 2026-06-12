@@ -68,9 +68,9 @@ export const CockpitTab: React.FC<CockpitProps> = ({
 
   // Sécurisation des données en cas de génération partielle de l'IA
   // Extraction de "result" si le backend englobe la réponse lors du polling
-  const actualData = localData?.result !== undefined ? localData.result : localData;
-  const plan = actualData?.action_plan || actualData?.actionPlan || [];
-  const training = actualData?.training_plan || actualData?.trainingPlan || [];
+  const actualData: any = (localData as any)?.result !== undefined ? (localData as any).result : localData;
+  const plan: ActionTask[] = actualData?.action_plan || actualData?.actionPlan || [];
+  const training: TrainingModule[] = actualData?.training_plan || actualData?.trainingPlan || [];
   const advice = actualData?.strategy_advice || actualData?.strategyAdvice || "Aucun conseil stratégique disponible pour le moment.";
   
   const dateStr = interviewDate || "";
@@ -150,7 +150,7 @@ export const CockpitTab: React.FC<CockpitProps> = ({
           
           {plan.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {plan.map((item, idx) => {
+              {plan.map((item: ActionTask, idx: number) => {
                 const isChecked = checkedItems.includes(idx);
                 return (
                   <div 
@@ -199,7 +199,7 @@ export const CockpitTab: React.FC<CockpitProps> = ({
           
           {training.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {training.map((planItem, idx) => {
+              {training.map((planItem: TrainingModule, idx: number) => {
                 const isUpcoming = planItem.stage === 'upcoming';
                 const accentColor = isUpcoming ? '#94a3b8' : '#8b5cf6'; // Gris ardoise si futur, sinon Violet
                 
