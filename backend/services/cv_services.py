@@ -159,6 +159,42 @@ async def require_active_subscription(current_user: dict = Depends(get_current_u
         
     return current_user
 
+# --- Gardien de Consommation IA (Séances d'entraînement) ---
+async def consume_training_sessions(user_id: str, cost: int = 1):
+    """Vérifie le solde de séances d'entraînement et le décrémente si suffisant."""
+    async with db.get_connection() as conn:
+        try:
+            cursor = await db.execute(conn, "SELECT training_sessions_balance FROM users WHERE id = ?", (user_id,))
+        except Exception:
+            # Ajout dynamique de la colonne si elle est absente (Auto-Migration)
+            try:
+                await db.execute(conn, "ALTER TABLE users ADD COLUMN training_sessions_balance INTEGER DEFAULT 15")
+                cursor = await db.execute(conn, "SELECT training_sessions_balance FROM users WHERE id = ?", (user_id,))
+            except Exception as e:
+                print(f"[DB WARNING] Failed to add training_sessions_balance: {e}")
+                return True  # Fallback permissif pour ne pas bloquer
+        
+        row = await cursor.fetchone()
+        if row:
+            balance = row[0] if isinstance(row, tuple) else row.get("training_sessions_balance")
+            if balance is None:
+                balance = 15
+                await db.execute(conn, "UPDATE users SET training_sessions_balance = 15 WHERE id = ?", (user_id,))
+            
+            if balance < cost:
+                raise HTTPException(status_code=402, detail=f"Séances d'entraînement insuffisantes (Solde: {balance}, Requis: {cost}).")
+            
+            await db.execute(conn, "UPDATE users SET training_sessions_balance = training_sessions_balance - ? WHERE id = ?", (cost, user_id))
+    return True
+
+async def refund_training_sessions(user_id: str, cost: int = 1):
+    """Rembourse les séances en cas d'erreur de l'API IA (Timeout, hallucination)."""
+    try:
+        async with db.get_connection() as conn:
+            await db.execute(conn, "UPDATE users SET training_sessions_balance = training_sessions_balance + ? WHERE id = ?", (cost, user_id))
+    except Exception:
+        pass
+
 def _generate_smart_filename(data: dict, doc_type: str = "CV", ext: str = "pdf") -> str:
     """Génère un nom de fichier propre et explicite: Type_Nom_Poste_Entreprise_Date.ext"""
     # [FIX EXPERT] Sécurisation contre les valeurs "null" JSON qui font crasher le .strip() (AttributeError)
@@ -412,6 +448,7 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
     OUTPUT LANGUAGE: {normalize_language(request.target_language)}
     """
     
+    await consume_training_sessions(current_user["id"], cost=1)
     try:
         result = await ai_service.generate_valid_json(
             final_prompt, 
@@ -578,7 +615,11 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                     print(f"[DB WARNING] Failed to update generation_cache: {e}", flush=True)
             
         return {"feedback": result}
+    except HTTPException:
+        await refund_training_sessions(current_user["id"], cost=1)
+        raise
     except Exception as e:
+        await refund_training_sessions(current_user["id"], cost=1)
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'évaluation de la réponse: {str(e)}")
 
 @router.get("/interview/history")
@@ -664,6 +705,8 @@ async def evaluate_vocal_pitch(request: VocalPitchRequest, current_user: dict = 
     }}
     LANGUAGE: {target_lang}
     """
+    
+    await consume_training_sessions(current_user["id"], cost=2)
     try:
         result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are an elite Public Speaking Coach. Output STRICT JSON.")
         
@@ -694,7 +737,11 @@ async def evaluate_vocal_pitch(request: VocalPitchRequest, current_user: dict = 
             print(f"[DB WARNING] Failed to insert training_session: {e}")
             
         return result
+    except HTTPException:
+        await refund_training_sessions(current_user["id"], cost=2)
+        raise
     except Exception as e:
+        await refund_training_sessions(current_user["id"], cost=2)
         raise HTTPException(status_code=500, detail=f"Erreur d'évaluation vocale : {str(e)}")
 
 @router.post("/evaluate-pitch")
@@ -748,11 +795,16 @@ async def generate_training_question(request: CustomQuestionRequest, current_use
                                   
     final_prompt += f"\n\nOUTPUT LANGUAGE: {normalize_language(request.target_language)}"
                                   
+    await consume_training_sessions(current_user["id"], cost=1)
     try:
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="Tu es un Coach de Carrière expert.")
         await set_cached_content(cache_key, current_user["id"], "training_question", result)
         return result
+    except HTTPException:
+        await refund_training_sessions(current_user["id"], cost=1)
+        raise
     except Exception as e:
+        await refund_training_sessions(current_user["id"], cost=1)
         raise HTTPException(status_code=500, detail=f"Erreur de génération : {str(e)}")
 
 @router.post("/training/evaluate")
@@ -782,6 +834,7 @@ async def evaluate_training_answer(request: TrainingEvaluateRequest, current_use
     OUTPUT LANGUAGE: {normalize_language(request.target_language)}
     """
     
+    await consume_training_sessions(current_user["id"], cost=1)
     try:
         feedback = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an Expert Interview Coach. Output STRICT JSON.")
         
@@ -805,7 +858,11 @@ async def evaluate_training_answer(request: TrainingEvaluateRequest, current_use
             print(f"[DB WARNING] Failed to insert training_session: {e}")
             
         return {"feedback": feedback}
+    except HTTPException:
+        await refund_training_sessions(current_user["id"], cost=1)
+        raise
     except Exception as e:
+        await refund_training_sessions(current_user["id"], cost=1)
         raise HTTPException(status_code=500, detail=f"Erreur d'évaluation : {str(e)}")
 
 @router.post("/generate-extra-scenarios")
@@ -851,12 +908,30 @@ async def generate_extra_scenarios(data: dict = Body(...), current_user: dict = 
         LANGUAGE: {target_lang}
         """
         
+        await consume_training_sessions(current_user["id"], cost=2)
         try:
             result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an Expert HR Assessor. Output STRICT JSON.")
             await set_cached_content(cache_key, current_user["id"], "extra_scenarios", result)
             return result
+        except HTTPException:
+            await refund_training_sessions(current_user["id"], cost=2)
+            raise
         except Exception as e:
+            await refund_training_sessions(current_user["id"], cost=2)
             raise HTTPException(status_code=500, detail=f"Erreur de génération des scénarios : {str(e)}")
+
+@router.get("/training/balance")
+async def get_training_balance(current_user: dict = Depends(require_active_subscription)):
+    """Récupère le solde restant de séances d'entraînement pour le candidat."""
+    async with db.get_connection() as conn:
+        try:
+            cursor = await db.execute(conn, "SELECT training_sessions_balance FROM users WHERE id = ?", (current_user["id"],))
+            row = await cursor.fetchone()
+            balance = row[0] if row and isinstance(row, tuple) else (row.get("training_sessions_balance") if row else 15)
+            if balance is None: balance = 15
+            return {"balance": balance}
+        except Exception:
+            return {"balance": 15}
 
 @router.get("/training/stats")
 async def get_training_stats(current_user: dict = Depends(require_active_subscription)):

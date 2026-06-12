@@ -3,6 +3,7 @@ import { Mic, Square, Play, RotateCcw, Loader2, Activity, MessageSquare, AlertTr
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { useTranslation } from 'react-i18next';
+import { RechargeModal } from './RechargeModal';
 
 interface VocalPitchTrainerProps {
   targetJob?: string;
@@ -20,6 +21,7 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDe
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showRechargeModal, setShowRechargeModal] = useState(false);
   
   const recognitionRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
@@ -101,6 +103,7 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDe
         })
       });
       if (!response.ok) {
+        if (response.status === 402) setShowRechargeModal(true);
         let errMsg = "Erreur lors de l'analyse";
         try { const errObj = await response.json(); errMsg = errObj.detail || errMsg; } catch(e) {}
         throw new Error(errMsg);
@@ -236,6 +239,7 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDe
           </div>
         </div>
       )}
+      <RechargeModal isOpen={showRechargeModal} onClose={() => setShowRechargeModal(false)} />
       <style>{`@keyframes pulse-record { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }`}</style>
     </div>
   );

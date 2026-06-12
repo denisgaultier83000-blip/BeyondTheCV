@@ -23,6 +23,7 @@ import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { useDashboard } from './DashboardContext';
 import { VocalPitchTrainer } from './VocalPitchTrainer';
+import { RechargeModal } from './RechargeModal';
 
 export default function TrainingTab() {
   const { cvData, updateFormData, pitchResult, actionPlanResult } = useDashboard();
@@ -33,6 +34,9 @@ export default function TrainingTab() {
   const [selectedTheme, setSelectedTheme] = useState('Gestion de crise');
   const [selectedType, setSelectedType] = useState('MES');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [balance, setBalance] = useState<number | null>(null);
+  const [showRechargeModal, setShowRechargeModal] = useState(false);
 
   // UX Interactive (Aide & Suggestion)
   const [activeQuestion, setActiveQuestion] = useState<any>(null);
@@ -63,6 +67,18 @@ export default function TrainingTab() {
     }
   };
 
+  const fetchBalance = async () => {
+    try {
+      const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/balance`);
+      if (res.ok) {
+        const data = await res.json();
+        setBalance(data.balance);
+      }
+    } catch (err) {
+      console.error("Erreur récupération solde", err);
+    }
+  };
+
   const fetchHistory = async () => {
     try {
       const [trainRes, intRes] = await Promise.all([
@@ -86,10 +102,17 @@ export default function TrainingTab() {
   useEffect(() => {
     fetchStats();
     fetchHistory();
+    fetchBalance();
   }, []);
+
+  const refreshAllStats = () => {
+    fetchStats();
+    fetchBalance();
+  };
 
   const handleGenerate = async () => {
     setIsGenerating(true);
+    setErrorMsg(null);
     
     try {
       const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/generate-question`, {
@@ -97,6 +120,11 @@ export default function TrainingTab() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ theme: selectedTheme, question_type: selectedType, count: 1, target_language: cvData?.target_language || 'fr' })
       });
+      if (!res.ok) {
+        if (res.status === 402) setShowRechargeModal(true);
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || "Erreur de génération");
+      }
       const data = await res.json();
       if (data.questions && data.questions.length > 0) {
         const newQ = {
@@ -113,9 +141,11 @@ export default function TrainingTab() {
         setShowSuggestion(false);
         setUserAnswer('');
         setFeedback(null);
+        fetchBalance();
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erreur génération question", err);
+      setErrorMsg(err.message);
     } finally {
       setIsGenerating(false);
     }
@@ -124,6 +154,7 @@ export default function TrainingTab() {
   const handleEvaluate = async () => {
     if (!userAnswer.trim()) return;
     setIsEvaluating(true);
+    setErrorMsg(null);
     try {
       const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/evaluate`, {
         method: 'POST',
@@ -138,9 +169,14 @@ export default function TrainingTab() {
           target_language: cvData?.target_language || 'fr'
         })
       });
+      if (!res.ok) {
+        if (res.status === 402) setShowRechargeModal(true);
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || "Erreur d'évaluation");
+      }
       const data = await res.json();
       setFeedback(data.feedback);
-      fetchStats();
+      refreshAllStats();
       
       const completedQ = { ...activeQuestion, userAnswer, evaluation: data.feedback, feedback: data.feedback };
       
@@ -157,8 +193,9 @@ export default function TrainingTab() {
       const updatedHistory = [...trainingHistory, completedQ];
       setTrainingHistory(updatedHistory);
       if (updateFormData) updateFormData("trainingQuestions", updatedHistory);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erreur évaluation", err);
+      setErrorMsg(err.message);
     } finally {
       setIsEvaluating(false);
     }
@@ -355,13 +392,32 @@ export default function TrainingTab() {
         targetJob={cvData?.target_job || cvData?.target_role_primary || "Candidat"} 
         targetCompany={cvData?.target_company}
         jobDescription={cvData?.job_description}
-        onSuccess={fetchStats} 
+        onSuccess={refreshAllStats} 
       />
 
       {/* --- SECTION CONFIGURATION --- */}
       <DashboardCard title="Nouvelle Session d'Entraînement" icon={<Settings2 size={24} />}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
+          {/* Jauge de Séances */}
+          {balance !== null && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', background: balance > 0 ? 'rgba(59, 130, 246, 0.05)' : 'rgba(239, 68, 68, 0.05)', borderRadius: '0.75rem', border: `1px solid ${balance > 0 ? 'rgba(59, 130, 246, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`, color: balance > 0 ? 'var(--text-main)' : 'var(--danger-text)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}><Activity size={20} color={balance > 0 ? 'var(--primary)' : 'var(--danger-text)'} /> <span style={{ fontWeight: 600 }}>Séances d'entraînement disponibles</span></div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: balance > 0 ? 'var(--primary)' : 'var(--danger-text)' }}>{balance}</div>
+                {balance === 0 && (
+                  <button onClick={() => setShowRechargeModal(true)} className="btn-primary" style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>Recharger</button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {errorMsg && !activeQuestion && (
+            <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.2)', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--danger-text)' }}>
+              <AlertCircle size={18} /> {errorMsg}
+            </div>
+          )}
+
           {/* Choix du Type (Grandes Cartes) */}
           <div>
             <h4 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)', fontSize: '1.05rem' }}>1. Sélectionnez le format</h4>
@@ -451,6 +507,12 @@ export default function TrainingTab() {
             value={userAnswer} onChange={(e) => setUserAnswer(e.target.value)} placeholder="Rédigez votre réponse ici..."
             style={{ width: '100%', minHeight: '120px', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-main)', marginBottom: '1rem' }}
           />
+
+          {errorMsg && isEvaluating === false && (
+            <div style={{ marginBottom: '1rem', color: 'var(--danger-text)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <AlertCircle size={16} /> {errorMsg}
+            </div>
+          )}
 
           <button onClick={handleEvaluate} disabled={isEvaluating || !userAnswer.trim()} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             {isEvaluating ? <RefreshCw className="spin" size={18} /> : <MessageSquare size={18} />} {isEvaluating ? "Évaluation..." : "Soumettre & Évaluer"}

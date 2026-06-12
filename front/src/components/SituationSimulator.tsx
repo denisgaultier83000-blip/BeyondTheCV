@@ -6,6 +6,7 @@ import ScoreGauge from './ScoreGauge';
 import { useDashboard } from './DashboardContext'; // [NEW] Importer le hook
 import { useTranslation } from 'react-i18next';
 import scenariosData from './scenarios.json';
+import { RechargeModal } from './RechargeModal';
 
 // --- TYPES ---
 
@@ -61,6 +62,7 @@ export function SituationSimulator() {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showRechargeModal, setShowRechargeModal] = useState(false);
   const recognitionRef = useRef<any>(null);
 
   // État local initialisé avec les données du contexte (évite la perte de couleur au changement d'onglet)
@@ -196,6 +198,7 @@ export function SituationSimulator() {
       });
 
       if (!response.ok) {
+        if (response.status === 402) setShowRechargeModal(true);
         let errMsg = "Erreur de communication avec le serveur.";
         try { const errObj = await response.json(); errMsg = errObj.detail || errMsg; } catch(e) {}
         throw new Error(errMsg);
@@ -233,6 +236,7 @@ export function SituationSimulator() {
       });
       
       if (!response.ok) {
+        if (response.status === 402) setShowRechargeModal(true);
         let errMsg = "Impossible de générer de nouveaux scénarios.";
         try { const errObj = await response.json(); errMsg = errObj.detail || errMsg; } catch(err) {}
         throw new Error(errMsg);

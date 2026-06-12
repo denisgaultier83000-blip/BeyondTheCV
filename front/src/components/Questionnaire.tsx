@@ -5,6 +5,7 @@ import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
 import { useDashboard } from './DashboardContext';
+import { RechargeModal } from './RechargeModal';
 
 // [FIX EXPERT] Mini-parseur robuste pour rendre le gras (**) généré par l'IA sans faille XSS
 const formatText = (text: string) => {
@@ -57,6 +58,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
   const [showFeedbackDetails, setShowFeedbackDetails] = useState<Record<string, boolean>>({});
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
+  const [showRechargeModal, setShowRechargeModal] = useState(false);
 
   // [FIX EXPERT] Sauvegarde automatique des réponses à la sortie du composant
   // pour éviter la perte de données si l'utilisateur navigue sans soumettre.
@@ -213,6 +215,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
       });
       
       if (!response.ok) {
+        if (response.status === 402) setShowRechargeModal(true);
         let errMsg = "Erreur de communication avec le serveur.";
         try { const errObj = await response.json(); errMsg = errObj.detail || errMsg; } catch(e) {}
         throw new Error(errMsg);
@@ -517,6 +520,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
             })
         )}
       </div>
+      <RechargeModal isOpen={showRechargeModal} onClose={() => setShowRechargeModal(false)} />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { Mic, Square, Loader2, Play, Activity, AlertTriangle, CheckCircle2, Targ
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
+import { RechargeModal } from './RechargeModal';
 
 interface OralSimulatorModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
   const [status, setStatus] = useState<'idle' | 'analyzing' | 'result' | 'error'>('idle');
   const [feedback, setFeedback] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showRechargeModal, setShowRechargeModal] = useState(false);
 
   const recognitionRef = useRef<any>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -132,7 +134,12 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
         })
       });
 
-      if (!response.ok) throw new Error("Erreur de communication avec le serveur.");
+      if (!response.ok) {
+        if (response.status === 402) setShowRechargeModal(true);
+        let errMsg = "Erreur de communication avec le serveur.";
+        try { const errObj = await response.json(); errMsg = errObj.detail || errMsg; } catch(e) {}
+        throw new Error(errMsg);
+      }
       
       const data = await response.json();
       setFeedback(data);
@@ -266,6 +273,7 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
           )}
         </div>
       </div>
+      <RechargeModal isOpen={showRechargeModal} onClose={() => setShowRechargeModal(false)} />
     </div>
   );
 }
