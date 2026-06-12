@@ -64,6 +64,7 @@ class InterviewAnswerRequest(BaseModel):
     user_answer: str
     application_id: Optional[str] = None
     task_id: Optional[str] = None
+    target_language: Optional[str] = "fr"
 
 class CustomQuestionRequest(BaseModel):
     theme: str
@@ -71,6 +72,7 @@ class CustomQuestionRequest(BaseModel):
     count: Optional[int] = 1
     target_job: Optional[str] = "Candidat"
     target_company: Optional[str] = "Entreprise cible"
+    target_language: Optional[str] = "fr"
 
 class TrainingEvaluateRequest(BaseModel):
     theme: str
@@ -81,6 +83,7 @@ class TrainingEvaluateRequest(BaseModel):
     target_company: Optional[str] = "Entreprise cible"
     interview_format: Optional[str] = "Non précisé"
     stress_level: Optional[str] = "medium"
+    target_language: Optional[str] = "fr"
 
 class VocalPitchRequest(BaseModel):
     transcript: str
@@ -403,6 +406,8 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
     <candidate_answer>
     {safe_user_answer}
     </candidate_answer>
+    
+    OUTPUT LANGUAGE: {normalize_language(request.target_language)}
     """
     
     try:
@@ -729,6 +734,8 @@ async def generate_training_question(request: CustomQuestionRequest, current_use
                                   .replace("{{TARGET_JOB}}", request.target_job) \
                                   .replace("{{TARGET_COMPANY}}", request.target_company)
                                   
+    final_prompt += f"\n\nOUTPUT LANGUAGE: {normalize_language(request.target_language)}"
+                                  
     try:
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="Tu es un Coach de Carrière expert.")
         await set_cached_content(cache_key, current_user["id"], "training_question", result)
@@ -759,6 +766,8 @@ async def evaluate_training_answer(request: TrainingEvaluateRequest, current_use
     INSTRUCTION DE COACHING EXPERT :
     - Si le stress est élevé ("high"), sois particulièrement rassurant et valorise les forces (strengths) avant d'aborder les faiblesses.
     - Si le format est "visio" ou "phone", ajoute un micro-conseil logistique ou vocal dans l'improved_answer (ex: regard caméra, sourire audible).
+    
+    OUTPUT LANGUAGE: {normalize_language(request.target_language)}
     """
     
     try:
@@ -1187,15 +1196,41 @@ async def generate_document(request: GenerateRequest, current_user: dict = Depen
             
             # [FIX EXPERT - POINT 10] Injection des traductions dynamiques pour le template LaTeX (Titres des sections)
             # Détection robuste de la langue (gère 'fr', 'french', 'fr-FR', etc.)
-            is_french = str(target_lang).lower() in ['fr', 'french', 'fr-fr']
-            optimized_data['translations'] = {
-                'profile': 'Profil' if is_french else 'Profile',
-                'experience': 'Expérience Professionnelle' if is_french else 'Professional Experience',
-                'education': 'Formation' if is_french else 'Education',
-                'skills': 'Compétences' if is_french else 'Skills',
-                'technical': 'Techniques' if is_french else 'Technical',
-                'languages': 'Langues' if is_french else 'Languages'
+            target_lang_lower = str(target_lang).lower()
+            if target_lang_lower in ['fr', 'french', 'fr-fr']:
+                lang_code = 'fr'
+            elif target_lang_lower in ['es', 'spanish', 'es-es']:
+                lang_code = 'es'
+            elif target_lang_lower in ['de', 'german', 'de-de']:
+                lang_code = 'de'
+            elif target_lang_lower in ['it', 'italian', 'it-it']:
+                lang_code = 'it'
+            else:
+                lang_code = 'en'
+
+            translations_map = {
+                'fr': {
+                    'profile': 'Profil', 'experience': 'Expérience Professionnelle', 'education': 'Formation',
+                    'skills': 'Compétences', 'technical': 'Techniques', 'languages': 'Langues'
+                },
+                'es': {
+                    'profile': 'Perfil', 'experience': 'Experiencia Profesional', 'education': 'Educación',
+                    'skills': 'Habilidades', 'technical': 'Técnicas', 'languages': 'Idiomas'
+                },
+                'de': {
+                    'profile': 'Profil', 'experience': 'Berufserfahrung', 'education': 'Ausbildung',
+                    'skills': 'Fähigkeiten', 'technical': 'Technik', 'languages': 'Sprachen'
+                },
+                'it': {
+                    'profile': 'Profilo', 'experience': 'Esperienza Professionale', 'education': 'Formazione',
+                    'skills': 'Competenze', 'technical': 'Tecniche', 'languages': 'Lingue'
+                },
+                'en': {
+                    'profile': 'Profile', 'experience': 'Professional Experience', 'education': 'Education',
+                    'skills': 'Skills', 'technical': 'Technical', 'languages': 'Languages'
+                }
             }
+            optimized_data['translations'] = translations_map[lang_code]
 
             if request.preview and request.renderer == "json":
                 return JSONResponse(content=optimized_data)

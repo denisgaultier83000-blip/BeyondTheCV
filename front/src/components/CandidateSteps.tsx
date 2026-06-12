@@ -312,11 +312,17 @@ export const StepTarget = ({ data, onChange, errors, loading, lang = 'en' }: Ste
         <select 
           disabled={loading} 
           value={data.target_language || i18n.resolvedLanguage?.substring(0, 2) || "fr"} 
-          onChange={e => onChange("target_language", e.target.value)} 
+          onChange={e => {
+            onChange("target_language", e.target.value);
+            i18n.changeLanguage(e.target.value);
+          }} 
           style={{ width: "100%", opacity: loading ? 0.6 : 1, border: "1px solid var(--primary)", background: "var(--bg-card)", color: "var(--text-main)" }}
         >
           <option value="fr">Français 🇫🇷</option>
           <option value="en">English 🇬🇧</option>
+          <option value="es">Español 🇪🇸</option>
+          <option value="de">Deutsch 🇩🇪</option>
+          <option value="it">Italiano 🇮🇹</option>
         </select>
         <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "4px", marginBottom: 0 }}>
           {t('target_language_hint', "L'IA générera tous vos documents dans cette langue.")}

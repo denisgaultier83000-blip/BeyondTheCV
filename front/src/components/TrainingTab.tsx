@@ -95,7 +95,7 @@ export default function TrainingTab() {
       const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/generate-question`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ theme: selectedTheme, question_type: selectedType, count: 1 })
+        body: JSON.stringify({ theme: selectedTheme, question_type: selectedType, count: 1, target_language: cvData?.target_language || 'fr' })
       });
       const data = await res.json();
       if (data.questions && data.questions.length > 0) {
@@ -134,7 +134,8 @@ export default function TrainingTab() {
           question_text: activeQuestion.question, 
           user_answer: userAnswer,
           interview_format: cvData?.interview_format,
-          stress_level: cvData?.stress_level
+          stress_level: cvData?.stress_level,
+          target_language: cvData?.target_language || 'fr'
         })
       });
       const data = await res.json();
