@@ -120,6 +120,12 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", onSuccess }: VocalPi
 
   return (
     <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
+      <style>{`
+        @keyframes soundWave {
+          0%, 100% { transform: scaleY(0.3); }
+          50% { transform: scaleY(1); }
+        }
+      `}</style>
       <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
         <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 1rem 0' }}>
           <Mic size={24} color="#8b5cf6" /> Simulateur de Pitch Vocal (Sans filet)
@@ -136,8 +142,20 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", onSuccess }: VocalPi
 
       {!result && !isAnalyzing && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', padding: '2rem', background: 'var(--bg-secondary)', borderRadius: '1rem' }}>
-          <div style={{ fontSize: '3rem', fontWeight: 'bold', fontFamily: 'monospace', color: isRecording ? '#ef4444' : 'var(--text-main)' }}>
-            {formatTime(seconds)}
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ fontSize: '3rem', fontWeight: 'bold', fontFamily: 'monospace', color: isRecording ? '#ef4444' : 'var(--text-main)' }}>
+              {formatTime(seconds)}
+            </div>
+            {isRecording && (
+              <div style={{ position: 'absolute', right: '-40px', display: 'flex', alignItems: 'center', gap: '4px', height: '36px' }}>
+                {[0, 0.2, 0.4, 0.1, 0.3].map((delay, i) => (
+                  <div
+                    key={i}
+                    style={{ width: '5px', height: '100%', backgroundColor: '#ef4444', borderRadius: '3px', animation: `soundWave 1s ease-in-out infinite`, animationDelay: `${delay}s`, transformOrigin: 'center' }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
           
           {isRecording ? (

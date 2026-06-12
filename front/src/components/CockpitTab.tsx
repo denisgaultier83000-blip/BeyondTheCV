@@ -4,6 +4,7 @@ import { ShieldAlert, Clock, Zap, Target, CheckCircle2, Circle, Mic, CalendarDay
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { useDashboard } from './DashboardContext';
+import OralSimulatorModal from './OralSimulatorModal';
 
 interface TrainingModule {
   day: string;
@@ -42,6 +43,7 @@ export const CockpitTab: React.FC<CockpitProps> = ({
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [localData, setLocalData] = useState(actionPlanData);
   const [error, setError] = useState<string | null>(null);
+  const [isOralModalOpen, setIsOralModalOpen] = useState(false);
 
   useEffect(() => {
     setLocalData(actionPlanData);
@@ -96,52 +98,73 @@ export const CockpitTab: React.FC<CockpitProps> = ({
     setCheckedItems(prev => prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]);
   };
 
+  const handleVocalScoreUpdate = (score: number) => {
+    const currentBest = cvData?.bestVocalScore || 0;
+    if (score > currentBest) {
+      if (updateFormData) updateFormData('bestVocalScore', score);
+    }
+  };
+
   // Calcul de la jauge de préparation
-  const progressPercentage = plan.length > 0 ? Math.round((checkedItems.length / plan.length) * 100) : 0;
+  const bestVocalScore = cvData?.bestVocalScore || 0;
+  const actionScore = plan.length > 0 ? (checkedItems.length / plan.length) * 100 : 0;
+  
+  let progressPercentage = 0;
+  if (plan.length > 0 && training.length > 0) {
+    progressPercentage = Math.round((actionScore + bestVocalScore) / 2);
+  } else if (plan.length > 0) {
+    progressPercentage = Math.round(actionScore);
+  } else if (training.length > 0) {
+    progressPercentage = Math.round(bestVocalScore);
+  }
   const readinessColor = progressPercentage === 100 ? '#10b981' : progressPercentage >= 50 ? '#f59e0b' : '#ef4444';
 
   return (
     <div className="animate-fade-in w-full" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* 1. EN-TÊTE WAR ROOM & POSTURE */}
-      <div className="bento-card" style={{ background: 'linear-gradient(135deg, #0F2650 0%, #1e3a8a 100%)', color: 'white', border: 'none', boxShadow: '0 10px 25px -5px rgba(15, 38, 80, 0.4)' }}>
+      <div className="bento-card" style={{ background: 'var(--bg-card)', color: 'var(--text-main)', border: '1px solid var(--border-color)', borderLeft: '4px solid var(--primary)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-          <h2 style={{ fontSize: '1.5rem', margin: 0, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'white', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+          <h2 style={{ fontSize: '1.5rem', margin: 0, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-main)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
             <Target size={24} color="#6DBEF7" />
             {t('cockpit_title', 'Cockpit Stratégique')}
           </h2>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <button onClick={handleRegenerate} disabled={isRegenerating} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '0.5rem 1rem', borderRadius: '2rem', transition: 'all 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}>
+            <button onClick={handleRegenerate} disabled={isRegenerating} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-secondary)', color: 'var(--text-main)', border: '1px solid var(--border-color)', padding: '0.5rem 1rem', borderRadius: '2rem', transition: 'all 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'var(--border-color)'} onMouseOut={e => e.currentTarget.style.background = 'var(--bg-secondary)'}>
               {isRegenerating ? <Loader2 size={16} className="spin" /> : <RefreshCw size={16} />} {isRegenerating ? "Calcul IA..." : "Régénérer"}
             </button>
-            <div style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', padding: '0.5rem 1rem', borderRadius: '2rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.4)', boxShadow: '0 0 10px rgba(239, 68, 68, 0.2)' }}>
+            <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger-text)', padding: '0.5rem 1rem', borderRadius: '2rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
               <Activity size={16} style={{ animation: 'pulse 2s infinite' }} /> {displayDate}
             </div>
           </div>
         </div>
 
         {/* Jauge de Préparation Globale */}
-        <div style={{ background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '0.75rem', marginBottom: '1.5rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', marginBottom: '1.5rem', border: '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
             <span style={{ fontSize: '0.85rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Niveau de Préparation au Combat</span>
             <span style={{ fontWeight: 800, color: readinessColor, fontSize: '1.1rem' }}>{progressPercentage}%</span>
           </div>
-          <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+          <div style={{ width: '100%', height: '8px', background: 'var(--border-color)', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.5rem' }}>
             <div style={{ width: `${progressPercentage}%`, height: '100%', background: readinessColor, transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1), background 0.5s ease' }} />
+          </div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
+            <span>Logistique : {Math.round(actionScore)}%</span>
+            <span>Oral : {Math.round(bestVocalScore)}%</span>
           </div>
         </div>
 
         {error && (
-          <div style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', padding: '0.75rem 1rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.4)', marginBottom: '1.5rem' }}>
+          <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger-text)', padding: '0.75rem 1rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.2)', marginBottom: '1.5rem' }}>
             <AlertTriangle size={18} /> {error}
           </div>
         )}
 
-        <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1.25rem', borderRadius: '0.75rem', borderLeft: '4px solid #f59e0b' }}>
-          <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#fcd34d', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0' }}>
+        <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
+          <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0' }}>
             <ShieldAlert size={16} style={{ animation: 'pulse 2s infinite' }} />
             {t('cockpit_strategy_title', "Conseil Stratégique d'Urgence")} ({interviewFormat} - {interviewTarget})
           </h3>
-          <p style={{ color: '#f8fafc', margin: 0, lineHeight: 1.6, fontSize: '0.95rem' }}>
+          <p style={{ color: 'var(--text-main)', margin: 0, lineHeight: 1.6, fontSize: '0.95rem' }}>
             {advice}
           </p>
         </div>
@@ -239,6 +262,14 @@ export const CockpitTab: React.FC<CockpitProps> = ({
                           <span style={{ fontSize: '1rem', lineHeight: 1 }}>💡</span> Cette étape s'activera lors de votre prochain round d'entretien. Concentrez-vous sur l'immédiat !
                         </div>
                       )}
+                      
+                      <button 
+                        onClick={() => setIsOralModalOpen(true)}
+                        className={`btn-outline ${isUpcoming ? '' : 'active'}`}
+                        style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.4rem 1rem', borderRadius: '2rem', background: isUpcoming ? 'transparent' : 'var(--primary)', color: isUpcoming ? 'var(--text-muted)' : 'white', border: `1px solid ${isUpcoming ? 'var(--border-color)' : 'var(--primary)'}`, transition: 'all 0.2s', cursor: 'pointer' }}
+                      >
+                        <Mic size={14} /> S'entraîner avec le Coach IA
+                      </button>
                     </div>
                     
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 700, background: isUpcoming ? '#f1f5f9' : 'rgba(139, 92, 246, 0.1)', color: accentColor, padding: '0.3rem 0.6rem', borderRadius: '1rem', whiteSpace: 'nowrap' }}>
@@ -255,6 +286,14 @@ export const CockpitTab: React.FC<CockpitProps> = ({
           )}
         </div>
       </div>
+
+      <OralSimulatorModal 
+        isOpen={isOralModalOpen} 
+        onClose={() => setIsOralModalOpen(false)} 
+        targetJob={interviewTarget} 
+        targetLanguage={cvData?.target_language || 'fr'} 
+        onScoreUpdate={handleVocalScoreUpdate}
+      />
     </div>
   );
 };
