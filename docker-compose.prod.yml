@@ -36,6 +36,10 @@ services:
       # Injection dynamique pour les CORS
       FRONTEND_URL: ${FRONTEND_URL}
 
+    volumes:
+      - btcv_documents_prod:/app/documents
+      - btcv_output_prod:/app/output
+
     depends_on:
       db:
         condition: service_healthy
@@ -108,3 +112,5 @@ networks:
 
 volumes:
   btcv_postgres_data_prod:
+  btcv_documents_prod:
+  btcv_output_prod:

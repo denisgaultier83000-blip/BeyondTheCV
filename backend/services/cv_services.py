@@ -4,6 +4,7 @@ import json
 import io
 import asyncio
 import re
+import shutil
 from datetime import datetime, timezone
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks, Body, Depends, Query
 from fastapi.responses import JSONResponse, FileResponse
@@ -1530,13 +1531,20 @@ async def render_final_cv(cv_final_data: CVFinal, preview: bool = Query(False), 
         
         if not preview:
             doc_id = str(uuid.uuid4())
-            # Compatibilité si CVFinal intègre application_id
             application_id = getattr(cv_final_data, "application_id", None)
+            
+            persistent_dir = "/app/documents"
+            os.makedirs(persistent_dir, exist_ok=True)
+            persistent_path = os.path.join(persistent_dir, f"{doc_id}_{filename}")
+            shutil.copy2(generated_path, persistent_path)
+            
             async with db.get_connection() as conn:
                 await db.execute(conn,
                     "INSERT INTO documents (id, user_id, filename, path, type, created_at, media_type, application_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                    (doc_id, current_user["id"], filename, generated_path, "CV_ATS", datetime.now(), 'application/pdf', application_id))
-            return FileResponse(path=generated_path, filename=filename, media_type='application/pdf')
+                    (doc_id, current_user["id"], filename, persistent_path, "CV_ATS", datetime.now(), 'application/pdf', application_id))
+            
+            _remove_file_safe(generated_path)
+            return FileResponse(path=persistent_path, filename=filename, media_type='application/pdf')
         else:
             return FileResponse(path=generated_path, filename=filename, media_type='application/pdf', background=BackgroundTask(_remove_file_safe, generated_path))
             
