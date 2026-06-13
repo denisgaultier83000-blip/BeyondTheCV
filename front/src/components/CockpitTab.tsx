@@ -45,6 +45,7 @@ export const CockpitTab: React.FC<CockpitProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [selectedTrainingModule, setSelectedTrainingModule] = useState<TrainingModule | null>(null);
   const [hasFiredConfetti, setHasFiredConfetti] = useState(false);
+  const [trainingScores, setTrainingScores] = useState<Record<string, number>>(cvData?.trainingScores || {});
 
   useEffect(() => {
     setLocalData(actionPlanData);
@@ -55,6 +56,12 @@ export const CockpitTab: React.FC<CockpitProps> = ({
       setCheckedItems(cvData.cockpitCheckedItems);
     }
   }, [cvData?.cockpitCheckedItems]);
+
+  useEffect(() => {
+    if (cvData?.trainingScores) {
+      setTrainingScores(cvData.trainingScores);
+    }
+  }, [cvData?.trainingScores]);
 
   const handleRegenerate = async () => {
     if (!window.confirm("Voulez-vous forcer l'IA à calculer une nouvelle stratégie d'action ?")) return;
@@ -68,9 +75,11 @@ export const CockpitTab: React.FC<CockpitProps> = ({
       const newData = await res.json();
       setLocalData(newData);
       setCheckedItems([]); // On vide la sélection locale
+      setTrainingScores({}); // On vide les scores précédents
       if (updateFormData) {
         updateFormData('actionPlanResult', newData);
         updateFormData('cockpitCheckedItems', []); // On vide la sélection sauvegardée
+        updateFormData('trainingScores', {});
       }
       // Hard-sync pour forcer la persistance au-delà du contexte local
       const currentDataRaw = localStorage.getItem("cvData");
@@ -78,6 +87,7 @@ export const CockpitTab: React.FC<CockpitProps> = ({
         try {
           const parsed = JSON.parse(currentDataRaw);
           parsed.cockpitCheckedItems = [];
+          parsed.trainingScores = {};
           localStorage.setItem("cvData", JSON.stringify(parsed));
         } catch (e) {}
       }
@@ -136,6 +146,12 @@ export const CockpitTab: React.FC<CockpitProps> = ({
   };
 
   const handleVocalScoreUpdate = (score: number) => {
+    if (selectedTrainingModule) {
+      const newScores = { ...trainingScores, [selectedTrainingModule.module]: score };
+      setTrainingScores(newScores);
+      if (updateFormData) updateFormData('trainingScores', newScores);
+    }
+
     const currentBest = cvData?.bestVocalScore || 0;
     if (score > currentBest) {
       if (updateFormData) updateFormData('bestVocalScore', score);
@@ -143,16 +159,17 @@ export const CockpitTab: React.FC<CockpitProps> = ({
   };
 
   // Calcul de la jauge de préparation
-  const bestVocalScore = cvData?.bestVocalScore || 0;
   const actionScore = plan.length > 0 ? (checkedItems.length / plan.length) * 100 : 0;
+  const completedTrainingCount = training.filter(t => trainingScores[t.module] !== undefined).length;
+  const trainingScore = training.length > 0 ? (completedTrainingCount / training.length) * 100 : 0;
   
   let progressPercentage = 0;
   if (plan.length > 0 && training.length > 0) {
-    progressPercentage = Math.round((actionScore + bestVocalScore) / 2);
+    progressPercentage = Math.round((actionScore + trainingScore) / 2);
   } else if (plan.length > 0) {
     progressPercentage = Math.round(actionScore);
   } else if (training.length > 0) {
-    progressPercentage = Math.round(bestVocalScore);
+    progressPercentage = Math.round(trainingScore);
   }
   const readinessColor = progressPercentage === 100 ? '#10b981' : progressPercentage >= 50 ? '#f59e0b' : '#ef4444';
 
@@ -212,7 +229,7 @@ export const CockpitTab: React.FC<CockpitProps> = ({
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
             <span>Logistique : {Math.round(actionScore)}%</span>
-            <span>Oral : {Math.round(bestVocalScore)}%</span>
+            <span>Entraînements : {Math.round(trainingScore)}%</span>
           </div>
         </div>
 
@@ -326,13 +343,20 @@ export const CockpitTab: React.FC<CockpitProps> = ({
                         </div>
                       )}
                       
-                      <button 
-                        onClick={() => setSelectedTrainingModule(planItem)}
-                        className={`btn-outline ${isUpcoming ? '' : 'active'}`}
-                        style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.4rem 1rem', borderRadius: '2rem', background: isUpcoming ? 'transparent' : 'var(--primary)', color: isUpcoming ? 'var(--text-muted)' : 'white', border: `1px solid ${isUpcoming ? 'var(--border-color)' : 'var(--primary)'}`, transition: 'all 0.2s', cursor: 'pointer' }}
-                      >
-                        <Mic size={14} /> S'entraîner avec le Coach IA
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+                        <button 
+                          onClick={() => setSelectedTrainingModule(planItem)}
+                          className={`btn-outline ${isUpcoming ? '' : 'active'}`}
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.4rem 1rem', borderRadius: '2rem', background: isUpcoming ? 'transparent' : 'var(--primary)', color: isUpcoming ? 'var(--text-muted)' : 'white', border: `1px solid ${isUpcoming ? 'var(--border-color)' : 'var(--primary)'}`, transition: 'all 0.2s', cursor: 'pointer' }}
+                        >
+                          <Mic size={14} /> {trainingScores[planItem.module] !== undefined ? "Refaire cet entraînement" : "S'entraîner avec le Coach IA"}
+                        </button>
+                        {trainingScores[planItem.module] !== undefined && (
+                          <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: trainingScores[planItem.module] >= 80 ? '#10b981' : trainingScores[planItem.module] >= 50 ? '#f59e0b' : '#ef4444', background: 'var(--bg-card)', padding: '0.2rem 0.6rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
+                            Score : {trainingScores[planItem.module]}/100
+                          </span>
+                        )}
+                      </div>
                     </div>
                     
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 700, background: isUpcoming ? '#f1f5f9' : 'rgba(139, 92, 246, 0.1)', color: accentColor, padding: '0.3rem 0.6rem', borderRadius: '1rem', whiteSpace: 'nowrap' }}>

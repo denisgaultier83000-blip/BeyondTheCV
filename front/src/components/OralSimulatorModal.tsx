@@ -40,6 +40,17 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
     };
   }, []);
 
+  // Reset de la modale à chaque ouverture ou changement d'exercice
+  useEffect(() => {
+    if (isOpen) {
+      setTranscript("");
+      setDuration(0);
+      setStatus('idle');
+      setFeedback(null);
+      setErrorMsg(null);
+    }
+  }, [isOpen, trainingTitle, trainingFocus]);
+
   if (!isOpen) return null;
 
   const toggleRecording = () => {
@@ -246,7 +257,7 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', animation: 'fadeIn 0.4s ease' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
                 <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <ScoreGauge score={feedback.score} label="Score d'Impact" />
+                <ScoreGauge score={feedback.score / 10} label="Score d'Impact" />
                 </div>
                 <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '1rem' }}>
                   <div>
