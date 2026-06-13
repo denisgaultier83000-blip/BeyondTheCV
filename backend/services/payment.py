@@ -31,7 +31,10 @@ async def create_payment_intent(request: PaymentIntentRequest, current_user: dic
             amount=actual_amount,
             currency=request.currency,
             automatic_payment_methods={"enabled": True},
-            metadata={"user_id": current_user["id"]}
+            metadata={
+                "user_id": current_user["id"],
+                "plan_name": request.plan_name or "strategic"
+            }
         )
         return {"clientSecret": intent.client_secret}
     except Exception as e:
@@ -52,6 +55,16 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
     if event["type"] == "payment_intent.succeeded":
         payment_intent = event["data"]["object"]
         user_id = payment_intent.get("metadata", {}).get("user_id")
+        plan_name = payment_intent.get("metadata", {}).get("plan_name", "strategic")
+        
+        # Mapping des séances selon l'offre commerciale
+        sessions_to_add = 15
+        if plan_name == "express": sessions_to_add = 3
+        elif plan_name == "strategic": sessions_to_add = 15
+        elif plan_name == "intensive": sessions_to_add = 30
+        elif plan_name == "recharge_10": sessions_to_add = 10
+        elif plan_name == "renewal": sessions_to_add = 15
+
         if user_id:
             async with db.get_connection() as conn:
                 # 1. Protection contre les appels doublons de Stripe (Idempotence)
@@ -59,14 +72,15 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                 if await cursor.fetchone():
                     return {"status": "success", "message": "Already processed"}
 
-                # 2. Mise à jour réelle incluant le temps d'expiration (ex: allocation de 90 jours par défaut)
+                # 2. Mise à jour réelle incluant le temps d'expiration (120 jours) et le crédit de séances
                 await db.execute(conn, """
                     UPDATE users 
                     SET is_premium = TRUE, 
                         subscription_status = 'active',
-                        subscription_expiration_date = GREATEST(COALESCE(subscription_expiration_date, CURRENT_TIMESTAMP), CURRENT_TIMESTAMP) + INTERVAL '90 days'
+                        subscription_expiration_date = GREATEST(COALESCE(subscription_expiration_date, CURRENT_TIMESTAMP), CURRENT_TIMESTAMP) + INTERVAL '120 days',
+                        training_sessions_balance = COALESCE(training_sessions_balance, 0) + ?
                     WHERE id = ?
-                """, (user_id,))
+                """, (sessions_to_add, user_id))
 
                 # 3. Mémoriser la transaction pour bloquer un éventuel rejeu
                 import uuid

@@ -678,11 +678,12 @@ async def evaluate_vocal_pitch(request: VocalPitchRequest, current_user: dict = 
 
     ANALYSE ATTENDUE :
     1. Tics de langage : Liste les mots parasites ("euh", "du coup", "en fait").
-    2. Rythme (Débit) : Le candidat parle-t-il trop vite ? Fait-il des pauses stratégiques ?
-    3. Clarté & Structure : Le discours a-t-il une accroche percutante et une conclusion claire ?
-    4. Impact & Longueur : Le discours est-il captivant ou ennuyeux ? Est-il trop long ou trop bref ?
-    5. Précision des exemples : Le candidat donne-t-il des faits concrets, des chiffres ou des méthodes (STAR), ou reste-t-il vague ("je gère des projets") ?
-    6. Lien avec l'offre & l'entreprise : Le pitch fait-il explicitement le pont entre les besoins spécifiques de cette entreprise et l'expertise du candidat ? S'il récite son CV sans faire de lien, pénalise-le.
+    2. Vocabulaire négatif/dévalorisant : Détecte les mots passifs, hésitants ou toxiques (ex: "petit", "essayer", "désolé", "problème", "un peu").
+    3. Rythme (Débit) : Le candidat parle-t-il trop vite ? Fait-il des pauses stratégiques ?
+    4. Clarté & Structure : Le discours a-t-il une accroche percutante et une conclusion claire ?
+    5. Impact & Longueur : Le discours est-il captivant ou ennuyeux ? Est-il trop long ou trop bref ?
+    6. Précision des exemples : Le candidat donne-t-il des faits concrets, des chiffres ou des méthodes (STAR), ou reste-t-il vague ("je gère des projets") ?
+    7. Lien avec l'offre & l'entreprise : Le pitch fait-il explicitement le pont entre les besoins spécifiques de cette entreprise et l'expertise du candidat ? S'il récite son CV sans faire de lien, pénalise-le.
 
     OUTPUT STRICT JSON:
     {{
@@ -690,7 +691,8 @@ async def evaluate_vocal_pitch(request: VocalPitchRequest, current_user: dict = 
         "metrics": {{
             "wpm": {wpm},
             "pace_status": "Idéal | Trop rapide | Trop lent",
-            "filler_words_detected": ["euh", "du coup"]
+            "filler_words_detected": ["euh", "du coup"],
+            "negative_words_detected": ["essayer", "un peu"]
         }},
         "feedback": {{
             "pace_and_silences": "Diagnostic sur le rythme et les silences...",
@@ -716,6 +718,10 @@ async def evaluate_vocal_pitch(request: VocalPitchRequest, current_user: dict = 
         if "metrics" in result and not isinstance(result["metrics"].get("filler_words_detected"), list):
             fw = result["metrics"].get("filler_words_detected")
             result["metrics"]["filler_words_detected"] = [fw] if fw and isinstance(fw, str) else []
+            
+        if "metrics" in result and not isinstance(result["metrics"].get("negative_words_detected"), list):
+            nw = result["metrics"].get("negative_words_detected")
+            result["metrics"]["negative_words_detected"] = [nw] if nw and isinstance(nw, str) else []
             
         if not isinstance(result.get("micro_exercises"), list):
             me = result.get("micro_exercises")

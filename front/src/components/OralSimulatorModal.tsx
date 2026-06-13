@@ -14,9 +14,11 @@ interface OralSimulatorModalProps {
   jobDescription?: string;
   targetLanguage?: string;
   onScoreUpdate?: (score: number) => void;
+  trainingTitle?: string;
+  trainingFocus?: string;
 }
 
-export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetCompany, jobDescription, targetLanguage = 'fr', onScoreUpdate }: OralSimulatorModalProps) {
+export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetCompany, jobDescription, targetLanguage = 'fr', onScoreUpdate, trainingTitle, trainingFocus }: OralSimulatorModalProps) {
   const { t } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -186,6 +188,13 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
               <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', textAlign: 'center', maxWidth: '600px', margin: 0 }}>
                 L'IA va analyser votre rythme, repérer vos tics de langage et évaluer l'impact de votre discours. Prêt à vous entraîner ?
               </p>
+
+              {trainingTitle && trainingFocus && (
+                <div style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '1.25rem', borderRadius: '0.75rem', borderLeft: '4px solid var(--primary)', width: '100%', textAlign: 'left', marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+                  <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary)', fontSize: '1.05rem' }}>{trainingTitle}</h4>
+                  <p style={{ margin: 0, color: 'var(--text-main)', fontSize: '0.95rem', lineHeight: '1.5' }}><strong>🎯 Consigne / Question :</strong> {trainingFocus}</p>
+                </div>
+              )}
               
               <div style={{ background: 'var(--bg-secondary)', width: '100%', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', minHeight: '150px', position: 'relative' }}>
                 {transcript ? (
@@ -249,8 +258,17 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.5rem' }}>Tics de langage détectés</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                       {feedback.metrics?.filler_words_detected?.length > 0 ? feedback.metrics.filler_words_detected.map((w: string, i: number) => (
-                        <span key={i} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.85rem', fontWeight: 600 }}>{w}</span>
+                        <span key={i} style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#d97706', border: '1px solid rgba(245, 158, 11, 0.2)', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.85rem', fontWeight: 600 }}>{w}</span>
                       )) : <span style={{ color: '#10b981', fontSize: '0.9rem', fontWeight: 600 }}>Aucun tic détecté ✨</span>}
+                    </div>
+                  </div>
+                  
+                  <div style={{ marginTop: '1rem' }}>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.5rem' }}>Mots dévalorisants / Interdits</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      {feedback.metrics?.negative_words_detected?.length > 0 ? feedback.metrics.negative_words_detected.map((w: string, i: number) => (
+                        <span key={i} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.85rem', fontWeight: 600 }}>{w}</span>
+                      )) : <span style={{ color: '#10b981', fontSize: '0.9rem', fontWeight: 600 }}>Aucun mot négatif ✨</span>}
                     </div>
                   </div>
                 </div>

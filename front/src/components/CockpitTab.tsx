@@ -43,7 +43,7 @@ export const CockpitTab: React.FC<CockpitProps> = ({
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [localData, setLocalData] = useState(actionPlanData);
   const [error, setError] = useState<string | null>(null);
-  const [isOralModalOpen, setIsOralModalOpen] = useState(false);
+  const [selectedTrainingModule, setSelectedTrainingModule] = useState<TrainingModule | null>(null);
   const [hasFiredConfetti, setHasFiredConfetti] = useState(false);
 
   useEffect(() => {
@@ -327,7 +327,7 @@ export const CockpitTab: React.FC<CockpitProps> = ({
                       )}
                       
                       <button 
-                        onClick={() => setIsOralModalOpen(true)}
+                        onClick={() => setSelectedTrainingModule(planItem)}
                         className={`btn-outline ${isUpcoming ? '' : 'active'}`}
                         style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.4rem 1rem', borderRadius: '2rem', background: isUpcoming ? 'transparent' : 'var(--primary)', color: isUpcoming ? 'var(--text-muted)' : 'white', border: `1px solid ${isUpcoming ? 'var(--border-color)' : 'var(--primary)'}`, transition: 'all 0.2s', cursor: 'pointer' }}
                       >
@@ -351,13 +351,15 @@ export const CockpitTab: React.FC<CockpitProps> = ({
       </div>
 
       <OralSimulatorModal 
-        isOpen={isOralModalOpen} 
-        onClose={() => setIsOralModalOpen(false)} 
+        isOpen={!!selectedTrainingModule} 
+        onClose={() => setSelectedTrainingModule(null)} 
         targetJob={interviewTarget} 
         targetCompany={cvData?.target_company}
         jobDescription={cvData?.job_description}
         targetLanguage={cvData?.target_language || 'fr'} 
         onScoreUpdate={handleVocalScoreUpdate}
+        trainingTitle={selectedTrainingModule?.module}
+        trainingFocus={selectedTrainingModule?.focus}
       />
     </div>
   );
