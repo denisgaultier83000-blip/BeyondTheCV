@@ -233,6 +233,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
       setActiveMode(prev => ({ ...prev, [qKey]: false }));
       
       if (onEvaluateSuccess) onEvaluateSuccess();
+      window.dispatchEvent(new Event('refresh-balance'));
     } catch (error: any) {
       console.error("Erreur lors de l'évaluation IA :", error);
       setErrors(prev => ({ ...prev, [qKey]: error.message || "Une erreur de communication avec l'IA est survenue. Veuillez réessayer." }));

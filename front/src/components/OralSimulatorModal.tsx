@@ -147,6 +147,7 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
       if (onScoreUpdate && data.score) {
         onScoreUpdate(data.score);
       }
+      window.dispatchEvent(new Event('refresh-balance'));
     } catch (e: any) {
       setErrorMsg(e.message || "Une erreur est survenue lors de l'analyse vocale.");
       setStatus('idle');

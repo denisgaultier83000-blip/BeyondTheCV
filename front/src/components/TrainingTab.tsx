@@ -73,6 +73,7 @@ export default function TrainingTab() {
       if (res.ok) {
         const data = await res.json();
         setBalance(data.balance);
+        window.dispatchEvent(new Event('refresh-balance'));
       }
     } catch (err) {
       console.error("Erreur récupération solde", err);
