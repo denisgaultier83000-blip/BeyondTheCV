@@ -196,13 +196,13 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
                 </div>
               )}
               
-              <div style={{ background: 'var(--bg-secondary)', width: '100%', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', minHeight: '150px', position: 'relative' }}>
-                {transcript ? (
-                  <div style={{ color: 'var(--text-main)', fontSize: '1.1rem', lineHeight: '1.6' }}>{transcript}</div>
-                ) : (
-                  <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'center', marginTop: '2rem' }}>La retranscription de votre voix s'affichera ici...</div>
-                )}
-              </div>
+              <textarea 
+                value={transcript}
+                onChange={(e) => setTranscript(e.target.value)}
+                placeholder={t('oral_sim_placeholder', "La retranscription de votre voix s'affichera ici. Vous pouvez corriger le texte manuellement avant de lancer l'analyse...")}
+                disabled={isRecording}
+                style={{ width: '100%', background: 'var(--bg-secondary)', color: 'var(--text-main)', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '1.5rem', fontSize: '1.1rem', lineHeight: '1.6', minHeight: '150px', resize: 'vertical', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s' }}
+              />
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', width: '100%', justifyContent: 'center' }}>
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '120px' }}>

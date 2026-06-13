@@ -78,13 +78,6 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDe
     if (recognitionRef.current) recognitionRef.current.stop();
     if (timerRef.current) clearInterval(timerRef.current);
     setIsRecording(false);
-
-    if (seconds < 10) {
-      alert("L'enregistrement est trop court (minimum 10 secondes) pour une analyse pertinente.");
-      return;
-    }
-    
-    analyzePitch();
   };
 
   const analyzePitch = async () => {
@@ -165,17 +158,35 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDe
             )}
           </div>
           
-          {isRecording ? (
-            <button onClick={stopRecording} className="btn-primary" style={{ background: '#ef4444', borderColor: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem', fontSize: '1.1rem', animation: 'pulse-record 1.5s infinite' }}>
-              <Square size={20} /> Stopper et Analyser
-            </button>
-          ) : (
-            <button onClick={startRecording} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem', fontSize: '1.1rem' }}>
-              <Play size={20} /> Démarrer l'enregistrement
-            </button>
-          )}
-          
-          {transcript && <div style={{ marginTop: '1rem', fontStyle: 'italic', color: 'var(--text-muted)', maxWidth: '80%', textAlign: 'center' }}>"{transcript.slice(-100)}..."</div>}
+          <textarea 
+            value={transcript}
+            onChange={e => setTranscript(e.target.value)}
+            placeholder="La retranscription s'affichera ici. Vous pouvez corriger le texte manuellement avant l'analyse..."
+            style={{ width: '100%', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '0.75rem', padding: '1rem', color: 'var(--text-main)', fontFamily: 'inherit', fontSize: '1rem', minHeight: '120px', resize: 'vertical', outline: 'none' }}
+            disabled={isRecording}
+          />
+
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            {isRecording ? (
+              <button onClick={stopRecording} className="btn-primary" style={{ background: '#ef4444', borderColor: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem', fontSize: '1.1rem', animation: 'pulse-record 1.5s infinite' }}>
+                <Square size={20} /> Arrêter l'enregistrement
+              </button>
+            ) : (
+              <>
+                <button onClick={startRecording} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem', fontSize: '1.1rem' }}>
+                  <Play size={20} /> {transcript ? "Nouvel enregistrement" : "Démarrer l'enregistrement"}
+                </button>
+                {transcript.trim().length > 0 && (
+                  <button onClick={() => {
+                    if (seconds < 10) { alert("L'enregistrement est trop court (minimum 10 secondes) pour une analyse pertinente."); return; }
+                    analyzePitch();
+                  }} className="btn-primary" style={{ background: '#10b981', borderColor: '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem', fontSize: '1.1rem' }}>
+                    <Activity size={20} /> Analyser ma prestation
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         </div>
       )}
 
