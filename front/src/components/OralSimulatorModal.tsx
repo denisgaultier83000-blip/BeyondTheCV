@@ -5,6 +5,7 @@ import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
 import { RechargeModal } from './RechargeModal';
+import { useDashboard } from './DashboardContext';
 
 interface OralSimulatorModalProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ interface OralSimulatorModalProps {
 
 export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetCompany, jobDescription, targetLanguage = 'fr', onScoreUpdate, trainingTitle, trainingFocus }: OralSimulatorModalProps) {
   const { t } = useTranslation();
+  const { quotas, fetchQuotas } = useDashboard();
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [duration, setDuration] = useState(0);
@@ -133,6 +135,12 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
     setStatus('analyzing');
     setErrorMsg(null);
     
+    if ((quotas?.pitch ?? 0) <= 0) {
+      setShowRechargeModal(true);
+      setStatus('idle');
+      return;
+    }
+    
     try {
       const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/evaluate-vocal-pitch`, {
         method: 'POST',
@@ -160,7 +168,7 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
       if (onScoreUpdate && data.score) {
         onScoreUpdate(data.score);
       }
-      window.dispatchEvent(new Event('refresh-balance'));
+      if (fetchQuotas) fetchQuotas();
     } catch (e: any) {
       setErrorMsg(e.message || "Une erreur est survenue lors de l'analyse vocale.");
       setStatus('idle');
@@ -240,7 +248,9 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
               {errorMsg && <div style={{ color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', padding: '0.75rem 1rem', borderRadius: '0.5rem' }}>{errorMsg}</div>}
 
               {transcript.length > 20 && !isRecording && (
-                <button onClick={handleEvaluate} className="btn-primary" style={{ padding: '1rem 2.5rem', fontSize: '1.1rem' }}>Analyser ma prestation</button>
+                <button onClick={handleEvaluate} className="btn-primary" style={{ padding: '1rem 2.5rem', fontSize: '1.1rem' }}>
+                  Analyser ma prestation ({quotas?.pitch ?? 0} restants)
+                </button>
               )}
             </div>
           )}

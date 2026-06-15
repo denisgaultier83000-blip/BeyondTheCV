@@ -231,6 +231,13 @@ export function SituationSimulator() {
   const handleGenerateMore = async () => {
     setIsGeneratingMore(true);
     setError(null);
+
+    if ((quotas?.mes ?? 0) < 2) {
+      setShowRechargeModal(true);
+      setIsGeneratingMore(false);
+      return;
+    }
+
     try {
       // 1. Purge du cache existant pour forcer l'IA à inventer de NOUVEAUX scénarios inédits
       await authenticatedFetch(`${API_BASE_URL}/api/cv/cache?content_type=extra_scenarios`, { method: 'DELETE' });
@@ -256,6 +263,7 @@ export function SituationSimulator() {
         if (updateFormData) {
           updateFormData("customScenariosResult", newScenarios);
         }
+        if (fetchQuotas) fetchQuotas();
       }
     } catch (e: any) {
       console.error(e);
@@ -362,7 +370,7 @@ export function SituationSimulator() {
           <p style={{ margin: '0 0 1.5rem 0', color: 'var(--text-muted)' }}>{t('sim_congrats_desc', 'Vous êtes prêt pour affronter les cas pratiques de cet entretien.')}</p>
           <button onClick={handleGenerateMore} disabled={isGeneratingMore} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
             {isGeneratingMore ? <Loader2 size={18} className="spin" /> : <RefreshCw size={18} />}
-            {t('sim_generate_more', 'Générer de nouveaux cas complexes (IA)')}
+            {t('sim_generate_more', 'Générer de nouveaux cas complexes (IA)')} (Coût : 2 MES)
           </button>
         </div>
       )}

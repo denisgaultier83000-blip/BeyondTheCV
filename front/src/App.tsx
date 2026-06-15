@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AlertCircle, RotateCcw, RefreshCw, Loader2, FileText, Target, MessageSquare, BarChart3, Bell as LucideBell, X as LucideX, Lock, CheckCircle2, Zap } from 'lucide-react';
+import { AlertCircle, RotateCcw, RefreshCw, Loader2, FileText, Target, MessageSquare, BarChart3, Bell as LucideBell, X as LucideX, Lock, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Login from './pages/Login';
@@ -19,7 +19,6 @@ import { LegalNotice } from './components/LegalNotice';
 import ResetPassword from './components/ResetPassword';
 import { LoadingScreen } from './components/LoadingScreen';
 import DocumentsModal from './components/DocumentsModal';
-import { RechargeModal } from './components/RechargeModal';
 import { API_BASE_URL } from './config';
 import { authenticatedFetch } from './utils/auth';
 import './index.css';
@@ -55,8 +54,6 @@ function AppContent() {
   const [stepErrors, setStepErrors] = useState<Record<string, boolean>>({});
   const [restoredData, setRestoredData] = useState<any>(null);
   const [lastSaveTime, setLastSaveTime] = useState<Date | null>(null);
-  const [trainingBalance, setTrainingBalance] = useState<number | null>(null);
-  const [showRechargeModal, setShowRechargeModal] = useState(false);
 
   // Ref pour éviter de déclencher l'auto-sauvegarde au montage initial de la page
   const initialLoadRef = useRef(true);
@@ -144,26 +141,6 @@ function AppContent() {
     i18n.changeLanguage(lang);
     setFormData((prev: any) => ({ ...(prev || {}), target_language: lang }));
   };
-
-  // --- Gestion globale du solde ---
-  const fetchGlobalBalance = async () => {
-    if (!isAuthenticated) return;
-    try {
-      const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/balance`);
-      if (res.ok) {
-        const data = await res.json();
-        setTrainingBalance(data.balance);
-      }
-    } catch (e) {
-      console.error("Erreur solde global:", e);
-    }
-  };
-
-  useEffect(() => {
-    const handleRefresh = () => fetchGlobalBalance();
-    window.addEventListener('refresh-balance', handleRefresh);
-    return () => window.removeEventListener('refresh-balance', handleRefresh);
-  }, [isAuthenticated]);
 
   // --- Fonction de Sauvegarde Silencieuse (Auto-Save) ---
   const saveProfileToDB = async (data: any) => {
@@ -274,7 +251,6 @@ function AppContent() {
       setShowLanding(false);
       if (location.pathname === '/') navigate('/candidate', { replace: true });
       loadProfile();
-      fetchGlobalBalance();
       const storedUser = localStorage.getItem('user');
       if (storedUser && storedUser !== "undefined" && storedUser !== "null") {
         try {
@@ -587,31 +563,6 @@ function AppContent() {
         </div>)}
 
       {showDocsModal && <DocumentsModal onClose={() => setShowDocsModal(false)} />}
-
-      {/* --- BADGE PERMANENT DU SOLDE DE SÉANCES --- */}
-      {isAuthenticated && currentStep > 0 && trainingBalance !== null && (
-        <div 
-          onClick={() => setShowRechargeModal(true)}
-          style={{
-            position: 'fixed', bottom: '2rem', left: '2rem', background: 'var(--bg-card)',
-            border: `2px solid ${trainingBalance > 0 ? 'var(--primary)' : 'var(--danger-text)'}`,
-            padding: '0.75rem 1.25rem', borderRadius: '2rem',
-            boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
-            display: 'flex', alignItems: 'center', gap: '0.75rem',
-            cursor: 'pointer', zIndex: 1000,
-            color: trainingBalance > 0 ? 'var(--text-main)' : 'var(--danger-text)',
-            fontWeight: 600, transition: 'transform 0.2s'
-          }}
-          onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-          onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}
-          title="Recharger vos séances"
-        >
-          <Zap size={18} color={trainingBalance > 0 ? 'var(--primary)' : 'var(--danger-text)'} />
-          <span>{trainingBalance} séance{trainingBalance > 1 ? 's' : ''} IA</span>
-          {trainingBalance === 0 && <span style={{ background: 'var(--danger-text)', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.75rem', marginLeft: '0.5rem' }}>Recharger</span>}
-        </div>
-      )}
-      <RechargeModal isOpen={showRechargeModal} onClose={() => setShowRechargeModal(false)} />
 
       {/* [FIX] Alignement centré et aéré du Footer réglementaire */}
       <footer className="app-footer" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.5rem', padding: '2rem', flexWrap: 'wrap', opacity: 0.8, marginTop: 'auto' }}>

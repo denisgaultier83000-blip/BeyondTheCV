@@ -15,7 +15,8 @@ import {
   Mic,
   Send,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Dumbbell
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { DashboardCard } from './DashboardCard';
@@ -143,6 +144,14 @@ export default function TrainingTab() {
     if (!userAnswer.trim()) return;
     setIsEvaluating(true);
     setErrorMsg(null);
+
+    const requiredQuota = activeQuestion.type === 'MES' ? (quotas?.mes ?? 0) : (quotas?.qa ?? 0);
+    if (requiredQuota <= 0) {
+      setShowRechargeModal(true);
+      setIsEvaluating(false);
+      return;
+    }
+
     try {
       const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/evaluate`, {
         method: 'POST',
@@ -523,9 +532,14 @@ export default function TrainingTab() {
             </div>
           )}
 
-          <button onClick={handleEvaluate} disabled={isEvaluating || !userAnswer.trim()} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {isEvaluating ? <RefreshCw className="spin" size={18} /> : <MessageSquare size={18} />} {isEvaluating ? "Évaluation..." : "Soumettre & Évaluer"}
-          </button>
+          {(() => {
+            const remainingForType = activeQuestion.type === 'MES' ? (quotas?.mes ?? 0) : (quotas?.qa ?? 0);
+            return (
+              <button onClick={handleEvaluate} disabled={isEvaluating || !userAnswer.trim()} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {isEvaluating ? <RefreshCw className="spin" size={18} /> : <MessageSquare size={18} />} {isEvaluating ? "Évaluation..." : `Soumettre & Évaluer (${remainingForType} restants)`}
+              </button>
+            );
+          })()}
 
           {feedback && (() => {
             const score10 = (feedback.score || 0) / 10;
