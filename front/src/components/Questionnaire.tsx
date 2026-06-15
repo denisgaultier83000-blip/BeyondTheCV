@@ -42,6 +42,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
   const dashboard = useDashboard();
   
   const cvData = dashboard?.cvData;
+  const { quotas, fetchQuotas } = dashboard;
   const updateFormData = dashboard?.updateFormData;
   
   const userAnswersKey = `${storageKeyPrefix}UserAnswers`;
@@ -192,6 +193,13 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
     setIsSubmitting(qKey);
     setErrors(prev => ({ ...prev, [qKey]: "" }));
     
+    // [NOUVEAU] Vérification du quota avant de lancer l'évaluation
+    if ((quotas?.qa ?? 0) <= 0) {
+      setShowRechargeModal(true);
+      setIsSubmitting(null);
+      return;
+    }
+
     // Sécurisation des clés pour l'envoi API
     const questionText = q.question || q.text || "Question non spécifiée";
     const suggestedAnswer = q.suggested_answer || q.answer || q.reponse_suggeree || q.reponse || "";
@@ -233,7 +241,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
       setActiveMode(prev => ({ ...prev, [qKey]: false }));
       
       if (onEvaluateSuccess) onEvaluateSuccess();
-      window.dispatchEvent(new Event('refresh-balance'));
+      if (fetchQuotas) fetchQuotas(); // [NOUVEAU] Rafraîchissement des quotas
     } catch (error: any) {
       console.error("Erreur lors de l'évaluation IA :", error);
       setErrors(prev => ({ ...prev, [qKey]: error.message || "Une erreur de communication avec l'IA est survenue. Veuillez réessayer." }));
@@ -435,7 +443,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <button onClick={() => { setActiveMode(prev => ({...prev, [qKey]: false})); setErrors(prev => ({...prev, [qKey]: ""})); }} className="btn-ghost" style={{ fontSize: '0.85rem' }} disabled={isSubmittingThis}>{t('btn_cancel', 'Annuler')}</button>
                     <button onClick={() => handleSubmit(qKey, q)} disabled={!(userAnswers[qKey] || "").trim() || isSubmittingThis} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
-                      {isSubmittingThis ? <><Loader2 size={16} className="spin" /> {t('q_ai_analyzing', 'Analyse IA en cours...')}</> : <><Send size={16} /> {t('q_analyze_answer', 'Analyser ma réponse')}</>}
+                      {isSubmittingThis ? <><Loader2 size={16} className="spin" /> {t('q_ai_analyzing', 'Analyse IA en cours...')}</> : <><Send size={16} /> {`${t('q_analyze_answer', 'Analyser ma réponse')} (${quotas?.qa ?? 0} restants)`}</>}
                     </button>
                  </div>
               </div>

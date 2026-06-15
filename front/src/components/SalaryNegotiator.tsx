@@ -5,9 +5,10 @@ import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
 import { useDashboard } from './DashboardContext';
 import { useTranslation } from 'react-i18next';
+import { RechargeModal } from './RechargeModal';
 
 export default function SalaryNegotiator() {
-  const { cvData, salaryResult, updateFormData } = useDashboard();
+  const { cvData, salaryResult, updateFormData, quotas, fetchQuotas } = useDashboard();
   const { t } = useTranslation();
   
   const [userAnswer, setUserAnswer] = useState('');
@@ -16,6 +17,7 @@ export default function SalaryNegotiator() {
   const [error, setError] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const [showRechargeModal, setShowRechargeModal] = useState(false);
   
   const [history, setHistory] = useState<any[]>(cvData?.negotiationHistory || []);
 
@@ -121,6 +123,12 @@ export default function SalaryNegotiator() {
     setIsEvaluating(true);
     setError(null);
 
+    if ((quotas?.negotiation ?? 0) <= 0) {
+      setShowRechargeModal(true);
+      setIsEvaluating(false);
+      return;
+    }
+
     try {
       const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/simulate-negotiation`, {
         method: 'POST',
@@ -133,6 +141,7 @@ export default function SalaryNegotiator() {
       });
 
       if (!res.ok) {
+        if (res.status === 402) setShowRechargeModal(true);
         let errMsg = "Erreur de communication.";
         try { const errObj = await res.json(); errMsg = errObj.detail || errMsg; } catch(e) {}
         throw new Error(errMsg);
@@ -147,6 +156,7 @@ export default function SalaryNegotiator() {
       if (updateFormData) {
         updateFormData('negotiationHistory', newHistory);
       }
+      if (fetchQuotas) fetchQuotas();
     } catch (err: any) {
       setError(err.message || "L'évaluation a échoué. Veuillez réessayer.");
     } finally {
@@ -234,7 +244,7 @@ export default function SalaryNegotiator() {
             </button>
             <button onClick={handleEvaluate} disabled={isEvaluating || !userAnswer.trim()} className="btn-primary" style={{ background: (isEvaluating || !userAnswer.trim()) ? '' : '#10b981', borderColor: (isEvaluating || !userAnswer.trim()) ? '' : '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               {isEvaluating ? <Loader2 size={18} className="spin" /> : <Send size={18} />}
-              {isEvaluating ? "Analyse en cours..." : "Tenter de négocier"}
+              {isEvaluating ? "Analyse en cours..." : `Tenter de négocier (${quotas?.negotiation ?? 0} restants)`}
             </button>
           </div>
         </div>
@@ -272,6 +282,7 @@ export default function SalaryNegotiator() {
           </div>
         </div>
       )}
+      <RechargeModal isOpen={showRechargeModal} onClose={() => setShowRechargeModal(false)} />
     </div>
   );
 }

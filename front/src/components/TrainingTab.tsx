@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Activity, 
+  DollarSign,
   Target, 
   Award, 
   RefreshCw,
@@ -26,7 +27,7 @@ import { VocalPitchTrainer } from './VocalPitchTrainer';
 import { RechargeModal } from './RechargeModal';
 
 export default function TrainingTab() {
-  const { cvData, updateFormData, pitchResult, actionPlanResult } = useDashboard();
+  const { cvData, updateFormData, actionPlanResult, quotas, fetchQuotas } = useDashboard();
   const [score, setScore] = useState(0);
   const [totalSessions, setTotalSessions] = useState(0);
   const [themeScores, setThemeScores] = useState<Record<string, number>>({});
@@ -35,7 +36,6 @@ export default function TrainingTab() {
   const [selectedType, setSelectedType] = useState('MES');
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [balance, setBalance] = useState<number | null>(null);
   const [showRechargeModal, setShowRechargeModal] = useState(false);
 
   // UX Interactive (Aide & Suggestion)
@@ -67,19 +67,6 @@ export default function TrainingTab() {
     }
   };
 
-  const fetchBalance = async () => {
-    try {
-      const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/balance`);
-      if (res.ok) {
-        const data = await res.json();
-        setBalance(data.balance);
-        window.dispatchEvent(new Event('refresh-balance'));
-      }
-    } catch (err) {
-      console.error("Erreur récupération solde", err);
-    }
-  };
-
   const fetchHistory = async () => {
     try {
       const [trainRes, intRes] = await Promise.all([
@@ -103,12 +90,12 @@ export default function TrainingTab() {
   useEffect(() => {
     fetchStats();
     fetchHistory();
-    fetchBalance();
-  }, []);
+    if (fetchQuotas) fetchQuotas();
+  }, [fetchQuotas]);
 
   const refreshAllStats = () => {
     fetchStats();
-    fetchBalance();
+    if (fetchQuotas) fetchQuotas();
   };
 
   const handleGenerate = async () => {
@@ -142,7 +129,7 @@ export default function TrainingTab() {
         setShowSuggestion(false);
         setUserAnswer('');
         setFeedback(null);
-        fetchBalance();
+        if (fetchQuotas) fetchQuotas();
       }
     } catch (err: any) {
       console.error("Erreur génération question", err);
@@ -177,7 +164,7 @@ export default function TrainingTab() {
       }
       const data = await res.json();
       setFeedback(data.feedback);
-      refreshAllStats();
+      refreshAllStats(); // Ceci va re-déclencher le fetch des quotas
       
       const completedQ = { ...activeQuestion, userAnswer, evaluation: data.feedback, feedback: data.feedback };
       
@@ -287,6 +274,40 @@ export default function TrainingTab() {
           </div>
         </DashboardCard>
       )}
+
+      {/* --- NOUVEAU : AFFICHAGE DES QUOTAS PAR MODULE --- */}
+      <DashboardCard title="Simulations Notées Disponibles" icon={<Dumbbell size={24} />}>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
+          Votre pack inclut un nombre de simulations évaluées par l'IA pour chaque type d'exercice. L'entraînement libre (lecture des questions et réponses) est illimité.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+          {[
+            { key: 'qa', label: "Questions / Réponses", icon: <MessageSquare size={20} /> },
+            { key: 'pitch', label: "Pitch Vocal", icon: <Mic size={20} /> },
+            { key: 'mes', label: "Mises en Situation", icon: <BrainCircuit size={20} /> },
+            { key: 'negotiation', label: "Négociation Salariale", icon: <DollarSign size={20} /> },
+          ].map(q => {
+            const remaining = quotas?.[q.key] ?? 0;
+            const hasQuota = remaining > 0;
+            return (
+              <div key={q.key} style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: `1px solid ${hasQuota ? 'rgba(59, 130, 246, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`, display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ color: hasQuota ? 'var(--primary)' : 'var(--danger-text)' }}>
+                  {q.icon}
+                </div>
+                <div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: hasQuota ? 'var(--text-main)' : 'var(--danger-text)' }}>
+                    {remaining}
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                    {q.label}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {(quotas?.qa === 0 || quotas?.pitch === 0 || quotas?.mes === 0 || quotas?.negotiation === 0) && <button onClick={() => setShowRechargeModal(true)} className="btn-primary" style={{ marginTop: '1.5rem', alignSelf: 'center' }}>Recharger des simulations</button>}
+      </DashboardCard>
 
       {/* --- SECTION STATISTIQUES --- */}
       <DashboardCard title="Statistiques Globales & Évolution" icon={<Activity size={24} />}>
@@ -400,19 +421,6 @@ export default function TrainingTab() {
       <DashboardCard title="Nouvelle Session d'Entraînement" icon={<Settings2 size={24} />}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
-          {/* Jauge de Séances */}
-          {balance !== null && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', background: balance > 0 ? 'rgba(59, 130, 246, 0.05)' : 'rgba(239, 68, 68, 0.05)', borderRadius: '0.75rem', border: `1px solid ${balance > 0 ? 'rgba(59, 130, 246, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`, color: balance > 0 ? 'var(--text-main)' : 'var(--danger-text)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}><Activity size={20} color={balance > 0 ? 'var(--primary)' : 'var(--danger-text)'} /> <span style={{ fontWeight: 600 }}>Séances d'entraînement disponibles</span></div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: balance > 0 ? 'var(--primary)' : 'var(--danger-text)' }}>{balance}</div>
-                {balance === 0 && (
-                  <button onClick={() => setShowRechargeModal(true)} className="btn-primary" style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>Recharger</button>
-                )}
-              </div>
-            </div>
-          )}
-
           {errorMsg && !activeQuestion && (
             <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.2)', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--danger-text)' }}>
               <AlertCircle size={18} /> {errorMsg}
@@ -470,7 +478,7 @@ export default function TrainingTab() {
           {/* Bouton Générer */}
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
             <button 
-              onClick={handleGenerate}
+              onClick={() => { if ((quotas?.qa ?? 0) > 0 || (quotas?.mes ?? 0) > 0) handleGenerate(); else setShowRechargeModal(true); }}
               disabled={isGenerating}
               className="btn-primary"
               style={{ padding: '1rem 3rem', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}

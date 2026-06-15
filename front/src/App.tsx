@@ -484,12 +484,14 @@ function AppContent() {
 
   // [FIX] Sécurisation du parsing JSON du nom d'utilisateur pour éviter la page blanche au login
   let parsedUserName = undefined;
+  let isAdmin = false;
   if (isAuthenticated) {
     try {
       const storedUser = localStorage.getItem('user');
       if (storedUser && storedUser !== "undefined" && storedUser !== "null") {
           const u = JSON.parse(storedUser);
           parsedUserName = u.first_name || u.name || t('default_candidate_name', "Candidat");
+          isAdmin = !!u.is_admin;
       }
     } catch (e) {
         parsedUserName = t('default_candidate_name', "Candidat");
@@ -613,7 +615,11 @@ function AppContent() {
 
       {/* [FIX] Alignement centré et aéré du Footer réglementaire */}
       <footer className="app-footer" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.5rem', padding: '2rem', flexWrap: 'wrap', opacity: 0.8, marginTop: 'auto' }}>
-        <button className="btn-ghost" onClick={() => setShowAdmin(true)}>{t('footer_admin', 'Accès Administrateur')}</button><span>|</span>
+        {isAdmin && (
+          <>
+            <button className="btn-ghost" onClick={() => setShowAdmin(true)}>{t('footer_admin', 'Accès Administrateur')}</button><span>|</span>
+          </>
+        )}
         <button className="btn-ghost" onClick={() => setShowLegal(true)}>{t('footer_legal', 'Mentions Légales')}</button><span>|</span>
         <button className="btn-ghost" onClick={() => setShowCGU(true)}>{t('footer_cgu', 'CGU')}</button><span>|</span>
         <button className="btn-ghost" onClick={() => setShowPrivacy(true)}>{t('footer_privacy', 'Politique de Confidentialité')}</button>

@@ -8,6 +8,7 @@ interface DashboardContextType {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   pilotData: any;
+  quotas: { [key: string]: number };
   isPilotLoading: boolean;
   researchResult: any;
   salaryResult: any;
@@ -25,6 +26,7 @@ interface DashboardContextType {
   setCurrentStep: (step: number) => void;
   triggerResearch: () => Promise<void>;
   fetchPilotData: () => Promise<void>;
+  fetchQuotas: () => Promise<void>;
   updateFormData?: (key: string, value: any) => void;
   pilotError: string | null;
 }
@@ -95,6 +97,28 @@ export const DashboardProvider = ({
   const [pilotData, setPilotData] = useState<any>(null);
   const [isPilotLoading, setIsPilotLoading] = useState<boolean>(false);
   const [pilotError, setPilotError] = useState<string | null>(null);
+  const [quotas, setQuotas] = useState<{[key: string]: number}>({
+    pitch: 0,
+    qa: 0,
+    mes: 0,
+    negotiation: 0,
+    regeneration: 0,
+    update: 0,
+  });
+
+  const fetchQuotas = useCallback(async () => {
+    try {
+        const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/balance`);
+        if (response.ok) {
+            const data = await response.json();
+            // Le backend renvoie maintenant un objet JSON détaillé correspondant à l'interface
+            // { pitch: number, qa: number, mes: number, negotiation: number, ... }
+            setQuotas(data);
+        }
+    } catch (e) {
+        console.error("Impossible de récupérer les quotas, utilisation des valeurs par défaut.", e);
+    }
+  }, []);
 
   // Mémoïsation de la fonction d'appel pour éviter les re-rendus infinis dans les useEffect
   const fetchPilotData = useCallback(async () => {
@@ -140,6 +164,7 @@ export const DashboardProvider = ({
   // Auto-fetch ultra-robuste quand le CV (mock puis réel) est mis à jour
   useEffect(() => {
     fetchPilotData();
+    fetchQuotas();
   }, [fetchPilotData]);
 
   return (
@@ -147,6 +172,8 @@ export const DashboardProvider = ({
       activeTab, setActiveTab,
       pilotData, fetchPilotData,
       isPilotLoading,
+      quotas,
+      fetchQuotas,
       cvData: localCvData,
       gapResult: initialGapResult,
       researchResult: initialResearchResult,

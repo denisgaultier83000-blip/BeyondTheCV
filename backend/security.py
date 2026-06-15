@@ -59,16 +59,24 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         try:
             async with db.get_connection() as conn: # Cette ligne plantait car 'db' n'était pas importé
                 # [FIX] Le token peut contenir l'ID ou l'Email. On vérifie les deux pour une compatibilité absolue avec les anciennes versions du token.
-                cursor = await db.execute(conn, "SELECT id, email, first_name, last_name, is_premium FROM users WHERE id = ? OR email = ?", (user_id, user_id))
+                cursor = await db.execute(conn, "SELECT id, email, first_name, last_name, is_premium, is_admin FROM users WHERE id = ? OR email = ?", (user_id, user_id))
                 user_row = await cursor.fetchone()
             
             if user_row:
+                user_email = user_row["email"]
+                is_admin_db = bool(user_row.get("is_admin", False))
+                
+                # [FIX EXPERT] On vérifie aussi si l'utilisateur courant correspond à l'ADMIN_EMAIL du .env
+                admin_env_email = os.getenv("ADMIN_EMAIL")
+                is_admin_env = bool(admin_env_email and user_email == admin_env_email)
+
                 return {
                     "id": user_row["id"],
-                    "email": user_row["email"],
+                    "email": user_email,
                     "first_name": user_row["first_name"],
                     "last_name": user_row["last_name"],
-                    "is_premium": bool(user_row["is_premium"])
+                    "is_premium": bool(user_row["is_premium"]),
+                    "is_admin": is_admin_db or is_admin_env
                 }
             else:
                 raise HTTPException(status_code=401, detail="User not found")
@@ -82,3 +90,16 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
+
+async def require_admin_user(current_user: dict = Depends(get_current_user)):
+    """
+    Vérifie si l'utilisateur courant est un administrateur.
+    Le flag 'is_admin' est injecté par get_current_user.
+    """
+    if not current_user.get("is_admin"):
+        # [SÉCURITÉ] Fallback via variable d'environnement pour le tout premier admin
+        admin_email = os.getenv("ADMIN_EMAIL")
+        if not admin_email or current_user.get("email") != admin_email:
+            raise HTTPException(status_code=403, detail="Accès refusé. Cette opération requiert des droits administrateur.")
+    
+    return current_user

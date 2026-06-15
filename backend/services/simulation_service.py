@@ -10,7 +10,8 @@ from models import (
 from security import get_current_user
 from database import db
 from .ai_generator import ai_service
-from .utils import load_prompt, clean_ai_json_response, normalize_language
+from .utils import load_prompt, clean_ai_json_response, normalize_language, consume_quota, refund_quota
+from .cv_services import require_active_subscription
 
 router = APIRouter(
     prefix="/api/cv",
@@ -176,8 +177,11 @@ async def simulate_situation(request: SituationSimulationRequest, current_user: 
         raise HTTPException(status_code=500, detail=f"Situation simulation failed: {str(e)}")
 
 @router.post("/simulate-negotiation")
-async def simulate_negotiation(request: NegotiationSimulationRequest, current_user: dict = Depends(get_current_user)):
+async def simulate_negotiation(request: NegotiationSimulationRequest, current_user: dict = Depends(require_active_subscription)):
     """Analyse la façon dont le candidat négocie ou défend son salaire face à une objection du recruteur."""
+    
+    await consume_quota(current_user["id"], "negotiation", cost=1)
+    
     target_lang = normalize_language(request.candidate_profile.get('target_language', 'French'))
     salary_expectations = request.candidate_profile.get('salary_expectations', 'Non spécifié')
     target_job = request.candidate_profile.get('target_job', 'Poste visé')
@@ -220,5 +224,9 @@ async def simulate_negotiation(request: NegotiationSimulationRequest, current_us
             feedback["weaknesses"] = [w] if w and isinstance(w, str) else []
             
         return {"feedback": feedback}
+    except HTTPException:
+        await refund_quota(current_user["id"], "negotiation", cost=1)
+        raise
     except Exception as e:
+        await refund_quota(current_user["id"], "negotiation", cost=1)
         raise HTTPException(status_code=500, detail=f"Negotiation simulation failed: {str(e)}")

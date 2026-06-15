@@ -3,6 +3,7 @@ import { Mic, Square, Play, RotateCcw, Loader2, Activity, MessageSquare, AlertTr
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { useTranslation } from 'react-i18next';
+import { useDashboard } from './DashboardContext';
 import { RechargeModal } from './RechargeModal';
 
 interface VocalPitchTrainerProps {
@@ -14,6 +15,7 @@ interface VocalPitchTrainerProps {
 
 export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDescription, onSuccess }: VocalPitchTrainerProps) => {
   const { t } = useTranslation();
+  const { quotas, fetchQuotas } = useDashboard();
   
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -83,6 +85,13 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDe
   const analyzePitch = async () => {
     setIsAnalyzing(true);
     setError(null);
+
+    if ((quotas?.pitch ?? 0) <= 0) {
+      setShowRechargeModal(true);
+      setIsAnalyzing(false);
+      return;
+    }
+
     try {
       const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/evaluate-vocal-pitch`, {
         method: 'POST',
@@ -104,6 +113,7 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDe
       const data = await response.json();
       setResult(data);
       if (onSuccess) onSuccess();
+      if (fetchQuotas) fetchQuotas();
     } catch (e: any) {
       console.error(e);
       setError(e.message || "L'analyse a échoué. L'IA a mis trop de temps à répondre.");
@@ -181,7 +191,7 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDe
                     if (seconds < 10) { alert("L'enregistrement est trop court (minimum 10 secondes) pour une analyse pertinente."); return; }
                     analyzePitch();
                   }} className="btn-primary" style={{ background: '#10b981', borderColor: '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem', fontSize: '1.1rem' }}>
-                    <Activity size={20} /> Analyser ma prestation
+                    <Activity size={20} /> Analyser ma prestation ({quotas?.pitch ?? 0} restants)
                   </button>
                 )}
               </>

@@ -54,7 +54,8 @@ def create_tables():
                 subscription_extension_count INTEGER DEFAULT 0,
                 last_extension_date TIMESTAMP,
                 deleted_at TIMESTAMP,
-                is_active BOOLEAN DEFAULT TRUE
+                is_active BOOLEAN DEFAULT TRUE,
+                is_admin BOOLEAN DEFAULT FALSE
             )
         """)
         print("✅ Table 'users' created")

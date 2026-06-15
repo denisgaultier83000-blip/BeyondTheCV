@@ -190,6 +190,29 @@ async def lifespan(app: FastAPI):
                         """)
                     conn.commit()
             except Exception as e:
+                print(f"[DB WARNING] Failed to create tables: {e}", flush=True)
+
+            # [NOUVEAU] Ajout des colonnes de quotas granulaires à la table users
+            try:
+                with conn.cursor() as cur:
+                    try:
+                        cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name='users'")
+                        user_columns_raw = cur.fetchall()
+                        user_columns = [col[0] for col in user_columns_raw]
+                    except Exception: # Fallback pour SQLite
+                        cur.execute("PRAGMA table_info(users)")
+                        user_columns_raw = cur.fetchall()
+                        user_columns = [col[1] for col in user_columns_raw]
+
+                    quota_cols = { "quota_pitch": "INTEGER DEFAULT 10", "quota_qa": "INTEGER DEFAULT 25", "quota_mes": "INTEGER DEFAULT 6", "quota_negotiation": "INTEGER DEFAULT 4", "quota_regeneration": "INTEGER DEFAULT 3", "quota_update": "INTEGER DEFAULT 1" }
+                    
+                    for col, col_type in quota_cols.items():
+                        if col not in user_columns:
+                            print(f"[DB MIGRATE] Adding column {col} to users table.")
+                            cur.execute(f"ALTER TABLE users ADD COLUMN {col} {col_type}")
+                conn.commit()
+            except Exception as e:
+                print(f"[DB WARNING] Failed to add quota columns to users table: {e}", flush=True)
                 print(f"[DB WARNING] Failed to create generation_cache table: {e}", flush=True)
                 
             print("[DB] Database initialized successfully.", flush=True)
@@ -373,6 +396,7 @@ include_safe_router("profile")
 include_safe_router("simulation_service")
 include_safe_router("documents")
 include_safe_router("payment")
+include_safe_router("admin_service")
 # New routes for products, evaluations, and subscriptions
 include_safe_router("routes_products", from_services=False)
 

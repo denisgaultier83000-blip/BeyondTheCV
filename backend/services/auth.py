@@ -1,9 +1,11 @@
 import uuid
 import os
 import secrets
-import httpx
+import smtplib
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr
 from models import UserLogin, UserRegister
@@ -133,53 +135,52 @@ async def register(user: UserRegister):
 async def get_user_status(current_user: dict = Depends(get_current_user)):
     """Vérifie le statut Premium de l'utilisateur."""
 
-async def send_reset_email(to_email: str, reset_token: str):
-    """Envoie l'email de réinitialisation de mot de passe via l'API SendGrid."""
-    sg_key = os.getenv("SENDGRID_API_KEY")
-    from_email = os.getenv("SENDGRID_FROM_EMAIL", "noreply@beyondthecv.app")
+def send_reset_email(to_email: str, reset_token: str):
+    """Envoie l'email de réinitialisation de mot de passe via SMTP, de manière synchrone."""
+    smtp_host = os.getenv("SMTP_HOST")
+    smtp_port = int(os.getenv("SMTP_PORT", 587))
+    smtp_user = os.getenv("SMTP_USER")
+    smtp_pass = os.getenv("SMTP_PASS")
+
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-    
     reset_link = f"{frontend_url}/reset-password?token={reset_token}"
     
-    if not sg_key:
-        print(f"[AUTH] ⚠️ SENDGRID_API_KEY non configurée. Lien de reset pour {to_email} : {reset_link}", flush=True)
+    if not all([smtp_host, smtp_user, smtp_pass]):
+        print(f"[AUTH] ⚠️ Configuration SMTP manquante. Email de reset non envoyé. Lien : {reset_link}", flush=True)
         return
         
-    headers = {
-        "Authorization": f"Bearer {sg_key}",
-        "Content-Type": "application/json"
-    }
-    
-    html_content = f"""
+    msg = MIMEMultipart("alternative")
+    msg["From"] = f"Support BeyondTheCV <{smtp_user}>"
+    msg["To"] = to_email
+    msg["Subject"] = "Réinitialisation de votre mot de passe - BeyondTheCV"
+
+    plain_body = f"""Bonjour,\n\nVous avez demandé à réinitialiser le mot de passe de votre compte BeyondTheCV.\n\nCliquez sur le lien suivant pour créer un nouveau mot de passe (ce lien expire dans 15 minutes) :\n{reset_link}\n\nSi vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email.\n\nL'équipe BeyondTheCV"""
+
+    html_body = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
         <h2 style="color: #0F2650;">Réinitialisation de votre mot de passe</h2>
         <p>Bonjour,</p>
         <p>Vous avez demandé à réinitialiser le mot de passe de votre compte BeyondTheCV.</p>
         <p>Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe :</p>
         <div style="text-align: center; margin: 30px 0;">
-            <a href="{reset_link}" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Réinitialiser mon mot de passe</a>
+            <a href="{reset_link}" style="background-color: #0F2650; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Réinitialiser mon mot de passe</a>
         </div>
         <p style="color: #64748b; font-size: 0.9em;">Ce lien expirera dans 15 minutes.</p>
         <p style="color: #64748b; font-size: 0.9em;">Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email.</p>
     </div>
     """
-    
-    data = {
-        "personalizations": [{"to": [{"email": to_email}]}],
-        "from": {"email": from_email, "name": "BeyondTheCV"},
-        "subject": "Réinitialisation de mot de passe - BeyondTheCV",
-        "content": [{"type": "text/html", "value": html_content}]
-    }
-    
+
+    msg.attach(MIMEText(plain_body, "plain", "utf-8"))
+    msg.attach(MIMEText(html_body, "html", "utf-8"))
+
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post("https://api.sendgrid.com/v3/mail/send", headers=headers, json=data)
-            if resp.status_code >= 400:
-                print(f"[SENDGRID ERROR] {resp.status_code} - {resp.text}", flush=True)
-            else:
-                print(f"[AUTH] 📧 Email de récupération envoyé à {to_email}", flush=True)
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.send_message(msg)
+            print(f"[AUTH] 📧 Email de récupération envoyé à {to_email}", flush=True)
     except Exception as e:
-        print(f"[SENDGRID ERROR] Échec de l'envoi : {e}", flush=True)
+        print(f"[SMTP ERROR] Échec de l'envoi : {e}", flush=True)
 
 @router.post("/api/auth/forgot-password")
 async def forgot_password(request: ForgotPasswordRequest, background_tasks: BackgroundTasks):
