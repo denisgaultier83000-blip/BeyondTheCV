@@ -11,7 +11,7 @@ Générer EXACTEMENT 10 questions d'entretien d'une extrême pertinence, adapté
 - **BANNIS LES QUESTIONS GÉNÉRIQUES.** Aucune question du type "Pourquoi voulez-vous travailler chez nous ?" ou "Où vous voyez-vous dans 5 ans ?". Pose des questions de mise en situation technique ou stratégique complexes liées au rôle cible.
 - **QUANTITÉ STRICTE : Tu DOIS générer EXACTEMENT 10 questions. Privilégie la profondeur des questions et des réponses pour ne pas saturer la génération.**
 - **MISES EN SITUATION :** Au moins 5 questions doivent commencer par "Mise en situation :" et plonger le candidat dans un scénario de crise ou de décision difficile propre à son futur poste.
-- **QUALITÉ EXPERT (MÉTHODE STAR) : Fuis la banalité. Les réponses suggérées (`suggested_answer`) doivent utiliser la méthode STAR (Situation, Tâche, Action, Résultat) et valoriser le candidat de manière exécutive.**
+- **QUALITÉ EXPERT ET MÉTHODOLOGIE ADAPTÉE :** Fuis la banalité. Pour les questions sur le passé, la réponse suggérée (`suggested_answer`) doit utiliser la méthode STAR (Situation, Tâche, Action, Résultat). **Cependant, pour les "Mises en situation" (MES), NE DEMANDE PAS DE CHIFFRES SUR LE PASSÉ.** La réponse suggérée doit démontrer un **processus de réflexion structuré** (Diagnostic de la situation, Prise en compte de l'humain/des risques, Plan d'action étape par étape, Suivi). Le but est de voir *comment* le candidat réfléchit face à l'inconnu.
 - **Curiosité :** Utilise les hobbies du candidat ou pose une question inattendue pour tester son agilité mentale.
 - **Classiques :** Inclure systématiquement des questions de parcours (réussites, échecs, trous dans le CV).
 - **Défauts :** Inclure SYSTEMATIQUEMENT la question : "Quels sont vos trois principaux défauts ?".

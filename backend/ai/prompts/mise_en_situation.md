@@ -61,7 +61,7 @@ Si le profil du candidat précise un type d'entretien (dans l'objet `meta.interv
     "follow_up": "Analyse de son anticipation de la suite (reporting, prévention)."
   },
   "recommendations": [
-    "Conseil de communication 1 (ex: Structurez toujours votre réponse avec la méthode STAR pour ne pas vous perdre dans les détails)",
+    "Conseil de communication 1 (ex: Structurez votre réponse en posant d'abord un diagnostic clair avant de vous précipiter sur les solutions)",
     "Conseil de posture 2 (ex: Ne vous justifiez pas trop vite, commencez par poser le contexte pour montrer votre calme)"
   ],
   "improved_answer": "Une proposition de réponse rédigée à la 1ère personne ('Je ferais X, puis Y...') qui est naturelle à prononcer en entretien."
