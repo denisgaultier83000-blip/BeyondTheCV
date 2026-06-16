@@ -34,6 +34,19 @@ async def _insert_user(uid, email, hashed_pw, first, last, created):
                 INSERT INTO users (id, email, hashed_password, first_name, last_name, created_at, is_premium, credits)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """, (uid, email, hashed_pw, first, last, created, False, 100))
+            
+            # [FIX] Initialisation des compteurs réels utilisés par le frontend (pitch / qa)
+            try:
+                await db.execute(conn, """
+                    CREATE TABLE IF NOT EXISTS user_quotas (
+                        user_id TEXT PRIMARY KEY,
+                        pitch INTEGER DEFAULT 100,
+                        qa INTEGER DEFAULT 100
+                    )
+                """)
+                await db.execute(conn, "INSERT INTO user_quotas (user_id, pitch, qa) VALUES (?, 100, 100)", (uid,))
+            except Exception as q_err:
+                print(f"[DB WARNING] Impossible d'initialiser les quotas : {q_err}", flush=True)
     except Exception as e:
         print(f"[DB ERROR] _insert_user: {e}", flush=True)
         raise e
@@ -105,6 +118,10 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             user_credits = 100
             async with db.get_connection() as conn:
                 await db.execute(conn, "UPDATE users SET credits = ? WHERE email = ?", (user_credits, email))
+                try:
+                    await db.execute(conn, "UPDATE user_quotas SET pitch = 100, qa = 100 WHERE user_id = ?", (user_dict.get("id"),))
+                except Exception:
+                    pass
             print(f"[AUTH] 🎁 Relance de 100 crédits appliquée pour le testeur : {email}", flush=True)
 
         return {

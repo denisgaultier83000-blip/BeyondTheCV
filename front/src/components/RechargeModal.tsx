@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { X, Zap, BatteryCharging, Package, Box, Archive, ShoppingCart } from 'lucide-react';
+import { useDashboard } from './DashboardContext';
 
 interface RechargeModalProps {
   isOpen: boolean;
@@ -7,6 +8,19 @@ interface RechargeModalProps {
 }
 
 export function RechargeModal({ isOpen, onClose }: RechargeModalProps) {
+  const dashboard = useDashboard();
+
+  // [FIX] Actualisation automatique des quotas quand l'utilisateur revient sur l'onglet
+  useEffect(() => {
+    const handleFocus = () => {
+      if (isOpen && dashboard?.fetchQuotas) {
+        dashboard.fetchQuotas();
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [isOpen, dashboard]);
+
   if (!isOpen) return null;
   
   return (
@@ -35,7 +49,8 @@ export function RechargeModal({ isOpen, onClose }: RechargeModalProps) {
             return (
               <div 
                 key={pack.plan}
-                onClick={() => window.location.href = `/payment?plan=${pack.plan}`} 
+                // [FIX] Ouvre le paiement dans un nouvel onglet pour préserver la réponse
+                onClick={() => window.open(`/payment?plan=${pack.plan}`, '_blank')} 
                 style={{ 
                   background: 'var(--bg-secondary)', 
                   padding: '1.5rem', 
