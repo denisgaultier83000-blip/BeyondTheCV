@@ -355,7 +355,7 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
               <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Dossier Renseignement (OSINT)</div>
               <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Décodeur d'annonce & Gap Analysis</div>
               <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> <strong>15 séances d'entraînement IA</strong></div>
-              <div className="lp-check-item" style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}><CheckCircle2 size={14} color="var(--text-muted)" style={{ flexShrink: 0 }} /> Recharges possibles (10 séances / 9€)</div>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Recharges possibles (10 séances / 9€)</div>
             </div>
             <button onClick={onStart} className="lp-cta-main" style={{ width: '100%', justifyContent: 'center' }}>Créer mon profil</button>
           </div>
@@ -371,6 +371,7 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
               <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> OSINT Entreprise actualisable</div>
               <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Stress Test & Négociation salaire</div>
               <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> <strong>30 séances d'entraînement IA</strong></div>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Recharges possibles (10 séances / 9€)</div>
             </div>
             <button onClick={onStart} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>Sélectionner</button>
           </div>
