@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AlertCircle, RotateCcw, RefreshCw, Loader2, FileText, Target, MessageSquare, BarChart3, Bell as LucideBell, X as LucideX, Lock, CheckCircle2 } from 'lucide-react';
+ import { AlertCircle, RotateCcw, RefreshCw, Loader2, FileText, Target, MessageSquare, BarChart3, Bell as LucideBell, X as LucideX, Lock, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Login from './pages/Login';
@@ -255,7 +255,11 @@ function AppContent() {
       if (storedUser && storedUser !== "undefined" && storedUser !== "null") {
         try {
           const user = JSON.parse(storedUser);
-          const isExpired = user.subscription_status === 'expired' || (user.subscription_expiration_date && new Date(user.subscription_expiration_date) < new Date());
+          
+          // Vérifie si l'utilisateur est admin ou possède le flag is_tester
+          const isTester = user.is_admin || user.is_tester;
+          
+          const isExpired = !isTester && (user.subscription_status === 'expired' || (user.subscription_expiration_date && new Date(user.subscription_expiration_date) < new Date()));
           setIsFrozen(isExpired);
         } catch (e) {
           console.warn("Could not parse user subscription", e);
