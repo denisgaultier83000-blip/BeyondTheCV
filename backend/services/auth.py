@@ -25,10 +25,15 @@ async def _insert_user(uid, email, hashed_pw, first, last, created):
     """Insère un nouvel utilisateur."""
     try:
         async with db.get_connection() as conn:
+            # Fail-safe : Création de la colonne credits si elle n'existe pas
+            try:
+                await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT 100")
+            except Exception:
+                pass
             await db.execute(conn, """
-                INSERT INTO users (id, email, hashed_password, first_name, last_name, created_at, is_premium)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (uid, email, hashed_pw, first, last, created, False))
+                INSERT INTO users (id, email, hashed_password, first_name, last_name, created_at, is_premium, credits)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (uid, email, hashed_pw, first, last, created, False, 100))
     except Exception as e:
         print(f"[DB ERROR] _insert_user: {e}", flush=True)
         raise e
@@ -41,8 +46,13 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         # [FIX] On gère la casse de l'email pour garantir un login fiable
         email = form_data.username.lower().strip()
         async with db.get_connection() as conn:
+            # Fail-safe : Création de la colonne credits avant le SELECT
+            try:
+                await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT 100")
+            except Exception:
+                pass
             # Requête propre et directe
-            cursor = await db.execute(conn, "SELECT id, email, hashed_password, first_name, last_name, created_at, is_premium FROM users WHERE email = ?", (email,))
+            cursor = await db.execute(conn, "SELECT id, email, hashed_password, first_name, last_name, created_at, is_premium, credits FROM users WHERE email = ?", (email,))
             row = await cursor.fetchone()
 
         if not row:
@@ -62,7 +72,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
                 "first_name": row[3],
                 "last_name": row[4],
                 "created_at": row[5],
-                "is_premium": row[6] if len(row) > 6 else False
+                "is_premium": row[6] if len(row) > 6 else False,
+                "credits": row[7] if len(row) > 7 else 100
             }
         else:
             user_dict = dict(row)
@@ -83,6 +94,19 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             expires_delta=access_token_expires
         )
 
+        # --- GESTION DES CRÉDITS & RELANCE TESTEURS ---
+        TESTER_EMAILS = {"ami1@gmail.com", "ami2@test.com"} # <-- Remplace par les emails de tes amis
+        user_credits = user_dict.get("credits")
+        if user_credits is None:
+            user_credits = 100
+            
+        # Relance à 100 crédits s'ils sont à sec
+        if email in TESTER_EMAILS and user_credits < 100:
+            user_credits = 100
+            async with db.get_connection() as conn:
+                await db.execute(conn, "UPDATE users SET credits = ? WHERE email = ?", (user_credits, email))
+            print(f"[AUTH] 🎁 Relance de 100 crédits appliquée pour le testeur : {email}", flush=True)
+
         return {
             "access_token": access_token,
             "token_type": "bearer",
@@ -90,7 +114,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
                 "id": str(user_dict.get("id", "")),
                 "name": f"{user_dict.get('first_name', '')} {user_dict.get('last_name', '')}".strip(),
                 "email": user_dict.get("email", ""),
-                "is_premium": bool(user_dict.get("is_premium", False))
+                "is_premium": bool(user_dict.get("is_premium", False)),
+                "credits": user_credits
             }
         }
     except HTTPException:

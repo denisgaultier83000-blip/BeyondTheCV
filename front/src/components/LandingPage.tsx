@@ -375,6 +375,38 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
             <button onClick={onStart} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>Sélectionner</button>
           </div>
         </div>
+
+        {/* SECTION RECHARGES */}
+        <div style={{ textAlign: 'center', maxWidth: '800px', margin: '4rem auto 2rem auto' }}>
+          <h3 style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-main)' }}>Besoin de recharges IA ?</h3>
+          <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', marginTop: '0.5rem' }}>
+            Une fois votre pack principal sélectionné, vous pouvez recharger vos séances d'entraînement à la carte.
+          </p>
+        </div>
+        
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '1.5rem', maxWidth: '1000px', margin: '0 auto' }}>
+          <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', textAlign: 'center', flex: '1 1 150px' }}>
+            <h4 style={{ margin: 0, color: 'var(--text-muted)', fontSize: '1rem' }}>+ 5 séances</h4>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '0.5rem' }}>15 €</div>
+          </div>
+          <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', textAlign: 'center', flex: '1 1 150px' }}>
+            <h4 style={{ margin: 0, color: 'var(--text-muted)', fontSize: '1rem' }}>+ 10 séances</h4>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '0.5rem' }}>25 €</div>
+          </div>
+          <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '2px solid var(--primary)', textAlign: 'center', flex: '1 1 150px', position: 'relative' }}>
+            <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: 'var(--primary)', color: 'white', fontSize: '0.75rem', fontWeight: 'bold', padding: '2px 10px', borderRadius: '10px' }}>Populaire</div>
+            <h4 style={{ margin: 0, color: 'var(--primary)', fontSize: '1rem' }}>+ 20 séances</h4>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary)', marginTop: '0.5rem' }}>45 €</div>
+          </div>
+          <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', textAlign: 'center', flex: '1 1 150px' }}>
+            <h4 style={{ margin: 0, color: 'var(--text-muted)', fontSize: '1rem' }}>+ 30 séances</h4>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '0.5rem' }}>60 €</div>
+          </div>
+          <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', textAlign: 'center', flex: '1 1 150px' }}>
+            <h4 style={{ margin: 0, color: 'var(--text-muted)', fontSize: '1rem' }}>+ 60 séances</h4>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '0.5rem' }}>99 €</div>
+          </div>
+        </div>
       </section>
       
       {/* FOOTER */}
