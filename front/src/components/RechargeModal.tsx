@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Zap, CreditCard, Shield, Star, Rocket } from 'lucide-react';
+import { X, Zap, BatteryCharging, Package, Box, Archive, ShoppingCart } from 'lucide-react';
 
 interface RechargeModalProps {
   isOpen: boolean;
@@ -15,48 +15,62 @@ export function RechargeModal({ isOpen, onClose }: RechargeModalProps) {
         <button onClick={onClose} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'var(--bg-secondary)', border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-muted)' }}>
           <X size={20} />
         </button>
-        <div style={{ background: 'rgba(239, 68, 68, 0.1)', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto', color: '#ef4444' }}>
+        <div style={{ background: 'rgba(59, 130, 246, 0.1)', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto', color: 'var(--primary)' }}>
           <Zap size={32} />
         </div>
-        <h2 style={{ fontSize: '1.8rem', color: 'var(--text-main)', marginBottom: '0.5rem', marginTop: 0 }}>Simulations Épuisées</h2>
+        <h2 style={{ fontSize: '1.8rem', color: 'var(--text-main)', marginBottom: '0.5rem', marginTop: 0 }}>Recharger vos séances d'entraînement</h2>
         <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', lineHeight: '1.5', fontSize: '0.95rem' }}>
-          Vous avez utilisé toutes les simulations notées incluses dans votre pack pour ce module. Choisissez une recharge pour continuer à bénéficier du feedback de l'IA.
+          Vous avez utilisé toutes vos séances d'entraînement IA. Choisissez une recharge pour continuer à vous perfectionner.
         </p>
         
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-          {/* Pack Express */}
-          <div onClick={() => window.location.href = '/payment?plan=recharge_express'} style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', cursor: 'pointer', transition: 'all 0.2s' }}>
-            <Shield size={24} color="#f59e0b" style={{ marginBottom: '0.5rem' }} />
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)' }}>39 €</div>
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 600 }}>Pack Express</div>
-            <ul style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'left', paddingLeft: '1rem', marginTop: '0.75rem' }}>
-              <li>+5 Pitchs notés</li>
-              <li>+10 Q&A corrigées</li>
-            </ul>
-          </div>
-          {/* Pack Stratégique */}
-          <div onClick={() => window.location.href = '/payment?plan=recharge_strategique'} style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '1.5rem', borderRadius: '0.75rem', border: '2px solid var(--primary)', cursor: 'pointer', transform: 'scale(1.05)', boxShadow: '0 10px 15px -3px rgba(59, 130, 246, 0.1)' }}>
-            <Star size={24} color="var(--primary)" style={{ marginBottom: '0.5rem' }} />
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--primary)' }}>69 €</div>
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 600 }}>Pack Stratégique</div>
-            <ul style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'left', paddingLeft: '1rem', marginTop: '0.75rem' }}>
-              <li>+15 Pitchs notés</li>
-              <li>+40 Q&A corrigées</li>
-              <li>+10 MES notées</li>
-            </ul>
-          </div>
-          {/* Pack Intensif */}
-          <div onClick={() => window.location.href = '/payment?plan=recharge_intensif'} style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', cursor: 'pointer', transition: 'all 0.2s' }}>
-            <Rocket size={24} color="#10b981" style={{ marginBottom: '0.5rem' }} />
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)' }}>99 €</div>
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 600 }}>Pack Intensif</div>
-            <ul style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'left', paddingLeft: '1rem', marginTop: '0.75rem' }}>
-              <li>+30 Pitchs notés</li>
-              <li>+100 Q&A corrigées</li>
-              <li>+25 MES notées</li>
-            </ul>
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+          {[
+            { plan: 'recharge_5', icon: BatteryCharging, sessions: 5, price: 15, pricePerSession: 3.00, popular: false },
+            { plan: 'recharge_10', icon: Package, sessions: 10, price: 25, pricePerSession: 2.50, popular: false },
+            { plan: 'recharge_20', icon: Box, sessions: 20, price: 45, pricePerSession: 2.25, popular: true },
+            { plan: 'recharge_30', icon: Archive, sessions: 30, price: 60, pricePerSession: 2.00, popular: false },
+            { plan: 'recharge_60', icon: ShoppingCart, sessions: 60, price: 99, pricePerSession: 1.65, popular: false },
+          ].map((pack) => {
+            const Icon = pack.icon;
+            return (
+              <div 
+                key={pack.plan}
+                onClick={() => window.location.href = `/payment?plan=${pack.plan}`} 
+                style={{ 
+                  background: 'var(--bg-secondary)', 
+                  padding: '1.5rem', 
+                  borderRadius: '0.75rem', 
+                  border: pack.popular ? '2px solid var(--primary)' : '1px solid var(--border-color)', 
+                  cursor: 'pointer', 
+                  transition: 'all 0.2s',
+                  transform: pack.popular ? 'scale(1.05)' : 'scale(1)',
+                  boxShadow: pack.popular ? '0 10px 15px -3px rgba(59, 130, 246, 0.1)' : 'none',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  textAlign: 'center'
+                }}
+              >
+                <Icon size={28} color={pack.popular ? "var(--primary)" : "var(--text-muted)"} style={{ marginBottom: '1rem' }} />
+                <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                  {pack.sessions} Séances
+                </div>
+                <div style={{ fontSize: '2.2rem', fontWeight: 800, color: pack.popular ? 'var(--primary)' : 'var(--text-main)', margin: '0.5rem 0' }}>
+                  {pack.price} €
+                </div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', background: 'var(--bg-card)', padding: '0.2rem 0.6rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
+                  {pack.pricePerSession.toFixed(2)} € / séance
+                </div>
+              </div>
+            );
+          })}
         </div>
+
+        <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+          <button onClick={onClose} className="btn-outline">
+            Plus tard
+          </button>
+          </div>
       </div>
     </div>
   );

@@ -7,23 +7,31 @@ from security import get_current_user
 
 router = APIRouter(tags=["Payment"])
 
+# [FIX EXPERT] Centralisation des prix pour la sécurité et la maintenance.
+# Le backend est la seule source de vérité pour les prix.
+PLAN_PRICES = {
+    "express": 3900,
+    "strategic": 11900,
+    "intensive": 21900,
+    "renewal": 3000, # 30€
+    "recharge_5": 1500,
+    "recharge_10": 2500,
+    "recharge_20": 4500,
+    "recharge_30": 6000,
+    "recharge_60": 9900,
+}
+
 @router.post("/api/create-payment-intent")
 async def create_payment_intent(request: PaymentIntentRequest, current_user: dict = Depends(get_current_user)):
     stripe_key = os.getenv("STRIPE_SECRET_KEY")
     if not stripe_key:
         raise HTTPException(status_code=503, detail="Stripe config missing")
     
-    # [FIX SECURITE] Le backend vérifie le montant en base, on ne fait jamais confiance au frontend.
-    # On suppose ici que la requête front envoie l'ID du plan souhaité dans un champ (ou on utilise le standard 99$).
-    actual_amount = 9900 # Prix par défaut sécurisé (99.00 $)
+    plan_name = request.plan_name or "strategic"
+    if plan_name not in PLAN_PRICES:
+        raise HTTPException(status_code=400, detail=f"Plan '{plan_name}' invalide")
     
-    # Si vous avez plusieurs plans, récupérez le prix en base :
-    # async with db.get_connection() as conn:
-    #     cursor = await db.execute(conn, "SELECT price_cents FROM subscription_plans WHERE id = ?", (request.plan_id,))
-    #     plan = await cursor.fetchone()
-    #     if not plan:
-    #         raise HTTPException(status_code=400, detail="Plan invalide")
-    #     actual_amount = plan[0] if isinstance(plan, tuple) else plan.get("price_cents")
+    actual_amount = PLAN_PRICES[plan_name]
     
     try:
         stripe.api_key = stripe_key
@@ -33,7 +41,7 @@ async def create_payment_intent(request: PaymentIntentRequest, current_user: dic
             automatic_payment_methods={"enabled": True},
             metadata={
                 "user_id": current_user["id"],
-                "plan_name": request.plan_name or "strategic"
+                "plan_name": plan_name
             }
         )
         return {"clientSecret": intent.client_secret}
@@ -58,14 +66,19 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
         plan_name = payment_intent.get("metadata", {}).get("plan_name", "strategic")
         
         # Mapping des séances selon l'offre commerciale
-        sessions_to_add = 15
+        sessions_to_add = 0
         if plan_name == "express": sessions_to_add = 3
         elif plan_name == "strategic": sessions_to_add = 15
         elif plan_name == "intensive": sessions_to_add = 30
-        elif plan_name == "recharge_10": sessions_to_add = 10
         elif plan_name == "renewal": sessions_to_add = 15
+        # Nouveaux plans de recharge de séances
+        elif plan_name == "recharge_5": sessions_to_add = 5
+        elif plan_name == "recharge_10": sessions_to_add = 10
+        elif plan_name == "recharge_20": sessions_to_add = 20
+        elif plan_name == "recharge_30": sessions_to_add = 30
+        elif plan_name == "recharge_60": sessions_to_add = 60
 
-        if user_id:
+        if user_id and sessions_to_add > 0:
             async with db.get_connection() as conn:
                 # 1. Protection contre les appels doublons de Stripe (Idempotence)
                 cursor = await db.execute(conn, "SELECT 1 FROM subscription_extensions WHERE transaction_id = ?", (payment_intent.id,))
