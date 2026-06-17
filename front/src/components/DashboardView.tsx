@@ -272,6 +272,24 @@ export const DashboardView = () => {
         {activeTab === 'overview' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               
+              {/* AVERTISSEMENTS / ASTUCES */}
+              {((!cvData?.target_company && cvData?.target_industry) || !hasJobDesc) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {(!cvData?.target_company && cvData?.target_industry) && (
+                    <div style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#d97706', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(245, 158, 11, 0.2)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <AlertTriangle size={20} style={{ flexShrink: 0 }} />
+                      <span style={{ fontSize: '0.95rem', lineHeight: '1.5' }}><strong>Attention :</strong> Vous avez renseigné le secteur (<strong>{cvData.target_industry}</strong>) mais laissé l'entreprise cible vide. L'IA générera des conseils génériques pour ce secteur. Modifiez votre profil pour cibler une entreprise précise si vous en avez une.</span>
+                    </div>
+                  )}
+                  {!hasJobDesc && (
+                    <div style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#2563eb', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(59, 130, 246, 0.2)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <FileText size={20} style={{ flexShrink: 0 }} />
+                      <span style={{ fontSize: '0.95rem', lineHeight: '1.5' }}><strong>Astuce :</strong> Le module <strong>Décodeur d'Annonce</strong> est actuellement inactif. Renseignez la description de l'offre d'emploi dans votre profil pour l'activer et découvrir les attentes cachées du recruteur.</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* [FIX ARCHITECTURE] Le Hub est sorti de la condition de chargement. 
                   Il s'affiche instantanément. Les analyses terminées en amont (ex: Marché) 
                   seront cliquables immédiatement sans attendre la synthèse IA. */}
