@@ -6,6 +6,7 @@ import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
 import { RechargeModal } from './RechargeModal';
 import { useDashboard } from './DashboardContext';
+import { AsyncBoundary } from './AsyncBoundary';
 
 interface OralSimulatorModalProps {
   isOpen: boolean;
@@ -256,11 +257,14 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
           )}
 
           {status === 'analyzing' && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 0', color: 'var(--primary)', gap: '1.5rem' }}>
-              <Loader2 size={48} className="spin" />
-              <h3 style={{ margin: 0, color: 'var(--text-main)' }}>Analyse vocale en cours...</h3>
-              <p style={{ margin: 0, color: 'var(--text-muted)' }}>Extraction du débit, des tics et de la structure du discours.</p>
-            </div>
+            <AsyncBoundary
+              loading={true}
+              title="Analyse vocale en cours..."
+              loadingText="Extraction du débit, des tics et de la structure du discours."
+              style={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none' }}
+            >
+              <></>
+            </AsyncBoundary>
           )}
 
           {status === 'result' && feedback && (

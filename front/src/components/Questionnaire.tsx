@@ -7,6 +7,7 @@ import ScoreGauge from './ScoreGauge';
 import { useDashboard } from './DashboardContext';
 import { RechargeModal } from './RechargeModal';
 import { formatMarkdownReact } from '../utils/formatUtils';
+import { AsyncBoundary } from './AsyncBoundary';
 
 interface QuestionnaireProps {
   questions: any[];
@@ -397,6 +398,11 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
 
             {/* MODE ACTIF (Entraînement) */}
             {isActive && !feedback && (
+              <AsyncBoundary 
+                loading={isSubmittingThis} 
+                loadingText={t('q_ai_analyzing', 'Analyse IA en cours...')}
+                style={{ background: 'transparent', border: 'none', padding: 0 }}
+              >
               <div style={{ marginTop: '1rem', background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)', animation: 'fadeIn 0.3s ease-out' }}>
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                     <div style={{ fontSize: '0.95rem', color: 'var(--text-main)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -424,17 +430,17 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                     onChange={(e) => setUserAnswers(prev => ({ ...prev, [qKey]: e.target.value }))}
                     placeholder={t('q_answer_placeholder', "Commencez à parler ou tapez votre réponse ici...")}
                     rows={4}
-                    disabled={isSubmittingThis}
                     style={{ width: '100%', background: 'var(--bg-card)', color: 'var(--text-main)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0.75rem', fontFamily: 'inherit', fontSize: '0.95rem', resize: 'vertical', outline: 'none', marginBottom: '1rem' }}
                  />
 
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <button onClick={() => { setActiveMode(prev => ({...prev, [qKey]: false})); setErrors(prev => ({...prev, [qKey]: ""})); }} className="btn-ghost" style={{ fontSize: '0.85rem' }} disabled={isSubmittingThis}>{t('btn_cancel', 'Annuler')}</button>
-                    <button onClick={() => handleSubmit(qKey, q)} disabled={!(userAnswers[qKey] || "").trim() || isSubmittingThis} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
-                      {isSubmittingThis ? <><Loader2 size={16} className="spin" /> {t('q_ai_analyzing', 'Analyse IA en cours...')}</> : <><Send size={16} /> {`${t('q_analyze_answer', 'Analyser ma réponse')} (${quotas?.qa ?? 0} restants)`}</>}
+                    <button onClick={() => { setActiveMode(prev => ({...prev, [qKey]: false})); setErrors(prev => ({...prev, [qKey]: ""})); }} className="btn-ghost" style={{ fontSize: '0.85rem' }}>{t('btn_cancel', 'Annuler')}</button>
+                    <button onClick={() => handleSubmit(qKey, q)} disabled={!(userAnswers[qKey] || "").trim()} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
+                      <Send size={16} /> {`${t('q_analyze_answer', 'Analyser ma réponse')} (${quotas?.qa ?? 0} restants)`}
                     </button>
                  </div>
               </div>
+              </AsyncBoundary>
             )}
 
             {/* FEEDBACK IA APRÈS ENTRAÎNEMENT */}

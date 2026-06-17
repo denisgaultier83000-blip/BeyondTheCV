@@ -6,6 +6,7 @@ import ScoreGauge from './ScoreGauge';
 import { useDashboard } from './DashboardContext';
 import { useTranslation } from 'react-i18next';
 import { RechargeModal } from './RechargeModal';
+import { AsyncBoundary } from './AsyncBoundary';
 
 export default function SalaryNegotiator() {
   const { cvData, salaryResult, updateFormData, quotas, fetchQuotas } = useDashboard();
@@ -221,33 +222,34 @@ export default function SalaryNegotiator() {
       </div>
 
       {!feedback ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', animation: 'fadeIn 0.3s ease-out' }}>
-          {error && (
-            <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1rem', borderRadius: '0.5rem', color: 'var(--danger-text)', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-              <AlertTriangle size={18} /> {error}
+        <AsyncBoundary
+          loading={isEvaluating}
+          error={error}
+          loadingText="Analyse de votre contre-proposition..."
+          style={{ background: 'transparent', border: 'none', padding: 0 }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', animation: 'fadeIn 0.3s ease-out' }}>
+            <textarea 
+              value={userAnswer}
+              onChange={e => setUserAnswer(e.target.value)}
+              placeholder="Ex: Je comprends vos contraintes. Cependant, compte tenu de mon expérience sur..."
+              rows={4}
+              style={{ width: '100%', background: 'var(--bg-body)', border: '1px solid var(--border-color)', borderRadius: '0.5rem', padding: '1rem', color: 'var(--text-main)', fontFamily: 'inherit', resize: 'vertical' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+              <button 
+                onClick={toggleRecording} 
+                className={`btn-${isRecording ? 'primary' : 'secondary'}`} 
+                style={{ background: isRecording ? '#ef4444' : undefined, borderColor: isRecording ? '#ef4444' : undefined, color: isRecording ? 'white' : undefined, animation: isRecording ? 'pulse-record 1.5s infinite' : 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
+              </button>
+              <button onClick={handleEvaluate} disabled={!userAnswer.trim()} className="btn-primary" style={{ background: !userAnswer.trim() ? '' : '#10b981', borderColor: !userAnswer.trim() ? '' : '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Send size={18} />
+                {`Tenter de négocier (${quotas?.negotiation ?? 0} restants)`}
+              </button>
             </div>
-          )}
-          <textarea 
-            value={userAnswer}
-            onChange={e => setUserAnswer(e.target.value)}
-            placeholder="Ex: Je comprends vos contraintes. Cependant, compte tenu de mon expérience sur..."
-            rows={4}
-            disabled={isEvaluating}
-            style={{ width: '100%', background: 'var(--bg-body)', border: '1px solid var(--border-color)', borderRadius: '0.5rem', padding: '1rem', color: 'var(--text-main)', fontFamily: 'inherit', resize: 'vertical' }}
-          />
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-            <button 
-              onClick={toggleRecording} 
-              className={`btn-${isRecording ? 'primary' : 'secondary'}`} 
-              style={{ background: isRecording ? '#ef4444' : undefined, borderColor: isRecording ? '#ef4444' : undefined, color: isRecording ? 'white' : undefined, animation: isRecording ? 'pulse-record 1.5s infinite' : 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
-            </button>
-            <button onClick={handleEvaluate} disabled={isEvaluating || !userAnswer.trim()} className="btn-primary" style={{ background: (isEvaluating || !userAnswer.trim()) ? '' : '#10b981', borderColor: (isEvaluating || !userAnswer.trim()) ? '' : '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              {isEvaluating ? <Loader2 size={18} className="spin" /> : <Send size={18} />}
-              {isEvaluating ? "Analyse en cours..." : `Tenter de négocier (${quotas?.negotiation ?? 0} restants)`}
-            </button>
           </div>
-        </div>
+        </AsyncBoundary>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', animation: 'slideUp 0.4s ease-out' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>

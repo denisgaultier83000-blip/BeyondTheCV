@@ -7,6 +7,7 @@ import { useDashboard } from './DashboardContext'; // [NEW] Importer le hook
 import { useTranslation } from 'react-i18next';
 import scenariosData from './scenarios.json';
 import { RechargeModal } from './RechargeModal';
+import { AsyncBoundary } from './AsyncBoundary';
 
 // --- TYPES ---
 
@@ -455,6 +456,11 @@ export function SituationSimulator() {
 
               {/* MODE ACTIF */}
               {mode === 'active' && !aiFeedback && (
+                <AsyncBoundary 
+                  loading={isSubmitting} 
+                  loadingText={t('sim_ai_analyzing', 'Analyse IA en cours...')}
+                  style={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none' }}
+                >
                 <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
@@ -487,17 +493,17 @@ export function SituationSimulator() {
                     onChange={e => setUserAnswer(e.target.value)}
                     placeholder={t('sim_answer_placeholder', "Ex: Ma première action serait de...")}
                     rows={6}
-                    disabled={isSubmitting}
                     style={{ width: '100%', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '0.75rem', padding: '1rem', color: 'var(--text-main)', fontFamily: 'inherit', fontSize: '0.95rem', resize: 'vertical', outline: 'none', transition: 'border-color 0.2s', marginBottom: '1rem' }}
                   />
                   
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                    <button onClick={reset} disabled={isSubmitting} className="btn-ghost">{t('sim_btn_cancel', 'Annuler')}</button>
-                    <button onClick={handleSubmit} disabled={!userAnswer.trim() || isSubmitting} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      {isSubmitting ? <><Loader2 size={18} className="spin" /> {t('sim_ai_analyzing', 'Analyse IA en cours...')}</> : <><Send size={18} /> {t('sim_analyze_answer', 'Analyser ma réponse')} ({quotas?.mes ?? 0} restants)</>}
+                    <button onClick={reset} className="btn-ghost">{t('sim_btn_cancel', 'Annuler')}</button>
+                    <button onClick={handleSubmit} disabled={!userAnswer.trim()} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Send size={18} /> {t('sim_analyze_answer', 'Analyser ma réponse')} ({quotas?.mes ?? 0} restants)
                     </button>
                   </div>
                 </div>
+                </AsyncBoundary>
               )}
 
               {/* FEEDBACK IA */}
