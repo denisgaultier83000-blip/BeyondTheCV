@@ -107,12 +107,11 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             expires_delta=access_token_expires
         )
 
-        # --- GESTION DES CRÉDITS & RELANCE TESTEURS ---
-        TESTER_EMAILS = {"ami1@gmail.com", "ami2@test.com"} # <-- Remplace par les emails de tes amis
+        # --- GESTION DES CRÉDITS & RELANCE TESTEURS (via variables d'environnement) ---
+        tester_emails_str = os.getenv("TESTER_EMAILS_LIST", "") # ex: "email1@test.com,email2@example.com"
+        TESTER_EMAILS = {email.strip() for email in tester_emails_str.split(',') if email.strip()}
         user_credits = user_dict.get("credits")
-        if user_credits is None:
-            user_credits = 100
-            
+
         # Relance à 100 crédits s'ils sont à sec
         if email in TESTER_EMAILS and user_credits < 100:
             user_credits = 100
