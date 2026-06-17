@@ -40,6 +40,39 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
   
   let newsLinks = report.news_links || [];
 
+  // [FIX] Parseur pour mettre en forme la nouvelle structure des enjeux (Gras + Sauts de ligne)
+  const formatStrategicAnalysis = (text: string) => {
+    if (!text) return null;
+    return text.split('\n').map((line, index) => {
+      if (!line.trim()) return null;
+      const parts = line.split(/(\*\*.*?\*\*)/g);
+      return (
+        <div key={index} style={{ marginBottom: '0.75rem', lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          {parts.map((part, i) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+              const label = part.slice(2, -2).replace(':', '').trim();
+              let labelColor = 'var(--primary)';
+              let labelBg = 'rgba(59, 130, 246, 0.1)';
+              
+              if (label.toLowerCase().includes("pourquoi")) {
+                labelColor = '#d97706'; labelBg = 'rgba(245, 158, 11, 0.1)';
+              } else if (label.toLowerCase().includes("recruteur")) {
+                labelColor = '#8b5cf6'; labelBg = 'rgba(139, 92, 246, 0.1)';
+              } else if (label.toLowerCase().includes("question")) {
+                labelColor = '#ef4444'; labelBg = 'rgba(239, 68, 68, 0.1)';
+              } else if (label.toLowerCase().includes("réponse") || label.toLowerCase().includes("star")) {
+                labelColor = '#10b981'; labelBg = 'rgba(16, 185, 129, 0.1)';
+              }
+
+              return <strong key={i} style={{ color: labelColor, background: labelBg, padding: '0.2rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.8rem', width: 'fit-content', textTransform: 'uppercase', letterSpacing: '0.02em', border: `1px solid ${labelColor}30` }}>{label}</strong>;
+            }
+            return <span key={i} style={{ paddingLeft: '0.25rem' }}>{part}</span>;
+          })}
+        </div>
+      );
+    });
+  };
+
   return (
     <DashboardCard
       title={`${t('strategic_dossier', 'Dossier Stratégique')} : ${companyName}`}
@@ -179,11 +212,17 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
                           )}
                         </span>
                       </div>
-                    <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'var(--text-main)' }}>
-                        <div style={{ fontWeight: 600, fontSize: '1rem', lineHeight: 1.4, transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--primary)'} onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-main)'}>
-                          {news.title}
-                        </div>
-                      </a>
+              {isDummyUrl ? (
+                <div style={{ fontWeight: 600, fontSize: '1rem', lineHeight: 1.4, color: 'var(--text-main)' }}>
+                  {news.title}
+                </div>
+              ) : (
+                <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'var(--text-main)' }}>
+                  <div style={{ fontWeight: 600, fontSize: '1rem', lineHeight: 1.4, transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--primary)'} onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-main)'}>
+                    {news.title}
+                  </div>
+                </a>
+              )}
                     </div>
                     <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
                       {isValid(news.hidden_meaning) && (
@@ -193,14 +232,16 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
                         </div>
                       )}
                       {isValid(news.strategic_analysis) && (
-                        <div style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '1rem', borderRadius: '0.5rem', borderLeft: '3px solid var(--primary)' }}>
-                          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--primary)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Action Entretien</div>
-                          <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-main)' }}>{news.strategic_analysis}</p>
+                        <div style={{ background: 'var(--bg-card)', padding: '1.25rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Target size={16} color="var(--primary)" /> Angle d'Entretien</div>
+                          <div style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-main)' }}>{formatStrategicAnalysis(news.strategic_analysis)}</div>
                         </div>
                       )}
-                    <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ marginTop: 'auto', fontSize: '0.85rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600, textDecoration: 'none' }}>
-                        Source Originale <ExternalLink size={14} />
-                      </a>
+              {!isDummyUrl && (
+                <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ marginTop: 'auto', fontSize: '0.85rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600, textDecoration: 'none' }}>
+                  Source Originale <ExternalLink size={14} />
+                </a>
+              )}
                     </div>
                   </div>
               )})}

@@ -401,7 +401,12 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
               {companyReport.news_links.map((link: any, idx: number) => (
                 <div key={idx} style={{ marginBottom: '1rem' }}>
                   <p style={{ margin: '0 0 0.25rem 0', fontWeight: 'bold' }}>• {link.title}</p>
-                  {link.strategic_analysis && <p style={{ margin: 0, fontStyle: 'italic', color: '#475569', paddingLeft: '1rem' }}>Conseil Stratégique : {link.strategic_analysis}</p>}
+                  {link.strategic_analysis && (
+                    <div style={{ margin: '0.5rem 0 0 0', color: '#475569', paddingLeft: '1rem', fontSize: '0.95rem', lineHeight: 1.6 }}>
+                      <strong style={{ color: '#0f172a' }}>Conseil Stratégique :</strong>
+                      <div style={{ marginTop: '0.25rem', whiteSpace: 'pre-wrap' }}>{formatMarkdown(link.strategic_analysis)}</div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -56,6 +56,33 @@ export function ResearchReport({ data, companyName }: ResearchReportProps) {
   
   const keyPoints = data.key_points || data.key_data || [];
 
+  const formatStrategicAnalysis = (text: string) => {
+    if (!text) return null;
+    return text.split('\n').map((line, index) => {
+      if (!line.trim()) return null;
+      const parts = line.split(/(\*\*.*?\*\*)/g);
+      return (
+        <div key={index} style={{ marginBottom: '0.75rem', lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          {parts.map((part, i) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+              const label = part.slice(2, -2).replace(':', '').trim();
+              let labelColor = '#2563eb';
+              let labelBg = '#eff6ff';
+              
+              if (label.toLowerCase().includes("pourquoi")) { labelColor = '#d97706'; labelBg = '#fffbeb'; }
+              else if (label.toLowerCase().includes("recruteur")) { labelColor = '#7c3aed'; labelBg = '#f5f3ff'; }
+              else if (label.toLowerCase().includes("question")) { labelColor = '#dc2626'; labelBg = '#fef2f2'; }
+              else if (label.toLowerCase().includes("réponse") || label.toLowerCase().includes("star")) { labelColor = '#16a34a'; labelBg = '#f0fdf4'; }
+              
+              return <strong key={i} style={{ color: labelColor, background: labelBg, padding: '0.2rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.8rem', width: 'fit-content', textTransform: 'uppercase', letterSpacing: '0.02em', border: `1px solid ${labelColor}30` }}>{label}</strong>;
+            }
+            return <span key={i} style={{ paddingLeft: '0.25rem' }}>{part}</span>;
+          })}
+        </div>
+      );
+    });
+  };
+
   return (
     <div className="research-report" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
@@ -161,8 +188,9 @@ export function ResearchReport({ data, companyName }: ResearchReportProps) {
                     </div>
                   )}
                   {article.strategic_analysis && (
-                    <div style={{ fontSize: '0.85rem', color: '#475569', borderLeft: '3px solid var(--primary)', paddingLeft: '0.75rem', marginTop: '0.75rem', fontStyle: 'italic', lineHeight: 1.5 }}>
-                      <strong style={{ color: 'var(--primary)', fontStyle: 'normal' }}>Conseil Stratégique :</strong> {article.strategic_analysis}
+                    <div style={{ fontSize: '0.9rem', color: '#334155', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '1rem', marginTop: '1rem' }}>
+                      <strong style={{ color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}><Target size={16} color="#2563eb" /> Angle d'Entretien</strong>
+                      {formatStrategicAnalysis(article.strategic_analysis)}
                     </div>
                   )}
                   {article.hidden_meaning && (
