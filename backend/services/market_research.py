@@ -202,21 +202,49 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
         if task_id:
             await manager.broadcast(task_id, msg)
 
-    # --- ÉTAPE 2 : PLANIFICATION HYBRIDE (IA + Fallback) ---
+    # --- ÉTAPE 1 : COUCHE 1 - PROFIL ENTREPRISE ---
+    company_profile = {}
     if task_id:
-        await manager.broadcast(task_id, "🧠 Stratégie : L'IA définit le plan de recherche...")
+        await manager.broadcast(task_id, "🏢 Couche 1 : Construction du profil stratégique de l'entreprise...")
+        
+    safe_company = str(company).strip() if company else ""
+    if safe_company and safe_company.lower() not in ["unknown", "none"]:
+        profile_prompt = f"""
+        Génère un profil express de l'entreprise '{safe_company}' dans le secteur '{industry}'. 
+        JSON attendu : {{"ceo": "Nom", "competitors": ["C1", "C2"]}}
+        Si inconnu, laisse vide.
+        """
+        try:
+            profile_res = await ai_service.generate_valid_json(profile_prompt, provider="gemini", system_instruction="You are a data API.", bypass_queue=True)
+            company_profile = profile_res if "error" not in profile_res else {}
+        except Exception:
+            pass
+
+    # --- ÉTAPE 2 : COUCHE 2 - RECHERCHE ORIENTÉE ENTRETIEN ---
+    if task_id:
+        await manager.broadcast(task_id, "🧠 Couche 2 : Génération de requêtes thématiques (Stratégie, RH, Risques, Marchés)...")
+        
+    current_year = datetime.now().year
+    ceo_name = company_profile.get("ceo", "")
+    queries = []
     
-    # 1. Tentative IA (Planner)
-    queries = await generate_ai_search_plan(company, industry, role, target_country, provider)
-    
-    # 2. Fallback Déterministe si l'IA échoue ou ne renvoie rien
-    if not queries:
-        print("[PIPELINE] ⚠️ AI Planner returned no queries. Switching to deterministic fallback.", flush=True)
-        if task_id:
-            await manager.broadcast(task_id, "⚠️ Planification IA échouée. Passage en mode manuel.")
-        queries = generate_deterministic_queries(company, industry)
-    
-    print(f"[PIPELINE] Executing {len(queries)} queries (Source: {'AI' if queries else 'Manual'}).", flush=True)
+    if safe_company and safe_company.lower() not in ["unknown", "none"]:
+        queries = [
+            f'"{safe_company}" (stratégie OR croissance OR transformation) {current_year}',
+            f'"{safe_company}" (recrutement OR talents OR culture OR syndicats)',
+            f'"{safe_company}" (difficultés OR retard OR controverse OR licenciement OR critique OR risque)',
+            f'"{safe_company}" (nouveau marché OR contrat OR acquisition OR innovation)'
+        ]
+        if ceo_name:
+            queries.append(f'"{ceo_name}" CEO "{safe_company}" interview {current_year}')
+    else:
+        safe_industry = str(industry).strip() if industry else "Secteur inconnu"
+        queries = [
+            f'{safe_industry} market trends challenges {current_year}',
+            f'{safe_industry} in-demand skills recruitment {current_year}'
+        ]
+        
+    print(f"[PIPELINE] Executing {len(queries)} thematic queries.", flush=True)
 
     # --- ÉTAPE 3 : COLLECTE (Agent Recherche) ---
     if task_id:
@@ -297,49 +325,51 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
             print(f"   [ERROR] Fallback search failed: {e}", flush=True)
             pass
 
-    # --- ÉTAPE 3.5 : FILTRAGE OSINT (Scoring via 'actionability') ---
-    news_to_score = [r for r in raw_results if "[ACTUALITÉ]" in str(r.get('title') or '')][:12]
+    # --- ÉTAPE 3.5 : COUCHE 3 - SCORING DE PERTINENCE CANDIDAT ---
+    unique_results = []
+    seen = set()
+    for r in raw_results:
+        if r.get("link") not in seen:
+            unique_results.append(r)
+            seen.add(r.get("link"))
+            
+    items_to_score = unique_results[:30]
     valid_news = []
     
-    if news_to_score:
+    if items_to_score:
         if task_id:
-            await manager.broadcast(task_id, "⚖️ Analyse OSINT : Tri des actualités par impact stratégique...")
+            await manager.broadcast(task_id, "⚖️ Couche 3 : Évaluation des signaux (Impact Business, Risques, Questions potentielles)...")
             
         scoring_prompt_template = load_prompt("osint_scoring.md")
-        if scoring_prompt_template:
-            scoring_prompt = scoring_prompt_template.replace("{company_name}", company or "Secteur").replace("{articles_json}", json.dumps(news_to_score, ensure_ascii=False))
-            try:
-                scoring_result = await ai_service.generate_valid_json(scoring_prompt, provider="openai", system_instruction="Tu es un Analyste OSINT senior. Output STRICT JSON.")
-                scored_articles = scoring_result.get("scored_articles", [])
-                
-                # On ne garde que les articles avec un score d'exploitabilité >= 6
-                valid_urls = [art.get("link") or art.get("original_url") for art in scored_articles if int(art.get("actionability", 0)) >= 6]
-                valid_news = [r for r in news_to_score if r.get("link") in valid_urls]
-                
-                # Sécurité anti-trou noir : si le matching des URLs échoue mais que l'IA avait bien trouvé des articles valides, on bypass le filtre pour ne pas tout perdre
-                if not valid_news and any(int(art.get("actionability", 0)) >= 6 for art in scored_articles):
-                    valid_news = news_to_score
-                print(f"[OSINT] Filtrage terminé : {len(valid_news)} articles hautement exploitables retenus sur {len(news_to_score)}.")
-            except Exception as e:
-                print(f"[OSINT ERROR] Scoring failed: {e}")
-                valid_news = news_to_score
-        else:
-            valid_news = news_to_score
+        if not scoring_prompt_template:
+            scoring_prompt_template = "Score de 0 à 100 la pertinence pour un candidat. Renvoie: {\"scored_articles\": [{\"url\": \"...\", \"score\": 85}]} \n JSON: {articles_json}"
+            
+        lean_items = [{"title": r.get("title"), "snippet": r.get("snippet"), "link": r.get("link"), "source": r.get("source")} for r in items_to_score]
+        scoring_prompt = scoring_prompt_template.replace("{company_name}", company or "Secteur").replace("{articles_json}", json.dumps(lean_items, ensure_ascii=False))
+        try:
+            # Gemini est parfait ici : Ultra-rapide et token pas cher pour le tri massif
+            scoring_result = await ai_service.generate_valid_json(scoring_prompt, provider="gemini", system_instruction="Tu es un Analyste OSINT senior. Output STRICT JSON.")
+            scored_articles = scoring_result.get("scored_articles", [])
+            
+            valid_urls = [art.get("url") for art in scored_articles if isinstance(art, dict) and int(art.get("score", 0)) >= 60]
+            valid_news = [r for r in items_to_score if r.get("link") in valid_urls]
+            
+            if not valid_news and items_to_score:
+                valid_news = items_to_score[:5]
+            print(f"[OSINT] Filtrage terminé : {len(valid_news)} articles hautement exploitables retenus sur {len(items_to_score)}.")
+        except Exception as e:
+            print(f"[OSINT ERROR] Scoring failed: {e}")
+            valid_news = items_to_score[:8]
 
-    # --- ÉTAPE 4 : SYNTHÈSE FINALE ---
-    # Si pas de résultats, on passe en mode "Connaissances Générales" au lieu de planter
+    # --- ÉTAPE 4 : COUCHE 4 - EXTRACTION ---
     search_context = ""
     if raw_results:
-        # [OPTIMISATION TOKENS] Réduction du bruit pour éviter l'effet "Lost in the Middle".
-        # On conserve les 8 meilleures actualités et les 12 meilleures sources organiques (Total = 20 max).
-        other_sources = [r for r in raw_results if "[ACTUALITÉ]" not in r.get('title', '')][:12]
-        balanced_results = valid_news[:8] + other_sources
+        best_sources = valid_news[:8] # Max 8 sources qualifiées pour optimiser tokens et qualité
         if task_id:
-            await manager.broadcast(task_id, f"📊 Formatage de {len(balanced_results)} sources hyper-qualitatives pour synthèse...")
+            await manager.broadcast(task_id, f"📊 Couche 4 : Extraction des signaux clés depuis {len(best_sources)} sources ultra-qualifiées...")
         
         context_lines = []
-        for i, r in enumerate(balanced_results):
-            # [OPTIMISATION TOKENS] Tronquer les snippets à 400 caractères max pour éviter les anomalies SEO
+        for i, r in enumerate(best_sources):
             snippet = str(r.get('snippet', ''))[:400]
             context_lines.append(f"Source [{i+1}] : {r.get('title', 'Sans titre')}\nLien: {r.get('link', '')}\nDate: {r.get('date', 'Récemment')}\nExtrait: {snippet}...\n")
         search_context = "\n".join(context_lines)
