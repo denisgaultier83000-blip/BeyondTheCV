@@ -110,7 +110,9 @@ export default function AdminFeedbacks() {
   if (loading || error) {
     return (
       <div style={{ maxWidth: '1000px', margin: '2rem auto', padding: '2rem' }}>
-        <AsyncBoundary loading={loading} error={error || undefined} loadingText="Chargement des retours utilisateurs..." />
+        <AsyncBoundary loading={loading} error={error || undefined} loadingText="Chargement des retours utilisateurs...">
+          <></>
+        </AsyncBoundary>
       </div>
     );
   }
