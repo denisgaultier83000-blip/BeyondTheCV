@@ -408,10 +408,10 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
           <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>💬 Questions d'Entretien</h2>
           {questionsArray.map((q: any, idx: number) => (
             <div key={idx} className="print-box avoid-break">
-              <h3 style={{ color: '#0f172a', fontSize: '1.1rem', margin: '0 0 0.5rem 0' }}>{q.category === "Questions à poser au recruteur" || q.category === "Questions to Ask Recruiter" ? "💡 Question à poser :" : "Q :"} {formatMarkdown(q.question || q.text)}</h3>
+              <h3 style={{ color: '#0f172a', fontSize: '1.1rem', margin: '0 0 0.5rem 0' }}>{q.category === "Questions à poser au recruteur" || q.category === "Questions to Ask Recruiter" ? "💡 Question à poser :" : "Q :"} {formatMarkdownReact(q.question || q.text)}</h3>
               
               {q.intention && (
-                <p style={{ margin: '0 0 0.5rem 0', color: '#b45309', fontStyle: 'italic', fontSize: '0.95rem' }}><strong>Intention visée :</strong> {formatMarkdown(q.intention)}</p>
+                <p style={{ margin: '0 0 0.5rem 0', color: '#b45309', fontStyle: 'italic', fontSize: '0.95rem' }}><strong>Intention visée :</strong> {formatMarkdownReact(q.intention)}</p>
               )}
 
               {q.user_answer ? (

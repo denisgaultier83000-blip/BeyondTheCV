@@ -224,7 +224,7 @@ export default function SalaryNegotiator() {
       {!feedback ? (
         <AsyncBoundary
           loading={isEvaluating}
-          error={error}
+          error={error || undefined}
           loadingText="Analyse de votre contre-proposition..."
           style={{ background: 'transparent', border: 'none', padding: 0 }}
         >

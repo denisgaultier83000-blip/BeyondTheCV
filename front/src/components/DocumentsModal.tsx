@@ -173,7 +173,7 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
 
           <AsyncBoundary 
             loading={loading} 
-            error={error} 
+            error={error || undefined} 
             loadingText={t('loading', 'Chargement de vos dossiers...')} 
             style={{ border: 'none', background: 'transparent' }}
           >

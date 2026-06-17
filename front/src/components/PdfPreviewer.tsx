@@ -82,7 +82,7 @@ const PdfPreviewer: React.FC<PdfPreviewerProps> = ({ fetchUrl, requestBody, refr
     return (
       <AsyncBoundary 
         loading={isLoading} 
-        error={error} 
+        error={error || undefined} 
         loadingText="Génération de l'aperçu en cours..." 
         className="pdf-placeholder"
         style={{ flex: 1, minHeight: '400px', display: 'flex', flexDirection: 'column', justifyContent: 'center', borderRadius: '0.5rem', border: '1px dashed var(--border-color)', margin: 0 }}
