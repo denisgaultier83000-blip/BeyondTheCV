@@ -1,6 +1,7 @@
 import React from 'react';
 import { ShieldCheck, AlertTriangle, CheckCircle, Lightbulb, Loader2, XCircle, Edit3 } from 'lucide-react';
 import { FeedbackWidget } from './FeedbackWidget';
+import { AsyncBoundary } from './AsyncBoundary';
 
 interface ValidationData {
   professionalism_score: number;
@@ -16,24 +17,6 @@ interface Props {
 }
 
 export function ProfessionalValidationCard({ data, loading, error }: Props) {
-  if (error) return null;
-
-  if (loading) {
-    return (
-      <div className="result-card" style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 0, color: 'var(--text-main)' }}>
-          <ShieldCheck size={24} color="var(--primary)" /> Audit de Professionnalisme
-        </h3>
-        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-          <Loader2 className="spin" size={32} color="var(--primary)" />
-          <p style={{ margin: 0 }}>Nettoyage et validation de vos données...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!data) return null;
-
   const getScoreColor = (val: number) => {
     if (val < 50) return "#ef4444";
     if (val < 80) return "#eab308";
@@ -43,8 +26,16 @@ export function ProfessionalValidationCard({ data, loading, error }: Props) {
   const scoreColor = getScoreColor(data.professionalism_score);
 
   return (
-    <div className="result-card" style={{ border: `1px solid ${data.professionalism_score < 80 ? '#fecaca' : 'var(--border-color)'}`, background: 'var(--bg-card)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+    <AsyncBoundary
+      loading={loading}
+      error={error}
+      title="Audit de Professionnalisme"
+      icon={<ShieldCheck size={24} />}
+      loadingText="Nettoyage et validation de vos données..."
+    >
+      {data && (
+        <div className="result-card" style={{ border: `1px solid ${data.professionalism_score < 80 ? '#fecaca' : 'var(--border-color)'}`, background: 'var(--bg-card)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0, color: 'var(--text-main)' }}>
           <ShieldCheck size={24} color={scoreColor} /> Audit de Professionnalisme
         </h3>
@@ -71,7 +62,8 @@ export function ProfessionalValidationCard({ data, loading, error }: Props) {
             {data.suggestions?.map((sug, idx) => <li key={idx}>{sug}</li>)}
           </ul>
         </div>
-      </div>
-    </div>
+        </div>
+      )}
+    </AsyncBoundary>
   );
 }

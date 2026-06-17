@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Sparkles, MessageSquare, AlertTriangle, Lightbulb, Info, AlertCircle, ShieldAlert, ShieldCheck, Activity } from 'lucide-react';
 import { FeedbackWidget } from './FeedbackWidget';
+import { AsyncBoundary } from './AsyncBoundary';
 
 export default function FlawCoaching({ data, onBack, inline = false, loading = false }: { data: any, onBack?: () => void, inline?: boolean, loading?: boolean }) {
   const { t } = useTranslation();
@@ -22,10 +23,15 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
 
   if (loading) {
     return (
-      <div className="result-card" style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--primary)', margin: '0 0 1.5rem 0' }}><Sparkles size={24} /> {t('flaw_main_title', 'Parades aux Défauts (Entretien)')}</h3>
-        <div className="skeleton-pulse" style={{ width: '100%', height: '150px', borderRadius: '8px' }}></div>
-      </div>
+      <AsyncBoundary 
+        loading={true} 
+        title={t('flaw_main_title', 'Parades aux Défauts (Entretien)')} 
+        icon={<Sparkles size={24} />} 
+        loadingText="Préparation de vos parades en cours..." 
+        style={{ marginTop: '0.5rem' }}
+      >
+        <></>
+      </AsyncBoundary>
     );
   }
 

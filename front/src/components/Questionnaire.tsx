@@ -6,19 +6,7 @@ import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
 import { useDashboard } from './DashboardContext';
 import { RechargeModal } from './RechargeModal';
-
-// [FIX EXPERT] Mini-parseur robuste pour rendre le gras (**) généré par l'IA sans faille XSS
-const formatText = (text: string) => {
-  if (!text) return text;
-  if (typeof text !== 'string') return text;
-  const parts = text.split(/(\*\*.*?\*\*)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={i} style={{ color: 'inherit' }}>{part.slice(2, -2)}</strong>;
-    }
-    return part;
-  });
-};
+import { formatMarkdownReact } from '../utils/formatUtils';
 
 interface QuestionnaireProps {
   questions: any[];
@@ -368,7 +356,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
             })()}
                   </div>
                   <h3 style={{ margin: 0, fontSize: '1.05rem', lineHeight: '1.5', color: 'var(--text-main)', fontWeight: '600' }}>
-                    {formatText(questionText)}
+                    {formatMarkdownReact(questionText)}
                   </h3>
                 </div>
               </div>
@@ -521,7 +509,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
             {advice && isRevealed && (
                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', gap: '0.5rem', marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px dashed var(--border-color)', animation: 'fadeIn 0.3s ease-out' }}>
                  <Lightbulb size={16} style={{ flexShrink: 0, color: '#eab308' }} /> 
-                 <span>{formatText(advice)}</span>
+                 <span>{formatMarkdownReact(advice)}</span>
                </div>
             )}
           </div>

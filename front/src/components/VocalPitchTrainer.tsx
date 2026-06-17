@@ -5,6 +5,7 @@ import { authenticatedFetch } from '../utils/auth';
 import { useTranslation } from 'react-i18next';
 import { useDashboard } from './DashboardContext';
 import { RechargeModal } from './RechargeModal';
+import { AsyncBoundary } from './AsyncBoundary';
 
 interface VocalPitchTrainerProps {
   targetJob?: string;
@@ -201,11 +202,14 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDe
       )}
 
       {isAnalyzing && (
-        <div style={{ textAlign: 'center', padding: '3rem' }}>
-          <Loader2 size={40} className="spin" color="#8b5cf6" style={{ margin: '0 auto 1rem auto' }} />
-          <h3 style={{ color: 'var(--text-main)' }}>Analyse vocale en cours...</h3>
-          <p style={{ color: 'var(--text-muted)' }}>Extraction de la prosodie, du débit et de la structure sémantique.</p>
-        </div>
+        <AsyncBoundary 
+          loading={true} 
+          title="Analyse vocale en cours..." 
+          loadingText="Extraction de la prosodie, du débit et de la structure sémantique."
+          style={{ border: 'none', background: 'transparent', boxShadow: 'none' }}
+        >
+          <></>
+        </AsyncBoundary>
       )}
 
       {result && (

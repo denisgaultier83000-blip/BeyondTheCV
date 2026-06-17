@@ -10,35 +10,6 @@ interface MarketAnalysisCardProps {
 }
 
 export function MarketAnalysisCard({ data, salaryData, loading, error }: MarketAnalysisCardProps) {
-  if (error) {
-    return (
-      <div className="result-card" style={{ borderColor: 'var(--error-border)', background: 'var(--error-bg)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 0, color: 'var(--error-text)' }}>
-          <Globe size={24} /> Analyse du Marché
-        </h3>
-        <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--error-text)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-          <XCircle size={32} />
-          <p style={{ margin: 0 }}>Analyse échouée.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="result-card" style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 0, color: 'var(--text-main)' }}>
-          <Globe size={24} color="var(--primary)" /> Analyse du Marché
-        </h3>
-        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-          <Loader2 className="spin" size={32} color="var(--primary)" />
-          <p style={{ margin: 0 }}>Analyse du marché en cours...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!data) return null;
 
   let parsedData = data;
   if (typeof data === 'string') {
@@ -50,11 +21,12 @@ export function MarketAnalysisCard({ data, salaryData, loading, error }: MarketA
       }
   }
   
-  if (parsedData.error) return null;
+  // Éviter de crasher lors du parsing asynchrone
+  if (!loading && !error && (!parsedData || parsedData.error)) return null;
 
   // [FIX] Unwrap au cas où l'IA encapsule l'objet JSON
   const root = parsedData.data || parsedData.result || parsedData.market_research || parsedData;
-  const report = root.market_report || root.rapport_marche || root.market_analysis || root.analyse_marche || root.synthesis || root;
+  const report = root?.market_report || root?.rapport_marche || root?.market_analysis || root?.analyse_marche || root?.synthesis || root || {};
   
   const tensionRaw = report.tension_score || report.score_tension || 85;
   const tensionScore = tensionRaw <= 10 ? tensionRaw : tensionRaw / 10;
@@ -77,9 +49,10 @@ export function MarketAnalysisCard({ data, salaryData, loading, error }: MarketA
       icon={<Globe size={24} />}
       loading={loading}
       loadingText="Analyse du marché en cours..."
-      error={error || parsedData.error}
+      error={error || parsedData?.error}
       errorText="Analyse échouée."
     >
+      {!loading && !error && parsedData && !parsedData.error && (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
         
         {/* Tension & Dynamique */}
@@ -172,6 +145,7 @@ export function MarketAnalysisCard({ data, salaryData, loading, error }: MarketA
         )}
 
       </div>
+      )}
     </DashboardCard>
   );
 }

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Map, Clock, AlertCircle, Loader2, Target, Lightbulb, Wallet, ChevronRight } from 'lucide-react';
+import { AsyncBoundary } from './AsyncBoundary';
 import { FeedbackWidget } from './FeedbackWidget';
 
 interface Trajectory {
@@ -35,18 +36,11 @@ const getScoreColor = (percent: number) => {
 };
 
 export const CareerRadar: React.FC<CareerRadarProps> = ({ data, loading, error }) => {
-  if (error) {
-    return (
-      <div className="error-box" style={{ padding: '1.5rem', borderRadius: '1rem' }}>
-        <AlertCircle size={24} />
-        <span>Une erreur est survenue lors de la génération du Radar de Carrière. Veuillez réessayer.</span>
-      </div>
-    );
-  }
-
-  if (loading || !data || !data.trajectories || data.trajectories.length === 0) return null;
+  if (!loading && !error && (!data || !data.trajectories || data.trajectories.length === 0)) return null;
 
   return (
+    <AsyncBoundary loading={loading} error={error} errorText="Une erreur est survenue lors de la génération du Radar de Carrière. Veuillez réessayer." style={{ background: 'transparent', border: 'none', padding: 0 }}>
+      {data && data.trajectories && data.trajectories.length > 0 && (
     <>
       <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
         Découvrez des trajectoires de carrière alternatives et des opportunités de pivot inattendues.
@@ -114,5 +108,7 @@ export const CareerRadar: React.FC<CareerRadarProps> = ({ data, loading, error }
         .radar-card:hover { transform: translateY(-4px); box-shadow: 0 12px 20px -5px rgba(0,0,0,0.08); border-color: rgba(59, 130, 246, 0.4); }
       `}</style>
     </>
+      )}
+    </AsyncBoundary>
   );
 };

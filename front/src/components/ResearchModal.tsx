@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ScoreGauge from "./ScoreGauge";
+import { formatStrategicAnalysisReact } from '../utils/formatUtils';
 
 interface ResearchModalProps {
   data: any;
@@ -118,8 +119,9 @@ const ResearchModal: React.FC<ResearchModalProps> = ({ data, mode = 'company', o
                                     )}
                                   </div>
                                   {link.strategic_analysis && (
-                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', borderLeft: '3px solid var(--danger-text)', paddingLeft: '0.75rem', marginTop: '0.5rem', fontStyle: 'italic', lineHeight: 1.4 }}>
-                                      <strong style={{ color: 'var(--danger-text)', fontStyle: 'normal' }}>Conseil Stratégique :</strong> {link.strategic_analysis}
+                                    <div style={{ fontSize: '0.9rem', color: '#334155', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '1rem', marginTop: '1rem' }}>
+                                      <strong style={{ color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>Angle d'Entretien</strong>
+                                      {formatStrategicAnalysisReact(link.strategic_analysis)}
                                     </div>
                                   )}
                                 </div>

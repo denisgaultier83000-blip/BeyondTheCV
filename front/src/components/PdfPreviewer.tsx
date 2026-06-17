@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { authenticatedFetch } from '../utils/auth';
+import { AsyncBoundary } from './AsyncBoundary';
 
 interface PdfPreviewerProps {
   /** L'URL de l'API à appeler pour générer le PDF */
@@ -77,18 +78,19 @@ const PdfPreviewer: React.FC<PdfPreviewerProps> = ({ fetchUrl, requestBody, refr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshTrigger, fetchUrl]); // On ne met PAS `requestBody` ici pour éviter les boucles infinies
 
-  if (isLoading) return (
-    <div className="pdf-placeholder" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, minHeight: '400px' }}>
-      <Loader2 size={32} className="spin" />
-      <p style={{ marginTop: '1rem' }}>Génération de l'aperçu...</p>
-    </div>
-  );
-  if (error) return (
-    <div className="pdf-placeholder" style={{ borderColor: 'var(--danger-text)', color: 'var(--danger-text)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, minHeight: '400px' }}>
-      <AlertTriangle size={32} />
-      <p style={{ marginTop: '1rem', maxWidth: '80%', textAlign: 'center' }}>{error}</p>
-    </div>
-  );
+  if (isLoading || error) {
+    return (
+      <AsyncBoundary 
+        loading={isLoading} 
+        error={error} 
+        loadingText="Génération de l'aperçu en cours..." 
+        className="pdf-placeholder"
+        style={{ flex: 1, minHeight: '400px', display: 'flex', flexDirection: 'column', justifyContent: 'center', borderRadius: '0.5rem', border: '1px dashed var(--border-color)', margin: 0 }}
+      >
+        <></>
+      </AsyncBoundary>
+    );
+  }
   if (!pdfUrl) return <div className="pdf-placeholder" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, minHeight: '400px' }}>Aperçu non disponible.</div>;
 
   // Reprise du style exact de CVTab

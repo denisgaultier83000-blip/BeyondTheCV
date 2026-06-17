@@ -3,6 +3,7 @@ import { Search, AlertCircle, MessageSquare, Target, ShieldAlert, Building, Arro
 import { formatMarkdown } from '../utils/markdown';
 import DOMPurify from 'dompurify';
 import { FeedbackWidget } from './FeedbackWidget';
+import { AsyncBoundary } from './AsyncBoundary';
 
 interface JobDecoderProps {
   data?: any;
@@ -118,5 +119,8 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
 
       <FeedbackWidget feature="job_decoder" question="Cette traduction de l'annonce vous est-elle utile ?" />
     </div>
+        );
+      })()}
+    </AsyncBoundary>
   );
 }
