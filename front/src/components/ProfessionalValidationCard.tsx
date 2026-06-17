@@ -23,8 +23,6 @@ export function ProfessionalValidationCard({ data, loading, error }: Props) {
     return "#10b981";
   };
 
-  const scoreColor = getScoreColor(data.professionalism_score);
-
   return (
     <AsyncBoundary
       loading={loading}
@@ -35,6 +33,7 @@ export function ProfessionalValidationCard({ data, loading, error }: Props) {
     >
       {data && (
         <div className="result-card" style={{ border: `1px solid ${data.professionalism_score < 80 ? '#fecaca' : 'var(--border-color)'}`, background: 'var(--bg-card)' }}>
+          {(() => { const scoreColor = getScoreColor(data.professionalism_score); return (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0, color: 'var(--text-main)' }}>
           <ShieldCheck size={24} color={scoreColor} /> Audit de Professionnalisme
@@ -62,6 +61,8 @@ export function ProfessionalValidationCard({ data, loading, error }: Props) {
             {data.suggestions?.map((sug, idx) => <li key={idx}>{sug}</li>)}
           </ul>
         </div>
+        </div>
+        );})()}
         </div>
       )}
     </AsyncBoundary>
