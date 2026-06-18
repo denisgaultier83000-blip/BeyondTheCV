@@ -1,0 +1,103 @@
+/* 
+  BeyondTheCV - Thème Premium
+  Couleurs de la marque :
+  - Bleu Foncé : #0F2650
+  - Bleu Moyen : #446285
+  - Bleu Clair : #6DBEF7
+  - Blanc Logo : #F7FAFC
+*/
+
+:root {
+  /* MODE JOUR (Light Mode) - Vendeur, Contrasté et Professionnel */
+  --brand-dark: #0F2650;
+  --brand-medium: #446285;
+  --brand-light: #6DBEF7;
+  --brand-white: #F7FAFC;
+
+  /* Fonds : Contraste subtil entre le fond de page et les cartes blanches */
+  --bg-body: #F4F7F9; /* Gris bleuté très clair, élégant */
+  --bg-card: #FFFFFF; /* Blanc pur pour faire ressortir le contenu */
+  --bg-secondary: #EBF1F6; /* Gris bleuté pour les zones secondaires (inputs, headers de tableau) */
+  
+  /* Texte : Lisibilité maximale */
+  --text-main: #1E293B; /* Slate 800 */
+  --text-muted: #64748B; /* Slate 500 */
+  
+  /* Couleurs d'action basées sur le bleu de la marque */
+  --primary: #0F2650; /* Le bleu foncé de la marque pour les boutons forts */
+  --primary-hover: #1e3a75; /* Bleu légèrement plus vibrant au survol pour inciter au clic */
+  --secondary: #446285; /* Bleu moyen pour les actions secondaires */
+  
+  --border-color: #E2E8F0; /* Bordures douces */
+  
+  /* Statuts */
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger-text: #EF4444;
+
+  /* Ombres (Shadows) pour la profondeur du SaaS */
+  --shadow-sm: 0 1px 2px 0 rgba(15, 38, 80, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(15, 38, 80, 0.1), 0 2px 4px -1px rgba(15, 38, 80, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 38, 80, 0.1), 0 4px 6px -2px rgba(15, 38, 80, 0.05);
+}
+
+body.dark-mode {
+  /* MODE NUIT (Dark Mode) - Préservation de l'existant */
+  --bg-body: #0F172A; /* Slate 900 */
+  --bg-card: #1E293B; /* Slate 800 */
+  --bg-secondary: #334155; /* Slate 700 */
+  
+  --text-main: #F8FAFC; /* Slate 50 */
+  --text-muted: #94A3B8; /* Slate 400 */
+  
+  --primary: #6DBEF7; /* Bleu clair de la marque, meilleur contraste sur fond sombre */
+  --primary-hover: #3B82F6;
+  --secondary: #446285;
+  
+  --border-color: #334155;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+/* --- Application globale des styles "SaaS Premium" --- */
+
+body {
+  background-color: var(--bg-body);
+  color: var(--text-main);
+}
+
+/* Ajout d'ombres et de bordures douces sur les cartes */
+.bento-card, .result-card, .step-content, .card {
+  box-shadow: var(--shadow-md) !important;
+}
+
+.bento-card:hover, .result-card:hover {
+  box-shadow: var(--shadow-lg) !important;
+}
+
+/* --- Boutons "SaaS Premium" (Animations dynamiques) --- */
+.btn-primary, .btn-secondary, .btn-outline {
+  /* Ajout d'une courbe de bézier pour une animation ultra-fluide et organique */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* Ajustement pour le bouton fantôme (Outline) en mode Jour uniquement */
+body:not(.dark-mode) .btn-outline:hover {
+  background-color: var(--primary) !important;
+  color: #ffffff !important;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md) !important;
+}

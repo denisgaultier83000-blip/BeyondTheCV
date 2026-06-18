@@ -58,7 +58,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             except Exception:
                 pass
             # Requête propre et directe
-            cursor = await db.execute(conn, "SELECT id, email, hashed_password, first_name, last_name, created_at, is_premium, credits, is_admin, is_active FROM users WHERE email = ?", (email,))
+            cursor = await db.execute(conn, "SELECT id, email, hashed_password, first_name, last_name, created_at, is_premium, credits, is_admin, is_active, is_tester FROM users WHERE email = ?", (email,))
             row = await cursor.fetchone()
 
         if not row:
@@ -81,7 +81,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
                 "is_premium": row[6] if len(row) > 6 else False,
                 "credits": row[7] if len(row) > 7 else 100,
                 "is_admin": row[8] if len(row) > 8 else False,
-                "is_active": row[9] if len(row) > 9 else True
+                "is_active": row[9] if len(row) > 9 else True,
+                "is_tester": row[10] if len(row) > 10 else False
             }
         else:
             user_dict = dict(row)
@@ -127,6 +128,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         admin_emails_str = os.getenv("ADMIN_EMAIL", "")
         admin_emails = {e.strip().lower() for e in admin_emails_str.split(',') if e.strip()}
         is_admin_flag = bool(user_dict.get("is_admin")) or (email in admin_emails)
+        is_tester_flag = bool(user_dict.get("is_tester")) or (email in TESTER_EMAILS) or is_not_prod
 
         return {
             "access_token": access_token,
@@ -137,7 +139,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
                 "email": user_dict.get("email", ""),
                 "is_premium": bool(user_dict.get("is_premium", False)),
                 "credits": user_credits,
-                "is_admin": is_admin_flag
+                "is_admin": is_admin_flag,
+                "is_tester": is_tester_flag
             }
         }
     except HTTPException:

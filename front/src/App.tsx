@@ -298,6 +298,22 @@ function AppContent() {
     }
   }, [globalStatus]);
 
+  // [FIX EXPERT] Interception globale pour forcer l'ouverture de la page de paiement dans un nouvel onglet
+  // Cela évite de perdre le contexte de l'application (ex: une réponse vocale en cours d'évaluation)
+  // lorsque l'utilisateur clique sur une proposition de recharge.
+  useEffect(() => {
+    const handleGlobalClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const link = target.closest('a');
+      if (link && link.href && link.href.includes('/payment') && link.target !== '_blank') {
+        e.preventDefault();
+        window.open(link.href, '_blank');
+      }
+    };
+    document.addEventListener('click', handleGlobalClick);
+    return () => document.removeEventListener('click', handleGlobalClick);
+  }, []);
+
   useEffect(() => {
     document.body.classList.toggle('dark-mode', darkMode);
     localStorage.setItem('theme', darkMode ? 'dark' : 'light');
@@ -588,7 +604,7 @@ function AppContent() {
               <p>{t('paywall_desc', 'Vos 3 mois d\'accès illimité sont terminés. Rassurez-vous, votre historique est sauvegardé.')}</p>
               <div className="modal-actions">
                  <button onClick={() => setShowPaywall(false)} className="btn-outline">{t('btn_later', 'Plus tard')}</button>
-                 <button onClick={() => window.location.href = '/payment?plan=renewal'} className="btn-primary">{t('btn_unlock', 'Débloquer pour 30 €')}</button>
+                 <button onClick={() => window.open('/payment?plan=renewal', '_blank')} className="btn-primary">{t('btn_unlock', 'Débloquer pour 30 €')}</button>
               </div>
            </div>
         </div>)}

@@ -59,7 +59,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         try:
             async with db.get_connection() as conn: # Cette ligne plantait car 'db' n'était pas importé
                 # [FIX] Le token peut contenir l'ID ou l'Email. On vérifie les deux pour une compatibilité absolue avec les anciennes versions du token.
-                cursor = await db.execute(conn, "SELECT id, email, first_name, last_name, is_premium, is_admin FROM users WHERE id = ? OR email = ?", (user_id, user_id))
+                cursor = await db.execute(conn, "SELECT id, email, first_name, last_name, is_premium, is_admin, is_tester FROM users WHERE id = ? OR email = ?", (user_id, user_id))
                 user_row = await cursor.fetchone()
             
             if user_row:
@@ -70,6 +70,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
                 admin_emails_str = os.getenv("ADMIN_EMAIL", "")
                 admin_emails = {e.strip().lower() for e in admin_emails_str.split(',') if e.strip()}
                 is_admin_env = bool(user_email.lower() in admin_emails)
+                
+                tester_emails_str = os.getenv("TESTER_EMAILS_LIST", "")
+                tester_emails = {e.strip().lower() for e in tester_emails_str.split(',') if e.strip()}
+                is_tester_env = bool(user_email.lower() in tester_emails) or (os.getenv("ENVIRONMENT", "production") != "production")
 
                 return {
                     "id": user_row["id"],
@@ -77,7 +81,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
                     "first_name": user_row["first_name"],
                     "last_name": user_row["last_name"],
                     "is_premium": bool(user_row["is_premium"]),
-                    "is_admin": is_admin_db or is_admin_env
+                    "is_admin": is_admin_db or is_admin_env,
+                    "is_tester": bool(user_row.get("is_tester", False)) or is_tester_env
                 }
             else:
                 raise HTTPException(status_code=401, detail="User not found")

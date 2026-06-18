@@ -138,6 +138,9 @@ def _get_days_until_interview(interview_date: str) -> int:
 # --- Gardien d'Abonnement (Paywall Backend) ---
 async def require_active_subscription(current_user: dict = Depends(get_current_user)):
     """Vérifie que l'utilisateur a un abonnement actif avant d'autoriser l'accès à l'IA."""
+    if current_user.get("is_admin") or current_user.get("is_tester"):
+        return current_user
+        
     try:
         async with db.get_connection() as conn:
             cursor = await db.execute(conn, "SELECT subscription_status, subscription_expiration_date FROM users WHERE id = ?", (current_user["id"],))
@@ -413,7 +416,8 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
     OUTPUT LANGUAGE: {normalize_language(request.target_language)}
     """
     
-    await consume_quota(current_user["id"], "qa", cost=1)
+    if not (current_user.get("is_admin") or current_user.get("is_tester")):
+        await consume_quota(current_user["id"], "qa", cost=1)
     try:
         result = await ai_service.generate_valid_json(
             final_prompt, 
@@ -581,10 +585,12 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
             
         return {"feedback": result}
     except HTTPException:
-        await refund_quota(current_user["id"], "qa", cost=1)
+        if not (current_user.get("is_admin") or current_user.get("is_tester")):
+            await refund_quota(current_user["id"], "qa", cost=1)
         raise
     except Exception as e:
-        await refund_quota(current_user["id"], "qa", cost=1)
+        if not (current_user.get("is_admin") or current_user.get("is_tester")):
+            await refund_quota(current_user["id"], "qa", cost=1)
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'évaluation de la réponse: {str(e)}")
 
 @router.get("/interview/history")
@@ -673,7 +679,8 @@ async def evaluate_vocal_pitch(request: VocalPitchRequest, current_user: dict = 
     LANGUAGE: {target_lang}
     """
     
-    await consume_quota(current_user["id"], "pitch", cost=2)
+    if not (current_user.get("is_admin") or current_user.get("is_tester")):
+        await consume_quota(current_user["id"], "pitch", cost=2)
     try:
         result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are an elite Public Speaking Coach. Output STRICT JSON.")
         
@@ -709,10 +716,12 @@ async def evaluate_vocal_pitch(request: VocalPitchRequest, current_user: dict = 
             
         return result
     except HTTPException:
-        await refund_quota(current_user["id"], "pitch", cost=2)
+        if not (current_user.get("is_admin") or current_user.get("is_tester")):
+            await refund_quota(current_user["id"], "pitch", cost=2)
         raise
     except Exception as e:
-        await refund_quota(current_user["id"], "pitch", cost=2)
+        if not (current_user.get("is_admin") or current_user.get("is_tester")):
+            await refund_quota(current_user["id"], "pitch", cost=2)
         raise HTTPException(status_code=500, detail=f"Erreur d'évaluation vocale : {str(e)}")
 
 @router.post("/evaluate-pitch")
@@ -767,16 +776,19 @@ async def generate_training_question(request: CustomQuestionRequest, current_use
     final_prompt += f"\n\nOUTPUT LANGUAGE: {normalize_language(request.target_language)}"
                                   
     quota_to_consume = "mes" if request.question_type == "MES" else "qa"
-    await consume_quota(current_user["id"], quota_to_consume, cost=1)
+    if not (current_user.get("is_admin") or current_user.get("is_tester")):
+        await consume_quota(current_user["id"], quota_to_consume, cost=1)
     try:
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="Tu es un Coach de Carrière expert.")
         await set_cached_content(cache_key, current_user["id"], "training_question", result)
         return result
     except HTTPException:
-        await refund_quota(current_user["id"], quota_to_consume, cost=1)
+        if not (current_user.get("is_admin") or current_user.get("is_tester")):
+            await refund_quota(current_user["id"], quota_to_consume, cost=1)
         raise
     except Exception as e:
-        await refund_quota(current_user["id"], quota_to_consume, cost=1)
+        if not (current_user.get("is_admin") or current_user.get("is_tester")):
+            await refund_quota(current_user["id"], quota_to_consume, cost=1)
         raise HTTPException(status_code=500, detail=f"Erreur de génération : {str(e)}")
 
 @router.post("/training/evaluate")
@@ -807,7 +819,8 @@ async def evaluate_training_answer(request: TrainingEvaluateRequest, current_use
     """
     
     quota_to_consume = "mes" if request.question_type == "MES" else "qa"
-    await consume_quota(current_user["id"], quota_to_consume, cost=1)
+    if not (current_user.get("is_admin") or current_user.get("is_tester")):
+        await consume_quota(current_user["id"], quota_to_consume, cost=1)
     try:
         feedback = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an Expert Interview Coach. Output STRICT JSON.")
         
@@ -832,10 +845,12 @@ async def evaluate_training_answer(request: TrainingEvaluateRequest, current_use
             
         return {"feedback": feedback}
     except HTTPException:
-        await refund_quota(current_user["id"], quota_to_consume, cost=1)
+        if not (current_user.get("is_admin") or current_user.get("is_tester")):
+            await refund_quota(current_user["id"], quota_to_consume, cost=1)
         raise
     except Exception as e:
-        await refund_quota(current_user["id"], quota_to_consume, cost=1)
+        if not (current_user.get("is_admin") or current_user.get("is_tester")):
+            await refund_quota(current_user["id"], quota_to_consume, cost=1)
         raise HTTPException(status_code=500, detail=f"Erreur d'évaluation : {str(e)}")
 
 @router.post("/generate-extra-scenarios")
@@ -881,16 +896,19 @@ async def generate_extra_scenarios(data: dict = Body(...), current_user: dict = 
         LANGUAGE: {target_lang}
         """
         
-        await consume_quota(current_user["id"], "mes", cost=2)
+        if not (current_user.get("is_admin") or current_user.get("is_tester")):
+            await consume_quota(current_user["id"], "mes", cost=2)
         try:
             result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an Expert HR Assessor. Output STRICT JSON.")
             await set_cached_content(cache_key, current_user["id"], "extra_scenarios", result)
             return result
         except HTTPException:
-            await refund_quota(current_user["id"], "mes", cost=2)
+            if not (current_user.get("is_admin") or current_user.get("is_tester")):
+                await refund_quota(current_user["id"], "mes", cost=2)
             raise
         except Exception as e:
-            await refund_quota(current_user["id"], "mes", cost=2)
+            if not (current_user.get("is_admin") or current_user.get("is_tester")):
+                await refund_quota(current_user["id"], "mes", cost=2)
             raise HTTPException(status_code=500, detail=f"Erreur de génération des scénarios : {str(e)}")
 
 @router.get("/training/balance")

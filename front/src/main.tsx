@@ -9,6 +9,7 @@ import ResearchReport from "./pages/ResearchReport"; // Importer la nouvelle pag
 import AdminFeedbacks from "./components/AdminFeedbacks";
 import ErrorBoundary from "./components/ErrorBoundary";
 import "./index.css";
+import "./theme.css";
 import "./i18n";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
