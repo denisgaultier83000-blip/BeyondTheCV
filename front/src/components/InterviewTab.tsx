@@ -11,6 +11,7 @@ import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
 import SalaryNegotiator from './SalaryNegotiator';
+import PitchOralTrainer from './PitchOralTrainer';
 
 // --- LOGIQUE TÉLÉPROMPTEUR DÉPLACÉE ICI (À LA RACINE) ---
 const Teleprompter = ({ fullPitchText, setIsTeleprompterOpen, isDark, t }: { fullPitchText: string, setIsTeleprompterOpen: any, isDark: boolean, t: any }) => {
@@ -325,6 +326,9 @@ export const InterviewTab = () => {
                   />
                 )}
               </div>
+              
+              {/* NOUVEAU MODULE D'ENTRAÎNEMENT ORAL DU PITCH */}
+              <PitchOralTrainer />
             </div>
           )}
         </DashboardCard>

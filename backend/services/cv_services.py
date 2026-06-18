@@ -103,6 +103,10 @@ class EvaluatePitchRequest(BaseModel):
     target_job: Optional[str] = "Candidat"
     target_language: Optional[str] = "fr"
 
+class OralPitchRequest(BaseModel):
+    target_job: str
+    transcript: str
+
 class BulkStatusRequest(BaseModel):
     task_ids: List[str]
 
@@ -723,6 +727,50 @@ async def evaluate_vocal_pitch(request: VocalPitchRequest, current_user: dict = 
         if not (current_user.get("is_admin") or current_user.get("is_tester")):
             await refund_quota(current_user["id"], "pitch", cost=2)
         raise HTTPException(status_code=500, detail=f"Erreur d'évaluation vocale : {str(e)}")
+
+@router.post("/evaluate-oral-pitch")
+async def evaluate_oral_pitch(request: OralPitchRequest, current_user: dict = Depends(require_active_subscription)):
+    """Évalue un pitch dicté oralement par le candidat et sauvegarde l'historique."""
+    
+    if not (current_user.get("is_admin") or current_user.get("is_tester")):
+        await consume_quota(current_user["id"], "pitch", cost=1)
+        
+    try:
+        prompt_template = load_prompt("evaluate_pitch.md")
+        final_prompt = f"POSTE CIBLÉ: {request.target_job}\n\nTRANSCRIPTION DU PITCH:\n{request.transcript}"
+        
+        result = await ai_service.generate_valid_json(
+            final_prompt, 
+            provider="openai", 
+            system_instruction=prompt_template
+        )
+        
+        # Sauvegarder dans l'historique d'entraînement pour les statistiques Dashboard
+        session_id = str(uuid.uuid4())
+        try:
+            async with db.get_connection() as conn:
+                await db.execute(conn, """
+                    INSERT INTO training_sessions (id, user_id, theme, question_type, question_text, user_answer, score, strengths, weaknesses, improved_answer, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    session_id, current_user["id"], "Pitch Oral", "Vocal", 
+                    "Parlez-moi de vous (Elevator Pitch)", request.transcript, 
+                    result.get("score", 0), json.dumps(result.get("strengths", [])), 
+                    json.dumps(result.get("weaknesses", [])), result.get("improved_pitch", ""), datetime.now()
+                ))
+        except Exception as e:
+            print(f"[DB WARNING] Failed to insert training_session for oral pitch: {e}")
+
+        return {"feedback": result}
+        
+    except HTTPException:
+        if not (current_user.get("is_admin") or current_user.get("is_tester")):
+            await refund_quota(current_user["id"], "pitch", cost=1)
+        raise
+    except Exception as e:
+        if not (current_user.get("is_admin") or current_user.get("is_tester")):
+            await refund_quota(current_user["id"], "pitch", cost=1)
+        raise HTTPException(status_code=500, detail=f"Erreur lors de l'analyse IA de votre pitch : {str(e)}")
 
 @router.post("/evaluate-pitch")
 async def evaluate_written_pitch(request: EvaluatePitchRequest, current_user: dict = Depends(require_active_subscription)):

@@ -262,5 +262,9 @@
   "btn_retry": "Réessayer",
   "btn_launching": "Lancement...",
   "error_msg": "Erreur :",
-  "generation_error_msg": "Erreur de génération :"
+  "generation_error_msg": "Erreur de génération :",
+  "pitch_training_title": "Entraînement au Pitch (Oral)",
+  "pitch_training_desc": "Simulez le redoutable « Parlez-moi de vous ». Enregistrez votre Elevator Pitch et recevez une analyse critique sur votre impact vocal et votre structure.",
+  "btn_record_pitch": "Enregistrer mon Pitch",
+  "pitch_eval_title": "Analyse de votre Pitch"
 }
