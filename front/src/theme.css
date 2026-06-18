@@ -15,7 +15,7 @@
   --brand-white: #F7FAFC;
 
   /* Fonds : Contraste subtil entre le fond de page et les cartes blanches */
-  --bg-body: #F4F7F9; /* Gris bleuté très clair, élégant */
+  --bg-body: #F8FAFC; /* Plus lumineux, base parfaite pour le style SaaS */
   --bg-card: #FFFFFF; /* Blanc pur pour faire ressortir le contenu */
   --bg-secondary: #EBF1F6; /* Gris bleuté pour les zones secondaires (inputs, headers de tableau) */
   
@@ -24,8 +24,10 @@
   --text-muted: #64748B; /* Slate 500 */
   
   /* Couleurs d'action basées sur le bleu de la marque */
-  --primary: #0F2650; /* Le bleu foncé de la marque pour les boutons forts */
-  --primary-hover: #1e3a75; /* Bleu légèrement plus vibrant au survol pour inciter au clic */
+  --primary: #3B82F6; /* Bleu vibrant, beaucoup plus engageant */
+  --primary-hover: #2563EB; 
+  --primary-gradient: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%); /* Dégradé SaaS par excellence (Bleu -> Violet) */
+  
   --secondary: #446285; /* Bleu moyen pour les actions secondaires */
   
   --border-color: #E2E8F0; /* Bordures douces */
