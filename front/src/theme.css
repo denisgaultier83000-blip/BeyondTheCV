@@ -67,67 +67,87 @@ body.dark-mode {
   background-attachment: fixed !important;
 }
 
-/* --- Application globale des styles "SaaS Premium" --- */
+/* --- EFFET WAHOW : SAAS ULTRA-PREMIUM (Glassmorphism & Animations) --- */
+
+/* 1. Fond Animé (Animated Gradient) */
+@keyframes gradientBG {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
 
 body {
-  background-color: var(--bg-body);
+  background: linear-gradient(-45deg, #F8FAFC, #EBF1F6, #DBEAFE, #F3E8FF) !important;
+  background-size: 400% 400% !important;
+  animation: gradientBG 15s ease infinite !important;
   color: var(--text-main);
-  /* Effet "Mesh" : halos de couleurs subtils en arrière-plan */
-  background-image: radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.08) 0px, transparent 50%), radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.08) 0px, transparent 50%);
-  background-attachment: fixed;
 }
 
-/* Ajout d'ombres et de bordures douces sur les cartes */
+body.dark-mode {
+  background: linear-gradient(-45deg, #0F172A, #1E293B, #172554, #2E1065) !important;
+  background-size: 400% 400% !important;
+  animation: gradientBG 15s ease infinite !important;
+}
+
+/* 2. Titres avec dégradé (Text Gradient) */
+h1, h2, .hero-title, .section-title, .auth-title {
+  background: var(--primary-gradient) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  display: inline-block;
+}
+
+/* 3. Glassmorphism sur les cartes (Transparence + Flou) */
 .bento-card, .result-card, .step-content, .card, .auth-card {
-  box-shadow: var(--shadow-md) !important;
+  background: rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1) !important;
+  border-radius: 16px !important;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
   position: relative;
-  border: none !important; /* On retire les bordures classiques pour ne garder que le liseré */
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Transition pour le survol */
+  overflow: hidden;
 }
 
-/* Le liseré coloré SaaS en haut de chaque carte */
+body.dark-mode .bento-card, body.dark-mode .result-card, body.dark-mode .step-content, body.dark-mode .card, body.dark-mode .auth-card {
+  background: rgba(30, 41, 59, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Liseré supérieur coloré sur les cartes */
 .bento-card::before, .result-card::before, .step-content::before, .card::before, .auth-card::before {
   content: '';
   position: absolute;
-  inset: -1px; /* Crée une bordure de 1px qui entoure la carte */
+  top: 0; left: 0; right: 0; height: 4px;
   background: var(--primary-gradient);
-  border-radius: inherit; /* Hérite du border-radius de la carte */
-  z-index: -1; /* Se place derrière la carte */
+  z-index: 10;
 }
 
 .bento-card:hover, .result-card:hover, .step-content:hover, .card:hover, .auth-card:hover {
-  box-shadow: var(--shadow-lg) !important;
-  transform: translateY(-4px); /* Effet de lévitation plus prononcé */
+  transform: translateY(-5px) scale(1.01) !important;
+  box-shadow: 0 15px 35px rgba(59, 130, 246, 0.2) !important;
 }
 
-/* --- Boutons "SaaS Premium" (Animations dynamiques) --- */
-.btn-primary, .btn-secondary, .btn-outline {
-  /* Ajout d'une courbe de bézier pour une animation ultra-fluide et organique */
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+/* 4. Boutons : Effet Pulse + Glow */
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.5); }
+  70% { box-shadow: 0 0 0 15px rgba(139, 92, 246, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
 }
 
 .btn-primary {
   background: var(--primary-gradient) !important;
   color: white !important;
   border: none !important;
+  animation: pulseGlow 2s infinite !important; /* Animation de battement */
+  transition: all 0.3s ease !important;
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
-  /* Effet "Glow" (lueur colorée) très populaire en SaaS */
-  box-shadow: 0 10px 20px -5px rgba(139, 92, 246, 0.5) !important;
-}
-
-.btn-secondary:hover {
-  transform: translateY(-2px);
-  border-color: var(--primary) !important;
-  box-shadow: var(--shadow-md) !important;
-}
-
-/* Ajustement pour le bouton fantôme (Outline) en mode Jour uniquement */
-body:not(.dark-mode) .btn-outline:hover {
-  background-color: var(--primary) !important;
-  color: #ffffff !important;
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md) !important;
+  transform: translateY(-3px) !important;
+  animation: none !important; /* Arrête le battement au survol */
+  box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.6) !important; /* Grosse lueur */
 }
