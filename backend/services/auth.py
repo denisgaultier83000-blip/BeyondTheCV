@@ -35,16 +35,9 @@ async def _insert_user(uid, email, hashed_pw, first, last, created):
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """, (uid, email, hashed_pw, first, last, created, False, 100))
             
-            # [FIX] Initialisation des compteurs réels utilisés par le frontend (pitch / qa)
+            # [FIX] Initialisation des compteurs dans les nouvelles colonnes de la table users
             try:
-                await db.execute(conn, """
-                    CREATE TABLE IF NOT EXISTS user_quotas (
-                        user_id TEXT PRIMARY KEY,
-                        pitch INTEGER DEFAULT 100,
-                        qa INTEGER DEFAULT 100
-                    )
-                """)
-                await db.execute(conn, "INSERT INTO user_quotas (user_id, pitch, qa) VALUES (?, 100, 100)", (uid,))
+                await db.execute(conn, "UPDATE users SET quota_pitch = 10, quota_qa = 25, quota_mes = 6, quota_negotiation = 4, quota_regeneration = 3, quota_update = 1 WHERE id = ?", (uid,))
             except Exception as q_err:
                 print(f"[DB WARNING] Impossible d'initialiser les quotas : {q_err}", flush=True)
     except Exception as e:
@@ -65,7 +58,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             except Exception:
                 pass
             # Requête propre et directe
-            cursor = await db.execute(conn, "SELECT id, email, hashed_password, first_name, last_name, created_at, is_premium, credits FROM users WHERE email = ?", (email,))
+            cursor = await db.execute(conn, "SELECT id, email, hashed_password, first_name, last_name, created_at, is_premium, credits, is_admin, is_active FROM users WHERE email = ?", (email,))
             row = await cursor.fetchone()
 
         if not row:
@@ -86,11 +79,19 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
                 "last_name": row[4],
                 "created_at": row[5],
                 "is_premium": row[6] if len(row) > 6 else False,
-                "credits": row[7] if len(row) > 7 else 100
+                "credits": row[7] if len(row) > 7 else 100,
+                "is_admin": row[8] if len(row) > 8 else False,
+                "is_active": row[9] if len(row) > 9 else True
             }
         else:
             user_dict = dict(row)
             
+        # [SÉCURITÉ] Vérification si le compte a été bloqué par un administrateur
+        is_active = user_dict.get("is_active")
+        if is_active is False or is_active == 0 or str(is_active).lower() == "false":
+            print(f"[AUTH ERROR] Échec : Compte banni ou inactif ({email})", flush=True)
+            raise HTTPException(status_code=403, detail="Votre compte a été désactivé par l'administration. Veuillez contacter le support.")
+
         try:
             is_valid = verify_password(form_data.password, user_dict.get("hashed_password", ""))
         except Exception as hash_err:
@@ -107,21 +108,25 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             expires_delta=access_token_expires
         )
 
-        # --- GESTION DES CRÉDITS & RELANCE TESTEURS (via variables d'environnement) ---
+        # --- GESTION DES CRÉDITS & RELANCE TESTEURS ---
         tester_emails_str = os.getenv("TESTER_EMAILS_LIST", "") # ex: "email1@test.com,email2@example.com"
-        TESTER_EMAILS = {email.strip() for email in tester_emails_str.split(',') if email.strip()}
+        TESTER_EMAILS = {e.strip().lower() for e in tester_emails_str.split(',') if e.strip()}
+        is_not_prod = os.getenv("ENVIRONMENT", "production") != "production"
         user_credits = user_dict.get("credits")
 
-        # Relance à 100 crédits s'ils sont à sec
-        if email in TESTER_EMAILS and user_credits < 100:
+        # Relance automatique des quotas si c'est un testeur OU si l'environnement n'est pas la production
+        if email in TESTER_EMAILS or is_not_prod:
             user_credits = 100
             async with db.get_connection() as conn:
-                await db.execute(conn, "UPDATE users SET credits = ? WHERE email = ?", (user_credits, email))
                 try:
-                    await db.execute(conn, "UPDATE user_quotas SET pitch = 100, qa = 100 WHERE user_id = ?", (user_dict.get("id"),))
+                    await db.execute(conn, "UPDATE users SET credits = 100, quota_pitch = 100, quota_qa = 100, quota_mes = 100, quota_negotiation = 100, quota_regeneration = 100, quota_update = 100 WHERE id = ?", (user_dict.get("id"),))
                 except Exception:
                     pass
-            print(f"[AUTH] 🎁 Relance de 100 crédits appliquée pour le testeur : {email}", flush=True)
+            print(f"[AUTH] 🎁 Quotas maximums accordés (Mode Testeur / Hors Prod) pour : {email}", flush=True)
+
+        admin_emails_str = os.getenv("ADMIN_EMAIL", "")
+        admin_emails = {e.strip().lower() for e in admin_emails_str.split(',') if e.strip()}
+        is_admin_flag = bool(user_dict.get("is_admin")) or (email in admin_emails)
 
         return {
             "access_token": access_token,
@@ -131,7 +136,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
                 "name": f"{user_dict.get('first_name', '')} {user_dict.get('last_name', '')}".strip(),
                 "email": user_dict.get("email", ""),
                 "is_premium": bool(user_dict.get("is_premium", False)),
-                "credits": user_credits
+                "credits": user_credits,
+                "is_admin": is_admin_flag
             }
         }
     except HTTPException:

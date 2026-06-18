@@ -20,7 +20,7 @@ from db_schemas import (
 from db_services import (
     ProductService, SubscriptionService
 )
-from security import get_current_user
+from security import get_current_user, require_admin_user
 
 router = APIRouter(prefix="/api", tags=["products", "subscriptions"])
 
@@ -207,7 +207,7 @@ def get_user_subscription(user_id: str, current_user: dict = Depends(get_current
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/subscriptions/check-expiry", tags=["subscriptions"])
-def check_subscriptions_expiry():
+def check_subscriptions_expiry(current_user: dict = Depends(require_admin_user)):
     """Check and update expired subscriptions (admin task)."""
     try:
         result = SubscriptionService.check_subscriptions_expiry()

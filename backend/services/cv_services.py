@@ -15,7 +15,7 @@ from pydantic import BaseModel
 
 from database import db
 from models import GenerateRequest, CVFinal, FeedbackRequest, ExperienceRequest, SkillExtractionRequest, FullCVData
-from security import get_current_user
+from security import get_current_user, require_admin_user
 # [FIX] Utilisation du service unifié au lieu d'imports inexistants
 from .ai_generator import ai_service
 from .latex import generate_pdf_from_latex
@@ -1886,7 +1886,7 @@ async def submit_feedback(request: FeedbackPayload, current_user: dict = Depends
         raise HTTPException(status_code=500, detail="Erreur interne lors de l'enregistrement du feedback.")
 
 @router.get("/feedbacks")
-async def get_feedbacks(current_user: dict = Depends(get_current_user)):
+async def get_feedbacks(current_user: dict = Depends(require_admin_user)):
     """
     Récupère tous les feedbacks pour l'interface Admin.
     """

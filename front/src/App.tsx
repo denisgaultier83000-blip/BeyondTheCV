@@ -12,6 +12,7 @@ import {
   StepQualitiesFlaws, StepClarification 
 } from './components/CandidateSteps';
 import AdminFeedbacks from './components/AdminFeedbacks';
+import { AdminDashboard } from './components/AdminDashboard';
 import { LandingPage } from './components/LandingPage';
 import { CGU } from './components/CGU';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
@@ -486,6 +487,32 @@ function AppContent() {
     parsedUserName = parsedUserName.charAt(0).toUpperCase() + parsedUserName.slice(1);
   }
 
+  // Interception de la route pour l'interface Administrateur
+  if (location.pathname === '/admin') {
+    if (!isAuthenticated) {
+      return (
+        <div className="app-container">
+          <main className="main-content" style={{ paddingTop: '2rem', display: 'flex', justifyContent: 'center' }}>
+            <Login onLoginSuccess={() => setIsAuthenticated(true)} />
+          </main>
+        </div>
+      );
+    }
+    if (!isAdmin) {
+      return (
+        <div className="app-container"><main className="main-content" style={{ paddingTop: '4rem', textAlign: 'center', color: 'var(--danger-text)', fontWeight: 'bold' }}>🚨 Accès refusé : Droits administrateur requis.</main></div>
+      );
+    }
+    return (
+      <div className="app-container">
+        <main className="main-content" style={{ paddingTop: '2rem' }}>
+          <button onClick={() => navigate('/candidate')} className="btn-outline" style={{ marginBottom: '2rem' }}>← Retour à l'application</button>
+          <AdminDashboard />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="app-container">
       <Header 
@@ -572,7 +599,8 @@ function AppContent() {
       <footer className="app-footer" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.5rem', padding: '2rem', flexWrap: 'wrap', opacity: 0.8, marginTop: 'auto' }}>
         {isAdmin && (
           <>
-            <button className="btn-ghost" onClick={() => setShowAdmin(true)}>{t('footer_admin', 'Accès Administrateur')}</button><span>|</span>
+            <button className="btn-ghost" onClick={() => navigate('/admin')}>Dashboard Admin</button><span>|</span>
+            <button className="btn-ghost" onClick={() => setShowAdmin(true)}>Feedbacks Admin</button><span>|</span>
           </>
         )}
         <button className="btn-ghost" onClick={() => setShowLegal(true)}>{t('footer_legal', 'Mentions Légales')}</button><span>|</span>

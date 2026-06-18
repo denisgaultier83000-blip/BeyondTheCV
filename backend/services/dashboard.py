@@ -5,7 +5,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, WebSocke
 from fastapi.responses import JSONResponse
 
 from database import db
-from security import get_current_user
+from security import get_current_user, require_admin_user
 from models import ResearchRequest, DisambiguationRequest
 # [FIX] Import relatif cohérent
 from .ai_generator import ai_service
@@ -315,7 +315,7 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str):
         manager.disconnect(websocket, task_id) # Garanti d'être exécuté à 100%, libérant la mémoire
 
 @router.get("/api/admin/migrate-archives")
-async def migrate_archives():
+async def migrate_archives(current_user: dict = Depends(require_admin_user)):
     """Route temporaire pour ranger les anciens documents orphelins dans un dossier Archives."""
     try:
         async with db.get_connection() as conn:

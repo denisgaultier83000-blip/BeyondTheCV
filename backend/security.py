@@ -66,9 +66,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
                 user_email = user_row["email"]
                 is_admin_db = bool(user_row.get("is_admin", False))
                 
-                # [FIX EXPERT] On vérifie aussi si l'utilisateur courant correspond à l'ADMIN_EMAIL du .env
-                admin_env_email = os.getenv("ADMIN_EMAIL")
-                is_admin_env = bool(admin_env_email and user_email == admin_env_email)
+                # [FIX EXPERT] On vérifie aussi si l'utilisateur courant correspond aux emails de la variable ADMIN_EMAIL
+                admin_emails_str = os.getenv("ADMIN_EMAIL", "")
+                admin_emails = {e.strip().lower() for e in admin_emails_str.split(',') if e.strip()}
+                is_admin_env = bool(user_email.lower() in admin_emails)
 
                 return {
                     "id": user_row["id"],
@@ -98,8 +99,9 @@ async def require_admin_user(current_user: dict = Depends(get_current_user)):
     """
     if not current_user.get("is_admin"):
         # [SÉCURITÉ] Fallback via variable d'environnement pour le tout premier admin
-        admin_email = os.getenv("ADMIN_EMAIL")
-        if not admin_email or current_user.get("email") != admin_email:
+        admin_emails_str = os.getenv("ADMIN_EMAIL", "")
+        admin_emails = {e.strip().lower() for e in admin_emails_str.split(',') if e.strip()}
+        if not admin_emails or current_user.get("email", "").lower() not in admin_emails:
             raise HTTPException(status_code=403, detail="Accès refusé. Cette opération requiert des droits administrateur.")
     
     return current_user

@@ -53,7 +53,14 @@ def init_db(conn):
                 last_name TEXT,
                 created_at TEXT,
                 is_premium BOOLEAN DEFAULT FALSE,
-                is_tester BOOLEAN DEFAULT FALSE
+                is_tester BOOLEAN DEFAULT FALSE,
+                credits INTEGER DEFAULT 100,
+                quota_pitch INTEGER DEFAULT 10,
+                quota_qa INTEGER DEFAULT 25,
+                quota_mes INTEGER DEFAULT 6,
+                quota_negotiation INTEGER DEFAULT 4,
+                quota_regeneration INTEGER DEFAULT 3,
+                quota_update INTEGER DEFAULT 1
             )
         """)
         cur.execute("""
