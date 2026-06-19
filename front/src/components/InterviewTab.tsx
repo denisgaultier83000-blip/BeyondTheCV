@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useDashboard } from './DashboardContext';
-import { Mic, MessageSquare, Play, Pause, RotateCcw, BrainCircuit, ArrowLeft, Loader2, RefreshCw, Lightbulb } from 'lucide-react';
+import { Mic, MessageSquare, Play, Pause, RotateCcw, BrainCircuit, ArrowLeft, Loader2, RefreshCw, Lightbulb, Shield, Users, Briefcase, Building } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DashboardCard } from './DashboardCard';
 import { SituationSimulator } from './SituationSimulator';
@@ -80,73 +80,32 @@ export const InterviewTab = () => {
   const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false);
   const [isDark] = useState(() => document.body.classList.contains('dark-mode'));
 
-  const [pitchAnalysis, setPitchAnalysis] = useState<any>(null);
-  const [isEvaluatingPitch, setIsEvaluatingPitch] = useState(false);
-
-  const [editablePitch, setEditablePitch] = useState<{accroche: string, preuve: string, valeur: string, projection: string}>({
-    accroche: "", preuve: "", valeur: "", projection: ""
-  });
+  // Nouvel état pour gérer les multiples pitchs
+  const [pitchMatrix, setPitchMatrix] = useState<any>(null);
+  const [activePitch, setActivePitch] = useState('recruiter_pitch');
 
   useEffect(() => {
     if (pitchResult) {
-      const p = pitchResult?.pitch || pitchResult;
-      const savedPitch = cvData?.editablePitch;
-      setEditablePitch({
-        accroche: savedPitch?.accroche || p?.accroche || "",
-        preuve: savedPitch?.preuve || p?.preuve || "",
-        valeur: savedPitch?.valeur || p?.valeur || "",
-        projection: savedPitch?.projection || p?.projection || ""
-      });
-      setPitchAnalysis(p?.analysis || null);
+      // La structure a changé, on stocke toute la matrice
+      setPitchMatrix(pitchResult);
     }
   }, [pitchResult]);
 
-  const handlePitchChange = (field: keyof typeof editablePitch, value: string) => {
-    const newPitch = { ...editablePitch, [field]: value };
-    setEditablePitch(newPitch);
-    if (updateFormData) {
-      updateFormData('editablePitch', newPitch);
-    }
+  const handlePitchChange = (pitchType: string, version: 'written' | 'oral', value: string) => {
+    setPitchMatrix((prev: any) => ({
+      ...prev,
+      [pitchType]: {
+        ...prev[pitchType],
+        [version]: value,
+      },
+    }));
   };
 
-  const fullPitchText = [editablePitch.accroche, editablePitch.preuve, editablePitch.valeur, editablePitch.projection].filter(Boolean).join('\n\n');
+  const fullPitchText = pitchMatrix?.[activePitch]?.oral || pitchMatrix?.[activePitch]?.written || "";
 
   const handleResetPitch = () => {
     if (!window.confirm(t('confirm_reset_pitch', "Voulez-vous vraiment annuler vos modifications et restaurer le pitch original généré par l'IA ?"))) return;
-    const p = pitchResult?.pitch || pitchResult;
-    const originalPitch = {
-      accroche: p?.accroche || "",
-      preuve: p?.preuve || "",
-      valeur: p?.valeur || "",
-      projection: p?.projection || ""
-    };
-    setEditablePitch(originalPitch);
-    if (updateFormData) {
-      updateFormData('editablePitch', originalPitch);
-    }
-  };
-
-  const handleEvaluatePitch = async () => {
-    setIsEvaluatingPitch(true);
-    try {
-      const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/evaluate-pitch`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          ...editablePitch, 
-          target_job: cvData?.target_job || cvData?.target_role_primary || 'Candidat',
-          target_language: cvData?.target_language || 'fr'
-        })
-      });
-      const data = await res.json();
-      if (data.analysis) {
-        setPitchAnalysis(data.analysis);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsEvaluatingPitch(false);
-    }
+    setPitchMatrix(pitchResult); // Restaure la matrice complète depuis les props
   };
 
   const handlePurgeCache = async () => {
@@ -295,37 +254,44 @@ export const InterviewTab = () => {
         >
           {pitchResult && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div className="pitch-grid">
-                <div className="pitch-card"><h4>{t('pitch_hook', 'Accroche')}</h4><textarea className="pitch-textarea" value={editablePitch.accroche} onChange={e => handlePitchChange('accroche', e.target.value)} /></div>
-                <div className="pitch-card"><h4>{t('pitch_proof', 'Preuve & Impact')}</h4><textarea className="pitch-textarea" value={editablePitch.preuve} onChange={e => handlePitchChange('preuve', e.target.value)} /></div>
-                <div className="pitch-card"><h4>{t('pitch_value', 'Valeur Ajoutée')}</h4><textarea className="pitch-textarea" value={editablePitch.valeur} onChange={e => handlePitchChange('valeur', e.target.value)} /></div>
-                <div className="pitch-card"><h4>{t('pitch_projection', 'Projection')}</h4><textarea className="pitch-textarea" value={editablePitch.projection} onChange={e => handlePitchChange('projection', e.target.value)} /></div>
+              {/* --- NOUVELLE INTERFACE À ONGLETS --- */}
+              <div className="pitch-selector-tabs">
+                <button onClick={() => setActivePitch('recruiter_pitch')} className={activePitch === 'recruiter_pitch' ? 'active' : ''}><Briefcase size={16}/> Recruteur</button>
+                <button onClick={() => setActivePitch('executive_pitch')} className={activePitch === 'executive_pitch' ? 'active' : ''}><Building size={16}/> Dirigeant</button>
+                <button onClick={() => setActivePitch('hr_pitch')} className={activePitch === 'hr_pitch' ? 'active' : ''}><Users size={16}/> RH</button>
+                <button onClick={() => setActivePitch('anti_flaw_pitch')} className={activePitch === 'anti_flaw_pitch' ? 'active' : ''}><Shield size={16}/> Anti-Failles</button>
               </div>
 
-              <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                  <h4 style={{ margin: 0, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <BrainCircuit size={18} color="var(--primary)" /> Évaluation de votre Pitch
-                  </h4>
-                  <button onClick={handleEvaluatePitch} disabled={isEvaluatingPitch} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
-                    {isEvaluatingPitch ? <Loader2 size={16} className="spin" /> : <RefreshCw size={16} />} 
-                    {isEvaluatingPitch ? "Analyse en cours..." : "Analyser mon Pitch"}
-                  </button>
+              {pitchMatrix && pitchMatrix[activePitch] && (
+                <div className="pitch-content-area" style={{animation: 'fadeIn 0.3s ease-out'}}>
+                  {activePitch === 'anti_flaw_pitch' && (
+                    <div className="anti-flaw-banner">
+                      <Shield size={18} />
+                      <div>
+                        <strong>Pitch "Anti-Failles" :</strong> L'IA a identifié ce point de vigilance dans votre profil : <em>"{pitchMatrix.anti_flaw_pitch.identified_flaw}"</em>. Ce pitch est conçu pour le désamorcer.
+                      </div>
+                    </div>
+                  )}
+                  <div className="pitch-version-grid">
+                    <div>
+                      <h5>Version Écrite (Structurée)</h5>
+                      <textarea 
+                        value={pitchMatrix[activePitch].written}
+                        onChange={(e) => handlePitchChange(activePitch, 'written', e.target.value)}
+                        rows={8}
+                      />
+                    </div>
+                    <div>
+                      <h5>Version Orale (Naturelle)</h5>
+                      <textarea 
+                        value={pitchMatrix[activePitch].oral}
+                        onChange={(e) => handlePitchChange(activePitch, 'oral', e.target.value)}
+                        rows={8}
+                      />
+                    </div>
+                  </div>
                 </div>
-                
-                {pitchAnalysis && (
-                  <ScoreGauge 
-                    score={Number(pitchAnalysis.global_score) || 0} 
-                    label={t('pitch_impact_score', "Score d'Impact du Pitch")} 
-                    critique={pitchAnalysis.critique}
-                    metrics={[
-                      { label: "Structure", value: pitchAnalysis.structure || "N/A" },
-                      { label: "Clarté", value: pitchAnalysis.clarity || "N/A" },
-                      { label: "Conviction", value: pitchAnalysis.conviction || "N/A" }
-                    ]}
-                  />
-                )}
-              </div>
+              )}
               
               {/* NOUVEAU MODULE D'ENTRAÎNEMENT ORAL DU PITCH */}
               <PitchOralTrainer />
