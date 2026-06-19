@@ -86,19 +86,20 @@ export const InterviewTab = () => {
 
   useEffect(() => {
     if (pitchResult) {
-      // La structure a changé, on stocke toute la matrice
-      setPitchMatrix(pitchResult);
+      // On fusionne le pitch généré par l'IA avec les modifications sauvegardées de l'utilisateur
+      const savedPitchMatrix = cvData?.pitchMatrix;
+      setPitchMatrix(savedPitchMatrix || pitchResult);
     }
-  }, [pitchResult]);
+  }, [pitchResult, cvData?.pitchMatrix]);
 
   const handlePitchChange = (pitchType: string, version: 'written' | 'oral', value: string) => {
-    setPitchMatrix((prev: any) => ({
-      ...prev,
-      [pitchType]: {
-        ...prev[pitchType],
-        [version]: value,
-      },
-    }));
+    setPitchMatrix((prevMatrix: any) => {
+      const newMatrix = { ...prevMatrix, [pitchType]: { ...prevMatrix[pitchType], [version]: value } };
+      if (updateFormData) {
+        updateFormData('pitchMatrix', newMatrix);
+      }
+      return newMatrix;
+    });
   };
 
   const fullPitchText = pitchMatrix?.[activePitch]?.oral || pitchMatrix?.[activePitch]?.written || "";
@@ -255,23 +256,29 @@ export const InterviewTab = () => {
           {pitchResult && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               {/* --- NOUVELLE INTERFACE À ONGLETS --- */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div className="pitch-selector-tabs">
-                  <button onClick={() => setActivePitch('pitch_30_seconds')} className={activePitch === 'pitch_30_seconds' ? 'active' : ''}><Clock size={16}/> 30 sec</button>
-                  <button onClick={() => setActivePitch('pitch_1_minute')} className={activePitch === 'pitch_1_minute' ? 'active' : ''}><Clock size={16}/> 1 min</button>
-                  <button onClick={() => setActivePitch('pitch_3_minutes')} className={activePitch === 'pitch_3_minutes' ? 'active' : ''}><Clock size={16}/> 3 min</button>
+              <div className="pitch-selector-container" style={{ animation: 'fadeIn 0.3s ease-out' }}>
+                <div className="pitch-selector-group">
+                  <h6 className="pitch-selector-title">Par Durée</h6>
+                  <div className="pitch-selector-tabs">
+                    <button onClick={() => setActivePitch('pitch_30_seconds')} className={activePitch === 'pitch_30_seconds' ? 'active' : ''}><Clock size={16}/> 30 sec</button>
+                    <button onClick={() => setActivePitch('pitch_1_minute')} className={activePitch === 'pitch_1_minute' ? 'active' : ''}><Clock size={16}/> 1 min</button>
+                    <button onClick={() => setActivePitch('pitch_3_minutes')} className={activePitch === 'pitch_3_minutes' ? 'active' : ''}><Clock size={16}/> Complet</button>
+                  </div>
                 </div>
-                <div className="pitch-selector-tabs">
-                  <button onClick={() => setActivePitch('recruiter_pitch')} className={activePitch === 'recruiter_pitch' ? 'active' : ''}><Briefcase size={16}/> Recruteur</button>
-                  <button onClick={() => setActivePitch('executive_pitch')} className={activePitch === 'executive_pitch' ? 'active' : ''}><Building size={16}/> Dirigeant</button>
-                  <button onClick={() => setActivePitch('hr_pitch')} className={activePitch === 'hr_pitch' ? 'active' : ''}><Users size={16}/> RH</button>
-                  <button onClick={() => setActivePitch('networking_pitch')} className={activePitch === 'networking_pitch' ? 'active' : ''}><Users size={16}/> Réseau</button>
-                  <button onClick={() => setActivePitch('anti_flaw_pitch')} className={activePitch === 'anti_flaw_pitch' ? 'active' : ''}><Shield size={16}/> Anti-Failles</button>
+                <div className="pitch-selector-group">
+                  <h6 className="pitch-selector-title">Par Audience</h6>
+                  <div className="pitch-selector-tabs">
+                    <button onClick={() => setActivePitch('recruiter_pitch')} className={activePitch === 'recruiter_pitch' ? 'active' : ''}><Briefcase size={16}/> Recruteur</button>
+                    <button onClick={() => setActivePitch('executive_pitch')} className={activePitch === 'executive_pitch' ? 'active' : ''}><Building size={16}/> Dirigeant</button>
+                    <button onClick={() => setActivePitch('hr_pitch')} className={activePitch === 'hr_pitch' ? 'active' : ''}><Users size={16}/> RH</button>
+                    <button onClick={() => setActivePitch('networking_pitch')} className={activePitch === 'networking_pitch' ? 'active' : ''}><Users size={16}/> Réseau</button>
+                    <button onClick={() => setActivePitch('anti_flaw_pitch')} className={activePitch === 'anti_flaw_pitch' ? 'active' : ''}><Shield size={16}/> Anti-Failles</button>
+                  </div>
                 </div>
               </div>
 
               {pitchMatrix && pitchMatrix[activePitch] && (
-                <div className="pitch-content-area" style={{animation: 'fadeIn 0.3s ease-out'}}>
+                <div className="pitch-content-area" style={{animation: 'fadeIn 0.4s ease-out'}}>
                   {activePitch === 'anti_flaw_pitch' && (
                     <div className="anti-flaw-banner">
                       <Shield size={18} />
