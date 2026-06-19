@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useDashboard } from './DashboardContext';
-import { Mic, MessageSquare, Play, Pause, RotateCcw, BrainCircuit, ArrowLeft, Loader2, RefreshCw, Lightbulb, Shield, Users, Briefcase, Building } from 'lucide-react';
+import { Mic, MessageSquare, Play, Pause, RotateCcw, BrainCircuit, ArrowLeft, Loader2, RefreshCw, Lightbulb, Shield, Users, Briefcase, Building, Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DashboardCard } from './DashboardCard';
 import { SituationSimulator } from './SituationSimulator';
@@ -82,7 +82,7 @@ export const InterviewTab = () => {
 
   // Nouvel état pour gérer les multiples pitchs
   const [pitchMatrix, setPitchMatrix] = useState<any>(null);
-  const [activePitch, setActivePitch] = useState('recruiter_pitch');
+  const [activePitch, setActivePitch] = useState('pitch_1_minute');
 
   useEffect(() => {
     if (pitchResult) {
@@ -255,11 +255,19 @@ export const InterviewTab = () => {
           {pitchResult && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               {/* --- NOUVELLE INTERFACE À ONGLETS --- */}
-              <div className="pitch-selector-tabs">
-                <button onClick={() => setActivePitch('recruiter_pitch')} className={activePitch === 'recruiter_pitch' ? 'active' : ''}><Briefcase size={16}/> Recruteur</button>
-                <button onClick={() => setActivePitch('executive_pitch')} className={activePitch === 'executive_pitch' ? 'active' : ''}><Building size={16}/> Dirigeant</button>
-                <button onClick={() => setActivePitch('hr_pitch')} className={activePitch === 'hr_pitch' ? 'active' : ''}><Users size={16}/> RH</button>
-                <button onClick={() => setActivePitch('anti_flaw_pitch')} className={activePitch === 'anti_flaw_pitch' ? 'active' : ''}><Shield size={16}/> Anti-Failles</button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div className="pitch-selector-tabs">
+                  <button onClick={() => setActivePitch('pitch_30_seconds')} className={activePitch === 'pitch_30_seconds' ? 'active' : ''}><Clock size={16}/> 30 sec</button>
+                  <button onClick={() => setActivePitch('pitch_1_minute')} className={activePitch === 'pitch_1_minute' ? 'active' : ''}><Clock size={16}/> 1 min</button>
+                  <button onClick={() => setActivePitch('pitch_3_minutes')} className={activePitch === 'pitch_3_minutes' ? 'active' : ''}><Clock size={16}/> 3 min</button>
+                </div>
+                <div className="pitch-selector-tabs">
+                  <button onClick={() => setActivePitch('recruiter_pitch')} className={activePitch === 'recruiter_pitch' ? 'active' : ''}><Briefcase size={16}/> Recruteur</button>
+                  <button onClick={() => setActivePitch('executive_pitch')} className={activePitch === 'executive_pitch' ? 'active' : ''}><Building size={16}/> Dirigeant</button>
+                  <button onClick={() => setActivePitch('hr_pitch')} className={activePitch === 'hr_pitch' ? 'active' : ''}><Users size={16}/> RH</button>
+                  <button onClick={() => setActivePitch('networking_pitch')} className={activePitch === 'networking_pitch' ? 'active' : ''}><Users size={16}/> Réseau</button>
+                  <button onClick={() => setActivePitch('anti_flaw_pitch')} className={activePitch === 'anti_flaw_pitch' ? 'active' : ''}><Shield size={16}/> Anti-Failles</button>
+                </div>
               </div>
 
               {pitchMatrix && pitchMatrix[activePitch] && (
