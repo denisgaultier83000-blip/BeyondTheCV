@@ -256,13 +256,13 @@ export const InterviewTab = () => {
           {pitchResult && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               {/* --- NOUVELLE INTERFACE À ONGLETS --- */}
-              <div className="pitch-selector-container" style={{ animation: 'fadeIn 0.3s ease-out' }}>
+              <div className="pitch-selector-container">
                 <div className="pitch-selector-group">
                   <h6 className="pitch-selector-title">Par Durée</h6>
                   <div className="pitch-selector-tabs">
                     <button onClick={() => setActivePitch('pitch_30_seconds')} className={activePitch === 'pitch_30_seconds' ? 'active' : ''}><Clock size={16}/> 30 sec</button>
                     <button onClick={() => setActivePitch('pitch_1_minute')} className={activePitch === 'pitch_1_minute' ? 'active' : ''}><Clock size={16}/> 1 min</button>
-                    <button onClick={() => setActivePitch('pitch_3_minutes')} className={activePitch === 'pitch_3_minutes' ? 'active' : ''}><Clock size={16}/> Complet</button>
+                    <button onClick={() => setActivePitch('pitch_3_minutes')} className={activePitch === 'pitch_3_minutes' ? 'active' : ''}><Clock size={16}/> Stratégique</button>
                   </div>
                 </div>
                 <div className="pitch-selector-group">
@@ -278,7 +278,7 @@ export const InterviewTab = () => {
               </div>
 
               {pitchMatrix && pitchMatrix[activePitch] && (
-                <div className="pitch-content-area" style={{animation: 'fadeIn 0.4s ease-out'}}>
+                <div className="pitch-content-area">
                   {activePitch === 'anti_flaw_pitch' && (
                     <div className="anti-flaw-banner">
                       <Shield size={18} />
@@ -309,6 +309,9 @@ export const InterviewTab = () => {
               )}
               
               {/* NOUVEAU MODULE D'ENTRAÎNEMENT ORAL DU PITCH */}
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '1rem', marginBottom: '1rem', textAlign: 'center' }}>
+                {t('teleprompter_pitch_hint', "Le téléprompteur utilisera le contenu de la version orale que vous avez sélectionnée et modifiée ci-dessus.")}
+              </p>
               <PitchOralTrainer />
             </div>
           )}
