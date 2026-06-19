@@ -81,32 +81,72 @@ export const InterviewTab = () => {
   const [isDark] = useState(() => document.body.classList.contains('dark-mode'));
 
   // Nouvel état pour gérer les multiples pitchs
-  const [pitchMatrix, setPitchMatrix] = useState<any>(null);
+  const [pitchMatrix, setPitchMatrix] = useState<any>(null); // Matrice brute de l'IA
   const [activePitch, setActivePitch] = useState('pitch_1_minute');
+  const [editablePitch, setEditablePitch] = useState({ // État pour les 4 champs éditables
+    accroche: "",
+    preuve: "",
+    valeur: "",
+    projection: ""
+  });
 
   useEffect(() => {
     if (pitchResult) {
-      // On fusionne le pitch généré par l'IA avec les modifications sauvegardées de l'utilisateur
-      const savedPitchMatrix = cvData?.pitchMatrix;
-      setPitchMatrix(savedPitchMatrix || pitchResult);
-    }
-  }, [pitchResult, cvData?.pitchMatrix]);
-
-  const handlePitchChange = (pitchType: string, version: 'written' | 'oral', value: string) => {
-    setPitchMatrix((prevMatrix: any) => {
-      const newMatrix = { ...prevMatrix, [pitchType]: { ...prevMatrix[pitchType], [version]: value } };
-      if (updateFormData) {
-        updateFormData('pitchMatrix', newMatrix);
+      setPitchMatrix(pitchResult);
+      // Au premier chargement, on peuple les champs avec le pitch par défaut (1 minute)
+      // ou avec les données sauvegardées si elles existent.
+      const savedEditablePitch = cvData?.editablePitch;
+      if (savedEditablePitch && Object.values(savedEditablePitch).some(v => v)) {
+        setEditablePitch(savedEditablePitch);
+      } else {
+        populateFieldsFromMatrix(pitchResult, 'pitch_1_minute');
       }
-      return newMatrix;
-    });
+    }
+  }, [pitchResult]);
+
+  // Sépare un texte en 4 parties
+  const splitTextIntoFields = (text: string) => {
+    const paragraphs = text.split('\n').filter(p => p.trim() !== '');
+    return {
+      accroche: paragraphs[0] || '',
+      preuve: paragraphs[1] || '',
+      valeur: paragraphs[2] || '',
+      projection: paragraphs.slice(3).join('\n\n') || '',
+    };
   };
 
-  const fullPitchText = pitchMatrix?.[activePitch]?.oral || pitchMatrix?.[activePitch]?.written || "";
+  // Peuple les 4 champs à partir de la matrice de l'IA
+  const populateFieldsFromMatrix = (matrix: any, pitchType: string) => {
+    const fullText = matrix?.[pitchType]?.oral || matrix?.[pitchType]?.written || '';
+    const newFields = splitTextIntoFields(fullText);
+    setEditablePitch(newFields);
+    if (updateFormData) {
+      updateFormData('editablePitch', newFields);
+    }
+  };
+
+  // Gère le changement dans un des 4 champs
+  const handleFieldChange = (field: keyof typeof editablePitch, value: string) => {
+    const newEditablePitch = { ...editablePitch, [field]: value };
+    setEditablePitch(newEditablePitch);
+    if (updateFormData) {
+      updateFormData('editablePitch', newEditablePitch);
+    }
+  };
+
+  // Définir les formats de pitch qui doivent utiliser une seule zone de texte
+  const shortPitchFormats = ['pitch_30_seconds', 'networking_pitch'];
+  const isShortFormat = shortPitchFormats.includes(activePitch);
+
+  // Le texte du téléprompteur est la concaténation des 4 champs éditables
+  const fullPitchText = [editablePitch.accroche, editablePitch.preuve, editablePitch.valeur, editablePitch.projection].filter(Boolean).join('\n\n');
 
   const handleResetPitch = () => {
     if (!window.confirm(t('confirm_reset_pitch', "Voulez-vous vraiment annuler vos modifications et restaurer le pitch original généré par l'IA ?"))) return;
-    setPitchMatrix(pitchResult); // Restaure la matrice complète depuis les props
+    // On repeuple les champs avec la version sélectionnée actuellement
+    if (pitchResult) {
+      populateFieldsFromMatrix(pitchResult, activePitch);
+    }
   };
 
   const handlePurgeCache = async () => {
@@ -180,6 +220,12 @@ export const InterviewTab = () => {
 
     // 3. Fallback: on retourne le premier tableau trouvé dans l'objet
     return (Object.values(payload).find(v => Array.isArray(v)) as any[]) || [];
+  };
+
+  const handleTabClick = (pitchType: string) => {
+    setActivePitch(pitchType);
+    // Au clic, on met à jour les 4 champs avec le contenu correspondant
+    populateFieldsFromMatrix(pitchMatrix, pitchType);
   };
 
   // Convertir les Mises en Situation (MES) en format "Question" pour les fusionner
@@ -258,53 +304,50 @@ export const InterviewTab = () => {
               {/* --- NOUVELLE INTERFACE À ONGLETS --- */}
               <div className="pitch-selector-container">
                 <div className="pitch-selector-group">
-                  <h6 className="pitch-selector-title">Par Durée</h6>
+                  <h6 className="pitch-selector-title">Format</h6>
                   <div className="pitch-selector-tabs">
-                    <button onClick={() => setActivePitch('pitch_30_seconds')} className={activePitch === 'pitch_30_seconds' ? 'active' : ''}><Clock size={16}/> 30 sec</button>
-                    <button onClick={() => setActivePitch('pitch_1_minute')} className={activePitch === 'pitch_1_minute' ? 'active' : ''}><Clock size={16}/> 1 min</button>
-                    <button onClick={() => setActivePitch('pitch_3_minutes')} className={activePitch === 'pitch_3_minutes' ? 'active' : ''}><Clock size={16}/> Stratégique</button>
+                    <button onClick={() => handleTabClick('pitch_30_seconds')} className={activePitch === 'pitch_30_seconds' ? 'active' : ''}><Clock size={16}/> 30 sec</button>
+                    <button onClick={() => handleTabClick('pitch_1_minute')} className={activePitch === 'pitch_1_minute' ? 'active' : ''}><Clock size={16}/> 1 min</button>
+                    <button onClick={() => handleTabClick('pitch_3_minutes')} className={activePitch === 'pitch_3_minutes' ? 'active' : ''}><Clock size={16}/> Stratégique</button>
                   </div>
                 </div>
                 <div className="pitch-selector-group">
                   <h6 className="pitch-selector-title">Par Audience</h6>
                   <div className="pitch-selector-tabs">
-                    <button onClick={() => setActivePitch('recruiter_pitch')} className={activePitch === 'recruiter_pitch' ? 'active' : ''}><Briefcase size={16}/> Recruteur</button>
-                    <button onClick={() => setActivePitch('executive_pitch')} className={activePitch === 'executive_pitch' ? 'active' : ''}><Building size={16}/> Dirigeant</button>
-                    <button onClick={() => setActivePitch('hr_pitch')} className={activePitch === 'hr_pitch' ? 'active' : ''}><Users size={16}/> RH</button>
-                    <button onClick={() => setActivePitch('networking_pitch')} className={activePitch === 'networking_pitch' ? 'active' : ''}><Users size={16}/> Réseau</button>
-                    <button onClick={() => setActivePitch('anti_flaw_pitch')} className={activePitch === 'anti_flaw_pitch' ? 'active' : ''}><Shield size={16}/> Anti-Failles</button>
+                    <button onClick={() => handleTabClick('recruiter_pitch')} className={activePitch === 'recruiter_pitch' ? 'active' : ''}><Briefcase size={16}/> Recruteur</button>
+                    <button onClick={() => handleTabClick('executive_pitch')} className={activePitch === 'executive_pitch' ? 'active' : ''}><Building size={16}/> Dirigeant</button>
+                    <button onClick={() => handleTabClick('hr_pitch')} className={activePitch === 'hr_pitch' ? 'active' : ''}><Users size={16}/> RH</button>
+                    <button onClick={() => handleTabClick('networking_pitch')} className={activePitch === 'networking_pitch' ? 'active' : ''}><Users size={16}/> Réseau</button>
+                    <button onClick={() => handleTabClick('anti_flaw_pitch')} className={activePitch === 'anti_flaw_pitch' ? 'active' : ''}><Shield size={16}/> Anti-Failles</button>
                   </div>
                 </div>
               </div>
 
-              {pitchMatrix && pitchMatrix[activePitch] && (
-                <div className="pitch-content-area">
-                  {activePitch === 'anti_flaw_pitch' && (
-                    <div className="anti-flaw-banner">
-                      <Shield size={18} />
-                      <div>
-                        <strong>Pitch "Anti-Failles" :</strong> L'IA a identifié ce point de vigilance dans votre profil : <em>"{pitchMatrix.anti_flaw_pitch.identified_flaw}"</em>. Ce pitch est conçu pour le désamorcer.
-                      </div>
-                    </div>
-                  )}
-                  <div className="pitch-version-grid">
-                    <div>
-                      <h5>Version Écrite (Structurée)</h5>
-                      <textarea 
-                        value={pitchMatrix[activePitch].written}
-                        onChange={(e) => handlePitchChange(activePitch, 'written', e.target.value)}
-                        rows={8}
-                      />
-                    </div>
-                    <div>
-                      <h5>Version Orale (Naturelle)</h5>
-                      <textarea 
-                        value={pitchMatrix[activePitch].oral}
-                        onChange={(e) => handlePitchChange(activePitch, 'oral', e.target.value)}
-                        rows={8}
-                      />
-                    </div>
-                  </div>
+              {/* --- BLOC DES 4 CHAMPS ÉDITABLES --- */}
+              {isShortFormat ? (
+                // --- VUE POUR FORMATS COURTS (30s, Réseau) ---
+                <div className="pitch-single-field" style={{ animation: 'fadeIn 0.4s ease-out' }}>
+                  <textarea
+                    className="pitch-textarea"
+                    value={fullPitchText}
+                    onChange={e => {
+                      // On met à jour les 4 champs en se basant sur le texte unique
+                      const newFields = splitTextIntoFields(e.target.value);
+                      setEditablePitch(newEditablePitch => ({...newEditablePitch, ...newFields}));
+                      if (updateFormData) {
+                        updateFormData('editablePitch', newFields);
+                      }
+                    }}
+                    rows={10}
+                  />
+                </div>
+              ) : (
+                // --- VUE POUR FORMATS LONGS (Structure en 4 parties) ---
+                <div className="pitch-grid" style={{ animation: 'fadeIn 0.4s ease-out' }}>
+                  <div className="pitch-card"><h4>{t('pitch_hook', 'Accroche')}</h4><textarea className="pitch-textarea" value={editablePitch.accroche} onChange={e => handleFieldChange('accroche', e.target.value)} /></div>
+                  <div className="pitch-card"><h4>{t('pitch_proof', 'Preuve & Impact')}</h4><textarea className="pitch-textarea" value={editablePitch.preuve} onChange={e => handleFieldChange('preuve', e.target.value)} /></div>
+                  <div className="pitch-card"><h4>{t('pitch_value', 'Valeur Ajoutée')}</h4><textarea className="pitch-textarea" value={editablePitch.valeur} onChange={e => handleFieldChange('valeur', e.target.value)} /></div>
+                  <div className="pitch-card"><h4>{t('pitch_projection', 'Projection')}</h4><textarea className="pitch-textarea" value={editablePitch.projection} onChange={e => handleFieldChange('projection', e.target.value)} /></div>
                 </div>
               )}
               
