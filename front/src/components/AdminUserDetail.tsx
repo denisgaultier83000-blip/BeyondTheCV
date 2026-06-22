@@ -70,7 +70,7 @@ export function AdminUserDetail() {
   const handleDeleteApplication = async (appId: string) => {
     if (!window.confirm("Voulez-vous vraiment supprimer ce dossier de candidature et tous les documents associés ?")) return;
     
-    try {
+    try { // Note: Endpoint à créer côté backend
       // Note: Endpoint à créer côté backend
       const res = await authenticatedFetch(`${API_BASE_URL}/api/admin/applications/${appId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error("Erreur lors de la suppression.");
