@@ -80,7 +80,7 @@ export const InterviewTab = () => {
   const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false);
   const [isDark] = useState(() => document.body.classList.contains('dark-mode'));
   const [pitchMatrix, setPitchMatrix] = useState<any>(null);
-  // [CORRECTIF] On initialise avec le pitch stratégique par défaut
+  // [CORRECTIF] On initialise avec le pitch stratégique par défaut.
   const [activePitch, setActivePitch] = useState('pitch_3_minutes');
   const [editablePitch, setEditablePitch] = useState({
     accroche: "",
@@ -96,8 +96,8 @@ export const InterviewTab = () => {
       if (savedEditablePitch && Object.values(savedEditablePitch).some(v => v)) {
         setEditablePitch(savedEditablePitch);
       } else {
-        // [CORRECTIF] On charge le pitch stratégique par défaut (`pitch_3_minutes`)
-        // au lieu de l'ancien "pitch_1_minute" qui n'existe plus dans la nouvelle structure.
+        // [CORRECTIF] On charge le pitch stratégique par défaut (`pitch_3_minutes`) au lieu de
+        // l'ancien "pitch_1_minute" qui n'existe plus dans la nouvelle structure de données.
         populateFieldsFromMatrix(pitchResult, 'pitch_3_minutes');
       }
     }
