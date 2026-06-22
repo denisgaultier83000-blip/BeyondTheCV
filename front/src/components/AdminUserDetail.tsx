@@ -86,7 +86,7 @@ export function AdminUserDetail() {
         <ArrowLeft size={18} /> Retour au Dashboard
       </button>
 
-      <AsyncBoundary loading={loading} error={error} loadingText="Chargement du profil de l'utilisateur...">
+      <AsyncBoundary loading={loading} error={error || undefined} loadingText="Chargement du profil de l'utilisateur...">
         {user && (
           <>
             {/* --- CARTE D'IDENTITÉ UTILISATEUR --- */}
