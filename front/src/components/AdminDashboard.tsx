@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminQuotaManager from './AdminQuotaManager';
 import { useNavigate } from 'react-router-dom';
-import { User, Shield, Calendar, Edit, Trash2, Eye } from 'lucide-react';
+import { User, Shield, Calendar, Edit, Trash2, Eye, Database, CheckCircle, XCircle, Percent } from 'lucide-react';
 
 // --- Types ---
 interface Stats {
@@ -9,7 +9,17 @@ interface Stats {
   premium_users: number;
   new_users_7d: number;
   total_tasks: number;
+  cache_hits?: number;
+  cache_misses?: number;
+  cache_hit_ratio?: number;
   avg_training_score: number;
+}
+
+interface CacheHistoryItem {
+  date: string;
+  hits: number;
+  misses: number;
+  hit_ratio: number;
 }
 
 interface Health {
@@ -43,6 +53,7 @@ export function AdminDashboard() {
   const [subAction, setSubAction] = useState<'extend' | 'cancel'>('extend');
   const [subDays, setSubDays] = useState<number>(30);
   const [subLoading, setSubLoading] = useState(false);
+  const [cacheHistory, setCacheHistory] = useState<CacheHistoryItem[]>([]);
 
   const fetchAdminData = async () => {
     setLoading(true);
@@ -56,10 +67,11 @@ export function AdminDashboard() {
       };
 
       // Chargement en parallèle des 3 endpoints vitaux
-      const [statsRes, healthRes, usersRes] = await Promise.all([
+      const [statsRes, healthRes, usersRes, cacheHistoryRes] = await Promise.all([
         fetch('/api/admin/stats', { headers }),
         fetch('/api/admin/health-check', { headers }),
-        fetch('/api/admin/users?limit=20', { headers })
+        fetch('/api/admin/users?limit=20', { headers }),
+        fetch('/api/admin/cache-history?days=7', { headers })
       ]);
 
       if (!statsRes.ok || !healthRes.ok || !usersRes.ok) {
@@ -73,6 +85,9 @@ export function AdminDashboard() {
       
       const usersData = await usersRes.json();
       setUsers(usersData.users);
+      
+      const cacheHistoryData = await cacheHistoryRes.json();
+      setCacheHistory(cacheHistoryData.cache_history);
 
     } catch (err: any) {
       setError(err.message || "Erreur de connexion au serveur.");
@@ -172,6 +187,30 @@ export function AdminDashboard() {
         <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)' }}>
           <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Score Entraînement Moyen</h3>
           <p style={{ margin: 0, fontSize: '2rem', fontWeight: 'bold', color: '#3b82f6' }}>{stats?.avg_training_score} / 100</p>
+        </div>
+      </div>
+      
+      {/* [AJOUT] Carte des statistiques du cache */}
+      <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1.25rem', margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Database size={20} /> Cache des Articles (OSINT)</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '0.5rem' }}>
+            <CheckCircle size={24} color="#10b981" />
+            <div><p style={{ margin: 0, fontWeight: 'bold', fontSize: '1.5rem' }}>{stats?.cache_hits ?? 0}</p><p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>Cache Hits</p></div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '0.5rem' }}>
+            <XCircle size={24} color="#ef4444" />
+            <div><p style={{ margin: 0, fontWeight: 'bold', fontSize: '1.5rem' }}>{stats?.cache_misses ?? 0}</p><p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>Cache Misses</p></div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '0.5rem' }}>
+            <Percent size={24} color={ (stats?.cache_hit_ratio ?? 0) >= 80 ? '#10b981' : (stats?.cache_hit_ratio ?? 0) >= 50 ? '#f59e0b' : '#ef4444' } />
+            <div>
+              <p style={{ margin: 0, fontWeight: 'bold', fontSize: '1.5rem', color: (stats?.cache_hit_ratio ?? 0) >= 80 ? '#10b981' : (stats?.cache_hit_ratio ?? 0) >= 50 ? '#f59e0b' : '#ef4444' }}>
+                {stats?.cache_hit_ratio ?? 0}%
+              </p>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>Hit Ratio</p>
+            </div>
+          </div>
         </div>
       </div>
 

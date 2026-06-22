@@ -531,24 +531,21 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
             all_sources.remove(matched_source)
         else:
             # [FIX EXPERT] On GARDE l'analyse de l'IA même si le mapping strict a échoué (évite le trou noir)
-            import urllib.parse
-            
-            # Si l'URL de l'IA est manifestement fausse, tronquée ou inventée, on génère une recherche Google
+            # [MODIFIÉ] Si l'URL est fausse, on ne génère plus un lien Google. On invalide le lien.
             is_fake_url = (
                 not ai_url 
                 or "example" in ai_url.lower() 
                 or "exemple" in ai_url.lower() 
                 or "lien-vers" in ai_url.lower() 
                 or "..." in ai_url 
-                or "…" in ai_url
                 or not ai_url.startswith("http")
                 or ai_url not in known_urls
             )
-            safe_company_name = str(company) if company else ""
-            safe_url = f"https://www.google.com/search?q={urllib.parse.quote(ai_title + ' ' + safe_company_name)}" if is_fake_url else ai_url
+            
+            final_title = f"[Source indisponible] {ai_title}" if is_fake_url else ai_title
             real_news_links.append({
-                "title": ai_title or "Article Stratégique",
-                "url": safe_url,
+                "title": final_title or "Article Stratégique",
+                "url": "#" if is_fake_url else ai_url,
                 "source": ai_item.get("source", "Presse / Web"),
                 "date": ai_item.get("date", datetime.now().strftime("%Y-%m-%d")),
                 "strategic_analysis": ai_item["analysis"],

@@ -113,25 +113,31 @@ async def credit_user_quotas(request: CreditQuotaRequest, background_tasks: Back
 
 @router.get("/users")
 async def admin_list_users(limit: int = 50, offset: int = 0):
-    """1. Gestion : Liste et statut des utilisateurs."""
+    """[MODIFIÉ] 1. Gestion : Liste complète des utilisateurs avec pagination."""
     async with db.get_connection() as conn:
         cursor = await db.execute(conn, """
             SELECT id, email, first_name, last_name, created_at, is_premium, is_active, 
-                   subscription_expiration_date, credits
+                   subscription_expiration_date, credits, quota_pitch, quota_qa, quota_mes
             FROM users 
             ORDER BY created_at DESC LIMIT ? OFFSET ?
         """, (limit, offset))
         rows = await cursor.fetchall()
         
+        # Compte total pour la pagination côté client
+        total_cursor = await db.execute(conn, "SELECT COUNT(*) FROM users")
+        total_users = (await total_cursor.fetchone())[0]
+        
     users_list = []
     for r in rows:
         user_dict = dict(r) if not isinstance(r, tuple) else {
+            # [FIX] Assurer la compatibilité avec les différents drivers DB
             "id": r[0], "email": r[1], "first_name": r[2], "last_name": r[3], 
             "created_at": r[4], "is_premium": r[5], "is_active": r[6], 
             "subscription_expiration_date": r[7], "credits": r[8]
         }
         users_list.append(user_dict)
     return {"users": users_list}
+
 
 @router.post("/users/{user_id}/toggle-active")
 async def admin_toggle_user_active(user_id: str):
@@ -151,31 +157,77 @@ async def admin_toggle_user_active(user_id: str):
 
 @router.get("/stats")
 async def admin_get_stats():
-    """2. Analytics : Statistiques globales du SaaS."""
+    """[MODIFIÉ] 2. Analytics : Statistiques globales pour le dashboard."""
     async with db.get_connection() as conn:
         c1 = await db.execute(conn, "SELECT COUNT(*) FROM users")
         total_users = (await c1.fetchone())[0] if c1 else 0
         
-        c2 = await db.execute(conn, "SELECT COUNT(*) FROM users WHERE is_premium = TRUE")
-        premium_users = (await c2.fetchone())[0] if c2 else 0
+        # [AJOUT] Nombre d'analyses complètes lancées (basé sur la création de dossiers)
+        c2 = await db.execute(conn, "SELECT COUNT(*) FROM job_applications")
+        analyses_launched = (await c2.fetchone())[0] if c2 else 0
 
-        c3 = await db.execute(conn, "SELECT COUNT(*) FROM tasks")
-        total_tasks = (await c3.fetchone())[0] if c3 else 0
-
-        c4 = await db.execute(conn, "SELECT AVG(score) FROM training_sessions WHERE score > 0")
-        avg_score_row = await c4.fetchone()
-        avg_training_score = round(avg_score_row[0], 1) if avg_score_row and avg_score_row[0] else 0
+        # [AJOUT] Nombre de retours utilisateurs
+        c3 = await db.execute(conn, "SELECT COUNT(*) FROM feedbacks")
+        feedbacks_count = (await c3.fetchone())[0] if c3 else 0
         
-        c5 = await db.execute(conn, "SELECT COUNT(*) FROM users WHERE created_at > CURRENT_TIMESTAMP - INTERVAL '7 days'")
-        new_users_7d = (await c5.fetchone())[0] if c5 else 0
+        # [AJOUT] Statistiques du cache d'articles
+        c4 = await db.execute(conn, "SELECT value FROM system_stats WHERE key = 'article_cache_hits' AND date = CURRENT_DATE")
+        cache_hits_row = await c4.fetchone()
+        cache_hits = cache_hits_row[0] if cache_hits_row else 0
+
+        c5 = await db.execute(conn, "SELECT value FROM system_stats WHERE key = 'article_cache_misses' AND date = CURRENT_DATE")
+        cache_misses_row = await c5.fetchone()
+        cache_misses = cache_misses_row[0] if cache_misses_row else 0
+
+        # [AJOUT] Calcul du Hit Ratio du cache
+        total_cache_requests = cache_hits + cache_misses
+        cache_hit_ratio = (cache_hits / total_cache_requests) * 100 if total_cache_requests > 0 else 0
 
     return {
         "total_users": total_users,
-        "premium_users": premium_users,
-        "new_users_7d": new_users_7d,
-        "total_tasks": total_tasks,
-        "avg_training_score": avg_training_score
+        "analyses_launched": analyses_launched,
+        "feedbacks_count": feedbacks_count,
+        "cache_hits": cache_hits,
+        "cache_misses": cache_misses,
+        "cache_hit_ratio": round(cache_hit_ratio, 2)
     }
+
+@router.get("/cache-history")
+async def admin_get_cache_history(days: int = 7):
+    """[NOUVEAU] Récupère l'historique des hits/misses du cache sur les N derniers jours."""
+    async with db.get_connection() as conn:
+        # Assurez-vous que la table system_stats a bien une colonne 'date'
+        # et que 'key' et 'date' forment une clé primaire composite.
+        cursor = await db.execute(conn, """
+            SELECT date,
+                   SUM(CASE WHEN key = 'article_cache_hits' THEN value ELSE 0 END) AS hits,
+                   SUM(CASE WHEN key = 'article_cache_misses' THEN value ELSE 0 END) AS misses
+            FROM system_stats
+            WHERE key IN ('article_cache_hits', 'article_cache_misses')
+              AND date >= CURRENT_DATE - INTERVAL '? days'
+            GROUP BY date
+            ORDER BY date ASC
+        """, (days,))
+        rows = await cursor.fetchall()
+
+    history = []
+    for row in rows:
+        hits = row[1]
+        misses = row[2]
+        total = hits + misses
+        hit_ratio = (hits / total) * 100 if total > 0 else 0
+        history.append({"date": row[0].isoformat(), "hits": hits, "misses": misses, "hit_ratio": round(hit_ratio, 2)})
+
+    return {"cache_history": history}
+
+@router.get("/recent-users")
+async def get_recent_users(limit: int = 5):
+    """[NOUVEAU] Récupère les X derniers utilisateurs inscrits."""
+    async with db.get_connection() as conn:
+        cursor = await db.execute(conn, "SELECT id, email, first_name, last_name, created_at FROM users ORDER BY created_at DESC LIMIT ?", (limit,))
+        rows = await cursor.fetchall()
+    users = [dict(row) for row in rows]
+    return {"users": users}
 
 @router.post("/users/{user_id}/subscription")
 async def admin_manage_subscription(user_id: str, req: AdminSubscriptionRequest):

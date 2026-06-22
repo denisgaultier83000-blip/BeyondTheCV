@@ -58,6 +58,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             except Exception:
                 pass
             # Requête propre et directe
+            # [FIX] Ajout de is_admin dans le SELECT pour qu'il soit bien récupéré
             cursor = await db.execute(conn, "SELECT id, email, hashed_password, first_name, last_name, created_at, is_premium, credits, is_admin, is_active, is_tester FROM users WHERE email = ?", (email,))
             row = await cursor.fetchone()
 
@@ -127,6 +128,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
         admin_emails_str = os.getenv("ADMIN_EMAIL", "")
         admin_emails = {e.strip().lower() for e in admin_emails_str.split(',') if e.strip()}
+        # [FIX] On vérifie si l'utilisateur est admin via la DB OU via la variable d'environnement
         is_admin_flag = bool(user_dict.get("is_admin")) or (email in admin_emails)
         is_tester_flag = bool(user_dict.get("is_tester")) or (email in TESTER_EMAILS) or is_not_prod
 

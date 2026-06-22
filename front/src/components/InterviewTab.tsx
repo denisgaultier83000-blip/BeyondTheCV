@@ -79,11 +79,10 @@ export const InterviewTab = () => {
   const { t } = useTranslation();
   const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false);
   const [isDark] = useState(() => document.body.classList.contains('dark-mode'));
-
-  // Nouvel état pour gérer les multiples pitchs
   const [pitchMatrix, setPitchMatrix] = useState<any>(null); // Matrice brute de l'IA
-  const [activePitch, setActivePitch] = useState('pitch_1_minute');
-  const [editablePitch, setEditablePitch] = useState({ // État pour les 4 champs éditables
+  // [FIX] On initialise avec le pitch stratégique par défaut
+  const [activePitch, setActivePitch] = useState('pitch_3_minutes');
+  const [editablePitch, setEditablePitch] = useState({
     accroche: "",
     preuve: "",
     valeur: "",
@@ -93,13 +92,13 @@ export const InterviewTab = () => {
   useEffect(() => {
     if (pitchResult) {
       setPitchMatrix(pitchResult);
-      // Au premier chargement, on peuple les champs avec le pitch par défaut (1 minute)
-      // ou avec les données sauvegardées si elles existent.
       const savedEditablePitch = cvData?.editablePitch;
       if (savedEditablePitch && Object.values(savedEditablePitch).some(v => v)) {
         setEditablePitch(savedEditablePitch);
       } else {
-        populateFieldsFromMatrix(pitchResult, 'pitch_1_minute');
+        // [FIX] On charge le pitch stratégique par défaut au lieu de l'ancien "1 minute"
+        // qui n'existe plus dans la nouvelle structure de données.
+        populateFieldsFromMatrix(pitchResult, 'pitch_3_minutes');
       }
     }
   }, [pitchResult]);
