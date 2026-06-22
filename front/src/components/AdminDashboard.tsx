@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminQuotaManager from './AdminQuotaManager';
+import { useNavigate } from 'react-router-dom';
+import { User, Shield, Calendar, Edit, Trash2, Eye } from 'lucide-react';
 
 // --- Types ---
 interface Stats {
@@ -34,6 +36,7 @@ export function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   // --- États pour la Modale d'Abonnement ---
   const [subscriptionModalUser, setSubscriptionModalUser] = useState<User | null>(null);
@@ -130,6 +133,12 @@ export function AdminDashboard() {
     }
   };
 
+  // [AJOUT] Fonction pour naviguer vers la page de profil d'un utilisateur
+  const viewUserProfile = (userId: string) => {
+    // Cette route est à créer, elle pourrait charger le dashboard de l'utilisateur en mode "lecture seule"
+    navigate(`/admin/user/${userId}`);
+  };
+
   if (loading) {
     return <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>Chargement du centre de commandement...</div>;
   }
@@ -195,22 +204,27 @@ export function AdminDashboard() {
           <thead>
             <tr style={{ borderBottom: '2px solid var(--border-color)', textAlign: 'left' }}>
               <th style={{ padding: '0.75rem 0.5rem' }}>Email</th>
+              <th style={{ padding: '0.75rem 0.5rem' }}>Nom</th>
               <th style={{ padding: '0.75rem 0.5rem' }}>Inscription</th>
               <th style={{ padding: '0.75rem 0.5rem' }}>Premium</th>
               <th style={{ padding: '0.75rem 0.5rem' }}>Statut</th>
-              <th style={{ padding: '0.75rem 0.5rem' }}>Action</th>
+              <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {users.map(user => (
               <tr key={user.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                 <td style={{ padding: '0.75rem 0.5rem', fontWeight: 500 }}>{user.email}</td>
+                <td style={{ padding: '0.75rem 0.5rem', color: 'var(--text-muted)' }}>{user.first_name} {user.last_name}</td>
                 <td style={{ padding: '0.75rem 0.5rem', color: 'var(--text-muted)' }}>{new Date(user.created_at).toLocaleDateString('fr-FR')}</td>
                 <td style={{ padding: '0.75rem 0.5rem' }}>{user.is_premium ? '⭐ Oui' : 'Non'}</td>
                 <td style={{ padding: '0.75rem 0.5rem' }}><span style={{ padding: '0.2rem 0.5rem', borderRadius: '1rem', fontSize: '0.75rem', background: user.is_active ? '#d1fae5' : '#fee2e2', color: user.is_active ? '#065f46' : '#991b1b' }}>{user.is_active ? 'Actif' : 'Banni'}</span></td>
-                <td style={{ padding: '0.75rem 0.5rem' }}>
-                  <button onClick={() => setSubscriptionModalUser(user)} style={{ padding: '0.4rem 0.8rem', border: '1px solid var(--primary)', borderRadius: '0.25rem', cursor: 'pointer', background: 'transparent', color: 'var(--primary)', fontWeight: 'bold', marginRight: '0.5rem' }}>Abonnement</button>
-                  <button onClick={() => toggleUserActive(user.id)} style={{ padding: '0.4rem 0.8rem', border: 'none', borderRadius: '0.25rem', cursor: 'pointer', background: user.is_active ? '#ef4444' : '#10b981', color: 'white', fontWeight: 'bold' }}>{user.is_active ? 'Bannir' : 'Débloquer'}</button>
+                <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                    <button onClick={() => viewUserProfile(user.id)} title="Voir le profil" style={{ padding: '0.5rem', border: '1px solid var(--border-color)', borderRadius: '0.25rem', cursor: 'pointer', background: 'transparent', color: 'var(--text-main)' }}><Eye size={16} /></button>
+                    <button onClick={() => setSubscriptionModalUser(user)} title="Gérer l'abonnement" style={{ padding: '0.5rem', border: '1px solid var(--border-color)', borderRadius: '0.25rem', cursor: 'pointer', background: 'transparent', color: 'var(--primary)' }}><Calendar size={16} /></button>
+                    <button onClick={() => toggleUserActive(user.id)} title={user.is_active ? 'Bannir' : 'Activer'} style={{ padding: '0.5rem', border: '1px solid var(--border-color)', borderRadius: '0.25rem', cursor: 'pointer', background: 'transparent', color: user.is_active ? '#ef4444' : '#10b981' }}><Shield size={16} /></button>
+                  </div>
                 </td>
               </tr>
             ))}

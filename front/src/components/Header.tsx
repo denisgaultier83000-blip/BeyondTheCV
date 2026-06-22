@@ -25,6 +25,8 @@ interface HeaderProps {
   onLogout?: () => void;
   onLanguageChange?: (lang: string) => void;
   isAuthenticated?: boolean;
+  // [AJOUT] Propriété pour savoir si l'utilisateur est admin
+  isAdmin?: boolean;
   targetLanguage?: string;
 }
 
@@ -41,7 +43,9 @@ export default function Header({
   userName,
   onOpenProfile,
   onLogout,
-  onLanguageChange
+  onLanguageChange,
+  // [AJOUT] On récupère la prop isAdmin, avec `false` par défaut
+  isAdmin = false
 }: HeaderProps) {
   const { t } = useTranslation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -99,6 +103,15 @@ export default function Header({
                   boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', minWidth: '200px', 
                   display: 'flex', flexDirection: 'column', overflow: 'hidden', zIndex: 1000
                 }}>
+                  {isAdmin && (
+                    <Link to="/admin" style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', textAlign: 'left', cursor: 'pointer', color: 'var(--primary)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}
+                      onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      👑 Administration
+                    </Link>
+                  )}
                   <button 
                     onClick={() => { 
                       setDropdownOpen(false); 
