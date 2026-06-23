@@ -41,6 +41,19 @@ export function AdminUserDetail() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const adminEmail = process.env.REACT_APP_ADMIN_EMAIL;
+    const userStr = localStorage.getItem('user');
+    if (!userStr) {
+      navigate('/');
+      return;
+    }
+    const user = JSON.parse(userStr);
+    const userEmail = user?.email;
+
+    if (!adminEmail || !userEmail || userEmail.toLowerCase() !== adminEmail.toLowerCase()) {
+      navigate('/'); // Redirection si non-admin
+    }
+
     const fetchData = async () => {
       setLoading(true);
       setError(null);
@@ -65,7 +78,7 @@ export function AdminUserDetail() {
     };
 
     fetchData();
-  }, [userId]);
+  }, [userId, navigate]);
 
   const handleDeleteApplication = async (appId: string) => {
     if (!window.confirm("Voulez-vous vraiment supprimer ce dossier de candidature et tous les documents associés ?")) return;

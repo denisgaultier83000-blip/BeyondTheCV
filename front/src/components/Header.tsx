@@ -110,7 +110,7 @@ export default function Header({
                       onClick={() => setDropdownOpen(false)}
                     >
                       👑 Administration
-                    </Link>
+                </Link> 
                   )}
                   <button 
                     onClick={() => { 

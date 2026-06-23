@@ -40,38 +40,7 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
   
   let newsLinks = report.news_links || [];
 
-  // [FIX] Parseur pour mettre en forme la nouvelle structure des enjeux (Gras + Sauts de ligne)
-  const formatStrategicAnalysis = (text: string) => {
-    if (!text) return null;
-    return text.split('\n').map((line, index) => {
-      if (!line.trim()) return null;
-      const parts = line.split(/(\*\*.*?\*\*)/g);
-      return (
-        <div key={index} style={{ marginBottom: '0.75rem', lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          {parts.map((part, i) => {
-            if (part.startsWith('**') && part.endsWith('**')) {
-              const label = part.slice(2, -2).replace(':', '').trim();
-              let labelColor = 'var(--primary)';
-              let labelBg = 'rgba(59, 130, 246, 0.1)';
-              
-              if (label.toLowerCase().includes("pourquoi")) {
-                labelColor = '#d97706'; labelBg = 'rgba(245, 158, 11, 0.1)';
-              } else if (label.toLowerCase().includes("recruteur")) {
-                labelColor = '#8b5cf6'; labelBg = 'rgba(139, 92, 246, 0.1)';
-              } else if (label.toLowerCase().includes("question")) {
-                labelColor = '#ef4444'; labelBg = 'rgba(239, 68, 68, 0.1)';
-              } else if (label.toLowerCase().includes("réponse") || label.toLowerCase().includes("star")) {
-                labelColor = '#10b981'; labelBg = 'rgba(16, 185, 129, 0.1)';
-              }
-
-              return <strong key={i} style={{ color: labelColor, background: labelBg, padding: '0.2rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.8rem', width: 'fit-content', textTransform: 'uppercase', letterSpacing: '0.02em', border: `1px solid ${labelColor}30` }}>{label}</strong>;
-            }
-            return <span key={i} style={{ paddingLeft: '0.25rem' }}>{part}</span>;
-          })}
-        </div>
-      );
-    });
-  };
+  const formatStrategicAnalysis = (text: string) => formatMarkdownReact(text);
 
   return (
     <DashboardCard
