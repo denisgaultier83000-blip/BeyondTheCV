@@ -80,7 +80,7 @@ export const InterviewTab = () => {
   const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false);
   const [isDark] = useState(() => document.body.classList.contains('dark-mode'));
   const [pitchMatrix, setPitchMatrix] = useState<any>(null);
-  const [activePitch, setActivePitch] = useState('recruiter_pitch');
+  const [activePitch, setActivePitch] = useState('recruiter_pitch'); // Assurer la valeur par défaut
   const [editablePitch, setEditablePitch] = useState({
     accroche: "",
     preuve: "",
@@ -99,7 +99,7 @@ export const InterviewTab = () => {
         populateFieldsFromMatrix(pitchResult, 'recruiter_pitch');
       }
     }
-  }, [pitchResult, cvData?.editablePitch, updateFormData]);
+  }, [pitchResult, cvData?.editablePitch]); // Simplification des dépendances pour éviter re-renders inutiles
 
   // Sépare un texte en 4 parties
   const splitTextIntoFields = (text: string) => {

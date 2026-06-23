@@ -41,7 +41,7 @@ export default function Header({
   onLanguageChange,
   isAuthenticated,
   isAdmin = false // [FIX] On reçoit le statut admin du parent
-}: HeaderProps) {
+}: HeaderProps): React.ReactElement | null {
   const { t } = useTranslation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);

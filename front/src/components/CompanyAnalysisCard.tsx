@@ -158,61 +158,62 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
               <h3 style={{ fontSize: '1.2rem', color: 'var(--text-main)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Newspaper size={20} color="var(--primary)" /> 4. Revue de Presse & Signaux Faibles
               </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
-              {newsLinks.map((news: any, i: number) => {
-                const urlStr = news.url || '#';
-                const isDummyUrl = urlStr === '#';
-                const fullUrl = isDummyUrl ? '#' : (urlStr.startsWith('http') ? urlStr : `https://${urlStr}`);
-                return (
-                  <div key={i} style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-card)', borderRadius: '0.75rem', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
-                    <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 600, marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '0.25rem 0.5rem', borderRadius: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        {!isDummyUrl && <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(fullUrl)}&sz=16`} alt="" style={{ width: '16px', height: '16px', borderRadius: '2px', flexShrink: 0 }} />}
-                        {news.source}
-                      </span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{ color: 'var(--text-muted)' }}>{news.date}</span>
-                          {news.interview_relevance !== undefined && (
-                            <span style={{ background: news.interview_relevance >= 8 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)', color: news.interview_relevance >= 8 ? '#10b981' : '#f59e0b', padding: '0.2rem 0.4rem', borderRadius: '0.25rem', fontSize: '0.75rem' }}>
-                              Score: {news.interview_relevance}/10
-                            </span>
-                          )}
-                        </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                {newsLinks.map((news: any, i: number) => {
+                  const urlStr = news.url || '#';
+                  const isDummyUrl = urlStr === '#';
+                  const fullUrl = isDummyUrl ? '#' : (urlStr.startsWith('http') ? urlStr : `https://${urlStr}`);
+                  return (
+                    <div key={i} style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-card)', borderRadius: '0.75rem', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
+                      <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 600, marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '0.25rem 0.5rem', borderRadius: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            {!isDummyUrl && <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(fullUrl)}&sz=16`} alt="" style={{ width: '16px', height: '16px', borderRadius: '2px', flexShrink: 0 }} />}
+                            {news.source}
+                          </span>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ color: 'var(--text-muted)' }}>{news.date}</span>
+                            {news.interview_relevance !== undefined && (
+                              <span style={{ background: news.interview_relevance >= 8 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)', color: news.interview_relevance >= 8 ? '#10b981' : '#f59e0b', padding: '0.2rem 0.4rem', borderRadius: '0.25rem', fontSize: '0.75rem' }}>
+                                Score: {news.interview_relevance}/10
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        {isDummyUrl ? (
+                          <div style={{ fontWeight: 600, fontSize: '1rem', lineHeight: 1.4, color: 'var(--text-main)' }}>
+                            {news.title}
+                          </div>
+                        ) : (
+                          <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'var(--text-main)' }}>
+                            <div style={{ fontWeight: 600, fontSize: '1rem', lineHeight: 1.4, transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--primary)'} onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-main)'}>
+                              {news.title}
+                            </div>
+                          </a>
+                        )}
                       </div>
-              {isDummyUrl ? (
-                <div style={{ fontWeight: 600, fontSize: '1rem', lineHeight: 1.4, color: 'var(--text-main)' }}>
-                  {news.title}
-                </div>
-              ) : (
-                <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'var(--text-main)' }}>
-                  <div style={{ fontWeight: 600, fontSize: '1rem', lineHeight: 1.4, transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--primary)'} onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-main)'}>
-                    {news.title}
-                  </div>
-                </a>
-              )}
+                      <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
+                        {isValid(news.hidden_meaning) && (
+                          <div>
+                            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Lecture Cachée</div>
+                            <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-main)' }}>{news.hidden_meaning}</p>
+                          </div>
+                        )}
+                        {isValid(news.strategic_analysis) && (
+                          <div style={{ background: 'var(--bg-body)', padding: '1.25rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Target size={16} color="var(--primary)" /> Angle d'Entretien</div>
+                            <div style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-main)' }}>{formatStrategicAnalysisReact(news.strategic_analysis)}</div>
+                          </div>
+                        )}
+                        {!isDummyUrl && (
+                          <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ marginTop: 'auto', fontSize: '0.85rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600, textDecoration: 'none' }}>
+                            Source Originale <ExternalLink size={14} />
+                          </a>
+                        )}
+                      </div>
                     </div>
-                    <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
-                      {isValid(news.hidden_meaning) && (
-                        <div>
-                          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Lecture Cachée</div>
-                          <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-main)' }}>{news.hidden_meaning}</p>
-                        </div>
-                      )}
-                      {isValid(news.strategic_analysis) && (
-                        <div style={{ background: 'var(--bg-card)', padding: '1.25rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
-                          <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Target size={16} color="var(--primary)" /> Angle d'Entretien</div>
-                          <div style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-main)' }}>{formatStrategicAnalysisReact(news.strategic_analysis)}</div>
-                        </div>
-                      )}
-              {!isDummyUrl && (
-                <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ marginTop: 'auto', fontSize: '0.85rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600, textDecoration: 'none' }}>
-                  Source Originale <ExternalLink size={14} />
-                </a>
-              )}
-                    </div>
-                  </div>
-              )})}
+                  );
+                })}
               </div>
             </div>
           )}

@@ -218,6 +218,7 @@ export const DashboardView = () => {
 
   return (
     <div className="dashboard-wrapper">
+      {/* Le Header est normalement dans App.tsx, mais pour la correction, on s'assure que la prop isAdmin est bien passée */}
       {/* GROUPE NAVIGATION : Onglets + Sous-menus collés */}
       <div style={{ display: 'flex', flexDirection: 'column' }}>
       <div className={`tabs-navigation ${subMenus[activeTab] ? 'has-sub' : ''}`}>
