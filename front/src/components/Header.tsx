@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import './Header.css';
-import { useDashboard } from './DashboardContext'; // Import useDashboard
+import { useDashboard as useGlobalDashboard } from '../hooks/DashboardContext'; // [FIX] Utiliser le hook global
 import LanguageSelector from './LanguageSelector';
 
 export interface Step {
@@ -43,7 +43,7 @@ export default function Header({
   const { t } = useTranslation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { isAdmin } = useDashboard();
+  const { isAdmin } = useGlobalDashboard(); // [FIX] Utiliser le hook global
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
