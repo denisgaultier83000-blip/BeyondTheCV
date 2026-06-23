@@ -202,7 +202,7 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
                       {isValid(news.strategic_analysis) && (
                         <div style={{ background: 'var(--bg-card)', padding: '1.25rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
                           <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Target size={16} color="var(--primary)" /> Angle d'Entretien</div>
-                          <div style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-main)' }}>{formatStrategicAnalysis(news.strategic_analysis)}</div>
+                          <div style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-main)' }}>{formatStrategicAnalysisReact(news.strategic_analysis)}</div>
                         </div>
                       )}
               {!isDummyUrl && (
