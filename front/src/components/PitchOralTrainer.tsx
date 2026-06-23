@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useReducer } from 'react';
 import { Mic, MicOff, Send, AlertTriangle, CheckCircle2, Target, Lightbulb, RefreshCw, Play } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
@@ -8,15 +8,51 @@ import { useTranslation } from 'react-i18next';
 import { RechargeModal } from './RechargeModal';
 import { AsyncBoundary } from './AsyncBoundary';
 
+// [EXPERT REFACTOR] Centralisation de la logique d'état avec un reducer.
+
+type TrainerState = {
+  status: 'idle' | 'recording' | 'evaluating' | 'success';
+  transcript: string;
+  feedback: any | null;
+  error: string | null;
+};
+
+type TrainerAction =
+  | { type: 'START_RECORDING' }
+  | { type: 'STOP_RECORDING' }
+  | { type: 'SET_TRANSCRIPT'; payload: string }
+  | { type: 'START_EVALUATION' }
+  | { type: 'EVALUATION_SUCCESS'; payload: any }
+  | { type: 'EVALUATION_ERROR'; payload: string }
+  | { type: 'RESET' };
+
+const initialState: TrainerState = {
+  status: 'idle',
+  transcript: '',
+  feedback: null,
+  error: null,
+};
+
+const trainerReducer = (state: TrainerState, action: TrainerAction): TrainerState => {
+  switch (action.type) {
+    case 'START_RECORDING': return { ...state, status: 'recording', error: null, feedback: null };
+    case 'STOP_RECORDING': return { ...state, status: 'idle' };
+    case 'SET_TRANSCRIPT': return { ...state, transcript: action.payload };
+    case 'START_EVALUATION': return { ...state, status: 'evaluating', error: null };
+    case 'EVALUATION_SUCCESS': return { ...state, status: 'success', feedback: action.payload };
+    case 'EVALUATION_ERROR': return { ...state, status: 'idle', error: action.payload };
+    case 'RESET': return { ...initialState };
+    default: return state;
+  }
+};
+
 export default function PitchOralTrainer() {
   const { cvData, quotas, fetchQuotas } = useDashboard();
   const { t } = useTranslation();
   
-  const [userAnswer, setUserAnswer] = useState('');
-  const [isEvaluating, setIsEvaluating] = useState(false);
-  const [feedback, setFeedback] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
+  const [state, dispatch] = useReducer(trainerReducer, initialState);
+  const { status, transcript, feedback, error } = state;
+  
   const recognitionRef = useRef<any>(null);
   const [showRechargeModal, setShowRechargeModal] = useState(false);
 
@@ -29,9 +65,9 @@ export default function PitchOralTrainer() {
   }, []);
 
   const toggleRecording = () => {
-    if (isRecording) {
+    if (status === 'recording') {
       if (recognitionRef.current) recognitionRef.current.stop();
-      setIsRecording(false);
+      dispatch({ type: 'STOP_RECORDING' });
       return;
     }
 
@@ -46,7 +82,7 @@ export default function PitchOralTrainer() {
     recognition.continuous = true;
     recognition.interimResults = true;
 
-    let baselineAnswer = userAnswer;
+    let baselineAnswer = transcript;
 
     recognition.onresult = (event: any) => {
       let interimTranscript = '';
@@ -56,25 +92,24 @@ export default function PitchOralTrainer() {
         else interimTranscript += event.results[i][0].transcript;
       }
       if (finalTranscript) baselineAnswer += (baselineAnswer && !baselineAnswer.endsWith(' ') ? ' ' : '') + finalTranscript;
-      setUserAnswer(baselineAnswer + interimTranscript);
+      dispatch({ type: 'SET_TRANSCRIPT', payload: baselineAnswer + interimTranscript });
     };
 
-    recognition.onerror = () => setIsRecording(false);
-    recognition.onend = () => setIsRecording(false);
+    recognition.onerror = () => dispatch({ type: 'STOP_RECORDING' });
+    recognition.onend = () => dispatch({ type: 'STOP_RECORDING' });
 
     recognition.start();
     recognitionRef.current = recognition;
-    setIsRecording(true);
+    dispatch({ type: 'START_RECORDING' });
   };
 
   const handleEvaluate = async () => {
-    if (!userAnswer.trim()) return;
-    setIsEvaluating(true);
-    setError(null);
+    if (!transcript.trim()) return;
+    dispatch({ type: 'START_EVALUATION' });
 
     if ((quotas?.pitch ?? 0) <= 0) {
       setShowRechargeModal(true);
-      setIsEvaluating(false);
+      dispatch({ type: 'EVALUATION_ERROR', payload: "Crédits épuisés." });
       return;
     }
 
@@ -84,7 +119,7 @@ export default function PitchOralTrainer() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           target_job: cvData?.target_job || cvData?.target_role_primary || "Candidat",
-          transcript: userAnswer
+          transcript: transcript
         })
       });
 
@@ -96,12 +131,10 @@ export default function PitchOralTrainer() {
       }
 
       const data = await res.json();
-      setFeedback(data.feedback || data);
+      dispatch({ type: 'EVALUATION_SUCCESS', payload: data.feedback || data });
       if (fetchQuotas) fetchQuotas();
     } catch (err: any) {
-      setError(err.message || "L'évaluation a échoué. Veuillez réessayer.");
-    } finally {
-      setIsEvaluating(false);
+      dispatch({ type: 'EVALUATION_ERROR', payload: err.message || "L'évaluation a échoué. Veuillez réessayer." });
     }
   };
 
@@ -117,15 +150,15 @@ export default function PitchOralTrainer() {
         Prenez la parole ! Enregistrez votre pitch pour vérifier qu'il ne sonne pas comme une récitation et qu'il capte bien l'attention.
       </p>
 
-      {!feedback ? (
-        <AsyncBoundary loading={isEvaluating} error={error || undefined} loadingText="Analyse de votre pitch en cours..." style={{ background: 'transparent', border: 'none', padding: 0 }}>
+      {status !== 'success' ? (
+        <AsyncBoundary loading={status === 'evaluating'} error={error || undefined} loadingText="Analyse de votre pitch en cours..." style={{ background: 'transparent', border: 'none', padding: 0 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', animation: 'fadeIn 0.3s ease-out' }}>
-            <textarea value={userAnswer} onChange={e => setUserAnswer(e.target.value)} placeholder="Commencez à parler ou dictez votre pitch ici..." rows={5} style={{ width: '100%', background: 'var(--bg-body)', border: '1px solid var(--border-color)', borderRadius: '0.5rem', padding: '1rem', color: 'var(--text-main)', fontFamily: 'inherit', resize: 'vertical' }} />
+            <textarea value={transcript} onChange={e => dispatch({ type: 'SET_TRANSCRIPT', payload: e.target.value })} placeholder="Commencez à parler ou dictez votre pitch ici..." rows={5} style={{ width: '100%', background: 'var(--bg-body)', border: '1px solid var(--border-color)', borderRadius: '0.5rem', padding: '1rem', color: 'var(--text-main)', fontFamily: 'inherit', resize: 'vertical' }} />
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-              <button onClick={toggleRecording} className={`btn-${isRecording ? 'primary' : 'secondary'}`} style={{ background: isRecording ? '#ef4444' : undefined, borderColor: isRecording ? '#ef4444' : undefined, color: isRecording ? 'white' : undefined, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {isRecording ? <MicOff size={18} /> : <Mic size={18} />} {isRecording ? "Arrêter" : "Dicter mon pitch"}
+              <button onClick={toggleRecording} className={`btn-${status === 'recording' ? 'primary' : 'secondary'}`} style={{ background: status === 'recording' ? '#ef4444' : undefined, borderColor: status === 'recording' ? '#ef4444' : undefined, color: status === 'recording' ? 'white' : undefined, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {status === 'recording' ? <MicOff size={18} /> : <Mic size={18} />} {status === 'recording' ? "Arrêter" : "Dicter mon pitch"}
               </button>
-              <button onClick={handleEvaluate} disabled={!userAnswer.trim()} className="btn-primary" style={{ background: !userAnswer.trim() ? '' : '#8b5cf6', borderColor: !userAnswer.trim() ? '' : '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button onClick={handleEvaluate} disabled={!transcript.trim()} className="btn-primary" style={{ background: !transcript.trim() ? '' : '#8b5cf6', borderColor: !transcript.trim() ? '' : '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Send size={18} /> {`Évaluer mon oral (${quotas?.pitch ?? 0} restants)`}
               </button>
             </div>
@@ -156,7 +189,7 @@ export default function PitchOralTrainer() {
             </div>
           )}
           <div style={{ background: 'var(--bg-body)', padding: '1.25rem', borderRadius: '0.75rem', borderLeft: '4px solid #8b5cf6' }}><h4 style={{ margin: '0 0 0.5rem 0', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Lightbulb size={18} /> La version "Executive"</h4><p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-main)', fontStyle: 'italic', lineHeight: '1.6' }}>"{feedback.improved_pitch}"</p></div>
-          <div style={{ textAlign: 'right' }}><button onClick={() => { setFeedback(null); setUserAnswer(""); }} className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><RefreshCw size={16} /> Refaire un essai</button></div>
+          <div style={{ textAlign: 'right' }}><button onClick={() => dispatch({ type: 'RESET' })} className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><RefreshCw size={16} /> Refaire un essai</button></div>
         </div>
       )}
       <RechargeModal isOpen={showRechargeModal} onClose={() => setShowRechargeModal(false)} />

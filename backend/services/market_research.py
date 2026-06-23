@@ -232,27 +232,28 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
     
     # [MODIFIÉ] Personnalisation des requêtes en fonction du poste visé
     role_specific_keywords = {
-        "rh": "(recrutement OR talents OR culture OR syndicats OR 'marque employeur')",
-        "financ": "(résultats financiers OR rentabilité OR acquisition OR levée de fonds OR 'marge opérationnelle')",
-        "cyber": "(cyberattaque OR cybersécurité OR 'protection des données' OR 'souveraineté numérique' OR SOC OR CISO)",
-        "rse": "(ESG OR durabilité OR 'rapport extra-financier' OR 'impact environnemental')",
-        "industr": "(supply chain OR 'chaîne d'approvisionnement' OR production OR usine OR logistique)",
-        "commercial": "('développement commercial' OR 'nouveau marché' OR 'partenariat stratégique' OR 'conquête client')",
-        "marketing": "('lancement produit' OR 'campagne marketing' OR 'image de marque' OR 'notoriété')",
+        "rh": "recrutement talents culture syndicats 'marque employeur'",
+        "financ": "résultats financiers rentabilité acquisition 'levée de fonds' 'marge opérationnelle'",
+        "cyber": "cyberattaque cybersécurité 'protection des données' 'souveraineté numérique' SOC CISO",
+        "rse": "ESG durabilité 'rapport extra-financier' 'impact environnemental'",
+        "industr": "supply chain 'chaîne d'approvisionnement' production usine logistique",
+        "commercial": "'développement commercial' 'nouveau marché' 'partenariat stratégique' 'conquête client'",
+        "marketing": "'lancement produit' 'campagne marketing' 'image de marque' 'notoriété'",
     }
     
     # Recherche du mot-clé correspondant au rôle
-    specific_theme = next((keywords for key, keywords in role_specific_keywords.items() if key in role_lower), None)
+    specific_keywords_str = next((keywords for key, keywords in role_specific_keywords.items() if key in role_lower), "")
+    # [NOUVEAU] On ajoute le rôle lui-même comme mot-clé pour une pertinence maximale
+    all_keywords = list(set(specific_keywords_str.split() + role.split()))
+    specific_theme = f"({' OR '.join(all_keywords)})" if all_keywords else ""
     
     if safe_company and safe_company.lower() not in ["unknown", "none"]:
         queries = [
             f'"{safe_company}" (stratégie OR croissance OR transformation) {current_year}',
             f'"{safe_company}" (difficultés OR retard OR controverse OR licenciement OR critique OR risque)',
         ]
-        if specific_theme:
-            queries.append(f'"{safe_company}" {specific_theme} {current_year}')
-        else: # Fallback si le rôle n'est pas dans la liste
-            queries.append(f'"{safe_company}" (innovation OR "nouveau projet") {current_year}')
+        # La requête spécifique au rôle est maintenant systématiquement ajoutée
+        queries.append(f'"{safe_company}" {specific_theme} {current_year}')
 
         if ceo_name:
             queries.append(f'"{ceo_name}" CEO "{safe_company}" interview {current_year}')

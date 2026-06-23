@@ -1,5 +1,5 @@
 // @refresh reset
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useEffect, ReactNode } from 'react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 
@@ -52,6 +52,47 @@ interface DashboardProviderProps {
   onUpdateFormData?: (key: string, value: any) => void;
 }
 
+// [EXPERT REFACTOR] Centralisation de la logique d'état avec un reducer.
+interface DashboardState {
+  activeTab: string;
+  pilotData: any;
+  isPilotLoading: boolean;
+  pilotError: string | null;
+  quotas: { [key: string]: number };
+  cvData: any;
+}
+
+type DashboardAction =
+  | { type: 'SET_ACTIVE_TAB'; payload: string }
+  | { type: 'FETCH_PILOT_DATA_START' }
+  | { type: 'FETCH_PILOT_DATA_SUCCESS'; payload: any }
+  | { type: 'FETCH_PILOT_DATA_ERROR'; payload: string }
+  | { type: 'SET_QUOTAS'; payload: { [key: string]: number } }
+  | { type: 'UPDATE_FORM_DATA'; payload: { key: string; value: any } }
+  | { type: 'SET_CV_DATA'; payload: any };
+
+const dashboardReducer = (state: DashboardState, action: DashboardAction): DashboardState => {
+  switch (action.type) {
+    case 'SET_ACTIVE_TAB':
+      return { ...state, activeTab: action.payload };
+    case 'FETCH_PILOT_DATA_START':
+      return { ...state, isPilotLoading: true, pilotError: null };
+    case 'FETCH_PILOT_DATA_SUCCESS':
+      return { ...state, isPilotLoading: false, pilotData: action.payload };
+    case 'FETCH_PILOT_DATA_ERROR':
+      return { ...state, isPilotLoading: false, pilotError: action.payload };
+    case 'SET_QUOTAS':
+      return { ...state, quotas: action.payload };
+    case 'UPDATE_FORM_DATA':
+      return { ...state, cvData: { ...state.cvData, [action.payload.key]: action.payload.value } };
+    case 'SET_CV_DATA':
+      return { ...state, cvData: action.payload };
+    default:
+      return state;
+  }
+};
+
+
 // --- INITIALISATION DU CONTEXTE ---
 const DashboardContext = createContext<DashboardContextType | null>(null);
 
@@ -75,56 +116,53 @@ export const DashboardProvider = ({
   onTriggerResearch = async () => {},
   onUpdateFormData
 }: DashboardProviderProps) => {
-  // État local pour conserver les modifications en temps réel (Optimistic UI global)
-  const [localCvData, setLocalCvData] = useState<any>(initialCvData);
+  const initialState: DashboardState = {
+    activeTab: 'cockpit',
+    pilotData: null,
+    isPilotLoading: false,
+    pilotError: null,
+    quotas: { pitch: 0, qa: 0, mes: 0, negotiation: 0, regeneration: 0, update: 0 },
+    cvData: initialCvData,
+  };
+
+  const [state, dispatch] = useReducer(dashboardReducer, initialState);
+  const { activeTab, pilotData, isPilotLoading, pilotError, quotas, cvData } = state;
 
   // Synchronisation au cas où le parent recharge entièrement la page depuis la BDD
   useEffect(() => {
-    setLocalCvData(initialCvData);
+    dispatch({ type: 'SET_CV_DATA', payload: initialCvData });
   }, [initialCvData]);
 
   // Intercepteur pour mettre à jour le contexte instantanément sans attendre le serveur
   const handleUpdateFormData = useCallback((key: string, value: any) => {
-    setLocalCvData((prev: any) => ({ ...prev, [key]: value }));
+    dispatch({ type: 'UPDATE_FORM_DATA', payload: { key, value } });
     if (onUpdateFormData) {
       onUpdateFormData(key, value);
     }
   }, [onUpdateFormData]);
 
-  // État de navigation interne
-  const [activeTab, setActiveTab] = useState<string>('cockpit');
-
-  // État des données de la vue Bento (Résumé)
-  const [pilotData, setPilotData] = useState<any>(null);
-  const [isPilotLoading, setIsPilotLoading] = useState<boolean>(false);
-  const [pilotError, setPilotError] = useState<string | null>(null);
-  const [quotas, setQuotas] = useState<{[key: string]: number}>({
-    pitch: 0,
-    qa: 0,
-    mes: 0,
-    negotiation: 0,
-    regeneration: 0,
-    update: 0,
-  });
+  const setActiveTab = (tab: string) => {
+    dispatch({ type: 'SET_ACTIVE_TAB', payload: tab });
+  };
 
   const testerEmails = (import.meta.env.VITE_TESTER_EMAILS_LIST || '').split(',').map((e: string) => e.trim().toLowerCase());
-  const currentUserEmail = localCvData?.email?.toLowerCase();
+  const currentUserEmail = cvData?.email?.toLowerCase();
 
   const fetchQuotas = useCallback(async () => {
     // [FIX] Logique pour les testeurs avec quotas illimités
     const testerEmails = (import.meta.env.VITE_TESTER_EMAILS_LIST || '').split(',').map((e: string) => e.trim().toLowerCase());
-    const currentUserEmail = localCvData?.email?.toLowerCase();
+    const currentUserEmail = cvData?.email?.toLowerCase();
 
     if (currentUserEmail && testerEmails.includes(currentUserEmail)) {
       // L'utilisateur est un testeur, on lui donne des quotas "illimités"
-      setQuotas({
+      dispatch({ type: 'SET_QUOTAS', payload: {
         pitch: 999,
         qa: 999,
         mes: 999,
         negotiation: 999,
         regeneration: 999,
         update: 999,
-      });
+      }});
       return; // On arrête ici, pas besoin d'appeler l'API
     }
 
@@ -133,19 +171,18 @@ export const DashboardProvider = ({
         const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/balance`);
         if (response.ok) {
             const data = await response.json();
-            setQuotas(data);
+            dispatch({ type: 'SET_QUOTAS', payload: data });
         }
     } catch (e: any) {
         console.error("Impossible de récupérer les quotas, utilisation des valeurs par défaut.", e);
     }
-  }, [localCvData?.email]);
+  }, [cvData?.email]);
 
   // Mémoïsation de la fonction d'appel pour éviter les re-rendus infinis dans les useEffect
   const fetchPilotData = useCallback(async () => {
     if (!initialCvData) return;
     
-    setIsPilotLoading(true);
-    setPilotError(null);
+    dispatch({ type: 'FETCH_PILOT_DATA_START' });
     try {
       // [FIX] On injecte les résultats de marché pour une synthèse beaucoup plus riche
       const payload = { ...initialCvData };
@@ -164,18 +201,16 @@ export const DashboardProvider = ({
       
       if (response.ok) {
         const data = await response.json();
-        setPilotData(data);
+        dispatch({ type: 'FETCH_PILOT_DATA_SUCCESS', payload: data });
       } else {
         let errMsg = `Erreur serveur (${response.status})`;
         try { const errObj = await response.json(); errMsg = errObj.detail || errMsg; } catch(e) {}
-        setPilotError(errMsg);
+        dispatch({ type: 'FETCH_PILOT_DATA_ERROR', payload: errMsg });
         console.error(`[DashboardContext] Failed to fetch pilot data. Status: ${response.status}`, errMsg);
       }
     } catch (error: any) {
-      setPilotError(error.message || "Erreur réseau (Timeout). L'intelligence artificielle met trop de temps à répondre.");
+      dispatch({ type: 'FETCH_PILOT_DATA_ERROR', payload: error.message || "Erreur réseau (Timeout). L'intelligence artificielle met trop de temps à répondre." });
       console.error("[DashboardContext] Error fetching pilot data:", error);
-    } finally {
-      setIsPilotLoading(false);
     }
   // [FIX EXPERT] On évite le re-rendu infini en stringifiant les objets dans les dépendances.
   // Sinon, React recrée la fonction à chaque rendu parent (changement de référence mémoire), ce qui spamme le backend.
@@ -184,7 +219,7 @@ export const DashboardProvider = ({
   // Auto-fetch ultra-robuste quand le CV (mock puis réel) est mis à jour
   useEffect(() => {
     fetchPilotData();
-    fetchQuotas(); // `fetchQuotas` a maintenant `localCvData.email` en dépendance
+    fetchQuotas(); // `fetchQuotas` a maintenant `cvData.email` en dépendance
   }, [fetchPilotData, fetchQuotas]);
 
   return (
@@ -194,7 +229,7 @@ export const DashboardProvider = ({
       isPilotLoading,
       quotas,
       fetchQuotas,
-      cvData: localCvData,
+      cvData: cvData,
       gapResult: initialGapResult,
       researchResult: initialResearchResult,
       salaryResult: initialSalaryResult,

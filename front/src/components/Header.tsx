@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useReducer, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import './Header.css';
@@ -29,6 +29,30 @@ interface HeaderProps {
   targetLanguage?: string;
 }
 
+// [EXPERT REFACTOR] Centralisation de la logique d'état avec un reducer.
+// Même pour un état simple, cela prépare le terrain pour une future complexification
+// et rend les transitions d'état plus explicites et maintenables.
+
+interface HeaderState {
+  isDropdownOpen: boolean;
+}
+
+type HeaderAction =
+  | { type: 'open_dropdown' }
+  | { type: 'close_dropdown' }
+  | { type: 'toggle_dropdown' };
+
+const headerReducer = (state: HeaderState, action: HeaderAction): HeaderState => {
+  switch (action.type) {
+    case 'open_dropdown': return { ...state, isDropdownOpen: true };
+    case 'close_dropdown': return { ...state, isDropdownOpen: false };
+    case 'toggle_dropdown': return { ...state, isDropdownOpen: !state.isDropdownOpen };
+    default: return state;
+  }
+};
+
+const initialState: HeaderState = { isDropdownOpen: false };
+
 export default function Header({
   darkMode,
   setDarkMode,
@@ -43,14 +67,14 @@ export default function Header({
   isAdmin = false // [FIX] On reçoit le statut admin du parent
 }: HeaderProps): React.ReactElement | null {
   const { t } = useTranslation();
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [state, dispatch] = useReducer(headerReducer, initialState);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setDropdownOpen(false);
+        dispatch({ type: 'close_dropdown' });
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -58,7 +82,7 @@ export default function Header({
   }, []);
 
   const handleOpenDocuments = () => {
-    setDropdownOpen(false);
+    dispatch({ type: 'close_dropdown' });
     navigate('/documents');
   };
 
@@ -78,11 +102,11 @@ export default function Header({
           
           {userName ? (
             <div className="user-menu-container" ref={dropdownRef} style={{ position: 'relative' }}>
-              <button onClick={() => setDropdownOpen(!dropdownOpen)} className="user-profile-btn" title="Menu utilisateur">
+              <button onClick={() => dispatch({ type: 'toggle_dropdown' })} className="user-profile-btn" title="Menu utilisateur">
                 <span className="user-icon">👤</span>
                 <span className="user-name">{userName}</span>
               </button>
-              {dropdownOpen && (
+              {state.isDropdownOpen && (
                 <div style={{
                   position: 'absolute', top: '120%', right: 0, background: 'var(--bg-card)', 
                   border: '1px solid var(--border-color)', borderRadius: '8px', 
@@ -99,14 +123,14 @@ export default function Header({
                 <Link to="/admin" style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', textAlign: 'left', cursor: 'pointer', color: 'var(--primary)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}
                   onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
                   onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                  onClick={() => setDropdownOpen(false)}
+                  onClick={() => dispatch({ type: 'close_dropdown' })}
                 >
                   <span role="img" aria-label="admin">👑</span> Administration
                 </Link>
               )}
                   <button 
                     onClick={() => { 
-                      setDropdownOpen(false); 
+                      dispatch({ type: 'close_dropdown' }); 
                       window.dispatchEvent(new CustomEvent('open-print-modal'));
                     }} 
                     style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', textAlign: 'left', cursor: 'pointer', color: 'var(--text-main)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
@@ -116,7 +140,7 @@ export default function Header({
                     📄 Imprimer mon dossier
                   </button>
                   <button 
-                    onClick={() => { setDropdownOpen(false); onLogout?.(); }} 
+                    onClick={() => { dispatch({ type: 'close_dropdown' }); onLogout?.(); }} 
                     style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', textAlign: 'left', cursor: 'pointer', color: '#ef4444', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                     onMouseOver={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
                     onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}

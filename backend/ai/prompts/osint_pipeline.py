@@ -178,29 +178,31 @@ class OSINTPipeline:
         except Exception as e:
             return f"[Erreur lors de l'extraction : {type(e).__name__}]"
 
-    async def run(self, company_name: str) -> str:
+    async def run(self, company_name: str, role: str) -> str:
         """Exécute l'analyse et retourne le contexte formaté pour le Prompt final."""
         aliases = self.expand_entity(company_name)
         queries = self.build_queries(aliases)
         
         all_articles = []
-        # [FIX] Recherches en parallèle pour des performances optimales
-        sem = asyncio.Semaphore(5) # Limite à 5 requêtes concurrentes
+        sem = asyncio.Semaphore(5)
         
         async def fetch_with_sem(session, q):
             async with sem:
                 return await self.fetch_serper_async(session, q)
 
+        # Étape 1: Collecte des snippets
         async with aiohttp.ClientSession() as session:
             tasks = [fetch_with_sem(session, q) for q in queries]
             results = await asyncio.gather(*tasks)
             for res in results:
                 all_articles.extend(res)
                 
+        # Étape 2: Filtrage et déduplication sur la base des snippets
         filtered_articles = self.deduplicate_and_filter(all_articles)
-        top_articles = filtered_articles[:15] # On ne traite que les 15 articles les plus pertinents
+        # [MODIFIÉ] On ne garde que les 8 articles les plus prometteurs pour l'analyse de contenu complet
+        top_articles = filtered_articles[:8]
         
-        # [MODIFIÉ] Étape d'extraction de contenu complet
+        # Étape 3: Extraction du contenu complet des articles sélectionnés
         context_str = "### ANALYSE DE PRESSE OSINT (Contenu Complet) ###\n"
         if top_articles:
             async with aiohttp.ClientSession() as session:
