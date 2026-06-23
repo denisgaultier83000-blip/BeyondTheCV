@@ -37,7 +37,8 @@ export default function Header({
   userName,
   onOpenProfile,
   onLogout,
-  onLanguageChange
+  onLanguageChange,
+  isAuthenticated
 }: HeaderProps) {
   const { t } = useTranslation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -53,9 +54,11 @@ export default function Header({
       if (userStr && adminEmail) {
         const user = JSON.parse(userStr);
         setIsAdmin(user?.email?.toLowerCase() === adminEmail.toLowerCase());
+      } else {
+        setIsAdmin(false); // S'assurer de réinitialiser si l'utilisateur n'est plus là
       }
-    } catch (e) {}
-  }, [userName]); // On recalcule si l'utilisateur change (login/logout)
+    } catch (e) { setIsAdmin(false); }
+  }, [userName, isAuthenticated]); // [FIX] On recalcule si l'utilisateur change OU si le statut d'authentification change.
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
