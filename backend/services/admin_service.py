@@ -201,7 +201,7 @@ async def admin_get_stats():
         "feedbacks_count": feedbacks_count,
         "cache_hits": cache_hits,
         "cache_misses": cache_misses,
-        "cache_hit_ratio": round(cache_hit_ratio, 2)
+        "cache_hit_ratio": round(cache_hit_ratio, 2),
         "revenue_month": revenue_month / 100, # Conversion de centimes en euros
         "avg_ai_cost_per_user": round(avg_ai_cost_per_user, 2)
     }

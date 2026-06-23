@@ -335,7 +335,7 @@ export function AdminDashboard() {
           <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border border-slate-200">
             <h3 className="text-xl font-bold text-slate-800 mb-2">Gérer l'abonnement</h3>
             <p className="text-sm text-slate-500 mb-6">Utilisateur : <strong className="text-slate-700">{subscriptionModalUser.email}</strong></p>
-            <div>
+            
             <form onSubmit={handleManageSubscription} className="space-y-4">
               <div>
                 <label className="text-sm font-medium text-slate-600">Action souhaitée</label>
@@ -359,6 +359,7 @@ export function AdminDashboard() {
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}
