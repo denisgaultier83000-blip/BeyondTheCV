@@ -145,16 +145,22 @@ export const DashboardProvider = ({
     dispatch({ type: 'SET_ACTIVE_TAB', payload: tab });
   };
 
-  const testerEmails = (import.meta.env.VITE_TESTER_EMAILS_LIST || '').split(',').map((e: string) => e.trim().toLowerCase());
+  // [EXPERT DEBUG] Séparation stricte des rôles "Admin" et "Testeur".
+  // L'admin a accès au panel /admin. Les testeurs ont des quotas illimités. Ce sont deux choses différentes.
+  const adminEmail = (import.meta.env.VITE_REACT_APP_ADMIN_EMAIL || "").trim().toLowerCase();
+  const testerEmails = (import.meta.env.VITE_TESTER_EMAILS_LIST || '').split(',').map((e: string) => e.trim().toLowerCase()).filter(Boolean);
   const currentUserEmail = cvData?.email?.toLowerCase();
 
-  const fetchQuotas = useCallback(async () => {
-    // [FIX] Logique pour les testeurs avec quotas illimités
-    const testerEmails = (import.meta.env.VITE_TESTER_EMAILS_LIST || '').split(',').map((e: string) => e.trim().toLowerCase());
-    const currentUserEmail = cvData?.email?.toLowerCase();
+  // Le flag `isAdmin` est VRAI si et seulement si l'email correspond à l'admin unique.
+  const isUserAdmin = !!(currentUserEmail && adminEmail && currentUserEmail === adminEmail);
+  // Le flag `isTester` est VRAI si l'email est dans la liste des testeurs.
+  const isUserTester = !!(currentUserEmail && testerEmails.includes(currentUserEmail));
 
-    if (currentUserEmail && testerEmails.includes(currentUserEmail)) {
-      // L'utilisateur est un testeur, on lui donne des quotas "illimités"
+  const fetchQuotas = useCallback(async () => {
+    // [FIX] La logique des quotas illimités ne s'applique qu'aux testeurs, pas à l'admin.
+    // L'admin peut avoir besoin de tester le flux de paiement et les limites de quotas.
+    if (isUserTester) {
+      // L'utilisateur est un testeur, on lui donne des quotas "illimités".
       dispatch({ type: 'SET_QUOTAS', payload: {
         pitch: 999,
         qa: 999,
@@ -176,7 +182,7 @@ export const DashboardProvider = ({
     } catch (e: any) {
         console.error("Impossible de récupérer les quotas, utilisation des valeurs par défaut.", e);
     }
-  }, [cvData?.email]);
+  }, [cvData?.email, isUserTester]);
 
   // Mémoïsation de la fonction d'appel pour éviter les re-rendus infinis dans les useEffect
   const fetchPilotData = useCallback(async () => {
@@ -246,7 +252,7 @@ export const DashboardProvider = ({
       triggerResearch: onTriggerResearch,
       updateFormData: handleUpdateFormData,
       pilotError,
-      isAdmin: currentUserEmail && testerEmails.includes(currentUserEmail),
+      isAdmin: isUserAdmin,
     }}>
       {children}
     </DashboardContext.Provider>
