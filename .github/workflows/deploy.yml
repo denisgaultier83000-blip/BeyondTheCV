@@ -104,11 +104,11 @@ jobs:
             SAFE_GEM_KEY="${GEM_KEY//\$/\$\$}"
             SAFE_SERPER_KEY="${SERPER_KEY//\$/\$\$}"
 
+            # [FIX] Les variables pour le frontend DOIVENT être préfixées par VITE_
             cat <<EOF > "$ENV_FILE"
             VERSION=${BRANCH}
             ENVIRONMENT=${ENVIRONMENT}
             API_HOST=${API_HOST}
-            FRONTEND_URL=${FRONTEND_URL}
             POSTGRES_USER=${DB_USER}
             POSTGRES_PASSWORD=${SAFE_DB_PASS}
             POSTGRES_DB=${DB_NAME}
@@ -116,8 +116,9 @@ jobs:
             GEMINI_API_KEY=${SAFE_GEM_KEY}
             SERPER_API_KEY=${SAFE_SERPER_KEY}
             JWT_SECRET=${SAFE_JWT_SEC}
-            TESTER_EMAILS_LIST=${TESTER_EMAILS}
-            ADMIN_EMAIL=${ADMIN_EMAIL}
+            VITE_FRONTEND_URL=${FRONTEND_URL}
+            VITE_TESTER_EMAILS_LIST=${TESTER_EMAILS}
+            VITE_REACT_APP_ADMIN_EMAIL=${ADMIN_EMAIL}
             EOF
 
             # [FIX RESEAU] Reconnexion au réseau global 'web' utilisé par Traefik

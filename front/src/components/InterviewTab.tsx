@@ -79,7 +79,7 @@ export const InterviewTab = () => {
   const { t } = useTranslation();
   const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false);
   const [isDark] = useState(() => document.body.classList.contains('dark-mode'));
-  const [pitchMatrix, setPitchMatrix] = useState<any>(pitchResult || null); // [FIX] Initialisation directe
+  const [pitchMatrix, setPitchMatrix] = useState<any>(pitchResult || null);
   const [activePitch, setActivePitch] = useState('pitch_3_minutes');
   const [editablePitch, setEditablePitch] = useState({
     accroche: "",
@@ -95,7 +95,7 @@ export const InterviewTab = () => {
       if (savedEditablePitch && Object.values(savedEditablePitch).some(v => v)) {
         setEditablePitch(savedEditablePitch);
       } else {
-        // [FIX] On charge le pitch stratégique par défaut (`pitch_3_minutes`) au lieu de l'ancien "pitch_1_minute"
+        // [FIX] On charge le pitch stratégique par défaut (`pitch_3_minutes`)
         populateFieldsFromMatrix(pitchResult, 'pitch_3_minutes');
       }
     }

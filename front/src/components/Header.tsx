@@ -25,6 +25,7 @@ interface HeaderProps {
   onLogout?: () => void;
   onLanguageChange?: (lang: string) => void;
   isAuthenticated?: boolean;
+  isAdmin?: boolean; // [FIX] On attend la prop du parent
   targetLanguage?: string;
 }
 
@@ -38,27 +39,12 @@ export default function Header({
   onOpenProfile,
   onLogout,
   onLanguageChange,
-  isAuthenticated
+  isAuthenticated,
+  isAdmin = false // [FIX] On reçoit le statut admin du parent
 }: HeaderProps) {
   const { t } = useTranslation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // [CORRECTIF FINAL] Vérification locale et directe du statut admin.
-  // On abandonne le contexte pour cette logique pour garantir la fiabilité.
-  const [isAdmin, setIsAdmin] = useState(false);
-  useEffect(() => {
-    try {
-      const userStr = localStorage.getItem('user');
-      const adminEmail = import.meta.env.VITE_REACT_APP_ADMIN_EMAIL;
-      if (userStr && adminEmail) {
-        const user = JSON.parse(userStr);
-        setIsAdmin(user?.email?.toLowerCase() === adminEmail.toLowerCase());
-      } else {
-        setIsAdmin(false); // S'assurer de réinitialiser si l'utilisateur n'est plus là
-      }
-    } catch (e) { setIsAdmin(false); }
-  }, [userName, isAuthenticated]); // [FIX] On recalcule si l'utilisateur change OU si le statut d'authentification change.
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

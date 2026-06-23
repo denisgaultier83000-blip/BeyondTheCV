@@ -540,6 +540,7 @@ function AppContent() {
         setDarkMode={setDarkMode} 
         isAuthenticated={isAuthenticated}
         userName={parsedUserName} 
+        isAdmin={isAdmin} // [FIX] On passe le statut admin calculé comme prop
         onOpenProfile={() => setShowDocsModal(true)} 
         onLogout={() => { localStorage.removeItem('token'); localStorage.removeItem('user'); resetDashboard(); setIsAuthenticated(false); navigate('/', { replace: true }); }} 
         onLanguageChange={handleLanguageChange} 
