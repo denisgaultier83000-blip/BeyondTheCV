@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import './Header.css';
 import LanguageSelector from './LanguageSelector';
@@ -45,6 +45,7 @@ export default function Header({
   const { t } = useTranslation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -55,6 +56,11 @@ export default function Header({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleOpenDocuments = () => {
+    setDropdownOpen(false);
+    navigate('/documents');
+  };
 
   return (
     <header className="app-header">
@@ -83,13 +89,19 @@ export default function Header({
                   boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', minWidth: '200px', 
                   display: 'flex', flexDirection: 'column', overflow: 'hidden', zIndex: 1000
                 }}>
+                  <button onClick={handleOpenDocuments} style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', textAlign: 'left', cursor: 'pointer', color: 'var(--text-main)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    📂 Mes Dossiers
+                  </button>
               {isAdmin && (
                 <Link to="/admin" style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', textAlign: 'left', cursor: 'pointer', color: 'var(--primary)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}
                   onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
                   onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                   onClick={() => setDropdownOpen(false)}
                 >
-                  👑 Administration
+                  <span role="img" aria-label="admin">👑</span> Administration
                 </Link>
               )}
                   <button 

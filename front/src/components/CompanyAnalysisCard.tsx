@@ -2,7 +2,7 @@ import React from 'react';
 import { Building, Newspaper, ExternalLink, Globe2, Target, Users, TrendingUp, BookOpen, Brain, Activity } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 import { useTranslation } from 'react-i18next';
-import { formatStrategicAnalysisReact as formatMarkdownReact } from '../utils/formatUtils';
+import { formatStrategicAnalysisReact } from '../utils/formatUtils';
 
 interface CompanyAnalysisCardProps {
   data: any;
@@ -40,8 +40,6 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
   const sources = data?.sources || []; // Exploitation des sources Web fournies par le backend
   
   let newsLinks = report.news_links || [];
-
-  const formatStrategicAnalysis = (text: string) => formatMarkdownReact(text);
 
   return (
     <DashboardCard

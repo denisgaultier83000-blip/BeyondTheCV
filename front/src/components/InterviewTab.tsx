@@ -92,14 +92,14 @@ export const InterviewTab = () => {
     if (pitchResult) {
       setPitchMatrix(pitchResult); // [FIX] Synchronise la matrice à chaque mise à jour du résultat IA
       const savedEditablePitch = cvData?.editablePitch;
-      if (savedEditablePitch && Object.values(savedEditablePitch).some(v => v)) {
+      if (savedEditablePitch && Object.values(savedEditablePitch).some(v => !!v)) {
         setEditablePitch(savedEditablePitch);
       } else {
-        // [FIX] On charge le pitch stratégique par défaut (`pitch_3_minutes`)
-        populateFieldsFromMatrix(pitchResult, 'pitch_3_minutes');
+        // On charge le pitch recruteur par défaut, qui est le plus pertinent
+        populateFieldsFromMatrix(pitchResult, 'recruiter_pitch');
       }
     }
-  }, [pitchResult]);
+  }, [pitchResult, cvData?.editablePitch]);
 
   // Sépare un texte en 4 parties
   const splitTextIntoFields = (text: string) => {
@@ -132,7 +132,7 @@ export const InterviewTab = () => {
   };
 
   // Définir les formats de pitch qui doivent utiliser une seule zone de texte
-  const shortPitchFormats = ['pitch_30_seconds', 'networking_pitch'];
+  const shortPitchFormats = ['networking_pitch'];
   const isShortFormat = shortPitchFormats.includes(activePitch);
 
   // Le texte du téléprompteur est la concaténation des 4 champs éditables
@@ -303,9 +303,7 @@ export const InterviewTab = () => {
                 <div className="pitch-selector-group">
                   <h6 className="pitch-selector-title">Format</h6>
                   <div className="pitch-selector-tabs">
-                    <button onClick={() => handleTabClick('pitch_30_seconds')} className={activePitch === 'pitch_30_seconds' ? 'active' : ''}><Clock size={16}/> 30 sec</button>
-                    <button onClick={() => handleTabClick('pitch_1_minute')} className={activePitch === 'pitch_1_minute' ? 'active' : ''}><Clock size={16}/> 1 min</button>
-                    <button onClick={() => handleTabClick('pitch_3_minutes')} className={activePitch === 'pitch_3_minutes' ? 'active' : ''}><Clock size={16}/> Stratégique</button>
+                    <button onClick={() => handleTabClick('recruiter_pitch')} className={activePitch === 'recruiter_pitch' ? 'active' : ''}><Clock size={16}/> Stratégique</button>
                   </div>
                 </div>
                 <div className="pitch-selector-group">
