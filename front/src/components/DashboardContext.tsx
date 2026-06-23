@@ -122,7 +122,7 @@ export const DashboardProvider = ({
 
   const fetchQuotas = useCallback(async () => {
     // [FIX] Logique pour les testeurs avec quotas illimités
-    const testerEmails = (process.env.REACT_APP_TESTER_EMAILS || '').split(',').map(e => e.trim().toLowerCase());
+    const testerEmails = (import.meta.env.VITE_REACT_APP_TESTER_EMAILS || '').split(',').map((e: string) => e.trim().toLowerCase());
     const currentUserEmail = localCvData?.email?.toLowerCase();
 
     if (currentUserEmail && testerEmails.includes(currentUserEmail)) {
@@ -145,7 +145,7 @@ export const DashboardProvider = ({
             const data = await response.json();
             setQuotas(data);
         }
-    } catch (e) {
+    } catch (e: any) {
         console.error("Impossible de récupérer les quotas, utilisation des valeurs par défaut.", e);
     }
   }, [localCvData?.email]);
@@ -220,7 +220,8 @@ export const DashboardProvider = ({
       setCurrentStep: onSetCurrentStep,
       triggerResearch: onTriggerResearch,
       updateFormData: handleUpdateFormData,
-      pilotError
+      pilotError,
+      isAdmin
     }}>
       {children}
     </DashboardContext.Provider>
