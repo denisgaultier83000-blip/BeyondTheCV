@@ -14,10 +14,6 @@ interface Stats {
   cache_misses?: number;
   cache_hit_ratio?: number;
   avg_training_score: number;
-  // [NOUVEAU] Indicateurs financiers et IA
-  revenue_month?: number;
-  ai_cost_month?: number;
-  avg_ai_cost_per_user?: number;
 }
 
 interface CacheHistoryItem {
@@ -355,6 +351,129 @@ export function AdminDashboard() {
               <div className="flex gap-4 mt-6">
                 <button type="button" onClick={() => setSubscriptionModalUser(null)} className="flex-1 py-2 px-4 bg-white border border-slate-300 rounded-md text-slate-700 font-semibold hover:bg-slate-50">Annuler</button>
                 <button type="submit" disabled={subLoading} className="flex-1 py-2 px-4 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 disabled:opacity-50">
+                  {subLoading ? 'Traitement...' : 'Valider'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+            <div>
+              <p style={{ margin: 0, fontWeight: 'bold', fontSize: '1.5rem', color: (stats?.cache_hit_ratio ?? 0) >= 80 ? '#10b981' : (stats?.cache_hit_ratio ?? 0) >= 50 ? '#f59e0b' : '#ef4444' }}>
+                {stats?.cache_hit_ratio ?? 0}%
+              </p>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>Hit Ratio</p>
+            </div>
+          </div>
+        </div>
+        {/* [NOUVEAU] Graphique de l'historique du Hit Ratio */}
+        <div style={{ marginTop: '2rem' }}>
+          <h3 style={{ fontSize: '1rem', margin: '0 0 1rem 0', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><BarChart3 size={18} /> Historique du Hit Ratio (7 derniers jours)</h3>
+          <div style={{ height: '250px', width: '100%' }}>
+            <ResponsiveContainer>
+              <LineChart data={formattedCacheHistory} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+                <XAxis dataKey="name" stroke="var(--text-muted)" fontSize="0.8rem" />
+                <YAxis stroke="var(--text-muted)" fontSize="0.8rem" unit="%" domain={[0, 100]} />
+                <Tooltip
+                  contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '0.5rem' }}
+                  labelStyle={{ color: 'var(--text-main)', fontWeight: 'bold' }}
+                />
+                <Line type="monotone" dataKey="hit_ratio" name="Hit Ratio" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} unit="%" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* --- SECTION 2 : HEALTH CHECK DES FOURNISSEURS --- */}
+      <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1.25rem', margin: '0 0 1rem 0' }}>État des Services Tiers</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+          {health && Object.entries(health).map(([service, status]) => {
+            const isOk = status === 'ok';
+            return (
+              <div key={service} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '0.5rem', border: `1px solid ${isOk ? '#a7f3d0' : '#fecaca'}` }}>
+                <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: isOk ? '#10b981' : '#ef4444' }}></div>
+                <div>
+                  <p style={{ margin: 0, fontWeight: 'bold', textTransform: 'capitalize' }}>{service}</p>
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>{status}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* --- SECTION 3 : GESTION MANUELLE DES QUOTAS --- */}
+      <AdminQuotaManager />
+
+      {/* --- SECTION 4 : GESTION DES UTILISATEURS --- */}
+      <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', overflowX: 'auto' }}>
+        <h2 style={{ fontSize: '1.25rem', margin: '0 0 1rem 0' }}>Derniers Inscrits</h2>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+          <thead>
+            <tr style={{ borderBottom: '2px solid var(--border-color)', textAlign: 'left' }}>
+              <th style={{ padding: '0.75rem 0.5rem' }}>Email</th>
+              <th style={{ padding: '0.75rem 0.5rem' }}>Nom</th>
+              <th style={{ padding: '0.75rem 0.5rem' }}>Inscription</th>
+              <th style={{ padding: '0.75rem 0.5rem' }}>Premium</th>
+              <th style={{ padding: '0.75rem 0.5rem' }}>Statut</th>
+              <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map(user => (
+              <tr key={user.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                <td style={{ padding: '0.75rem 0.5rem', fontWeight: 500 }}>{user.email}</td>
+                <td style={{ padding: '0.75rem 0.5rem', color: 'var(--text-muted)' }}>{user.first_name} {user.last_name}</td>
+                <td style={{ padding: '0.75rem 0.5rem', color: 'var(--text-muted)' }}>{new Date(user.created_at).toLocaleDateString('fr-FR')}</td>
+                <td style={{ padding: '0.75rem 0.5rem' }}>{user.is_premium ? '⭐ Oui' : 'Non'}</td>
+                <td style={{ padding: '0.75rem 0.5rem' }}><span style={{ padding: '0.2rem 0.5rem', borderRadius: '1rem', fontSize: '0.75rem', background: user.is_active ? '#d1fae5' : '#fee2e2', color: user.is_active ? '#065f46' : '#991b1b' }}>{user.is_active ? 'Actif' : 'Banni'}</span></td>
+                <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                    <button onClick={() => viewUserProfile(user.id)} title="Voir le profil" style={{ padding: '0.5rem', border: '1px solid var(--border-color)', borderRadius: '0.25rem', cursor: 'pointer', background: 'transparent', color: 'var(--text-main)' }}><Eye size={16} /></button>
+                    <button onClick={() => setSubscriptionModalUser(user)} title="Gérer l'abonnement" style={{ padding: '0.5rem', border: '1px solid var(--border-color)', borderRadius: '0.25rem', cursor: 'pointer', background: 'transparent', color: 'var(--primary)' }}><Calendar size={16} /></button>
+                    <button onClick={() => toggleUserActive(user.id)} title={user.is_active ? 'Bannir' : 'Activer'} style={{ padding: '0.5rem', border: '1px solid var(--border-color)', borderRadius: '0.25rem', cursor: 'pointer', background: 'transparent', color: user.is_active ? '#ef4444' : '#10b981' }}><Shield size={16} /></button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* --- MODALE DE GESTION D'ABONNEMENT --- */}
+      {subscriptionModalUser && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '1rem', width: '90%', maxWidth: '450px', border: '1px solid var(--border-color)', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '1rem', color: 'var(--text-main)' }}>Gérer l'abonnement</h3>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
+              Utilisateur cible : <strong style={{ color: 'var(--text-main)' }}>{subscriptionModalUser.email}</strong>
+            </p>
+            
+            <form onSubmit={handleManageSubscription} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>Action souhaitée</label>
+                <select value={subAction} onChange={e => setSubAction(e.target.value as 'extend' | 'cancel')} style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-main)', outline: 'none' }}>
+                  <option value="extend">Prolonger l'abonnement (Jours)</option>
+                  <option value="cancel">Annuler immédiatement l'abonnement</option>
+                </select>
+              </div>
+
+              {subAction === 'extend' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>Nombre de jours à ajouter</label>
+                  <input type="number" value={subDays} onChange={e => setSubDays(parseInt(e.target.value))} min="1" style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-main)', outline: 'none' }} />
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                <button type="button" onClick={() => setSubscriptionModalUser(null)} className="btn-ghost" style={{ flex: 1, padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>Annuler</button>
+                <button type="submit" disabled={subLoading} className="btn-primary" style={{ flex: 1, padding: '0.75rem', borderRadius: '0.5rem', border: 'none' }}>
                   {subLoading ? 'Traitement...' : 'Valider'}
                 </button>
               </div>
