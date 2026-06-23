@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import './Header.css';
-import { useDashboard as useGlobalDashboard } from '../hooks/DashboardContext'; // [FIX] Utiliser le hook global
 import LanguageSelector from './LanguageSelector';
 
 export interface Step {
@@ -43,7 +42,20 @@ export default function Header({
   const { t } = useTranslation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { isAdmin } = useGlobalDashboard(); // [FIX] Utiliser le hook global
+
+  // [CORRECTIF FINAL] Vérification locale et directe du statut admin.
+  // On abandonne le contexte pour cette logique pour garantir la fiabilité.
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem('user');
+      const adminEmail = import.meta.env.VITE_REACT_APP_ADMIN_EMAIL;
+      if (userStr && adminEmail) {
+        const user = JSON.parse(userStr);
+        setIsAdmin(user?.email?.toLowerCase() === adminEmail.toLowerCase());
+      }
+    } catch (e) {}
+  }, [userName]); // On recalcule si l'utilisateur change (login/logout)
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

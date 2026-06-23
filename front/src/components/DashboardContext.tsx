@@ -29,8 +29,6 @@ interface DashboardContextType {
   fetchQuotas: () => Promise<void>;
   updateFormData?: (key: string, value: any) => void;
   pilotError: string | null;
-  // [AJOUT] Propriété pour l'état admin global
-  isAdmin: boolean;
 }
 
 interface DashboardProviderProps {
@@ -95,8 +93,6 @@ export const DashboardProvider = ({
   // État de navigation interne
   const [activeTab, setActiveTab] = useState<string>('cockpit');
 
-  // [AJOUT] État pour le statut administrateur
-  const [isAdmin, setIsAdmin] = useState(false);
   // État des données de la vue Bento (Résumé)
   const [pilotData, setPilotData] = useState<any>(null);
   const [isPilotLoading, setIsPilotLoading] = useState<boolean>(false);
@@ -110,19 +106,9 @@ export const DashboardProvider = ({
     update: 0,
   });
 
-  // [AJOUT] Calcul du statut admin dès que l'email de l'utilisateur est connu
-  useEffect(() => {
-    const adminEmail = import.meta.env.VITE_REACT_APP_ADMIN_EMAIL;
-    const userEmail = localCvData?.email?.toLowerCase();
-
-    if (adminEmail && userEmail) {
-      setIsAdmin(userEmail === adminEmail.toLowerCase());
-    }
-  }, [localCvData?.email]);
-
   const fetchQuotas = useCallback(async () => {
     // [FIX] Logique pour les testeurs avec quotas illimités
-    const testerEmails = (process.env.REACT_APP_TESTER_EMAILS || '').split(',').map(e => e.trim().toLowerCase());
+    const testerEmails = (import.meta.env.VITE_REACT_APP_TESTER_EMAILS || '').split(',').map((e: string) => e.trim().toLowerCase());
     const currentUserEmail = localCvData?.email?.toLowerCase();
 
     if (currentUserEmail && testerEmails.includes(currentUserEmail)) {
@@ -145,7 +131,7 @@ export const DashboardProvider = ({
             const data = await response.json();
             setQuotas(data);
         }
-    } catch (e) {
+    } catch (e: any) {
         console.error("Impossible de récupérer les quotas, utilisation des valeurs par défaut.", e);
     }
   }, [localCvData?.email]);
@@ -220,7 +206,7 @@ export const DashboardProvider = ({
       setCurrentStep: onSetCurrentStep,
       triggerResearch: onTriggerResearch,
       updateFormData: handleUpdateFormData,
-      pilotError
+      pilotError,
     }}>
       {children}
     </DashboardContext.Provider>
