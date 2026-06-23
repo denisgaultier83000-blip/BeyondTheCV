@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import './Header.css';
+import { useDashboard } from './DashboardContext'; // Import useDashboard
 import LanguageSelector from './LanguageSelector';
-import { useDashboard } from './DashboardContext';
 
 export interface Step {
   id: number;
@@ -25,6 +25,8 @@ interface HeaderProps {
   onOpenProfile?: () => void;
   onLogout?: () => void;
   onLanguageChange?: (lang: string) => void;
+  isAuthenticated?: boolean;
+  targetLanguage?: string;
 }
 
 export default function Header({
@@ -33,19 +35,15 @@ export default function Header({
   showLogin = false,
   showLangSelector = true,
   loginText = "Login",
-  showStepper = false,
-  steps = Array.from({ length: 10 }, (_, i) => ({ id: i + 1, title: `Step ${i + 1}` })),
-  currentStep = 1,
-  goToStep = () => {},
   userName,
   onOpenProfile,
   onLogout,
-  onLanguageChange
+  onLanguageChange,
+  isAdmin = false
 }: HeaderProps) {
   const { t } = useTranslation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { isAdmin } = useDashboard();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -58,25 +56,10 @@ export default function Header({
   }, []);
 
   return (
-    <header className={`app-header ${showStepper ? 'with-stepper' : ''}`}>
+    <header className="app-header">
       <div className="header-main">
         <div className="header-logo">
           <img src="/logo_reduit_BTCV.png" alt="BeyondTheCV" className="logo-img" />
-        </div>
-
-        {showStepper && (
-          <div className="stepper-container header-stepper">
-            {steps.map((step, index) => (
-              <div
-                key={step.id}
-                className={`step-item ${currentStep >= step.id ? 'active' : ''}`}
-                onClick={() => step.id <= currentStep && goToStep(step.id)}
-              >
-                <div className="step-circle">{step.id}</div>
-                <span className="step-label">{step.title}</span>
-              </div>
-            ))}
-          </div>
         )}
 
         <div className="header-actions">
@@ -99,15 +82,15 @@ export default function Header({
                   boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', minWidth: '200px', 
                   display: 'flex', flexDirection: 'column', overflow: 'hidden', zIndex: 1000
                 }}>
-                  {isAdmin && (
-                    <Link to="/admin" style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', textAlign: 'left', cursor: 'pointer', color: 'var(--primary)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}
-                      onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
-                      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                      onClick={() => setDropdownOpen(false)}
-                    >
-                      👑 Administration
-                </Link> 
-                  )}
+              {isAdmin && (
+                <Link to="/admin" style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', textAlign: 'left', cursor: 'pointer', color: 'var(--primary)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}
+                  onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                  onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                  onClick={() => setDropdownOpen(false)}
+                >
+                  👑 Administration
+                </Link>
+              )}
                   <button 
                     onClick={() => { 
                       setDropdownOpen(false); 
