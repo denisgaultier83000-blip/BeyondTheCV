@@ -107,8 +107,7 @@ export default function Header({
                   <button 
                     onClick={() => { 
                       setDropdownOpen(false); 
-                      window.dispatchEvent(new Event('open-print-modal'));
-                      if (onOpenProfile) onOpenProfile(); 
+                      window.dispatchEvent(new CustomEvent('open-print-modal'));
                     }} 
                     style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', textAlign: 'left', cursor: 'pointer', color: 'var(--text-main)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                     onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}

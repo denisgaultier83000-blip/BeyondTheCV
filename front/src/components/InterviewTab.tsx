@@ -99,7 +99,7 @@ export const InterviewTab = () => {
         populateFieldsFromMatrix(pitchResult, 'recruiter_pitch');
       }
     }
-  }, [pitchResult, cvData?.editablePitch]);
+  }, [pitchResult, cvData?.editablePitch, updateFormData]);
 
   // Sépare un texte en 4 parties
   const splitTextIntoFields = (text: string) => {

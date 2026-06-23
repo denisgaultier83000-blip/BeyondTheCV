@@ -11,16 +11,18 @@ interface MarketAnalysisCardProps {
 
 export function MarketAnalysisCard({ data, salaryData, loading, error }: MarketAnalysisCardProps) {
 
-  let parsedData = data;
-  if (typeof data === 'string') {
-      try {
-          const match = data.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-          parsedData = JSON.parse(match ? match[1] : data); // [FIX] Extraction du bon groupe regex
-      } catch (e) {
-          parsedData = {};
-      }
+  const getParsedData = (input: any) => {
+    if (!input) return {};
+    if (typeof input === 'object') return input;
+    if (typeof input === 'string') {
+        try {
+            const match = input.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+            return JSON.parse(match ? match[1] : input);
+        } catch (e) { return { error: "Format JSON invalide" }; }
+    }
+    return {};
   }
-  
+  const parsedData = getParsedData(data);
   // Éviter de crasher lors du parsing asynchrone
   if (!loading && !error && (!parsedData || parsedData.error)) return null;
 
