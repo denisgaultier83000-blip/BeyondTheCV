@@ -1,13 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HelpCircle, MessageSquare, Printer, ArrowLeft, CheckCircle2, Lightbulb, Eye, EyeOff, Edit3, Mic, MicOff, Send, Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { MessageSquare, Printer, ArrowLeft, Lightbulb } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
-import ScoreGauge from './ScoreGauge';
 import { useDashboard } from './DashboardContext';
 import { RechargeModal } from './RechargeModal';
-import { formatMarkdownReact } from '../utils/formatUtils';
 import { AsyncBoundary } from './AsyncBoundary';
+import { QuestionItem } from './QuestionItem';
 
 interface QuestionnaireProps {
   questions: any[];
@@ -23,35 +22,19 @@ interface QuestionnaireProps {
 
 export default function Questionnaire({ questions, onBack, onPrint, onUpdate, loading, hideHeader, storageKeyPrefix = "interview", evalEndpoint, onEvaluateSuccess }: QuestionnaireProps) {
   const { t } = useTranslation();
-  
-  // --- GESTION DE LA PERSISTANCE (GLOBAL STATE) ---
-  // [FIX EXPERT] Ne jamais encapsuler un Hook dans un bloc try/catch.
-  // Si le contexte est optionnel, c'est la logique interne du Hook (DashboardContext)
-  // qui doit renvoyer "null" au lieu de throw une exception.
   const dashboard = useDashboard();
-  
   const cvData = dashboard?.cvData;
   const { quotas, fetchQuotas } = dashboard;
   const updateFormData = dashboard?.updateFormData;
-  
   const userAnswersKey = `${storageKeyPrefix}UserAnswers`;
   const feedbacksKey = `${storageKeyPrefix}Feedbacks`;
 
-  // Nouveaux états pour le mode interactif (Entraînement)
-  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
-  const [activeMode, setActiveMode] = useState<Record<string, boolean>>({});
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>(cvData?.[userAnswersKey] || {});
-  const [isRecording, setIsRecording] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
   const [feedbacks, setFeedbacks] = useState<Record<string, any>>(cvData?.[feedbacksKey] || {});
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [showFeedbackDetails, setShowFeedbackDetails] = useState<Record<string, boolean>>({});
-  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
-  const recognitionRef = useRef<any>(null);
   const [showRechargeModal, setShowRechargeModal] = useState(false);
 
-  // [FIX EXPERT] Sauvegarde automatique des réponses à la sortie du composant
-  // pour éviter la perte de données si l'utilisateur navigue sans soumettre.
   const userAnswersRef = useRef(userAnswers);
   useEffect(() => {
       userAnswersRef.current = userAnswers;
@@ -63,8 +46,6 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
       };
   }, [updateFormData, userAnswersKey]);
 
-  // [FIX EXPERT] On utilise le texte de la question comme clé unique 
-  // pour éviter que les réponses ne bavent d'un index à l'autre (ex: Index 0 Question = Index 0 MES)
   const getKey = (q: any, idx: number): string => {
     if (q.id) return String(q.id);
     const text = q.question || q.scenario || q.situation || q.text || q.contexte || q.description || q.defi || "";
@@ -73,7 +54,6 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
   };
 
   useEffect(() => {
-    // [FIX EXPERT] Récupération prioritaire depuis les données persistées par le backend
     const restoredAnswers: Record<string, string> = { ...cvData?.[userAnswersKey] };
     const restoredFeedbacks: Record<string, any> = { ...cvData?.[feedbacksKey] };
     let hasUpdates = false;
@@ -96,85 +76,14 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
     if (hasUpdates || Object.keys(restoredFeedbacks).length > 0) setFeedbacks(restoredFeedbacks);
   }, [questions, cvData?.[userAnswersKey], cvData?.[feedbacksKey], userAnswersKey, feedbacksKey]);
 
-  const toggleReveal = (qKey: string) => {
-    setRevealed(prev => ({ ...prev, [qKey]: !prev[qKey] }));
-  };
-  
-  const getScoreTheme = (score100?: number) => {
-    if (score100 === undefined) return { border: 'var(--border-color)', bg: 'var(--bg-card)', text: 'var(--text-muted)' };
-    if (score100 >= 75) return { border: '#10b981', bg: 'rgba(16, 185, 129, 0.05)', text: '#10b981' };
-    if (score100 >= 50) return { border: '#eab308', bg: 'rgba(234, 179, 8, 0.05)', text: '#eab308' };
-    return { border: '#ef4444', bg: 'rgba(239, 68, 68, 0.05)', text: '#ef4444' };
-  };
-
   const handleRetry = (qKey: string) => {
     const newF = {...feedbacks}; delete newF[qKey];
     const newA = {...userAnswers}; delete newA[qKey];
     const newE = {...errors}; delete newE[qKey];
     setFeedbacks(newF); setUserAnswers(newA); setErrors(newE);
     if (updateFormData) { updateFormData(feedbacksKey, newF); updateFormData(userAnswersKey, newA); }
-    
-    setActiveMode(prev => ({...prev, [qKey]: true}));
-    setShowFeedbackDetails(prev => ({...prev, [qKey]: false}));
   };
 
-  // --- GESTION DE LA RECONNAISSANCE VOCALE ---
-  const toggleRecording = (qKey: string) => {
-    if (isRecording === qKey) {
-      if (recognitionRef.current) recognitionRef.current.stop();
-      setIsRecording(null);
-      return;
-    }
-
-    if (recognitionRef.current) recognitionRef.current.stop();
-
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("La reconnaissance vocale n'est pas supportée par votre navigateur actuel.");
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'fr-FR';
-    recognition.continuous = true;
-    recognition.interimResults = true;
-
-    let baselineAnswer = userAnswers[qKey] || "";
-
-    recognition.onresult = (event: any) => {
-      let interimTranscript = '';
-      let finalTranscript = '';
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
-        else interimTranscript += event.results[i][0].transcript;
-      }
-      if (finalTranscript) {
-         baselineAnswer += (baselineAnswer && !baselineAnswer.endsWith(' ') ? ' ' : '') + finalTranscript;
-         setUserAnswers(prev => ({ ...prev, [qKey]: baselineAnswer + interimTranscript }));
-      } else {
-         setUserAnswers(prev => ({ ...prev, [qKey]: baselineAnswer + (baselineAnswer && !baselineAnswer.endsWith(' ') ? ' ' : '') + interimTranscript }));
-      }
-    };
-
-    recognition.onerror = () => setIsRecording(null);
-    recognition.onend = () => setIsRecording(null);
-
-    try {
-      recognition.start();
-      recognitionRef.current = recognition;
-      setIsRecording(qKey);
-    } catch (e) {
-      setIsRecording(null);
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      if (recognitionRef.current) recognitionRef.current.stop();
-    };
-  }, []);
-
-  // --- SOUMISSION DE LA RÉPONSE À L'IA ---
   const handleSubmit = async (qKey: string, q: any) => {
     const answer = userAnswers[qKey];
     if (!answer) return;
@@ -182,14 +91,12 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
     setIsSubmitting(qKey);
     setErrors(prev => ({ ...prev, [qKey]: "" }));
     
-    // [NOUVEAU] Vérification du quota avant de lancer l'évaluation
     if ((quotas?.qa ?? 0) <= 0) {
       setShowRechargeModal(true);
       setIsSubmitting(null);
       return;
     }
 
-    // Sécurisation des clés pour l'envoi API
     const questionText = q.question || q.text || "Question non spécifiée";
     const suggestedAnswer = q.suggested_answer || q.answer || q.reponse_suggeree || q.reponse || "";
     
@@ -202,7 +109,6 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
             category: q.category, 
             suggested_framework: suggestedAnswer,
             user_answer: answer,
-            // Ajouts spécifiques pour garantir la compatibilité avec la route d'entraînement
             theme: q.category,
             question_type: q.type,
             question_text: questionText,
@@ -221,13 +127,10 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
       const newFeedbacks = { ...feedbacks, [qKey]: data.feedback };
       setFeedbacks(newFeedbacks);
       
-      // Sauvegarde persistante du résultat et de la réponse
       if (updateFormData) {
           updateFormData(feedbacksKey, newFeedbacks);
           updateFormData(userAnswersKey, { ...userAnswers, [qKey]: answer });
       }
-      setShowFeedbackDetails(prev => ({ ...prev, [qKey]: true }));
-      setActiveMode(prev => ({ ...prev, [qKey]: false }));
       
       if (onEvaluateSuccess) onEvaluateSuccess();
       if (fetchQuotas) fetchQuotas(); // [NOUVEAU] Rafraîchissement des quotas
