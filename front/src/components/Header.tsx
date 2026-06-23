@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import './Header.css';
 import LanguageSelector from './LanguageSelector';
+import { useDashboard } from './DashboardContext';
 
 export interface Step {
   id: number;
@@ -24,10 +25,6 @@ interface HeaderProps {
   onOpenProfile?: () => void;
   onLogout?: () => void;
   onLanguageChange?: (lang: string) => void;
-  isAuthenticated?: boolean;
-  // [AJOUT] Propriété pour savoir si l'utilisateur est admin
-  isAdmin?: boolean;
-  targetLanguage?: string;
 }
 
 export default function Header({
@@ -43,13 +40,12 @@ export default function Header({
   userName,
   onOpenProfile,
   onLogout,
-  onLanguageChange,
-  // [AJOUT] On récupère la prop isAdmin, avec `false` par défaut
-  isAdmin = false
+  onLanguageChange
 }: HeaderProps) {
   const { t } = useTranslation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { isAdmin } = useDashboard();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
