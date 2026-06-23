@@ -149,12 +149,12 @@ export const DashboardProvider = ({
   // L'admin a accès au panel /admin. Les testeurs ont des quotas illimités. Ce sont deux choses différentes.
   const adminEmail = (import.meta.env.VITE_REACT_APP_ADMIN_EMAIL || "").trim().toLowerCase();
   const testerEmails = (import.meta.env.VITE_TESTER_EMAILS_LIST || '').split(',').map((e: string) => e.trim().toLowerCase()).filter(Boolean);
-  const currentUserEmail = cvData?.email?.toLowerCase();
+  const currentUserEmail = cvData?.email?.toLowerCase() || '';
 
   // Le flag `isAdmin` est VRAI si et seulement si l'email correspond à l'admin unique.
-  const isUserAdmin = !!(currentUserEmail && adminEmail && currentUserEmail === adminEmail);
+  const isUserAdmin = !!(adminEmail && currentUserEmail === adminEmail);
   // Le flag `isTester` est VRAI si l'email est dans la liste des testeurs.
-  const isUserTester = !!(currentUserEmail && testerEmails.includes(currentUserEmail));
+  const isUserTester = testerEmails.includes(currentUserEmail);
 
   const fetchQuotas = useCallback(async () => {
     // [FIX] La logique des quotas illimités ne s'applique qu'aux testeurs, pas à l'admin.
@@ -182,7 +182,7 @@ export const DashboardProvider = ({
     } catch (e: any) {
         console.error("Impossible de récupérer les quotas, utilisation des valeurs par défaut.", e);
     }
-  }, [cvData?.email, isUserTester]);
+  }, [isUserTester]);
 
   // Mémoïsation de la fonction d'appel pour éviter les re-rendus infinis dans les useEffect
   const fetchPilotData = useCallback(async () => {
