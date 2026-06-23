@@ -28,6 +28,7 @@ interface DashboardContextType {
   fetchPilotData: () => Promise<void>;
   fetchQuotas: () => Promise<void>;
   updateFormData?: (key: string, value: any) => void;
+  isAdmin?: boolean;
   pilotError: string | null;
 }
 
@@ -105,6 +106,9 @@ export const DashboardProvider = ({
     regeneration: 0,
     update: 0,
   });
+
+  const testerEmails = (import.meta.env.VITE_TESTER_EMAILS_LIST || '').split(',').map((e: string) => e.trim().toLowerCase());
+  const currentUserEmail = localCvData?.email?.toLowerCase();
 
   const fetchQuotas = useCallback(async () => {
     // [FIX] Logique pour les testeurs avec quotas illimités
@@ -207,6 +211,7 @@ export const DashboardProvider = ({
       triggerResearch: onTriggerResearch,
       updateFormData: handleUpdateFormData,
       pilotError,
+      isAdmin: currentUserEmail && testerEmails.includes(currentUserEmail),
     }}>
       {children}
     </DashboardContext.Provider>
