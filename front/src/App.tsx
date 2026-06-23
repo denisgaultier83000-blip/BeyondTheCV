@@ -481,14 +481,18 @@ function AppContent() {
 
   // [FIX] Sécurisation du parsing JSON du nom d'utilisateur pour éviter la page blanche au login
   let parsedUserName = undefined;
+  // [FIX CRITIQUE] Centralisation de la logique admin.
+  // On utilise la même méthode de vérification que dans le Header pour garantir la cohérence.
   let isAdmin = false;
   if (isAuthenticated) {
     try {
       const storedUser = localStorage.getItem('user');
+      const adminEmail = import.meta.env.VITE_REACT_APP_ADMIN_EMAIL;
       if (storedUser && storedUser !== "undefined" && storedUser !== "null") {
           const u = JSON.parse(storedUser);
           parsedUserName = u.first_name || u.name || t('default_candidate_name', "Candidat");
-          isAdmin = !!u.is_admin;
+          // La seule source de vérité est la comparaison avec la variable d'environnement.
+          isAdmin = !!(adminEmail && u.email && u.email.toLowerCase() === adminEmail.toLowerCase());
       }
     } catch (e) {
         parsedUserName = t('default_candidate_name', "Candidat");
