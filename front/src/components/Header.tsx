@@ -38,12 +38,12 @@ export default function Header({
   userName,
   onOpenProfile,
   onLogout,
-  onLanguageChange,
-  isAdmin = false
+  onLanguageChange
 }: HeaderProps) {
   const { t } = useTranslation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { isAdmin } = useDashboard();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
