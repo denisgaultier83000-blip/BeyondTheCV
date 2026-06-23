@@ -41,7 +41,7 @@ export function AdminUserDetail() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const adminEmail = process.env.REACT_APP_ADMIN_EMAIL;
+    const adminEmail = import.meta.env.VITE_REACT_APP_ADMIN_EMAIL;
     const userStr = localStorage.getItem('user');
     if (!userStr) {
       navigate('/');

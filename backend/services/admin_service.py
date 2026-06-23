@@ -6,7 +6,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
 from datetime import datetime
-import stripe
+import stripe, json
 import httpx
 
 from security import require_admin_user
@@ -310,3 +310,30 @@ async def admin_health_check():
         statuses["serper"] = "missing_key"
 
     return {"services": statuses}
+
+@router.get("/cache/stats", response_model=dict)
+async def get_cache_stats():
+    """
+    [NOUVEAU] Fournit les statistiques de performance globales du cache des articles (OSINT).
+    Calcule le total sur toute la période, pas seulement la journée en cours.
+    """
+    try:
+        async with db.get_connection() as conn:
+            # Récupère le total des hits et des misses sur toute la période
+            hits_row = await db.fetchone(conn, "SELECT SUM(value) FROM system_stats WHERE key = 'article_cache_hits'")
+            misses_row = await db.fetchone(conn, "SELECT SUM(value) FROM system_stats WHERE key = 'article_cache_misses'")
+
+            total_hits = hits_row[0] if hits_row and hits_row[0] is not None else 0
+            total_misses = misses_row[0] if misses_row and misses_row[0] is not None else 0
+            
+            total_requests = total_hits + total_misses
+            hit_ratio = (total_hits / total_requests * 100) if total_requests > 0 else 0
+
+            return {
+                "total_hits": total_hits,
+                "total_misses": total_misses,
+                "total_requests": total_requests,
+                "hit_ratio_percent": round(hit_ratio, 2)
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur base de données: {str(e)}")

@@ -112,7 +112,7 @@ export const DashboardProvider = ({
 
   // [AJOUT] Calcul du statut admin dès que l'email de l'utilisateur est connu
   useEffect(() => {
-    const adminEmail = process.env.REACT_APP_ADMIN_EMAIL;
+    const adminEmail = import.meta.env.VITE_REACT_APP_ADMIN_EMAIL;
     const userEmail = localCvData?.email?.toLowerCase();
 
     if (adminEmail && userEmail) {
@@ -122,7 +122,7 @@ export const DashboardProvider = ({
 
   const fetchQuotas = useCallback(async () => {
     // [FIX] Logique pour les testeurs avec quotas illimités
-    const testerEmails = (process.env.REACT_APP_TESTER_EMAILS || '').split(',').map(e => e.trim().toLowerCase());
+    const testerEmails = (import.meta.env.VITE_REACT_APP_TESTER_EMAILS || '').split(',').map(e => e.trim().toLowerCase());
     const currentUserEmail = localCvData?.email?.toLowerCase();
 
     if (currentUserEmail && testerEmails.includes(currentUserEmail)) {

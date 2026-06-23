@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import AdminQuotaManager from './AdminQuotaManager';
 import { useNavigate } from 'react-router-dom';
-import { User, Shield, Calendar, Edit, Trash2, Eye, Database, CheckCircle, XCircle, Percent } from 'lucide-react';
+import { User, Shield, Calendar, Edit, Trash2, Eye, Database, CheckCircle, XCircle, Percent, BarChart3 } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 // --- Types ---
 interface Stats {
@@ -67,19 +68,30 @@ export function AdminDashboard() {
       };
 
       // Chargement en parallèle des 3 endpoints vitaux
-      const [statsRes, healthRes, usersRes, cacheHistoryRes] = await Promise.all([
+      // [MODIFIÉ] On appelle le nouvel endpoint pour les stats de cache globales
+      const [statsRes, healthRes, usersRes, cacheHistoryRes, cacheStatsRes] = await Promise.all([
         fetch('/api/admin/stats', { headers }),
         fetch('/api/admin/health-check', { headers }),
         fetch('/api/admin/users?limit=20', { headers }),
-        fetch('/api/admin/cache-history?days=7', { headers })
+        fetch('/api/admin/cache-history?days=7', { headers }),
+        fetch('/api/admin/cache/stats', { headers }) // Nouvel appel
       ]);
 
       if (!statsRes.ok || !healthRes.ok || !usersRes.ok) {
         throw new Error("Erreur d'accès. Avez-vous bien les droits d'Administrateur ?");
       }
 
-      setStats(await statsRes.json());
+      const baseStats = await statsRes.json();
+      const cacheStats = cacheStatsRes.ok ? await cacheStatsRes.json() : {};
       
+      // On fusionne les stats de base avec les nouvelles stats de cache
+      setStats({
+        ...baseStats,
+        cache_hits: cacheStats.total_hits,
+        cache_misses: cacheStats.total_misses,
+        cache_hit_ratio: cacheStats.hit_ratio_percent,
+      });
+
       const healthData = await healthRes.json();
       setHealth(healthData.services);
       
@@ -154,6 +166,11 @@ export function AdminDashboard() {
     navigate(`/admin/user/${userId}`);
   };
 
+  const formattedCacheHistory = cacheHistory.map(item => ({
+    ...item,
+    name: new Date(item.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }),
+  }));
+
   if (loading) {
     return <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>Chargement du centre de commandement...</div>;
   }
@@ -192,7 +209,7 @@ export function AdminDashboard() {
       
       {/* [AJOUT] Carte des statistiques du cache */}
       <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.25rem', margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Database size={20} /> Cache des Articles (OSINT)</h2>
+        <h2 style={{ fontSize: '1.25rem', margin: '0 0 1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Database size={20} /> Cache des Articles (OSINT)</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '0.5rem' }}>
             <CheckCircle size={24} color="#10b981" />
@@ -210,6 +227,24 @@ export function AdminDashboard() {
               </p>
               <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>Hit Ratio</p>
             </div>
+          </div>
+        </div>
+        {/* [NOUVEAU] Graphique de l'historique du Hit Ratio */}
+        <div style={{ marginTop: '2rem' }}>
+          <h3 style={{ fontSize: '1rem', margin: '0 0 1rem 0', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><BarChart3 size={18} /> Historique du Hit Ratio (7 derniers jours)</h3>
+          <div style={{ height: '250px', width: '100%' }}>
+            <ResponsiveContainer>
+              <LineChart data={formattedCacheHistory} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+                <XAxis dataKey="name" stroke="var(--text-muted)" fontSize="0.8rem" />
+                <YAxis stroke="var(--text-muted)" fontSize="0.8rem" unit="%" domain={[0, 100]} />
+                <Tooltip
+                  contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '0.5rem' }}
+                  labelStyle={{ color: 'var(--text-main)', fontWeight: 'bold' }}
+                />
+                <Line type="monotone" dataKey="hit_ratio" name="Hit Ratio" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} unit="%" />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>

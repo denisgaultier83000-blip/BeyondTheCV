@@ -2,6 +2,7 @@ import React from 'react';
 import { Building, Newspaper, ExternalLink, Globe2, Target, Users, TrendingUp, BookOpen, Brain, Activity } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 import { useTranslation } from 'react-i18next';
+import { formatStrategicAnalysisReact as formatMarkdownReact } from '../utils/formatUtils';
 
 interface CompanyAnalysisCardProps {
   data: any;
