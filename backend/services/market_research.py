@@ -294,8 +294,7 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
     if external_prompt:
         no_company_warning = "" if company else "L'utilisateur n'a pas spécifié d'entreprise. Remplis TOUS les champs de 'company_report' EXACTEMENT avec la mention 'Non renseigné'."
         # [FIX EXPERT] Découplage total. Le fichier markdown contient toute la structure JSON et le contexte.
-        final_prompt = external_prompt.replace("{search_context}", search_context) \
-                                      .replace("{company}", company or "Non spécifiée") \
+        final_prompt = external_prompt.replace("{company}", company or "Non spécifiée") \
                                       .replace("{no_company_warning}", no_company_warning) \
                                       .replace("{industry}", industry or "Non spécifié") \
                                       .replace("{target_country}", target_country or "Global") \
@@ -303,9 +302,9 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
                                       .replace("{target_lang}", target_lang) \
                                       .replace("{current_date}", datetime.now().strftime("%Y-%m-%d"))
                                       
-        # [FIX EXPERT] Injection forcée du contexte de recherche
-        if search_context and "Source [1]" not in final_prompt:
-            final_prompt += f"\n\n### RÉSULTATS WEB BRUTS (CONTEXTE RAG OBLIGATOIRE) ###\n{search_context}"
+        # [EXPERT DEBUG] Injection UNIQUE du contexte de recherche. On ne passe plus les snippets.
+        # L'IA est maintenant forcée de lire le contenu complet des articles.
+        final_prompt = final_prompt.replace("{search_context}", search_context)
     else:
         # Fallback robuste si le fichier est manquant
         final_prompt = f"""

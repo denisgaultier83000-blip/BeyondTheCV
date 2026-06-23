@@ -125,6 +125,11 @@ class OSINTPipeline:
                         url TEXT PRIMARY KEY,
                         content TEXT,
                         cached_at TIMESTAMP
+                    );
+                    CREATE TABLE IF NOT EXISTS osint_cache (
+                        cache_key TEXT PRIMARY KEY,
+                        result TEXT,
+                        cached_at TIMESTAMP
                     )
                 """)
             self.cache_initialized = True
@@ -178,13 +183,33 @@ class OSINTPipeline:
         except Exception as e:
             return f"[Erreur lors de l'extraction : {type(e).__name__}]"
 
-    async def run(self, company_name: str, role: str) -> str:
+    async def run(self, company_name: str, role: str, queries: list[str]) -> str:
         """Exécute l'analyse et retourne le contexte formaté pour le Prompt final."""
-        aliases = self.expand_entity(company_name)
-        queries = self.build_queries(aliases)
+        await self._init_cache_db()
+
+        # [EXPERT] Implémentation du cache pour les résultats OSINT complets
+        # 1. Création d'une clé de cache unique basée sur la cible
+        cache_key = f"osint:{company_name.lower().strip()}:{role.lower().strip()}"
+
+        # 2. Vérification du cache
+        if db:
+            try:
+                async with db.get_connection() as conn:
+                    row = await db.fetchone(conn, "SELECT result, cached_at FROM osint_cache WHERE cache_key = ?", (cache_key,))
+                    if row:
+                        cached_result, cached_at = row[0], row[1]
+                        if datetime.now() - cached_at < timedelta(days=7):
+                            await db.execute(conn, "INSERT INTO system_stats (key, value, date) VALUES (?, 1, CURRENT_DATE) ON CONFLICT(key, date) DO UPDATE SET value = system_stats.value + 1", ('osint_cache_hits',))
+                            return cached_result
+            except Exception as e:
+                print(f"[OSINT CACHE READ ERROR] {e}")
         
         all_articles = []
         sem = asyncio.Semaphore(5)
+        # [EXPERT] Incrémentation du compteur de "misses" si on continue
+        if db:
+            async with db.get_connection() as conn:
+                await db.execute(conn, "INSERT INTO system_stats (key, value, date) VALUES (?, 1, CURRENT_DATE) ON CONFLICT(key, date) DO UPDATE SET value = system_stats.value + 1", ('osint_cache_misses',))
         
         async def fetch_with_sem(session, q):
             async with sem:
@@ -224,4 +249,12 @@ class OSINTPipeline:
         else:
             context_str += "Aucun article pertinent trouvé lors de la recherche web."
             
+        # 4. Mise en cache du résultat final
+        if db and not context_str.startswith("Aucun"):
+            try:
+                async with db.get_connection() as conn:
+                    await db.execute(conn, "INSERT OR REPLACE INTO osint_cache (cache_key, result, cached_at) VALUES (?, ?, ?)", (cache_key, context_str, datetime.now()))
+            except Exception as e:
+                print(f"[OSINT CACHE WRITE ERROR] {e}")
+
         return context_str

@@ -20,6 +20,14 @@ interface Stats {
   avg_ai_cost_per_user?: number;
 }
 
+// [EXPERT] Définition des types pour le tableau de marge
+interface MarginStat {
+  offer_name: string;
+  price: number;
+  avg_ia_cost: number;
+  avg_infra_cost: number; // Inclut Serper, Stripe, etc.
+  estimated_margin: number;
+}
 interface CacheHistoryItem {
   date: string;
   hits: number;
@@ -53,6 +61,8 @@ export function AdminDashboard() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  // [EXPERT] Ajout d'un état pour les statistiques de marge
+  const [marginStats, setMarginStats] = useState<MarginStat[]>([]);
   // --- États pour la Modale d'Abonnement ---
   const [subscriptionModalUser, setSubscriptionModalUser] = useState<User | null>(null);
   const [subAction, setSubAction] = useState<'extend' | 'cancel'>('extend');
@@ -73,12 +83,13 @@ export function AdminDashboard() {
 
       // Chargement en parallèle des 3 endpoints vitaux
       // [MODIFIÉ] On appelle le nouvel endpoint pour les stats de cache globales
-      const [statsRes, healthRes, usersRes, cacheHistoryRes, cacheStatsRes] = await Promise.all([
+      const [statsRes, healthRes, usersRes, cacheHistoryRes, cacheStatsRes, marginRes] = await Promise.all([
         fetch('/api/admin/stats', { headers }),
         fetch('/api/admin/health-check', { headers }),
         fetch('/api/admin/users?limit=20', { headers }),
         fetch('/api/admin/cache-history?days=7', { headers }),
-        fetch('/api/admin/cache/stats', { headers }) // Nouvel appel
+        fetch('/api/admin/cache/stats', { headers }),
+        fetch('/api/admin/margins', { headers }) // [EXPERT] Nouvel appel pour les marges
       ]);
 
       if (!statsRes.ok || !healthRes.ok || !usersRes.ok) {
@@ -104,6 +115,9 @@ export function AdminDashboard() {
       
       const cacheHistoryData = await cacheHistoryRes.json();
       setCacheHistory(cacheHistoryData.cache_history);
+
+      // [EXPERT] On peuple les stats de marge si l'appel a réussi
+      if (marginRes.ok) setMarginStats(await marginRes.json());
 
     } catch (err: any) {
       setError(err.message || "Erreur de connexion au serveur.");
@@ -234,10 +248,19 @@ export function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {/* Ces données devront venir d'un nouvel endpoint /api/admin/margins */}
-                <tr className="border-b"><td className="px-4 py-3 font-medium">Express</td><td className="px-4 py-3">39 €</td><td className="px-4 py-3">3 €</td><td className="px-4 py-3 font-bold text-green-600">33,70 €</td></tr>
-                <tr className="border-b"><td className="px-4 py-3 font-medium">Stratégique</td><td className="px-4 py-3">119 €</td><td className="px-4 py-3">12 €</td><td className="px-4 py-3 font-bold text-green-600">101,50 €</td></tr>
-                <tr><td className="px-4 py-3 font-medium">Intensive</td><td className="px-4 py-3">219 €</td><td className="px-4 py-3">28 €</td><td className="px-4 py-3 font-bold text-green-600">181 €</td></tr>
+                {/* [EXPERT] Le tableau est maintenant dynamique et non plus codé en dur */}
+                {marginStats.length > 0 ? marginStats.map(stat => (
+                  <tr key={stat.offer_name} className="border-b">
+                    <td className="px-4 py-3 font-medium">{stat.offer_name}</td>
+                    <td className="px-4 py-3">{stat.price.toFixed(2)} €</td>
+                    <td className="px-4 py-3">{stat.avg_ia_cost.toFixed(2)} €</td>
+                    <td className="px-4 py-3 font-bold text-green-600">{stat.estimated_margin.toFixed(2)} €</td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-3 text-center text-slate-400 italic">Données de marge non disponibles.</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
