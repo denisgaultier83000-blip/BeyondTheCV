@@ -359,7 +359,6 @@ export function AdminDashboard() {
                 </button>
               </div>
             </form>
-            </div>
           </div>
         </div>
       )}
