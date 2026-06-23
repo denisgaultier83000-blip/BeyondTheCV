@@ -79,8 +79,8 @@ export const InterviewTab = () => {
   const { t } = useTranslation();
   const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false);
   const [isDark] = useState(() => document.body.classList.contains('dark-mode'));
-  const [pitchMatrix, setPitchMatrix] = useState<any>(pitchResult || null);
-  const [activePitch, setActivePitch] = useState('pitch_3_minutes');
+  const [pitchMatrix, setPitchMatrix] = useState<any>(null);
+  const [activePitch, setActivePitch] = useState('recruiter_pitch');
   const [editablePitch, setEditablePitch] = useState({
     accroche: "",
     preuve: "",
@@ -90,7 +90,7 @@ export const InterviewTab = () => {
 
   useEffect(() => {
     if (pitchResult) {
-      setPitchMatrix(pitchResult); // [FIX] Synchronise la matrice à chaque mise à jour du résultat IA
+      setPitchMatrix(pitchResult);
       const savedEditablePitch = cvData?.editablePitch;
       if (savedEditablePitch && Object.values(savedEditablePitch).some(v => !!v)) {
         setEditablePitch(savedEditablePitch);
@@ -221,8 +221,10 @@ export const InterviewTab = () => {
 
   const handleTabClick = (pitchType: string) => {
     setActivePitch(pitchType);
-    // Au clic, on met à jour les 4 champs avec le contenu correspondant
-    populateFieldsFromMatrix(pitchMatrix, pitchType);
+    // [FIX] On s'assure que la matrice existe avant de peupler les champs
+    if (pitchMatrix) {
+      populateFieldsFromMatrix(pitchMatrix, pitchType);
+    }
   };
 
   // Convertir les Mises en Situation (MES) en format "Question" pour les fusionner
