@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminQuotaManager from './AdminQuotaManager';
 import { useNavigate } from 'react-router-dom';
-import { User, Shield, Calendar, Eye, Database, CheckCircle, XCircle, Percent, BarChart3, DollarSign, Users, Cpu, Package, AlertTriangle, LifeBuoy } from 'lucide-react';
+import { User, Shield, Calendar, Eye, Database, CheckCircle, XCircle, Percent, BarChart3, DollarSign, Users, Cpu, Package, AlertTriangle, LifeBuoy, ArrowRight } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 // --- Types ---
@@ -14,6 +14,10 @@ interface Stats {
   cache_misses?: number;
   cache_hit_ratio?: number;
   avg_training_score: number;
+  // [NOUVEAU] Indicateurs financiers et IA
+  revenue_month?: number;
+  ai_cost_month?: number;
+  avg_ai_cost_per_user?: number;
 }
 
 interface CacheHistoryItem {
@@ -250,6 +254,16 @@ export function AdminDashboard() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* --- LIEN VERS LA NOUVELLE PAGE --- */}
+      <div className="text-center my-8">
+        <button 
+          onClick={() => navigate('/admin/ai-usage')}
+          className="bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 mx-auto"
+        >
+          Accéder au Suivi Détaillé des Coûts IA <ArrowRight size={18} />
+        </button>
       </div>
 
       {/* --- SECTION 3 : GRAPHIQUES & SANTÉ --- */}

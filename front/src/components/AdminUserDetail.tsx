@@ -1,20 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Mail, Calendar, Shield, Briefcase, FileText, Download, Trash2, Loader2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Mail, Calendar, Shield, Briefcase, FileText, Download, Trash2, Loader2, AlertTriangle, DollarSign, Cpu, Activity, Clock, PlusCircle, Repeat, RefreshCw, UserX } from 'lucide-react';
 import { authenticatedFetch } from '../utils/auth';
 import { API_BASE_URL } from '../config';
 import { AsyncBoundary } from './AsyncBoundary';
 
 // --- Types ---
+// [MODIFIÉ] Enrichissement du type pour correspondre aux spécifications
 interface UserDetail {
   id: string;
   email: string;
   first_name: string;
   last_name: string;
   created_at: string;
+  last_login: string;
   is_premium: boolean;
   is_active: boolean;
-  credits: number;
+  // Métriques de rentabilité
+  offer_name: string; // Ex: 'Stratégique'
+  purchase_date: string;
+  expiration_date: string;
+  total_ia_cost: number;
+  // Métriques d'usage
+  sessions_consumed: number;
+  sessions_remaining: number;
+  login_count: number;
+  current_funnel_step: string; // Ex: 'Étape 4: Expériences'
 }
 
 interface Document {
@@ -39,6 +50,8 @@ export function AdminUserDetail() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // [AJOUT] État pour les notes internes
+  const [internalNotes, setInternalNotes] = useState('');
 
   useEffect(() => {
     const adminEmail = import.meta.env.VITE_REACT_APP_ADMIN_EMAIL;
@@ -58,10 +71,11 @@ export function AdminUserDetail() {
       setLoading(true);
       setError(null);
       try {
-        // Note : Ces endpoints sont à créer côté backend
-        const [userRes, appsRes] = await Promise.all([
+        // [MODIFIÉ] Ajout de l'endpoint pour les notes
+        const [userRes, appsRes, notesRes] = await Promise.all([
           authenticatedFetch(`${API_BASE_URL}/api/admin/users/${userId}`),
-          authenticatedFetch(`${API_BASE_URL}/api/admin/users/${userId}/applications`)
+          authenticatedFetch(`${API_BASE_URL}/api/admin/users/${userId}/applications`),
+          authenticatedFetch(`${API_BASE_URL}/api/admin/users/${userId}/notes`) // Endpoint à créer
         ]);
 
         if (!userRes.ok) throw new Error("Impossible de charger les détails de l'utilisateur.");
@@ -69,6 +83,7 @@ export function AdminUserDetail() {
 
         setUser(await userRes.json());
         setApplications(await appsRes.json());
+        if (notesRes.ok) setInternalNotes((await notesRes.json()).notes);
 
       } catch (e: any) {
         setError(e.message);
@@ -83,8 +98,7 @@ export function AdminUserDetail() {
   const handleDeleteApplication = async (appId: string) => {
     if (!window.confirm("Voulez-vous vraiment supprimer ce dossier de candidature et tous les documents associés ?")) return;
     
-    try { // Note: Endpoint à créer côté backend
-      // Note: Endpoint à créer côté backend
+    try {
       const res = await authenticatedFetch(`${API_BASE_URL}/api/admin/applications/${appId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error("Erreur lors de la suppression.");
       setApplications(prev => prev.filter(app => app.id !== appId));
@@ -92,6 +106,24 @@ export function AdminUserDetail() {
       alert(err.message);
     }
   };
+
+  // [AJOUT] Sauvegarde des notes internes
+  const handleSaveNotes = async () => {
+    try {
+      const res = await authenticatedFetch(`${API_BASE_URL}/api/admin/users/${userId}/notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: internalNotes })
+      });
+      if (!res.ok) throw new Error("Erreur lors de la sauvegarde des notes.");
+      alert("Notes sauvegardées !");
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  // [AJOUT] Placeholder pour les actions admin
+  const handleAdminAction = (action: string) => alert(`Action non implémentée : ${action}`);
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '2rem' }}>
@@ -103,7 +135,7 @@ export function AdminUserDetail() {
         {user && (
           <>
             {/* --- CARTE D'IDENTITÉ UTILISATEUR --- */}
-            <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginBottom: '2rem' }}>
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem' }}>
                 <div style={{ background: 'var(--primary)', color: 'white', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 'bold' }}>
                   {user.first_name?.[0]}{user.last_name?.[0]}
@@ -117,8 +149,42 @@ export function AdminUserDetail() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                <span style={{ padding: '0.4rem 1rem', borderRadius: '2rem', fontSize: '0.85rem', background: user.is_active ? '#d1fae5' : '#fee2e2', color: user.is_active ? '#065f46' : '#991b1b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Shield size={14} /> {user.is_active ? 'Compte Actif' : 'Compte Banni'}</span>
-                <span style={{ padding: '0.4rem 1rem', borderRadius: '2rem', fontSize: '0.85rem', background: user.is_premium ? 'rgba(245, 158, 11, 0.1)' : 'var(--bg-secondary)', color: user.is_premium ? '#b45309' : 'var(--text-muted)', fontWeight: 600 }}>{user.is_premium ? '⭐ Premium' : 'Standard'}</span>
+                <span className={`px-3 py-1 text-xs font-semibold rounded-full flex items-center gap-2 ${user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}><Shield size={14} /> {user.is_active ? 'Actif' : 'Bloqué'}</span>
+                <span className={`px-3 py-1 text-xs font-semibold rounded-full flex items-center gap-2 ${user.is_premium ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`}>⭐ {user.offer_name || (user.is_premium ? 'Premium' : 'Standard')}</span>
+              </div>
+            </div>
+
+            {/* --- INDICATEURS CLÉS --- */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              <div className="bg-slate-50 p-4 rounded-lg text-center">
+                <div className="text-xs text-slate-500 uppercase font-semibold">Coût IA</div>
+                <div className="text-2xl font-bold text-red-600">{user.total_ia_cost.toFixed(2)} €</div>
+              </div>
+              <div className="bg-slate-50 p-4 rounded-lg text-center">
+                <div className="text-xs text-slate-500 uppercase font-semibold">Séances</div>
+                <div className="text-2xl font-bold">{user.sessions_consumed} / {user.sessions_consumed + user.sessions_remaining}</div>
+              </div>
+              <div className="bg-slate-50 p-4 rounded-lg text-center">
+                <div className="text-xs text-slate-500 uppercase font-semibold">Connexions</div>
+                <div className="text-2xl font-bold">{user.login_count}</div>
+              </div>
+              <div className="bg-slate-50 p-4 rounded-lg text-center">
+                <div className="text-xs text-slate-500 uppercase font-semibold">Dernière Act.</div>
+                <div className="text-2xl font-bold">{new Date(user.last_login).toLocaleDateString()}</div>
+              </div>
+            </div>
+
+            {/* --- ACTIONS ADMIN --- */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
+              <h2 className="text-lg font-bold text-slate-800 mb-4">Actions Rapides</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <button onClick={() => handleAdminAction("Prolonger l'accès")} className="btn-admin-action"><Clock size={16}/> Prolonger Accès</button>
+                <button onClick={() => handleAdminAction("Ajouter des séances")} className="btn-admin-action"><PlusCircle size={16}/> Ajouter Séances</button>
+                <button onClick={() => handleAdminAction("Relancer l'analyse")} className="btn-admin-action"><Repeat size={16}/> Relancer Analyse</button>
+                <button onClick={() => handleAdminAction("Purger le cache IA")} className="btn-admin-action"><RefreshCw size={16}/> Purger Cache IA</button>
+                <button onClick={() => handleAdminAction("Rembourser")} className="btn-admin-action text-amber-600"><DollarSign size={16}/> Rembourser</button>
+                <button onClick={() => handleAdminAction("Bloquer le compte")} className="btn-admin-action text-red-600"><Shield size={16}/> Bloquer Compte</button>
+                <button onClick={() => handleAdminAction("Anonymiser (RGPD)")} className="btn-admin-action text-red-600"><UserX size={16}/> Anonymiser</button>
               </div>
             </div>
 
@@ -165,6 +231,21 @@ export function AdminUserDetail() {
           </>
         )}
       </AsyncBoundary>
+
+      {/* --- NOTES INTERNES --- */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mt-8">
+        <h2 className="text-lg font-bold text-slate-800 mb-4">Notes Internes (Support)</h2>
+        <textarea
+          value={internalNotes}
+          onChange={(e) => setInternalNotes(e.target.value)}
+          rows={5}
+          placeholder="Ajouter une note sur cet utilisateur..."
+          className="w-full p-2 border border-slate-300 rounded-md bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none"
+        />
+        <div className="text-right mt-4">
+          <button onClick={handleSaveNotes} className="btn-primary">Sauvegarder la note</button>
+        </div>
+      </div>
     </div>
   );
 }
