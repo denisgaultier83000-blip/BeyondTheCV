@@ -126,7 +126,7 @@ export const PitchEditor: React.FC<PitchEditorProps> = ({ pitchResult, cvData, u
             <div className="pitch-selector-container">
               <div className="pitch-selector-group">
                 <h6 className="pitch-selector-title">Format</h6>
-                <div className="pitch-selector-tabs"><button onClick={() => dispatch({ type: 'set_active_pitch', payload: { pitchType: 'recruiter_pitch', matrix: pitchMatrix } })} className={activePitch === 'recruiter_pitch' ? 'active' : ''}><Clock size={16}/> Stratégique</button></div>
+                <div className="pitch-selector-tabs"><button onClick={() => {}} className={'active'}><Clock size={16}/> Stratégique</button></div>
               </div>
               <div className="pitch-selector-group">
                 <h6 className="pitch-selector-title">Par Audience</h6>
@@ -135,7 +135,7 @@ export const PitchEditor: React.FC<PitchEditorProps> = ({ pitchResult, cvData, u
                   <button onClick={() => dispatch({ type: 'set_active_pitch', payload: { pitchType: 'executive_pitch', matrix: pitchMatrix } })} className={activePitch === 'executive_pitch' ? 'active' : ''}><Building size={16}/> Dirigeant</button>
                   <button onClick={() => dispatch({ type: 'set_active_pitch', payload: { pitchType: 'hr_pitch', matrix: pitchMatrix } })} className={activePitch === 'hr_pitch' ? 'active' : ''}><Users size={16}/> RH</button>
                   <button onClick={() => dispatch({ type: 'set_active_pitch', payload: { pitchType: 'networking_pitch', matrix: pitchMatrix } })} className={activePitch === 'networking_pitch' ? 'active' : ''}><Users size={16}/> Réseau</button>
-                  <button onClick={() => dispatch({ type: 'set_active_pitch', payload: { pitchType: 'anti_flaw_pitch', matrix: pitchMatrix } })} className={activePitch === 'anti_flaw_pitch' ? 'active' : ''}><Shield size={16}/> Anti-Failles</button>
+                  {pitchMatrix?.anti_flaw_pitch && <button onClick={() => dispatch({ type: 'set_active_pitch', payload: { pitchType: 'anti_flaw_pitch', matrix: pitchMatrix } })} className={activePitch === 'anti_flaw_pitch' ? 'active' : ''}><Shield size={16}/> Anti-Failles</button>}
                 </div>
               </div>
             </div>

@@ -325,40 +325,36 @@ async def generate_gap_analysis(data, job_desc, quality='smart'):
     return result
 
 async def generate_pitch(data, quality='smart'):
-    # [AMELIORATION] Utilisation des clarifications et fallback conseils
-    clarifications = data.get('clarifications', [])
     target_lang = normalize_language(data.get('target_language', 'fr'))
-    clarifications_str = "\n".join([f"Q: {c.get('question')}\nA: {c.get('answer')}" for c in clarifications if c.get('answer')])
     
-    interview_type = data.get('meta', {}).get('interview_type') or data.get('interview_type', 'Non précisé')
-    interview_format = data.get('meta', {}).get('interview_format') or data.get('interview_format', 'Non précisé')
+    # [EXPERT REFACTOR] Utilisation du nouveau prompt `strategic_pitch_v2.md`
+    prompt_template = load_prompt(get_prompt_path("strategic_pitch_v2.md"))
     
-    # [NEW] Injection des données de recherche asynchrone (Entreprise & Marché)
+    # [FIX EXPERT] Whitelist stricte pour éviter l'explosion de tokens et se concentrer sur l'essentiel.
+    safe_data = {
+        "experiences": data.get("experiences", []),
+        "educations": data.get("educations", []),
+        "skills": data.get("skills", []),
+        "flaws": data.get("flaws", []), // Essentiel pour le pitch anti-failles
+        "target_job": data.get("target_job"),
+        "job_description": data.get("job_description"),
+        "interview_type": data.get("meta", {}).get("interview_type")
+    }
+    
+    context_str = json.dumps(safe_data, indent=2, ensure_ascii=False, default=str)
+    
+    # Injection des données de recherche pour le pitch "Dirigeant"
     research_context = ""
     rd = data.get("research_data")
     if rd:
         cr = rd.get("company_report", {})
         mr = rd.get("market_report", {})
-        research_context = f"\nCONTEXTE ENTREPRISE & MARCHÉ (À UTILISER POUR LA PROJECTION) :\n- ADN: {cr.get('identity_dna', '')}\n- Défis: {cr.get('usp', '')}\n- Marché: {mr.get('trends', '')}\n"
+        research_context = f"\n\n--- CONTEXTE MARCHÉ & ENTREPRISE ---\n- ADN Entreprise: {cr.get('identity_dna', 'N/A')}\n- Défis Stratégiques: {cr.get('usp', 'N/A')}\n- Tendances Marché: {mr.get('trends', 'N/A')}"
 
-    prompt_template = load_prompt(get_prompt_path("pitch_v1.md"))
-    prompt = f"""
-    {prompt_template}
+    final_prompt = prompt_template.replace("{{CANDIDATE_DATA_JSON}}", context_str + research_context) \
+                                  .replace("{{TARGET_LANGUAGE}}", target_lang)
     
-    DONNÉES CANDIDAT :
-    {json.dumps(_sanitize_data_for_ai(data, strict=True), default=str)}
-    
-    CLARIFICATIONS APPORTÉES :
-    {clarifications_str}
-    {research_context}
-    
-    CONTRAINTE D'ENTRETIEN :
-    - Type d'interlocuteur : {interview_type}
-    - Format : {interview_format}
-    
-    OUTPUT LANGUAGE: {target_lang}
-    """
-    result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a senior recruiter. ALL CONTENT MUST BE ENTIRELY WRITTEN IN {target_lang.upper()}. Output STRICT JSON.")
+    result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction=f"You are an Executive Coach. Output STRICT JSON in {target_lang.upper()}.")
     if "error" in result:
         return {}
     return result

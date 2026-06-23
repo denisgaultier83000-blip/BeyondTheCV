@@ -57,10 +57,6 @@ Chaque pitch est un objet avec une version `written` et `oral`.
     "identified_flaw": "La faiblesse principale que tu as identifiée dans le profil (ex: 'Reconversion récente du marketing vers la data').",
     "written": "Version écrite du pitch qui désamorce cette faiblesse et la transforme en force.",
     "oral": "Version orale naturelle du pitch anti-failles."
-  },
-  "analysis": {
-    "global_score": 8,
-    "critique": "Ce pitch est puissant car il s'appuie sur des métriques fortes, mais attention à ne pas paraître trop technique face à un auditoire non-expert."
   }
 }
 ```
@@ -75,50 +71,3 @@ Si un pitch pouvait convenir à un autre candidat, c'est qu'il est raté. Person
 
 ## 🌍 LANGUE DE SORTIE
 `{{TARGET_LANGUAGE}}`
-
-### 2. Mise à jour du Backend (`cv_services.py`)
-
-Nous modifions la tâche `_run_pitch_logic` pour qu'elle utilise ce nouveau prompt et la nouvelle structure de données.
-
-```diff
-        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "pitch", candidate_data, "Pitch récupéré en cache")
-        if is_cached: return
-
-        prompt_template = load_prompt(get_prompt_path("strategic_pitch_v2.md"))
-        
-        # [FIX EXPERT] Whitelist stricte pour éviter l'explosion de tokens (qui génère {"error": True})
-        safe_data = {
-            "educations": candidate_data.get("educations", []),
-            "skills": candidate_data.get("skills", []),
-            "free_text": candidate_data.get("free_text", "")
-        }
-        
-        context_str = json.dumps(safe_data, indent=2, ensure_ascii=False, default=str)
-        
-        # [FIX] Ajout du contexte de l'annonce/poste visé pour un pitch pertinent
-        target_job = candidate_data.get('target_job', 'Poste visé')
-        target_company = candidate_data.get('target_company', 'Entreprise cible')
-        target_lang = normalize_language(candidate_data.get('target_language', 'French'))
-        
-        # [NEW] Injection des clarifications pour nourrir le pitch
-        clarifications = candidate_data.get('clarifications', [])
-        clarifications_str = "\n".join([f"Q: {c.get('question')}\nA: {c.get('answer')}" for c in clarifications if c.get('answer')])
-        
-        # [NEW] Injection des données de recherche asynchrone (Entreprise & Marché)
-        research_context = ""
-        rd = candidate_data.get("research_data")
-        if rd:
-            cr = rd.get("company_report", {})
-            mr = rd.get("market_report", {})
-            research_context = f"\nINFOS STRATÉGIQUES SUR L'ENTREPRISE ET LE MARCHÉ :\n- ADN Entreprise : {cr.get('identity_dna', 'Non spécifié')}\n- Enjeux / Défis : {cr.get('usp', 'Non spécifiés')}\n- Tendances marché : {mr.get('trends', 'Non spécifiées')}\n\n⚠️ UTILISE IMPÉRATIVEMENT CES INFOS POUR PERSONNALISER LA PARTIE 'POURQUOI CE POSTE' (PROJECTION)."
-
-        # Remplacement des placeholders dans le nouveau prompt
-        final_prompt = prompt_template.replace("{{CANDIDATE_DATA_JSON}}", context_str) \
-                                      .replace("{{TARGET_LANGUAGE}}", target_lang)
-        
-        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction=f"You are an Executive Coach. Output STRICT JSON in {target_lang.upper()}.")
-        if "error" not in result:
-            await set_cached_content(cache_key, user_id, "pitch", result)
-        await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
-
-
