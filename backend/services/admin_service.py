@@ -183,6 +183,18 @@ async def admin_get_stats():
         total_cache_requests = cache_hits + cache_misses
         cache_hit_ratio = (cache_hits / total_cache_requests) * 100 if total_cache_requests > 0 else 0
 
+        # [NOUVEAU] KPI Financiers & Coûts IA
+        # Note: Ces requêtes supposent l'existence de tables 'payments' et de colonnes de coût dans 'users'
+        try:
+            c6 = await db.execute(conn, "SELECT SUM(amount) FROM payments WHERE created_at >= date_trunc('month', CURRENT_DATE)")
+            revenue_month = (await c6.fetchone())[0] or 0
+            c7 = await db.execute(conn, "SELECT SUM(total_ia_cost) FROM users") # Supposant une colonne 'total_ia_cost'
+            ai_cost_total = (await c7.fetchone())[0] or 0
+            avg_ai_cost_per_user = (ai_cost_total / total_users) if total_users > 0 else 0
+        except Exception:
+            revenue_month = 0
+            avg_ai_cost_per_user = 0
+
     return {
         "total_users": total_users,
         "analyses_launched": analyses_launched,
@@ -190,6 +202,8 @@ async def admin_get_stats():
         "cache_hits": cache_hits,
         "cache_misses": cache_misses,
         "cache_hit_ratio": round(cache_hit_ratio, 2)
+        "revenue_month": revenue_month / 100, # Conversion de centimes en euros
+        "avg_ai_cost_per_user": round(avg_ai_cost_per_user, 2)
     }
 
 @router.get("/cache-history")

@@ -145,7 +145,7 @@ export const DashboardProvider = ({
             const data = await response.json();
             setQuotas(data);
         }
-    } catch (e) {
+    } catch (e: any) {
         console.error("Impossible de récupérer les quotas, utilisation des valeurs par défaut.", e);
     }
   }, [localCvData?.email]);
