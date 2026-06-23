@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { API_BASE_URL } from "../config";
+import { useNavigate } from "react-router-dom"; // [EXPERT] Import du hook de navigation
 import { useTranslation } from "react-i18next";
 import "./AuthScreen.css";
 
@@ -16,6 +17,7 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const navigate = useNavigate(); // [EXPERT] Initialisation du hook
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,8 +72,17 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
       // [FIX EXPERT] Le backend renvoie 'access_token', pas 'token'
       if (data.access_token) {
         localStorage.setItem("token", data.access_token);
-        if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
-        onLoginSuccess();
+        const user = data.user;
+        if (user) localStorage.setItem("user", JSON.stringify(user));
+
+        // --- [EXPERT] LOGIQUE DE REDIRECTION ADMIN ---
+        // On vérifie si l'email de l'utilisateur connecté correspond à l'email admin défini dans les variables d'environnement.
+        const adminEmail = (import.meta.env.VITE_REACT_APP_ADMIN_EMAIL || "").toLowerCase();
+        if (user && user.email && adminEmail && user.email.toLowerCase() === adminEmail) {
+          navigate('/admin'); // Si c'est l'admin, on redirige vers le dashboard admin.
+        } else {
+          onLoginSuccess(); // Sinon, on suit le chemin classique.
+        }
       }
     } catch (err: any) {
       setError(err?.message ?? t('auth_error_signin_failed', "L'action a échoué. Veuillez réessayer."));

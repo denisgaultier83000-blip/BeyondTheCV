@@ -125,8 +125,12 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
   }, [questions, cvData?.[userAnswersKey], cvData?.[feedbacksKey], userAnswersKey, feedbacksKey]);
 
   const handleRetry = (qKey: string) => {
+    const { [qKey]: _f, ...newF } = feedbacks;
+    const { [qKey]: _a, ...newA } = userAnswers;
     dispatch({ type: 'RETRY', payload: { qKey } });
-    if (updateFormData) { updateFormData(feedbacksKey, newF); updateFormData(userAnswersKey, newA); }
+    if (updateFormData) { 
+      updateFormData(feedbacksKey, newF); updateFormData(userAnswersKey, newA); 
+    }
   };
 
   const handleSubmit = async (qKey: string, q: any) => {

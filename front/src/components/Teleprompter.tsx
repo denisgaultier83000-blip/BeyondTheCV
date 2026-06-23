@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Play, Pause, RotateCcw, ArrowLeft } from 'lucide-react';
+import { TFunction } from 'i18next';
 
 interface TeleprompterProps {
   fullPitchText: string;
   setIsTeleprompterOpen: (isOpen: boolean) => void;
   isDark: boolean;
-  t: (key: string, fallback?: string) => string;
+  t: TFunction;
 }
 
 export const Teleprompter: React.FC<TeleprompterProps> = ({ fullPitchText, setIsTeleprompterOpen, isDark, t }) => {
