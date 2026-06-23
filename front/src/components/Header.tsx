@@ -60,7 +60,7 @@ export default function Header({
       <div className="header-main">
         <div className="header-logo">
           <img src="/logo_reduit_BTCV.png" alt="BeyondTheCV" className="logo-img" />
-        )}
+        </div>
 
         <div className="header-actions">
           {/* Menu Langue Contrôlé */}
