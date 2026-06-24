@@ -10,10 +10,10 @@ interface LandingPageProps {
   darkMode?: boolean;
 }
 
-export function LandingPage(props: LandingPageProps) {
+export function LandingPage() {
   // [EXPERT DEBUG] On utilise le contexte de l'Outlet pour récupérer les vraies fonctions de navigation définies dans App.tsx
   const context: any = useOutletContext();
-  const { onStart, onShowCGU, onShowPrivacy, onShowLegal, darkMode } = { ...props, ...context };
+  const { onStart, onShowCGU, onShowPrivacy, onShowLegal, darkMode } = context;
 
   return (
     <div className="lp-container">
