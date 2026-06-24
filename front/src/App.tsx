@@ -55,7 +55,7 @@ function AppContent() {
   // --- Contexte Global (Hooks) ---
   const { t, i18n } = useTranslation();
   const {
-    isAuthenticated, setIsAuthenticated, currentStep, setCurrentStep, isFrozen, showPaywall, setShowPaywall,
+    isAuthenticated, setIsAuthenticated, currentStep, setCurrentStep,
     gapResult, actionPlanResult,
     researchResult, salaryResult,
     jobDecoderResult,
@@ -487,7 +487,7 @@ function AppContent() {
         )}
       </main>
 
-      {isFrozen && isAuthenticated && !LegalComponent && (
+      {isAuthenticated && !LegalComponent && (
         <div className="frozen-banner"><Lock size={20} /> {t('frozen_banner_text', 'Accès expiré. La génération IA est bloquée.')}<button onClick={() => setShowPaywall(true)} className="btn-reactivate">{t('btn_reactivate', 'Réactiver (30€)')}</button></div>)}
 
       <div className="toast-container">{(toasts || []).map(t => (<div key={t.id} className="toast-notification"><LucideBell size={16} /> {t.text}<button onClick={() => removeToast(t.id)}><LucideX size={14}/></button></div>))}</div>
