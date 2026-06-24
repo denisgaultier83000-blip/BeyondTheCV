@@ -55,7 +55,7 @@ function AppContent() {
   // --- Contexte Global (Hooks) ---
   const { t, i18n } = useTranslation();
   const {
-    isAuthenticated, setIsAuthenticated, currentStep, setCurrentStep, isFrozen, showPaywall, setShowPaywall,
+    isAuthenticated, setIsAuthenticated, currentStep, setCurrentStep,
     gapResult, actionPlanResult,
     researchResult, salaryResult,
     jobDecoderResult,
@@ -469,23 +469,7 @@ function AppContent() {
         <Outlet context={{ renderStepContent, CAREER_EDGE_STEPS, currentStep, setCurrentStep, onStart: () => navigate('/login'), onShowCGU: () => setShowCGU(true), onShowPrivacy: () => setShowPrivacy(true), onShowLegal: () => setShowLegal(true), darkMode }} />
       </main>
 
-      {isFrozen && isAuthenticated && !LegalComponent && (
-        <div className="frozen-banner"><Lock size={20} /> {t('frozen_banner_text', 'Accès expiré. La génération IA est bloquée.')}<button onClick={() => setShowPaywall(true)} className="btn-reactivate">{t('btn_reactivate', 'Réactiver (30€)')}</button></div>)}
-
       <div className="toast-container">{(toasts || []).map(t => (<div key={t.id} className="toast-notification"><LucideBell size={16} /> {t.text}<button onClick={() => removeToast(t.id)}><LucideX size={14}/></button></div>))}</div>
-
-      {showPaywall && (
-        <div className="modal-overlay">
-           <div className="modal-content">
-              <div className="modal-icon"><Lock size={40} color="#3b82f6" /></div>
-              <h2>{t('paywall_title', 'Période d\'accès expirée')}</h2>
-              <p>{t('paywall_desc', 'Vos 3 mois d\'accès illimité sont terminés. Rassurez-vous, votre historique est sauvegardé.')}</p>
-              <div className="modal-actions">
-                 <button onClick={() => setShowPaywall(false)} className="btn-outline">{t('btn_later', 'Plus tard')}</button>
-                 <button onClick={() => window.open('/payment?plan=renewal', '_blank')} className="btn-primary">{t('btn_unlock', 'Débloquer pour 30 €')}</button>
-              </div>
-           </div>
-        </div>)}
 
       {showDocsModal && <DocumentsModal onClose={() => setShowDocsModal(false)} />}
 

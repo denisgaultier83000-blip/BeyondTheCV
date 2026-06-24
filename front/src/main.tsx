@@ -30,8 +30,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         <ErrorBoundary>
           <Routes>
             <Route path="/" element={<App />}>
-              {/* Routes publiques qui utilisent le layout App.tsx */}
-              <Route index element={<LandingPage />} />
+              {/* Routes publiques qui utilisent le layout App.tsx. Le contexte de l'Outlet leur passera les props nécessaires. */}
+              <Route index element={<LandingPage onStart={() => {}} onShowCGU={() => {}} onShowPrivacy={() => {}} onShowLegal={() => {}} />} />
               <Route path="login" element={<Login onLoginSuccess={() => {}} />} />
               <Route path="reset-password" element={<ResetPassword />} />
 
