@@ -1,5 +1,5 @@
 import React from 'react';
-import { Building, Newspaper, ExternalLink, Globe2, Target, Users, TrendingUp, BookOpen, Brain, Activity } from 'lucide-react';
+import { Building, Newspaper, ExternalLink, Globe2, Target, Users, TrendingUp, BookOpen, Brain, Activity, AlertTriangle } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer } from 'recharts';
 import { useTranslation } from 'react-i18next';
