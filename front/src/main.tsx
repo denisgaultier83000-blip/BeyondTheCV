@@ -1,12 +1,22 @@
 import React, { Suspense } from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Login from "./pages/Login";
 import App from "./App";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import Payment from "./pages/Payment";
 import ResearchReport from "./pages/ResearchReport"; // Importer la nouvelle page
-import AdminFeedbacks from "./components/AdminFeedbacks";
+
+// [EXPERT] Import de tous les composants de page pour un routage centralisé
+import { LandingPage } from "./components/LandingPage";
+import Login from "./pages/Login";
+import ResetPassword from "./components/ResetPassword";
+import { AdminPage } from "./components/AdminPage";
+import { AdminDashboard } from "./components/AdminDashboard";
+import { AdminAiUsage } from "./components/AdminAiUsage";
+import { AdminFeedbacks } from "./components/AdminFeedbacks";
+import { AdminUserDetail } from "./components/AdminUserDetail";
+import { AdminRoute } from "./components/AdminRoute";
+
 import ErrorBoundary from "./components/ErrorBoundary";
 import "./index.css";
 import "./theme.css";
@@ -17,30 +27,33 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <Suspense fallback="loading">
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ErrorBoundary>
-        <Routes>
-          {/* La Landing Page doit être publique */}
-          <Route path="/" element={<App />} />
-          
-          <Route path="/login" element={<Login onLogin={() => window.location.href = '/candidate'} />} />
-          
-          {/* Page de paiement intermédiaire */}
-          <Route path="/payment" element={
-            <ProtectedRoute><Payment /></ProtectedRoute>
-          } />
+          <Routes>
+            {/* Routes publiques */}
+            <Route path="/login" element={<Login onLogin={() => window.location.href = '/candidate'} />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
-          {/* Restaure la route /candidate pour que le Header affiche correctement les pastilles d'avancement */}
-          <Route path="/candidate" element={
-            <ProtectedRoute><App /></ProtectedRoute>
-          } />
+            {/* Layout principal de l'application */}
+            <Route path="/" element={<App />}>
+              {/* Page d'accueil */}
+              <Route index element={<LandingPage />} />
 
-          {/* Nouvelle route pour les rapports de recherche */}
-          <Route path="/report" element={
-            <ProtectedRoute><ResearchReport /></ProtectedRoute>
-          } />
+              {/* Routes protégées pour les candidats */}
+              <Route path="candidate" element={<ProtectedRoute>{/* Ce Outlet sera remplacé par le contenu de AppContent */}<Outlet /></ProtectedRoute>} />
+              <Route path="payment" element={<ProtectedRoute><Payment /></ProtectedRoute>} />
+              <Route path="report" element={<ProtectedRoute><ResearchReport /></ProtectedRoute>} />
 
-          {/* Redirection par défaut vers la racine */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+              {/* Routes protégées pour l'administration */}
+              <Route path="admin" element={<ProtectedRoute><AdminRoute><AdminPage /></AdminRoute></ProtectedRoute>}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="ai-usage" element={<AdminAiUsage />} />
+                <Route path="feedbacks" element={<AdminFeedbacks />} />
+                <Route path="user/:userId" element={<AdminUserDetail />} />
+              </Route>
+            </Route>
+
+            {/* Redirection par défaut pour les URL inconnues */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </ErrorBoundary>
       </BrowserRouter>
     </Suspense>

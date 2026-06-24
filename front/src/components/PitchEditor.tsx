@@ -76,7 +76,7 @@ export const PitchEditor: React.FC<PitchEditorProps> = ({ pitchResult, cvData, u
   // [EXPERT DEBUG] Cause Racine : La logique de remplissage était dispersée et sujette aux race conditions.
   // SOLUTION : Centraliser la logique de synchronisation dans un `useEffect` unique et robuste.
   // Ce hook garantit que les champs éditables (`editablePitch`) reflètent TOUJOURS la source de vérité correcte.
-  
+
   // Effet 1 : On charge la matrice de l'IA dès qu'elle arrive.
   useEffect(() => {
     if (pitchResult) dispatch({ type: 'set_pitch_matrix', payload: pitchResult });
@@ -88,7 +88,7 @@ export const PitchEditor: React.FC<PitchEditorProps> = ({ pitchResult, cvData, u
     // Priorité 1 : Le pitch sauvegardé par l'utilisateur.
     if (savedPitch && Object.values(savedPitch).some(v => !!v)) {
       dispatch({ type: 'set_all_fields', payload: savedPitch });
-    } else if (pitchMatrix) { 
+    } else if (pitchMatrix) {
       // Priorité 2 (fallback) : On peuple avec le pitch de l'IA correspondant à l'onglet actif.
       dispatch({ type: 'set_active_pitch', payload: { pitchType: activePitch, matrix: pitchMatrix } });
     }

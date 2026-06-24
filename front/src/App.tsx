@@ -2,23 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
  import { AlertCircle, RotateCcw, RefreshCw, Loader2, FileText, Target, MessageSquare, BarChart3, Bell as LucideBell, X as LucideX, Lock, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 // [EXPERT] Remplacement de la navigation manuelle par un système de routage complet
-import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation, Outlet, Navigate, Link } from 'react-router-dom';
-import Login from './pages/Login';
+import { useNavigate, useLocation, Outlet, Link } from 'react-router-dom';
 import Header, { Step } from './components/Header';
 import { DashboardView } from './components/DashboardView';
 import { DashboardProvider as GlobalProvider, useDashboard as useGlobalDashboard } from './hooks/DashboardContext';
-import { DashboardProvider as TabProvider } from './components/DashboardContext';
-import { ProtectedRoute } from './components/ProtectedRoute';
-import { AdminRoute } from './components/AdminRoute';
-import { AdminPage } from './components/AdminPage';
-import { AdminAiUsage } from './components/AdminAiUsage';
-import { AdminUserDetail } from './components/AdminUserDetail';
 import { 
   StepImport, StepProfile, StepTarget, StepEducation, StepExperience, 
   StepQualitiesFlaws, StepClarification 
 } from './components/CandidateSteps';
-import AdminFeedbacks from './components/AdminFeedbacks';
-import { AdminDashboard } from './components/AdminDashboard';
 import { LandingPage } from './components/LandingPage';
 import { CGU } from './components/CGU';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
@@ -50,8 +41,6 @@ function AppContent() {
   const [showCGU, setShowCGU] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showLegal, setShowLegal] = useState(false);
-  const [isFrozen, setIsFrozen] = useState(false);
-  const [showPaywall, setShowPaywall] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [isImportLoading, setIsImportLoading] = useState(false);
   const [darkMode, setDarkMode] = useState<boolean>(() => localStorage.getItem('theme') === 'dark');
@@ -67,7 +56,7 @@ function AppContent() {
   const { t, i18n } = useTranslation();
   const {
     isAuthenticated, setIsAuthenticated,
-    currentStep, setCurrentStep,
+    currentStep, setCurrentStep, isFrozen, showPaywall, setShowPaywall,
     gapResult, actionPlanResult,
     researchResult, salaryResult,
     jobDecoderResult,
@@ -75,8 +64,7 @@ function AppContent() {
     recruiterResult, realityResult, flawCoachingResult,
     globalStatus, error,
     customScenariosResult,
-    handleNextStep,
-    cvData,
+    handleNextStep, cvData,
     setFormData,
     resetDashboard,
     triggerResearch,
@@ -252,28 +240,8 @@ function AppContent() {
 
   // --- EFFETS DE BORD ---
   useEffect(() => {
-    if (isAuthenticated) {
-      if (location.pathname === '/') navigate('/candidate', { replace: true });
-      loadProfile();
-      const storedUser = localStorage.getItem('user');
-      if (storedUser && storedUser !== "undefined" && storedUser !== "null") {
-        try {
-          const user = JSON.parse(storedUser);
-          
-          // Vérifie si l'utilisateur est admin ou possède le flag is_tester
-          const isTester = user.is_admin || user.is_tester;
-          
-          const isExpired = !isTester && (user.subscription_status === 'expired' || (user.subscription_expiration_date && new Date(user.subscription_expiration_date) < new Date()));
-          setIsFrozen(isExpired);
-        } catch (e) {
-          console.warn("Could not parse user subscription", e);
-        }
-      }
-    } else if (localStorage.getItem('token')) {
-      setIsAuthenticated(true);
-    } else {
-      setIsProfileLoading(false);
-    }
+    if (isAuthenticated) loadProfile();
+    else setIsProfileLoading(false);
   }, [isAuthenticated]);
 
   // --- RESTAURATION DE CANDIDATURE (Depuis Mes Documents) ---
@@ -518,67 +486,29 @@ function AppContent() {
         currentStep={currentStep}
       />
       <main className="main-content">
-        <Routes>
-          <Route path="/" element={
-            !isAuthenticated ? <LandingPage darkMode={darkMode} onStart={() => navigate('/login')} onShowCGU={() => setShowCGU(true)} onShowPrivacy={() => setShowPrivacy(true)} onShowLegal={() => setShowLegal(true)} /> : <Navigate to="/candidate" />
-          } />
-          <Route path="/login" element={!isAuthenticated ? <Login onLoginSuccess={() => setIsAuthenticated(true)} /> : <Navigate to="/candidate" />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-
-          {/* Route principale de l'application candidat */}
-          <Route path="/candidate" element={
-            <ProtectedRoute>
-              <div style={{ paddingTop: '100px', paddingBottom: '2rem', width: '100%', maxWidth: '1200px', margin: '0 auto', paddingLeft: '1rem', paddingRight: '1rem', boxSizing: 'border-box' }}>
-                <div className="stepper-container custom-stepper" style={{ display: 'flex', alignItems: 'flex-start', overflowX: 'auto', padding: '1.5rem 1rem', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px solid var(--border-color)', margin: '0 auto 2rem auto', gap: '0.25rem', width: '100%', boxSizing: 'border-box' }}>
-                  {CAREER_EDGE_STEPS.map((step, index) => (
-                    <React.Fragment key={step.id}>
-                      <div 
-                        className={`stepper-item ${currentStep === step.id ? 'current' : currentStep > step.id ? 'completed' : ''}`} 
-                        onClick={() => currentStep > step.id && setCurrentStep(step.id)}
-                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: currentStep > step.id ? 'pointer' : 'default', flex: 1, minWidth: '70px', flexShrink: 0, opacity: currentStep < step.id ? 0.5 : 1 }}
-                      >
-                        <div 
-                          className="stepper-circle" 
-                          style={{ width: '36px', height: '36px', borderRadius: '50%', background: currentStep > step.id ? '#10b981' : currentStep === step.id ? 'var(--primary)' : 'var(--bg-secondary)', color: currentStep >= step.id ? 'white' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.5rem', fontWeight: 'bold', boxShadow: currentStep === step.id ? '0 0 0 4px rgba(59, 130, 246, 0.2)' : 'none', transition: 'all 0.3s ease', flexShrink: 0 }}
-                        >
-                          {currentStep > step.id ? <CheckCircle2 size={18} /> : step.id}
-                        </div>
-                        <span 
-                          className="stepper-title" 
-                          style={{ fontSize: '0.7rem', textAlign: 'center', color: currentStep === step.id ? 'var(--primary)' : 'var(--text-main)', fontWeight: currentStep === step.id ? 700 : 500, whiteSpace: 'normal', maxWidth: '100px', lineHeight: 1.2 }}
-                        >
-                          {step.title}
-                        </span>
-                      </div>
-                      {index < CAREER_EDGE_STEPS.length - 1 && (
-                        <div 
-                          className={`stepper-line ${currentStep > step.id ? 'completed' : ''}`} 
-                          style={{ flex: 1, height: '3px', background: currentStep > step.id ? '#10b981' : 'var(--border-color)', minWidth: '15px', borderRadius: '2px', transition: 'background 0.3s ease', marginTop: '16px' }}
-                        ></div>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </div>
-                <style>{`
-                  .custom-stepper { scrollbar-width: none; } /* Cache la scrollbar sur Firefox */
-                  .custom-stepper::-webkit-scrollbar { display: none; } /* Cache la scrollbar Chrome/Safari */
-                  .custom-stepper::after { content: ''; min-width: 1.5rem; display: block; flex-shrink: 0; } /* Élément fantôme pour forcer le padding droit */
-                  .custom-stepper::before { display: none !important; } /* Nettoie la ligne absolue obsolète d'index.css */
-                `}</style>
-                <div className="card-container">{renderStepContent()}</div>
-              </div>
-            </ProtectedRoute>
-          } />
-
-          {/* [EXPERT] Routes Admin imbriquées et protégées */}
-          <Route path="/admin" element={<ProtectedRoute><AdminRoute><AdminPage /></AdminRoute></ProtectedRoute>}>
-            <Route index element={<AdminDashboard />} />
-            <Route path="ai-usage" element={<AdminAiUsage />} />
-            <Route path="feedbacks" element={<AdminFeedbacks />} />
-            <Route path="user/:userId" element={<AdminUserDetail />} />
-          </Route>
-
-        </Routes>
+        {/* [EXPERT] Outlet remplace le bloc <Routes> interne. 
+            C'est ici que le routeur de main.tsx injectera le bon composant de page. */}
+        {location.pathname.startsWith('/candidate') ? (
+          // Affichage spécifique pour la section candidat
+          <div style={{ paddingTop: '100px', paddingBottom: '2rem', width: '100%', maxWidth: '1200px', margin: '0 auto', paddingLeft: '1rem', paddingRight: '1rem', boxSizing: 'border-box' }}>
+            <div className="stepper-container custom-stepper" style={{ display: 'flex', alignItems: 'flex-start', overflowX: 'auto', padding: '1.5rem 1rem', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px solid var(--border-color)', margin: '0 auto 2rem auto', gap: '0.25rem', width: '100%', boxSizing: 'border-box' }}>
+              {CAREER_EDGE_STEPS.map((step, index) => (
+                <React.Fragment key={step.id}>
+                  <div className={`stepper-item ${currentStep === step.id ? 'current' : currentStep > step.id ? 'completed' : ''}`} onClick={() => currentStep > step.id && setCurrentStep(step.id)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: currentStep > step.id ? 'pointer' : 'default', flex: 1, minWidth: '70px', flexShrink: 0, opacity: currentStep < step.id ? 0.5 : 1 }}>
+                    <div className="stepper-circle" style={{ width: '36px', height: '36px', borderRadius: '50%', background: currentStep > step.id ? '#10b981' : currentStep === step.id ? 'var(--primary)' : 'var(--bg-secondary)', color: currentStep >= step.id ? 'white' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.5rem', fontWeight: 'bold', boxShadow: currentStep === step.id ? '0 0 0 4px rgba(59, 130, 246, 0.2)' : 'none', transition: 'all 0.3s ease', flexShrink: 0 }}>
+                      {currentStep > step.id ? <CheckCircle2 size={18} /> : step.id}
+                    </div>
+                    <span className="stepper-title" style={{ fontSize: '0.7rem', textAlign: 'center', color: currentStep === step.id ? 'var(--primary)' : 'var(--text-main)', fontWeight: currentStep === step.id ? 700 : 500, whiteSpace: 'normal', maxWidth: '100px', lineHeight: 1.2 }}>{step.title}</span>
+                  </div>
+                  {index < CAREER_EDGE_STEPS.length - 1 && <div className={`stepper-line ${currentStep > step.id ? 'completed' : ''}`} style={{ flex: 1, height: '3px', background: currentStep > step.id ? '#10b981' : 'var(--border-color)', minWidth: '15px', borderRadius: '2px', transition: 'background 0.3s ease', marginTop: '16px' }}></div>}
+                </React.Fragment>
+              ))}
+            </div>
+            <div className="card-container">{renderStepContent()}</div>
+          </div>
+        ) : (
+          <Outlet />
+        )}
       </main>
 
       {isFrozen && isAuthenticated && !LegalComponent && (
