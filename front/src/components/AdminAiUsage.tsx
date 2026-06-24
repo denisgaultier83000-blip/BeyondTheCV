@@ -133,7 +133,11 @@ export function AdminAiUsage() {
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value: number) => `${value.toFixed(3)}€`} />
+                      {/* [EXPERT DEBUG] Correction du typage du formatter.
+                          La prop `formatter` de Recharts peut recevoir une valeur `undefined`.
+                          On doit donc vérifier le type avant d'appeler .toFixed() pour éviter un crash. */}
+                      <Tooltip formatter={(value: any) => 
+                        (typeof value === 'number' ? `${value.toFixed(3)}€` : value)} />
                       <Legend />
                     </PieChart>
                   </ResponsiveContainer>
