@@ -1,12 +1,13 @@
 import React, { Suspense } from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import App from "./App";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import Payment from "./pages/Payment";
 import ResearchReport from "./pages/ResearchReport"; // Importer la nouvelle page
 
 // [EXPERT] Import de tous les composants de page pour un routage centralisé
+import { LandingPage } from "./components/LandingPage";
 import Login from "./pages/Login";
 import ResetPassword from "./components/ResetPassword";
 import { AdminPage } from "./components/AdminPage";
@@ -27,17 +28,15 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ErrorBoundary>
           <Routes>
-            {/* Routes publiques */}
-            <Route path="/login" element={<Login onLogin={() => window.location.href = '/candidate'} />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-
             {/* Layout principal de l'application */}
             <Route path="/" element={<App />}>
-              {/* La route index sera gérée par la logique interne de AppContent */}
-              <Route index element={<Outlet />} /> 
+              {/* Routes publiques qui utilisent le layout (Header/Footer) */}
+              <Route index element={<LandingPage onStart={() => {}} onShowCGU={() => {}} onShowPrivacy={() => {}} onShowLegal={() => {}} />} />
+              <Route path="login" element={<Login onLogin={() => window.location.href = '/candidate'} />} />
+              <Route path="reset-password" element={<ResetPassword />} />
 
               {/* Routes protégées pour les candidats */}
-              <Route path="candidate" element={<ProtectedRoute>{/* Ce Outlet sera remplacé par le contenu de AppContent */}<Outlet /></ProtectedRoute>} />
+              <Route path="candidate" element={<ProtectedRoute>{/* Le contenu est géré par AppContent */ null}</ProtectedRoute>} />
               <Route path="payment" element={<ProtectedRoute><Payment /></ProtectedRoute>} />
               <Route path="report" element={<ProtectedRoute><ResearchReport /></ProtectedRoute>} />
 
