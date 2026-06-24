@@ -12,7 +12,7 @@ import ResetPassword from "./components/ResetPassword";
 import { AdminPage } from "./components/AdminPage";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { AdminAiUsage } from "./components/AdminAiUsage";
-import { AdminFeedbacks } from "./components/AdminFeedbacks";
+import AdminFeedbacks from "./components/AdminFeedbacks";
 import { AdminUserDetail } from "./components/AdminUserDetail";
 import { AdminRoute } from "./components/AdminRoute";
 

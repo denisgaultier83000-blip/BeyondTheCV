@@ -55,8 +55,7 @@ function AppContent() {
   // --- Contexte Global (Hooks) ---
   const { t, i18n } = useTranslation();
   const {
-    isAuthenticated, setIsAuthenticated, isFrozen, showPaywall, setShowPaywall,
-    currentStep, setCurrentStep, isFrozen, showPaywall, setShowPaywall,
+    isAuthenticated, setIsAuthenticated, currentStep, setCurrentStep, isFrozen, showPaywall, setShowPaywall,
     gapResult, actionPlanResult,
     researchResult, salaryResult,
     jobDecoderResult,
