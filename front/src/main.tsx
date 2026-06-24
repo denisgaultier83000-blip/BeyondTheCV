@@ -33,8 +33,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 
             {/* Layout principal de l'application */}
             <Route path="/" element={<App />}>
-              {/* Page d'accueil - on ne peut pas la mettre ici car AppContent la gère déjà */}
-              <Route index element={<Outlet />} />
+              {/* La route index sera gérée par la logique interne de AppContent */}
+              <Route index element={<Outlet />} /> 
 
               {/* Routes protégées pour les candidats */}
               <Route path="candidate" element={<ProtectedRoute>{/* Ce Outlet sera remplacé par le contenu de AppContent */}<Outlet /></ProtectedRoute>} />

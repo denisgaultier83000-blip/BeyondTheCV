@@ -55,7 +55,7 @@ function AppContent() {
   // --- Contexte Global (Hooks) ---
   const { t, i18n } = useTranslation();
   const {
-    isAuthenticated, setIsAuthenticated,
+    isAuthenticated, setIsAuthenticated, isFrozen, showPaywall, setShowPaywall,
     currentStep, setCurrentStep, isFrozen, showPaywall, setShowPaywall,
     gapResult, actionPlanResult,
     researchResult, salaryResult,
@@ -409,27 +409,7 @@ function AppContent() {
         </div>);
     case 8: return (
         <div className="step-wrapper dashboard-wrapper">
-          <TabProvider 
-            initialCvData={cvData} 
-            initialGapResult={restoredData?.gapResult || gapResult} 
-            initialActionPlanResult={restoredData?.actionPlanResult || actionPlanResult} 
-            initialResearchResult={restoredData?.researchResult || researchResult} 
-            initialSalaryResult={restoredData?.salaryResult || salaryResult} 
-            initialJobDecoderResult={restoredData?.jobDecoderResult || jobDecoderResult} 
-            initialPitchResult={restoredData?.pitchResult || pitchResult} 
-            initialQuestionsResult={restoredData?.questionsResult || questionsResult} 
-            initialRecruiterResult={restoredData?.recruiterResult || recruiterResult} 
-            initialRealityResult={restoredData?.realityResult || realityResult} 
-            initialFlawCoachingResult={restoredData?.flawCoachingResult || flawCoachingResult} 
-            initialCustomScenariosResult={restoredData?.customScenariosResult || customScenariosResult} 
-            initialGlobalStatus={restoredData ? "COMPLETED" : globalStatus} 
-            onSetCurrentStep={setCurrentStep} 
-            onTriggerResearch={triggerResearch}
-          >
-            <DashboardView />
-            {/* Exemple d'intégration si vous appelez ApplicationDossier depuis App.tsx : */}
-            {/* <ApplicationDossier onGoToTraining={() => { setActiveTab('training'); setCurrentStep(8); }} /> */}
-          </TabProvider>
+          <DashboardView />
         </div>);
       default: return null;
     }
