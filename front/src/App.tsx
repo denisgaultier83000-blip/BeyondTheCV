@@ -616,11 +616,9 @@ function AppContent() {
 
 function App() {
   return (
-    <Router>
-      <GlobalProvider>
-        <AppContent />
-      </GlobalProvider>
-    </Router>
+    <GlobalProvider>
+      <AppContent />
+    </GlobalProvider>
   );
 }
 

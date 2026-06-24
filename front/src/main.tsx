@@ -38,11 +38,6 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <ProtectedRoute><ResearchReport /></ProtectedRoute>
           } />
 
-          {/* Nouvelle route pour le Dashboard Administrateur */}
-          <Route path="/admin" element={
-            <AdminFeedbacks />
-          } />
-
           {/* Redirection par défaut vers la racine */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
