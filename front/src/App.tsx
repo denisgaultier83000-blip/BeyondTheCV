@@ -1,12 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
  import { AlertCircle, RotateCcw, RefreshCw, Loader2, FileText, Target, MessageSquare, BarChart3, Bell as LucideBell, X as LucideX, Lock, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useLocation } from 'react-router-dom';
+// [EXPERT] Remplacement de la navigation manuelle par un système de routage complet
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import Login from './pages/Login';
 import Header, { Step } from './components/Header';
 import { DashboardView } from './components/DashboardView';
 import { DashboardProvider as GlobalProvider, useDashboard as useGlobalDashboard } from './hooks/DashboardContext';
 import { DashboardProvider as TabProvider } from './components/DashboardContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { AdminRoute } from './components/AdminRoute';
+import { AdminPage } from './components/AdminPage';
+import { AdminAiUsage } from './components/AdminAiUsage';
+import { AdminUserDetail } from './components/AdminUserDetail';
 import { 
   StepImport, StepProfile, StepTarget, StepEducation, StepExperience, 
   StepQualitiesFlaws, StepClarification 
@@ -40,12 +46,10 @@ function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // --- États de l'interface ---
-  const [showAdmin, setShowAdmin] = useState(false);
+  // --- États de l'interface (simplifiés) ---
   const [showCGU, setShowCGU] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showLegal, setShowLegal] = useState(false);
-  const [showLanding, setShowLanding] = useState(true);
   const [isFrozen, setIsFrozen] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
@@ -249,7 +253,6 @@ function AppContent() {
   // --- EFFETS DE BORD ---
   useEffect(() => {
     if (isAuthenticated) {
-      setShowLanding(false);
       if (location.pathname === '/') navigate('/candidate', { replace: true });
       loadProfile();
       const storedUser = localStorage.getItem('user');
@@ -469,15 +472,8 @@ function AppContent() {
   const LegalComponent = showCGU ? CGU : showPrivacy ? PrivacyPolicy : showLegal ? LegalNotice : null;
   const closeLegal = () => { setShowCGU(false); setShowPrivacy(false); setShowLegal(false); };
   if (LegalComponent) return (
-    <div className="app-container"><main className="main-content" style={{ paddingTop: '2rem' }}><button onClick={closeLegal} className="btn-outline" style={{ marginBottom: '2rem' }}>← Retour</button><LegalComponent /></main></div>);
-
-  if (showAdmin) return (
-    <div className="app-container"><main className="main-content" style={{ paddingTop: '2rem' }}><button onClick={() => setShowAdmin(false)} className="btn-outline" style={{ marginBottom: '2rem' }}>← Retour</button><AdminFeedbacks /></main></div>);
-
-  // Interception de la route pour le mot de passe oublié
-  if (location.pathname === '/reset-password') {
-    return <ResetPassword />;
-  }
+    <div className="app-container"><main className="main-content" style={{ paddingTop: '2rem' }}><button onClick={closeLegal} className="btn-outline" style={{ marginBottom: '2rem' }}>← Retour</button><LegalComponent /></main></div>
+  );
 
   // [FIX] Sécurisation du parsing JSON du nom d'utilisateur pour éviter la page blanche au login
   let parsedUserName = undefined;
@@ -507,32 +503,6 @@ function AppContent() {
     parsedUserName = parsedUserName.charAt(0).toUpperCase() + parsedUserName.slice(1);
   }
 
-  // Interception de la route pour l'interface Administrateur
-  if (location.pathname === '/admin') {
-    if (!isAuthenticated) {
-      return (
-        <div className="app-container">
-          <main className="main-content" style={{ paddingTop: '2rem', display: 'flex', justifyContent: 'center' }}>
-            <Login onLoginSuccess={() => setIsAuthenticated(true)} />
-          </main>
-        </div>
-      );
-    }
-    if (!isAdmin) {
-      return (
-        <div className="app-container"><main className="main-content" style={{ paddingTop: '4rem', textAlign: 'center', color: 'var(--danger-text)', fontWeight: 'bold' }}>🚨 Accès refusé : Droits administrateur requis.</main></div>
-      );
-    }
-    return (
-      <div className="app-container">
-        <main className="main-content" style={{ paddingTop: '2rem' }}>
-          <button onClick={() => navigate('/candidate')} className="btn-outline" style={{ marginBottom: '2rem' }}>← Retour à l'application</button>
-          <AdminDashboard />
-        </main>
-      </div>
-    );
-  }
-
   return (
     <div className="app-container">
       <Header 
@@ -548,55 +518,70 @@ function AppContent() {
         currentStep={currentStep}
       />
       <main className="main-content">
-        {showLanding && !isAuthenticated ? (
-          <LandingPage darkMode={darkMode} onStart={() => setShowLanding(false)} onShowCGU={() => setShowCGU(true)} onShowPrivacy={() => setShowPrivacy(true)} onShowLegal={() => setShowLegal(true)} />
-        ) : 
-         !isAuthenticated ?
-            (<Login onLoginSuccess={() => setIsAuthenticated(true)} />) : 
-          (<div style={{ paddingTop: '100px', paddingBottom: '2rem', width: '100%', maxWidth: '1200px', margin: '0 auto', paddingLeft: '1rem', paddingRight: '1rem', boxSizing: 'border-box' }}>
-            {/* [FIX] Ajout d'un padding-top de 100px pour descendre sous le Header et centrage global de l'interface */}
-            {/* [FIX] Forcer la largeur à 100% et injecter un padding fantôme à droite pour éviter la coupure au scroll */}
-            <div className="stepper-container custom-stepper" style={{ display: 'flex', alignItems: 'flex-start', overflowX: 'auto', padding: '1.5rem 1rem', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px solid var(--border-color)', margin: '0 auto 2rem auto', gap: '0.25rem', width: '100%', boxSizing: 'border-box' }}>
-              {CAREER_EDGE_STEPS.map((step, index) => (
-                <React.Fragment key={step.id}>
-                  <div 
-                    className={`stepper-item ${currentStep === step.id ? 'current' : currentStep > step.id ? 'completed' : ''}`} 
-                    onClick={() => currentStep > step.id && setCurrentStep(step.id)}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: currentStep > step.id ? 'pointer' : 'default', flex: 1, minWidth: '70px', flexShrink: 0, opacity: currentStep < step.id ? 0.5 : 1 }}
-                  >
-                    <div 
-                      className="stepper-circle" 
-                      style={{ width: '36px', height: '36px', borderRadius: '50%', background: currentStep > step.id ? '#10b981' : currentStep === step.id ? 'var(--primary)' : 'var(--bg-secondary)', color: currentStep >= step.id ? 'white' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.5rem', fontWeight: 'bold', boxShadow: currentStep === step.id ? '0 0 0 4px rgba(59, 130, 246, 0.2)' : 'none', transition: 'all 0.3s ease', flexShrink: 0 }}
-                    >
-                      {currentStep > step.id ? <CheckCircle2 size={18} /> : step.id}
-                    </div>
-                    <span 
-                      className="stepper-title" 
-                      style={{ fontSize: '0.7rem', textAlign: 'center', color: currentStep === step.id ? 'var(--primary)' : 'var(--text-main)', fontWeight: currentStep === step.id ? 700 : 500, whiteSpace: 'normal', maxWidth: '100px', lineHeight: 1.2 }}
-                    >
-                      {step.title}
-                    </span>
-                  </div>
-                  {index < CAREER_EDGE_STEPS.length - 1 && (
-                    <div 
-                      className={`stepper-line ${currentStep > step.id ? 'completed' : ''}`} 
-                      style={{ flex: 1, height: '3px', background: currentStep > step.id ? '#10b981' : 'var(--border-color)', minWidth: '15px', borderRadius: '2px', transition: 'background 0.3s ease', marginTop: '16px' }}
-                    ></div>
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
-            <style>{`
-              .custom-stepper { scrollbar-width: none; } /* Cache la scrollbar sur Firefox */
-              .custom-stepper::-webkit-scrollbar { display: none; } /* Cache la scrollbar Chrome/Safari */
-              .custom-stepper::after { content: ''; min-width: 1.5rem; display: block; flex-shrink: 0; } /* Élément fantôme pour forcer le padding droit */
-              .custom-stepper::before { display: none !important; } /* Nettoie la ligne absolue obsolète d'index.css */
-            `}</style>
-            <div className="card-container">{renderStepContent()}</div>
-          </div>)}
+        <Routes>
+          <Route path="/" element={
+            !isAuthenticated ? <LandingPage darkMode={darkMode} onStart={() => navigate('/login')} onShowCGU={() => setShowCGU(true)} onShowPrivacy={() => setShowPrivacy(true)} onShowLegal={() => setShowLegal(true)} /> : <Navigate to="/candidate" />
+          } />
+          <Route path="/login" element={!isAuthenticated ? <Login onLoginSuccess={() => setIsAuthenticated(true)} /> : <Navigate to="/candidate" />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+
+          {/* Route principale de l'application candidat */}
+          <Route path="/candidate" element={
+            <ProtectedRoute>
+              <div style={{ paddingTop: '100px', paddingBottom: '2rem', width: '100%', maxWidth: '1200px', margin: '0 auto', paddingLeft: '1rem', paddingRight: '1rem', boxSizing: 'border-box' }}>
+                <div className="stepper-container custom-stepper" style={{ display: 'flex', alignItems: 'flex-start', overflowX: 'auto', padding: '1.5rem 1rem', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px solid var(--border-color)', margin: '0 auto 2rem auto', gap: '0.25rem', width: '100%', boxSizing: 'border-box' }}>
+                  {CAREER_EDGE_STEPS.map((step, index) => (
+                    <React.Fragment key={step.id}>
+                      <div 
+                        className={`stepper-item ${currentStep === step.id ? 'current' : currentStep > step.id ? 'completed' : ''}`} 
+                        onClick={() => currentStep > step.id && setCurrentStep(step.id)}
+                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: currentStep > step.id ? 'pointer' : 'default', flex: 1, minWidth: '70px', flexShrink: 0, opacity: currentStep < step.id ? 0.5 : 1 }}
+                      >
+                        <div 
+                          className="stepper-circle" 
+                          style={{ width: '36px', height: '36px', borderRadius: '50%', background: currentStep > step.id ? '#10b981' : currentStep === step.id ? 'var(--primary)' : 'var(--bg-secondary)', color: currentStep >= step.id ? 'white' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.5rem', fontWeight: 'bold', boxShadow: currentStep === step.id ? '0 0 0 4px rgba(59, 130, 246, 0.2)' : 'none', transition: 'all 0.3s ease', flexShrink: 0 }}
+                        >
+                          {currentStep > step.id ? <CheckCircle2 size={18} /> : step.id}
+                        </div>
+                        <span 
+                          className="stepper-title" 
+                          style={{ fontSize: '0.7rem', textAlign: 'center', color: currentStep === step.id ? 'var(--primary)' : 'var(--text-main)', fontWeight: currentStep === step.id ? 700 : 500, whiteSpace: 'normal', maxWidth: '100px', lineHeight: 1.2 }}
+                        >
+                          {step.title}
+                        </span>
+                      </div>
+                      {index < CAREER_EDGE_STEPS.length - 1 && (
+                        <div 
+                          className={`stepper-line ${currentStep > step.id ? 'completed' : ''}`} 
+                          style={{ flex: 1, height: '3px', background: currentStep > step.id ? '#10b981' : 'var(--border-color)', minWidth: '15px', borderRadius: '2px', transition: 'background 0.3s ease', marginTop: '16px' }}
+                        ></div>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+                <style>{`
+                  .custom-stepper { scrollbar-width: none; } /* Cache la scrollbar sur Firefox */
+                  .custom-stepper::-webkit-scrollbar { display: none; } /* Cache la scrollbar Chrome/Safari */
+                  .custom-stepper::after { content: ''; min-width: 1.5rem; display: block; flex-shrink: 0; } /* Élément fantôme pour forcer le padding droit */
+                  .custom-stepper::before { display: none !important; } /* Nettoie la ligne absolue obsolète d'index.css */
+                `}</style>
+                <div className="card-container">{renderStepContent()}</div>
+              </div>
+            </ProtectedRoute>
+          } />
+
+          {/* [EXPERT] Routes Admin imbriquées et protégées */}
+          <Route path="/admin" element={<ProtectedRoute><AdminRoute><AdminPage /></AdminRoute></ProtectedRoute>}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="ai-usage" element={<AdminAiUsage />} />
+            <Route path="feedbacks" element={<AdminFeedbacks />} />
+            <Route path="user/:userId" element={<AdminUserDetail />} />
+          </Route>
+
+        </Routes>
       </main>
 
-      {isFrozen && isAuthenticated && !showLanding && !LegalComponent && !showAdmin && (
+      {isFrozen && isAuthenticated && !LegalComponent && (
         <div className="frozen-banner"><Lock size={20} /> {t('frozen_banner_text', 'Accès expiré. La génération IA est bloquée.')}<button onClick={() => setShowPaywall(true)} className="btn-reactivate">{t('btn_reactivate', 'Réactiver (30€)')}</button></div>)}
 
       <div className="toast-container">{(toasts || []).map(t => (<div key={t.id} className="toast-notification"><LucideBell size={16} /> {t.text}<button onClick={() => removeToast(t.id)}><LucideX size={14}/></button></div>))}</div>
@@ -619,10 +604,7 @@ function AppContent() {
       {/* [FIX] Alignement centré et aéré du Footer réglementaire */}
       <footer className="app-footer" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.5rem', padding: '2rem', flexWrap: 'wrap', opacity: 0.8, marginTop: 'auto' }}>
         {isAdmin && (
-          <>
-            <button className="btn-ghost" onClick={() => navigate('/admin')}>Dashboard Admin</button><span>|</span>
-            <button className="btn-ghost" onClick={() => setShowAdmin(true)}>Feedbacks Admin</button><span>|</span>
-          </>
+          <><Link to="/admin" className="btn-ghost">👑 Administration</Link><span>|</span></>
         )}
         <button className="btn-ghost" onClick={() => setShowLegal(true)}>{t('footer_legal', 'Mentions Légales')}</button><span>|</span>
         <button className="btn-ghost" onClick={() => setShowCGU(true)}>{t('footer_cgu', 'CGU')}</button><span>|</span>
@@ -634,9 +616,11 @@ function AppContent() {
 
 function App() {
   return (
-    <GlobalProvider>
-      <AppContent />
-    </GlobalProvider>
+    <Router>
+      <GlobalProvider>
+        <AppContent />
+      </GlobalProvider>
+    </Router>
   );
 }
 
