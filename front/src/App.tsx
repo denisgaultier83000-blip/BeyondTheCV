@@ -112,7 +112,7 @@ function AppContent() {
       />
       <main className="main-content">
         {/* Le routeur de main.tsx va injecter le bon composant ici via Outlet. On lui passe toutes les fonctions nécessaires. */}
-        <Outlet context={{ renderStepContent, CAREER_EDGE_STEPS, currentStep, setCurrentStep, onStart: () => navigate('/login'), onShowCGU: () => setShowCGU(true), onShowPrivacy: () => setShowPrivacy(true), onShowLegal: () => setShowLegal(true), darkMode }} />
+        <Outlet context={{ CAREER_EDGE_STEPS, currentStep, setCurrentStep, onStart: () => navigate('/login'), onShowCGU: () => setShowCGU(true), onShowPrivacy: () => setShowPrivacy(true), onShowLegal: () => setShowLegal(true), darkMode }} />
       </main>
 
       <div className="toast-container">{(toasts || []).map(t => (<div key={t.id} className="toast-notification"><LucideBell size={16} /> {t.text}<button onClick={() => removeToast(t.id)}><LucideX size={14}/></button></div>))}</div>
