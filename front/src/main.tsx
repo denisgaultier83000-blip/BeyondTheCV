@@ -1,6 +1,6 @@
 import React, { Suspense } from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useOutletContext } from "react-router-dom";
 import App from "./App";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import Payment from "./pages/Payment";
@@ -23,6 +23,17 @@ import "./index.css";
 import "./theme.css";
 import "./i18n";
 
+// [FIX] Wrapper pour connecter la page de login au contexte de l'application
+function LoginWrapper() {
+  const { setIsAuthenticated, onStart } = useOutletContext<any>();
+  const navigate = useNavigate();
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
+    navigate('/candidate'); // Redirection manuelle vers le parcours candidat
+  };
+  return <Login onLoginSuccess={handleLoginSuccess} />;
+}
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Suspense fallback="loading">
@@ -31,8 +42,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <Routes>
             <Route path="/" element={<App />}>
               {/* [EXPERT DEBUG] LandingPage ne prend plus de props, elle les reçoit via le contexte de l'Outlet. On retire les props vides. */}
-              <Route index element={<LandingPage />} />
-              <Route path="login" element={<Login onLoginSuccess={() => {}} />} />
+              <Route index element={<LandingPage />} /> 
+              <Route path="login" element={<LoginWrapper />} />
               <Route path="reset-password" element={<ResetPassword />} />
 
               {/* Routes protégées pour les candidats */}
