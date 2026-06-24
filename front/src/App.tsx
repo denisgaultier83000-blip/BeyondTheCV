@@ -55,8 +55,7 @@ function AppContent() {
   // --- Contexte Global (Hooks) ---
   const { t, i18n } = useTranslation();
   const {
-    isAuthenticated, setIsAuthenticated, isFrozen, showPaywall, setShowPaywall,
-    currentStep, setCurrentStep, isFrozen, showPaywall, setShowPaywall,
+    isAuthenticated, setIsAuthenticated, currentStep, setCurrentStep, isFrozen, showPaywall, setShowPaywall,
     gapResult, actionPlanResult,
     researchResult, salaryResult,
     jobDecoderResult,
@@ -466,8 +465,8 @@ function AppContent() {
         currentStep={currentStep}
       />
       <main className="main-content">
-        {/* Le routeur de main.tsx va injecter le bon composant ici */}
-        <Outlet context={{ renderStepContent, CAREER_EDGE_STEPS, currentStep, setCurrentStep }} />
+        {/* Le routeur de main.tsx va injecter le bon composant ici via Outlet. On lui passe toutes les fonctions nécessaires. */}
+        <Outlet context={{ renderStepContent, CAREER_EDGE_STEPS, currentStep, setCurrentStep, onStart: () => navigate('/login'), onShowCGU: () => setShowCGU(true), onShowPrivacy: () => setShowPrivacy(true), onShowLegal: () => setShowLegal(true), darkMode }} />
       </main>
 
       {isFrozen && isAuthenticated && !LegalComponent && (

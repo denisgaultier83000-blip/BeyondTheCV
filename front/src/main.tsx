@@ -1,6 +1,6 @@
 import React, { Suspense } from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import App from "./App";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import Payment from "./pages/Payment";
@@ -10,6 +10,7 @@ import ResearchReport from "./pages/ResearchReport"; // Importer la nouvelle pag
 import { LandingPage } from "./components/LandingPage";
 import Login from "./pages/Login";
 import ResetPassword from "./components/ResetPassword";
+import { CandidateLayout } from "./components/CandidateLayout";
 import { AdminPage } from "./components/AdminPage";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { AdminAiUsage } from "./components/AdminAiUsage";
@@ -28,15 +29,15 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ErrorBoundary>
           <Routes>
-            {/* Layout principal de l'application */}
             <Route path="/" element={<App />}>
-              {/* Routes publiques qui utilisent le layout (Header/Footer) */}
-              <Route index element={<LandingPage onStart={() => {}} onShowCGU={() => {}} onShowPrivacy={() => {}} onShowLegal={() => {}} />} />
-              <Route path="login" element={<Login onLogin={() => window.location.href = '/candidate'} />} />
+              {/* Routes publiques qui utilisent le layout App.tsx */}
+              <Route index element={<LandingPage />} />
+              <Route path="login" element={<Login onLoginSuccess={() => {}} />} />
               <Route path="reset-password" element={<ResetPassword />} />
 
               {/* Routes protégées pour les candidats */}
-              <Route path="candidate" element={<ProtectedRoute>{/* Le contenu est géré par AppContent */ null}</ProtectedRoute>} />
+              {/* [EXPERT] La route /candidate utilise maintenant le CandidateLayout pour afficher le stepper */}
+              <Route path="candidate" element={<ProtectedRoute><CandidateLayout /></ProtectedRoute>} />
               <Route path="payment" element={<ProtectedRoute><Payment /></ProtectedRoute>} />
               <Route path="report" element={<ProtectedRoute><ResearchReport /></ProtectedRoute>} />
 
