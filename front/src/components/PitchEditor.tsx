@@ -73,18 +73,22 @@ export const PitchEditor: React.FC<PitchEditorProps> = ({ pitchResult, cvData, u
   const { pitchMatrix, activePitch, editablePitch } = state;
 
   // --- GESTION DES EFFETS DE BORD (Props, Sauvegarde) ---
+  // [EXPERT DEBUG] Cause Racine : La logique de remplissage était dispersée et sujette aux race conditions.
+  // SOLUTION : Centraliser la logique de synchronisation dans un `useEffect` unique et robuste.
+  // Ce hook garantit que les champs éditables (`editablePitch`) reflètent TOUJOURS la source de vérité correcte.
   useEffect(() => {
-    if (pitchResult) dispatch({ type: 'set_pitch_matrix', payload: pitchResult });
-  }, [pitchResult]);
-
-  useEffect(() => {
+    // 1. On met à jour la matrice de pitchs dès qu'elle arrive.
+    if (pitchResult && !pitchMatrix) {
+      dispatch({ type: 'set_pitch_matrix', payload: pitchResult });
+    }
+    // 2. On définit la source de vérité : le pitch sauvegardé par l'utilisateur a la priorité absolue.
     const savedPitch = cvData?.editablePitch;
     if (savedPitch && Object.values(savedPitch).some(v => !!v)) {
       dispatch({ type: 'set_all_fields', payload: savedPitch });
-    } else if (pitchMatrix) { // Si pas de sauvegarde, on peuple depuis la matrice
-      dispatch({ type: 'set_active_pitch', payload: { pitchType: activePitch, matrix: pitchMatrix } });
+    } else if (pitchResult) { // Si pas de sauvegarde, on peuple depuis la matrice de l'IA.
+      dispatch({ type: 'set_active_pitch', payload: { pitchType: activePitch, matrix: pitchResult } });
     }
-  }, [pitchMatrix, cvData?.editablePitch]); // Déclenché uniquement quand les données sources changent
+  }, [pitchResult, activePitch, cvData?.editablePitch]);
 
   // Sauvegarde automatique des modifications dans le contexte parent
   useEffect(() => {

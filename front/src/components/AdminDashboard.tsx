@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminQuotaManager from './AdminQuotaManager';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { User, Shield, Calendar, Eye, Database, CheckCircle, XCircle, Percent, BarChart3, DollarSign, Users, Cpu, Package, AlertTriangle, LifeBuoy, ArrowRight } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -198,11 +198,17 @@ export function AdminDashboard() {
   }
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem', color: 'var(--text-main)', textAlign: 'left' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h1 style={{ color: 'var(--primary)', fontSize: '2rem', margin: 0 }}>Dashboard Admin</h1>
-        <button onClick={fetchAdminData} style={{ padding: '0.5rem 1rem', cursor: 'pointer', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '0.5rem' }}>🔄 Rafraîchir</button>
+    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem', color: 'var(--text-main)', textAlign: 'left' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <h1 style={{ color: 'var(--primary)', fontSize: '2rem', margin: 0 }}>Cockpit Fondateur</h1>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <Link to="/admin/feedbacks" className="btn-secondary">Voir Feedbacks</Link>
+          <button onClick={fetchAdminData} style={{ padding: '0.5rem 1rem', cursor: 'pointer', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '0.5rem' }}>🔄 Rafraîchir</button>
+        </div>
       </div>
+      <p style={{ color: 'var(--text-muted)', marginTop: 0, marginBottom: '2rem' }}>
+        Vue d'ensemble de la santé financière, produit et technique de la plateforme.
+      </p>
       
       {/* --- SECTION 1 : STATISTIQUES --- */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

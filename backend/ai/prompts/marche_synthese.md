@@ -76,6 +76,16 @@ CONTEXTE DE RECHERCHE (Contenu complet des articles les plus pertinents) :
       "[Défi ultra-spécifique 2]",
       "[Défi ultra-spécifique 3]"
     ],
+    "risks_and_opportunities": {
+        "risks": [
+            "Menace concrète 1 (ex: Dépendance à un seul fournisseur)",
+            "Menace concrète 2 (ex: Réglementation à venir)"
+        ],
+        "opportunities": [
+            "Opportunité claire 1 (ex: Nouveau marché accessible)",
+            "Opportunité claire 2 (ex: Faiblesse d'un concurrent)"
+        ]
+    ],
     "news_links": [
       {
         "title": "[Nom du Signal / Enjeu (ex: Sécurisation de la Supply Chain)]",

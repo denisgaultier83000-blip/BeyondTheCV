@@ -275,7 +275,7 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
         try:
             osint_agent = OSINTPipeline(serper_api_key=api_key)
             # L'agent OSINT gère maintenant la recherche, le filtrage, l'extraction et le formatage.
-            search_context = await osint_agent.run(company_name=safe_company)
+            search_context = await osint_agent.run(company_name=safe_company, role=role, queries=queries)
         except Exception as e:
             print(f"[PIPELINE] OSINT Agent failed: {e}", flush=True)
             search_context = "ERREUR LORS DE L'ANALYSE OSINT. UTILISE TES CONNAISSANCES GÉNÉRALES."

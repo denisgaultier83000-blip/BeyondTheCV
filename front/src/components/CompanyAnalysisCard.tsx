@@ -1,6 +1,7 @@
 import React from 'react';
 import { Building, Newspaper, ExternalLink, Globe2, Target, Users, TrendingUp, BookOpen, Brain, Activity } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
+import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer } from 'recharts';
 import { useTranslation } from 'react-i18next';
 import { formatStrategicAnalysisReact } from '../utils/formatUtils';
 
@@ -32,11 +33,18 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
   const usp = report.usp || report.key_challenges;
   const psychological_prep = report.psychological_prep;
   const cross_referenced_signals = report.cross_referenced_signals;
+  const risksAndOpportunities = report.risks_and_opportunities;
   
   // [FIX EXPERT] On s'assure d'avoir un tableau, même si l'IA hallucine une string.
   const rawStrategicChallenges = report.strategic_challenges || data?.synthesis?.company_report?.strategic_challenges || [];
   const strategicChallenges = Array.isArray(rawStrategicChallenges) ? rawStrategicChallenges : (typeof rawStrategicChallenges === 'string' ? [rawStrategicChallenges] : []);
   
+  // [NOUVEAU] Préparation des données pour le graphique des défis
+  const chartData = strategicChallenges.map((defi, index) => ({
+    subject: defi,
+    value: 1, // Valeur constante pour former un polygone régulier
+  }));
+
   const sources = data?.sources || []; // Exploitation des sources Web fournies par le backend
   
   let newsLinks = report.news_links || [];
@@ -80,15 +88,21 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
               
               {/* NOUVEAU: Défis Stratégiques Actuels */}
               {strategicChallenges && strategicChallenges.length > 0 && (
-                <div style={{ background: '#fef2f2', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid #fee2e2', gridColumn: '1 / -1' }}>
+                <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', gridColumn: '1 / -1' }}>
                   <h4 style={{ margin: '0 0 0.5rem 0', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Target size={18}/> Défis Stratégiques
+                    <Target size={18}/> Défis Stratégiques Actuels
                   </h4>
-                  <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#7f1d1d', fontSize: '0.95rem' }}>
-                    {strategicChallenges.map((defi: string, idx: number) => (
-                      <li key={idx} style={{ marginBottom: '0.35rem', lineHeight: '1.4' }}>{defi}</li>
-                    ))}
-                  </ul>
+                  <div style={{ height: '300px', width: '100%', marginTop: '1rem' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
+                        <PolarGrid stroke="var(--border-color)" />
+                        <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--text-muted)', fontSize: 12 }} />
+                        {/* L'axe des rayons est masqué car la valeur n'est pas significative ici */}
+                        {/* <PolarRadiusAxis angle={30} domain={[0, 1]} tick={false} axisLine={false} /> */}
+                        <Radar name="Défis" dataKey="value" stroke="#ef4444" fill="#ef4444" fillOpacity={0.6} />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               )}
             </div>
@@ -130,7 +144,7 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
           )}
 
           {/* Section 3 : Enjeux & Stratégie */}
-          {(isValid(usp) || isValid(cross_referenced_signals)) && (
+          {(isValid(usp) || isValid(cross_referenced_signals) || risksAndOpportunities) && (
            <div>
             <h3 style={{ fontSize: '1.2rem', color: 'var(--text-main)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Target size={20} color="#10b981" /> 3. Enjeux & Proposition de Valeur
@@ -146,6 +160,27 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
                 <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
                   <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Activity size={18}/> Signaux Croisés (Presse vs Réalité Terrain)</h4>
                   <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>{cross_referenced_signals}</p>
+                </div>
+              )}
+              {/* [NOUVEAU] Affichage des Risques & Opportunités */}
+              {risksAndOpportunities && (risksAndOpportunities.risks?.length > 0 || risksAndOpportunities.opportunities?.length > 0) && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem', gridColumn: '1 / -1' }}>
+                  {risksAndOpportunities.risks?.length > 0 && (
+                    <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                      <h4 style={{ margin: '0 0 1rem 0', color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><AlertTriangle size={18} /> Risques Identifiés</h4>
+                      <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#991b1d', fontSize: '0.95rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {risksAndOpportunities.risks.map((risk: string, idx: number) => <li key={idx}>{risk}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {risksAndOpportunities.opportunities?.length > 0 && (
+                    <div style={{ background: 'rgba(16, 185, 129, 0.05)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                      <h4 style={{ margin: '0 0 1rem 0', color: '#047857', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><TrendingUp size={18} /> Opportunités Clés</h4>
+                      <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#065f46', fontSize: '0.95rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {risksAndOpportunities.opportunities.map((opp: string, idx: number) => <li key={idx}>{opp}</li>)}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

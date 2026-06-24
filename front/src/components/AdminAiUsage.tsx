@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Cpu, DollarSign, Clock, BarChart3, AlertTriangle, User, TrendingUp, TrendingDown } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { authenticatedFetch } from '../utils/auth';
 import { API_BASE_URL } from '../config';
 import { AsyncBoundary } from './AsyncBoundary';
@@ -56,6 +57,9 @@ export function AdminAiUsage() {
     fetchData();
   }, []);
 
+  // Couleurs pour le graphique
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
+
   const getAlertStyle = (level: string) => {
     if (level === 'Critique') return { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300' };
     if (level === 'Élevé') return { bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-300' };
@@ -87,33 +91,54 @@ export function AdminAiUsage() {
               <div className="bg-white p-5 rounded-xl shadow-sm border"><div className="text-sm text-slate-500">Coût max. observé</div><div className="text-2xl font-bold text-red-600 mt-1">{stats.max_cost_observed.toFixed(3)} €</div></div>
             </div>
 
-            {/* Coût par Module */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border overflow-x-auto">
-              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><BarChart3 size={20} /> Rentabilité par Module</h2>
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs text-slate-500 uppercase bg-slate-50">
-                  <tr>
-                    <th className="px-4 py-2">Module</th>
-                    <th className="px-4 py-2 text-right">Coût Moyen</th>
-                    <th className="px-4 py-2 text-right">Temps Moyen</th>
-                    <th className="px-4 py-2 text-right">Taux d'Échec</th>
-                    <th className="px-4 py-2">Priorité Optimisation</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.module_stats.map(mod => (
-                    <tr key={mod.module} className="border-b">
-                      <td className="px-4 py-3 font-medium">{mod.module}</td>
-                      <td className="px-4 py-3 text-right font-mono">{mod.avg_cost.toFixed(3)} €</td>
-                      <td className="px-4 py-3 text-right font-mono">{(mod.avg_time_ms / 1000).toFixed(1)} s</td>
-                      <td className={`px-4 py-3 text-right font-mono font-bold ${mod.failure_rate > 10 ? 'text-red-600' : mod.failure_rate > 5 ? 'text-amber-600' : 'text-slate-500'}`}>{mod.failure_rate.toFixed(1)}%</td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getAlertStyle(mod.priority).bg} ${getAlertStyle(mod.priority).text}`}>{mod.priority}</span>
-                      </td>
+            {/* [NOUVEAU] Grille pour le tableau et le graphique */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+              {/* Coût par Module - Tableau */}
+              <div className="lg:col-span-3 bg-white p-6 rounded-xl shadow-sm border overflow-x-auto">
+                <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><BarChart3 size={20} /> Rentabilité par Module</h2>
+                <table className="w-full text-sm text-left">
+                  <thead className="text-xs text-slate-500 uppercase bg-slate-50">
+                    <tr>
+                      <th className="px-4 py-2">Module</th>
+                      <th className="px-4 py-2 text-right">Coût Moyen</th>
+                      <th className="px-4 py-2 text-right">Temps Moyen</th>
+                      <th className="px-4 py-2 text-right">Taux d'Échec</th>
+                      <th className="px-4 py-2">Priorité Optimisation</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {stats.module_stats.map(mod => (
+                      <tr key={mod.module} className="border-b">
+                        <td className="px-4 py-3 font-medium">{mod.module}</td>
+                        <td className="px-4 py-3 text-right font-mono">{mod.avg_cost.toFixed(3)} €</td>
+                        <td className="px-4 py-3 text-right font-mono">{(mod.avg_time_ms / 1000).toFixed(1)} s</td>
+                        <td className={`px-4 py-3 text-right font-mono font-bold ${mod.failure_rate > 10 ? 'text-red-600' : mod.failure_rate > 5 ? 'text-amber-600' : 'text-slate-500'}`}>{mod.failure_rate.toFixed(1)}%</td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getAlertStyle(mod.priority).bg} ${getAlertStyle(mod.priority).text}`}>{mod.priority}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Coût par Module - Graphique */}
+              <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border">
+                <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">Répartition des Coûts</h2>
+                <div style={{ width: '100%', height: 300 }}>
+                  <ResponsiveContainer>
+                    <PieChart>
+                      <Pie data={stats.module_stats} dataKey="avg_cost" nameKey="module" cx="50%" cy="50%" outerRadius={80} label>
+                        {stats.module_stats.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value: number) => `${value.toFixed(3)}€`} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
             </div>
 
             {/* Alertes Utilisateurs */}
