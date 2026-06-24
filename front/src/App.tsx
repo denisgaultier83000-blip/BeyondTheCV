@@ -486,10 +486,7 @@ function AppContent() {
         currentStep={currentStep}
       />
       <main className="main-content">
-        {/* [EXPERT] Outlet remplace le bloc <Routes> interne. 
-            C'est ici que le routeur de main.tsx injectera le bon composant de page. */}
-        {location.pathname.startsWith('/candidate') ? (
-          // Affichage spécifique pour la section candidat
+        {isAuthenticated ? (
           <div style={{ paddingTop: '100px', paddingBottom: '2rem', width: '100%', maxWidth: '1200px', margin: '0 auto', paddingLeft: '1rem', paddingRight: '1rem', boxSizing: 'border-box' }}>
             <div className="stepper-container custom-stepper" style={{ display: 'flex', alignItems: 'flex-start', overflowX: 'auto', padding: '1.5rem 1rem', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px solid var(--border-color)', margin: '0 auto 2rem auto', gap: '0.25rem', width: '100%', boxSizing: 'border-box' }}>
               {CAREER_EDGE_STEPS.map((step, index) => (
@@ -507,7 +504,7 @@ function AppContent() {
             <div className="card-container">{renderStepContent()}</div>
           </div>
         ) : (
-          <Outlet />
+          <Outlet /> // This will render LandingPage, Login, etc., as defined in main.tsx
         )}
       </main>
 
