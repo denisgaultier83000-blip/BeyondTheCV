@@ -1,19 +1,20 @@
 import React from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
 import { Target, FileText, ArrowRight, CheckCircle2, Compass, Search, Mic, FolderOpen, Award, ShieldQuestion, BarChart3, Users, BatteryCharging, Package, Box, Archive, ShoppingCart } from 'lucide-react';
 
 interface LandingPageProps {
-  onStart?: () => void;
-  onShowCGU?: () => void;
-  onShowPrivacy?: () => void;
-  onShowLegal?: () => void;
+  onStart: () => void;
+  onShowCGU: () => void;
+  onShowPrivacy: () => void;
+  onShowLegal: () => void;
   darkMode?: boolean;
 }
 
-export function LandingPage() {
+export function LandingPage(props: Partial<LandingPageProps>) {
   // [EXPERT DEBUG] On utilise le contexte de l'Outlet pour récupérer les vraies fonctions de navigation définies dans App.tsx
   const context: any = useOutletContext();
-  const { onStart, onShowCGU, onShowPrivacy, onShowLegal, darkMode } = context;
+  const { onStart, onShowCGU, onShowPrivacy, onShowLegal, darkMode } = { ...props, ...context };
 
   return (
     <div className="lp-container">
