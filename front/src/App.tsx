@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
  import { AlertCircle, RotateCcw, RefreshCw, Loader2, FileText, Target, MessageSquare, BarChart3, Bell as LucideBell, X as LucideX, Lock, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 // [EXPERT] Remplacement de la navigation manuelle par un système de routage complet
-import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation, Outlet, Navigate, Link } from 'react-router-dom';
 import Login from './pages/Login';
 import Header, { Step } from './components/Header';
 import { DashboardView } from './components/DashboardView';
