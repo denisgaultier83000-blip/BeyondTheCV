@@ -76,19 +76,23 @@ export const PitchEditor: React.FC<PitchEditorProps> = ({ pitchResult, cvData, u
   // [EXPERT DEBUG] Cause Racine : La logique de remplissage était dispersée et sujette aux race conditions.
   // SOLUTION : Centraliser la logique de synchronisation dans un `useEffect` unique et robuste.
   // Ce hook garantit que les champs éditables (`editablePitch`) reflètent TOUJOURS la source de vérité correcte.
+  
+  // Effet 1 : On charge la matrice de l'IA dès qu'elle arrive.
   useEffect(() => {
-    // 1. On met à jour la matrice de pitchs dès qu'elle arrive.
-    if (pitchResult && !pitchMatrix) {
-      dispatch({ type: 'set_pitch_matrix', payload: pitchResult });
-    }
-    // 2. On définit la source de vérité : le pitch sauvegardé par l'utilisateur a la priorité absolue.
+    if (pitchResult) dispatch({ type: 'set_pitch_matrix', payload: pitchResult });
+  }, [pitchResult]);
+
+  // Effet 2 : On synchronise les champs affichés en fonction des données disponibles.
+  useEffect(() => {
     const savedPitch = cvData?.editablePitch;
+    // Priorité 1 : Le pitch sauvegardé par l'utilisateur.
     if (savedPitch && Object.values(savedPitch).some(v => !!v)) {
       dispatch({ type: 'set_all_fields', payload: savedPitch });
-    } else if (pitchResult) { // Si pas de sauvegarde, on peuple depuis la matrice de l'IA.
-      dispatch({ type: 'set_active_pitch', payload: { pitchType: activePitch, matrix: pitchResult } });
+    } else if (pitchMatrix) { 
+      // Priorité 2 (fallback) : On peuple avec le pitch de l'IA correspondant à l'onglet actif.
+      dispatch({ type: 'set_active_pitch', payload: { pitchType: activePitch, matrix: pitchMatrix } });
     }
-  }, [pitchResult, activePitch, cvData?.editablePitch]);
+  }, [pitchMatrix, activePitch, cvData?.editablePitch]); // Ce hook se redéclenche si la matrice, l'onglet ou les données du CV changent.
 
   // Sauvegarde automatique des modifications dans le contexte parent
   useEffect(() => {

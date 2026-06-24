@@ -92,7 +92,11 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
                   <h4 style={{ margin: '0 0 0.5rem 0', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <Target size={18}/> Défis Stratégiques Actuels
                   </h4>
-                  <div style={{ height: '300px', width: '100%', marginTop: '1rem' }}>
+                  {/* [EXPERT DEBUG] The recharts error "width(-1) and height(-1)" occurs when the parent container's
+                      dimensions are not yet resolved. Setting a minHeight ensures the container always has a valid
+                      size for the chart to render into, even within complex flex or grid layouts.
+                  */}
+                  <div style={{ height: '300px', minHeight: '300px', width: '100%', marginTop: '1rem' }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
                         <PolarGrid stroke="var(--border-color)" />
