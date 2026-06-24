@@ -1,6 +1,7 @@
 import React, { Suspense } from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useOutletContext } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useOutletContext, useNavigate } from "react-router-dom";
 import App from "./App";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import Payment from "./pages/Payment";

@@ -4,6 +4,7 @@ build/
 .env
 .env.*
 *.log
+*.sql
 
 # Python
 __pycache__/
