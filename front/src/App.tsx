@@ -55,7 +55,7 @@ function AppContent() {
   // --- Contexte Global (Hooks) ---
   const { t, i18n } = useTranslation();
   const {
-    isAuthenticated, setIsAuthenticated, currentStep, setCurrentStep, isFrozen, showPaywall, setShowPaywall,
+    isAuthenticated, setIsAuthenticated, currentStep, setCurrentStep,
     gapResult, actionPlanResult,
     researchResult, salaryResult,
     jobDecoderResult,
@@ -369,15 +369,7 @@ function AppContent() {
             <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>
               <button 
                 className="btn-primary" 
-                onClick={(e) => { 
-                  if (isFrozen) { 
-                    e.preventDefault(); 
-                    setShowPaywall(true); 
-                  } else { 
-                  // La logique de signature est maintenant gérée par le hook
-                  handleNextStep();
-                  } 
-                }} 
+                onClick={() => handleNextStep()} 
                 disabled={["STARTING", "PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus)}
               >
                 {["STARTING", "PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus) ? t('generating') : t('btn_generate_questions')}
@@ -397,7 +389,7 @@ function AppContent() {
         <div className="step-wrapper">
           <StepClarification clarifications={cvData?.clarifications || []} answers={clarificationAnswers} onAnswer={(id: any, val: any) => handleChange("clarifications", (cvData?.clarifications || []).map((c: any) => c.id === id ? { ...c, answer: val } : c))} />
           {globalStatus === "FAILED" && (<div className="error-box"><AlertCircle size={16}/><span>{t('error_msg')} {error}</span><button className="btn-link" onClick={() => handleNextStep()}>{t('btn_retry')}</button></div>)}
-          <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={() => handleNextStep()} disabled={["STARTING", "PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus)}>{["STARTING", "PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus) ? t('btn_launching') : t('btn_launch_full_analysis')}</button></div>
+          <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={handleNextStep} disabled={["STARTING", "PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus)}>{["STARTING", "PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus) ? t('btn_launching') : t('btn_launch_full_analysis')}</button></div>
         </div>);
     case 8: return (
         <div className="step-wrapper dashboard-wrapper">
