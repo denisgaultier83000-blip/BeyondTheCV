@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Mail, Calendar, Shield, Briefcase, FileText, Download, Trash2, Loader2, AlertTriangle, DollarSign, Cpu, Activity, Clock, PlusCircle, Repeat, RefreshCw, UserX } from 'lucide-react';
+import { ArrowLeft, Mail, Calendar, Shield, Briefcase, FileText, Download, Trash2, AlertTriangle, DollarSign, Clock, PlusCircle, Repeat, RefreshCw, UserX } from 'lucide-react';
 import { authenticatedFetch } from '../utils/auth';
 import { API_BASE_URL } from '../config';
 import { AsyncBoundary } from './AsyncBoundary';

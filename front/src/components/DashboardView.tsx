@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useDashboard } from './DashboardContext';
-import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass, Mic, Search, Eye, Navigation, Network, Loader2, RotateCcw, CheckSquare, Dumbbell, ArrowUp, Printer, Building, ShieldAlert, Calendar, UserCheck, Monitor, HeartPulse, Zap } from 'lucide-react';
+import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Mic, Search, Eye, Loader2, RotateCcw, Dumbbell, ArrowUp, Printer, Building, ShieldAlert } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PilotBento } from './PilotBento';
 import { GapAnalysisFull } from './GapAnalysisFull';

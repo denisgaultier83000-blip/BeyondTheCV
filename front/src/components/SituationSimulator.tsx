@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { BrainCircuit, Eye, Edit3, CheckCircle2, AlertTriangle, Lightbulb, MessageSquare, ArrowLeft, Target, ChevronDown, ChevronUp, Loader2, Send, Users, ListChecks, Shield, Award, RefreshCw, X, Mic, MicOff } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { BrainCircuit, Eye, Edit3, CheckCircle2, AlertTriangle, Lightbulb, MessageSquare, Target, ChevronDown, ChevronUp, Loader2, Send, Users, ListChecks, Shield, Award, RefreshCw, X, Mic, MicOff } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';

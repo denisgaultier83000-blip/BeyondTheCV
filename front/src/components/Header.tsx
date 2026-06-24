@@ -1,4 +1,4 @@
-import React, { useReducer, useRef, useEffect } from 'react';
+import { useReducer, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import './Header.css';

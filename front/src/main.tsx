@@ -1,7 +1,5 @@
 import React, { Suspense } from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useOutletContext } from "react-router-dom";
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useOutletContext, useNavigate } from "react-router-dom";
 import App from "./App";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import Payment from "./pages/Payment";
@@ -19,6 +17,7 @@ import AdminFeedbacks from "./components/AdminFeedbacks";
 import { AdminUserDetail } from "./components/AdminUserDetail";
 import { AdminRoute } from "./components/AdminRoute";
 
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useOutletContext, useNavigate } from "react-router-dom";
 import ErrorBoundary from "./components/ErrorBoundary";
 import "./index.css";
 import "./theme.css";

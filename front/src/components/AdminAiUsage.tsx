@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Cpu, DollarSign, Clock, BarChart3, AlertTriangle, User, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowLeft, Cpu, BarChart3, AlertTriangle, User } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { authenticatedFetch } from '../utils/auth';
 import { API_BASE_URL } from '../config';

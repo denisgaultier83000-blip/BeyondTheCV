@@ -1,23 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Activity, 
-  DollarSign,
-  Target, 
-  Award, 
-  RefreshCw,
-  BrainCircuit,
-  MessageSquare,
-  Settings2,
-  History,
-  Lightbulb,
-  Lock,
-  TrendingUp,
-  Mic,
-  Send,
-  CheckCircle2,
-  AlertCircle,
-  Dumbbell
-} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Activity, DollarSign, Target, Award, RefreshCw, BrainCircuit, MessageSquare, Settings2, History, Lightbulb, Lock, TrendingUp, CheckCircle2, AlertCircle, Dumbbell } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { DashboardCard } from './DashboardCard';
 import Questionnaire from './Questionnaire';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
  import { Bell as LucideBell, X as LucideX } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 // [EXPERT] Remplacement de la navigation manuelle par un système de routage complet
