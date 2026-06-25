@@ -103,7 +103,7 @@ export function PitchMatrix() {
       }, 1500); // Auto-save 1.5 seconds after the user stops typing
     }
     return () => { if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current); };
-  }, [pitchMatrix]);
+  }, [pitchMatrix, isLoading]); // Ajout de isLoading aux dépendances
 
   const handlePitchChange = (pitchType: keyof PitchMatrixData, version: 'written' | 'oral', value: string) => {
     setPitchMatrix(prevMatrix => {
@@ -149,12 +149,13 @@ export function PitchMatrix() {
 
   const handleSaveChanges = async () => {
     if (!pitchMatrix) return;
+    setSaveStatus('saving');
     setError(null);
 
     const token = localStorage.getItem('token');
     if (!token) {
       setError("Authentication required to save.");
-      setIsLoading(false);
+      setSaveStatus('error');
       return;
     }
 
@@ -191,9 +192,6 @@ export function PitchMatrix() {
     }
   };
 
-  // ... (The rest of the JSX rendering logic from the previous response)
-  // This part is omitted for brevity but should be included from the previous step.
-  // It includes the main div, header, button, and the grid of PitchCards.
   return (
     <div className="pitch-matrix-container">
       <div className="pitch-matrix-header">
