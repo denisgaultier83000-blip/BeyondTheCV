@@ -161,44 +161,6 @@ export default function DiagnosticDashboard({ data, candidateName, targetJob, on
       </div>
     </div>
   );
-}           </ul>
-            </div>}
-
-          {Array.isArray(recommended_adjustments) && recommended_adjustments.length > 0 && <div style={{ background: 'rgba(139, 92, 246, 0.05)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
-          <h3 style={{...sectionTitleStyle, color: '#8b5cf6'}}>{t('gap_reco')}</h3>
-            <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
-                  {recommended_adjustments.map((item: any, i: number) => <li key={i} style={{ marginBottom: '0.5rem', display: 'flex', gap: '0.5rem', color: 'var(--text-main)' }}><span style={{color: '#8b5cf6'}}>➜</span> {renderItem(item)}</li>)}
-            </ul>
-            </div>}
-
-          {/* Fallback si tout est vide */}
-          {key_needs_from_job.length === 0 && matching_skills.length === 0 && missing_gaps.length === 0 && recommended_adjustments.length === 0 && (
-              <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
-                  {fallbackArrays.length > 0 ? (
-                      fallbackArrays.map(([key, arr]: [string, any], idx) => (
-                          <div key={idx} style={{ textAlign: 'left', marginBottom: '1.5rem', background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.5rem' }}>
-                              <h4 style={{ textTransform: 'capitalize', color: 'var(--primary)' }}>{key.replace(/_/g, ' ')}</h4>
-                              <ul style={{ paddingLeft: '1.5rem', margin: '0.5rem 0 0 0' }}>{arr.map((item: any, i: number) => <li key={i}>{renderItem(item)}</li>)}</ul>
-                          </div>
-                      ))
-                  ) : (
-                      "Aucun écart spécifique détecté ou format de données non reconnu."
-                  )}
-              </div>
-          )}
-        </div>
-        
-        <FeedbackWidget feature="gap_analysis" />
-
-        <div style={{ marginTop: '2.5rem', textAlign: 'center' }}>
-          <button className="btn-secondary" onClick={onClose} style={{ 
-              padding: '0.75rem 2.5rem', fontSize: '1rem' 
-          }}>{t('btn_close', 'Fermer')}
-            </button>
-        </div>
-      </div>
-    </div>
-  );
 };
 
 export default GapAnalysisModal;
