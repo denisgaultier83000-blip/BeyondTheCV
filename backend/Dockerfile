@@ -19,17 +19,18 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Étape 5 : Installation des dépendances Python
-COPY requirements.txt .
+# [FIX] Copie du requirements.txt depuis le contexte racine (../) vers le dossier de travail /app
+COPY ../requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Étape 6 : Copie du code source
 # [FIX] Copie du code dans un sous-dossier 'backend' pour le transformer en package Python
 # et aligner la structure avec les imports relatifs (ex: from .database).
-WORKDIR /app/backend
-COPY . .
-WORKDIR /app
+COPY . /app/backend
 
 # Étape 7 : Exposition du port et lancement de Uvicorn
 EXPOSE $PORT
 
+# [FIX] Le WORKDIR final doit être /app pour que le PYTHONPATH inclue bien le package 'backend'
+WORKDIR /app
 CMD ["sh", "-c", "uvicorn backend.main:app --host 0.0.0.0 --port ${PORT}"]

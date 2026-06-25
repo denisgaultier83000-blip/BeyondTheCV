@@ -379,9 +379,9 @@ def include_safe_router(module_name, from_services=True):
     try:
         # Import dynamique
         if from_services:
-            mod = __import__(f"services.{module_name}", fromlist=["router"]) # was: from services import cv
+            mod = __import__(f"backend.services.{module_name}", fromlist=["router"])
         else:
-            mod = __import__(module_name, fromlist=["router"])
+            mod = __import__(f"backend.{module_name}", fromlist=["router"])
         app.include_router(mod.router)
         print(f"[ROUTER] ✅ Loaded: {module_name}", flush=True)
     except Exception as e:
