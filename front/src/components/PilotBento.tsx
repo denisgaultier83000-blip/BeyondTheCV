@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Zap, AlertTriangle, Target, Linkedin, Trophy, Navigation, ArrowRight } from 'lucide-react';
+import { Activity, Zap, AlertTriangle, Target } from 'lucide-react';
 import Gauge from './Gauge';
 
 export const PilotBento = ({ 

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, AlertTriangle } from 'lucide-react';
 import { authenticatedFetch } from '../utils/auth';
 import { AsyncBoundary } from './AsyncBoundary';
 

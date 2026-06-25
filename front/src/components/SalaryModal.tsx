@@ -7,7 +7,7 @@ interface SalaryModalProps {
   lang?: string;
 }
 
-const SalaryModal: React.FC<SalaryModalProps> = ({ data, onClose, lang }) => {
+const SalaryModal: React.FC<SalaryModalProps> = ({ data, onClose }) => {
   const { t } = useTranslation();
 
   if (!data) return null;

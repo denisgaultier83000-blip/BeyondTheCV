@@ -1,6 +1,6 @@
 import React from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Target, FileText, ArrowRight, CheckCircle2, Compass, Search, Mic, FolderOpen, Award, ShieldQuestion, BarChart3, Users, BatteryCharging, Package, Box, Archive, ShoppingCart } from 'lucide-react';
+import { FileText, ArrowRight, CheckCircle2, Search, Mic, ShieldQuestion } from 'lucide-react';
 
 interface LandingPageProps {
   onStart: () => void;

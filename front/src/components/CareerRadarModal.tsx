@@ -1,6 +1,5 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Compass, Clock, Euro, AlertTriangle } from 'lucide-react';
+import { Compass, Euro, AlertTriangle, Clock } from 'lucide-react';
 import { formatMarkdown } from '../utils/markdown';
 import { FeedbackWidget } from './FeedbackWidget';
 
@@ -20,7 +19,7 @@ interface CareerRadarModalProps {
 
 export default function CareerRadarModal({ data, onClose }: CareerRadarModalProps) {
   if (!data) return null;
-  const { t } = useTranslation();
+  const { t: _t } = useTranslation();
 
   // Résolution robuste des données (Support de l'encapsulation IA)
   const radarData = data.career_radar_result || data;

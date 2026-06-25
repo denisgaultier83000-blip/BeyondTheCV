@@ -13,18 +13,11 @@ interface HeaderProps {
   // [FIX] Ajout des propriétés manquantes pour satisfaire TypeScript
   darkMode: boolean;
   setDarkMode: (value: boolean | ((prev: boolean) => boolean)) => void;
-  showLogin?: boolean;
   showLangSelector?: boolean;
-  loginText?: string;
-  showStepper?: boolean;
   steps?: Step[];
   currentStep?: number;
-  goToStep?: (stepId: number) => void;
   userName?: string;
-  onOpenProfile?: () => void;
   onLogout?: () => void;
-  onLanguageChange?: (lang: string) => void;
-  isAuthenticated?: boolean;
   isAdmin?: boolean; // [FIX] On attend la prop du parent
   targetLanguage?: string;
 }
@@ -58,12 +51,9 @@ export default function Header({
   setDarkMode,
   showLogin = false,
   showLangSelector = true,
-  loginText = "Login",
   userName,
-  onOpenProfile,
   onLogout,
   onLanguageChange,
-  isAuthenticated,
   isAdmin = false // [FIX] On reçoit le statut admin du parent
 }: HeaderProps): React.ReactElement | null {
   const { t } = useTranslation();

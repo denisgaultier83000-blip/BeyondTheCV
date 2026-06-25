@@ -6,7 +6,6 @@ import ScoreGauge from './ScoreGauge';
 import { useDashboard } from './DashboardContext'; // [NEW] Importer le hook
 import { useTranslation } from 'react-i18next';
 import scenariosData from './scenarios.json';
-import { RechargeModal } from './RechargeModal';
 import { AsyncBoundary } from './AsyncBoundary';
 
 // --- TYPES ---
@@ -62,7 +61,6 @@ export function SituationSimulator() {
   const [isGeneratingMore, setIsGeneratingMore] = useState(false);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [showRechargeModal, setShowRechargeModal] = useState(false);
   const recognitionRef = useRef<any>(null);
 

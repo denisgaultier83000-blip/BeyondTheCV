@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ThumbsUp, ThumbsDown, MessageSquare, Activity, BarChart3, ArrowLeft, Trash2, Loader2, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { authenticatedFetch } from '../utils/auth';
-import { API_ROUTES } from '../api/routes';
+import { authenticatedFetch } from '../utils/auth'; // This is used
 import { API_BASE_URL } from '../config';
 import { AsyncBoundary } from './AsyncBoundary';
 

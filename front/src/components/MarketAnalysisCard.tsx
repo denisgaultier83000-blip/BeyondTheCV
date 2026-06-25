@@ -1,5 +1,5 @@
 import React from 'react';
-import { Globe, Wallet, Activity, Zap, Loader2, XCircle, Target, Award, Lightbulb } from 'lucide-react';
+import { Globe, Wallet, Activity, Zap, Target, Award, Lightbulb } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 
 interface MarketAnalysisCardProps {

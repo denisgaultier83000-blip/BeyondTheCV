@@ -10,25 +10,15 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
     pitchResult, questionsResult, customScenariosResult, actionPlanResult,
     jobDecoderResult
   } = useDashboard();
-  const [interviewHistory, setInterviewHistory] = useState<any[]>([]);
-  const [trainingHistory, setTrainingHistory] = useState<any[]>([]);
 
   // On fetch l'historique silencieusement en arrière-plan
   useEffect(() => {
     const fetchHistories = async () => {
       try {
-        const [resInt, resTrain] = await Promise.all([
+        await Promise.all([
           authenticatedFetch(`${API_BASE_URL}/api/cv/interview/history`),
           authenticatedFetch(`${API_BASE_URL}/api/cv/training/history`)
         ]);
-        if (resInt.ok) {
-          const data = await resInt.json();
-          setInterviewHistory(data.history || []);
-        }
-        if (resTrain.ok) {
-          const data = await resTrain.json();
-          setTrainingHistory(data.history || []);
-        }
       } catch (e) {
         console.error(e);
       }

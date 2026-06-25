@@ -1,5 +1,3 @@
-import React from 'react';
-
 export function AdminUsers() {
   // TODO: Fetch users from a new backend endpoint: GET /api/admin/users
   // TODO: Implement search and filter inputs

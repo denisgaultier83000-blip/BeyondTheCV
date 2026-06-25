@@ -16,7 +16,7 @@ const ResearchModal: React.FC<ResearchModalProps> = ({ data, mode = 'company', o
   if (!data) return null;
 
   // [FIX] Support rétroactif pour les anciennes données (brief/deep_dive)
-  const { company, market_report, company_report, sources, brief, deep_dive } = data;
+  const { company, market_report, company_report, sources, brief } = data;
   
   // Si on a des anciennes données mais pas les nouvelles, on affiche un message ou on adapte
   const hasNewFormat = market_report || company_report;

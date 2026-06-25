@@ -21,7 +21,7 @@ import { AdminBilling } from "./components/AdminBilling";
 import { AdminGenerations } from "./components/AdminGenerations";
 import { AdminRoute } from "./components/AdminRoute";
 
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useOutletContext, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useOutletContext, useNavigate } from "react-router-dom";
 import ErrorBoundary from "./components/ErrorBoundary";
 import "./index.css";
 import "./theme.css";

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, ReactNode } from 'react';
 import { useDashboardLogic } from '../hooks/useDashboardLogic';
 
 // Inférence du type de retour du hook

@@ -1,5 +1,3 @@
-import React from 'react';
-
 export function CGU() {
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '3rem', background: 'var(--bg-card)', borderRadius: '1rem', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', color: 'var(--text-main)', textAlign: 'left' }}>

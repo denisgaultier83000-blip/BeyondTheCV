@@ -128,8 +128,8 @@ export function AdminAiUsage() {
                 <div style={{ width: '100%', height: 300 }}>
                   <ResponsiveContainer>
                     <PieChart>
-                      <Pie data={stats.module_stats} dataKey="avg_cost" nameKey="module" cx="50%" cy="50%" outerRadius={80} label>
-                        {stats.module_stats.map((entry, index) => (
+                      <Pie data={stats.module_stats} dataKey="avg_cost" nameKey="module" cx="50%" cy="50%" outerRadius={80} label={true}>
+                        {stats.module_stats.map((_entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>

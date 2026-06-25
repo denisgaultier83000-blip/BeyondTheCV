@@ -153,12 +153,53 @@ export function PitchMatrix() {
     }
   };
 
-  // ... (The rest of the JSX rendering logic from the previous response)
-  // This part is omitted for brevity but should be included from the previous step.
-  // It includes the main div, header, button, and the grid of PitchCards.
   return (
     <div className="pitch-matrix-container">
-      {/* ... The full JSX from the previous step ... */}
+      <div className="pitch-matrix-header">
+        <h2>Pitch Matrix</h2>
+        <div className="header-actions">
+          <button onClick={handleGeneratePitch} disabled={isLoading} className="btn-primary">
+            {isLoading ? <Loader2 className="animate-spin" /> : <BrainCircuit />}
+            Generate Pitches
+          </button>
+          <button onClick={handleSaveChanges} disabled={isLoading || !pitchMatrix} className="btn-secondary">
+            {isLoading ? <Loader2 className="animate-spin" /> : <Save />}
+            Save Changes
+          </button>
+        </div>
+      </div>
+
+      {error && <div className="error-banner"><AlertTriangle /> {error}</div>}
+
+      {!pitchMatrix && !isLoading && (
+        <div className="empty-state">
+          <Bot size={48} />
+          <p>Your pitch matrix is empty. Click "Generate Pitches" to start.</p>
+        </div>
+      )}
+
+      {isLoading && !pitchMatrix && (
+        <div className="loading-state">
+          <Loader2 size={48} className="animate-spin" />
+          <p>Generating your pitches... This may take a moment.</p>
+        </div>
+      )}
+
+      {pitchMatrix && (
+        <div className="pitch-grid">
+          <PitchCard title="Recruiter Pitch" pitch={pitchMatrix.recruiter_pitch} icon={<Bot size={20} />} onPitchChange={(v, val) => handlePitchChange('recruiter_pitch', v, val)} />
+          <PitchCard title="Executive Pitch" pitch={pitchMatrix.executive_pitch} icon={<Bot size={20} />} onPitchChange={(v, val) => handlePitchChange('executive_pitch', v, val)} />
+          <PitchCard title="HR Pitch" pitch={pitchMatrix.hr_pitch} icon={<Bot size={20} />} onPitchChange={(v, val) => handlePitchChange('hr_pitch', v, val)} />
+          <PitchCard title="Networking Pitch" pitch={pitchMatrix.networking_pitch} icon={<Bot size={20} />} onPitchChange={(v, val) => handlePitchChange('networking_pitch', v, val)} />
+          <PitchCard
+            title="Anti-Flaw Pitch"
+            pitch={pitchMatrix.anti_flaw_pitch}
+            icon={<BrainCircuit size={20} />}
+            identifiedFlaw={pitchMatrix.anti_flaw_pitch.identified_flaw}
+            onPitchChange={(v, val) => handlePitchChange('anti_flaw_pitch', v, val)}
+          />
+        </div>
+      )}
     </div>
   );
 }

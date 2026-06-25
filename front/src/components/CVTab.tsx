@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef, useReducer } from 'react';
+import { useState, useEffect, useRef, useReducer } from 'react';
 import { useDashboard } from './DashboardContext';
 import { FileText, Download, Loader2, RefreshCw, Target, CheckCircle2, Plus } from 'lucide-react';
-import { authenticatedFetch } from '../utils/auth';
 import { KeywordCoachModal } from './KeywordCoachModal';
 import { API_BASE_URL } from '../config';
 import PdfPreviewer from './PdfPreviewer';
@@ -56,10 +55,8 @@ export const CVTab = ({ data }: { data: any }) => {
   const missingKeywords = missingKeywordsRaw.map((g: any) => typeof g === 'string' ? g : (g.skill || JSON.stringify(g)));
   const baseScore = payload.match_score || payload.score_adequation || payload.matchScore || payload.score || 0;
 
-  const pointsPerKeyword = missingKeywords.length > 0 ? Math.ceil((100 - baseScore) / missingKeywords.length) : 0;
-  const currentScore = Math.min(100, baseScore + (addedKeywords.length * pointsPerKeyword));
+  const currentScore = baseScore + (addedKeywords.length * (missingKeywords.length > 0 ? Math.ceil((100 - baseScore) / missingKeywords.length) : 0));
   const scoreColor = currentScore >= 80 ? '#10b981' : currentScore >= 50 ? '#f59e0b' : '#ef4444';
-  const [animatedScore, setAnimatedScore] = useState(baseScore); // L'animation reste un état local de la vue
 
   const preparePreviewData = () => {
     // [FIX CRITIQUE] On utilise les données optimisées par l'IA si elles existent
@@ -196,6 +193,9 @@ export const CVTab = ({ data }: { data: any }) => {
             <div style={{ width: '100%', height: '10px', background: '#e2e8f0', borderRadius: '5px', overflow: 'hidden', marginBottom: '0.5rem' }}>
                 <div style={{ width: `${currentScore}%`, height: '100%', background: scoreColor, transition: 'width 0.5s ease-out, background 0.5s ease-in-out' }}></div>
             </div>
+            <div style={{ fontSize: '0.95rem', color: scoreColor, fontWeight: 700 }}>{currentScore}/100 - {currentScore >= 80 ? t('score_excellent', "Excellent") : currentScore >= 50 ? t('score_average', "Moyen") : t('score_improve', "À améliorer")}</div>
+          </div>
+
             <div style={{ fontSize: '0.95rem', color: scoreColor, fontWeight: 700 }}>
               {currentScore}/100 - {currentScore >= 80 ? t('score_excellent', "Excellent") : currentScore >= 50 ? t('score_average', "Moyen") : t('score_improve', "À améliorer")}
             </div>

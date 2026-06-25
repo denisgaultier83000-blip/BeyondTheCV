@@ -7,13 +7,12 @@ import { GapAnalysisFull } from './GapAnalysisFull';
 import { InterviewTab } from './InterviewTab';
 import { AnalysisTab } from './AnalysisTab';
 import { JobDecoder } from './JobDecoder';
-import { CareerRealityCheck } from './CareerRealityCheck';
+import { CareerRealityCheck } from './CareerRealityCheck'; // This is used
 import { RecruiterView } from './RecruiterView';
 import { DashboardCard } from './DashboardCard';
 import FlawCoaching from './FlawCoaching';
 import TrainingTab from './TrainingTab';
 import { PrintableDossier } from './PrintableDossier';
-import { TrainingPlanTimeline } from './TrainingPlanTimeline';
 import { CockpitTab } from './CockpitTab';
 
 interface DeliverableItem {
@@ -29,9 +28,9 @@ interface DeliverableItem {
 export const DashboardView = () => {
   const { t } = useTranslation();
   const { 
-    activeTab, setActiveTab, pilotData, isPilotLoading, pilotError, cvData, fetchPilotData, isAdmin,
-    researchResult, salaryResult, setCurrentStep,
-    jobDecoderResult, recruiterResult, realityResult, flawCoachingResult,
+    activeTab, setActiveTab, pilotData, isPilotLoading, pilotError, cvData, fetchPilotData,
+    researchResult, salaryResult,
+    jobDecoderResult, recruiterResult, realityResult, flawCoachingResult, setCurrentStep,
     globalStatus, triggerResearch,
     pitchResult, questionsResult, gapResult, customScenariosResult, actionPlanResult
   } = useDashboard();
@@ -173,7 +172,7 @@ export const DashboardView = () => {
   const isCommando = getDaysUntilInterview(meta.interview_date || "") <= 2;
   const commandoReason = t('commando_disabled_reason', "Désactivé (Urgence : Entretien imminent)");
 
-  const hasJobDesc = !!(cvData?.job_description && cvData.job_description.trim().length > 0);
+  const hasJobDesc = !!(cvData?.job_description && cvData.job_description.trim().length > 0); // Used for JobDecoder disabled state
 
   // Liste de tous les livrables avec leur état
   const deliverableItems: DeliverableItem[] = [
@@ -205,7 +204,7 @@ export const DashboardView = () => {
   const interviewUnseen = hasUnseen('interview', [pitchResult, questionsResult, flawCoachingResult]);
   const marketUnseen = hasUnseen('market', [gapResult, researchResult, jobDecoderResult]);
   const cockpitUnseen = hasUnseen('cockpit', [actionPlanResult]);
-
+  
   // [FIX CRITIQUE] On force le chargement du résumé si les données sont absentes pour briser la boucle de crash
   useEffect(() => {
     if ((activeTab === 'overview' || activeTab === 'cockpit') && !pilotData && !pilotError && typeof fetchPilotData === 'function') {

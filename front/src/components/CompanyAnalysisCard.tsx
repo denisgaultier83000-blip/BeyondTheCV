@@ -1,5 +1,5 @@
-import React from 'react';
 import { Building, Newspaper, ExternalLink, Globe2, Target, Users, TrendingUp, BookOpen, Brain, Activity, AlertTriangle } from 'lucide-react';
+import React from 'react'; // React is used for JSX
 import { DashboardCard } from './DashboardCard';
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer } from 'recharts';
 import { useTranslation } from 'react-i18next';
@@ -39,8 +39,8 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
   const rawStrategicChallenges = report.strategic_challenges || data?.synthesis?.company_report?.strategic_challenges || [];
   const strategicChallenges = Array.isArray(rawStrategicChallenges) ? rawStrategicChallenges : (typeof rawStrategicChallenges === 'string' ? [rawStrategicChallenges] : []);
   
-  // [NOUVEAU] Préparation des données pour le graphique des défis
-  const chartData = strategicChallenges.map((defi, index) => ({
+  // Préparation des données pour le graphique des défis
+  const chartData = strategicChallenges.map((defi) => ({
     subject: defi,
     value: 1, // Valeur constante pour former un polygone régulier
   }));

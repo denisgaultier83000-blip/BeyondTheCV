@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Map, Navigation, Flag, AlertTriangle, TrendingUp, Zap, Clock, Percent, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Flag, AlertTriangle, TrendingUp, Zap, Clock, Percent, AlertCircle, Map, Navigation } from 'lucide-react';
 import { formatMarkdown } from '../utils/markdown';
-import { FeedbackWidget } from './FeedbackWidget';
-
 interface CareerGPSData {
   current_position: {
     role: string;

@@ -1,8 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
- import { Bell as LucideBell, X as LucideX } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 // [EXPERT] Remplacement de la navigation manuelle par un système de routage complet
-import { useNavigate, Outlet, Link } from 'react-router-dom';
+import { useNavigate, Outlet } from 'react-router-dom';
 import Header, { Step } from './components/Header';
 import { DashboardProvider as GlobalProvider, useDashboard as useGlobalDashboard } from './hooks/DashboardContext';
 import { CGU } from './components/CGU';
@@ -124,7 +123,7 @@ function AppContent() {
         <Outlet context={{ CAREER_EDGE_STEPS, currentStep, setCurrentStep, onStart: () => navigate('/login'), onShowCGU: () => setActiveLegalDoc('cgu'), onShowPrivacy: () => setActiveLegalDoc('privacy'), onShowLegal: () => setActiveLegalDoc('legal'), darkMode, setIsAuthenticated, isAdmin }} />
       </main>
 
-      <div className="toast-container">{(toasts || []).map(t => (<div key={t.id} className="toast-notification"><LucideBell size={16} /> {t.text}<button onClick={() => removeToast(t.id)}><LucideX size={14}/></button></div>))}</div>
+      <div className="toast-container">{(toasts || []).map(t => (<div key={t.id} className="toast-notification">{t.text}<button onClick={() => removeToast(t.id)}>X</button></div>))}</div>
 
       {showDocsModal && <DocumentsModal onClose={() => setShowDocsModal(false)} />}
 

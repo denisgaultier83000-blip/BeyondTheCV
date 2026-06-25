@@ -1,6 +1,6 @@
 // e:\BeyondTheCV\front\src\components\CareerSimulator.tsx
 import React, { useState } from 'react';
-import { Play, TrendingUp, DollarSign, Clock, ArrowRight, Loader2, AlertTriangle } from 'lucide-react';
+import { Play, Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { formatMarkdown } from '../utils/markdown';

@@ -1,9 +1,9 @@
-import React from 'react';
-import { AlertTriangle, X, Target, CheckCircle, Lightbulb, Clock } from 'lucide-react';
+import React from 'react'; // React is used for JSX
+import { AlertTriangle, X, Target, CheckCircle, Lightbulb, Clock } from 'lucide-react'; // All icons are used
 import Gauge from './Gauge';
 import { FeedbackWidget } from './FeedbackWidget';
 
-export const GapAnalysisFull = ({ data, loading, onBack }: { data: any, loading?: boolean, onBack: () => void }) => {
+export const GapAnalysisFull = ({ data, onBack }: { data: any, onBack: () => void }) => {
   // Normalisation robuste des données
   const payload = data?.gap_analysis || data || {};
   const key_needs_from_job = payload.key_needs_from_job || payload.besoins_cles || payload.exigences || [];
@@ -24,7 +24,7 @@ export const GapAnalysisFull = ({ data, loading, onBack }: { data: any, loading?
   const renderTime = (item: any) => typeof item === 'object' ? item?.estimated_time || item?.time_to_bridge || item?.time : null;
 
   return (
-    <>
+    <div className="gap-analysis-full-container">
     <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '1rem', border: '1px solid var(--border-color)', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
         <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-main)' }}>
@@ -108,6 +108,6 @@ export const GapAnalysisFull = ({ data, loading, onBack }: { data: any, loading?
     </div>
 
     <FeedbackWidget feature="gap_analysis" question="Cette analyse d'écarts vous semble-t-elle pertinente et actionable ?" />
-    </>
+    </div>
   );
 };

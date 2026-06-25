@@ -6,14 +6,12 @@ import { API_ROUTES } from '../api/routes';
 
 interface FeedbackWidgetProps {
   feature: string;
-  jobType?: string;
   question?: string;
   negativeBullets?: string[];
 }
 
 export function FeedbackWidget({ 
   feature, 
-  jobType = "unknown",
   question,
   negativeBullets
 }: FeedbackWidgetProps) {

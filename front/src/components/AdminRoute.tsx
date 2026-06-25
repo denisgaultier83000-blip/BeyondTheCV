@@ -1,7 +1,5 @@
-import React, { ReactNode } from 'react';
-import { Navigate, useOutletContext } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
-
+import { ReactNode } from 'react';
+import { Navigate, useOutletContext, } from 'react-router-dom';
 interface AdminRouteProps {
   children: ReactNode;
 }
@@ -11,7 +9,7 @@ interface AdminContextType {
   isAdmin: boolean;
 }
 
-export const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
+export const AdminRoute: React.FC<AdminRouteProps> = ({ children, }) => {
   // [FIX] On utilise useOutletContext pour récupérer le statut isAdmin directement depuis App.tsx
   const { isAdmin } = useOutletContext<AdminContextType>();
 

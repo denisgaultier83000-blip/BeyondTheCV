@@ -1,15 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  FileText, 
-  MessageSquare, 
-  ShieldQuestion, 
-  Building, 
-  LineChart, 
-  Target, 
-  Mic, 
-  Printer, 
-  Download 
+  FileText,
+  MessageSquare,
+  ShieldQuestion,
+  Building,
+  LineChart,
+  Target,
+  Mic,
 } from 'lucide-react';
 
 interface ApplicationData {

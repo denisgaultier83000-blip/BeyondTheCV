@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useReducer } from 'react';
-import { Mic, Play, Pause, RotateCcw, ArrowLeft, Shield, Users, Briefcase, Building, Clock } from 'lucide-react';
+import { Mic, Play, RotateCcw, Shield, Users, Briefcase, Building, Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DashboardCard } from './DashboardCard';
 import PitchOralTrainer from './PitchOralTrainer';

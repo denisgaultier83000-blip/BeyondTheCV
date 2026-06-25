@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ShieldAlert, Clock, Zap, Target, CheckCircle2, Circle, Mic, CalendarDays, Timer, Lock, RefreshCw, Loader2, AlertTriangle, Flame, Activity } from 'lucide-react';
+import { ShieldAlert, Target, CheckCircle2, Circle, Mic, Timer, Lock, RefreshCw, Loader2, AlertTriangle, Flame, Activity, Clock, Zap, CalendarDays } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { useDashboard } from './DashboardContext';

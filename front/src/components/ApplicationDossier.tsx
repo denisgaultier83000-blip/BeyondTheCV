@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { FileText, Printer, Trash2, Download, Eye, Briefcase, Calendar, CheckCircle2, ArrowLeft, Loader2, Building, Target, Mic, LineChart, MessageSquare, AlertTriangle, Zap, UserCheck, Monitor, HeartPulse } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
@@ -8,10 +8,9 @@ interface ApplicationDossierProps {
   appId: string;
   onBack: () => void;
   onOpenDeliverable: (type: string, data: any) => void;
-  onGoToTraining?: () => void; // Prop optionnelle pour basculer d'onglet
 }
 
-export function ApplicationDossier({ appId, onBack, onOpenDeliverable, onGoToTraining }: ApplicationDossierProps) {
+export function ApplicationDossier({ appId, onBack, onOpenDeliverable }: ApplicationDossierProps) {
   const [loading, setLoading] = useState(true);
   const [appData, setAppData] = useState<any>(null);
   const [deliverablesData, setDeliverablesData] = useState<any>({});
@@ -84,16 +83,6 @@ export function ApplicationDossier({ appId, onBack, onOpenDeliverable, onGoToTra
   if (!appData) return null;
 
   // --- EXTRACTION DU CONTEXTE (META) ---
-  const meta = deliverablesData.form?.meta || deliverablesData.meta || {};
-  const interviewTypeLabels: Record<string, string> = { rh: 'Ressources Humaines', manager: 'Manager / Opérationnel', tech: 'Équipe Technique', final: 'Direction (Final)' };
-  const formatLabels: Record<string, string> = { visio: 'Visioconférence', phone: 'Téléphone', onsite: 'En Présentiel' };
-  const stressLabels: Record<string, string> = { low: 'Confiant', medium: 'Stress Modéré', high: 'Stress Élevé' };
-
-  // --- EXTRACTION DES KPI ---
-  const matchScore = deliverablesData.gapResult?.match_score || deliverablesData.gapResult?.score_adequation || 0;
-  const missingGapsCount = deliverablesData.gapResult?.missing_gaps?.length || deliverablesData.gapResult?.lacunes?.length || 0;
-  const questionsCount = deliverablesData.questionsResult?.questions?.length || 0;
-  const hasStrategyAdvice = !!deliverablesData.actionPlanResult?.strategy_advice;
 
   // Mapping dynamique des livrables selon les JSON disponibles dans `deliverablesData`
   const availableDeliverables = [

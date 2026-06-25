@@ -1,8 +1,7 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { 
   Mic, 
   Square, 
-  Play, 
   Loader2, 
   CheckCircle2, 
   AlertTriangle, 

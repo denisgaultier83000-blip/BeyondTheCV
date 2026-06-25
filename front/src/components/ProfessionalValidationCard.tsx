@@ -1,6 +1,5 @@
 import React from 'react';
-import { ShieldCheck, AlertTriangle, CheckCircle, Lightbulb, Loader2, XCircle, Edit3 } from 'lucide-react';
-import { FeedbackWidget } from './FeedbackWidget';
+import { ShieldCheck, AlertTriangle, CheckCircle, Lightbulb } from 'lucide-react';
 import { AsyncBoundary } from './AsyncBoundary';
 
 interface ValidationData {

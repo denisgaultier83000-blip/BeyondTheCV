@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Share2, Copy, Check, Linkedin, Award, Trophy, TrendingUp } from 'lucide-react';
+import { Check, Linkedin, Award, Trophy, Share2, Copy, TrendingUp } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 
 interface RealityCheckData {
@@ -20,15 +20,15 @@ interface Props {
 }
 
 export function CareerRealityCheck({ data, loading, error, score }: Props) {
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState(false); // State for copy button feedback
   const reality_check = data?.reality_check;
 
   if (!reality_check && !loading && !error) {
     return null;
   }
 
-  const { archetype, tagline, market_position, top_3_skills, linkedin_post } = reality_check || {
-    archetype: '', tagline: '', market_position: '', top_3_skills: [], linkedin_post: ''
+  const { archetype, tagline, top_3_skills, linkedin_post } = reality_check || {
+    archetype: '', tagline: '', top_3_skills: [], linkedin_post: ''
   };
   const safeTopSkills = Array.isArray(top_3_skills) ? top_3_skills : [];
 

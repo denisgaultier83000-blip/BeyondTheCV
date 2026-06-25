@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Square, Play, RotateCcw, Loader2, Activity, MessageSquare, AlertTriangle, CheckCircle2, Dumbbell, Ban } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Mic, Square, Play, RotateCcw, Activity, AlertTriangle, CheckCircle2, Dumbbell, Ban } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { useTranslation } from 'react-i18next';
@@ -15,7 +15,7 @@ interface VocalPitchTrainerProps {
 }
 
 export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDescription, onSuccess }: VocalPitchTrainerProps) => {
-  const { t } = useTranslation();
+  const { t: _t } = useTranslation();
   const { quotas, fetchQuotas } = useDashboard();
   
   const [isRecording, setIsRecording] = useState(false);

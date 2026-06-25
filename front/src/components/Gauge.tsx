@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-
+import { useState, useEffect, useRef } from 'react';
+import React from 'react'; // React is used for JSX
 interface GaugeProps {
   score: number; // 0-100
   color: string;

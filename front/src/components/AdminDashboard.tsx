@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import AdminQuotaManager from './AdminQuotaManager';
-import { useNavigate, Link } from 'react-router-dom';
-import { User, Shield, Calendar, Eye, Database, CheckCircle, XCircle, Percent, BarChart3, DollarSign, Users, Cpu, Package, AlertTriangle, LifeBuoy, ArrowRight } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Link, useNavigate } from 'react-router-dom';
+import { User, Shield, Calendar, Eye, Database, CheckCircle, XCircle, Percent, BarChart3, DollarSign, Users, Cpu, Package, LifeBuoy, ArrowRight } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 // --- Types ---
 interface Stats {

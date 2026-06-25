@@ -1,5 +1,3 @@
-import React from 'react';
-
 export function AdminGenerations() {
   // TODO: Fetch generation logs from a new backend endpoint: GET /api/admin/generations
 

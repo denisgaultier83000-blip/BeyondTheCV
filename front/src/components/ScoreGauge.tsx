@@ -5,11 +5,10 @@ interface ScoreGaugeProps {
   label: string;
   critique?: string;
   metrics?: { label: string; value: string }[];
-  colorScale?: 'standard' | 'inverted'; // standard: red->green
   tooltip?: string;
 }
 
-export default function ScoreGauge({ score, label, critique, metrics, colorScale = 'standard', tooltip }: ScoreGaugeProps) {
+export default function ScoreGauge({ score, label, critique, metrics, tooltip }: ScoreGaugeProps) {
   // Calcul de la couleur (Rouge -> Jaune -> Vert)
   const getColor = (val: number) => {
     if (val < 4) return "#ef4444"; // Rouge

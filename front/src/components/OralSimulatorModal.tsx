@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Mic, Square, Loader2, Play, Activity, AlertTriangle, CheckCircle2, Target, Award, X, RotateCcw, Flame } from 'lucide-react';
+import { Mic, Square, Activity, X, RotateCcw } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';

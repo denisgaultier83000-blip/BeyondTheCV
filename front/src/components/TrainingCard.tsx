@@ -1,9 +1,4 @@
-import React, { useState } from 'react';
-import { 
-  Star, BrainCircuit, Users, Siren, Target, 
-  CheckCircle, MapPin, Zap, TrendingUp, 
-  Check, X, Award, Loader2 
-} from 'lucide-react';
+import { Star, BrainCircuit, Users, Siren, Target, CheckCircle, MapPin, Zap, TrendingUp, Check, X, Award } from 'lucide-react';
 
 // --- Définitions des types (à adapter selon votre API) ---
 

@@ -1,11 +1,10 @@
-import React, { useState, useRef, useEffect, useReducer } from 'react';
+import { useState, useRef, useEffect, useReducer } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MessageSquare, Printer, ArrowLeft, Lightbulb } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { useDashboard } from './DashboardContext';
 import { RechargeModal } from './RechargeModal';
-import { AsyncBoundary } from './AsyncBoundary';
 import { QuestionItem } from './QuestionItem';
 
 interface QuestionnaireProps {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useReducer } from 'react';
+import { useState, useEffect, useRef, useReducer } from 'react';
 import { Mic, MicOff, Send, AlertTriangle, CheckCircle2, Target, Lightbulb, RefreshCw, Play } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';

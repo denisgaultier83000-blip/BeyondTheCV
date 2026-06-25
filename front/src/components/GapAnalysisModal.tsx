@@ -1,5 +1,5 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
+import React from 'react'; // React is used for JSX
 import { FeedbackWidget } from './FeedbackWidget';
 
 interface GapAnalysisModalProps {
@@ -14,7 +14,7 @@ const GapAnalysisModal: React.FC<GapAnalysisModalProps> = ({ data, onClose }) =>
   // Affichage d'erreur explicite si l'IA a planté
   if (data.error) {
     return (
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '1rem' }}>
+      <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '1rem' }}>
         <div style={{ background: 'var(--bg-card)', padding: '2.5rem', borderRadius: '1rem', textAlign: 'center', maxWidth: '400px', width: '100%', border: '1px solid var(--danger-text)' }}>
           <h3 style={{ color: 'var(--danger-text)', marginBottom: '1rem', marginTop: 0 }}>Erreur d'Analyse</h3>
           <p style={{ color: 'var(--text-main)', marginBottom: '2rem' }}>{typeof data.error === 'string' ? data.error : "Impossible de charger l'analyse des écarts."}</p>
@@ -172,7 +172,7 @@ const GapAnalysisModal: React.FC<GapAnalysisModalProps> = ({ data, onClose }) =>
             </div>}
 
           {/* Fallback si tout est vide */}
-          {key_needs_from_job.length === 0 && missing_gaps.length === 0 && recommended_adjustments.length === 0 && (
+          {key_needs_from_job.length === 0 && matching_skills.length === 0 && missing_gaps.length === 0 && recommended_adjustments.length === 0 && (
               <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
                   {fallbackArrays.length > 0 ? (
                       fallbackArrays.map(([key, arr]: [string, any], idx) => (

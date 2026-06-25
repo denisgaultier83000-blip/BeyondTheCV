@@ -1,5 +1,5 @@
 // @refresh reset
-import React, { createContext, useContext, useReducer, useCallback, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useReducer, useCallback, useEffect, ReactNode } from 'react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 

@@ -18,7 +18,7 @@ interface JobDecoderModalProps {
 }
 
 export default function JobDecoderModal({ data, onClose }: JobDecoderModalProps) {
-  const { t } = useTranslation();
+  const { t: _t } = useTranslation();
   
   if (!data) return null;
 

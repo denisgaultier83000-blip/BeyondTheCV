@@ -1,5 +1,3 @@
-import React from 'react';
-
 export function AdminBilling() {
   // TODO: Fetch payment/order data from a new backend endpoint: GET /api/admin/billing
 

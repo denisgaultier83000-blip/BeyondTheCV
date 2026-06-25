@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Activity, DollarSign, Target, Award, RefreshCw, BrainCircuit, MessageSquare, Settings2, History, Lightbulb, Lock, TrendingUp, CheckCircle2, AlertCircle, Dumbbell, Mic } from 'lucide-react';
+import { Activity, DollarSign, Target, Award, RefreshCw, BrainCircuit, MessageSquare, Settings2, History, Lightbulb, Lock, TrendingUp, AlertCircle, Dumbbell, Mic } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { DashboardCard } from './DashboardCard';
-import Questionnaire from './Questionnaire';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { useDashboard } from './DashboardContext';
@@ -11,7 +10,6 @@ import { RechargeModal } from './RechargeModal';
 
 export default function TrainingTab() {
   const { cvData, updateFormData, actionPlanResult, quotas, fetchQuotas } = useDashboard();
-  const [score, setScore] = useState(0);
   const [totalSessions, setTotalSessions] = useState(0);
   const [themeScores, setThemeScores] = useState<Record<string, number>>({});
   const [themeCounts, setThemeCounts] = useState<Record<string, number>>({});

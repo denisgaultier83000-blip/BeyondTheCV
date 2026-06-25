@@ -1,8 +1,6 @@
-import React from 'react';
-import { Map, Clock, AlertCircle, Loader2, Target, Lightbulb, Wallet, ChevronRight } from 'lucide-react';
+import React from 'react'; // React is used for JSX
+import { Clock, Target, Lightbulb, Wallet } from 'lucide-react';
 import { AsyncBoundary } from './AsyncBoundary';
-import { FeedbackWidget } from './FeedbackWidget';
-
 interface Trajectory {
   title: string;
   match_percent: number;

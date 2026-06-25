@@ -1,22 +1,12 @@
-import React from 'react';
-import { Network, Users, MessageCircle, Lightbulb, AlertCircle, Compass } from 'lucide-react';
+import React from 'react'; // React is used for JSX
+import { Users, MessageCircle, Lightbulb, Compass, Network, AlertCircle } from 'lucide-react';
 import { AsyncBoundary } from './AsyncBoundary';
-import { FeedbackWidget } from './FeedbackWidget';
-
-interface HiddenMarketData {
-  target_profiles: { role: string; reason: string }[];
-  suggested_companies: string[];
-  connection_strategy: string;
-  outreach_message: { subject: string; body: string };
-  networking_tips: string[];
-}
 
 interface HiddenMarketProps {
   data: any;
   loading?: boolean;
   error?: boolean;
 }
-
 export function HiddenMarket({ data, loading, error }: HiddenMarketProps) {
   // Résolution robuste (Support de l'encapsulation IA)
   let actualData = data && 'result' in data ? (data as any).result : data;

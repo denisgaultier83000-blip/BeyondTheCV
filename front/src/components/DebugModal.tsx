@@ -1,5 +1,5 @@
 // c:\BeyondTheCV\front\src\components\DebugModal.tsx
-import React from "react";
+import React from "react"; // React is used for JSX
 import { useTranslation } from "react-i18next";
 
 interface DebugModalProps {

@@ -1,5 +1,4 @@
 // e:\BeyondTheCV\front\src\components\RecruiterView.tsx
-import React from 'react';
 import { Eye, ThumbsUp, ThumbsDown, Lightbulb } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 import { useTranslation } from 'react-i18next';

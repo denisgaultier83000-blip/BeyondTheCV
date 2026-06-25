@@ -1,15 +1,11 @@
 // c:\BeyondTheCV\front\src\components\CandidateSteps.tsx
 import React, { useState, useRef, useEffect } from "react";
-import ScoreGauge from "./ScoreGauge";
 import { useTranslation } from "react-i18next";
 import { 
-  Camera, Loader2, Sparkles, User, Briefcase, GraduationCap, Circle, CheckCircle2, Plus, Trash2, Target, Gem, RefreshCw, HelpCircle, Linkedin, UploadCloud, FileText
+  Loader2, Sparkles, User, Briefcase, GraduationCap, CheckCircle2, Plus, Trash2, Target, Gem, HelpCircle, UploadCloud, FileText, Camera, Circle, RefreshCw, Linkedin
 } from 'lucide-react';
 import RadarChart from './RadarChart'; // Import the new component
-import { API_BASE_URL } from "../config";
 import { InterviewContextForm } from './InterviewContextForm';
-import { authenticatedFetch } from "../utils/auth";
-
 interface StepProps {
   data: any;
   onChange: (key: string, value: any) => void;
@@ -43,7 +39,7 @@ const COUNTRIES = [
   { code: "IN", name: "India" },
   { code: "BR", name: "Brazil" },
   { code: "AE", name: "United Arab Emirates" }
-];
+]; // This is used
 
 export const StepImport = ({ onUpload, loading, lang = 'en' }: { onUpload?: (payload: File | string) => void, loading?: boolean, lang?: string }) => {
   const { t } = useTranslation();
@@ -158,7 +154,7 @@ export const StepImport = ({ onUpload, loading, lang = 'en' }: { onUpload?: (pay
   );
 };
 
-export const StepProfile = ({ data, onChange, errors, lang = 'en' }: StepProps) => {
+export const StepProfile = ({ data, onChange, errors }: StepProps) => {
   const { t } = useTranslation();
 
   // Formate le prénom : "jean-pierre" devient "Jean-Pierre"
@@ -234,7 +230,7 @@ export const StepProfile = ({ data, onChange, errors, lang = 'en' }: StepProps) 
   );
 };
 
-export const StepTarget = ({ data, onChange, errors, loading, lang = 'en' }: StepProps) => {
+export const StepTarget = ({ data, onChange, errors, loading }: StepProps) => {
   // Extraction de i18n et t sans doublon (correction du crash React)
   const { t, i18n } = useTranslation();
   return (
@@ -370,11 +366,11 @@ export const StepTarget = ({ data, onChange, errors, loading, lang = 'en' }: Ste
   );
 };
 
-export const StepEducation = ({ list, onAdd, onRemove, onUpdate, lang = 'en' }: ListStepProps) => {
+export const StepEducation = ({ list, onAdd, onRemove, onUpdate }: ListStepProps) => {
   const { t } = useTranslation();
   return (
   <div className="step-content">
-    <h2>{t('education_title')}</h2>
+    <h2>{t('education_title')}</h2> {/* lang is not used here */}
     {list.map((edu: any, index: number) => (
       <div key={edu.id} className="dynamic-item">
         <div className="dynamic-header">
@@ -393,11 +389,11 @@ export const StepEducation = ({ list, onAdd, onRemove, onUpdate, lang = 'en' }: 
   );
 };
 
-export const StepExperience = ({ list, onAdd, onRemove, onUpdate, lang = 'en', onOptimize }: ListStepProps) => {
+export const StepExperience = ({ list, onAdd, onRemove, onUpdate, onOptimize }: ListStepProps) => {
   const { t } = useTranslation();
   return (
   <div className="step-content">
-    <h2>{t('experience_title')}</h2>
+    <h2>{t('experience_title')}</h2> {/* lang is not used here */}
     {list.map((exp: any, index: number) => (
       <div key={exp.id} className="dynamic-item">
         <div className="dynamic-header">
@@ -479,7 +475,7 @@ const PROFILE_CATEGORIES = [
   }
 ];
 
-export const StepQualitiesFlaws = ({ data, onChange, lang = 'en' }: any) => {
+export const StepQualitiesFlaws = ({ data, onChange }: any) => {
   const { t } = useTranslation();
   const hasSelectedTraits = (data.work_style?.length || 0) + (data.relational_style?.length || 0) + (data.professional_approach?.length || 0) > 0;
   const interestsList = (t('interests_list', { returnObjects: true }) as string[]) || [];
@@ -744,7 +740,7 @@ export const StepQualitiesFlaws = ({ data, onChange, lang = 'en' }: any) => {
   );
 };
 
-export const StepClarification = ({ clarifications, answers = {}, onAnswer, lang = 'en' }: any) => {
+export const StepClarification = ({ clarifications, answers = {}, onAnswer }: any) => {
   const { t } = useTranslation();
   if (!clarifications || clarifications.length === 0) return <div className="step-content"><h2>{t('all_good')}</h2><p>{t('profile_complete')}</p></div>;
   return (
@@ -779,10 +775,9 @@ export const StepReview = (props: any) => {
     experiences, onUpdateExperience, onAddExperience, onRemoveExperience,
     educations, onUpdateEducation, onAddEducation, onRemoveEducation,
     onBack,
-    gapAnalysis, // [NEW] On importe les données d'analyse
     lang = 'en'
   } = props;
-
+  const { gapAnalysis } = useDashboard();
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<string | null>("profile");
 
@@ -856,26 +851,23 @@ export const StepReview = (props: any) => {
         {/* LEFT COLUMN: EDITOR */}
         <div style={{ flex: 1, overflowY: "auto", paddingRight: 10 }}>
           <Accordion title={<span style={{display: 'flex', alignItems: 'center', gap: 8}}><User size={18}/> {t('profile_title')}</span>} id="profile">
-            <StepProfile data={data} onChange={onChange} lang={lang} />
+            <StepProfile data={data} onChange={onChange} />
           </Accordion>
           
           <Accordion title={<span style={{display: 'flex', alignItems: 'center', gap: 8}}><Briefcase size={18}/> {t('experience_title')}</span>} id="experience">
-            <StepExperience list={experiences} onUpdate={onUpdateExperience} onAdd={onAddExperience} onRemove={onRemoveExperience} lang={lang} />
+            <StepExperience list={experiences} onUpdate={onUpdateExperience} onAdd={onAddExperience} onRemove={onRemoveExperience} />
           </Accordion>
           
           <Accordion title={<span style={{display: 'flex', alignItems: 'center', gap: 8}}><GraduationCap size={18}/> {t('education_title')}</span>} id="education">
-            <StepEducation list={educations} onUpdate={onUpdateEducation} onAdd={onAddEducation} onRemove={onRemoveEducation} lang={lang} />
+            <StepEducation list={educations} onUpdate={onUpdateEducation} onAdd={onAddEducation} onRemove={onRemoveEducation} />
           </Accordion>
 
           <Accordion title={<span style={{display: 'flex', alignItems: 'center', gap: 8}}><Gem size={18}/> {t('qualities_title')}</span>} id="skills">
-             <StepQualitiesFlaws 
-                data={data} onChange={onChange}
-                lang={lang}
-             />
+             <StepQualitiesFlaws data={data} onChange={onChange} />
           </Accordion>
 
           <Accordion title={<span style={{display: 'flex', alignItems: 'center', gap: 8}}><Target size={18}/> {t('target_title')}</span>} id="target">
-             <StepTarget data={data} onChange={onChange} lang={lang} />
+             <StepTarget data={data} onChange={onChange} />
           </Accordion>
         </div>
 

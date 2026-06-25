@@ -1,5 +1,4 @@
-import React from 'react';
-import { Building, Globe, RefreshCw } from 'lucide-react';
+import { Building, RefreshCw } from 'lucide-react';
 import { CompanyAnalysisCard } from './CompanyAnalysisCard';
 import { MarketAnalysisCard } from './MarketAnalysisCard';
 

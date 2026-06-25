@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { BarChart3, Users, CreditCard, Cpu, MessageSquare } from 'lucide-react';
 
