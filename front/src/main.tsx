@@ -1,6 +1,7 @@
 import React, { Suspense } from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import { PitchMatrix } from "./components/PitchMatrix"; // Import the new component
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import Payment from "./pages/Payment";
 import ResearchReport from "./pages/ResearchReport"; // Importer la nouvelle page
@@ -58,6 +59,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               {/* Routes protégées pour les candidats */}
               {/* [EXPERT] La route /candidate utilise maintenant le CandidateLayout pour afficher le stepper */}
               <Route path="candidate" element={<ProtectedRoute><CandidateLayout /></ProtectedRoute>} />
+              <Route path="candidate/pitch" element={<ProtectedRoute><PitchMatrix /></ProtectedRoute>} />
               <Route path="payment" element={<ProtectedRoute><Payment /></ProtectedRoute>} />
               <Route path="report" element={<ProtectedRoute><ResearchReport /></ProtectedRoute>} />
 

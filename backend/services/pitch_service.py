@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Body, Depends
 from pydantic import BaseModel, Field
 import json
 from typing import Dict
@@ -6,6 +6,8 @@ from typing import Dict
 # Import des modules utilitaires et du service IA
 from .utils import load_prompt, clean_ai_json_response
 from .ai_generator import ai_service
+from ..database import db
+from .auth import get_current_active_user # Service d'authentification
 
 router = APIRouter()
 
@@ -15,6 +17,22 @@ class PitchRequest(BaseModel):
     """
     candidate_data: Dict = Field(..., description="L'objet JSON complet des données du candidat.")
     target_language: str = Field(default="fr", description="La langue cible pour la génération (ex: 'fr', 'en').")
+
+class PitchMatrixData(BaseModel):
+    """
+    Modèle de données pour la matrice de pitchs, utilisé pour la sauvegarde.
+    """
+    recruiter_pitch: Dict
+    executive_pitch: Dict
+    hr_pitch: Dict
+    networking_pitch: Dict
+    anti_flaw_pitch: Dict
+
+class PitchUpdateRequest(BaseModel):
+    """
+    Modèle pour la requête de mise à jour des pitchs.
+    """
+    pitch_matrix: PitchMatrixData
 
 @router.post(
     "/api/pitch",
@@ -47,3 +65,35 @@ async def generate_strategic_pitch(request: PitchRequest):
     except Exception as e:
         print(f"Erreur lors de la génération du pitch : {e}")
         raise HTTPException(status_code=500, detail=f"Une erreur interne est survenue lors de la génération du pitch : {str(e)}")
+
+@router.put(
+    "/api/pitch",
+    tags=["User Profile"],
+    summary="Sauvegarder la matrice de pitchs modifiée",
+    description="Met à jour le profil de l'utilisateur avec la version modifiée de la matrice de pitchs."
+)
+async def save_pitch_matrix(
+    request: PitchUpdateRequest,
+    current_user: Dict = Depends(get_current_active_user)
+):
+    """
+    Sauvegarde la matrice de pitchs modifiée dans la colonne `profile_data` de la table `user_profiles`.
+    """
+    user_id = current_user.get("id")
+    if not user_id:
+        raise HTTPException(status_code=403, detail="Impossible d'identifier l'utilisateur.")
+
+    try:
+        async with db.get_connection() as conn:
+            # On utilise l'opérateur || de PostgreSQL pour fusionner le JSONB existant avec les nouvelles données.
+            # La clé 'pitch_matrix' sera ajoutée ou mise à jour dans l'objet `profile_data`.
+            update_payload = json.dumps({"pitch_matrix": request.pitch_matrix.dict()})
+            
+            await conn.execute(
+                "UPDATE user_profiles SET profile_data = profile_data || %s WHERE user_id = %s",
+                (update_payload, user_id)
+            )
+        return {"message": "Pitchs sauvegardés avec succès."}
+    except Exception as e:
+        print(f"Erreur lors de la sauvegarde des pitchs pour l'utilisateur {user_id}: {e}")
+        raise HTTPException(status_code=500, detail="Une erreur interne est survenue lors de la sauvegarde.")
