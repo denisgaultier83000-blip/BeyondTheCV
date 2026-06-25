@@ -62,6 +62,7 @@ export function SituationSimulator() {
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState<string|null>(null);
   const [isGeneratingMore, setIsGeneratingMore] = useState(false);
+  const [showRechargeModal, setShowRechargeModal] = useState(false);
   const recognitionRef = useRef<any>(null);
 
   // État local initialisé avec les données du contexte (évite la perte de couleur au changement d'onglet)

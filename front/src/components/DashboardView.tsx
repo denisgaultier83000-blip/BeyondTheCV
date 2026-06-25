@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useDashboard } from './DashboardContext';
-import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Mic, Search, Eye, Loader2, RotateCcw, Dumbbell, ArrowUp, Printer, Building } from 'lucide-react';
+import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Mic, Search, Eye, Loader2, RotateCcw, Dumbbell, ArrowUp, Printer, Building, ShieldAlert } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PilotBento } from './PilotBento';
 import { GapAnalysisFull } from './GapAnalysisFull';
 import { InterviewTab } from './InterviewTab';
 import { AnalysisTab } from './AnalysisTab';
 import { JobDecoder } from './JobDecoder';
-import { CareerRealityCheck } from './CareerRealityCheck'; // This is used
-import { DashboardCard } from './DashboardCard';
+import { CareerRealityCheck } from './CareerRealityCheck';
+import { RecruiterView } from './RecruiterView';
 import FlawCoaching from './FlawCoaching';
 import TrainingTab from './TrainingTab';
 import { PrintableDossier } from './PrintableDossier';

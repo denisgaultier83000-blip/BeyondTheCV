@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Mic, Square, Play, RotateCcw, Activity, AlertTriangle, CheckCircle2, Dumbbell, Ban } from 'lucide-react';
+import { Mic, Square, Play, RotateCcw, Activity, AlertTriangle, CheckCircle2, Dumbbell, Ban, MessageSquare } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { useTranslation } from 'react-i18next';

@@ -2,7 +2,6 @@ import { useReducer, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import './Header.css';
-import LanguageSelector from './LanguageSelector';
 
 export interface Step {
   id: number;
@@ -12,7 +11,6 @@ export interface Step {
 interface HeaderProps {
   // [FIX] Ajout des propriétés manquantes pour satisfaire TypeScript
   darkMode: boolean;
-  setDarkMode: (value: boolean | ((prev: boolean) => boolean)) => void;
   showLangSelector?: boolean;
   steps?: Step[];
   currentStep?: number;
@@ -52,7 +50,6 @@ const initialState: HeaderState = { isDropdownOpen: false };
 export default function Header({
   darkMode,
   setDarkMode,
-  showLangSelector = true,
   userName,
   onLogout,
   onOpenProfile,
@@ -86,9 +83,6 @@ export default function Header({
         </div>
 
         <div className="header-actions">
-          {/* Menu Langue Contrôlé */}
-          {/* LanguageSelector is now part of the main app, not the header */}
-          
           {userName ? (
             <div className="user-menu-container" ref={dropdownRef} style={{ position: 'relative' }}>
               <button onClick={() => dispatch({ type: 'toggle_dropdown' })} className="user-profile-btn" title="Menu utilisateur">

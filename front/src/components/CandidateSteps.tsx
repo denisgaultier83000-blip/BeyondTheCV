@@ -777,7 +777,7 @@ export const StepReview = (props: any) => {
     educations, onUpdateEducation, onAddEducation, onRemoveEducation,
     onBack,
   } = props;
-  const { gapAnalysis } = useDashboard()
+  const { gapResult: gapAnalysis } = useDashboard()
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<string | null>("profile");
 

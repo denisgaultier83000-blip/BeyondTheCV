@@ -1,153 +1,39 @@
-import { useReducer, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import './Header.css';
-import LanguageSelector from './LanguageSelector';
-
-export interface Step {
-  id: number;
-  title: string;
+import { useState, useEffect, useRef } from 'react';
+interface GaugeProps {
+  score: number; // 0-100
+  color: string;
+  trackColor?: string;
 }
 
-interface HeaderProps {
-  // [FIX] Ajout des propriétés manquantes pour satisfaire TypeScript
-  darkMode: boolean;
-  setDarkMode: (value: boolean | ((prev: boolean) => boolean)) => void;
-  showLangSelector?: boolean;
-  steps?: Step[];
-  currentStep?: number;
-  isAuthenticated?: boolean;
-  userName?: string;
-  onLogout?: () => void;
-  onOpenProfile?: () => void;
-  isAdmin?: boolean; // [FIX] On attend la prop du parent
-  targetLanguage?: string;
-  onLanguageChange?: (lang: string) => void;
-}
-
-// [EXPERT REFACTOR] Centralisation de la logique d'état avec un reducer.
-// Même pour un état simple, cela prépare le terrain pour une future complexification
-// et rend les transitions d'état plus explicites et maintenables.
-
-interface HeaderState {
-  isDropdownOpen: boolean;
-}
-
-type HeaderAction =
-  | { type: 'open_dropdown' }
-  | { type: 'close_dropdown' }
-  | { type: 'toggle_dropdown' };
-
-const headerReducer = (state: HeaderState, action: HeaderAction): HeaderState => {
-  switch (action.type) {
-    case 'open_dropdown': return { ...state, isDropdownOpen: true };
-    case 'close_dropdown': return { ...state, isDropdownOpen: false };
-    case 'toggle_dropdown': return { ...state, isDropdownOpen: !state.isDropdownOpen };
-    default: return state;
-  }
-};
-
-const initialState: HeaderState = { isDropdownOpen: false };
-
-export default function Header({
-  darkMode,
-  setDarkMode,
-  showLangSelector = true,
-  userName,
-  onLogout,
-  onOpenProfile,
-  isAdmin = false // [FIX] On reçoit le statut admin du parent
-}: HeaderProps): React.ReactElement | null {
-  const { t } = useTranslation();
-  const [state, dispatch] = useReducer(headerReducer, initialState);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
+export default function Gauge({ score, color, trackColor = '#e2e8f0' }: GaugeProps) {
+  const [displayScore, setDisplayScore] = useState(0);
+  const size = 120;
+  const strokeWidth = 12;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (displayScore / 100) * circumference;
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        dispatch({ type: 'close_dropdown' });
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleOpenDocuments = () => {
-    dispatch({ type: 'close_dropdown' });
-    navigate('/documents');
-  };
+    const animation = requestAnimationFrame(() => setDisplayScore(score));
+    return () => cancelAnimationFrame(animation);
+  }, [score]);
 
   return (
-    <header className="app-header">
-      <div className="header-main">
-        <div className="header-logo">
-          <img src="/logo_reduit_BTCV.png" alt="BeyondTheCV" className="logo-img" />
-        </div>
-
-        <div className="header-actions">
-          {/* Menu Langue Contrôlé */}
-          {/* LanguageSelector is now part of the main app, not the header */}
-          
-          {userName ? (
-            <div className="user-menu-container" ref={dropdownRef} style={{ position: 'relative' }}>
-              <button onClick={() => dispatch({ type: 'toggle_dropdown' })} className="user-profile-btn" title="Menu utilisateur">
-                <span className="user-icon">👤</span>
-                <span className="user-name">{userName}</span>
-              </button>
-              {state.isDropdownOpen && (
-                <div style={{
-                  position: 'absolute', top: '120%', right: 0, background: 'var(--bg-card)', 
-                  border: '1px solid var(--border-color)', borderRadius: '8px', 
-                  boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', minWidth: '200px', 
-                  display: 'flex', flexDirection: 'column', overflow: 'hidden', zIndex: 1000
-                }}>
-                  <button onClick={onOpenProfile} style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', textAlign: 'left', cursor: 'pointer', color: 'var(--text-main)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                    onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
-                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                  >
-                    📂 Mes Dossiers
-                  </button>
-              {isAdmin && (
-                <Link to="/admin" style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', textAlign: 'left', cursor: 'pointer', color: 'var(--primary)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}
-                  onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
-                  onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                  onClick={() => dispatch({ type: 'close_dropdown' })}
-                >
-                  <span role="img" aria-label="admin">👑</span> Administration
-                </Link>
-              )}
-                  <button 
-                    onClick={() => { 
-                      dispatch({ type: 'close_dropdown' }); 
-                      window.dispatchEvent(new CustomEvent('open-print-modal'));
-                    }} 
-                    style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', textAlign: 'left', cursor: 'pointer', color: 'var(--text-main)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                    onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
-                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                  >
-                    📄 Imprimer mon dossier
-                  </button>
-                  <button 
-                    onClick={() => { dispatch({ type: 'close_dropdown' }); onLogout?.(); }} 
-                    style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', textAlign: 'left', cursor: 'pointer', color: '#ef4444', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
-                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                  >
-                    🚪 Déconnexion
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <Link to="/login" className="login-link">{t('login')}</Link>
-          )}
-
-          <button onClick={() => setDarkMode(prev => !prev)} className="dark-mode-toggle">
-            {darkMode ? '🌙' : '☀️'}
-          </button>
-        </div>
+    <div style={{ position: 'relative', width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle cx={size/2} cy={size/2} r={radius} stroke={trackColor} strokeWidth={strokeWidth} fill="transparent" />
+        <circle
+          cx={size/2} cy={size/2} r={radius}
+          stroke={color} strokeWidth={strokeWidth} fill="transparent"
+          strokeDasharray={circumference} strokeDashoffset={offset}
+          strokeLinecap="round" transform={`rotate(-90 ${size/2} ${size/2})`}
+          style={{ transition: 'stroke-dashoffset 0.5s ease-out' }}
+        />
+      </svg>
+      <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+        <span style={{ fontSize: '1.8rem', fontWeight: 800, color: color, transition: 'color 0.5s' }}>{Math.round(displayScore)}</span>
+        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>/ 100</span>
       </div>
-    </header>
+    </div>
   );
 }

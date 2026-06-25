@@ -37,8 +37,7 @@ export default function TrainingTab() {
     try {
       const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/stats`);
       if (res.ok) {
-        const data = await res.json();
-        setScore(data.global_score);
+        const data = await res.json(); // setScore was removed
         setTotalSessions(data.total_sessions);
         setThemeScores(data.theme_scores || {});
         setThemeCounts(data.theme_counts || {});
