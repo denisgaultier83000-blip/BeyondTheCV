@@ -8,6 +8,7 @@ import {
   LineChart,
   Target,
   Mic,
+  Printer
 } from 'lucide-react';
 
 interface ApplicationData {

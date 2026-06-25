@@ -118,7 +118,7 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
     }
   };
 
-  const stopRecording = (isInternal = false) => {
+  const stopRecording = () => {
     intentionalStopRef.current = true;
     if (recognitionRef.current) recognitionRef.current.stop();
     if (timerRef.current) clearInterval(timerRef.current);

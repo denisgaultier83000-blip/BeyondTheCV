@@ -39,15 +39,6 @@ interface AIFeedback {
   improved_answer: string;
 }
 
-const iconMap: { [key: string]: React.ElementType } = {
-  AlertTriangle,
-  Users,
-  MessageSquare,
-  ListChecks,
-  BrainCircuit,
-  Shield
-};
-
 export function SituationSimulator() {
   const { cvData, customScenariosResult, updateFormData, quotas, fetchQuotas } = useDashboard(); 
   const { t } = useTranslation();
@@ -61,7 +52,6 @@ export function SituationSimulator() {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState<string|null>(null);
-  const [isGeneratingMore, setIsGeneratingMore] = useState(false);
   const [showRechargeModal, setShowRechargeModal] = useState(false);
   const recognitionRef = useRef<any>(null);
 

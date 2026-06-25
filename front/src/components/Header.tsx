@@ -11,6 +11,7 @@ export interface Step {
 interface HeaderProps {
   // [FIX] Ajout des propriétés manquantes pour satisfaire TypeScript
   darkMode: boolean;
+  setDarkMode: (value: boolean | ((prev: boolean) => boolean)) => void;
   showLangSelector?: boolean;
   steps?: Step[];
   currentStep?: number;
@@ -69,11 +70,6 @@ export default function Header({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const handleOpenDocuments = () => {
-    dispatch({ type: 'close_dropdown' });
-    navigate('/documents');
-  };
 
   return (
     <header className="app-header">
@@ -137,7 +133,7 @@ export default function Header({
             <Link to="/login" className="login-link">{t('login')}</Link>
           )}
 
-          <button onClick={() => setDarkMode(prev => !prev)} className="dark-mode-toggle">
+          <button onClick={() => setDarkMode((prev: boolean) => !prev)} className="dark-mode-toggle">
             {darkMode ? '🌙' : '☀️'}
           </button>
         </div>
