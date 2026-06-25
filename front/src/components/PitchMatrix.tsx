@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDashboard } from '../hooks/DashboardContext';
 import { BrainCircuit, Bot, Loader2, AlertTriangle, Mic, FileText, Save } from 'lucide-react';
 
@@ -73,12 +73,37 @@ export function PitchMatrix() {
   const [pitchMatrix, setPitchMatrix] = useState<PitchMatrixData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'typing' | 'saving' | 'saved' | 'error'>('idle');
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const initialLoadRef = useRef(true);
 
   useEffect(() => {
     if (cvData && (cvData as any).pitch_matrix) {
       setPitchMatrix((cvData as any).pitch_matrix);
     }
+    // This timeout prevents the initial load from being marked as a "typing" event
+    setTimeout(() => {
+      initialLoadRef.current = false;
+    }, 500);
   }, [cvData]);
+
+  // [EXPERT] Auto-save with debounce effect
+  useEffect(() => {
+    // Don't trigger auto-save on the initial data load or while generating
+    if (initialLoadRef.current || isLoading) {
+      return;
+    }
+
+    if (pitchMatrix) {
+      setSaveStatus('typing');
+      if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
+
+      debounceTimeoutRef.current = setTimeout(() => {
+        handleSaveChanges();
+      }, 1500); // Auto-save 1.5 seconds after the user stops typing
+    }
+    return () => { if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current); };
+  }, [pitchMatrix]);
 
   const handlePitchChange = (pitchType: keyof PitchMatrixData, version: 'written' | 'oral', value: string) => {
     setPitchMatrix(prevMatrix => {
@@ -124,8 +149,8 @@ export function PitchMatrix() {
 
   const handleSaveChanges = async () => {
     if (!pitchMatrix) return;
-    setIsLoading(true);
     setError(null);
+    setSaveStatus('saving');
 
     const token = localStorage.getItem('token');
     if (!token) {
@@ -145,11 +170,25 @@ export function PitchMatrix() {
         const errorData = await response.json();
         throw new Error(errorData.detail || "Error while saving.");
       }
-      // Optional: show a success toast
+      setSaveStatus('saved');
     } catch (err: any) {
       setError(err.message);
-    } finally {
-      setIsLoading(false);
+      setSaveStatus('error');
+    }
+  };
+
+  const renderSaveStatus = () => {
+    switch (saveStatus) {
+      case 'typing':
+        return <span style={{ color: 'var(--text-muted)' }}>Modifications en cours...</span>;
+      case 'saving':
+        return <span style={{ color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Loader2 size={16} className="spinner" /> Sauvegarde...</span>;
+      case 'saved':
+        return <span style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={16} /> Enregistré</span>;
+      case 'error':
+        return <span style={{ color: 'var(--danger-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><AlertTriangle size={16} /> Erreur de sauvegarde</span>;
+      default:
+        return <span style={{ color: 'var(--text-muted)' }}>Vos modifications seront sauvegardées automatiquement.</span>;
     }
   };
 
@@ -158,7 +197,32 @@ export function PitchMatrix() {
   // It includes the main div, header, button, and the grid of PitchCards.
   return (
     <div className="pitch-matrix-container">
-      {/* ... The full JSX from the previous step ... */}
+      <div className="pitch-matrix-header">
+        <BrainCircuit size={32} />
+        <div>
+          <h2>Matrice de Pitchs Stratégiques</h2>
+          <p>Générez des versions de votre pitch adaptées à chaque interlocuteur.</p>
+        </div>
+      </div>
+
+      {!pitchMatrix && ( /* CTA Button and Error display logic */ )}
+
+      {pitchMatrix && (
+        <div className="pitch-grid">
+          <PitchCard title="Pitch Recruteur" pitch={pitchMatrix.recruiter_pitch} icon={<span className="icon-bg">🎯</span>} onPitchChange={(v, val) => handlePitchChange('recruiter_pitch', v, val)} />
+          <PitchCard title="Pitch Dirigeant" pitch={pitchMatrix.executive_pitch} icon={<span className="icon-bg">📈</span>} onPitchChange={(v, val) => handlePitchChange('executive_pitch', v, val)} />
+          <PitchCard title="Pitch RH" pitch={pitchMatrix.hr_pitch} icon={<span className="icon-bg">🤝</span>} onPitchChange={(v, val) => handlePitchChange('hr_pitch', v, val)} />
+          <PitchCard title="Pitch Réseau" pitch={pitchMatrix.networking_pitch} icon={<span className="icon-bg">🌐</span>} onPitchChange={(v, val) => handlePitchChange('networking_pitch', v, val)} />
+          <PitchCard 
+            title="Pitch Anti-Faille" 
+            pitch={pitchMatrix.anti_flaw_pitch} 
+            icon={<span className="icon-bg">🛡️</span>} 
+            identifiedFlaw={pitchMatrix.anti_flaw_pitch.identified_flaw}
+            onPitchChange={(v, val) => handlePitchChange('anti_flaw_pitch', v, val)}
+          />
+          <div className="pitch-card-actions">{renderSaveStatus()}</div>
+        </div>
+      )}
     </div>
   );
 }
