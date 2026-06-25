@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useDashboard } from './DashboardContext';
+import { useDashboard } from '../hooks/DashboardContext';
 import { BrainCircuit, Bot, Loader2, AlertTriangle, Mic, FileText, Save } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -68,7 +68,8 @@ const PitchCard: React.FC<{
 );
 
 export function PitchMatrix() {
-  const { cvData, targetLanguage } = useDashboard();
+  const { cvData } = useDashboard();
+  const targetLanguage = cvData?.target_language;
   const [pitchMatrix, setPitchMatrix] = useState<PitchMatrixData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
