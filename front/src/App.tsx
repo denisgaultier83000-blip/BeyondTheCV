@@ -121,7 +121,6 @@ function AppContent() {
       />
       <main className="main-content">
         {/* Le routeur de main.tsx va injecter le bon composant ici via Outlet. On lui passe toutes les fonctions nécessaires. */}
-        <Outlet context={{ CAREER_EDGE_STEPS, currentStep, setCurrentStep, onStart: () => navigate('/login'), onShowCGU: () => setActiveLegalDoc('cgu'), onShowPrivacy: () => setActiveLegalDoc('privacy'), onShowLegal: () => setActiveLegalDoc('legal'), darkMode, setIsAuthenticated }} />
         <Outlet context={{ CAREER_EDGE_STEPS, currentStep, setCurrentStep, onStart: () => navigate('/login'), onShowCGU: () => setActiveLegalDoc('cgu'), onShowPrivacy: () => setActiveLegalDoc('privacy'), onShowLegal: () => setActiveLegalDoc('legal'), darkMode, setIsAuthenticated, isAdmin }} />
       </main>
 

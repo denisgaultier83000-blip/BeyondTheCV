@@ -1,19 +1,22 @@
 import React, { ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
-import { useDashboard } from './DashboardContext';
+import { Navigate, useOutletContext } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
 interface AdminRouteProps {
   children: ReactNode;
 }
 
-export const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
-  const { isAdmin, cvData } = useDashboard();
+// [EXPERT] Définition du type pour le contexte reçu de l'Outlet
+interface AdminContextType {
+  isAdmin: boolean;
+}
 
-  // While the context is loading the user data, we can show a loader.
-  if (cvData === null) {
-    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><Loader2 className="spin" size={32} /></div>;
-  }
+export const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
+  // [FIX] On utilise useOutletContext pour récupérer le statut isAdmin directement depuis App.tsx
+  const { isAdmin } = useOutletContext<AdminContextType>();
+
+  // Le statut isAdmin est maintenant directement disponible et fiable.
+  // Le chargement est géré en amont dans App.tsx.
 
   // If the user is not an admin, redirect them.
   if (!isAdmin) {
