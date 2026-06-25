@@ -205,7 +205,25 @@ export function PitchMatrix() {
         </div>
       </div>
 
-      {!pitchMatrix && ( /* CTA Button and Error display logic */ )}
+      {!pitchMatrix && (
+        <div className="pitch-cta-container">
+          <button onClick={handleGeneratePitch} disabled={isLoading} className="btn-primary-pitch">
+            {isLoading ? (
+              <>
+                <Loader2 className="spinner" size={20} />
+                Génération en cours...
+              </>
+            ) : (
+              <>
+                <Bot size={20} />
+                Générer ma matrice de pitchs
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
+      {error && !isLoading && ( <div className="error-box" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#b91c1c', padding: '1rem', borderRadius: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.2)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem' }}><AlertTriangle size={16} /> {error}</div> )}
 
       {pitchMatrix && (
         <div className="pitch-grid">
