@@ -1,7 +1,7 @@
 import React, { Suspense } from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
-import { PitchMatrix } from "./components/PitchMatrix"; // Import the new component
+import { PitchMatrix } from "@/components/PitchMatrix"; // Use alias for consistency
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import Payment from "./pages/Payment";
 import ResearchReport from "./pages/ResearchReport"; // Importer la nouvelle page
