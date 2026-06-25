@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDashboard } from '../hooks/DashboardContext';
-import { BrainCircuit, Bot, Loader2, AlertTriangle, Mic, FileText, Save } from 'lucide-react';
+import { BrainCircuit, Bot, Loader2, AlertTriangle, Mic, FileText, Save, CheckCircle2 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -74,7 +74,7 @@ export function PitchMatrix() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'typing' | 'saving' | 'saved' | 'error'>('idle');
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initialLoadRef = useRef(true);
 
   useEffect(() => {
@@ -150,7 +150,6 @@ export function PitchMatrix() {
   const handleSaveChanges = async () => {
     if (!pitchMatrix) return;
     setError(null);
-    setSaveStatus('saving');
 
     const token = localStorage.getItem('token');
     if (!token) {
@@ -209,15 +208,9 @@ export function PitchMatrix() {
         <div className="pitch-cta-container">
           <button onClick={handleGeneratePitch} disabled={isLoading} className="btn-primary-pitch">
             {isLoading ? (
-              <>
-                <Loader2 className="spinner" size={20} />
-                Génération en cours...
-              </>
+              <><Loader2 className="spinner" size={20} /> Génération en cours...</>
             ) : (
-              <>
-                <Bot size={20} />
-                Générer ma matrice de pitchs
-              </>
+              <><Bot size={20} /> Générer ma matrice de pitchs</>
             )}
           </button>
         </div>
