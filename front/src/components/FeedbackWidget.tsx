@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { ThumbsUp, ThumbsDown, Sparkles } from 'lucide-react';
 import { authenticatedFetch } from '../utils/auth';
 import { useTranslation } from 'react-i18next';

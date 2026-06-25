@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, Printer, Trash2, Download, Eye, Briefcase, Calendar, CheckCircle2, ArrowLeft, Loader2, Building, Target, Mic, LineChart, MessageSquare, AlertTriangle, Zap, UserCheck, Monitor, HeartPulse } from 'lucide-react';
+import { FileText, Printer, Trash2, Download, Eye, Briefcase, Calendar, CheckCircle2, ArrowLeft, Loader2, Building, Target, Mic, LineChart, MessageSquare, AlertTriangle } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { TrainingPlanTimeline } from './TrainingPlanTimeline';

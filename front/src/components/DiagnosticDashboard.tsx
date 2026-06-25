@@ -35,7 +35,7 @@ const getScoreColorClass = (score: number) => {
 };
 
 export default function DiagnosticDashboard({ data, candidateName, targetJob, onAction }: Props) {
-  const { t } = useTranslation();
+  const { t: _t } = useTranslation();
   const scoreValue = data.matchScore ?? data.match_score ?? 0;
   const scoreColorClass = getScoreColorClass(scoreValue);
   const scoreColor = `var(--${scoreColorClass})`;

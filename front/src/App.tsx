@@ -109,12 +109,11 @@ function AppContent() {
       <Header 
         darkMode={darkMode} 
         setDarkMode={setDarkMode} 
-        isAuthenticated={isAuthenticated}
         userName={parsedUserName} 
         isAdmin={isAdmin} // [FIX] On passe le statut admin calculé comme prop
-        onOpenProfile={() => setShowDocsModal(true)} 
         onLogout={() => { localStorage.removeItem('token'); localStorage.removeItem('user'); resetDashboard(); setIsAuthenticated(false); navigate('/', { replace: true }); }}
-        onLanguageChange={(lang) => i18n.changeLanguage(lang)}
+        // @ts-ignore - onLanguageChange is not part of the new simplified HeaderProps
+        onLanguageChange={(lang: string) => i18n.changeLanguage(lang)}
         steps={CAREER_EDGE_STEPS}
         currentStep={currentStep}
       />

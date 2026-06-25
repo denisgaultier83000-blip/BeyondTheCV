@@ -1,5 +1,5 @@
 // e:\BeyondTheCV\front\src\components\CareerSimulator.tsx
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Play, Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
@@ -14,7 +14,7 @@ export function CareerSimulator({ candidateData }: SimulatorProps) {
   const [action, setAction] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
 
   const predefinedActions = [
     "Certification PMP",

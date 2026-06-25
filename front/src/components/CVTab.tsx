@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useReducer } from 'react';
+import { useEffect, useRef, useReducer } from 'react';
 import { useDashboard } from './DashboardContext';
 import { FileText, Download, Loader2, RefreshCw, Target, CheckCircle2, Plus } from 'lucide-react';
 import { KeywordCoachModal } from './KeywordCoachModal';

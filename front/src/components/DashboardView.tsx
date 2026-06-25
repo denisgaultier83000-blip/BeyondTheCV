@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useDashboard } from './DashboardContext';
-import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Mic, Search, Eye, Loader2, RotateCcw, Dumbbell, ArrowUp, Printer, Building, ShieldAlert } from 'lucide-react';
+import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Mic, Search, Eye, Loader2, RotateCcw, Dumbbell, ArrowUp, Printer, Building } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PilotBento } from './PilotBento';
 import { GapAnalysisFull } from './GapAnalysisFull';
@@ -8,7 +8,6 @@ import { InterviewTab } from './InterviewTab';
 import { AnalysisTab } from './AnalysisTab';
 import { JobDecoder } from './JobDecoder';
 import { CareerRealityCheck } from './CareerRealityCheck'; // This is used
-import { RecruiterView } from './RecruiterView';
 import { DashboardCard } from './DashboardCard';
 import FlawCoaching from './FlawCoaching';
 import TrainingTab from './TrainingTab';
@@ -29,8 +28,7 @@ export const DashboardView = () => {
   const { t } = useTranslation();
   const { 
     activeTab, setActiveTab, pilotData, isPilotLoading, pilotError, cvData, fetchPilotData,
-    researchResult, salaryResult,
-    jobDecoderResult, recruiterResult, realityResult, flawCoachingResult, setCurrentStep,
+    researchResult, salaryResult, jobDecoderResult, recruiterResult, realityResult, flawCoachingResult,
     globalStatus, triggerResearch,
     pitchResult, questionsResult, gapResult, customScenariosResult, actionPlanResult
   } = useDashboard();
@@ -138,7 +136,6 @@ export const DashboardView = () => {
   const meta = cvData?.meta || cvData || {};
   const interviewTypeLabels: Record<string, string> = { rh: 'Ressources Humaines', manager: 'Manager / Opérationnel', tech: 'Équipe Technique', final: 'Direction (Final)' };
   const formatLabels: Record<string, string> = { visio: 'Visioconférence', phone: 'Téléphone', onsite: 'En Présentiel' };
-  const stressLabels: Record<string, string> = { low: 'Confiant', medium: 'Stress Modéré', high: 'Stress Élevé' };
 
   // Détection du Mode Commando (Entretien dans < 48h)
   const getDaysUntilInterview = (dateStr: string): number => {
@@ -396,7 +393,7 @@ export const DashboardView = () => {
         {activeTab === 'market' && (
            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
              <div id="gap_section">
-               <GapAnalysisFull data={gapResult || pilotData} loading={isProcessing && !gapResult} onBack={() => handleTabChange('overview')} />
+               <GapAnalysisFull data={gapResult || pilotData} onBack={() => handleTabChange('overview')} />
              </div>
              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                <AnalysisTab researchResult={researchResult} salaryResult={salaryResult} onRefresh={triggerResearch} isRefreshing={isProcessing} />

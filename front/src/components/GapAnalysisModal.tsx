@@ -1,167 +1,167 @@
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import React from 'react'; // React is used for JSX
-import { FeedbackWidget } from './FeedbackWidget';
+import { Target, Star, BarChart, FileDown, AlertTriangle, Sparkles, Clock } from 'lucide-react';
+import Gauge from './Gauge'; // Import du nouveau composant
 
-interface GapAnalysisModalProps {
-  data: any;
-  onClose: () => void;
+interface DiagnosticData {
+  matchScore?: number;
+  match_score: number;
+  summary?: string;
+  match_summary: string;
+  strengths?: string[];
+  key_strengths: string[];
+  skills_to_bridge?: string[];
+  gapsMatrix?: { skill: string, impact: string, action: string, estimated_time?: string }[];
+  application_strategy?: string[];
+  recommendedStrategy?: string;
+  analysis_stats: {
+    skills_detected: number;
+    requirements_analyzed: number;
+    gaps_identified: number;
+  };
 }
 
-const GapAnalysisModal: React.FC<GapAnalysisModalProps> = ({ data, onClose }) => {
-  if (!data) return null;
-  const { t } = useTranslation();
-  
-  // Affichage d'erreur explicite si l'IA a planté
-  if (data.error) {
-    return (
-      <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '1rem' }}>
-        <div style={{ background: 'var(--bg-card)', padding: '2.5rem', borderRadius: '1rem', textAlign: 'center', maxWidth: '400px', width: '100%', border: '1px solid var(--danger-text)' }}>
-          <h3 style={{ color: 'var(--danger-text)', marginBottom: '1rem', marginTop: 0 }}>Erreur d'Analyse</h3>
-          <p style={{ color: 'var(--text-main)', marginBottom: '2rem' }}>{typeof data.error === 'string' ? data.error : "Impossible de charger l'analyse des écarts."}</p>
-          <button className="btn-secondary" onClick={onClose} style={{ padding: '0.5rem 1.5rem', cursor: 'pointer' }}>{t('btn_close', 'Fermer')}</button>
-        </div>
+interface Props {
+  data: DiagnosticData;
+  candidateName: string;
+  targetJob: string;
+  onAction: (action: string) => void;
+}
+
+const getScoreColorClass = (score: number) => {
+  if (!score || score < 50) return 'danger';
+  if (score < 80) return 'warning';
+  return 'success';
+};
+
+export default function DiagnosticDashboard({ data, candidateName, targetJob, onAction }: Props) {
+  const { t: _t } = useTranslation();
+  const scoreValue = data.matchScore ?? data.match_score ?? 0;
+  const scoreColorClass = getScoreColorClass(scoreValue);
+  const scoreColor = `var(--${scoreColorClass})`;
+
+  // Parseur minimaliste pour interpréter le **gras** (Markdown) renvoyé par l'IA
+  const formatMarkdown = (text: string) => {
+    if (!text) return null;
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i} style={{ color: 'var(--text-main)', fontWeight: 700 }}>{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+  };
+
+  const StatCard = ({ icon, title, children }: { icon: React.ReactNode, title: string, children: React.ReactNode }) => (
+    <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+        {icon}
+        <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-main)' }}>{title}</h3>
       </div>
-    );
-  }
-
-  // [FIX] Gestion des clés traduites par l'IA (Hallucination)
-  const payload = data.gap_analysis || data;
-  const key_needs_from_job = payload.key_needs_from_job || payload.besoins_cles || payload.exigences || [];
-  const matching_skills = payload.matching_skills || payload.acquired_skills || payload.competences_acquises || payload.points_forts || payload.validated_skills || [];
-  const missing_gaps = payload.missing_gaps || payload.lacunes || payload.ecarts || [];
-  const recommended_adjustments = payload.recommended_adjustments || payload.recommandations || payload.actions || [];
-  const match_score = payload.match_score || payload.score_adequation || payload.score;
-
-  // Calcul de la couleur du score
-  const getScoreColor = (score: number) => {
-      if (score >= 80) return '#10b981'; // Vert
-      if (score >= 50) return '#f59e0b'; // Orange
-      return '#ef4444'; // Rouge
-  };
-
-  const scoreColor = getScoreColor(match_score || 0);
-
-  const sectionTitleStyle: React.CSSProperties = {
-    fontSize: '1.1rem',
-    fontWeight: 600,
-    color: 'var(--text-main)',
-    marginBottom: '1rem',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem'
-  };
-
-  // [FIX] Helper pour rendre la donnée même si l'IA hallucine un objet au lieu d'une string
-  const renderItem = (item: any) => {
-    return typeof item === 'string' ? item : item?.skill || item?.name || item?.description || JSON.stringify(item);
-  };
-
-  // Si les 3 tableaux sont vides, on cherche n'importe quel tableau dans le JSON généré par l'IA
-  const fallbackArrays = Object.entries(payload).filter(([k, v]) => Array.isArray(v) && v.length > 0);
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+        {children}
+      </div>
+    </div>
+  );
 
   return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 2000, padding: '1rem', backdropFilter: 'blur(4px)'
-    }}>
-      <div style={{
-        background: 'var(--bg-card)', padding: '2.5rem', borderRadius: '1rem', width: '90%', maxWidth: '750px', position: 'relative',
-        boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
-        maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--border-color)'
-      }}>
-        <button 
-            style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'var(--bg-secondary)', border: 'none', borderRadius: '50%', width: '36px', height: '36px', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
-            onClick={onClose}
-        >✕</button>
+    <div style={{ background: 'var(--bg-secondary)', padding: 'clamp(1rem, 4vw, 2rem)', borderRadius: '1rem' }}>
+      {/* En-tête */}
+      <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+        <h1 style={{ fontSize: '2rem', color: 'var(--text-main)', margin: 0 }}>Career Intelligence Report</h1>
+        <p style={{ color: 'var(--text-muted)', margin: '0.5rem 0 0 0' }}>
+          {candidateName} • {targetJob} • {new Date().toLocaleDateString()}
+        </p>
+      </div>
+
+      {/* Grille de diagnostic */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '1.5rem', alignItems: 'stretch' }}>
         
-        <h2 style={{ textAlign: 'center', color: 'var(--text-main)', marginBottom: '2rem', fontSize: '1.8rem' }}>{t('gap_title')}</h2>
-
-        {/* Score Circle */}
-        {match_score !== undefined && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2.5rem' }}>
-                <style>{`
-                    .tooltip-container-gap {
-                      position: relative;
-                      display: inline-flex;
-                      align-items: center;
-                      margin-left: 8px;
-                    }
-                    .tooltip-icon-gap {
-                      cursor: help;
-                      color: #94a3b8;
-                      font-size: 12px;
-                      border: 1px solid #cbd5e1;
-                      border-radius: 50%;
-                      width: 16px;
-                      height: 16px;
-                      display: inline-flex;
-                      align-items: center;
-                      justify-content: center;
-                    }
-                    .tooltip-container-gap .tooltip-text-gap {
-                      visibility: hidden;
-                      width: 200px;
-                      background-color: #333;
-                      color: #fff;
-                      text-align: center;
-                      border-radius: 6px;
-                      padding: 8px;
-                      position: absolute;
-                      z-index: 1;
-                      bottom: 125%;
-                      left: 50%;
-                      margin-left: -100px;
-                      opacity: 0;
-                      transition: opacity 0.3s;
-                      font-size: 12px;
-                      font-weight: normal;
-                      line-height: 1.4;
-                    }
-                    .tooltip-container-gap:hover .tooltip-text-gap {
-                      visibility: visible;
-                      opacity: 1;
-                    }
-                `}</style>
-                <div style={{ 
-                    width: '120px', height: '120px', borderRadius: '50%', 
-                    border: `8px solid ${scoreColor}`, 
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '2.5rem', fontWeight: 'bold', color: scoreColor,
-                    boxShadow: `0 0 20px ${scoreColor}40`
-                }}>
-                    {match_score}%
-                </div>
-              <div style={{ marginTop: '1rem', color: 'var(--text-muted)', fontWeight: 500, display: 'flex', alignItems: 'center' }}>
-                    {t('gap_score')}
-                    <div className="tooltip-container-gap">
-                        <span className="tooltip-icon-gap">?</span>
-                        <div className="tooltip-text-gap">{t('gap_score_tooltip')}</div>
-                    </div>
-                </div>
+        {/* 1. Score d'adéquation */}
+        <StatCard icon={<Target size={24} color={scoreColor} />} title="Score d’adéquation">
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+            <Gauge score={scoreValue} color={scoreColor} />
             </div>
-        )}
+          <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: 1.6 }}>{formatMarkdown(data.summary || data.match_summary) || "Analyse IA en cours..."}</p>
+          
+          <button onClick={() => onAction("View Gap Analysis")} className="btn-primary" style={{ width: '100%', marginTop: '1rem' }}>
+            Explorer l'Analyse des Écarts
+          </button>
+          </div>
+        </StatCard>
 
-        <div style={{ display: 'grid', gap: '2rem' }}>
-          {Array.isArray(key_needs_from_job) && key_needs_from_job.length > 0 && <div style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
-          <h3 style={{...sectionTitleStyle, color: 'var(--primary)'}}>{t('gap_needs')}</h3>
-            <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
-                  {key_needs_from_job.map((item: any, i: number) => <li key={i} style={{ marginBottom: '0.5rem', display: 'flex', gap: '0.5rem', color: 'var(--text-main)' }}><span style={{color: 'var(--primary)'}}>✓</span> {renderItem(item)}</li>)}
-            </ul>
-            </div>}
+        {/* 2. Forces principales */}
+        <StatCard icon={<Star size={24} color="var(--warning)" />} title="Vos 3 forces clés">
+          <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {(data.strengths?.length ? data.strengths : data.key_strengths || []).map((strength, i) => (
+              <li key={i} style={{ background: 'var(--success-bg)', padding: '0.75rem', borderRadius: '0.5rem', color: 'var(--success-text)', fontWeight: 500, border: '1px solid var(--success-border)', lineHeight: 1.5 }}>
+                {formatMarkdown(strength)}
+              </li>
+            ))}
+            {!(data.strengths?.length) && !(data.key_strengths?.length) && <span style={{ color: 'var(--text-muted)' }}>Aucune force détectée.</span>}
+          </ul>
+        </StatCard>
 
-          {Array.isArray(matching_skills) && matching_skills.length > 0 && <div style={{ background: 'rgba(34, 197, 94, 0.05)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
-          <h3 style={{...sectionTitleStyle, color: 'var(--success)'}}>{t('gap_matching', 'Vos compétences en adéquation')}</h3>
-            <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
-                  {matching_skills.map((item: any, i: number) => <li key={i} style={{ marginBottom: '0.5rem', display: 'flex', gap: '0.5rem', color: 'var(--text-main)' }}><span style={{color: 'var(--success)'}}>✓</span> {renderItem(item)}</li>)}
-            </ul>
-            </div>}
+        {/* 3. Compétences à combler */}
+        <StatCard icon={<AlertTriangle size={24} color="var(--danger)" />} title="Compétences à combler">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {(data.gapsMatrix?.length ? data.gapsMatrix : (data.skills_to_bridge || []).map(s => ({ skill: s, action: '' }))).slice(0, 3).map((gap: any, i) => (
+              <div key={i} style={{ background: 'var(--danger-bg)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--danger-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+                <div>
+                  <strong style={{ color: 'var(--danger-text)', display: 'block', lineHeight: 1.4 }}>{formatMarkdown(gap.skill || gap)}</strong>
+                  {gap.action && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem', lineHeight: 1.5 }}>{formatMarkdown(gap.action)}</div>}
+                </div>
+                {gap.estimated_time && (
+                  <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: 'var(--bg-card)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '1rem', color: 'var(--danger-text)', display: 'flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap', fontWeight: 600 }}><Clock size={12} /> {gap.estimated_time}</span>
+                )}
+              </div>
+            ))}
+            {(!data.gapsMatrix?.length && !data.skills_to_bridge?.length) && <span style={{ color: 'var(--text-muted)' }}>Aucun écart majeur détecté.</span>}
+            {((data.gapsMatrix?.length || 0) > 3 || (data.skills_to_bridge?.length || 0) > 3) && <a href="#" onClick={(e) => { e.preventDefault(); onAction("View Gap Analysis"); }} style={{ fontSize: '0.8rem', textAlign: 'right', color: 'var(--primary)' }}>Voir plus...</a>}
+          </div>
+        </StatCard>
 
-          {Array.isArray(missing_gaps) && missing_gaps.length > 0 && <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-          <h3 style={{...sectionTitleStyle, color: 'var(--danger-text)'}}>{t('gap_missing')}</h3>
-            <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
-                  {missing_gaps.map((item: any, i: number) => <li key={i} style={{ marginBottom: '0.5rem', display: 'flex', gap: '0.5rem', color: 'var(--text-main)' }}><span style={{color: 'var(--danger-text)'}}>•</span> {renderItem(item)}</li>)}
+        {/* 4. Stratégie de candidature */}
+        <StatCard icon={<BarChart size={24} color="var(--primary)" />} title="Stratégie de candidature">
+          {data.recommendedStrategy ? (
+            <p style={{ color: 'var(--text-muted)', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{formatMarkdown(data.recommendedStrategy)}</p>
+          ) : (
+            <ul style={{ margin: 0, padding: '0 0 0 1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {(data.application_strategy || []).map((strat, i) => (
+                <li key={i} style={{ color: 'var(--text-muted)', lineHeight: 1.5 }}>{formatMarkdown(strat)}</li>
+              ))}
             </ul>
+          )}
+          {!data.recommendedStrategy && !(data.application_strategy?.length) && <span style={{ color: 'var(--text-muted)' }}>Stratégie en cours de génération...</span>}
+        </StatCard>
+      </div>
+
+      {/* Ligne de stats "Premium" */}
+      <div style={{ textAlign: 'center', margin: '2rem 0', fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+        Analyse basée sur : {data.analysis_stats.skills_detected} compétences détectées • {data.analysis_stats.requirements_analyzed} exigences du poste analysées • {data.analysis_stats.gaps_identified} écarts identifiés
+      </div>
+
+      {/* [FIX EXPERT] Alignement vertical en liste (de haut en bas) au lieu de cartes horizontales */}
+      <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '350px' }}>
+          <button onClick={() => onAction("Review CV")} className="btn-secondary" style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+            <FileDown size={16} /> Éditer mon CV
+          </button>
+          <button onClick={() => onAction("Pitch")} className="btn-secondary" style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+            <FileDown size={16} /> Pitch
+          </button>
+          <button onClick={() => onAction("Questionnaire")} className="btn-secondary" style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+            <FileDown size={16} /> Questionnaire
+          </button>
+          <button onClick={() => onAction("Flaw Coaching")} className="btn-secondary" style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+            <Sparkles size={16} /> Parades aux Défauts
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}           </ul>
             </div>}
 
           {Array.isArray(recommended_adjustments) && recommended_adjustments.length > 0 && <div style={{ background: 'rgba(139, 92, 246, 0.05)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid rgba(139, 92, 246, 0.2)' }}>

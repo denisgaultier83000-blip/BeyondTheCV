@@ -16,10 +16,13 @@ interface HeaderProps {
   showLangSelector?: boolean;
   steps?: Step[];
   currentStep?: number;
+  isAuthenticated?: boolean;
   userName?: string;
   onLogout?: () => void;
+  onOpenProfile?: () => void;
   isAdmin?: boolean; // [FIX] On attend la prop du parent
   targetLanguage?: string;
+  onLanguageChange?: (lang: string) => void;
 }
 
 // [EXPERT REFACTOR] Centralisation de la logique d'état avec un reducer.
@@ -49,11 +52,10 @@ const initialState: HeaderState = { isDropdownOpen: false };
 export default function Header({
   darkMode,
   setDarkMode,
-  showLogin = false,
   showLangSelector = true,
   userName,
   onLogout,
-  onLanguageChange,
+  onOpenProfile,
   isAdmin = false // [FIX] On reçoit le statut admin du parent
 }: HeaderProps): React.ReactElement | null {
   const { t } = useTranslation();
@@ -85,10 +87,7 @@ export default function Header({
 
         <div className="header-actions">
           {/* Menu Langue Contrôlé */}
-          {showLangSelector && <LanguageSelector 
-            onChange={onLanguageChange}
-            style={{ marginRight: "10px" }}
-          />}
+          {/* LanguageSelector is now part of the main app, not the header */}
           
           {userName ? (
             <div className="user-menu-container" ref={dropdownRef} style={{ position: 'relative' }}>
@@ -103,7 +102,7 @@ export default function Header({
                   boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', minWidth: '200px', 
                   display: 'flex', flexDirection: 'column', overflow: 'hidden', zIndex: 1000
                 }}>
-                  <button onClick={handleOpenDocuments} style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', textAlign: 'left', cursor: 'pointer', color: 'var(--text-main)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                  <button onClick={onOpenProfile} style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', textAlign: 'left', cursor: 'pointer', color: 'var(--text-main)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                     onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
                     onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                   >
@@ -141,7 +140,7 @@ export default function Header({
               )}
             </div>
           ) : (
-            showLogin && <Link to="/login" className="login-link">{t('login')}</Link>
+            <Link to="/login" className="login-link">{t('login')}</Link>
           )}
 
           <button onClick={() => setDarkMode(prev => !prev)} className="dark-mode-toggle">

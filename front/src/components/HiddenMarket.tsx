@@ -1,5 +1,5 @@
-import React from 'react'; // React is used for JSX
-import { Users, MessageCircle, Lightbulb, Compass, Network, AlertCircle } from 'lucide-react';
+import React from 'react';
+import { Users, MessageCircle, Lightbulb, Compass } from 'lucide-react';
 import { AsyncBoundary } from './AsyncBoundary';
 
 interface HiddenMarketProps {

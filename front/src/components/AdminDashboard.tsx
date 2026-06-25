@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import AdminQuotaManager from './AdminQuotaManager';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Shield, Calendar, Eye, Database, CheckCircle, XCircle, Percent, BarChart3, DollarSign, Users, Cpu, Package, LifeBuoy, ArrowRight } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 // --- Types ---
 interface Stats {

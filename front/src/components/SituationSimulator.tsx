@@ -58,10 +58,10 @@ export function SituationSimulator() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [aiFeedback, setAiFeedback] = useState<AIFeedback | null>(null);
   const [showPassiveModel, setShowPassiveModel] = useState(false);
-  const [isGeneratingMore, setIsGeneratingMore] = useState(false);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [showRechargeModal, setShowRechargeModal] = useState(false);
+  const [error, setError] = useState<string|null>(null);
+  const [isGeneratingMore, setIsGeneratingMore] = useState(false);
   const recognitionRef = useRef<any>(null);
 
   // État local initialisé avec les données du contexte (évite la perte de couleur au changement d'onglet)
@@ -454,7 +454,7 @@ export function SituationSimulator() {
 
               {/* MODE ACTIF */}
               {mode === 'active' && !aiFeedback && (
-                <AsyncBoundary 
+                <AsyncBoundary
                   loading={isSubmitting} 
                   loadingText={t('sim_ai_analyzing', 'Analyse IA en cours...')}
                   style={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none' }}

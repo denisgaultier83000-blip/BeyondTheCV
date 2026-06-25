@@ -1,5 +1,4 @@
 import { Building, Newspaper, ExternalLink, Globe2, Target, Users, TrendingUp, BookOpen, Brain, Activity, AlertTriangle } from 'lucide-react';
-import React from 'react'; // React is used for JSX
 import { DashboardCard } from './DashboardCard';
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer } from 'recharts';
 import { useTranslation } from 'react-i18next';

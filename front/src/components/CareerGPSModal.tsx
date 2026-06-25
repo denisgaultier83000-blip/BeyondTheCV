@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Map, Flag, AlertTriangle, TrendingUp, Zap, Percent, Navigation, Clock } from 'lucide-react';
+import { Map, Flag, AlertTriangle, TrendingUp, Zap } from 'lucide-react';
 import { formatMarkdown } from '../utils/markdown';
 import { FeedbackWidget } from './FeedbackWidget';
 interface CareerGPSModalProps {
@@ -9,7 +9,7 @@ interface CareerGPSModalProps {
 }
 export default function CareerGPSModal({ data, onClose }: CareerGPSModalProps) {
   const [selectedRouteIndex] = useState<number>(-1); // -1 = Main Route
-  const { t } = useTranslation();
+  const { t: _t } = useTranslation();
 
   if (!data) return null;
 

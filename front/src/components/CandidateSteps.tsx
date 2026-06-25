@@ -2,10 +2,11 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { 
-  Loader2, Sparkles, User, Briefcase, GraduationCap, CheckCircle2, Plus, Trash2, Target, Gem, HelpCircle, UploadCloud, FileText, Camera, Circle, RefreshCw, Linkedin
+  Loader2, Sparkles, User, Briefcase, GraduationCap, CheckCircle2, Plus, Trash2, Target, Gem, HelpCircle, UploadCloud, FileText
 } from 'lucide-react';
 import RadarChart from './RadarChart'; // Import the new component
 import { InterviewContextForm } from './InterviewContextForm';
+import { useDashboard } from './DashboardContext';
 interface StepProps {
   data: any;
   onChange: (key: string, value: any) => void;
@@ -41,7 +42,7 @@ const COUNTRIES = [
   { code: "AE", name: "United Arab Emirates" }
 ]; // This is used
 
-export const StepImport = ({ onUpload, loading, lang = 'en' }: { onUpload?: (payload: File | string) => void, loading?: boolean, lang?: string }) => {
+export const StepImport = ({ onUpload, loading }: { onUpload?: (payload: File | string) => void, loading?: boolean }) => {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadMethod, setUploadMethod] = useState<'file' | 'text'>('file');
@@ -775,13 +776,11 @@ export const StepReview = (props: any) => {
     experiences, onUpdateExperience, onAddExperience, onRemoveExperience,
     educations, onUpdateEducation, onAddEducation, onRemoveEducation,
     onBack,
-    lang = 'en'
   } = props;
-  const { gapAnalysis } = useDashboard();
+  const { gapAnalysis } = useDashboard()
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<string | null>("profile");
 
-  // --- LOGIQUE JAUGE ATS & MOTS CLES ---
   const gapData = gapAnalysis || {};
   // Fallback si l'IA a traduit les clés en français
   const missingKeywordsRaw = gapData.missing_gaps || gapData.lacunes || gapData.ecarts || [];

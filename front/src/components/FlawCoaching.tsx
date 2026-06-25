@@ -1,6 +1,5 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Sparkles, MessageSquare, AlertTriangle, Lightbulb, Info, AlertCircle, ShieldAlert, ShieldCheck, Activity, ArrowLeft } from 'lucide-react';
+import { Sparkles, MessageSquare, AlertTriangle, Lightbulb, Info, AlertCircle, ShieldAlert, ShieldCheck, Activity } from 'lucide-react';
 import { FeedbackWidget } from './FeedbackWidget';
 import { AsyncBoundary } from './AsyncBoundary';
 

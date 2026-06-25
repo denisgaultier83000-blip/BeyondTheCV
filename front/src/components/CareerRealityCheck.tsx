@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Check, Linkedin, Award, Trophy, Share2, Copy, TrendingUp } from 'lucide-react';
+import { useState } from 'react';
+import { Check, Linkedin, Award, Trophy } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 
 interface RealityCheckData {

@@ -1,9 +1,9 @@
-import React from 'react'; // React is used for JSX
+import React from 'react';
 import { AlertTriangle, X, Target, CheckCircle, Lightbulb, Clock } from 'lucide-react'; // All icons are used
 import Gauge from './Gauge';
 import { FeedbackWidget } from './FeedbackWidget';
 
-export const GapAnalysisFull = ({ data, onBack }: { data: any, onBack: () => void }) => {
+export const GapAnalysisFull = ({ data, onBack }: { data: any, onBack: () => void; }) => {
   // Normalisation robuste des données
   const payload = data?.gap_analysis || data || {};
   const key_needs_from_job = payload.key_needs_from_job || payload.besoins_cles || payload.exigences || [];

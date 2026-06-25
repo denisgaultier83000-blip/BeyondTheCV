@@ -1,35 +1,163 @@
-// c:\BeyondTheCV\front\src\components\DebugModal.tsx
-import React from "react"; // React is used for JSX
-import { useTranslation } from "react-i18next";
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { Target, Star, BarChart, FileDown, AlertTriangle, Sparkles, Clock } from 'lucide-react';
+import Gauge from './Gauge'; // Import du nouveau composant
 
-interface DebugModalProps {
-  data: any;
-  onClose: () => void;
+interface DiagnosticData {
+  matchScore?: number;
+  match_score: number;
+  summary?: string;
+  match_summary: string;
+  strengths?: string[];
+  key_strengths: string[];
+  skills_to_bridge?: string[];
+  gapsMatrix?: { skill: string, impact: string, action: string, estimated_time?: string }[];
+  application_strategy?: string[];
+  recommendedStrategy?: string;
+  analysis_stats: {
+    skills_detected: number;
+    requirements_analyzed: number;
+    gaps_identified: number;
+  };
 }
 
-export default function DebugModal({ data, onClose }: DebugModalProps) {
-  const { t } = useTranslation();
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(JSON.stringify(data, null, 2));
-    alert(t('debug_json_copied', "JSON copié !"));
+interface Props {
+  data: DiagnosticData;
+  candidateName: string;
+  targetJob: string;
+  onAction: (action: string) => void;
+}
+
+const getScoreColorClass = (score: number) => {
+  if (!score || score < 50) return 'danger';
+  if (score < 80) return 'warning';
+  return 'success';
+};
+
+export default function DiagnosticDashboard({ data, candidateName, targetJob, onAction }: Props) {
+  const { t: _t } = useTranslation();
+  const scoreValue = data.matchScore ?? data.match_score ?? 0;
+  const scoreColorClass = getScoreColorClass(scoreValue);
+  const scoreColor = `var(--${scoreColorClass})`;
+
+  // Parseur minimaliste pour interpréter le **gras** (Markdown) renvoyé par l'IA
+  const formatMarkdown = (text: string) => {
+    if (!text) return null;
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i} style={{ color: 'var(--text-main)', fontWeight: 700 }}>{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
   };
 
+  const StatCard = ({ icon, title, children }: { icon: React.ReactNode, title: string, children: React.ReactNode }) => (
+    <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+        {icon}
+        <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-main)' }}>{title}</h3>
+      </div>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+        {children}
+      </div>
+    </div>
+  );
+
   return (
-    <div style={{
-      position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: "rgba(0,0,0,0.8)", zIndex: 1000,
-      display: "flex", justifyContent: "center", alignItems: "center"
-    }}>
-      <div style={{
-        background: "var(--bg-card)", padding: "20px", borderRadius: "12px",
-        width: "90%", maxWidth: "800px", maxHeight: "90vh", display: "flex", flexDirection: "column"
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
-          <h3>{t('debug_title', "Données du Candidat (JSON)")}</h3>
-          <button onClick={onClose} className="btn-secondary">{t('btn_close', "Fermer")}</button>
+    <div style={{ background: 'var(--bg-secondary)', padding: 'clamp(1rem, 4vw, 2rem)', borderRadius: '1rem' }}>
+      {/* En-tête */}
+      <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+        <h1 style={{ fontSize: '2rem', color: 'var(--text-main)', margin: 0 }}>Career Intelligence Report</h1>
+        <p style={{ color: 'var(--text-muted)', margin: '0.5rem 0 0 0' }}>
+          {candidateName} • {targetJob} • {new Date().toLocaleDateString()}
+        </p>
+      </div>
+
+      {/* Grille de diagnostic */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '1.5rem', alignItems: 'stretch' }}>
+        
+        {/* 1. Score d'adéquation */}
+        <StatCard icon={<Target size={24} color={scoreColor} />} title="Score d’adéquation">
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+            <Gauge score={scoreValue} color={scoreColor} />
+            </div>
+          <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: 1.6 }}>{formatMarkdown(data.summary || data.match_summary) || "Analyse IA en cours..."}</p>
+          
+          <button onClick={() => onAction("View Gap Analysis")} className="btn-primary" style={{ width: '100%', marginTop: '1rem' }}>
+            Explorer l'Analyse des Écarts
+          </button>
+          </div>
+        </StatCard>
+
+        {/* 2. Forces principales */}
+        <StatCard icon={<Star size={24} color="var(--warning)" />} title="Vos 3 forces clés">
+          <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {(data.strengths?.length ? data.strengths : data.key_strengths || []).map((strength, i) => (
+              <li key={i} style={{ background: 'var(--success-bg)', padding: '0.75rem', borderRadius: '0.5rem', color: 'var(--success-text)', fontWeight: 500, border: '1px solid var(--success-border)', lineHeight: 1.5 }}>
+                {formatMarkdown(strength)}
+              </li>
+            ))}
+            {!(data.strengths?.length) && !(data.key_strengths?.length) && <span style={{ color: 'var(--text-muted)' }}>Aucune force détectée.</span>}
+          </ul>
+        </StatCard>
+
+        {/* 3. Compétences à combler */}
+        <StatCard icon={<AlertTriangle size={24} color="var(--danger)" />} title="Compétences à combler">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {(data.gapsMatrix?.length ? data.gapsMatrix : (data.skills_to_bridge || []).map(s => ({ skill: s, action: '' }))).slice(0, 3).map((gap: any, i) => (
+              <div key={i} style={{ background: 'var(--danger-bg)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--danger-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+                <div>
+                  <strong style={{ color: 'var(--danger-text)', display: 'block', lineHeight: 1.4 }}>{formatMarkdown(gap.skill || gap)}</strong>
+                  {gap.action && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem', lineHeight: 1.5 }}>{formatMarkdown(gap.action)}</div>}
+                </div>
+                {gap.estimated_time && (
+                  <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: 'var(--bg-card)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '1rem', color: 'var(--danger-text)', display: 'flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap', fontWeight: 600 }}><Clock size={12} /> {gap.estimated_time}</span>
+                )}
+              </div>
+            ))}
+            {(!data.gapsMatrix?.length && !data.skills_to_bridge?.length) && <span style={{ color: 'var(--text-muted)' }}>Aucun écart majeur détecté.</span>}
+            {((data.gapsMatrix?.length || 0) > 3 || (data.skills_to_bridge?.length || 0) > 3) && <a href="#" onClick={(e) => { e.preventDefault(); onAction("View Gap Analysis"); }} style={{ fontSize: '0.8rem', textAlign: 'right', color: 'var(--primary)' }}>Voir plus...</a>}
+          </div>
+        </StatCard>
+
+        {/* 4. Stratégie de candidature */}
+        <StatCard icon={<BarChart size={24} color="var(--primary)" />} title="Stratégie de candidature">
+          {data.recommendedStrategy ? (
+            <p style={{ color: 'var(--text-muted)', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{formatMarkdown(data.recommendedStrategy)}</p>
+          ) : (
+            <ul style={{ margin: 0, padding: '0 0 0 1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {(data.application_strategy || []).map((strat, i) => (
+                <li key={i} style={{ color: 'var(--text-muted)', lineHeight: 1.5 }}>{formatMarkdown(strat)}</li>
+              ))}
+            </ul>
+          )}
+          {!data.recommendedStrategy && !(data.application_strategy?.length) && <span style={{ color: 'var(--text-muted)' }}>Stratégie en cours de génération...</span>}
+        </StatCard>
+      </div>
+
+      {/* Ligne de stats "Premium" */}
+      <div style={{ textAlign: 'center', margin: '2rem 0', fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+        Analyse basée sur : {data.analysis_stats.skills_detected} compétences détectées • {data.analysis_stats.requirements_analyzed} exigences du poste analysées • {data.analysis_stats.gaps_identified} écarts identifiés
+      </div>
+
+      {/* [FIX EXPERT] Alignement vertical en liste (de haut en bas) au lieu de cartes horizontales */}
+      <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '350px' }}>
+          <button onClick={() => onAction("Review CV")} className="btn-secondary" style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+            <FileDown size={16} /> Éditer mon CV
+          </button>
+          <button onClick={() => onAction("Pitch")} className="btn-secondary" style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+            <FileDown size={16} /> Pitch
+          </button>
+          <button onClick={() => onAction("Questionnaire")} className="btn-secondary" style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+            <FileDown size={16} /> Questionnaire
+          </button>
+          <button onClick={() => onAction("Flaw Coaching")} className="btn-secondary" style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+            <Sparkles size={16} /> Parades aux Défauts
+          </button>
         </div>
-        <textarea readOnly value={JSON.stringify(data, null, 2)} style={{ flex: 1, fontFamily: "monospace", fontSize: "12px", padding: "10px", borderRadius: "6px", border: "1px solid var(--border-color)" }} />
-        <button onClick={copyToClipboard} className="btn-primary" style={{ marginTop: "10px" }}>{t('debug_copy_json', "Copier le JSON")}</button>
       </div>
     </div>
   );

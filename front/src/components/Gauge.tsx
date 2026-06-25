@@ -1,80 +1,153 @@
-import { useState, useEffect, useRef } from 'react';
-import React from 'react'; // React is used for JSX
-interface GaugeProps {
-  score: number; // 0-100
-  color: string;
-  trackColor?: string;
+import { useReducer, useRef, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import './Header.css';
+import LanguageSelector from './LanguageSelector';
+
+export interface Step {
+  id: number;
+  title: string;
 }
 
-export default function Gauge({ score, color, trackColor = "#e2e8f0" }: GaugeProps) {
-  const radius = 52;
-  const circumference = 2 * Math.PI * radius;
-  
-  const safeScore = (score === undefined || score === null || isNaN(score)) ? 0 : score;
-  const offset = circumference - (safeScore / 100) * circumference;
+interface HeaderProps {
+  // [FIX] Ajout des propriétés manquantes pour satisfaire TypeScript
+  darkMode: boolean;
+  setDarkMode: (value: boolean | ((prev: boolean) => boolean)) => void;
+  showLangSelector?: boolean;
+  steps?: Step[];
+  currentStep?: number;
+  isAuthenticated?: boolean;
+  userName?: string;
+  onLogout?: () => void;
+  onOpenProfile?: () => void;
+  isAdmin?: boolean; // [FIX] On attend la prop du parent
+  targetLanguage?: string;
+  onLanguageChange?: (lang: string) => void;
+}
 
-  // [NEW] Logique de surlignage lors de la mise à jour asynchrone
-  const [highlight, setHighlight] = useState(false);
-  const prevScoreRef = useRef(safeScore);
+// [EXPERT REFACTOR] Centralisation de la logique d'état avec un reducer.
+// Même pour un état simple, cela prépare le terrain pour une future complexification
+// et rend les transitions d'état plus explicites et maintenables.
+
+interface HeaderState {
+  isDropdownOpen: boolean;
+}
+
+type HeaderAction =
+  | { type: 'open_dropdown' }
+  | { type: 'close_dropdown' }
+  | { type: 'toggle_dropdown' };
+
+const headerReducer = (state: HeaderState, action: HeaderAction): HeaderState => {
+  switch (action.type) {
+    case 'open_dropdown': return { ...state, isDropdownOpen: true };
+    case 'close_dropdown': return { ...state, isDropdownOpen: false };
+    case 'toggle_dropdown': return { ...state, isDropdownOpen: !state.isDropdownOpen };
+    default: return state;
+  }
+};
+
+const initialState: HeaderState = { isDropdownOpen: false };
+
+export default function Header({
+  darkMode,
+  setDarkMode,
+  showLangSelector = true,
+  userName,
+  onLogout,
+  onOpenProfile,
+  isAdmin = false // [FIX] On reçoit le statut admin du parent
+}: HeaderProps): React.ReactElement | null {
+  const { t } = useTranslation();
+  const [state, dispatch] = useReducer(headerReducer, initialState);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // On déclenche l'animation uniquement si le score change (ex: MAJ par le Gap Analysis)
-    if (safeScore !== prevScoreRef.current && safeScore > 0) {
-      setHighlight(true);
-      const timer = setTimeout(() => setHighlight(false), 1500); // Durée de l'animation
-      prevScoreRef.current = safeScore;
-      return () => clearTimeout(timer);
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        dispatch({ type: 'close_dropdown' });
+      }
     }
-  }, [safeScore]);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleOpenDocuments = () => {
+    dispatch({ type: 'close_dropdown' });
+    navigate('/documents');
+  };
 
   return (
-    <div style={{ position: 'relative', width: '140px', height: '140px', animation: highlight ? 'gauge-pulse 1.5s ease-out' : 'none', borderRadius: '50%' }}>
-      <style>{`
-        @keyframes gauge-pulse {
-          0% { transform: scale(1); filter: drop-shadow(0 0 0px transparent); }
-          30% { transform: scale(1.08); filter: drop-shadow(0 0 15px ${color}); }
-          100% { transform: scale(1); filter: drop-shadow(0 0 0px transparent); }
-        }
-      `}</style>
-      <svg
-        width="140"
-        height="140"
-        viewBox="0 0 120 120"
-        style={{ transform: 'rotate(-90deg)' }}
-      >
-        {/* Cercle de fond (la piste grise) */}
-        <circle
-          cx="60"
-          cy="60"
-          r={radius}
-          stroke={trackColor}
-          strokeWidth="12"
-          fill="transparent"
-        />
-        {/* Arc de progression (la jauge colorée) */}
-        <circle
-          cx="60"
-          cy="60"
-          r={radius}
-          stroke={color}
-          strokeWidth="12"
-          fill="transparent"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          style={{ transition: 'stroke-dashoffset 0.5s ease-out' }}
-        />
-      </svg>
-      {/* Texte au centre de la jauge */}
-      <div
-        style={{
-          position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        }}
-      >
-      <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: color }}>{safeScore > 0 ? safeScore : '-'}</span>
-        <span style={{ fontSize: '1rem', color: '#94a3b8', marginTop: '-5px' }}>/ 100</span>
+    <header className="app-header">
+      <div className="header-main">
+        <div className="header-logo">
+          <img src="/logo_reduit_BTCV.png" alt="BeyondTheCV" className="logo-img" />
+        </div>
+
+        <div className="header-actions">
+          {/* Menu Langue Contrôlé */}
+          {/* LanguageSelector is now part of the main app, not the header */}
+          
+          {userName ? (
+            <div className="user-menu-container" ref={dropdownRef} style={{ position: 'relative' }}>
+              <button onClick={() => dispatch({ type: 'toggle_dropdown' })} className="user-profile-btn" title="Menu utilisateur">
+                <span className="user-icon">👤</span>
+                <span className="user-name">{userName}</span>
+              </button>
+              {state.isDropdownOpen && (
+                <div style={{
+                  position: 'absolute', top: '120%', right: 0, background: 'var(--bg-card)', 
+                  border: '1px solid var(--border-color)', borderRadius: '8px', 
+                  boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', minWidth: '200px', 
+                  display: 'flex', flexDirection: 'column', overflow: 'hidden', zIndex: 1000
+                }}>
+                  <button onClick={onOpenProfile} style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', textAlign: 'left', cursor: 'pointer', color: 'var(--text-main)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    📂 Mes Dossiers
+                  </button>
+              {isAdmin && (
+                <Link to="/admin" style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', textAlign: 'left', cursor: 'pointer', color: 'var(--primary)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}
+                  onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                  onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                  onClick={() => dispatch({ type: 'close_dropdown' })}
+                >
+                  <span role="img" aria-label="admin">👑</span> Administration
+                </Link>
+              )}
+                  <button 
+                    onClick={() => { 
+                      dispatch({ type: 'close_dropdown' }); 
+                      window.dispatchEvent(new CustomEvent('open-print-modal'));
+                    }} 
+                    style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', textAlign: 'left', cursor: 'pointer', color: 'var(--text-main)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    📄 Imprimer mon dossier
+                  </button>
+                  <button 
+                    onClick={() => { dispatch({ type: 'close_dropdown' }); onLogout?.(); }} 
+                    style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', textAlign: 'left', cursor: 'pointer', color: '#ef4444', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    🚪 Déconnexion
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link to="/login" className="login-link">{t('login')}</Link>
+          )}
+
+          <button onClick={() => setDarkMode(prev => !prev)} className="dark-mode-toggle">
+            {darkMode ? '🌙' : '☀️'}
+          </button>
+        </div>
       </div>
-    </div>
+    </header>
   );
 }
