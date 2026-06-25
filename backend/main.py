@@ -37,8 +37,9 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from typing import Dict, List
 
-from database import init_db, db, get_database_url
-import database as database_module
+# [FIX] Use relative imports within the 'backend' package to resolve ModuleNotFoundError.
+from .database import init_db, db, get_database_url
+from . import database as database_module
 
 # [CONFIG] Chargement de la configuration globale de l'application
 def load_app_config():
@@ -89,7 +90,7 @@ def cleanup_system():
     # 2. Nettoyage des tâches échouées ou très vieilles dans la DB (> 3 jours)
     # Empêche l'inflation de la table `tasks` causée par le stockage des gros JSON IA.
     try:
-        from database import db
+        from .database import db
         with db.get_sync_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("DELETE FROM tasks WHERE created_at < NOW() - INTERVAL '3 days'")

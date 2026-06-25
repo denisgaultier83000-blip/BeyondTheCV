@@ -14,7 +14,7 @@ except ImportError:
 
 # [AJOUT] Import du module de base de données pour le cache
 try:
-    from database import db
+    from ....database import db
 except ImportError:
     db = None
 class OSINTPipeline:
