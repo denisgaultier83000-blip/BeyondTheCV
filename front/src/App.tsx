@@ -14,11 +14,10 @@ import './index.css';
 function AppContent() {
   const navigate = useNavigate();
 
-  // --- États de l'interface (simplifiés) ---
-  const [showCGU, setShowCGU] = useState(false);
-  const [showPrivacy, setShowPrivacy] = useState(false);
-  const [showLegal, setShowLegal] = useState(false);
+  // --- États de l'interface ---
   const [darkMode, setDarkMode] = useState<boolean>(() => localStorage.getItem('theme') === 'dark');
+  // [AMÉLIORATION] Utiliser un seul état pour gérer les modales de documents légaux.
+  const [activeLegalDoc, setActiveLegalDoc] = useState<'cgu' | 'privacy' | 'legal' | null>(null);
   const [showDocsModal, setShowDocsModal] = useState(false);
 
   // --- Contexte Global (Hooks) ---
@@ -62,11 +61,21 @@ function AppContent() {
 
   const removeToast = (id: number) => setToasts(prev => prev.filter(t => t.id !== id));
 
-  const LegalComponent = showCGU ? CGU : showPrivacy ? PrivacyPolicy : showLegal ? LegalNotice : null;
-  const closeLegal = () => { setShowCGU(false); setShowPrivacy(false); setShowLegal(false); };
-  if (LegalComponent) return (
-    <div className="app-container"><main className="main-content" style={{ paddingTop: '2rem' }}><button onClick={closeLegal} className="btn-outline" style={{ marginBottom: '2rem' }}>← Retour</button><LegalComponent /></main></div>
-  );
+  // [AMÉLIORATION] Logique de rendu simplifiée pour les documents légaux.
+  const renderLegalComponent = () => {
+    let Component;
+    if (activeLegalDoc === 'cgu') Component = CGU;
+    else if (activeLegalDoc === 'privacy') Component = PrivacyPolicy;
+    else if (activeLegalDoc === 'legal') Component = LegalNotice;
+    else return null;
+
+    return (
+      <div className="app-container"><main className="main-content" style={{ paddingTop: '2rem' }}><button onClick={() => setActiveLegalDoc(null)} className="btn-outline" style={{ marginBottom: '2rem' }}>← Retour</button><Component /></main></div>
+    );
+  };
+
+  const legalComponent = renderLegalComponent();
+  if (legalComponent) return legalComponent;
 
   // [FIX] Sécurisation du parsing JSON du nom d'utilisateur pour éviter la page blanche au login
   let parsedUserName = undefined;
@@ -112,7 +121,7 @@ function AppContent() {
       />
       <main className="main-content">
         {/* Le routeur de main.tsx va injecter le bon composant ici via Outlet. On lui passe toutes les fonctions nécessaires. */}
-        <Outlet context={{ CAREER_EDGE_STEPS, currentStep, setCurrentStep, onStart: () => navigate('/login'), onShowCGU: () => setShowCGU(true), onShowPrivacy: () => setShowPrivacy(true), onShowLegal: () => setShowLegal(true), darkMode, setIsAuthenticated }} />
+        <Outlet context={{ CAREER_EDGE_STEPS, currentStep, setCurrentStep, onStart: () => navigate('/login'), onShowCGU: () => setActiveLegalDoc('cgu'), onShowPrivacy: () => setActiveLegalDoc('privacy'), onShowLegal: () => setActiveLegalDoc('legal'), darkMode, setIsAuthenticated }} />
       </main>
 
       <div className="toast-container">{(toasts || []).map(t => (<div key={t.id} className="toast-notification"><LucideBell size={16} /> {t.text}<button onClick={() => removeToast(t.id)}><LucideX size={14}/></button></div>))}</div>
@@ -124,9 +133,9 @@ function AppContent() {
         {isAdmin && (
           <><Link to="/admin" className="btn-ghost">👑 Administration</Link><span>|</span></>
         )}
-        <button className="btn-ghost" onClick={() => setShowLegal(true)}>{t('footer_legal', 'Mentions Légales')}</button><span>|</span>
-        <button className="btn-ghost" onClick={() => setShowCGU(true)}>{t('footer_cgu', 'CGU')}</button><span>|</span>
-        <button className="btn-ghost" onClick={() => setShowPrivacy(true)}>{t('footer_privacy', 'Politique de Confidentialité')}</button>
+        <button className="btn-ghost" onClick={() => setActiveLegalDoc('legal')}>{t('footer_legal', 'Mentions Légales')}</button><span>|</span>
+        <button className="btn-ghost" onClick={() => setActiveLegalDoc('cgu')}>{t('footer_cgu', 'CGU')}</button><span>|</span>
+        <button className="btn-ghost" onClick={() => setActiveLegalDoc('privacy')}>{t('footer_privacy', 'Politique de Confidentialité')}</button>
       </footer>
     </div>
   );
