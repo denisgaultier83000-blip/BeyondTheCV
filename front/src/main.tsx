@@ -27,9 +27,15 @@ import "./i18n";
 function LoginWrapper() {
   const { setIsAuthenticated, onStart } = useOutletContext<any>();
   const navigate = useNavigate();
-  const handleLoginSuccess = () => {
+  // [EXPERT] Logique de redirection post-login.
+  // Le backend retourne un objet `user` complet avec le flag `is_admin`.
+  const handleLoginSuccess = (user: any) => {
     setIsAuthenticated(true);
-    navigate('/candidate'); // Redirection manuelle vers le parcours candidat
+    if (user?.is_admin) {
+      navigate('/admin', { replace: true }); // Redirection de l'admin vers sa tour de contrôle.
+    } else {
+      navigate('/candidate', { replace: true }); // Redirection standard pour les utilisateurs.
+    }
   };
   return <AuthScreen onLoginSuccess={handleLoginSuccess} />;
 }

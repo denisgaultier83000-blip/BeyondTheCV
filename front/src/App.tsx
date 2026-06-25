@@ -122,6 +122,7 @@ function AppContent() {
       <main className="main-content">
         {/* Le routeur de main.tsx va injecter le bon composant ici via Outlet. On lui passe toutes les fonctions nécessaires. */}
         <Outlet context={{ CAREER_EDGE_STEPS, currentStep, setCurrentStep, onStart: () => navigate('/login'), onShowCGU: () => setActiveLegalDoc('cgu'), onShowPrivacy: () => setActiveLegalDoc('privacy'), onShowLegal: () => setActiveLegalDoc('legal'), darkMode, setIsAuthenticated }} />
+        <Outlet context={{ CAREER_EDGE_STEPS, currentStep, setCurrentStep, onStart: () => navigate('/login'), onShowCGU: () => setActiveLegalDoc('cgu'), onShowPrivacy: () => setActiveLegalDoc('privacy'), onShowLegal: () => setActiveLegalDoc('legal'), darkMode, setIsAuthenticated, isAdmin }} />
       </main>
 
       <div className="toast-container">{(toasts || []).map(t => (<div key={t.id} className="toast-notification"><LucideBell size={16} /> {t.text}<button onClick={() => removeToast(t.id)}><LucideX size={14}/></button></div>))}</div>
@@ -130,9 +131,6 @@ function AppContent() {
 
       {/* [FIX] Alignement centré et aéré du Footer réglementaire */}
       <footer className="app-footer" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.5rem', padding: '2rem', flexWrap: 'wrap', opacity: 0.8, marginTop: 'auto' }}>
-        {isAdmin && (
-          <><Link to="/admin" className="btn-ghost">👑 Administration</Link><span>|</span></>
-        )}
         <button className="btn-ghost" onClick={() => setActiveLegalDoc('legal')}>{t('footer_legal', 'Mentions Légales')}</button><span>|</span>
         <button className="btn-ghost" onClick={() => setActiveLegalDoc('cgu')}>{t('footer_cgu', 'CGU')}</button><span>|</span>
         <button className="btn-ghost" onClick={() => setActiveLegalDoc('privacy')}>{t('footer_privacy', 'Politique de Confidentialité')}</button>
