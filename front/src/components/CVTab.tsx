@@ -196,11 +196,6 @@ export const CVTab = ({ data }: { data: any }) => {
             <div style={{ fontSize: '0.95rem', color: scoreColor, fontWeight: 700 }}>{currentScore}/100 - {currentScore >= 80 ? t('score_excellent', "Excellent") : currentScore >= 50 ? t('score_average', "Moyen") : t('score_improve', "À améliorer")}</div>
           </div>
 
-            <div style={{ fontSize: '0.95rem', color: scoreColor, fontWeight: 700 }}>
-              {currentScore}/100 - {currentScore >= 80 ? t('score_excellent', "Excellent") : currentScore >= 50 ? t('score_average', "Moyen") : t('score_improve', "À améliorer")}
-            </div>
-          </div>
-
           {missingKeywords.length > 0 && (
             <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
                 <h5 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: 'var(--danger-text)' }}>{t('cv_missing_keywords', 'Mots-clés manquants')}</h5>
