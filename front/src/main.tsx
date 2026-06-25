@@ -15,6 +15,9 @@ import { AdminDashboard } from "./components/AdminDashboard";
 import { AdminAiUsage } from "./components/AdminAiUsage";
 import AdminFeedbacks from "./components/AdminFeedbacks";
 import { AdminUserDetail } from "./components/AdminUserDetail";
+import { AdminUsers } from "./components/AdminUsers";
+import { AdminBilling } from "./components/AdminBilling";
+import { AdminGenerations } from "./components/AdminGenerations";
 import { AdminRoute } from "./components/AdminRoute";
 
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useOutletContext, useNavigate } from "react-router-dom";
@@ -64,6 +67,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                 <Route path="ai-usage" element={<AdminAiUsage />} />
                 <Route path="feedbacks" element={<AdminFeedbacks />} />
                 <Route path="user/:userId" element={<AdminUserDetail />} />
+                <Route path="users" element={<AdminUsers />} />
+                <Route path="billing" element={<AdminBilling />} />
+                <Route path="generations" element={<AdminGenerations />} />
               </Route>
             </Route>
 

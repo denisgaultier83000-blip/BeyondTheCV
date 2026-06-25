@@ -19,7 +19,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Code (version optimisée ownership)
-COPY --chown=appuser:appuser backend/ .
+# [FIX] Copy code into a 'backend' subdirectory to make it a package.
+COPY --chown=appuser:appuser backend/ ./backend
 
 # User non-root
 RUN useradd -m appuser
@@ -27,5 +28,5 @@ USER appuser
 
 EXPOSE 8080
 
-# VPS version simple (sans $PORT dynamique)
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+# [FIX] Update the command to use the package path 'backend.main'.
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8080"]
