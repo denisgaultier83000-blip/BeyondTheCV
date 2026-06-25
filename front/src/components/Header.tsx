@@ -1,5 +1,5 @@
 import { useReducer, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import './Header.css';
 
@@ -59,7 +59,6 @@ export default function Header({
   const { t } = useTranslation();
   const [state, dispatch] = useReducer(headerReducer, initialState);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

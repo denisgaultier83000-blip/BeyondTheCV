@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 interface GaugeProps {
   score: number; // 0-100
   color: string;

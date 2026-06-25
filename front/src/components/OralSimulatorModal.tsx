@@ -99,14 +99,14 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
 
     recognition.onerror = (event: any) => {
       console.error("Speech recognition error:", event.error);
-      stopRecording(true);
+      stopRecording();
     };
 
     recognition.onend = () => {
       if (!intentionalStopRef.current) {
-        try { recognition.start(); } catch(e) { stopRecording(true); }
+        try { recognition.start(); } catch(e) { stopRecording(); }
       } else {
-        stopRecording(true);
+        stopRecording();
       }
     };
 

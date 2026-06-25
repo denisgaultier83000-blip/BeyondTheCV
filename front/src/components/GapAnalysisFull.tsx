@@ -1,4 +1,3 @@
-import React from 'react';
 import { AlertTriangle, X, Target, CheckCircle, Lightbulb, Clock } from 'lucide-react'; // All icons are used
 import Gauge from './Gauge';
 import { FeedbackWidget } from './FeedbackWidget';

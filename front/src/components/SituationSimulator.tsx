@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { BrainCircuit, Eye, Edit3, CheckCircle2, AlertTriangle, Lightbulb, MessageSquare, Target, ChevronDown, ChevronUp, Loader2, Send, Users, ListChecks, Shield, Award, RefreshCw, X, Mic, MicOff } from 'lucide-react';
+import { BrainCircuit, Eye, Edit3, CheckCircle2, AlertTriangle, Lightbulb, Target, ChevronDown, ChevronUp, Loader2, Send, Award, RefreshCw, X, Mic, MicOff } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
@@ -49,10 +49,10 @@ export function SituationSimulator() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [aiFeedback, setAiFeedback] = useState<AIFeedback | null>(null);
   const [showPassiveModel, setShowPassiveModel] = useState(false);
+  const [isGeneratingMore, setIsGeneratingMore] = useState(false);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState<string|null>(null);
-  const [showRechargeModal, setShowRechargeModal] = useState(false);
   const recognitionRef = useRef<any>(null);
 
   // État local initialisé avec les données du contexte (évite la perte de couleur au changement d'onglet)
