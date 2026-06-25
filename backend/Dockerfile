@@ -23,9 +23,13 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Étape 6 : Copie du code source
+# [FIX] Copie du code dans un sous-dossier 'backend' pour le transformer en package Python
+# et aligner la structure avec les imports relatifs (ex: from .database).
+WORKDIR /app/backend
 COPY . .
+WORKDIR /app
 
 # Étape 7 : Exposition du port et lancement de Uvicorn
 EXPOSE $PORT
 
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT}"]
+CMD ["sh", "-c", "uvicorn backend.main:app --host 0.0.0.0 --port ${PORT}"]

@@ -398,6 +398,7 @@ include_safe_router("simulation_service")
 include_safe_router("documents")
 include_safe_router("payment")
 include_safe_router("admin_service")
+include_safe_router("pitch_service")
 # New routes for products, evaluations, and subscriptions
 include_safe_router("routes_products", from_services=False)
 
