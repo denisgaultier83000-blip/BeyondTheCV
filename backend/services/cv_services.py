@@ -335,7 +335,7 @@ async def generate_pitch(data, quality='smart'):
         "experiences": data.get("experiences", []),
         "educations": data.get("educations", []),
         "skills": data.get("skills", []),
-        "flaws": data.get("flaws", []), // Essentiel pour le pitch anti-failles
+        "flaws": data.get("flaws", []),  # Essentiel pour le pitch anti-failles
         "target_job": data.get("target_job"),
         "job_description": data.get("job_description"),
         "interview_type": data.get("meta", {}).get("interview_type")
