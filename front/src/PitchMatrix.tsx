@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useDashboard } from './DashboardContext';
+import { useDashboard } from '../hooks/DashboardContext';
 import { BrainCircuit, Bot, Loader2, AlertTriangle, Mic, FileText, Save, CheckCircle2 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
