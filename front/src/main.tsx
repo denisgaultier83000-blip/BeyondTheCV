@@ -7,7 +7,7 @@ import ResearchReport from "./pages/ResearchReport"; // Importer la nouvelle pag
 
 // [EXPERT] Import de tous les composants de page pour un routage centralisé
 import { LandingPage } from "./components/LandingPage";
-import Login from "./pages/Login";
+import AuthScreen from "./components/AuthScreen";
 import ResetPassword from "./components/ResetPassword";
 import { CandidateLayout } from "./components/CandidateLayout";
 import { AdminPage } from "./components/AdminPage";
@@ -31,7 +31,7 @@ function LoginWrapper() {
     setIsAuthenticated(true);
     navigate('/candidate'); // Redirection manuelle vers le parcours candidat
   };
-  return <Login onLoginSuccess={handleLoginSuccess} />;
+  return <AuthScreen onLoginSuccess={handleLoginSuccess} />;
 }
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
