@@ -5,7 +5,7 @@ import hashlib
 from datetime import datetime
 import asyncio
 from fastapi import HTTPException
-from database import db
+from .database import db
 
 from asyncio import Lock
 _CACHE_LOCKS = {}
