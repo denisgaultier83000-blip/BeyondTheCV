@@ -13,9 +13,9 @@ from pypdf import PdfReader
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 
-from database import db
-from models import GenerateRequest, CVFinal, FeedbackRequest, ExperienceRequest, SkillExtractionRequest, FullCVData
-from security import get_current_user, require_admin_user
+from ..database import db
+from ..models import GenerateRequest, CVFinal, FeedbackRequest, ExperienceRequest, SkillExtractionRequest, FullCVData
+from ..security import get_current_user, require_admin_user
 # [FIX] Utilisation du service unifié au lieu d'imports inexistants
 from .ai_generator import ai_service
 from .latex import generate_pdf_from_latex

@@ -8,9 +8,9 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr
-from models import UserLogin, UserRegister
-from security import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user, verify_password, get_password_hash
-from database import db
+from ..models import UserLogin, UserRegister
+from ..security import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user, verify_password, get_password_hash
+from ..database import db
 
 router = APIRouter(tags=["Authentication"])
 
@@ -24,7 +24,7 @@ class ResetPasswordRequest(BaseModel):
 async def _insert_user(uid, email, hashed_pw, first, last, created):
     """Insère un nouvel utilisateur."""
     try:
-        async with db.get_connection() as conn:
+        async with db.get_connection() as conn: # type: ignore
             # Fail-safe : Création de la colonne credits si elle n'existe pas
             try:
                 await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT 100")
