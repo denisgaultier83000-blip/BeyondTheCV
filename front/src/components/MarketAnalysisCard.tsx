@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Globe, Wallet, Activity, Zap, Target, Award, Lightbulb } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 

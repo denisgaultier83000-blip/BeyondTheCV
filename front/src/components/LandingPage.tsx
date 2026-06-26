@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { useOutletContext } from 'react-router-dom';
 import { FileText, ArrowRight, CheckCircle2, Search, Mic, ShieldQuestion } from 'lucide-react';
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { DollarSign, Send, AlertTriangle, CheckCircle2, RefreshCw, Lightbulb, Mic, MicOff } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';

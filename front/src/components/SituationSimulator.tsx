@@ -7,6 +7,7 @@ import { useDashboard } from './DashboardContext'; // [NEW] Importer le hook
 import { useTranslation } from 'react-i18next';
 import scenariosData from './scenarios.json';
 import { AsyncBoundary } from './AsyncBoundary';
+import { RechargeModal } from './RechargeModal';
 
 // --- TYPES ---
 
@@ -42,6 +43,7 @@ interface AIFeedback {
 export function SituationSimulator() {
   const { cvData, customScenariosResult, updateFormData, quotas, fetchQuotas } = useDashboard(); 
   const { t } = useTranslation();
+  const [showRechargeModal, setShowRechargeModal] = useState(false);
   const [scenarios, setScenarios] = useState<ScenarioCategory[]>([]);
   const [selectedScenario, setSelectedScenario] = useState<ScenarioItem | null>(null);
   const [mode, setMode] = useState<'passive' | 'active' | null>(null);
@@ -581,6 +583,8 @@ export function SituationSimulator() {
           100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
       `}</style>
+
+      <RechargeModal isOpen={showRechargeModal} onClose={() => setShowRechargeModal(false)} />
     </div>
   );
 }

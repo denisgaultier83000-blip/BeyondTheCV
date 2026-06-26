@@ -71,7 +71,16 @@ export const getScenariosAsQuestions = (data: any): any[] => {
   if (typeof actualData !== 'object' || actualData === null) return [];
   let bestMatch: any[] = [];
   const scenarioKeys = ['scenario', 'situation', 'defi', 'contexte', 'description'];
-  const findBestArray = (obj: any) => { /* ... (implementation as before) ... */ };
+  const findBestArray = (obj: any) => {
+    if (!obj) return;
+    for (const key in obj) {
+      const value = obj[key];
+      if (Array.isArray(value) && value.length > 0) {
+        const scenarioLikeItems = value.filter(item => typeof item === 'object' && item !== null && scenarioKeys.some(sk => sk in item)).length;
+        if (scenarioLikeItems > bestMatch.length) bestMatch = value;
+      } else if (typeof value === 'object') findBestArray(value);
+    }
+  };
   findBestArray(actualData);
   return bestMatch.map(sc => ({
     category: `SCÉNARIO : ${sc.category || sc.theme || 'Général'}`,

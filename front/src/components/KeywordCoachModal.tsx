@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Lightbulb, Loader2, X } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';

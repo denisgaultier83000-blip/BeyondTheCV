@@ -1,7 +1,7 @@
 import React, { Suspense } from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
-import { PitchMatrix } from "@/components/PitchMatrix"; // Use alias for consistency
+import { PitchMatrix } from "./components/PitchMatrix"; // Use alias for consistency
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import Payment from "./pages/Payment";
 import ResearchReport from "./pages/ResearchReport"; // Importer la nouvelle page
@@ -29,7 +29,7 @@ import "./i18n";
 
 // [FIX] Wrapper pour connecter la page de login au contexte de l'application
 function LoginWrapper() {
-  const { setIsAuthenticated, onStart } = useOutletContext<any>();
+  const { setIsAuthenticated } = useOutletContext<any>();
   const navigate = useNavigate();
   // [EXPERT] Logique de redirection post-login.
   // Le backend retourne un objet `user` complet avec le flag `is_admin`.

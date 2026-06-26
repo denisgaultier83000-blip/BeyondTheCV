@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Building, Target, Lightbulb, TrendingUp, Users, DollarSign, Newspaper } from 'lucide-react';
 import { formatStrategicAnalysisReact } from '../utils/formatUtils';
 

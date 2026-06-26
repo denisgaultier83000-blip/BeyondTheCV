@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { X, Zap, BatteryCharging, Package, Box, Archive, ShoppingCart } from 'lucide-react';
 import { useDashboard } from './DashboardContext';
 

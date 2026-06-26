@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HelpCircle, Eye, EyeOff, Edit3, Mic, MicOff, Send, Loader2, AlertTriangle, RefreshCw, CheckCircle2, Lightbulb } from 'lucide-react';
+import { HelpCircle, Eye, EyeOff, Edit3, Mic, MicOff, Send, AlertTriangle, RefreshCw, CheckCircle2, Lightbulb } from 'lucide-react';
 import ScoreGauge from './ScoreGauge';
 import { formatMarkdownReact } from '../utils/formatUtils';
 import { AsyncBoundary } from './AsyncBoundary';

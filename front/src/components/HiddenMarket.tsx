@@ -1,4 +1,3 @@
-import React from 'react';
 import { Users, MessageCircle, Lightbulb, Compass } from 'lucide-react';
 import { AsyncBoundary } from './AsyncBoundary';
 

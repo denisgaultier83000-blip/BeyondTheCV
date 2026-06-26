@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { CheckSquare, Circle, CheckCircle2, ChevronRight } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 

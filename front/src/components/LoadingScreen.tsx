@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, CheckCircle2, Activity, Shield, Target, Mic, MessageSquare, Search, Eye, FileText, DollarSign, BrainCircuit } from 'lucide-react';
+import { Loader2, CheckCircle2, Shield, Target, Mic, MessageSquare, Search, Eye, FileText, DollarSign, BrainCircuit } from 'lucide-react';
 
 interface LoadingScreenProps {
   tasks?: { [key: string]: string }; // e.g., { pitch: 'uuid1', gap_analysis: 'uuid2' }

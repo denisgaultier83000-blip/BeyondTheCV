@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useDashboard } from './DashboardContext';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';

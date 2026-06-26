@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Activity, Zap, AlertTriangle, Target } from 'lucide-react';
 import Gauge from './Gauge';
 

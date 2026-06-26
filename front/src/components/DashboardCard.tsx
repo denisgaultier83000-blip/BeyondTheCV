@@ -21,7 +21,7 @@ interface DashboardCardProps {
 
 export function DashboardCard({
   title, icon, headerAction, loading, loadingText = "Chargement en cours...",
-  error, errorText = "Analyse échouée.", featureId, feedbackQuestion, feedbackBullets, jobType, children, className = "", style
+  error, errorText = "Analyse échouée.", featureId, feedbackQuestion, feedbackBullets, jobType: _jobType, children, className = "", style
 }: DashboardCardProps) {
   if (!children && !loading && !error) return null;
 
@@ -47,7 +47,7 @@ export function DashboardCard({
             </div>
           )}
           {children}
-          {featureId && <FeedbackWidget feature={featureId} jobType={jobType} question={feedbackQuestion} negativeBullets={feedbackBullets} />}
+          {featureId && <FeedbackWidget feature={featureId} question={feedbackQuestion} negativeBullets={feedbackBullets} />}
         </div>
       )}
     </AsyncBoundary>

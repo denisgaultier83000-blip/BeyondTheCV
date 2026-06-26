@@ -1,4 +1,4 @@
-import React from 'react';
+
 
 interface ScoreGaugeProps {
   score: number; // 0 to 10

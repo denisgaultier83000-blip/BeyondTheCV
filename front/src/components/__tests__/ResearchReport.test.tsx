@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { render, screen } from '@testing-library/react';
 import { ResearchReport } from '../ResearchReport';
 import { describe, it, expect } from 'vitest';
@@ -15,6 +16,6 @@ const mockData = {
 describe('ResearchReport Component', () => {
   it('renders company name and overview', () => {
     render(<ResearchReport data={mockData} companyName="TechCorp" />);
-    expect(screen.getByText(/Rapport Stratégique : TechCorp/i)).toBeInTheDocument();
+    expect(screen.getByText(/Rapport Stratégique : TechCorp/i)).toBeDefined();
   });
 });

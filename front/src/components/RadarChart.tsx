@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { useTranslation } from 'react-i18next';
 
 // Mapping from fine-grained traits to the 5 core axes

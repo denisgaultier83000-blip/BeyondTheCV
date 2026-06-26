@@ -1,4 +1,3 @@
-import React from 'react';
 import { useDashboard } from './DashboardContext';
 import { MessageSquare, RotateCcw, Lightbulb } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

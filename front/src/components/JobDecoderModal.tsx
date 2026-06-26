@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { useTranslation } from 'react-i18next';
 import { Search, AlertTriangle, CheckCircle, ArrowRight } from 'lucide-react';
 import { formatMarkdown } from '../utils/markdown';

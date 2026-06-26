@@ -114,7 +114,7 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
       recognition.start();
       recognitionRef.current = recognition;
     } catch (err) {
-      stopRecording(true);
+      stopRecording();
     }
   };
 

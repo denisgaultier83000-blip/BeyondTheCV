@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { ShieldCheck, AlertTriangle, CheckCircle, Lightbulb } from 'lucide-react';
 import { AsyncBoundary } from './AsyncBoundary';
 

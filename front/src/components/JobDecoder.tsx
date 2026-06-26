@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, AlertCircle, MessageSquare, Target, ShieldAlert, Building, ArrowRight } from 'lucide-react';
+import { Search, MessageSquare, Target, ShieldAlert, Building, ArrowRight } from 'lucide-react';
 import { formatMarkdown } from '../utils/markdown';
 import DOMPurify from 'dompurify';
 import { FeedbackWidget } from './FeedbackWidget';
