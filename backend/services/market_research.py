@@ -6,7 +6,7 @@ from datetime import datetime
 from .ai_generator import ai_service
 from .search_service import search_web
 # Correction de l'import circulaire : utilisation de utils
-from ai.prompts.osint_pipeline import OSINTPipeline
+from ..ai.prompts.osint_pipeline import OSINTPipeline
 from .utils import load_prompt, clean_ai_json_response
 from .websocket_manager import manager
 
