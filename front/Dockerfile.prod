@@ -9,8 +9,11 @@ RUN npm install
 # Copie du code source et compilation (nécessite le .env pour VITE_API_URL)
 COPY . .
 
-# [FIX DE L'EXPERT] Définition stricte et persistante de l'URL pour Vite
-ENV VITE_API_URL=https://beyondthecv-backend-service-746792482004.europe-west1.run.app
+# Déclare l'argument qui sera passé par `docker build --build-arg`
+ARG VITE_API_URL
+# Définit la variable d'environnement à partir de l'argument reçu.
+# Vite lira cette variable pendant `npm run build`.
+ENV VITE_API_URL=${VITE_API_URL}
 
 RUN npm run build
 
