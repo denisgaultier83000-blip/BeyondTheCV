@@ -9,8 +9,8 @@ from email.mime.multipart import MIMEMultipart
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr
 from ..models import UserLogin, UserRegister
-from ..security import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user, verify_password, get_password_hash
-from ..database import db
+from security import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user, verify_password, get_password_hash
+from database import db
 
 router = APIRouter(tags=["Authentication"])
 

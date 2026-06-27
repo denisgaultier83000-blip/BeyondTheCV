@@ -9,7 +9,7 @@ from typing import List, Optional, Dict, Any
 # [FIX EXPERT] Importe l'instance de base de données centralisée au lieu de créer une nouvelle connexion.
 # Cela résout le bug de démarrage sur Cloud Run car la connexion n'est plus initialisée
 # au moment de l'import avec une variable d'environnement vide.
-from database import db
+from .database import db
 
 # [REMOVED] La fonction get_postgres_connection() et le pool de connexion (db_pool) sont supprimés.
 # Toute la gestion de la connexion est maintenant déléguée à l'objet `db` importé,
