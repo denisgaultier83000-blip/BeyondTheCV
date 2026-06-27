@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Lock, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
-import { API_BASE_URL } from '../config';
+import { API_URL } from '../config';
 
 interface LoginProps {
   onLoginSuccess?: () => void;
@@ -31,7 +31,7 @@ export default function Login({ onLoginSuccess, onLogin }: LoginProps) {
     try {
       if (isRegister) {
         // 1. Appel à la route d'inscription
-        const registerRes = await fetch(`${API_BASE_URL}/api/auth/register`, {
+        const registerRes = await fetch(`${API_URL}/auth/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -53,7 +53,7 @@ export default function Login({ onLoginSuccess, onLogin }: LoginProps) {
       loginData.append('username', formData.email);
       loginData.append('password', formData.password);
 
-      const loginRes = await fetch(`${API_BASE_URL}/api/auth/token`, {
+      const loginRes = await fetch(`${API_URL}/auth/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: loginData
