@@ -65,7 +65,7 @@ jobs:
         with:
           # [CORRECTION] Remplacement de frontend par front pour correspondre au repo
           context: ./front
-          file: ./front/Dockerfile
+          file: ./front/Dockerfile.prod
           push: true
           tags: |
             ${{ env.FRONTEND_IMAGE }}:${{ env.VERSION }}
