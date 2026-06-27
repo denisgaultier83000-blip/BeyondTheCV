@@ -2,7 +2,8 @@ import { useState, FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Loader2 as LucideLoader } from 'lucide-react';
-import { api, setToken } from '../api/client';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 // [EXPERT REFACTOR] Création d'un hook personnalisé pour isoler la logique métier.
 // Le composant devient plus simple et se concentre uniquement sur l'affichage (UI).
@@ -11,45 +12,29 @@ function useAuth(onLoginSuccess: (user: any) => void) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const handleApiCall = async (isLogin: boolean, data: any) => {
+  const handleApiCall = async (url: string, body: any, headers: any, isLogin: boolean) => {
     setIsLoading(true);
     setError('');
     setSuccess('');
 
     try {
-      let responseData;
-      if (isLogin) {
-        // Login uses x-www-form-urlencoded
-        const body = new URLSearchParams({ username: data.email, password: data.password });
-        responseData = await api<any>('/auth/token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: body.toString(),
-        });
-      } else {
-        // Register uses application/json
-        responseData = await api<any>('/auth/register', {
-          method: 'POST',
-          body: JSON.stringify(data),
-        });
+      const response = await fetch(url, { method: 'POST', headers, body });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'An unknown error occurred.');
       }
 
       if (isLogin) {
-        setToken(responseData.access_token);
-        localStorage.setItem('user', JSON.stringify(responseData.user));
-        onLoginSuccess(responseData.user);
+        localStorage.setItem('token', data.access_token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        onLoginSuccess(data.user);
       } else {
         setSuccess('Registration successful! Please log in.');
         return true; // Indique qu'il faut basculer vers la vue de login
       }
     } catch (err: any) {
-        // The 'api' client throws an error with the response text as the message
-        try {
-            const errorJson = JSON.parse(err.message);
-            setError(errorJson.detail || 'An unknown error occurred.');
-        } catch (e) {
-            setError(err.message || 'An unknown error occurred.');
-        }
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -61,6 +46,7 @@ function useAuth(onLoginSuccess: (user: any) => void) {
 
 
 interface AuthScreenProps {
+  // [FIX] The onLoginSuccess prop now expects a function that receives the user object.
   onLoginSuccess: (user: any) => void;
 }
 
@@ -77,12 +63,16 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    const url = isLoginView ? `${API_URL}/auth/token` : `${API_URL}/auth/register`;
+    const body = isLoginView
+      ? new URLSearchParams({ username: email, password: password })
+      : JSON.stringify({ email, password, first_name: firstName, last_name: lastName });
 
-    const data = isLoginView
-      ? { email, password }
-      : { email, password, first_name: firstName, last_name: lastName };
+    const headers = isLoginView
+      ? { 'Content-Type': 'application/x-www-form-urlencoded' }
+      : { 'Content-Type': 'application/json' };
 
-    const shouldSwitchToLogin = await handleApiCall(isLoginView, data);
+    const shouldSwitchToLogin = await handleApiCall(url, body, headers, isLoginView);
     if (shouldSwitchToLogin) {
       setIsLoginView(true);
     }
