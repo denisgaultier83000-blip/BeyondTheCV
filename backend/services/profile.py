@@ -1,7 +1,8 @@
 import json
 from fastapi import APIRouter, Depends, Body, HTTPException
 from ..security import get_current_user
-from database import db
+# [FIX] Use relative import to find 'database' in the parent 'backend' directory.
+from ..database import db
 from .utils import _get_sortable_date_tuple
 
 router = APIRouter(
