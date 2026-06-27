@@ -2,10 +2,10 @@ import os
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
-
-from database import db
-from models import DocumentMetadata
-from security import get_current_user
+# [FIX] Utilisation des imports relatifs pour remonter au dossier parent 'backend'
+from ..database import db
+from ..models import DocumentMetadata
+from ..security import get_current_user
 
 router = APIRouter(tags=["Documents"])
 

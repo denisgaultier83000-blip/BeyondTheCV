@@ -11,7 +11,7 @@ import httpx
 
 from ..security import require_admin_user
 from ..database import db
-from ..ai.ai_service import ai_service
+from .ai_generator import ai_service
 
 router = APIRouter(
     prefix="/api/admin",

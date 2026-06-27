@@ -4,10 +4,10 @@ import json
 from typing import Dict
 
 # Import des modules utilitaires et du service IA
-from .utils import load_prompt, clean_ai_json_response
-from .ai_generator import ai_service
-from ..database import db
-from .auth import get_current_active_user # Service d'authentification
+from .utils import load_prompt
+from .ai_generator import ai_service # Déjà relatif, c'est bon
+from ..database import db # [FIX] Import absolu
+from ..security import get_current_user # [FIX] Remplacé par le service de sécurité standard
 
 router = APIRouter()
 
@@ -74,7 +74,7 @@ async def generate_strategic_pitch(request: PitchRequest):
 )
 async def save_pitch_matrix(
     request: PitchUpdateRequest,
-    current_user: Dict = Depends(get_current_active_user)
+    current_user: Dict = Depends(get_current_user)
 ):
     """
     Sauvegarde la matrice de pitchs modifiée dans la colonne `profile_data` de la table `user_profiles`.
