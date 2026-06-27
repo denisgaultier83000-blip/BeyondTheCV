@@ -21,7 +21,7 @@ PLAN_PRICES = {
     "recharge_60": 9900,
 }
 
-@router.post("/api/create-payment-intent")
+@router.post("/create-payment-intent")
 async def create_payment_intent(request: PaymentIntentRequest, current_user: dict = Depends(get_current_user)):
     stripe_key = os.getenv("STRIPE_SECRET_KEY")
     if not stripe_key:
@@ -48,7 +48,7 @@ async def create_payment_intent(request: PaymentIntentRequest, current_user: dic
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.post("/api/webhook/stripe")
+@router.post("/webhook/stripe")
 async def stripe_webhook(request: Request, stripe_signature: str = Header(None)):
     webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
     if not webhook_secret:

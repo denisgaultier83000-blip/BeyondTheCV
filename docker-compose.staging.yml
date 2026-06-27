@@ -55,10 +55,16 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=web"
 
-      - "traefik.http.routers.btcv-api-staging.rule=Host(`api-staging.beyondthecv.app`)"
+      - "traefik.http.routers.btcv-api-staging.rule=Host(`api-staging.beyondthecv.app`) && PathPrefix(`/api`)"
       - "traefik.http.routers.btcv-api-staging.entrypoints=websecure"
       - "traefik.http.routers.btcv-api-staging.tls.certresolver=le"
       - "traefik.http.routers.btcv-api-staging.service=btcv-api-staging"
+
+      # Middleware to strip the /api prefix
+      - "traefik.http.middlewares.btcv-api-staging-stripprefix.stripprefix.prefixes=/api"
+
+      # Apply the middleware
+      - "traefik.http.routers.btcv-api-staging.middlewares=btcv-api-staging-stripprefix"
 
       - "traefik.http.services.btcv-api-staging.loadbalancer.server.port=8080"
 

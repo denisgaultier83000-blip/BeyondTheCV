@@ -12,7 +12,7 @@ from ..models import UserLogin, UserRegister
 from ..security import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user, verify_password, get_password_hash
 from ..database import db
 
-router = APIRouter(tags=["Authentication"])
+router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
@@ -46,7 +46,7 @@ async def _insert_user(uid, email, hashed_pw, first, last, created):
 
 # --- Routes ---
 
-@router.post("/api/auth/token")
+@router.post("/token")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     try:
         # [FIX] On gère la casse de l'email pour garantir un login fiable
@@ -153,7 +153,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         print(f"[AUTH ERROR CRITICAL] {e}", flush=True)
         raise HTTPException(status_code=500, detail=f"Erreur interne : {str(e)}")
 
-@router.post("/api/auth/register")
+@router.post("/register")
 async def register(user: UserRegister):
     print(f"[AUTH] Register attempt for: {user.email}", flush=True)
     email = user.email.lower().strip()
@@ -183,7 +183,7 @@ async def register(user: UserRegister):
         print(f"[AUTH] CRITICAL ERROR during register: {e}", flush=True)
         raise HTTPException(status_code=500, detail=f"Database Error: [{type(e).__name__}] {str(e)}")
 
-@router.get("/api/user/status")
+@router.get("/user/status")
 async def get_user_status(current_user: dict = Depends(get_current_user)):
     """Vérifie le statut Premium de l'utilisateur."""
 
@@ -234,7 +234,7 @@ def send_reset_email(to_email: str, reset_token: str):
     except Exception as e:
         print(f"[SMTP ERROR] Échec de l'envoi : {e}", flush=True)
 
-@router.post("/api/auth/forgot-password")
+@router.post("/forgot-password")
 async def forgot_password(request: ForgotPasswordRequest, background_tasks: BackgroundTasks):
     """Génère un token de récupération et l'envoie par email."""
     email = request.email.lower().strip()
@@ -264,7 +264,7 @@ async def forgot_password(request: ForgotPasswordRequest, background_tasks: Back
     # [SÉCURITÉ] Renvoie toujours "success" pour empêcher l'Account Enumeration (Deviner si un email existe)
     return {"status": "success", "message": "Si ce compte existe, un email a été envoyé."}
 
-@router.post("/api/auth/reset-password")
+@router.post("/reset-password")
 async def reset_password(request: ResetPasswordRequest):
     """Vérifie le token et met à jour le mot de passe."""
     token = request.token.strip()

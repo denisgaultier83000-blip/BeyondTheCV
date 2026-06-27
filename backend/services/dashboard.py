@@ -20,7 +20,7 @@ from .websocket_manager import manager
 
 router = APIRouter(tags=["Dashboard & Research"])
 
-@router.post("/api/research/start")
+@router.post("/research/start")
 async def start_research(request: ResearchRequest, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
     tasks_map = {"research": str(uuid.uuid4()), "salary": str(uuid.uuid4())}
     print(f"[API] 🟢 Manual Research Triggered. Tasks: {tasks_map}", flush=True)
@@ -74,7 +74,7 @@ async def start_research(request: ResearchRequest, background_tasks: BackgroundT
         "salary_task_id": tasks_map["salary"]
     }
 
-@router.post("/api/analyze-completeness")
+@router.post("/analyze-completeness")
 async def analyze_completeness(request: Request, current_user: dict = Depends(get_current_user)):
     # [MODIF] Exécution SYNCHRONE demandée pour la Page 7
     try:
@@ -110,7 +110,7 @@ async def analyze_completeness(request: Request, current_user: dict = Depends(ge
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/api/research/disambiguate")
+@router.post("/research/disambiguate")
 async def disambiguate_company_endpoint(request: DisambiguationRequest):
     try:
         result_str = await ai_service.generate(f"Disambiguate company: {request.company_name}. Respond in JSON with a 'candidates' list.", provider="gemini", system_instruction="You are a JSON API.", bypass_queue=True)
@@ -119,7 +119,7 @@ async def disambiguate_company_endpoint(request: DisambiguationRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI disambiguation failed: {str(e)}")
 
-@router.get("/api/tasks/status/{task_id}")
+@router.get("/tasks/status/{task_id}")
 async def get_task_status(task_id: str):
     async with db.get_connection() as conn:
         cursor = await db.execute(conn, "SELECT status FROM tasks WHERE id = ?", (task_id,))
@@ -132,7 +132,7 @@ async def get_task_status(task_id: str):
     
     return {"task_id": task_id, "status": status}
 
-@router.get("/api/tasks/result/{task_id}")
+@router.get("/tasks/result/{task_id}")
 async def get_task_result(task_id: str):
     async with db.get_connection() as conn:
         cursor = await db.execute(conn, "SELECT status, result FROM tasks WHERE id = ?", (task_id,))
@@ -154,7 +154,7 @@ async def get_task_result(task_id: str):
     result_data = json.loads(result_raw) if result_raw else {}
     return JSONResponse(content=result_data)
 
-@router.get("/api/applications")
+@router.get("/applications")
 async def get_applications(current_user: dict = Depends(get_current_user)):
     async with db.get_connection() as conn:
         cursor = await db.execute(conn, """
@@ -199,7 +199,7 @@ async def get_applications(current_user: dict = Depends(get_current_user)):
     
     return list(apps.values())
 
-@router.delete("/api/applications/{app_id}")
+@router.delete("/applications/{app_id}")
 async def delete_application(app_id: str, current_user: dict = Depends(get_current_user)):
     """Supprime une candidature (dossier) et tous ses documents liés."""
     async with db.get_connection() as conn:
@@ -225,7 +225,7 @@ async def delete_application(app_id: str, current_user: dict = Depends(get_curre
         
     return {"status": "success", "message": "Candidature supprimée"}
 
-@router.get("/api/applications/{app_id}/load")
+@router.get("/applications/{app_id}/load")
 async def load_application(app_id: str, current_user: dict = Depends(get_current_user)):
     """Recharge les données complètes d'une ancienne candidature depuis les archives des tâches."""
     async with db.get_connection() as conn:
@@ -315,7 +315,7 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str):
     finally:
         manager.disconnect(websocket, task_id) # Garanti d'être exécuté à 100%, libérant la mémoire
 
-@router.get("/api/admin/migrate-archives")
+@router.get("/admin/migrate-archives")
 async def migrate_archives(current_user: dict = Depends(require_admin_user)):
     """Route temporaire pour ranger les anciens documents orphelins dans un dossier Archives."""
     try:

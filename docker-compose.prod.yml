@@ -59,11 +59,15 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=web"
 
-      - "traefik.http.routers.btcv-api-prod.rule=Host(`api.beyondthecv.app`)"
+      - "traefik.http.routers.btcv-api-prod.rule=Host(`api.beyondthecv.app`) && PathPrefix(`/api`)"
       - "traefik.http.routers.btcv-api-prod.entrypoints=websecure"
       - "traefik.http.routers.btcv-api-prod.tls.certresolver=le"
       - "traefik.http.routers.btcv-api-prod.service=btcv-api-prod"
 
+      # [FIX] Définition d'un middleware pour retirer le préfixe /api
+      # La requête arrive en tant que /api/auth/token -> Traefik la transforme en /auth/token pour le backend
+      - "traefik.http.middlewares.btcv-api-stripprefix.stripprefix.prefixes=/api"
+      
       # [FIX SECURITE] Assouplissement : Permettre le polling intensif du Dashboard (10 tâches en parallèle)
       - "traefik.http.middlewares.btcv-api-ratelimit.ratelimit.average=50"
       - "traefik.http.middlewares.btcv-api-ratelimit.ratelimit.burst=200"
@@ -75,7 +79,7 @@ services:
       - "traefik.http.middlewares.btcv-security.headers.stsSeconds=31536000"
 
       # Application des middlewares sur la route de l'API
-      - "traefik.http.routers.btcv-api-prod.middlewares=btcv-api-ratelimit,btcv-security"
+      - "traefik.http.routers.btcv-api-prod.middlewares=btcv-api-stripprefix,btcv-api-ratelimit,btcv-security"
 
       - "traefik.http.services.btcv-api-prod.loadbalancer.server.port=8080"
 

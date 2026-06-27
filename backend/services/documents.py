@@ -9,7 +9,7 @@ from ..security import get_current_user
 
 router = APIRouter(tags=["Documents"])
 
-@router.get("/api/documents", response_model=List[DocumentMetadata])
+@router.get("/documents", response_model=List[DocumentMetadata])
 async def list_user_documents(current_user: dict = Depends(get_current_user)):
     response_docs = []
     async with db.get_connection() as conn:
@@ -23,7 +23,7 @@ async def list_user_documents(current_user: dict = Depends(get_current_user)):
             response_docs.append(DocumentMetadata(**row_dict))
     return response_docs
 
-@router.get("/api/documents/download/{doc_id}")
+@router.get("/documents/download/{doc_id}")
 async def download_document(doc_id: str, current_user: dict = Depends(get_current_user)):
     doc = None
     async with db.get_connection() as conn:
@@ -48,7 +48,7 @@ async def download_document(doc_id: str, current_user: dict = Depends(get_curren
         
     return FileResponse(path=file_path, filename=doc["filename"], media_type=doc.get("media_type", "application/octet-stream"))
 
-@router.delete("/api/documents/{doc_id}")
+@router.delete("/documents/{doc_id}")
 async def delete_document(doc_id: str, current_user: dict = Depends(get_current_user)):
     async with db.get_connection() as conn:
         cursor = await db.execute(conn, "SELECT path FROM documents WHERE id = ? AND user_id = ?", (doc_id, current_user["id"]))
