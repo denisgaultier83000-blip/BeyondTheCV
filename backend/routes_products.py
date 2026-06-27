@@ -12,15 +12,15 @@ try:
 except ImportError:
     storage = None
 
-from db_schemas import (
+from .db_schemas import (
     ProductCreate, ProductResponse, ProductListResponse,
     SubscriptionExtensionCreate, SubscriptionExtensionResponse,
     UserResponse, SubscriptionPlanResponse
 )
-from db_services import (
+from .db_services import (
     ProductService, SubscriptionService
 )
-from security import get_current_user, require_admin_user
+from .security import get_current_user, require_admin_user
 
 router = APIRouter(prefix="/api", tags=["products", "subscriptions"])
 
