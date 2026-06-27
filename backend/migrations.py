@@ -1,7 +1,7 @@
 
 import os
 import psycopg2
-import database # [FIX EXPERT] On importe le module entier, pas la variable isolée.
+from . import database # [FIX EXPERT] On importe le module entier, pas la variable isolée.
 
 def get_postgres_connection():
     """Creates a direct synchronous connection to PostgreSQL using the correct URL."""
