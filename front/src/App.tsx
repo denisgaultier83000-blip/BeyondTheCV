@@ -12,7 +12,7 @@ import './index.css';
 function AppContent() {
   const navigate = useNavigate();
 
-  /`/ --- `États de l'interface ---
+  // --- États de l'interface ---
   const [darkMode, setDarkMode] = useState<boolean>(() => localStorage.getItem('theme') === 'dark');
   const [activeLegalDoc, setActiveLegalDoc] = useState<'cgu' | 'privacy' | 'legal' | null>(null);
   const [showDocsModal, setShowDocsModal] = useState(false);
@@ -39,45 +39,45 @@ function AppContent() {
   // Cela découple la navigation de la mise à jour d'état et résout les conflits de rendu React.
   useEffect(() => {
     if (isAuthenticated) {
-      const storedUser = `localStorage.getItem`('user');
+      const storedUser = localStorage.getItem('user');
       try {
-        const user = storedUser ? `JSON.parse`(storedUser) : null;
+        const user = storedUser ? JSON.parse(storedUser) : null;
         if (user?.is_admin) {
           navigate('/admin', { replace: true });
         } else {
           navigate('/candidate', { replace: true });
         }
       } catch (e) {
-        `console.error`("Failed to parse user from localStorage", e);
-        navigate('/candidate', { replace: true }); /`/ Fallback redirect`
+        console.error("Failed to parse user from localStorage", e);
+        navigate('/candidate', { replace: true }); // Fallback redirect
       }
     }
   }, [isAuthenticated, navigate]);
 
-  /`/ `[FIX EXPERT] Interception globale pour forcer l'ouverture de la page de paiement dans un nouvel onglet
+  // [FIX EXPERT] Interception globale pour forcer l'ouverture de la page de paiement dans un nouvel onglet
   // Cela évite de perdre le contexte de l'application (ex: une réponse vocale en cours d'évaluation)
   // lorsque l'utilisateur clique sur une proposition de recharge.
   useEffect(() => {
     const handleGlobalClick = (e: MouseEvent) => {
-      const target = `e.target` as HTMLElement;
-      const link = `target.closest`('a');
-      if (link && `link.href` && `link.href.includes`('/payment') && `link.target` !== '_blank') {
-        `e.preventDefault`();
-        `window.open`(`link.href`, '_blank');
+      const target = e.target as HTMLElement;
+      const link = target.closest('a');
+      if (link && link.href && link.href.includes('/payment') && link.target !== '_blank') {
+        e.preventDefault();
+        window.open(link.href, '_blank');
       }
     };
-    `document.addEventListener`('click', handleGlobalClick);
-    return () => `document.removeEventListener`('click', handleGlobalClick);
+    document.addEventListener('click', handleGlobalClick);
+    return () => document.removeEventListener('click', handleGlobalClick);
   }, []);
 
   useEffect(() => {
-    `document.body.classList.toggle`('dark-mode', darkMode);
-    `localStorage.setItem`('theme', darkMode ? 'dark' : 'light');
+    document.body.classList.toggle('dark-mode', darkMode);
+    localStorage.setItem('theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
 
-  const removeToast = (id: number) => setToasts(prev => `prev.filter`(t => `t.id` !== id));
+  const removeToast = (id: number) => setToasts(prev => prev.filter(t => t.id !== id));
 
-  /`/ `[AMÉLIORATION] Logique de rendu simplifiée pour les documents légaux.
+  // [AMÉLIORATION] Logique de rendu simplifiée pour les documents légaux.
   const renderLegalComponent = () => {
     let Component;
     if (activeLegalDoc === 'cgu') Component = CGU;
@@ -93,7 +93,7 @@ function AppContent() {
   const legalComponent = renderLegalComponent();
   if (legalComponent) return legalComponent;
 
-  /`/ `[FIX] Sécurisation du parsing JSON du nom d'utilisateur pour éviter la page blanche au login
+  // [FIX] Sécurisation du parsing JSON du nom d'utilisateur pour éviter la page blanche au login
   let parsedUserName = undefined;
   // [FIX CRITIQUE] Centralisation de la logique admin.
   // On utilise la même méthode de vérification que dans le Header pour garantir la cohérence.
@@ -106,17 +106,17 @@ function AppContent() {
           const u = JSON.parse(storedUser);
           parsedUserName = u.first_name || u.name || t('default_candidate_name', "Candidat");
           // La seule source de vérité est la comparaison avec la variable d'environnement.
-          isAdmin = !!(adminEmail && `u.email` && `u.email.toLowerCase`() === `adminEmail.toLowerCase`());
+          isAdmin = !!(adminEmail && u.email && u.email.toLowerCase() === adminEmail.toLowerCase());
       }
     } catch (e) {
         parsedUserName = t('default_candidate_name', "Candidat");
     }
       if (cvData?.first_name) {
-        parsedUserName = `cvData.first_name`;
+        parsedUserName = cvData.first_name;
       }
   }
 
-  /`/ `[FIX] S'assurer que le prénom commence toujours par une majuscule dans le Header
+  // [FIX] S'assurer que le prénom commence toujours par une majuscule dans le Header
   if (parsedUserName && typeof parsedUserName === 'string') {
     parsedUserName = parsedUserName.charAt(0).toUpperCase() + parsedUserName.slice(1);
   }
@@ -136,7 +136,7 @@ function AppContent() {
       />
       <main className="main-content">
         {/* Le routeur de main.tsx va injecter le bon composant ici via Outlet. On lui passe toutes les fonctions nécessaires. */}
-        <Outlet context={{ CAREER_EDGE_STEPS, currentStep, setCurrentStep, onStart: () => navigate('`/login`'), onShowCGU: () => setActiveLegalDoc('cgu'), onShowPrivacy: () => setActiveLegalDoc('privacy'), onShowLegal: () => setActiveLegalDoc('legal'), darkMode, setIsAuthenticated, isAdmin }} />
+        <Outlet context={{ CAREER_EDGE_STEPS, currentStep, setCurrentStep, onStart: () => navigate('/login'), onShowCGU: () => setActiveLegalDoc('cgu'), onShowPrivacy: () => setActiveLegalDoc('privacy'), onShowLegal: () => setActiveLegalDoc('legal'), darkMode, setIsAuthenticated, isAdmin }} />
       </main>
 
       <div className="toast-container">{(toasts || []).map(t => (<div key={t.id} className="toast-notification">{t.text}<button onClick={() => removeToast(t.id)}>X</button></div>))}</div>
@@ -144,7 +144,7 @@ function AppContent() {
       {showDocsModal && <DocumentsModal onClose={() => setShowDocsModal(false)} />}
 
       {/* [FIX] Alignement centré et aéré du Footer réglementaire */}
-      <footer className="app-footer" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '`1.5rem`', padding: '2rem', flexWrap: 'wrap', opacity: 0.8, marginTop: 'auto' }}>
+      <footer className="app-footer" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.5rem', padding: '2rem', flexWrap: 'wrap', opacity: 0.8, marginTop: 'auto' }}>
         <button className="btn-ghost" onClick={() => setActiveLegalDoc('legal')}>{t('footer_legal', 'Mentions Légales')}</button><span>|</span>
         <button className="btn-ghost" onClick={() => setActiveLegalDoc('cgu')}>{t('footer_cgu', 'CGU')}</button><span>|</span>
         <button className="btn-ghost" onClick={() => setActiveLegalDoc('privacy')}>{t('footer_privacy', 'Politique de Confidentialité')}</button>
