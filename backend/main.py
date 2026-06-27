@@ -211,6 +211,18 @@ async def lifespan(app: FastAPI):
                         if col not in user_columns:
                             print(f"[DB MIGRATE] Adding column {col} to users table.")
                             cur.execute(f"ALTER TABLE users ADD COLUMN {col} {col_type}")
+
+                    # [FIX] Add missing boolean flag columns for auth to prevent 500 errors
+                    flag_cols = {
+                        "is_admin": "BOOLEAN DEFAULT FALSE",
+                        "is_active": "BOOLEAN DEFAULT TRUE",
+                        "is_tester": "BOOLEAN DEFAULT FALSE"
+                    }
+
+                    for col, col_type in flag_cols.items():
+                        if col not in user_columns:
+                            print(f"[DB MIGRATE] Adding column {col} to users table.")
+                            cur.execute(f"ALTER TABLE users ADD COLUMN {col} {col_type}")
                 conn.commit()
             except Exception as e:
                 print(f"[DB WARNING] Failed to add quota columns to users table: {e}", flush=True)
