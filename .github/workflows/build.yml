@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - staging
       - staging1
       - staging2
   workflow_dispatch:
@@ -70,6 +71,6 @@ jobs:
           tags: |
             ${{ env.FRONTEND_IMAGE }}:${{ env.VERSION }}
           build-args: |
-            VITE_API_URL=${{ (github.ref_name == 'staging' || github.ref_name == 'staging1') && 'https://api-staging.beyondthecv.app' || 'https://api.beyondthecv.app' }}
+            VITE_API_URL=${{ (github.ref_name == 'staging' || github.ref_name == 'staging1' || github.ref_name == 'staging2') && 'https://api-staging.beyondthecv.app/api' || 'https://api.beyondthecv.app/api' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

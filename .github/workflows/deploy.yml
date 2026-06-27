@@ -119,7 +119,7 @@ jobs:
             # Variable pour le backend (ex: docker-compose)
             API_HOST=${API_HOST}
             # Variable pour le frontend (lue par le code JS/TS)
-            VITE_API_URL=https://${API_HOST}
+            VITE_API_URL=https://${API_HOST}/api
             VITE_FRONTEND_URL=${FRONTEND_URL}
             VITE_TESTER_EMAILS_LIST=${TESTER_EMAILS}
             VITE_REACT_APP_ADMIN_EMAIL=${ADMIN_EMAIL}
