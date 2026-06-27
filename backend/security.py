@@ -21,7 +21,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 # pbkdf2_sha256 est en pur Python, donc plus lent mais beaucoup plus stable.
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token") # [FIX] Correction de l'URL du token pour la doc Swagger
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token") # [FIX] Correction de l'URL du token pour la doc Swagger
 
 # [DIAGNOSTIC] Vérification immédiate de la santé du système de hash au démarrage
 try:

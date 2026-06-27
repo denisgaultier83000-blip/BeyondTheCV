@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDashboard } from './components/DashboardContext';
 import { BrainCircuit, Bot, Loader2, AlertTriangle, Mic, FileText, Save } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { api } from './api/client';
 
 // --- Types for data structure ---
 interface Pitch {
@@ -94,26 +93,11 @@ export function PitchMatrix() {
     setError(null);
     setPitchMatrix(null);
 
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setError("Authentication required for this action.");
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      const response = await fetch(`${API_URL}/api/pitch`, {
+      const data = await api<PitchMatrixData>('/api/pitch', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ candidate_data: cvData, target_language: targetLanguage || 'fr' }),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || `HTTP error ${response.status}`);
-      }
-
-      const data: PitchMatrixData = await response.json();
       setPitchMatrix(data);
     } catch (err: any) {
       setError(err.message);
@@ -127,24 +111,11 @@ export function PitchMatrix() {
     setIsLoading(true);
     setError(null);
 
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setError("Authentication required to save.");
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      const response = await fetch(`${API_URL}/api/pitch`, {
+      await api('/api/pitch', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ pitch_matrix: pitchMatrix }),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Error while saving.");
-      }
       // Optional: show a success toast
     } catch (err: any) {
       setError(err.message);
