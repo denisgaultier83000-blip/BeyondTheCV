@@ -5,8 +5,9 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, WebSocke
 from fastapi.responses import JSONResponse
 
 from ..database import db
-from security import get_current_user, require_admin_user
-from models import ResearchRequest, DisambiguationRequest
+# [FIX] Use relative imports to find modules in the parent 'backend' directory
+from ..security import get_current_user, require_admin_user
+from ..models import ResearchRequest, DisambiguationRequest
 # [FIX] Import relatif cohérent
 from .ai_generator import ai_service
 # [FIX] Utilisation de l'import relatif pour éviter les conflits de path
