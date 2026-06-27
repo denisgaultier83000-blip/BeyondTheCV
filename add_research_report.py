@@ -132,7 +132,9 @@ import { DashboardProvider } from './context/DashboardContext';
 import { DashboardView } from './components/DashboardView';
 import './index.css';
 
-const API_BASE = 'http://localhost:8000'; 
+// [FIX] Utilisation des variables d'environnement pour l'URL de l'API.
+// Vite injecte les variables préfixées par VITE_ dans le code.
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const LOGO_PATH = "/logoCE.png";
 
 const CAREER_EDGE_STEPS: Step[] = [
