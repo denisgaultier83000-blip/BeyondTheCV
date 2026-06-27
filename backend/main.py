@@ -360,6 +360,30 @@ async def log_requests(request: Request, call_next):
         print(f"[NET LOG ERROR] Could not log request: {e}", flush=True)
     return response
 
+# [FIX] Middleware de sécurité pour ajouter les headers recommandés et gérer le cache.
+# Ceci résout les avertissements de sécurité et de performance du navigateur.
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    
+    # --- Headers de Sécurité ---
+    # Empêche le navigateur de "deviner" le type de contenu (MIME-sniffing).
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    
+    # Politique de sécurité de contenu moderne pour empêcher le clickjacking.
+    # Remplace l'ancien X-Frame-Options.
+    response.headers["Content-Security-Policy"] = "frame-ancestors 'self'"
+    
+    # --- Headers de Cache ---
+    # Pour les routes d'API dynamiques, on ne veut pas de cache.
+    if request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
+    
+    # --- Nettoyage des Headers ---
+    # Supprime les headers qui peuvent révéler des informations sur la technologie utilisée.
+    if "server" in response.headers: del response.headers["server"]
+    if "x-xss-protection" in response.headers: del response.headers["x-xss-protection"]
+    return response
 # Note: rate_limiter dependency can be added globally or per router
 # app = FastAPI(..., dependencies=[Depends(rate_limiter)])
 

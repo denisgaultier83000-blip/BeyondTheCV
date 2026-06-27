@@ -131,10 +131,12 @@ import { ResearchReport } from './components/ResearchReport';
 import { DashboardProvider } from './context/DashboardContext';
 import { DashboardView } from './components/DashboardView';
 import './index.css';
-
-// [FIX] Utilisation des variables d'environnement pour l'URL de l'API.
-// Vite injecte les variables préfixées par VITE_ dans le code.
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+ 
+// [FIX] Correction de l'URL de l'API pour la communication inter-conteneurs.
+// La variable d'environnement VITE_API_URL est prioritaire (pour la production).
+// En développement (docker-compose), la valeur par défaut 'http://backend:8000' permet au conteneur frontend
+// de trouver le conteneur backend en utilisant son nom de service.
+const API_BASE = import.meta.env.VITE_API_URL || 'http://backend:8000';
 const LOGO_PATH = "/logoCE.png";
 
 const CAREER_EDGE_STEPS: Step[] = [
@@ -306,6 +308,10 @@ function App() {
         .result-card { background: #f8fafc; padding: 1.5rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; }
         .result-card.success { background: #f0fdf4; border-color: #bbf7d0; }
         .main-content { padding-top: 100px; padding-bottom: 2rem; max-width: 1280px; margin: 0 auto; padding-left: 2rem; padding-right: 2rem; }
+        .modal-backdrop {
+          -webkit-backdrop-filter: blur(4px); /* [FIX] Préfixe pour la compatibilité (Safari) */
+          backdrop-filter: blur(4px);
+        }
         .card-container { background: white; padding: 2rem; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); min-height: 500px; }
         .mock-data-info { margin-bottom: 1.5rem; color: #64748b; background: #f1f5f9; padding: 0.5rem 1rem; border-radius: 2rem; font-size: 0.8rem; }
         .tasks-list { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
