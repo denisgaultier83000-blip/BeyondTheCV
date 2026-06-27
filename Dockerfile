@@ -16,9 +16,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # [OPTIMISATION] Copie et installation des dépendances Python dans leur propre couche.
-# Cette couche ne sera reconstruite que si le fichier requirements.txt change.
+# Étape 1 : Installation des dépendances lourdes qui changent rarement.
+# Cette couche sera mise en cache de manière très durable.
+COPY backend/requirements-heavy.txt .
+RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r requirements-heavy.txt
+
+# Étape 2 : Installation des dépendances applicatives qui changent plus souvent.
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # [OPTIMISATION] Création de l'utilisateur non-root AVANT de copier le code
 RUN useradd -m appuser
