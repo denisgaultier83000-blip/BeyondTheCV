@@ -31,15 +31,12 @@ import "./i18n";
 function LoginWrapper() {
   const { setIsAuthenticated } = useOutletContext<any>();
   const navigate = useNavigate();
-  // [EXPERT] Logique de redirection post-login.
-  // Le backend retourne un objet `user` complet avec le flag `is_admin`.
+  // [EXPERT] La redirection est maintenant gérée par un useEffect dans App.tsx
+  // pour éviter les conflits de rendu React.
   const handleLoginSuccess = (user: any) => {
+    // Le `user` est stocké dans le localStorage par le client API.
+    // On met simplement à jour l'état d'authentification ici.
     setIsAuthenticated(true);
-    if (user?.is_admin) {
-      navigate('/admin', { replace: true }); // Redirection de l'admin vers sa tour de contrôle.
-    } else {
-      navigate('/candidate', { replace: true }); // Redirection standard pour les utilisateurs.
-    }
   };
   return <AuthScreen onLoginSuccess={handleLoginSuccess} />;
 }
