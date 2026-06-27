@@ -4,7 +4,7 @@ from datetime import datetime
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, WebSocket, WebSocketDisconnect, Depends
 from fastapi.responses import JSONResponse
 
-from database import db
+from ..database import db
 from security import get_current_user, require_admin_user
 from models import ResearchRequest, DisambiguationRequest
 # [FIX] Import relatif cohérent
