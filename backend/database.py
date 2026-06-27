@@ -128,7 +128,7 @@ class Database:
         """Initialize the database and create tables if they don't exist."""
         try:
             # Import and run migrations
-            from migrations import create_tables, insert_default_subscription_plans
+            from .migrations import create_tables, insert_default_subscription_plans
             
             print("[DB] Running PostgreSQL migrations...", flush=True)
             if not create_tables():
