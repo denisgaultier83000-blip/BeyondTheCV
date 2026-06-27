@@ -104,11 +104,11 @@ jobs:
             SAFE_GEM_KEY="${GEM_KEY//\$/\$\$}"
             SAFE_SERPER_KEY="${SERPER_KEY//\$/\$\$}"
 
-            # [FIX] Les variables pour le frontend DOIVENT être préfixées par VITE_
+            # [FIX] Correction de la variable d'environnement pour l'API.
+            # Le frontend (Vite) ne peut lire que les variables préfixées par VITE_.
             cat <<EOF > "$ENV_FILE"
             VERSION=${BRANCH}
             ENVIRONMENT=${ENVIRONMENT}
-            API_HOST=${API_HOST}
             POSTGRES_USER=${DB_USER}
             POSTGRES_PASSWORD=${SAFE_DB_PASS}
             POSTGRES_DB=${DB_NAME}
@@ -116,6 +116,10 @@ jobs:
             GEMINI_API_KEY=${SAFE_GEM_KEY}
             SERPER_API_KEY=${SAFE_SERPER_KEY}
             JWT_SECRET=${SAFE_JWT_SEC}
+            # Variable pour le backend (ex: docker-compose)
+            API_HOST=${API_HOST}
+            # Variable pour le frontend (lue par le code JS/TS)
+            VITE_API_URL=https://${API_HOST}
             VITE_FRONTEND_URL=${FRONTEND_URL}
             VITE_TESTER_EMAILS_LIST=${TESTER_EMAILS}
             VITE_REACT_APP_ADMIN_EMAIL=${ADMIN_EMAIL}
