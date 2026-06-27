@@ -21,7 +21,7 @@ import { AdminBilling } from "./components/AdminBilling";
 import { AdminGenerations } from "./components/AdminGenerations";
 import { AdminRoute } from "./components/AdminRoute";
 
-import { BrowserRouter, Routes, Route, Navigate, useOutletContext, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useOutletContext } from "react-router-dom";
 import ErrorBoundary from "./components/ErrorBoundary";
 import "./index.css";
 import "./theme.css";
@@ -30,10 +30,9 @@ import "./i18n";
 // [FIX] Wrapper pour connecter la page de login au contexte de l'application
 function LoginWrapper() {
   const { setIsAuthenticated } = useOutletContext<any>();
-  const navigate = useNavigate();
   // [EXPERT] La redirection est maintenant gérée par un useEffect dans App.tsx
   // pour éviter les conflits de rendu React.
-  const handleLoginSuccess = (user: any) => {
+  const handleLoginSuccess = () => {
     // Le `user` est stocké dans le localStorage par le client API.
     // On met simplement à jour l'état d'authentification ici.
     setIsAuthenticated(true);
