@@ -18,12 +18,15 @@ services:
 
   backend:
     build:
-      context: ./backend
+      # [FIX] Le contexte est la racine pour accéder à tous les fichiers nécessaires.
+      context: .
       dockerfile: Dockerfile
     env_file:
       - .env  # Injecte les variables (OPENAI_API_KEY, etc.) dans le conteneur backend
     environment:
       - DATABASE_URL=${DATABASE_URL}
+      # [FIX] Ajoute la racine du projet au PYTHONPATH. Ceci résout TOUTES les erreurs d'import relatives.
+      - PYTHONPATH=/app
 
     # [FIX] Mount the backend code into a 'backend' subdirectory to create a proper Python package.
     volumes:
