@@ -3,12 +3,12 @@ from fastapi import APIRouter, HTTPException, Body, Depends
 from typing import Optional, Dict, Any
 from pydantic import BaseModel
 
-from models import (
+from ..models import (
     SimulationRequest,
     SituationSimulationRequest,
 )
-from security import get_current_user
-from database import db
+from ..security import get_current_user
+from ..database import db
 from .ai_generator import ai_service
 from .utils import load_prompt, clean_ai_json_response, normalize_language, consume_quota, refund_quota
 from .cv_services import require_active_subscription
