@@ -4,11 +4,11 @@ import re
 from pathlib import Path
 from database import db
 from services.ai_generator import ai_service
-from .websocket_manager import manager
+from services.websocket_manager import manager
 # Import de la vraie logique de recherche
-from .market_research import perform_market_research
+from services.market_research import perform_market_research
 # Import des utilitaires pour éviter le cycle
-from .utils import (
+from services.utils import (
     load_prompt, clean_ai_json_response, normalize_language, 
     _generate_cache_key, get_cached_content, set_cached_content,
     _CACHE_LOCKS,

@@ -6,13 +6,14 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
 from datetime import datetime, timedelta
+import secrets
 from fastapi.security import OAuth2PasswordRequestForm
 import stripe, json
 import httpx
 
-from security import require_admin_user
+from security import require_admin_user, create_access_token
 from database import db
-from .ai_generator import ai_service
+from services.ai_generator import ai_service
 
 router = APIRouter( # Le router principal reste protégé
     prefix="/api/admin",

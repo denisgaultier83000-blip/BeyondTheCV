@@ -4,8 +4,8 @@ import json
 from typing import Dict
 
 # Import des modules utilitaires et du service IA
-from .utils import load_prompt
-from .ai_generator import ai_service # Déjà relatif, c'est bon
+from services.utils import load_prompt
+from services.ai_generator import ai_service
 from database import db
 from security import get_current_user
 

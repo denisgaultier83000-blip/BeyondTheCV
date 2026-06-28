@@ -9,9 +9,9 @@ from models import (
 )
 from security import get_current_user
 from database import db
-from .ai_generator import ai_service
-from .utils import load_prompt, clean_ai_json_response, normalize_language, refund_quota
-from .cv_services import require_active_subscription
+from services.ai_generator import ai_service
+from services.utils import load_prompt, clean_ai_json_response, normalize_language, refund_quota
+from services.cv_services import require_active_subscription
 
 router = APIRouter(
     prefix="/api/cv",

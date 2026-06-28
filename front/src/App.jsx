@@ -19,7 +19,7 @@ function App() {
         <Route path="/candidate" element={<CandidateInterface />} />
 
         {/* --- Routes pour l'Administration --- */}
-        {/* 1. La page de connexion, accessible publiquement */}
+        {/* 1. La page de connexion, accessible publiquement - CORRIGÉ */}
         <Route path="/admin" element={<AdminLogin />} />
 
         {/* 2. La page du tableau de bord, protégée par notre gardien */}

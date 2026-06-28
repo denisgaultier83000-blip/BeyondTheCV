@@ -90,7 +90,7 @@ def cleanup_system():
     # 2. Nettoyage des tâches échouées ou très vieilles dans la DB (> 3 jours)
     # Empêche l'inflation de la table `tasks` causée par le stockage des gros JSON IA.
     try:
-        from .database import db
+        from database import db
         with db.get_sync_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("DELETE FROM tasks WHERE created_at < NOW() - INTERVAL '3 days'")

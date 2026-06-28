@@ -36,12 +36,12 @@ from .tasks import (
     process_action_plan_in_background,
 )
 from .utils import (
-    clean_ai_json_response, normalize_language, load_prompt, _get_sortable_date_tuple,
-    _sanitize_data_for_ai, _generate_cache_key, get_cached_content, set_cached_content, 
-    consume_quota, refund_quota,
+    clean_ai_json_response, normalize_language, load_prompt, _get_sortable_date_tuple, 
+    _sanitize_data_for_ai, _generate_cache_key, get_cached_content, set_cached_content,
     _CACHE_LOCKS
 )
 from .tasks import get_prompt_path
+from services.simulation_service import consume_quota
 from .websocket_manager import manager
 
 router = APIRouter(prefix="/api/cv", tags=["CV Generator"])

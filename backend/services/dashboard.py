@@ -7,15 +7,15 @@ from fastapi.responses import JSONResponse
 from database import db
 from security import get_current_user, require_admin_user
 from models import ResearchRequest, DisambiguationRequest
-# [FIX] Import relatif cohérent
-from .ai_generator import ai_service
-# [FIX] Utilisation de l'import relatif pour éviter les conflits de path
-from .tasks import (
+
+from services.ai_generator import ai_service
+
+from services.tasks import (
     process_research_in_background, 
     process_salary_in_background, 
 )
-from .utils import clean_ai_json_response, normalize_language, _generate_cache_key, get_cached_content, set_cached_content
-from .websocket_manager import manager
+from services.utils import clean_ai_json_response, normalize_language, _generate_cache_key, get_cached_content, set_cached_content
+from services.websocket_manager import manager
 
 router = APIRouter(tags=["Dashboard & Research"])
 
