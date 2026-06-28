@@ -71,7 +71,7 @@ jobs:
           push: true
           tags: |
             ${{ env.FRONTEND_IMAGE }}:${{ env.VERSION }}
-          build-args: |
-            VITE_API_URL=${{ (github.ref_name == 'staging' || github.ref_name == 'staging1') && 'https://api-staging.beyondthecv.app' || 'https://api.beyondthecv.app' }}
+          build-args: >
+            VITE_API_URL=${{ contains(github.ref_name, 'staging') && 'https://api-staging.beyondthecv.app' || 'https://api.beyondthecv.app' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
