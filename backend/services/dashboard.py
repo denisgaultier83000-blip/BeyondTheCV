@@ -154,59 +154,6 @@ async def get_task_result(task_id: str):
     result_data = json.loads(result_raw) if result_raw else {}
     return JSONResponse(content=result_data)
 
-@router.get("/applications")
-async def get_applications(current_user: dict = Depends(get_current_user)):
-    async with db.get_connection() as conn:
-        # [OPTIMISATION] Remplacement du UNION ALL par des CTE (Common Table Expressions)
-        # pour une meilleure lisibilité et des performances potentiellement améliorées.
-        # L'optimiseur de requêtes peut mieux gérer les CTE qu'un UNION complexe.
-        cursor = await db.execute(conn, """
-            WITH user_applications AS (
-                SELECT 
-                    ja.id as app_id, ja.target_company, ja.target_job, ja.created_at as app_created_at,
-                    d.id as doc_id, d.filename, d.type as doc_type, d.created_at as doc_created_at
-                FROM job_applications ja
-                LEFT JOIN documents d ON d.application_id = ja.id
-                WHERE ja.user_id = ?
-            ),
-            archived_documents AS (
-                SELECT 
-                    'archives_id' as app_id, 
-                    'Archives' as target_company, 
-                    'Anciens Documents' as target_job, 
-                    '2000-01-01 00:00:00' as app_created_at,
-                    id as doc_id, filename, type as doc_type, created_at as doc_created_at
-                FROM documents 
-                WHERE user_id = ? AND (application_id IS NULL OR application_id = '')
-            )
-            SELECT * FROM user_applications UNION ALL SELECT * FROM archived_documents
-            ORDER BY app_created_at DESC
-        """, (current_user["id"], current_user["id"]))
-        rows = await cursor.fetchall()
-        
-    apps = {}
-    for row in rows:
-        r = dict(row) if not isinstance(row, tuple) else {
-            "app_id": row[0], "target_company": row[1], "target_job": row[2], "app_created_at": row[3],
-            "doc_id": row[4], "filename": row[5], "doc_type": row[6], "doc_created_at": row[7]
-        }
-        app_id = r["app_id"]
-        if app_id not in apps:
-            apps[app_id] = {
-                "id": app_id,
-                "target_company": r["target_company"],
-                "target_job": r["target_job"],
-                "created_at": r["app_created_at"].isoformat() if hasattr(r["app_created_at"], "isoformat") else str(r["app_created_at"]),
-                "documents": []
-            }
-        if r.get("doc_id"):
-            apps[app_id]["documents"].append({
-                "id": r["doc_id"], "filename": r["filename"], "type": r["doc_type"],
-                "created_at": r["doc_created_at"].isoformat() if hasattr(r["doc_created_at"], "isoformat") else str(r["doc_created_at"])
-            })
-    
-    return {"users": list(apps.values())}
-
 @router.delete("/applications/{app_id}")
 async def delete_application(app_id: str, current_user: dict = Depends(get_current_user)):
     """Supprime une candidature (dossier) et tous ses documents liés."""

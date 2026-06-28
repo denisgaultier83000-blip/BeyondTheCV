@@ -7,21 +7,63 @@ from ..database import db
 from ..models import DocumentMetadata
 from ..security import get_current_user
 
-router = APIRouter(tags=["Documents"])
+router = APIRouter(
+    prefix="/api/cv",
+    tags=["Documents & Applications"]
+)
 
-@router.get("/documents", response_model=List[DocumentMetadata])
-async def list_user_documents(current_user: dict = Depends(get_current_user)):
-    response_docs = []
+@router.get("/applications")
+async def list_applications_and_documents(current_user: dict = Depends(get_current_user)):
+    """
+    [FUSION] Route unique qui récupère toutes les candidatures (dossiers)
+    et les documents associés, y compris les documents archivés.
+    """
     async with db.get_connection() as conn:
-        cursor = await db.execute(conn, "SELECT * FROM documents WHERE user_id = ? ORDER BY created_at DESC", (current_user["id"],))
+        cursor = await db.execute(conn, """
+            WITH user_applications AS (
+                SELECT 
+                    ja.id as app_id, ja.target_company, ja.target_job, ja.created_at as app_created_at,
+                    d.id as doc_id, d.filename, d.type as doc_type, d.created_at as doc_created_at
+                FROM job_applications ja
+                LEFT JOIN documents d ON d.application_id = ja.id
+                WHERE ja.user_id = ?
+            ),
+            archived_documents AS (
+                SELECT 
+                    'archives_id' as app_id, 
+                    'Archives' as target_company, 
+                    'Anciens Documents' as target_job, 
+                    '2000-01-01 00:00:00' as app_created_at,
+                    id as doc_id, filename, type as doc_type, created_at as doc_created_at
+                FROM documents 
+                WHERE user_id = ? AND (application_id IS NULL OR application_id = '')
+            )
+            SELECT * FROM user_applications UNION ALL SELECT * FROM archived_documents
+            ORDER BY app_created_at DESC
+        """, (current_user["id"], current_user["id"]))
         rows = await cursor.fetchall()
-        for row in rows:
-            row_dict = dict(row)
-            # [FIX EXPERT] Conversion explicite du datetime PostgreSQL en String (ISO) pour Pydantic
-            if "created_at" in row_dict and hasattr(row_dict["created_at"], "isoformat"):
-                row_dict["created_at"] = row_dict["created_at"].isoformat()
-            response_docs.append(DocumentMetadata(**row_dict))
-    return response_docs
+        
+    apps = {}
+    for row in rows:
+        r = dict(row)
+        app_id = r["app_id"]
+        if app_id not in apps:
+            apps[app_id] = {
+                "id": app_id,
+                "target_company": r["target_company"],
+                "target_job": r["target_job"],
+                "created_at": r["app_created_at"].isoformat() if hasattr(r["app_created_at"], "isoformat") else str(r["app_created_at"]),
+                "documents": []
+            }
+        if r.get("id"):
+            apps[app_id]["documents"].append({
+                "id": r["id"],
+                "filename": r["filename"],
+                "type": r.get("type", "document"),
+                "created_at": r["doc_created_at"].isoformat() if hasattr(r["doc_created_at"], "isoformat") else str(r["doc_created_at"])
+            })
+
+    return {"users": list(apps.values())}
 
 @router.get("/documents/download/{doc_id}")
 async def download_document(doc_id: str, current_user: dict = Depends(get_current_user)):

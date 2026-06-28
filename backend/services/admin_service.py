@@ -117,7 +117,8 @@ async def admin_list_users(limit: int = 50, offset: int = 0):
     async with db.get_connection() as conn:
         cursor = await db.execute(conn, """
             SELECT id, email, first_name, last_name, created_at, is_premium, is_active, 
-                   subscription_expiration_date, credits, quota_pitch, quota_qa, quota_mes
+                   subscription_expiration_date, credits, quota_pitch, quota_qa, quota_mes,
+                   quota_negotiation, quota_regeneration, quota_update
             FROM users 
             ORDER BY created_at DESC LIMIT ? OFFSET ?
         """, (limit, offset))
@@ -133,10 +134,12 @@ async def admin_list_users(limit: int = 50, offset: int = 0):
             # [FIX] Assurer la compatibilité avec les différents drivers DB
             "id": r[0], "email": r[1], "first_name": r[2], "last_name": r[3], 
             "created_at": r[4], "is_premium": r[5], "is_active": r[6], 
-            "subscription_expiration_date": r[7], "credits": r[8]
+            "subscription_expiration_date": r[7], "credits": r[8], "quota_pitch": r[9],
+            "quota_qa": r[10], "quota_mes": r[11], "quota_negotiation": r[12],
+            "quota_regeneration": r[13], "quota_update": r[14]
         }
         users_list.append(user_dict)
-    return {"users": users_list}
+    return users_list
 
 
 @router.post("/users/{user_id}/toggle-active")
