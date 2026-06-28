@@ -430,7 +430,7 @@ include_safe_router("auth")
 include_safe_router("cv_services")
 include_safe_router("dashboard")
 include_safe_router("profile")
-include_safe_router("simulation_service") # Ajout de la virgule manquante
+include_safe_router("simulation_service")
 include_safe_router("documents")
 include_safe_router("payment")
 include_safe_router("admin_service")
