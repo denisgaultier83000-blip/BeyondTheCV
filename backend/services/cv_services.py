@@ -1674,30 +1674,7 @@ async def start_analysis(background_tasks: BackgroundTasks, data: dict = Body(..
                 print(f"[DB WARNING] Alter table skipped: {e}")
 
             if not cv_dict.get('is_partial_start'):
-                try:
-                    cursor = await db.execute(conn, "SELECT id, tasks_map FROM job_applications WHERE user_id = ? AND session_hash = ? ORDER BY created_at DESC LIMIT 1", (current_user["id"], session_hash))
-                    existing_app = await cursor.fetchone()
-                    if existing_app:
-                        app_id = existing_app[0] if isinstance(existing_app, tuple) else existing_app["id"]
-                        t_map_raw = existing_app[1] if isinstance(existing_app, tuple) else existing_app["tasks_map"]
-                        if t_map_raw:
-                            t_map = json.loads(t_map_raw) if isinstance(t_map_raw, str) else t_map_raw
-                        # [VERIFICATION CRITIQUE] On s'assure que c'est une session COMPLÈTE et non une session issue d'un "is_partial_start"
-                        if "gap_analysis" in t_map and "recruiter_view" in t_map:
-                            # [FIX EXPERT] On vérifie que les tâches existent réellement en base de données.
-                            # Si l'utilisateur a purgé son historique, on ne doit pas restaurer une session fantôme (évite les 404 en boucle).
-                            cursor = await db.execute(conn, "SELECT 1 FROM tasks WHERE id = ?", (t_map["gap_analysis"],))
-                            if await cursor.fetchone():
-                                print(f"[START_ANALYSIS] Session restored for hash {session_hash}", flush=True)
-                                return {
-                                    "message": "Session restored",
-                                    "application_id": app_id,
-                                    "tasks": t_map,
-                                    "task_id": t_map.get("gap_analysis") or t_map.get("market_research"),
-                                    "salary_task_id": t_map.get("salary_estimation")
-                                }
-                except Exception as e:
-                    print(f"[DB WARNING] Failed to restore session: {e}")
+                pass # La logique de restauration de session a été retirée pour garantir une nouvelle analyse à chaque fois.
 
             # 1. Création de la session de candidature
             try:
