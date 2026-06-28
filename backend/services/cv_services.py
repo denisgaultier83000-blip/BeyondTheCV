@@ -2042,7 +2042,7 @@ async def get_feedbacks(current_user: dict = Depends(require_admin_user)):
                 "user_email": user_email
             })
 
-        return {"feedbacks": feedbacks_list}
+        return feedbacks_list
     except Exception as e:
         print(f"[GET FEEDBACKS ERROR] {e}", flush=True)
         raise HTTPException(status_code=500, detail="Erreur lors de la récupération des feedbacks")

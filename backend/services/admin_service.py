@@ -139,7 +139,7 @@ async def admin_list_users(limit: int = 50, offset: int = 0):
             "quota_regeneration": r[13], "quota_update": r[14]
         }
         users_list.append(user_dict)
-    return users_list
+    return {"users": users_list, "total": total_users}
 
 
 @router.post("/users/{user_id}/toggle-active")
