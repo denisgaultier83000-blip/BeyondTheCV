@@ -256,19 +256,19 @@ async def _run_pitch_logic(task_id: str, candidate_data: dict):
         final_prompt = final_prompt.replace("{{TARGET_LANGUAGE}}", target_lang)
 
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction=f"You are an Executive Coach. ALL CONTENT MUST BE ENTIRELY WRITTEN IN {target_lang.upper()}. Output STRICT JSON.")
-        
+
         if "error" not in result:
             await set_cached_content(cache_key, user_id, "pitch", result)
 
         # [FIX] Vérification de la nouvelle structure de la matrice de pitchs (v2)
         if result and (result.get("recruiter_pitch") or result.get("pitch_30s")):
-            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            await update_task_status_sync(task_id, "SUCCESS", result)
             await manager.broadcast(task_id, "Matrice de pitchs générée", status="COMPLETED", data=result)
         else:
             raise Exception("La génération de la matrice de pitchs a échoué ou a renvoyé un format vide.")
     except Exception as e:
         fallback = {"error": f"Erreur lors de la génération du pitch : {str(e)}"}
-        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", fallback)
+        await update_task_status_sync(task_id, "FAILED", fallback)
         await manager.broadcast(task_id, "Erreur de génération", status="FAILED", data=fallback)
 
 async def process_questions_in_background(task_id: str, candidate_data: dict):

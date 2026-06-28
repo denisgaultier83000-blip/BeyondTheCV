@@ -5,7 +5,8 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
+from fastapi.security import OAuth2PasswordRequestForm
 import stripe, json
 import httpx
 
@@ -13,7 +14,7 @@ from security import require_admin_user
 from database import db
 from .ai_generator import ai_service
 
-router = APIRouter(
+router = APIRouter( # Le router principal reste protégé
     prefix="/api/admin",
     tags=["Administration"],
     dependencies=[Depends(require_admin_user)] # Protège toutes les routes de ce routeur
@@ -23,6 +24,35 @@ class CreditQuotaRequest(BaseModel):
     email: EmailStr
     quota_type: Literal["pitch", "qa", "mes", "negotiation", "regeneration", "update"]
     amount: int
+
+@router.post("/login", include_in_schema=False, dependencies=[]) # Route non protégée
+async def admin_login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    """
+    Point d'entrée sécurisé pour l'administrateur.
+    Vérifie les identifiants contre les variables d'environnement.
+    """
+    admin_user = os.getenv("ADMIN_USER")
+    admin_pass = os.getenv("ADMIN_PASSWORD")
+
+    # Sécurité : si les variables ne sont pas définies, l'authentification est impossible.
+    if not admin_user or not admin_pass:
+        raise HTTPException(status_code=500, detail="Le serveur n'est pas configuré pour l'accès administrateur.")
+
+    # Comparaison sécurisée en temps constant pour éviter les attaques temporelles
+    is_user_ok = secrets.compare_digest(form_data.username, admin_user)
+    is_pass_ok = secrets.compare_digest(form_data.password, admin_pass)
+
+    if not (is_user_ok and is_pass_ok):
+        raise HTTPException(status_code=401, detail="Identifiants administrateur incorrects.")
+
+    # Création d'un token avec un flag admin et une durée de vie de 8h
+    access_token_expires = timedelta(hours=8)
+    access_token = create_access_token(
+        data={"sub": admin_user, "is_admin": True},
+        expires_delta=access_token_expires
+    )
+
+    return {"access_token": access_token, "token_type": "bearer"}
 
 class AdminSubscriptionRequest(BaseModel):
     action: Literal["extend", "cancel"]

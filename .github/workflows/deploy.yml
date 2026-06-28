@@ -50,6 +50,8 @@ jobs:
           GEM_KEY: ${{ secrets.GEMINI_API_KEY }}
           SERPER_KEY: ${{ secrets.SERPER_API_KEY }}
           JWT_SEC: ${{ secrets.JWT_SECRET }}
+          ADMIN_USER: ${{ secrets.ADMIN_USER }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
           
           # [FIX EXPERT] Sécurisation de la variable de branche pour éviter les injections bash sur ton serveur
           TARGET_BRANCH: ${{ github.event.workflow_run.head_branch || github.ref_name }}
@@ -59,7 +61,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: DB_USER,DB_PASS,DB_NAME,OAI_KEY,GEM_KEY,SERPER_KEY,JWT_SEC,TARGET_BRANCH,FRONTEND_URL,TESTER_EMAILS,ADMIN_EMAIL
+          envs: DB_USER,DB_PASS,DB_NAME,OAI_KEY,GEM_KEY,SERPER_KEY,JWT_SEC,TARGET_BRANCH,FRONTEND_URL,TESTER_EMAILS,ADMIN_EMAIL,ADMIN_USER,ADMIN_PASSWORD
           script: |
             set -e
 
@@ -119,6 +121,8 @@ jobs:
             JWT_SECRET=${SAFE_JWT_SEC}
             TESTER_EMAILS_LIST=${TESTER_EMAILS}
             ADMIN_EMAIL=${ADMIN_EMAIL}
+            ADMIN_USER=${ADMIN_USER}
+            ADMIN_PASSWORD=${ADMIN_PASSWORD}
             EOF
 
             # [FIX RESEAU] Reconnexion au réseau global 'web' utilisé par Traefik
