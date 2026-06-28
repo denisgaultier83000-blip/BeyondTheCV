@@ -325,40 +325,23 @@ async def generate_gap_analysis(data, job_desc, quality='smart'):
     return result
 
 async def generate_pitch(data, quality='smart'):
-    # [AMELIORATION] Utilisation des clarifications et fallback conseils
-    clarifications = data.get('clarifications', [])
-    target_lang = normalize_language(data.get('target_language', 'fr'))
-    clarifications_str = "\n".join([f"Q: {c.get('question')}\nA: {c.get('answer')}" for c in clarifications if c.get('answer')])
-    
-    interview_type = data.get('meta', {}).get('interview_type') or data.get('interview_type', 'Non précisé')
-    interview_format = data.get('meta', {}).get('interview_format') or data.get('interview_format', 'Non précisé')
-    
-    # [NEW] Injection des données de recherche asynchrone (Entreprise & Marché)
-    research_context = ""
-    rd = data.get("research_data")
-    if rd:
-        cr = rd.get("company_report", {})
-        mr = rd.get("market_report", {})
-        research_context = f"\nCONTEXTE ENTREPRISE & MARCHÉ (À UTILISER POUR LA PROJECTION) :\n- ADN: {cr.get('identity_dna', '')}\n- Défis: {cr.get('usp', '')}\n- Marché: {mr.get('trends', '')}\n"
-
-    prompt_template = load_prompt(get_prompt_path("pitch_v1.md"))
-    prompt = f"""
-    {prompt_template}
-    
-    DONNÉES CANDIDAT :
-    {json.dumps(_sanitize_data_for_ai(data, strict=True), default=str)}
-    
-    CLARIFICATIONS APPORTÉES :
-    {clarifications_str}
-    {research_context}
-    
-    CONTRAINTE D'ENTRETIEN :
-    - Type d'interlocuteur : {interview_type}
-    - Format : {interview_format}
-    
-    OUTPUT LANGUAGE: {target_lang}
     """
-    result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a senior recruiter. ALL CONTENT MUST BE ENTIRELY WRITTEN IN {target_lang.upper()}. Output STRICT JSON.")
+    [EXPERT] Génère une matrice de pitchs stratégiques (Recruteur, Dirigeant, RH, Anti-Failles)
+    en utilisant le prompt v2 qui est beaucoup plus exigeant et structuré.
+    """
+    target_lang = normalize_language(data.get('target_language', 'fr'))
+    candidate_data_json = json.dumps(_sanitize_data_for_ai(data, strict=True), default=str, ensure_ascii=False)
+
+    try:
+        prompt_template = load_prompt(get_prompt_path("strategic_pitch_v2.md"))
+    except FileNotFoundError:
+        # Fallback de sécurité si le nouveau prompt n'est pas trouvé
+        prompt_template = load_prompt(get_prompt_path("pitch_v1.md"))
+
+    prompt = prompt_template.replace("{{CANDIDATE_DATA_JSON}}", candidate_data_json)
+    prompt = prompt.replace("{{TARGET_LANGUAGE}}", target_lang)
+
+    result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are an Executive Coach. ALL CONTENT MUST BE ENTIRELY WRITTEN IN {target_lang.upper()}. Output STRICT JSON.")
     if "error" in result:
         return {}
     return result
