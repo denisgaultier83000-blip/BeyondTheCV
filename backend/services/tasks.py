@@ -2,8 +2,8 @@ import json
 import asyncio
 import re
 from pathlib import Path
-from ..database import db
-from .ai_generator import ai_service
+from database import db
+from services.ai_generator import ai_service
 from .websocket_manager import manager
 # Import de la vraie logique de recherche
 from .market_research import perform_market_research

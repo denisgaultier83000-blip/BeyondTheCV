@@ -37,8 +37,9 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from typing import Dict, List
 
-from database import init_db, db, get_database_url
-import database as database_module
+# [FIX] Use relative imports within the 'backend' package to resolve ModuleNotFoundError.
+from .database import init_db, db, get_database_url
+from . import database as database_module
 
 # [CONFIG] Chargement de la configuration globale de l'application
 def load_app_config():
@@ -89,7 +90,7 @@ def cleanup_system():
     # 2. Nettoyage des tâches échouées ou très vieilles dans la DB (> 3 jours)
     # Empêche l'inflation de la table `tasks` causée par le stockage des gros JSON IA.
     try:
-        from database import db
+        from .database import db
         with db.get_sync_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("DELETE FROM tasks WHERE created_at < NOW() - INTERVAL '3 days'")
@@ -207,6 +208,18 @@ async def lifespan(app: FastAPI):
                     quota_cols = { "quota_pitch": "INTEGER DEFAULT 10", "quota_qa": "INTEGER DEFAULT 25", "quota_mes": "INTEGER DEFAULT 6", "quota_negotiation": "INTEGER DEFAULT 4", "quota_regeneration": "INTEGER DEFAULT 3", "quota_update": "INTEGER DEFAULT 1" }
                     
                     for col, col_type in quota_cols.items():
+                        if col not in user_columns:
+                            print(f"[DB MIGRATE] Adding column {col} to users table.")
+                            cur.execute(f"ALTER TABLE users ADD COLUMN {col} {col_type}")
+
+                    # [FIX] Add missing boolean flag columns for auth to prevent 500 errors
+                    flag_cols = {
+                        "is_admin": "BOOLEAN DEFAULT FALSE",
+                        "is_active": "BOOLEAN DEFAULT TRUE",
+                        "is_tester": "BOOLEAN DEFAULT FALSE"
+                    }
+
+                    for col, col_type in flag_cols.items():
                         if col not in user_columns:
                             print(f"[DB MIGRATE] Adding column {col} to users table.")
                             cur.execute(f"ALTER TABLE users ADD COLUMN {col} {col_type}")
@@ -359,6 +372,30 @@ async def log_requests(request: Request, call_next):
         print(f"[NET LOG ERROR] Could not log request: {e}", flush=True)
     return response
 
+# [FIX] Middleware de sécurité pour ajouter les headers recommandés et gérer le cache.
+# Ceci résout les avertissements de sécurité et de performance du navigateur.
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    
+    # --- Headers de Sécurité ---
+    # Empêche le navigateur de "deviner" le type de contenu (MIME-sniffing).
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    
+    # Politique de sécurité de contenu moderne pour empêcher le clickjacking.
+    # Remplace l'ancien X-Frame-Options.
+    response.headers["Content-Security-Policy"] = "frame-ancestors 'self'"
+    
+    # --- Headers de Cache ---
+    # Pour les routes d'API dynamiques, on ne veut pas de cache.
+    if request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
+    
+    # --- Nettoyage des Headers ---
+    # Supprime les headers qui peuvent révéler des informations sur la technologie utilisée.
+    if "server" in response.headers: del response.headers["server"]
+    if "x-xss-protection" in response.headers: del response.headers["x-xss-protection"]
+    return response
 # Note: rate_limiter dependency can be added globally or per router
 # app = FastAPI(..., dependencies=[Depends(rate_limiter)])
 
@@ -378,9 +415,9 @@ def include_safe_router(module_name, from_services=True):
     try:
         # Import dynamique
         if from_services:
-            mod = __import__(f"services.{module_name}", fromlist=["router"]) # was: from services import cv
+            mod = __import__(f"services.{module_name}", fromlist=["router"])
         else:
-            mod = __import__(module_name, fromlist=["router"])
+            mod = __import__(f"{module_name}", fromlist=["router"])
         app.include_router(mod.router)
         print(f"[ROUTER] ✅ Loaded: {module_name}", flush=True)
     except Exception as e:
@@ -397,6 +434,7 @@ include_safe_router("simulation_service")
 include_safe_router("documents")
 include_safe_router("payment")
 include_safe_router("admin_service")
+include_safe_router("pitch_service")
 # New routes for products, evaluations, and subscriptions
 include_safe_router("routes_products", from_services=False)
 
