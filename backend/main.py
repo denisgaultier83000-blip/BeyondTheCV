@@ -38,8 +38,8 @@ from contextlib import asynccontextmanager
 from typing import Dict, List
 
 # [FIX] Use relative imports within the 'backend' package to resolve ModuleNotFoundError.
-from .database import init_db, db, get_database_url
-from . import database as database_module
+from database import init_db, db, get_database_url
+import database as database_module
 
 # [CONFIG] Chargement de la configuration globale de l'application
 def load_app_config():
