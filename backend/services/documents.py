@@ -7,27 +7,47 @@ from database import db
 from models import DocumentMetadata
 from security import get_current_user
 
-router = APIRouter(tags=["Documents"])
+router = APIRouter(
+    prefix="/api/cv",
+    tags=["Documents"]
+)
 
 @router.get("/documents")
 async def list_user_documents(current_user: dict = Depends(get_current_user)):
+    """
+    [FUSION] Route unique qui récupère toutes les candidatures (dossiers)
+    et les documents associés, y compris les documents archivés.
+    """
     async with db.get_connection() as conn:
-        cursor = await db.execute(conn, "SELECT * FROM documents WHERE user_id = ? ORDER BY created_at DESC", (current_user["id"],))
+        cursor = await db.execute(conn, """
+            SELECT 
+                ja.id as app_id, ja.target_company, ja.target_job, ja.created_at as app_created_at,
+                d.id as doc_id, d.filename, d.type as doc_type, d.created_at as doc_created_at
+            FROM job_applications ja
+            LEFT JOIN documents d ON d.application_id = ja.id
+            WHERE ja.user_id = %s
+            
+            UNION ALL
+            
+            SELECT 
+                'archives_id' as app_id, 'Archives' as target_company, 'Anciens Documents' as target_job, '2000-01-01 00:00:00' as app_created_at,
+                id as doc_id, filename, type as doc_type, created_at as doc_created_at
+            FROM documents 
+            WHERE user_id = %s AND (application_id IS NULL OR application_id = '')
+            ORDER BY app_created_at DESC
+        """, (current_user["id"], current_user["id"]))
         rows = await cursor.fetchall()
 
-    # [FIX CRITIQUE] Reconstruction de la structure attendue par le frontend,
-    # similaire à la route /applications pour garantir la cohérence.
     apps = {}
     for row in rows:
         r = dict(row)
-        app_id = r.get("application_id") or "archives_id"
-
+        app_id = r["app_id"]
         if app_id not in apps:
             apps[app_id] = {
                 "id": app_id,
-                "target_company": "Archives",
-                "target_job": "Documents non classés",
-                "created_at": r["created_at"].isoformat() if hasattr(r["created_at"], "isoformat") else str(r["created_at"]),
+                "target_company": r["target_company"],
+                "target_job": r["target_job"],
+                "created_at": r["app_created_at"].isoformat() if hasattr(r["app_created_at"], "isoformat") else str(r["app_created_at"]),
                 "documents": []
             }
 
@@ -35,13 +55,13 @@ async def list_user_documents(current_user: dict = Depends(get_current_user)):
             apps[app_id]["documents"].append({
                 "id": r["id"],
                 "filename": r["filename"],
-                "type": r.get("type", "document"),
-                "created_at": r["created_at"].isoformat() if hasattr(r["created_at"], "isoformat") else str(r["created_at"])
+                "type": r.get("doc_type", "document"),
+                "created_at": r["doc_created_at"].isoformat() if hasattr(r["doc_created_at"], "isoformat") else str(r["doc_created_at"])
             })
 
     return {"users": list(apps.values())}
 
-@router.get("/api/documents/download/{doc_id}")
+@router.get("/documents/download/{doc_id}")
 async def download_document(doc_id: str, current_user: dict = Depends(get_current_user)):
     doc = None
     async with db.get_connection() as conn:
@@ -66,7 +86,7 @@ async def download_document(doc_id: str, current_user: dict = Depends(get_curren
         
     return FileResponse(path=file_path, filename=doc["filename"], media_type=doc.get("media_type", "application/octet-stream"))
 
-@router.delete("/api/documents/{doc_id}")
+@router.delete("/documents/{doc_id}")
 async def delete_document(doc_id: str, current_user: dict = Depends(get_current_user)):
     async with db.get_connection() as conn:
         cursor = await db.execute(conn, "SELECT path FROM documents WHERE id = ? AND user_id = ?", (doc_id, current_user["id"]))
