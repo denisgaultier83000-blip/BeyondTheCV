@@ -1,30 +1,37 @@
-fastapi>=0.109.0
-uvicorn[standard]>=0.27.0
-python-multipart>=0.0.9
-pydantic>=2.6.0
-python-dotenv>=1.0.1
+# --- Core Framework & Web ---
 aiohttp
-trafilatura
+fastapi>=0.109.0
 httpx
+python-multipart>=0.0.9
 requests>=2.31.0
+uvicorn[standard]>=0.27.0
+websockets>=12.0
+
+# --- Data & Models ---
+email-validator>=2.1.0
+pydantic>=2.6.0
+
+# --- Database ---
 aiosqlite>=0.19.0
-# IA
+asyncpg>=0.29.0
+psycopg2-binary>=2.9.9
+
+# --- AI & External Services ---
+google-generativeai>=0.3.0
 openai>=1.12.0
-google-genai>=0.3.0
-# Documents
+stripe>=8.1.0
+trafilatura
+
+# --- Security & Authentication ---
+passlib[bcrypt]>=1.7.4
+python-jose[cryptography]>=3.3.0
+
+# --- Document Processing & Utilities ---
+jinja2>=3.1.3
 pypdf>=4.0.1
 python-docx>=1.1.0
-jinja2>=3.1.3
-# Paiement
-stripe>=8.1.0
-# Websockets
-websockets>=12.0
-# Securite (Auth & JWT)
-python-jose[cryptography]>=3.3.0
-passlib[bcrypt]>=1.7.4
-email-validator>=2.1.0
-# Base de donnees PostgreSQL
-psycopg2-binary>=2.9.9
-asyncpg>=0.29.0
+python-dotenv>=1.0.1
+
+# --- Google Cloud ---
 google-cloud-secret-manager
 google-cloud-storage>=2.14.0

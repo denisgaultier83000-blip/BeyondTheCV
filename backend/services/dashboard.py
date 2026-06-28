@@ -196,7 +196,7 @@ async def get_applications(current_user: dict = Depends(get_current_user)):
                 "created_at": r["doc_created_at"].isoformat() if hasattr(r["doc_created_at"], "isoformat") else str(r["doc_created_at"])
             })
     
-    return list(apps.values())
+    return {"users": list(apps.values())}
 
 @router.delete("/api/applications/{app_id}")
 async def delete_application(app_id: str, current_user: dict = Depends(get_current_user)):
