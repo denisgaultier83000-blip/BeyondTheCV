@@ -66,27 +66,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             print(f"[AUTH ERROR] Échec : Email introuvable en base ({email})", flush=True)
             raise HTTPException(status_code=401, detail="Identifiants incorrects.")
             
-        # [FIX] Sécurisation absolue du mapping pour gérer tuples, sqlite3.Row, asyncpg.Record et dicts
-        if isinstance(row, dict):
-            user_dict = row
-        elif hasattr(row, 'keys'):
-            user_dict = dict(row)
-        elif isinstance(row, tuple):
-            user_dict = {
-                "id": row[0],
-                "email": row[1],
-                "hashed_password": row[2],
-                "first_name": row[3],
-                "last_name": row[4],
-                "created_at": row[5],
-                "is_premium": row[6] if len(row) > 6 else False,
-                "credits": row[7] if len(row) > 7 else 100,
-                "is_admin": row[8] if len(row) > 8 else False,
-                "is_active": row[9] if len(row) > 9 else True,
-                "is_tester": row[10] if len(row) > 10 else False
-            }
-        else:
-            user_dict = dict(row)
+        user_dict = dict(row)
             
         # [SÉCURITÉ] Vérification si le compte a été bloqué par un administrateur
         is_active = user_dict.get("is_active")
