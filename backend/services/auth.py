@@ -36,10 +36,10 @@ async def _insert_user(uid, email, hashed_pw, first, last, created):
             """, (uid, email, hashed_pw, first, last, created, False, 100))
             
             # [FIX] Initialisation des compteurs dans les nouvelles colonnes de la table users
-            try:
-                await db.execute(conn, "UPDATE users SET quota_pitch = 10, quota_qa = 25, quota_mes = 6, quota_negotiation = 4, quota_regeneration = 3, quota_update = 1 WHERE id = ?", (uid,))
-            except Exception as q_err:
-                print(f"[DB WARNING] Impossible d'initialiser les quotas : {q_err}", flush=True)
+            # [MODIFICATION TEST] Attribution de 30 sessions par catégorie pour les nouveaux comptes.
+            await db.execute(conn, """
+                UPDATE users SET quota_pitch = 30, quota_qa = 30, quota_mes = 30, quota_negotiation = 30, quota_regeneration = 30, quota_update = 30 WHERE id = ?
+            """, (uid,))
     except Exception as e:
         print(f"[DB ERROR] _insert_user: {e}", flush=True)
         raise e
@@ -116,12 +116,12 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         is_not_prod = os.getenv("ENVIRONMENT", "production") != "production"
         user_credits = user_dict.get("credits")
 
-        # Relance automatique des quotas si c'est un testeur OU si l'environnement n'est pas la production
+        # [MODIFICATION TEST] Attribution de 30 sessions par catégorie si c'est un testeur ou un environnement hors-production.
         if email in TESTER_EMAILS or is_not_prod:
             user_credits = 100
             async with db.get_connection() as conn:
                 try:
-                    await db.execute(conn, "UPDATE users SET credits = 100, quota_pitch = 100, quota_qa = 100, quota_mes = 100, quota_negotiation = 100, quota_regeneration = 100, quota_update = 100 WHERE id = ?", (user_dict.get("id"),))
+                    await db.execute(conn, "UPDATE users SET credits = 100, quota_pitch = 30, quota_qa = 30, quota_mes = 30, quota_negotiation = 30, quota_regeneration = 30, quota_update = 30 WHERE id = ?", (user_dict.get("id"),))
                 except Exception:
                     pass
             print(f"[AUTH] 🎁 Quotas maximums accordés (Mode Testeur / Hors Prod) pour : {email}", flush=True)
