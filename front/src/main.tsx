@@ -32,7 +32,7 @@ function LoginWrapper() {
   const { setIsAuthenticated } = useOutletContext<any>();
   // [EXPERT] La redirection est maintenant gérée par un useEffect dans App.tsx
   // pour éviter les conflits de rendu React.
-  const handleLoginSuccess = () => {
+  const handleLoginSuccess = (_user: any) => {
     // Le `user` est stocké dans le localStorage par le client API.
     // On met simplement à jour l'état d'authentification ici.
     setIsAuthenticated(true);
