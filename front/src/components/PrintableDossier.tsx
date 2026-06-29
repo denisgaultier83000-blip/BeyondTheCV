@@ -5,11 +5,12 @@ import { authenticatedFetch } from '../utils/auth';
 import { formatMarkdownReact, formatStrategicAnalysisReact } from '../utils/formatUtils';
 
 export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
-  const { 
-    cvData, pilotData, researchResult, gapResult, flawCoachingResult, 
+  const {
+    cvData, pilotQuery, researchResult, gapResult, flawCoachingResult,
     pitchResult, questionsResult, customScenariosResult, actionPlanResult,
     jobDecoderResult
   } = useDashboard();
+  const pilotData = pilotQuery.data;
   const [interviewHistory, setInterviewHistory] = useState<any[]>([]);
   const [trainingHistory, setTrainingHistory] = useState<any[]>([]);
 

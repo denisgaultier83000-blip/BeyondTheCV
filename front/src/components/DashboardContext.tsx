@@ -112,7 +112,7 @@ export const DashboardProvider = ({
 
     if (currentUserEmail && testerEmails.includes(currentUserEmail)) {
       // L'utilisateur est un testeur, on lui donne des quotas "illimités"
-      setQuotas({
+      queryClient.setQueryData(['quotas', localCvData?.email], {
         pitch: 999,
         qa: 999,
         mes: 999,
@@ -120,7 +120,7 @@ export const DashboardProvider = ({
         regeneration: 999,
         update: 999,
       });
-      return; // On arrête ici, pas besoin d'appeler l'API
+      return Promise.resolve(); // On arrête ici, pas besoin d'appeler l'API
     }
 
     // Logique normale pour les utilisateurs standards

@@ -46,10 +46,6 @@ export const CockpitTab: React.FC<CockpitProps> = ({
   const [trainingScores, setTrainingScores] = useState<Record<string, number>>(cvData?.trainingScores || {});
 
   useEffect(() => {
-    setLocalData(actionPlanData);
-  }, [actionPlanData]); // Renommée en localData pour éviter conflit de nom
-
-  useEffect(() => {
     if (cvData?.cockpitCheckedItems) {
       setCheckedItems(cvData.cockpitCheckedItems);
     }
