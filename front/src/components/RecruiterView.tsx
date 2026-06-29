@@ -25,6 +25,11 @@ export function RecruiterView({ data, loading, error }: RecruiterViewProps) {
   const { t } = useTranslation();
   const recruiter_persona = data?.recruiter_persona;
 
+  // [FIX EXPERT] Garde de sécurité pour empêcher le crash si les données sont absentes.
+  if (!loading && !error && !recruiter_persona) {
+    return null;
+  }
+
   const rawVerdict = recruiter_persona?.verdict || "À l'étude";
   
   // Traduction "Intelligente" des réponses brutes de l'IA française

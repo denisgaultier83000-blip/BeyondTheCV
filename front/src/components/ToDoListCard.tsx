@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CheckSquare, Circle, CheckCircle2, ChevronRight } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
+import { storageManager } from '../utils/storageManager';
 
 interface ActionItem {
   task: string;
@@ -9,12 +10,12 @@ interface ActionItem {
 
 export function ToDoListCard({ data, loading, error }: { data: any, loading?: boolean, error?: boolean }) {
   const [checkedItems, setCheckedItems] = useState<number[]>(() => {
-    const saved = localStorage.getItem("checkedActionPlan");
+    const saved = storageManager.local.getItem("checkedActionPlan");
     return saved ? JSON.parse(saved) : [];
   });
 
   useEffect(() => {
-    localStorage.setItem("checkedActionPlan", JSON.stringify(checkedItems));
+    storageManager.local.setItem("checkedActionPlan", JSON.stringify(checkedItems));
   }, [checkedItems]);
 
   if (error) return null;
