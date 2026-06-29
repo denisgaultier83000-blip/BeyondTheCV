@@ -22,6 +22,7 @@ import { LoadingScreen } from './components/LoadingScreen';
 import DocumentsModal from './components/DocumentsModal';
 import { API_BASE_URL } from './config';
 import { authenticatedFetch } from './utils/auth';
+import { storageManager } from './utils/storageManager';
 import './index.css';
 
 // Composant fantôme séparé pour isoler le cycle de vie du useEffect
@@ -50,7 +51,7 @@ function AppContent() {
   const [showPaywall, setShowPaywall] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [isImportLoading, setIsImportLoading] = useState(false);
-  const [darkMode, setDarkMode] = useState<boolean>(() => localStorage.getItem('theme') === 'dark');
+  const [darkMode, setDarkMode] = useState<boolean>(() => storageManager.getItem('theme') === 'dark');
   const [showDocsModal, setShowDocsModal] = useState(false);
   const [stepErrors, setStepErrors] = useState<Record<string, boolean>>({});
   const [restoredData, setRestoredData] = useState<any>(null);
@@ -146,7 +147,7 @@ function AppContent() {
   // --- Fonction de Sauvegarde Silencieuse (Auto-Save) ---
   const saveProfileToDB = async (data: any) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = storageManager.getItem('token');
       if (!token) return;
       
       const payloadForBackend = transformProfileForBackend(data);
@@ -228,7 +229,7 @@ function AppContent() {
       } else {
         uploadData.append('file', payload);
       }
-      const token = localStorage.getItem('token');
+      const token = storageManager.getItem('token');
       const res = await fetch(`${API_BASE_URL}/api/cv/parse-cv`, {
         method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: uploadData
       });
@@ -252,7 +253,7 @@ function AppContent() {
       setShowLanding(false);
       if (location.pathname === '/') navigate('/candidate', { replace: true });
       loadProfile();
-      const storedUser = localStorage.getItem('user');
+      const storedUser = storageManager.getItem('user');
       if (storedUser && storedUser !== "undefined" && storedUser !== "null") {
         try {
           const user = JSON.parse(storedUser);
@@ -266,7 +267,7 @@ function AppContent() {
           console.warn("Could not parse user subscription", e);
         }
       }
-    } else if (localStorage.getItem('token')) {
+    } else if (storageManager.getItem('token')) {
       setIsAuthenticated(true);
     } else {
       setIsProfileLoading(false);
@@ -276,17 +277,18 @@ function AppContent() {
   // --- RESTAURATION DE CANDIDATURE (Depuis Mes Documents) ---
   useEffect(() => {
     if (isAuthenticated) {
-      const restoredDataStr = sessionStorage.getItem('restored_application_data');
-      if (restoredDataStr) {
-        try {
+      try {
+        const restoredDataStr = sessionStorage.getItem('restored_application_data');
+        if (restoredDataStr) {
           const parsedData = JSON.parse(restoredDataStr);
           setRestoredData(parsedData);
           setCurrentStep(8); // Redirection immédiate vers le Dashboard
           setToasts(prev => [...prev, { id: Date.now(), text: "Dossier de candidature restauré avec succès." }]);
-        } catch (e) {
-          console.error("Erreur de parsing des données restaurées", e);
         }
-        sessionStorage.removeItem('restored_application_data');
+      } catch (e) {
+        console.error("Erreur de lecture/parsing des données restaurées depuis sessionStorage", e);
+      } finally {
+        try { sessionStorage.removeItem('restored_application_data'); } catch (e) { /* ignore */ }
       }
     }
   }, [isAuthenticated, setCurrentStep, setToasts]);
@@ -316,7 +318,7 @@ function AppContent() {
 
   useEffect(() => {
     document.body.classList.toggle('dark-mode', darkMode);
-    localStorage.setItem('theme', darkMode ? 'dark' : 'light');
+    storageManager.setItem('theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
 
   // --- LOGIQUE DE CACHE (DIRTY CHECK) ---
@@ -484,7 +486,7 @@ function AppContent() {
   let isAdmin = false;
   if (isAuthenticated) {
     try {
-      const storedUser = localStorage.getItem('user');
+      const storedUser = storageManager.getItem('user');
       if (storedUser && storedUser !== "undefined" && storedUser !== "null") {
           const u = JSON.parse(storedUser);
           parsedUserName = u.first_name || u.name || t('default_candidate_name', "Candidat");
@@ -536,8 +538,8 @@ function AppContent() {
         setDarkMode={setDarkMode} 
         isAuthenticated={isAuthenticated}
         userName={parsedUserName} 
-        onOpenProfile={() => setShowDocsModal(true)} 
-        onLogout={() => { localStorage.removeItem('token'); localStorage.removeItem('user'); resetDashboard(); setIsAuthenticated(false); navigate('/', { replace: true }); }} 
+        onOpenProfile={() => setShowDocsModal(true)}
+        onLogout={() => { storageManager.removeItem('token'); storageManager.removeItem('user'); resetDashboard(); setIsAuthenticated(false); navigate('/', { replace: true }); }}
         onLanguageChange={handleLanguageChange} 
         steps={CAREER_EDGE_STEPS}
         currentStep={currentStep}
