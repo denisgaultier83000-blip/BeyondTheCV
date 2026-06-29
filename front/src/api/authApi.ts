@@ -13,7 +13,7 @@ export interface RegisterPayload {
   password: string;
   firstName: string;
   lastName: string;
-  isRegistering: true;
+  isRegistering: boolean;
 }
 /**
  * Gère l'inscription d'un nouvel utilisateur.
