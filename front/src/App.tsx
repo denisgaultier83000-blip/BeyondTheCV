@@ -535,13 +535,11 @@ function AppContent() {
       <Header 
         darkMode={darkMode} 
         setDarkMode={setDarkMode} 
-        isAuthenticated={isAuthenticated}
-        userName={parsedUserName} 
-        onOpenProfile={() => setShowDocsModal(true)}
-        onLogout={() => { storageManager.local.removeItem('token'); storageManager.local.removeItem('user'); resetDashboard(); setIsAuthenticated(false); navigate('/', { replace: true }); }}
         onLanguageChange={handleLanguageChange} 
         steps={CAREER_EDGE_STEPS}
         currentStep={currentStep}
+        showLogin={!isAuthenticated}
+        showLangSelector={true}
       />
       <main className="main-content">
         {showLanding && !isAuthenticated ? (
