@@ -260,7 +260,7 @@ export const DashboardView = () => {
       <div className="tab-content">
         {activeTab === 'cockpit' && (
            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }} id="cockpit_section">
-             <CockpitTab 
+             <CockpitTab
                actionPlanData={actionPlanResult || { status: isProcessing ? 'PROCESSING' : globalStatus }}
                interviewDate={meta.interview_date || "Non définie"}
                interviewFormat={meta.interview_format ? (formatLabels[meta.interview_format as string] || meta.interview_format) : "Non défini"}
@@ -396,7 +396,7 @@ export const DashboardView = () => {
         {activeTab === 'market' && (
            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
              <div id="gap_section">
-               <GapAnalysisFull data={gapResult || pilotData} loading={isProcessing && !gapResult} onBack={() => handleTabChange('overview')} />
+               <GapAnalysisFull data={gapResult || pilotData || {}} loading={isProcessing && !gapResult} onBack={() => handleTabChange('overview')} />
              </div>
              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                <AnalysisTab researchResult={researchResult} salaryResult={salaryResult} onRefresh={triggerResearch} isRefreshing={isProcessing} />

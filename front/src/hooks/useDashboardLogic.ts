@@ -155,8 +155,8 @@ export function useDashboardLogic() {
 
   // [PERSISTANCE] Sauvegarde automatique
   useEffect(() => {
-    storageManager.local.setItem("cvData", JSON.stringify(formData));
-    storageManager.local.setItem("currentStep", currentStep.toString());
+    if (formData) storageManager.local.setItem("cvData", JSON.stringify(formData));
+    if (currentStep !== undefined) storageManager.local.setItem("currentStep", currentStep.toString());
     if (taskIds) storageManager.local.setItem("taskIds", JSON.stringify(taskIds));
     if (cvResult) storageManager.local.setItem("cvResult", JSON.stringify(cvResult));
     if (gapResult) storageManager.local.setItem("gapResult", JSON.stringify(gapResult));
