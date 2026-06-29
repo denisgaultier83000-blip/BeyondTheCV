@@ -100,21 +100,20 @@ export const InterviewTab = () => {
     }
   }, [pitchResult]);
 
-  // Sépare un texte en 4 parties
-  const splitTextIntoFields = (text: string) => {
-    const paragraphs = text.split('\n').filter(p => p.trim() !== '');
-    return {
-      accroche: paragraphs[0] || '',
-      preuve: paragraphs[1] || '',
-      valeur: paragraphs[2] || '',
-      projection: paragraphs.slice(3).join('\n\n') || '',
-    };
-  };
-
   // Peuple les 4 champs à partir de la matrice de l'IA
   const populateFieldsFromMatrix = (matrix: any, pitchType: string) => {
-    const fullText = matrix?.[pitchType]?.oral || matrix?.[pitchType]?.written || '';
-    const newFields = splitTextIntoFields(fullText);
+    const pitchData = matrix?.[pitchType];
+    if (!pitchData) return;
+
+    let newFields;
+    if (pitchData.full_text) {
+      // Pour les formats courts, on met tout dans le premier champ
+      newFields = { accroche: pitchData.full_text, preuve: '', valeur: '', projection: '' };
+    } else {
+      // Pour les formats structurés, on utilise les clés directement
+      newFields = { accroche: pitchData.accroche || '', preuve: pitchData.preuve || '', valeur: pitchData.valeur || '', projection: pitchData.projection || '' };
+    }
+
     setEditablePitch(newFields);
     if (updateFormData) {
       updateFormData('editablePitch', newFields);
@@ -325,14 +324,10 @@ export const InterviewTab = () => {
                 <div className="pitch-single-field" style={{ animation: 'fadeIn 0.4s ease-out' }}>
                   <textarea
                     className="pitch-textarea"
-                    value={fullPitchText}
+                    value={editablePitch.accroche} // Pour les formats courts, tout est dans 'accroche'
                     onChange={e => {
-                      // On met à jour les 4 champs en se basant sur le texte unique
-                      const newFields = splitTextIntoFields(e.target.value);
-                      setEditablePitch(newEditablePitch => ({...newEditablePitch, ...newFields}));
-                      if (updateFormData) {
-                        updateFormData('editablePitch', newFields);
-                      }
+                      // On met à jour uniquement le champ 'accroche'
+                      handleFieldChange('accroche', e.target.value);
                     }}
                     rows={10}
                   />
