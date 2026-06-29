@@ -1,4 +1,5 @@
 import json
+import os
 from fastapi import APIRouter, HTTPException, Body, Depends
 from typing import Optional, Dict, Any
 from pydantic import BaseModel
@@ -10,41 +11,13 @@ from models import (
 from security import get_current_user
 from database import db
 from services.ai_generator import ai_service
-from services.utils import load_prompt, clean_ai_json_response, normalize_language, refund_quota
-from services.cv_services import require_active_subscription
+from services.utils import load_prompt, clean_ai_json_response, normalize_language, refund_quota, consume_quota
+from services.guards import require_active_subscription
 
 router = APIRouter(
     prefix="/api/cv",
     tags=["Simulations & Coaching"]
 )
-
-async def consume_quota(user_id: str, quota_type: str, cost: int = 1):
-    """
-    Décrémente un quota et gère la recharge automatique pour les testeurs.
-    """
-    column_name = f"quota_{quota_type}"
-    async with db.get_connection() as conn:
-        # Décrémente le quota
-        update_query = f"UPDATE users SET {column_name} = COALESCE({column_name}, 0) - %s WHERE id = %s RETURNING {column_name}"
-        cursor = await db.execute(conn, update_query, (cost, user_id))
-        row = await cursor.fetchone()
-        
-        if not row:
-            raise HTTPException(status_code=404, detail="Utilisateur introuvable pour la gestion des quotas.")
-            
-        new_balance = row[0] if isinstance(row, tuple) else row.get(column_name, 0)
-
-        # Si le solde est à zéro ou moins, et que l'environnement est hors-production, on recharge.
-        is_not_prod = os.getenv("ENVIRONMENT", "production") != "production"
-        if new_balance <= 0 and is_not_prod:
-            refill_amount = 60
-            refill_query = f"UPDATE users SET {column_name} = %s WHERE id = %s"
-            await db.execute(conn, refill_query, (refill_amount, user_id))
-            print(f"[QUOTA REFILL] Le quota '{quota_type}' de l'utilisateur {user_id} a été automatiquement rechargé de {refill_amount} sessions.", flush=True)
-
-        # Si le solde initial était déjà insuffisant (avant la recharge), on lève une erreur.
-        if new_balance + cost < cost:
-            raise HTTPException(status_code=402, detail=f"Crédits '{quota_type}' insuffisants.")
 
 def _sanitize_for_prompt(data: dict) -> dict:
     """Retire les données binaires et non-essentielles avant l'injection dans les prompts."""

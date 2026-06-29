@@ -14,7 +14,7 @@ from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 
 from database import db
-from models import GenerateRequest, CVFinal, FeedbackRequest, ExperienceRequest, SkillExtractionRequest, FullCVData
+from models import GenerateRequest, CVFinal, FeedbackRequest, ExperienceRequest, SkillExtractionRequest, FullCVData # [MODIFIÉ]
 from security import get_current_user, require_admin_user
 from services.ai_generator import ai_service
 from .latex import generate_pdf_from_latex
@@ -126,46 +126,6 @@ def _get_days_until_interview(interview_date: str) -> int:
     if any(w in date_str for w in ["demain", "tomorrow", "24h", "24 h"]): return 1
     if any(w in date_str for w in ["48h", "48 h", "2 jours", "2 days"]): return 2
     
-    match = re.search(r'(\d{4})[-/](\d{1,2})[-/](\d{1,2})', date_str)
-    if match:
-        try: return (datetime(int(match.group(1)), int(match.group(2)), int(match.group(3))) - datetime.now()).days
-        except: pass
-    match2 = re.search(r'(\d{1,2})[-/](\d{1,2})[-/](\d{4})', date_str)
-    if match2:
-        try: return (datetime(int(match2.group(3)), int(match2.group(2)), int(match2.group(1))) - datetime.now()).days
-        except: pass
-    match3 = re.search(r'dans\s*(\d+)\s*(jour|day)', date_str)
-    if match3: return int(match3.group(1))
-    return 999
-
-# --- Gardien d'Abonnement (Paywall Backend) ---
-async def require_active_subscription(current_user: dict = Depends(get_current_user)):
-    """Vérifie que l'utilisateur a un abonnement actif avant d'autoriser l'accès à l'IA."""
-    if current_user.get("is_admin") or current_user.get("is_tester"):
-        return current_user
-        
-    try:
-        async with db.get_connection() as conn:
-            cursor = await db.execute(conn, "SELECT subscription_status, subscription_expiration_date FROM users WHERE id = ?", (current_user["id"],))
-            row = await cursor.fetchone()
-    except Exception as e:
-        print(f"[AUTH ERROR] Fetch subscription failed: {e}", flush=True)
-        raise HTTPException(status_code=500, detail="Database connection error in subscription check")
-
-    if not row:
-        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
-    
-    status = row[0] if isinstance(row, tuple) else row.get("subscription_status")
-    exp_date = row[1] if isinstance(row, tuple) else row.get("subscription_expiration_date")
-    
-    is_expired = status == "expired"
-    if exp_date and isinstance(exp_date, datetime) and exp_date.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
-        is_expired = True
-                
-    if is_expired:
-        raise HTTPException(status_code=402, detail="Abonnement expiré. L'accès aux modèles d'Intelligence Artificielle est verrouillé.")
-    return current_user
-
 def _generate_smart_filename(data: dict, doc_type: str = "CV", ext: str = "pdf") -> str:
     """Génère un nom de fichier propre et explicite: Type_Nom_Poste_Entreprise_Date.ext"""
     # [FIX EXPERT] Sécurisation contre les valeurs "null" JSON qui font crasher le .strip() (AttributeError)

@@ -20,18 +20,8 @@ interface HeaderProps {
   showStepper?: boolean;
   steps?: Step[];
   currentStep?: number;
-  goToStep?: (stepId: number) => void;
-  onLanguageChange?: (lang: string) => void;
-  targetLanguage?: string;
-}
-
-export default function Header({
-  darkMode,
-  setDarkMode,
-  showLogin = false,
-  showLangSelector = true,
-  loginText = "Login",
   onLanguageChange,
+  ...props
 }: HeaderProps) {
   const { t } = useTranslation();
   // [NOUVEAU] On utilise le hook d'authentification pour obtenir l'utilisateur et son état
@@ -54,8 +44,8 @@ export default function Header({
       } else {
         setIsAdmin(false); // S'assurer de réinitialiser si l'utilisateur n'est plus là
       }
-    } catch (e) { setIsAdmin(false); }
-  }, [user]); // [FIX] On recalcule si l'utilisateur change.
+    } catch (e) { setIsAdmin(false); } // eslint-disable-line no-empty
+  }, [user, isUserAuthenticated]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -76,7 +66,7 @@ export default function Header({
 
         <div className="header-actions">
           {/* Menu Langue Contrôlé */}
-          {showLangSelector && <LanguageSelector 
+          {props.showLangSelector && <LanguageSelector 
             onChange={onLanguageChange}
             style={{ marginRight: "10px" }}
           />}
@@ -126,11 +116,11 @@ export default function Header({
               )}
             </div>
           ) : (
-            showLogin && <Link to="/login" className="login-link">{t('login')}</Link>
+            props.showLogin && <Link to="/login" className="login-link">{t('login')}</Link>
           )}
 
-          <button onClick={() => setDarkMode(prev => !prev)} className="dark-mode-toggle">
-            {darkMode ? '🌙' : '☀️'}
+          <button onClick={() => props.setDarkMode(prev => !prev)} className="dark-mode-toggle">
+            {props.darkMode ? '🌙' : '☀️'}
           </button>
         </div>
       </div>
