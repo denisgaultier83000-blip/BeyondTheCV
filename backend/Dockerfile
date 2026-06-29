@@ -34,7 +34,9 @@ WORKDIR /app
 
 # Copie de l'environnement virtuel avec les dépendances pré-installées
 COPY --from=builder /opt/venv /opt/venv
-COPY ./backend /app
+
+# Copie le contenu du contexte de build (le dossier 'backend') dans le dossier '/app' de l'image
+COPY . /app
 
 ENV PATH="/opt/venv/bin:$PATH"
 
