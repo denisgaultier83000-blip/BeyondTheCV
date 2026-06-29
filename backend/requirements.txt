@@ -17,7 +17,7 @@ asyncpg>=0.29.0
 psycopg2-binary>=2.9.9
 
 # --- AI & External Services ---
-google-generativeai>=0.3.0
+google-genai>=0.3.0
 openai>=1.12.0           # Client OpenAI (Async)
 stripe>=8.1.0
 trafilatura

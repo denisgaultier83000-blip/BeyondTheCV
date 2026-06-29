@@ -52,7 +52,12 @@ export function useDashboardLogic() {
   // --- ÉTAT DU PIPELINE ---
   const [taskIds, setTaskIds] = useState<{ [key: string]: string } | null>(() => {
     const saved = storageManager.local.getItem("taskIds");
-    return saved ? JSON.parse(saved) : null;
+    if (saved && saved !== "undefined" && saved !== "null") {
+      try {
+        return JSON.parse(saved);
+      } catch (e) { /* Corrupted data, fallback to null */ }
+    }
+    return null;
   });
   
   // Helper pour charger un état depuis le storage
