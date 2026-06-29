@@ -12,17 +12,22 @@ interface JobDecoderProps {
 }
 
 export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) => {
+  // [FIX EXPERT] Garde de sécurité pour empêcher le crash si les données sont absentes.
+  // On vérifie que `data` existe et qu'il contient bien la clé attendue.
+  const decoderData = data?.job_decoder_result || data;
+  const hasData = decoderData && Object.keys(decoderData).length > 0;
+
   return (
     <AsyncBoundary
       loading={loading}
-      error={error}
+      // [FIX] On considère l'absence de données après chargement comme une erreur.
+      error={error || (!loading && !hasData)}
       title="Décodeur d'Annonce"
       icon={<Search size={24} />}
       loadingText="Décodage de l'annonce en cours..."
       errorText="Une erreur est survenue lors du décodage de l'annonce. Vérifiez la description de poste."
     >
-      {data && Object.keys(data?.job_decoder_result || data || {}).length > 0 && (() => {
-        const decoderData = data?.job_decoder_result || data;
+      {hasData && (() => {
         const realityCheck = decoderData.reality_check || [];
         const realExpectations = decoderData.real_expectations || [];
         const redFlags = decoderData.red_flags || [];

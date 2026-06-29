@@ -8,32 +8,33 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
   const { t } = useTranslation();
   
   // [FIX CRITIQUE] Extraction robuste du tableau généré par l'IA
-  let coachingList: any[] = [];
-  if (Array.isArray(data)) {
-    coachingList = data;
-  } else if (data && typeof data === 'object') {
-    const payload = data.flaw_coaching_result || data.flaw_coaching || data;
-    if (Array.isArray(payload)) {
-      coachingList = payload;
-    } else {
-      // L'IA peut utiliser d'autres clés selon la langue ou le contexte. On cherche la bonne clé, sinon le premier tableau.
-      coachingList = payload.coaching || payload.flaws || payload.parades || payload.defauts || Object.values(payload).find(v => Array.isArray(v)) || [];
-    }
-  }
+  const payload = data?.flaw_coaching_result || data?.flaw_coaching || data;
+  const coachingList: any[] = Array.isArray(payload) 
+    ? payload 
+    : (payload && typeof payload === 'object' 
+        ? (payload.coaching || payload.flaws || payload.parades || payload.defauts || Object.values(payload).find((v: any) => Array.isArray(v)) || [])
+        : []);
 
-  if (loading) {
-    return (
-      <AsyncBoundary 
-        loading={true} 
-        title={t('flaw_main_title', 'Parades aux Défauts (Entretien)')} 
-        icon={<Sparkles size={24} />} 
-        loadingText="Préparation de vos parades en cours..." 
-        style={{ marginTop: '0.5rem' }}
-      >
-        <></>
-      </AsyncBoundary>
-    );
-  }
+  const hasData = coachingList.length > 0;
+
+  const content = (
+    <AsyncBoundary
+      loading={loading}
+      error={!loading && !hasData}
+      title={t('flaw_main_title', 'Parades aux Défauts (Entretien)')}
+      icon={<Sparkles size={24} />}
+      loadingText="Préparation de vos parades en cours..."
+      errorText="Aucun défaut sélectionné ou l'analyse a échoué."
+      style={{ marginTop: inline ? '0.5rem' : '0' }}
+    >
+      {hasData && (
+        <div style={{ background: 'var(--bg-card)', padding: inline ? '1.5rem' : '2.5rem', borderRadius: '1rem', width: '100%', maxWidth: inline ? '100%' : '850px', position: 'relative', maxHeight: inline ? 'none' : '90vh', overflowY: inline ? 'visible' : 'auto', border: '1px solid var(--border-color)', boxShadow: inline ? 'none' : '0 20px 25px -5px rgba(0,0,0,0.1)', marginTop: inline ? '0.5rem' : '0' }}>
+          {!inline && onBack && <button onClick={onBack} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'var(--bg-secondary)', border: 'none', borderRadius: '50%', width: '36px', height: '36px', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>✕</button>}
+          
+          <h2 style={{ textAlign: inline ? 'left' : 'center', margin: '0 0 2rem 0', display: 'flex', alignItems: 'center', justifyContent: inline ? 'flex-start' : 'center', gap: '0.75rem', color: 'var(--text-main)', fontSize: inline ? '1.5rem' : '1.8rem' }}>
+            <Sparkles size={28} color="var(--primary)" />
+            {t('flaw_main_title', 'Parades aux Défauts (Entretien)')}
+          </h2>
 
   // Helper pour styliser l'impact du défaut
   const getImpactConfig = (level: string) => {
@@ -119,11 +120,7 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
           </div>
         )}
 
-        {coachingList.length === 0 ? (
-          <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '3rem', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px dashed var(--border-color)' }}>
-            {t('flaw_no_data', "Aucun défaut n'a été sélectionné lors de l'étape 5, l'analyse n'a donc pas été générée.")}
-          </div>
-        ) : (
+        {hasData && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
             {coachingList.map((item: any, idx: number) => {
               const level = getLevel(item);
@@ -176,14 +173,16 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
           </div>
         )}
 
-      {/* Section de Feedback (Pouces) affichée uniquement si on a des données */}
-      {coachingList.length > 0 && (
-        <FeedbackWidget 
-          feature="parade_defauts" 
-          question={t('flaw_feedback_q', "Ces conseils vous sont-ils utiles ?")} 
-        />
+        {/* Section de Feedback (Pouces) affichée uniquement si on a des données */}
+        {hasData && (
+          <FeedbackWidget 
+            feature="parade_defauts" 
+            question={t('flaw_feedback_q', "Ces conseils vous sont-ils utiles ?")} 
+          />
+        )}
+        </div>
       )}
-      </div>
+    </AsyncBoundary>
   );
 
   if (inline) return content;
