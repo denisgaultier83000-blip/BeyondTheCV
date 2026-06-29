@@ -213,7 +213,7 @@ export const DashboardView = () => {
     }
   }, [activeTab, pilotData, pilotError, fetchPilotData]);
 
-  // La condition de chargement est maintenant robuste grâce à l'état explicite `isPilotLoading`
+  // La condition de chargement est maintenant robuste grâce a l'état explicite `isPilotLoading`
   const isLoadingOverview = isPilotLoading || (!pilotData && !pilotError);
 
   return (
