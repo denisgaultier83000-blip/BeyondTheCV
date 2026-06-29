@@ -41,6 +41,7 @@ from .utils import (
     _CACHE_LOCKS
 )
 from .tasks import get_prompt_path
+from services.guards import require_active_subscription
 from services.simulation_service import consume_quota
 from .websocket_manager import manager
 
