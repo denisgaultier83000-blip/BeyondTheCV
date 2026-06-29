@@ -17,25 +17,6 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
 
   const hasData = coachingList.length > 0;
 
-  const content = (
-    <AsyncBoundary
-      loading={loading}
-      error={!loading && !hasData}
-      title={t('flaw_main_title', 'Parades aux Défauts (Entretien)')}
-      icon={<Sparkles size={24} />}
-      loadingText="Préparation de vos parades en cours..."
-      errorText="Aucun défaut sélectionné ou l'analyse a échoué."
-      style={{ marginTop: inline ? '0.5rem' : '0' }}
-    >
-      {hasData && (
-        <div style={{ background: 'var(--bg-card)', padding: inline ? '1.5rem' : '2.5rem', borderRadius: '1rem', width: '100%', maxWidth: inline ? '100%' : '850px', position: 'relative', maxHeight: inline ? 'none' : '90vh', overflowY: inline ? 'visible' : 'auto', border: '1px solid var(--border-color)', boxShadow: inline ? 'none' : '0 20px 25px -5px rgba(0,0,0,0.1)', marginTop: inline ? '0.5rem' : '0' }}>
-          {!inline && onBack && <button onClick={onBack} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'var(--bg-secondary)', border: 'none', borderRadius: '50%', width: '36px', height: '36px', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>✕</button>}
-          
-          <h2 style={{ textAlign: inline ? 'left' : 'center', margin: '0 0 2rem 0', display: 'flex', alignItems: 'center', justifyContent: inline ? 'flex-start' : 'center', gap: '0.75rem', color: 'var(--text-main)', fontSize: inline ? '1.5rem' : '1.8rem' }}>
-            <Sparkles size={28} color="var(--primary)" />
-            {t('flaw_main_title', 'Parades aux Défauts (Entretien)')}
-          </h2>
-
   // Helper pour styliser l'impact du défaut
   const getImpactConfig = (level: string) => {
     const l = level?.toLowerCase() || '';
@@ -54,49 +35,29 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
   const getLevel = (item: any) => item.impact_level || item.impact || item.severity || item.niveau || item.risk_level || '';
 
   // Calcul des statistiques de risque global
-  const highRiskCount = coachingList.filter((item: any) => {
-    return getLevel(item).toLowerCase().match(/p1|high|critique/);
-  }).length;
-  const mediumRiskCount = coachingList.filter((item: any) => {
-    return getLevel(item).toLowerCase().match(/p2|medium|vigilance/);
-  }).length;
-  const lowRiskCount = coachingList.filter((item: any) => {
-    return getLevel(item).toLowerCase().match(/p3|low|mineur/);
-  }).length;
+  const highRiskCount = coachingList.filter((item: any) => getLevel(item).toLowerCase().match(/p1|high|critique/)).length;
+  const mediumRiskCount = coachingList.filter((item: any) => getLevel(item).toLowerCase().match(/p2|medium|vigilance/)).length;
+  const lowRiskCount = coachingList.filter((item: any) => getLevel(item).toLowerCase().match(/p3|low|mineur/)).length;
   const totalWithImpact = highRiskCount + mediumRiskCount + lowRiskCount;
 
-  let globalRiskLabel = "En attente";
-  let globalRiskColor = "var(--text-muted)";
-  let globalRiskBg = "var(--bg-secondary)";
-  let globalRiskIcon = <Info size={28} />;
-
-  if (totalWithImpact > 0) {
-    if (highRiskCount > 0) {
-      globalRiskLabel = t('flaw_risk_max', "Vigilance Maximale");
-      globalRiskColor = "#ef4444";
-      globalRiskBg = "rgba(239, 68, 68, 0.1)";
-      globalRiskIcon = <ShieldAlert size={28} />;
-    } else if (mediumRiskCount > 0) {
-      globalRiskLabel = t('flaw_risk_mod', "Risque Modéré");
-      globalRiskColor = "#f59e0b";
-      globalRiskBg = "rgba(245, 158, 11, 0.1)";
-      globalRiskIcon = <Activity size={28} />;
-    } else {
-      globalRiskLabel = t('flaw_risk_low', "Risque Faible");
-      globalRiskColor = "#10b981";
-      globalRiskBg = "rgba(16, 185, 129, 0.1)";
-      globalRiskIcon = <ShieldCheck size={28} />;
-    }
-  }
-
   const content = (
-      <div style={{ background: 'var(--bg-card)', padding: inline ? '1.5rem' : '2.5rem', borderRadius: '1rem', width: '100%', maxWidth: inline ? '100%' : '850px', position: 'relative', maxHeight: inline ? 'none' : '90vh', overflowY: inline ? 'visible' : 'auto', border: '1px solid var(--border-color)', boxShadow: inline ? 'none' : '0 20px 25px -5px rgba(0,0,0,0.1)', marginTop: inline ? '0.5rem' : '0' }}>
-        {!inline && onBack && <button onClick={onBack} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'var(--bg-secondary)', border: 'none', borderRadius: '50%', width: '36px', height: '36px', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>✕</button>}
-        
-        <h2 style={{ textAlign: inline ? 'left' : 'center', margin: '0 0 2rem 0', display: 'flex', alignItems: 'center', justifyContent: inline ? 'flex-start' : 'center', gap: '0.75rem', color: 'var(--text-main)', fontSize: inline ? '1.5rem' : '1.8rem' }}>
-          <Sparkles size={28} color="var(--primary)" />
-          {t('flaw_main_title', 'Parades aux Défauts (Entretien)')}
-        </h2>
+    <AsyncBoundary
+      loading={loading}
+      error={!loading && !hasData}
+      title={t('flaw_main_title', 'Parades aux Défauts (Entretien)')}
+      icon={<Sparkles size={24} />}
+      loadingText="Préparation de vos parades en cours..."
+      errorText="Aucun défaut sélectionné ou l'analyse a échoué."
+      style={{ marginTop: inline ? '0.5rem' : '0' }}
+    >
+      {hasData && (
+        <div style={{ background: 'var(--bg-card)', padding: inline ? '1.5rem' : '2.5rem', borderRadius: '1rem', width: '100%', maxWidth: inline ? '100%' : '850px', position: 'relative', maxHeight: inline ? 'none' : '90vh', overflowY: inline ? 'visible' : 'auto', border: '1px solid var(--border-color)', boxShadow: inline ? 'none' : '0 20px 25px -5px rgba(0,0,0,0.1)', marginTop: inline ? '0.5rem' : '0' }}>
+          {!inline && onBack && <button onClick={onBack} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'var(--bg-secondary)', border: 'none', borderRadius: '50%', width: '36px', height: '36px', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>✕</button>}
+          
+          <h2 style={{ textAlign: inline ? 'left' : 'center', margin: '0 0 2rem 0', display: 'flex', alignItems: 'center', justifyContent: inline ? 'flex-start' : 'center', gap: '0.75rem', color: 'var(--text-main)', fontSize: inline ? '1.5rem' : '1.8rem' }}>
+            <Sparkles size={28} color="var(--primary)" />
+            {t('flaw_main_title', 'Parades aux Défauts (Entretien)')}
+          </h2>
 
         {totalWithImpact > 0 && (
           <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap' }}>
