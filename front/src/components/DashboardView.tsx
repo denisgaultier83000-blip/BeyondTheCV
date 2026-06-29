@@ -28,13 +28,17 @@ interface DeliverableItem {
 
 export const DashboardView = () => {
   const { t } = useTranslation();
-  const { 
+  const dashboardContext = useDashboard();
+
+  if (!dashboardContext) return null; // Ne rien afficher si hors contexte
+
+  const {
     activeTab, setActiveTab, pilotQuery, cvData,
     researchResult, salaryResult,
     jobDecoderResult, recruiterResult, realityResult, flawCoachingResult,
     globalStatus, triggerResearch,
     pitchResult, questionsResult, gapResult, customScenariosResult, actionPlanResult
-  } = useDashboard();
+  } = dashboardContext;
 
   // --- GESTION DES NOTIFICATIONS ---
   const [viewedTabs, setViewedTabs] = useState<string[]>(['cockpit']);

@@ -22,7 +22,11 @@ interface OralSimulatorModalProps {
 
 export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetCompany, jobDescription, targetLanguage = 'fr', onScoreUpdate, trainingTitle, trainingFocus }: OralSimulatorModalProps) {
   const { t } = useTranslation();
-  const { quotas, fetchQuotas } = useDashboard();
+  const dashboardContext = useDashboard();
+
+  // Si la modale est ouverte hors du contexte principal, on ne l'affiche pas.
+  if (!dashboardContext) return null;
+  const { quotas, fetchQuotas } = dashboardContext;
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [duration, setDuration] = useState(0);

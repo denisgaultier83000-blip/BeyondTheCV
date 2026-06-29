@@ -38,7 +38,11 @@ export const CockpitTab: React.FC<CockpitProps> = ({
   interviewTarget 
 }) => {
   const { t } = useTranslation();
-  const { cvData, updateFormData, regenerateActionPlanMutation } = useDashboard();
+  const dashboardContext = useDashboard();
+
+  // Si le composant est rendu hors du Dashboard, on ne fait rien.
+  if (!dashboardContext) return null; 
+  const { cvData, updateFormData, regenerateActionPlanMutation } = dashboardContext;
   const [checkedItems, setCheckedItems] = useState<number[]>(cvData?.cockpitCheckedItems || []);
   const [error, setError] = useState<string | null>(null);
   const [selectedTrainingModule, setSelectedTrainingModule] = useState<TrainingModule | null>(null);

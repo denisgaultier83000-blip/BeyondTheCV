@@ -5,11 +5,16 @@ import { authenticatedFetch } from '../utils/auth';
 import { formatMarkdownReact, formatStrategicAnalysisReact } from '../utils/formatUtils';
 
 export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
+  const dashboardContext = useDashboard();
+
+  // Si le contexte n'est pas disponible, on ne peut rien imprimer.
+  if (!dashboardContext) return null;
+
   const {
     cvData, pilotQuery, researchResult, gapResult, flawCoachingResult,
     pitchResult, questionsResult, customScenariosResult, actionPlanResult,
     jobDecoderResult
-  } = useDashboard();
+  } = dashboardContext;
   const pilotData = pilotQuery.data;
   const [interviewHistory, setInterviewHistory] = useState<any[]>([]);
   const [trainingHistory, setTrainingHistory] = useState<any[]>([]);

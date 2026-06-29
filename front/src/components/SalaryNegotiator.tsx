@@ -9,7 +9,11 @@ import { RechargeModal } from './RechargeModal';
 import { AsyncBoundary } from './AsyncBoundary';
 
 export default function SalaryNegotiator() {
-  const { cvData, salaryResult, updateFormData, quotas, fetchQuotas } = useDashboard();
+  const dashboardContext = useDashboard();
+  const { t } = useTranslation();
+
+  if (!dashboardContext) return null;
+  const { cvData, salaryResult, updateFormData, quotas, fetchQuotas } = dashboardContext;
   const { t } = useTranslation();
   
   const [userAnswer, setUserAnswer] = useState('');

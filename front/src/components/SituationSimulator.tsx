@@ -50,7 +50,11 @@ const iconMap: { [key: string]: React.ElementType } = {
 };
 
 export function SituationSimulator() {
-  const { cvData, customScenariosResult, updateFormData, quotas, fetchQuotas } = useDashboard(); 
+  const dashboardContext = useDashboard(); 
+  const { t } = useTranslation();
+
+  if (!dashboardContext) return null;
+  const { cvData, customScenariosResult, updateFormData, quotas, fetchQuotas } = dashboardContext;
   const { t } = useTranslation();
   const [scenarios, setScenarios] = useState<ScenarioCategory[]>([]);
   const [selectedScenario, setSelectedScenario] = useState<ScenarioItem | null>(null);

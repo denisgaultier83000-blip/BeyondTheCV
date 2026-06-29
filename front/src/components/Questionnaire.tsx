@@ -28,11 +28,12 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
   // [FIX EXPERT] Ne jamais encapsuler un Hook dans un bloc try/catch.
   // Si le contexte est optionnel, c'est la logique interne du Hook (DashboardContext)
   // qui doit renvoyer "null" au lieu de throw une exception.
-  const dashboard = useDashboard();
+  const dashboardContext = useDashboard();
   
-  const cvData = dashboard?.cvData;
-  const { quotas, fetchQuotas } = dashboard;
-  const updateFormData = dashboard?.updateFormData;
+  const cvData = dashboardContext?.cvData;
+  const quotas = dashboardContext?.quotas;
+  const fetchQuotas = dashboardContext?.fetchQuotas;
+  const updateFormData = dashboardContext?.updateFormData;
   
   const userAnswersKey = `${storageKeyPrefix}UserAnswers`;
   const feedbacksKey = `${storageKeyPrefix}Feedbacks`;

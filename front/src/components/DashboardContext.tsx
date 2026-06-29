@@ -227,8 +227,5 @@ export const DashboardProvider = ({
 // --- HOOK PERSONNALISÉ SÉCURISÉ ---
 export const useDashboard = () => {
   const context = useContext(DashboardContext);
-  if (!context) {
-    throw new Error("useDashboard must be used within a DashboardProvider. Ensure your component is wrapped in <DashboardProvider>.");
-  }
   return context;
 };

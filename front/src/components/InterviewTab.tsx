@@ -74,8 +74,12 @@ const Teleprompter = ({ fullPitchText, setIsTeleprompterOpen, isDark, t }: { ful
 };
 
 export const InterviewTab = () => {
-  const { pitchResult, questionsResult, customScenariosResult, globalStatus, cvData, updateFormData, purgeCacheMutation } = useDashboard();
+  const dashboardContext = useDashboard();
   const { t } = useTranslation();
+
+  if (!dashboardContext) return null;
+  const { pitchResult, questionsResult, customScenariosResult, globalStatus, cvData, updateFormData, purgeCacheMutation } = dashboardContext;
+
   const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false);
   const [isDark] = useState(() => document.body.classList.contains('dark-mode'));
   const [pitchMatrix, setPitchMatrix] = useState<any>(pitchResult || null);
