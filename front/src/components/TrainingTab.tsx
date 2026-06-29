@@ -28,7 +28,10 @@ import { VocalPitchTrainer } from './VocalPitchTrainer';
 import { RechargeModal } from './RechargeModal';
 
 export default function TrainingTab() {
-  const { cvData, updateFormData, actionPlanResult, quotas, fetchQuotas } = useDashboard();
+  const dashboardContext = useDashboard();
+  if (!dashboardContext) return null;
+
+  const { cvData, updateFormData, actionPlanResult, quotas, fetchQuotas } = dashboardContext;
   const [score, setScore] = useState(0);
   const [totalSessions, setTotalSessions] = useState(0);
   const [themeScores, setThemeScores] = useState<Record<string, number>>({});
