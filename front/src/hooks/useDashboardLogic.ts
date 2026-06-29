@@ -29,18 +29,18 @@ const INITIAL_DATA = {
 export function useDashboardLogic() {
   // [FIX] On lit le token dès le démarrage pour ne jamais perdre la session en cas de redirection sauvage
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return !!storageManager.getItem("token");
+    return !!storageManager.local.getItem("token");
   });
   
   // [PERSISTANCE] Chargement initial depuis localStorage
   const [currentStep, setCurrentStep] = useState(() => {
-    const saved = storageManager.getItem("currentStep");
+    const saved = storageManager.local.getItem("currentStep");
     const parsed = saved ? parseInt(saved, 10) : 0;
     return isNaN(parsed) ? 0 : parsed;
   });
   
   const [formData, setFormData] = useState<any>(() => {
-    const saved = storageManager.getItem("cvData");
+    const saved = storageManager.local.getItem("cvData");
     if (saved && saved !== "undefined" && saved !== "null") {
       try {
         return JSON.parse(saved);
@@ -51,13 +51,13 @@ export function useDashboardLogic() {
   
   // --- ÉTAT DU PIPELINE ---
   const [taskIds, setTaskIds] = useState<{ [key: string]: string } | null>(() => {
-    const saved = storageManager.getItem("taskIds");
+    const saved = storageManager.local.getItem("taskIds");
     return saved ? JSON.parse(saved) : null;
   });
   
   // Helper pour charger un état depuis le storage
   const loadState = (key: string) => {
-    const saved = storageManager.getItem(key);
+    const saved = storageManager.local.getItem(key);
     try { return saved ? JSON.parse(saved) : null; } catch (e) { return null; }
   };
 
@@ -155,24 +155,24 @@ export function useDashboardLogic() {
 
   // [PERSISTANCE] Sauvegarde automatique
   useEffect(() => {
-    storageManager.setItem("cvData", JSON.stringify(formData));
-    storageManager.setItem("currentStep", currentStep.toString());
-    if (taskIds) storageManager.setItem("taskIds", JSON.stringify(taskIds));
-    if (cvResult) storageManager.setItem("cvResult", JSON.stringify(cvResult));
-    if (gapResult) storageManager.setItem("gapResult", JSON.stringify(gapResult));
-    if (researchResult) storageManager.setItem("researchResult", JSON.stringify(researchResult));
-    if (salaryResult) storageManager.setItem("salaryResult", JSON.stringify(salaryResult));
-    if (careerGpsResult) storageManager.setItem("careerGpsResult", JSON.stringify(careerGpsResult));
-    if (careerRadarResult) storageManager.setItem("careerRadarResult", JSON.stringify(careerRadarResult));
-    if (jobDecoderResult) storageManager.setItem("jobDecoderResult", JSON.stringify(jobDecoderResult));
-    if (pitchResult) storageManager.setItem("pitchResult", JSON.stringify(pitchResult));
-    if (questionsResult) storageManager.setItem("questionsResult", JSON.stringify(questionsResult));
-    if (hiddenMarketResult) storageManager.setItem("hiddenMarketResult", JSON.stringify(hiddenMarketResult));
-    if (recruiterResult) storageManager.setItem("recruiterResult", JSON.stringify(recruiterResult));
-    if (realityResult) storageManager.setItem("realityResult", JSON.stringify(realityResult));
-    if (flawCoachingResult) storageManager.setItem("flawCoachingResult", JSON.stringify(flawCoachingResult));
-    if (actionPlanResult) storageManager.setItem("actionPlanResult", JSON.stringify(actionPlanResult));
-    if (customScenariosResult) storageManager.setItem("customScenariosResult", JSON.stringify(customScenariosResult));
+    storageManager.local.setItem("cvData", JSON.stringify(formData));
+    storageManager.local.setItem("currentStep", currentStep.toString());
+    if (taskIds) storageManager.local.setItem("taskIds", JSON.stringify(taskIds));
+    if (cvResult) storageManager.local.setItem("cvResult", JSON.stringify(cvResult));
+    if (gapResult) storageManager.local.setItem("gapResult", JSON.stringify(gapResult));
+    if (researchResult) storageManager.local.setItem("researchResult", JSON.stringify(researchResult));
+    if (salaryResult) storageManager.local.setItem("salaryResult", JSON.stringify(salaryResult));
+    if (careerGpsResult) storageManager.local.setItem("careerGpsResult", JSON.stringify(careerGpsResult));
+    if (careerRadarResult) storageManager.local.setItem("careerRadarResult", JSON.stringify(careerRadarResult));
+    if (jobDecoderResult) storageManager.local.setItem("jobDecoderResult", JSON.stringify(jobDecoderResult));
+    if (pitchResult) storageManager.local.setItem("pitchResult", JSON.stringify(pitchResult));
+    if (questionsResult) storageManager.local.setItem("questionsResult", JSON.stringify(questionsResult));
+    if (hiddenMarketResult) storageManager.local.setItem("hiddenMarketResult", JSON.stringify(hiddenMarketResult));
+    if (recruiterResult) storageManager.local.setItem("recruiterResult", JSON.stringify(recruiterResult));
+    if (realityResult) storageManager.local.setItem("realityResult", JSON.stringify(realityResult));
+    if (flawCoachingResult) storageManager.local.setItem("flawCoachingResult", JSON.stringify(flawCoachingResult));
+    if (actionPlanResult) storageManager.local.setItem("actionPlanResult", JSON.stringify(actionPlanResult));
+    if (customScenariosResult) storageManager.local.setItem("customScenariosResult", JSON.stringify(customScenariosResult));
   }, [formData, currentStep, taskIds, cvResult, gapResult, researchResult, salaryResult, careerGpsResult, careerRadarResult, jobDecoderResult, pitchResult, questionsResult, hiddenMarketResult, recruiterResult, realityResult, flawCoachingResult, actionPlanResult, customScenariosResult]);
 
   // --- GESTION DU FORMULAIRE ---
@@ -217,12 +217,12 @@ export function useDashboardLogic() {
     setGlobalStatus("IDLE");
     setActiveTab('overview');
     setPilotData(null);
-    storageManager.removeItem("cvData");
-    storageManager.removeItem("currentStep");
-    storageManager.removeItem("taskIds");
-    storageManager.removeItem("cvResult");
-    storageManager.removeItem("researchResult");
-    storageManager.removeItem("salaryResult");
+    storageManager.local.removeItem("cvData");
+    storageManager.local.removeItem("currentStep");
+    storageManager.local.removeItem("taskIds");
+    storageManager.local.removeItem("cvResult");
+    storageManager.local.removeItem("researchResult");
+    storageManager.local.removeItem("salaryResult");
     // etc. pour tous les résultats
     // Note: une approche plus propre serait d'utiliser storageManager.clear() si on est sûr de ne pas effacer d'autres clés.
     // Pour l'instant, on reste sur du spécifique.
@@ -476,6 +476,6 @@ export function useDashboardLogic() {
     toasts, setToasts,
     fetchPilotData,
     triggerResearch,
-    isStorageAccessible: storageManager.isAccessible
+    isStorageAccessible: storageManager.local.isAccessible
   };
 }

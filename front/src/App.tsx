@@ -50,8 +50,8 @@ function AppContent() {
   const [isFrozen, setIsFrozen] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
-  const [isImportLoading, setIsImportLoading] = useState(false);
-  const [darkMode, setDarkMode] = useState<boolean>(() => storageManager.getItem('theme') === 'dark');
+  const [isImportLoading, setIsImportLoading] = useState(false); 
+  const [darkMode, setDarkMode] = useState<boolean>(() => storageManager.local.getItem('theme') === 'dark');
   const [showDocsModal, setShowDocsModal] = useState(false);
   const [stepErrors, setStepErrors] = useState<Record<string, boolean>>({});
   const [restoredData, setRestoredData] = useState<any>(null);
@@ -147,7 +147,7 @@ function AppContent() {
   // --- Fonction de Sauvegarde Silencieuse (Auto-Save) ---
   const saveProfileToDB = async (data: any) => {
     try {
-      const token = storageManager.getItem('token');
+      const token = storageManager.local.getItem('token');
       if (!token) return;
       
       const payloadForBackend = transformProfileForBackend(data);
@@ -207,8 +207,8 @@ function AppContent() {
       } else if (response.status === 404) {
         resetDashboard(); // Le hook gère la réinitialisation à INITIAL_DATA
       } else if (response.status === 401) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        storageManager.local.removeItem('token');
+        storageManager.local.removeItem('user');
         setIsAuthenticated(false);
         navigate('/', { replace: true });
       }
@@ -229,7 +229,7 @@ function AppContent() {
       } else {
         uploadData.append('file', payload);
       }
-      const token = storageManager.getItem('token');
+      const token = storageManager.local.getItem('token');
       const res = await fetch(`${API_BASE_URL}/api/cv/parse-cv`, {
         method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: uploadData
       });
@@ -253,7 +253,7 @@ function AppContent() {
       setShowLanding(false);
       if (location.pathname === '/') navigate('/candidate', { replace: true });
       loadProfile();
-      const storedUser = storageManager.getItem('user');
+      const storedUser = storageManager.local.getItem('user');
       if (storedUser && storedUser !== "undefined" && storedUser !== "null") {
         try {
           const user = JSON.parse(storedUser);
@@ -267,7 +267,7 @@ function AppContent() {
           console.warn("Could not parse user subscription", e);
         }
       }
-    } else if (storageManager.getItem('token')) {
+    } else if (storageManager.local.getItem('token')) {
       setIsAuthenticated(true);
     } else {
       setIsProfileLoading(false);
@@ -317,7 +317,7 @@ function AppContent() {
 
   useEffect(() => {
     document.body.classList.toggle('dark-mode', darkMode);
-    storageManager.setItem('theme', darkMode ? 'dark' : 'light');
+    storageManager.local.setItem('theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
 
   // --- LOGIQUE DE CACHE (DIRTY CHECK) ---
@@ -485,7 +485,7 @@ function AppContent() {
   let isAdmin = false;
   if (isAuthenticated) {
     try {
-      const storedUser = storageManager.getItem('user');
+      const storedUser = storageManager.local.getItem('user');
       if (storedUser && storedUser !== "undefined" && storedUser !== "null") {
           const u = JSON.parse(storedUser);
           parsedUserName = u.first_name || u.name || t('default_candidate_name', "Candidat");
@@ -538,7 +538,7 @@ function AppContent() {
         isAuthenticated={isAuthenticated}
         userName={parsedUserName} 
         onOpenProfile={() => setShowDocsModal(true)}
-        onLogout={() => { storageManager.removeItem('token'); storageManager.removeItem('user'); resetDashboard(); setIsAuthenticated(false); navigate('/', { replace: true }); }}
+        onLogout={() => { storageManager.local.removeItem('token'); storageManager.local.removeItem('user'); resetDashboard(); setIsAuthenticated(false); navigate('/', { replace: true }); }}
         onLanguageChange={handleLanguageChange} 
         steps={CAREER_EDGE_STEPS}
         currentStep={currentStep}
