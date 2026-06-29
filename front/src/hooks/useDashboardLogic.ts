@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 
+import { storageManager } from '../utils/storageManager';
 const INITIAL_DATA = {
   personal_info: { first_name: "", last_name: "", email: "", phone: "", address: "", city: "", linkedin: "", photo: "" },
   current_role: "",
@@ -28,53 +29,57 @@ const INITIAL_DATA = {
 export function useDashboardLogic() {
   // [FIX] On lit le token dès le démarrage pour ne jamais perdre la session en cas de redirection sauvage
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return !!localStorage.getItem("token");
+    return !!storageManager.getItem("token");
   });
   
   // [PERSISTANCE] Chargement initial depuis localStorage
   const [currentStep, setCurrentStep] = useState(() => {
-    const saved = localStorage.getItem("currentStep");
+    const saved = storageManager.getItem("currentStep");
     const parsed = saved ? parseInt(saved, 10) : 0;
     return isNaN(parsed) ? 0 : parsed;
   });
   
   const [formData, setFormData] = useState<any>(() => {
-    const saved = localStorage.getItem("cvData");
+    const saved = storageManager.getItem("cvData");
     if (saved && saved !== "undefined" && saved !== "null") {
       try {
         return JSON.parse(saved);
-      } catch (e) {
-        console.warn("Corrupted cvData in localStorage, resetting.");
-      }
+      } catch (e) { /* Corrupted data, fallback to initial */ }
     }
     return INITIAL_DATA;
   });
   
   // --- ÉTAT DU PIPELINE ---
   const [taskIds, setTaskIds] = useState<{ [key: string]: string } | null>(() => {
-    const saved = localStorage.getItem("taskIds");
+    const saved = storageManager.getItem("taskIds");
     return saved ? JSON.parse(saved) : null;
   });
   
+  // Helper pour charger un état depuis le storage
+  const loadState = (key: string) => {
+    const saved = storageManager.getItem(key);
+    try { return saved ? JSON.parse(saved) : null; } catch (e) { return null; }
+  };
+
   // États séparés pour chaque brique du dashboard
-  const [cvResult, setCvResult] = useState<any>(() => JSON.parse(localStorage.getItem("cvResult") || "null"));
-  const [gapResult, setGapResult] = useState<any>(() => JSON.parse(localStorage.getItem("gapResult") || "null"));
-  const [researchResult, setResearchResult] = useState<any>(() => JSON.parse(localStorage.getItem("researchResult") || "null"));
-  const [salaryResult, setSalaryResult] = useState<any>(() => JSON.parse(localStorage.getItem("salaryResult") || "null"));
+  const [cvResult, setCvResult] = useState<any>(() => loadState("cvResult"));
+  const [gapResult, setGapResult] = useState<any>(() => loadState("gapResult"));
+  const [researchResult, setResearchResult] = useState<any>(() => loadState("researchResult"));
+  const [salaryResult, setSalaryResult] = useState<any>(() => loadState("salaryResult"));
   const [displaySalary, setDisplaySalary] = useState<any>(null);
   
   // [FIX] Rétablissement des états pour les modules Premium
-  const [careerGpsResult, setCareerGpsResult] = useState<any>(() => JSON.parse(localStorage.getItem("careerGpsResult") || "null"));
-  const [careerRadarResult, setCareerRadarResult] = useState<any>(() => JSON.parse(localStorage.getItem("careerRadarResult") || "null"));
-  const [jobDecoderResult, setJobDecoderResult] = useState<any>(() => JSON.parse(localStorage.getItem("jobDecoderResult") || "null"));
-  const [pitchResult, setPitchResult] = useState<any>(() => JSON.parse(localStorage.getItem("pitchResult") || "null"));
-  const [questionsResult, setQuestionsResult] = useState<any>(() => JSON.parse(localStorage.getItem("questionsResult") || "null"));
-  const [hiddenMarketResult, setHiddenMarketResult] = useState<any>(() => JSON.parse(localStorage.getItem("hiddenMarketResult") || "null"));
-  const [recruiterResult, setRecruiterResult] = useState<any>(() => JSON.parse(localStorage.getItem("recruiterResult") || "null"));
-  const [realityResult, setRealityResult] = useState<any>(() => JSON.parse(localStorage.getItem("realityResult") || "null"));
-  const [flawCoachingResult, setFlawCoachingResult] = useState<any>(() => JSON.parse(localStorage.getItem("flawCoachingResult") || "null"));
-  const [actionPlanResult, setActionPlanResult] = useState<any>(() => JSON.parse(localStorage.getItem("actionPlanResult") || "null"));
-  const [customScenariosResult, setCustomScenariosResult] = useState<any>(() => JSON.parse(localStorage.getItem("customScenariosResult") || "null"));
+  const [careerGpsResult, setCareerGpsResult] = useState<any>(() => loadState("careerGpsResult"));
+  const [careerRadarResult, setCareerRadarResult] = useState<any>(() => loadState("careerRadarResult"));
+  const [jobDecoderResult, setJobDecoderResult] = useState<any>(() => loadState("jobDecoderResult"));
+  const [pitchResult, setPitchResult] = useState<any>(() => loadState("pitchResult"));
+  const [questionsResult, setQuestionsResult] = useState<any>(() => loadState("questionsResult"));
+  const [hiddenMarketResult, setHiddenMarketResult] = useState<any>(() => loadState("hiddenMarketResult"));
+  const [recruiterResult, setRecruiterResult] = useState<any>(() => loadState("recruiterResult"));
+  const [realityResult, setRealityResult] = useState<any>(() => loadState("realityResult"));
+  const [flawCoachingResult, setFlawCoachingResult] = useState<any>(() => loadState("flawCoachingResult"));
+  const [actionPlanResult, setActionPlanResult] = useState<any>(() => loadState("actionPlanResult"));
+  const [customScenariosResult, setCustomScenariosResult] = useState<any>(() => loadState("customScenariosResult"));
   
   const [globalStatus, setGlobalStatus] = useState<"IDLE" | "STARTING" | "PROCESSING" | "COMPLETED" | "FAILED">("IDLE");
   const [error, setError] = useState<string | null>(null);
@@ -138,24 +143,24 @@ export function useDashboardLogic() {
 
   // [PERSISTANCE] Sauvegarde automatique
   useEffect(() => {
-    localStorage.setItem("cvData", JSON.stringify(formData));
-    localStorage.setItem("currentStep", currentStep.toString());
-    if (taskIds) localStorage.setItem("taskIds", JSON.stringify(taskIds));
-    if (cvResult) localStorage.setItem("cvResult", JSON.stringify(cvResult));
-    if (gapResult) localStorage.setItem("gapResult", JSON.stringify(gapResult));
-    if (researchResult) localStorage.setItem("researchResult", JSON.stringify(researchResult));
-    if (salaryResult) localStorage.setItem("salaryResult", JSON.stringify(salaryResult));
-    if (careerGpsResult) localStorage.setItem("careerGpsResult", JSON.stringify(careerGpsResult));
-    if (careerRadarResult) localStorage.setItem("careerRadarResult", JSON.stringify(careerRadarResult));
-    if (jobDecoderResult) localStorage.setItem("jobDecoderResult", JSON.stringify(jobDecoderResult));
-    if (pitchResult) localStorage.setItem("pitchResult", JSON.stringify(pitchResult));
-    if (questionsResult) localStorage.setItem("questionsResult", JSON.stringify(questionsResult));
-    if (hiddenMarketResult) localStorage.setItem("hiddenMarketResult", JSON.stringify(hiddenMarketResult));
-    if (recruiterResult) localStorage.setItem("recruiterResult", JSON.stringify(recruiterResult));
-    if (realityResult) localStorage.setItem("realityResult", JSON.stringify(realityResult));
-    if (flawCoachingResult) localStorage.setItem("flawCoachingResult", JSON.stringify(flawCoachingResult));
-    if (actionPlanResult) localStorage.setItem("actionPlanResult", JSON.stringify(actionPlanResult));
-    if (customScenariosResult) localStorage.setItem("customScenariosResult", JSON.stringify(customScenariosResult));
+    storageManager.setItem("cvData", JSON.stringify(formData));
+    storageManager.setItem("currentStep", currentStep.toString());
+    if (taskIds) storageManager.setItem("taskIds", JSON.stringify(taskIds));
+    if (cvResult) storageManager.setItem("cvResult", JSON.stringify(cvResult));
+    if (gapResult) storageManager.setItem("gapResult", JSON.stringify(gapResult));
+    if (researchResult) storageManager.setItem("researchResult", JSON.stringify(researchResult));
+    if (salaryResult) storageManager.setItem("salaryResult", JSON.stringify(salaryResult));
+    if (careerGpsResult) storageManager.setItem("careerGpsResult", JSON.stringify(careerGpsResult));
+    if (careerRadarResult) storageManager.setItem("careerRadarResult", JSON.stringify(careerRadarResult));
+    if (jobDecoderResult) storageManager.setItem("jobDecoderResult", JSON.stringify(jobDecoderResult));
+    if (pitchResult) storageManager.setItem("pitchResult", JSON.stringify(pitchResult));
+    if (questionsResult) storageManager.setItem("questionsResult", JSON.stringify(questionsResult));
+    if (hiddenMarketResult) storageManager.setItem("hiddenMarketResult", JSON.stringify(hiddenMarketResult));
+    if (recruiterResult) storageManager.setItem("recruiterResult", JSON.stringify(recruiterResult));
+    if (realityResult) storageManager.setItem("realityResult", JSON.stringify(realityResult));
+    if (flawCoachingResult) storageManager.setItem("flawCoachingResult", JSON.stringify(flawCoachingResult));
+    if (actionPlanResult) storageManager.setItem("actionPlanResult", JSON.stringify(actionPlanResult));
+    if (customScenariosResult) storageManager.setItem("customScenariosResult", JSON.stringify(customScenariosResult));
   }, [formData, currentStep, taskIds, cvResult, gapResult, researchResult, salaryResult, careerGpsResult, careerRadarResult, jobDecoderResult, pitchResult, questionsResult, hiddenMarketResult, recruiterResult, realityResult, flawCoachingResult, actionPlanResult, customScenariosResult]);
 
   // --- GESTION DU FORMULAIRE ---
@@ -200,16 +205,15 @@ export function useDashboardLogic() {
     setGlobalStatus("IDLE");
     setActiveTab('overview');
     setPilotData(null);
-    localStorage.removeItem("cvData");
-    localStorage.removeItem("currentStep");
-    localStorage.removeItem("taskIds");
-    localStorage.removeItem("cvResult");
-    localStorage.removeItem("researchResult");
-    localStorage.removeItem("salaryResult");
+    storageManager.removeItem("cvData");
+    storageManager.removeItem("currentStep");
+    storageManager.removeItem("taskIds");
+    storageManager.removeItem("cvResult");
+    storageManager.removeItem("researchResult");
+    storageManager.removeItem("salaryResult");
     // etc. pour tous les résultats
-    Object.keys(localStorage).forEach(key => {
-      if (key.endsWith("Result")) localStorage.removeItem(key);
-    });
+    // Note: une approche plus propre serait d'utiliser storageManager.clear() si on est sûr de ne pas effacer d'autres clés.
+    // Pour l'instant, on reste sur du spécifique.
 
     if (onComplete) {
       onComplete();
@@ -459,6 +463,7 @@ export function useDashboardLogic() {
     pilotData, setPilotData,
     toasts, setToasts,
     fetchPilotData,
-    triggerResearch
+    triggerResearch,
+    isStorageAccessible: storageManager.isAccessible
   };
 }
