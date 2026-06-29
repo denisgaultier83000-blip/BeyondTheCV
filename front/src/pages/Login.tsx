@@ -67,8 +67,8 @@ export default function Login({ onLoginSuccess, onLogin }: LoginProps) {
       const tokenData = await loginRes.json();
       
       // 3. Sauvegarde de la session
-      storageManager.setItem('token', tokenData.access_token);
-      storageManager.setItem('user', JSON.stringify({
+      storageManager.local.setItem('token', tokenData.access_token);
+      storageManager.local.setItem('user', JSON.stringify({
         name: formData.firstName || 'Candidat',
         email: formData.email,
         subscription_status: 'active' // Remplacé par la vraie valeur venant du backend idéalement

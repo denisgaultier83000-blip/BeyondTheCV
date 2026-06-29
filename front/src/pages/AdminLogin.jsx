@@ -12,7 +12,7 @@ const AdminLogin = () => {
   // Si un token est déjà présent, on redirige directement vers le dashboard
   // [FIX] Utilisation du storageManager pour éviter le crash
   useEffect(() => {
-    if (storageManager.getItem('admin_token')) {
+    if (storageManager.local.getItem('admin_token')) {
       navigate('/admin/dashboard');
     }
   }, [navigate]);
@@ -40,7 +40,7 @@ const AdminLogin = () => {
       }
 
       // Stockage du token dans le localStorage pour les requêtes futures
-      storageManager.setItem('admin_token', data.access_token); // [FIX] Utilisation du storageManager
+      storageManager.local.setItem('admin_token', data.access_token); // [FIX] Utilisation du storageManager
       
       // Redirection vers le tableau de bord de l'administration
       navigate('/admin/dashboard');

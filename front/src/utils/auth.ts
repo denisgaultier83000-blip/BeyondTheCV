@@ -1,11 +1,11 @@
 import { storageManager } from './storageManager';
 
 export const isAuthenticated = (): boolean => {
-  return !!storageManager.getItem("token");
+  return !!storageManager.local.getItem("token");
 };
 
 export const getUser = (): any | null => {
-  const userStr = storageManager.getItem("user");
+  const userStr = storageManager.local.getItem("user");
   try {
     return userStr ? JSON.parse(userStr) : null;
   } catch (e) {
@@ -15,12 +15,12 @@ export const getUser = (): any | null => {
 };
 
 export const removeAuthToken = (): void => {
-  storageManager.removeItem("token");
-  storageManager.removeItem("user");
+  storageManager.local.removeItem("token");
+  storageManager.local.removeItem("user");
 };
 
 export const authenticatedFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
-  const token = storageManager.getItem("token");
+  const token = storageManager.local.getItem("token");
   
   const headers = new Headers(options.headers || {});
   if (token) {

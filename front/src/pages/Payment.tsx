@@ -62,12 +62,12 @@ const CheckoutForm = ({ onSuccess }: { onSuccess: () => void }) => {
 export default function Payment() {
   const navigate = useNavigate();
   const [darkMode, setDarkMode] = useState(() => {
-    return storageManager.getItem("theme") === "dark"; // [FIX] Use storageManager and consistent key 'theme'
+    return storageManager.local.getItem("theme") === "dark"; // [FIX] Use storageManager and consistent key 'theme'
   });
   const [clientSecret, setClientSecret] = useState("");
 
   useEffect(() => {
-    storageManager.setItem("theme", darkMode ? "dark" : "light"); // [FIX] Use storageManager
+    storageManager.local.setItem("theme", darkMode ? "dark" : "light"); // [FIX] Use storageManager
   }, [darkMode]);
 
   useEffect(() => {
