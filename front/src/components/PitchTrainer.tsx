@@ -32,7 +32,10 @@ interface PitchFeedback {
 
 export function PitchTrainer() {
   const { t } = useTranslation();
-  const { cvData } = useDashboard();
+  const dashboardContext = useDashboard();
+  if (!dashboardContext) return null;
+
+  const { cvData } = dashboardContext;
   
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);

@@ -9,7 +9,11 @@ import { RechargeModal } from './RechargeModal';
 import { AsyncBoundary } from './AsyncBoundary';
 
 export default function PitchOralTrainer() {
-  const { cvData, quotas, fetchQuotas } = useDashboard();
+  const dashboardContext = useDashboard();
+  if (!dashboardContext) return null;
+
+  const { cvData, quotas, fetchQuotas } = dashboardContext;
+
   const { t } = useTranslation();
   
   const [userAnswer, setUserAnswer] = useState('');

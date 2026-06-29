@@ -55,7 +55,6 @@ export function SituationSimulator() {
 
   if (!dashboardContext) return null;
   const { cvData, customScenariosResult, updateFormData, quotas, fetchQuotas } = dashboardContext;
-  const { t } = useTranslation();
   const [scenarios, setScenarios] = useState<ScenarioCategory[]>([]);
   const [selectedScenario, setSelectedScenario] = useState<ScenarioItem | null>(null);
   const [mode, setMode] = useState<'passive' | 'active' | null>(null);

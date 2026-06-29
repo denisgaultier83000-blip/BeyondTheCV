@@ -8,7 +8,11 @@ import PdfPreviewer from './PdfPreviewer';
 import { useTranslation } from 'react-i18next';
 
 export const CVTab = ({ data }: { data: any }) => {
-  const { cvData, gapResult } = useDashboard();
+  const dashboardContext = useDashboard();
+  if (!dashboardContext) return null; // Sécurité : ne rien afficher si hors du dashboard
+
+  const { cvData, gapResult } = dashboardContext;
+
   const { t } = useTranslation();
   const [previewBody, setPreviewBody] = useState<any>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
