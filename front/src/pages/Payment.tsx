@@ -6,6 +6,7 @@ import Header from "../components/Header";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { authenticatedFetch } from "../utils/auth";
 import { API_BASE_URL } from "../config";
+import { storageManager } from "../utils/storageManager";
 
 // [STRIPE] Initialisation (Remplacez par votre clé publique dans .env)
 // Note: Vite utilise import.meta.env au lieu de process.env
@@ -61,12 +62,12 @@ const CheckoutForm = ({ onSuccess }: { onSuccess: () => void }) => {
 export default function Payment() {
   const navigate = useNavigate();
   const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem("darkMode") === "true";
+    return storageManager.getItem("theme") === "dark"; // [FIX] Use storageManager and consistent key 'theme'
   });
   const [clientSecret, setClientSecret] = useState("");
 
   useEffect(() => {
-    localStorage.setItem("darkMode", String(darkMode));
+    storageManager.setItem("theme", darkMode ? "dark" : "light"); // [FIX] Use storageManager
   }, [darkMode]);
 
   useEffect(() => {

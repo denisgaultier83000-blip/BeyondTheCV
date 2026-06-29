@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Lock, User, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 
+import { storageManager } from '../utils/storageManager';
 interface LoginProps {
   onLoginSuccess?: () => void;
   onLogin?: () => void;
@@ -66,8 +67,8 @@ export default function Login({ onLoginSuccess, onLogin }: LoginProps) {
       const tokenData = await loginRes.json();
       
       // 3. Sauvegarde de la session
-      localStorage.setItem('token', tokenData.access_token);
-      localStorage.setItem('user', JSON.stringify({
+      storageManager.setItem('token', tokenData.access_token);
+      storageManager.setItem('user', JSON.stringify({
         name: formData.firstName || 'Candidat',
         email: formData.email,
         subscription_status: 'active' // Remplacé par la vraie valeur venant du backend idéalement
