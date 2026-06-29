@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HelpCircle, MessageSquare, Printer, ArrowLeft, CheckCircle2, Lightbulb, Eye, EyeOff, Edit3, Mic, MicOff, Send, Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
@@ -39,11 +40,11 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
   const feedbacksKey = `${storageKeyPrefix}Feedbacks`;
 
   // Nouveaux états pour le mode interactif (Entraînement)
+  const queryClient = useQueryClient();
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
   const [activeMode, setActiveMode] = useState<Record<string, boolean>>({});
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>(cvData?.[userAnswersKey] || {});
   const [isRecording, setIsRecording] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
   const [feedbacks, setFeedbacks] = useState<Record<string, any>>(cvData?.[feedbacksKey] || {});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showFeedbackDetails, setShowFeedbackDetails] = useState<Record<string, boolean>>({});
@@ -176,25 +177,13 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
   }, []);
 
   // --- SOUMISSION DE LA RÉPONSE À L'IA ---
-  const handleSubmit = async (qKey: string, q: any) => {
-    const answer = userAnswers[qKey];
-    if (!answer) return;
-    
-    setIsSubmitting(qKey);
-    setErrors(prev => ({ ...prev, [qKey]: "" }));
-    
-    // [NOUVEAU] Vérification du quota avant de lancer l'évaluation
-    if ((quotas?.qa ?? 0) <= 0) {
-      setShowRechargeModal(true);
-      setIsSubmitting(null);
-      return;
-    }
+  const evaluationMutation = useMutation({
+    mutationFn: async (variables: { qKey: string, q: any, answer: string }) => {
+      const { q, answer } = variables;
+      // Sécurisation des clés pour l'envoi API
+      const questionText = q.question || q.text || "Question non spécifiée";
+      const suggestedAnswer = q.suggested_answer || q.answer || q.reponse_suggeree || q.reponse || "";
 
-    // Sécurisation des clés pour l'envoi API
-    const questionText = q.question || q.text || "Question non spécifiée";
-    const suggestedAnswer = q.suggested_answer || q.answer || q.reponse_suggeree || q.reponse || "";
-    
-    try {
       const response = await authenticatedFetch(`${API_BASE_URL}${evalEndpoint || '/api/cv/evaluate-interview-answer'}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -203,7 +192,6 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
             category: q.category, 
             suggested_framework: suggestedAnswer,
             user_answer: answer,
-            // Ajouts spécifiques pour garantir la compatibilité avec la route d'entraînement
             theme: q.category,
             question_type: q.type,
             question_text: questionText,
@@ -211,33 +199,41 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
             stress_level: cvData?.stress_level
         }),
       });
-      
+
       if (!response.ok) {
         if (response.status === 402) setShowRechargeModal(true);
         let errMsg = "Erreur de communication avec le serveur.";
         try { const errObj = await response.json(); errMsg = errObj.detail || errMsg; } catch(e) {}
         throw new Error(errMsg);
       }
-      const data = await response.json();
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      const { qKey, answer } = variables;
       const newFeedbacks = { ...feedbacks, [qKey]: data.feedback };
       setFeedbacks(newFeedbacks);
-      
-      // Sauvegarde persistante du résultat et de la réponse
       if (updateFormData) {
           updateFormData(feedbacksKey, newFeedbacks);
           updateFormData(userAnswersKey, { ...userAnswers, [qKey]: answer });
       }
       setShowFeedbackDetails(prev => ({ ...prev, [qKey]: true }));
       setActiveMode(prev => ({ ...prev, [qKey]: false }));
-      
       if (onEvaluateSuccess) onEvaluateSuccess();
-      if (fetchQuotas) fetchQuotas(); // [NOUVEAU] Rafraîchissement des quotas
-    } catch (error: any) {
-      console.error("Erreur lors de l'évaluation IA :", error);
-      setErrors(prev => ({ ...prev, [qKey]: error.message || "Une erreur de communication avec l'IA est survenue. Veuillez réessayer." }));
-    } finally {
-      setIsSubmitting(null);
+      queryClient.invalidateQueries({ queryKey: ['quotas'] });
+    },
+    onError: (error: any, variables) => {
+      setErrors(prev => ({ ...prev, [variables.qKey]: error.message || "Une erreur est survenue." }));
     }
+  });
+
+  const handleSubmit = (qKey: string, q: any) => {
+    const answer = userAnswers[qKey];
+    if (!answer) return;
+    if ((quotas?.qa ?? 0) <= 0) {
+      setShowRechargeModal(true);
+      return;
+    }
+    evaluationMutation.mutate({ qKey, q, answer });
   };
 
   return (
@@ -292,7 +288,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
           const isActive = activeMode[qKey];
           const feedback = feedbacks[qKey];
           const isRecordingThis = isRecording === qKey;
-          const isSubmittingThis = isSubmitting === qKey;
+          const isSubmittingThis = evaluationMutation.isPending && evaluationMutation.variables?.qKey === qKey;
           const isDone = !!feedback;
           const theme = getScoreTheme(feedback?.score);
           const showFeedback = showFeedbackDetails[qKey];

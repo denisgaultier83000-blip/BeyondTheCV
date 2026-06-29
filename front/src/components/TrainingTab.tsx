@@ -60,7 +60,9 @@ export default function TrainingTab() {
   const dashboardContext = useDashboard();
   if (!dashboardContext) return null;
 
-  const { cvData, updateFormData, actionPlanResult, quotas, fetchQuotas } = dashboardContext;
+  // [CORRECTIF] On déstructure correctement l'objet 'quotasQuery' qui vient de useQuery
+  const { cvData, updateFormData, actionPlanResult, quotasQuery } = dashboardContext;
+  const { data: quotas, refetch: fetchQuotas } = quotasQuery;
   const [score, setScore] = useState(0);
   const [totalSessions, setTotalSessions] = useState(0);
   const [themeScores, setThemeScores] = useState<Record<string, number>>({});

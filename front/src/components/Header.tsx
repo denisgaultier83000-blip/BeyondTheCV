@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth'; // [NOUVEAU] Importer le hook d'auth
 import { useIsFetching, useIsMutating } from '@tanstack/react-query';
 import './Header.css';
 import LanguageSelector from './LanguageSelector';
+import { storageManager } from '../utils/storageManager';
 
 export interface Step {
   id: number;
@@ -46,7 +47,7 @@ export default function Header(props: HeaderProps) { // Signature de fonction co
   const [isAdmin, setIsAdmin] = useState(false);
   useEffect(() => {
     try {
-      const userStr = localStorage.getItem('user');
+      const userStr = storageManager.local.getItem('user');
       const adminEmail = (import.meta.env.VITE_REACT_APP_ADMIN_EMAIL || '').toLowerCase();
       if (userStr && adminEmail) {
         const user = JSON.parse(userStr);
