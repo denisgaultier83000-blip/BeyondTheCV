@@ -40,6 +40,31 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
   const lowRiskCount = coachingList.filter((item: any) => getLevel(item).toLowerCase().match(/p3|low|mineur/)).length;
   const totalWithImpact = highRiskCount + mediumRiskCount + lowRiskCount;
 
+  // [FIX] Déclaration des variables manquantes pour le diagnostic global
+  let globalRiskLabel = "En attente";
+  let globalRiskColor = "var(--text-muted)";
+  let globalRiskBg = "var(--bg-secondary)";
+  let globalRiskIcon = <Info size={28} />;
+
+  if (totalWithImpact > 0) {
+    if (highRiskCount > 0) {
+      globalRiskLabel = t('flaw_risk_max', "Vigilance Maximale");
+      globalRiskColor = "#ef4444";
+      globalRiskBg = "rgba(239, 68, 68, 0.1)";
+      globalRiskIcon = <ShieldAlert size={28} />;
+    } else if (mediumRiskCount > 0) {
+      globalRiskLabel = t('flaw_risk_mod', "Risque Modéré");
+      globalRiskColor = "#f59e0b";
+      globalRiskBg = "rgba(245, 158, 11, 0.1)";
+      globalRiskIcon = <Activity size={28} />;
+    } else {
+      globalRiskLabel = t('flaw_risk_low', "Risque Faible");
+      globalRiskColor = "#10b981";
+      globalRiskBg = "rgba(16, 185, 129, 0.1)";
+      globalRiskIcon = <ShieldCheck size={28} />;
+    }
+  }
+
   const content = (
     <AsyncBoundary
       loading={loading}
