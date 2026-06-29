@@ -21,6 +21,7 @@ google-generativeai>=0.3.0
 openai>=1.12.0
 stripe>=8.1.0
 trafilatura
+tenacity>=8.2.3          # [AJOUT] Pour les re-tentatives automatiques des appels IA
 
 # --- Security & Authentication ---
 passlib[bcrypt]>=1.7.4
