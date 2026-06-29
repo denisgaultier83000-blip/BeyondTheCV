@@ -21,11 +21,7 @@ interface HeaderProps {
   steps?: Step[];
   currentStep?: number;
   goToStep?: (stepId: number) => void;
-  userName?: string;
-  onOpenProfile?: () => void;
-  onLogout?: () => void;
   onLanguageChange?: (lang: string) => void;
-  isAuthenticated?: boolean;
   targetLanguage?: string;
 }
 
@@ -35,11 +31,7 @@ export default function Header({
   showLogin = false,
   showLangSelector = true,
   loginText = "Login",
-  userName,
-  onOpenProfile,
-  onLogout,
   onLanguageChange,
-  isAuthenticated
 }: HeaderProps) {
   const { t } = useTranslation();
   // [NOUVEAU] On utilise le hook d'authentification pour obtenir l'utilisateur et son état
@@ -63,7 +55,7 @@ export default function Header({
         setIsAdmin(false); // S'assurer de réinitialiser si l'utilisateur n'est plus là
       }
     } catch (e) { setIsAdmin(false); }
-  }, [user, isUserAuthenticated]); // [FIX] On recalcule si l'utilisateur change OU si le statut d'authentification change.
+  }, [user]); // [FIX] On recalcule si l'utilisateur change.
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -115,7 +107,6 @@ export default function Header({
                     onClick={() => { 
                       setDropdownOpen(false); 
                       window.dispatchEvent(new Event('open-print-modal'));
-                      if (onOpenProfile) onOpenProfile(); 
                     }} 
                     style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', textAlign: 'left', cursor: 'pointer', color: 'var(--text-main)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                     onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
