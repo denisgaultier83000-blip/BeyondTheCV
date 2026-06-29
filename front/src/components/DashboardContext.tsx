@@ -85,6 +85,10 @@ export const DashboardProvider = ({
   // Intercepteur pour mettre à jour le contexte instantanément sans attendre le serveur
   const handleUpdateFormData = useCallback((key: string, value: any) => {
     setLocalCvData((prev: any) => ({ ...prev, [key]: value }));
+    // [FIX EXPERT] On s'assure que le parent (App.tsx) est aussi notifié pour que la persistance
+    // via le useEffect de App.tsx fonctionne correctement.
+    // C'est la clé pour que les modifications faites dans le Dashboard (ex: réponses aux questions)
+    // soient bien sauvegardées dans le localStorage via le hook principal.
     if (onUpdateFormData) {
       onUpdateFormData(key, value);
     }
@@ -184,24 +188,27 @@ export const DashboardProvider = ({
   }, [fetchPilotData, fetchQuotas]);
 
   return (
+    // [FIX ARCHITECTURAL] On garantit ici que les props ne seront JAMAIS null.
+    // On fournit un objet vide par défaut. Cela empêche les crashs `TypeError: Cannot read properties of null`
+    // dans tous les composants enfants, sans avoir à les modifier un par un.
     <DashboardContext.Provider value={{
       activeTab, setActiveTab,
       pilotData, fetchPilotData,
       isPilotLoading,
       quotas,
       fetchQuotas,
-      cvData: localCvData,
-      gapResult: initialGapResult,
-      researchResult: initialResearchResult,
-      salaryResult: initialSalaryResult,
-      jobDecoderResult: initialJobDecoderResult,
-      pitchResult: initialPitchResult,
-      questionsResult: initialQuestionsResult,
-      recruiterResult: initialRecruiterResult,
-      realityResult: initialRealityResult,
-      flawCoachingResult: initialFlawCoachingResult,
-      actionPlanResult: initialActionPlanResult,
-      customScenariosResult: initialCustomScenariosResult,
+      cvData: localCvData || {},
+      gapResult: initialGapResult || {},
+      researchResult: initialResearchResult || {},
+      salaryResult: initialSalaryResult || {},
+      jobDecoderResult: initialJobDecoderResult || {},
+      pitchResult: initialPitchResult || {},
+      questionsResult: initialQuestionsResult || {},
+      recruiterResult: initialRecruiterResult || {},
+      realityResult: initialRealityResult || {},
+      flawCoachingResult: initialFlawCoachingResult || {},
+      actionPlanResult: initialActionPlanResult || {},
+      customScenariosResult: initialCustomScenariosResult || {},
       globalStatus: initialGlobalStatus,
       setCurrentStep: onSetCurrentStep,
       triggerResearch: onTriggerResearch,
