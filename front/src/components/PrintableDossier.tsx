@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useDashboard } from './DashboardContext';
-import { API_BASE_URL } from '../config';
-import { authenticatedFetch } from '../utils/auth';
 import { formatMarkdownReact, formatStrategicAnalysisReact } from '../utils/formatUtils';
+import { fetchInterviewHistory, fetchTrainingHistory } from '../api/historyApi';
 
 export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
   const dashboardContext = useDashboard();
@@ -16,31 +16,18 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
     jobDecoderResult
   } = dashboardContext;
   const pilotData = pilotQuery.data;
-  const [interviewHistory, setInterviewHistory] = useState<any[]>([]);
-  const [trainingHistory, setTrainingHistory] = useState<any[]>([]);
 
-  // On fetch l'historique silencieusement en arrière-plan
-  useEffect(() => {
-    const fetchHistories = async () => {
-      try {
-        const [resInt, resTrain] = await Promise.all([
-          authenticatedFetch(`${API_BASE_URL}/api/cv/interview/history`),
-          authenticatedFetch(`${API_BASE_URL}/api/cv/training/history`)
-        ]);
-        if (resInt.ok) {
-          const data = await resInt.json();
-          setInterviewHistory(data.history || []);
-        }
-        if (resTrain.ok) {
-          const data = await resTrain.json();
-          setTrainingHistory(data.history || []);
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    fetchHistories();
-  }, []);
+  // Remplacement du useEffect par useQuery pour l'historique d'entretien
+  const { data: interviewHistory = [] } = useQuery({
+    queryKey: ['interviewHistory'],
+    queryFn: fetchInterviewHistory,
+  });
+
+  // Remplacement du useEffect par useQuery pour l'historique d'entraînement
+  const { data: trainingHistory = [] } = useQuery({
+    queryKey: ['trainingHistory'],
+    queryFn: fetchTrainingHistory,
+  });
 
   // Normalisation robuste des données pour éviter les crashs si l'IA a halluciné
   const companyReport = researchResult?.company_report || {};

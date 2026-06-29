@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useDashboard } from './DashboardContext'; // [NOUVEAU] Importer le hook
 import './Header.css';
 import LanguageSelector from './LanguageSelector';
 
@@ -41,6 +42,11 @@ export default function Header({
   isAuthenticated
 }: HeaderProps) {
   const { t } = useTranslation();
+  // [NOUVEAU] On récupère le contexte du dashboard, qui sera `null` sur la page d'accueil
+  const dashboardContext = useDashboard();
+  // Le nom de l'utilisateur est maintenant lu depuis le contexte s'il existe
+  const contextUserName = dashboardContext?.cvData?.first_name;
+
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -83,12 +89,12 @@ export default function Header({
             onChange={onLanguageChange}
             style={{ marginRight: "10px" }}
           />}
-          
-          {userName ? (
+
+          {contextUserName ? (
             <div className="user-menu-container" ref={dropdownRef} style={{ position: 'relative' }}>
               <button onClick={() => setDropdownOpen(!dropdownOpen)} className="user-profile-btn" title="Menu utilisateur">
                 <span className="user-icon">👤</span>
-                <span className="user-name">{userName}</span>
+                <span className="user-name">{contextUserName}</span>
               </button>
               {dropdownOpen && (
                 <div style={{
