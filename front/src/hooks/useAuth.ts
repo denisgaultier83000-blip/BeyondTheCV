@@ -1,6 +1,21 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { authenticatedFetch, getToken, removeToken } from '../utils/auth';
+import { authenticatedFetch } from '../utils/auth';
 import { API_BASE_URL } from '../config';
+
+/**
+ * Récupère le token d'authentification depuis le localStorage.
+ */
+export const getToken = (): string | null => {
+  return localStorage.getItem("token");
+};
+
+/**
+ * Supprime le token et les données utilisateur du localStorage.
+ */
+export const removeToken = (): void => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+};
 
 /**
  * Tente de récupérer le profil de l'utilisateur actuellement connecté.

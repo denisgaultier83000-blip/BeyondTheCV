@@ -124,7 +124,7 @@ export default function Header({
                     📄 Imprimer mon dossier
                   </button>
                   <button 
-                    onClick={() => { setDropdownOpen(false); onLogout?.(); }} 
+                    onClick={() => { setDropdownOpen(false); logout(); }} 
                     style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', textAlign: 'left', cursor: 'pointer', color: '#ef4444', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                     onMouseOver={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
                     onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
