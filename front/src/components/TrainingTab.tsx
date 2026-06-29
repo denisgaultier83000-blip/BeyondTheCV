@@ -215,7 +215,7 @@ export default function TrainingTab() {
   const oralPitchSessions = themeCounts['Pitch Vocal'] ?? 0;
 
   // --- FUSION DES HISTORIQUES (PITCH + MES + ENTRETIEN + NEGO) ---
-  const negoHistory = cvData?.negotiationHistory || [];
+  const negoHistory = cvData?.negotiationHistory ?? [];
   const unifiedHistory = [
     ...trainingHistory.map((h: any) => ({ ...h, source: 'training', date: new Date(h.created_at || Date.now()) })),
     ...interviewHistory.map((h: any) => ({ ...h, source: 'interview', category: "Question d'entretien", type: 'Classique', userAnswer: h.user_answer, score: h.score, date: new Date(h.created_at || Date.now()) })),
