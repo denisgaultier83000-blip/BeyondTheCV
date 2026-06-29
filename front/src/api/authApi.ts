@@ -1,7 +1,20 @@
 import { API_BASE_URL } from '../config';
 import { storageManager } from '../utils/storageManager';
-import type { LoginCredentials, RegisterPayload } from '../types/auth';
 
+/* [CORRECTIF] Définition des types directement dans le fichier pour résoudre l'erreur d'import. */
+export interface LoginCredentials {
+  email: string;
+  password: string;
+  isRegistering?: boolean;
+}
+
+export interface RegisterPayload {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  isRegistering: true;
+}
 /**
  * Gère l'inscription d'un nouvel utilisateur.
  */

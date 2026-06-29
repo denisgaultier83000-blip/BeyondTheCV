@@ -90,7 +90,7 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <label className="auth-label">{t('auth_password', "Password")}</label>
                   {!isRegistering && (
-                    <button type="button" onClick={() => { setIsForgotPassword(true); setError(null); setResetSent(false); }} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.85rem', cursor: 'pointer', padding: 0 }}>
+                    <button type="button" onClick={() => { /* Logique à réimplémenter */ alert("Fonctionnalité de mot de passe oublié en cours de développement."); }} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.85rem', cursor: 'pointer', padding: 0 }}>
                       Mot de passe oublié ?
                     </button>
                   )}
