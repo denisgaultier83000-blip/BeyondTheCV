@@ -1,23 +1,26 @@
+import { storageManager } from './storageManager';
+
 export const isAuthenticated = (): boolean => {
-  return !!localStorage.getItem("token");
+  return !!storageManager.getItem("token");
 };
 
 export const getUser = (): any | null => {
-  const userStr = localStorage.getItem("user");
+  const userStr = storageManager.getItem("user");
   try {
     return userStr ? JSON.parse(userStr) : null;
   } catch (e) {
+    console.warn("Corrupted user data in storage.");
     return null;
   }
 };
 
 export const removeAuthToken = (): void => {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
+  storageManager.removeItem("token");
+  storageManager.removeItem("user");
 };
 
 export const authenticatedFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
-  const token = localStorage.getItem("token");
+  const token = storageManager.getItem("token");
   
   const headers = new Headers(options.headers || {});
   if (token) {
