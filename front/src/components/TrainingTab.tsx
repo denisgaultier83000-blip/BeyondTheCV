@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Activity, 
+  // ... autres imports
   DollarSign,
   Target, 
   Award, 
@@ -19,6 +20,7 @@ import {
   Dumbbell
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useMutation, useQueryClient } from '@tanstack/react-query'; // [NOUVEAU]
 import { DashboardCard } from './DashboardCard';
 import Questionnaire from './Questionnaire';
 import { API_BASE_URL } from '../config';
@@ -27,19 +29,45 @@ import { useDashboard } from './DashboardContext';
 import { VocalPitchTrainer } from './VocalPitchTrainer';
 import { RechargeModal } from './RechargeModal';
 
+// --- API Functions ---
+
+interface EvaluatePayload {
+  theme: string;
+  question_type: string;
+  question_text: string;
+  user_answer: string;
+  interview_format?: string;
+  stress_level?: string;
+  target_language?: string;
+}
+
+const evaluateAnswerAPI = async (payload: EvaluatePayload) => {
+  const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/evaluate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const error = new Error(errorData.detail || "Erreur lors de l'évaluation de la réponse.");
+    (error as any).status = response.status;
+    throw error;
+  }
+  return response.json();
+};
+
 export default function TrainingTab() {
   const dashboardContext = useDashboard();
   if (!dashboardContext) return null;
 
-  const { cvData, updateFormData, actionPlanResult, quotas, fetchQuotas } = dashboardContext;
+  const { cvData, updateFormData, actionPlanResult, quotasQuery } = dashboardContext;
+  const { data: quotas, refetch: fetchQuotas } = quotasQuery;
   const [score, setScore] = useState(0);
   const [totalSessions, setTotalSessions] = useState(0);
   const [themeScores, setThemeScores] = useState<Record<string, number>>({});
   const [themeCounts, setThemeCounts] = useState<Record<string, number>>({});
   const [selectedTheme, setSelectedTheme] = useState('Gestion de crise');
   const [selectedType, setSelectedType] = useState('MES');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showRechargeModal, setShowRechargeModal] = useState(false);
 
   // UX Interactive (Aide & Suggestion)
@@ -47,10 +75,11 @@ export default function TrainingTab() {
   const [showHint, setShowHint] = useState(false);
   const [showSuggestion, setShowSuggestion] = useState(false);
   const [userAnswer, setUserAnswer] = useState('');
-  const [isEvaluating, setIsEvaluating] = useState(false);
   const [feedback, setFeedback] = useState<any>(null);
   const [trainingHistory, setTrainingHistory] = useState<any[]>([]);
   const [interviewHistory, setInterviewHistory] = useState<any[]>([]);
+  
+  const queryClient = useQueryClient(); // [NOUVEAU]
 
   const themes = ['Management', 'Gestion de crise', 'Négociation', 'Leadership', 'Communication'];
   const types = [{ id: 'Classique', label: 'Questions Classiques' }, { id: 'MES', label: 'Mises en Situation' }];
@@ -102,103 +131,89 @@ export default function TrainingTab() {
     if (fetchQuotas) fetchQuotas();
   };
 
-  const handleGenerate = async () => {
-    setIsGenerating(true);
-    setErrorMsg(null);
-    
-    try {
-      const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/generate-question`, {
+  // [NOUVEAU] Remplacement de handleGenerate par useMutation
+  const generateQuestionMutation = useMutation({
+    mutationFn: (variables: { theme: string; type: string; lang: string }) => {
+      return authenticatedFetch(`${API_BASE_URL}/api/cv/training/generate-question`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ theme: selectedTheme, question_type: selectedType, count: 1, target_language: cvData?.target_language || 'fr' })
+        body: JSON.stringify({ theme: variables.theme, question_type: variables.type, count: 1, target_language: variables.lang })
+      }).then(res => {
+        if (!res.ok) {
+          if (res.status === 402) setShowRechargeModal(true);
+          return res.json().then(err => { throw new Error(err.detail || "Erreur de génération") });
+        }
+        return res.json();
       });
-      if (!res.ok) {
-        if (res.status === 402) setShowRechargeModal(true);
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.detail || "Erreur de génération");
-      }
-      const data = await res.json();
-      if (data.questions && data.questions.length > 0) {
-        const newQ = {
-          id: Date.now().toString(),
-          category: selectedTheme,
-          type: selectedType,
-          question: data.questions[0].text,
-          advice: data.questions[0].advice,
-          suggested_answer: data.questions[0].suggested_answer,
-        };
-        // Démarre la session interactive
-        setActiveQuestion(newQ);
-        setShowHint(false);
-        setShowSuggestion(false);
-        setUserAnswer('');
-        setFeedback(null);
-        if (fetchQuotas) fetchQuotas();
-      }
-    } catch (err: any) {
-      console.error("Erreur génération question", err);
-      setErrorMsg(err.message);
-    } finally {
-      setIsGenerating(false);
+    },
+    onSuccess: (data) => {
+      // La mutation a réussi, on met à jour l'UI
+      const newQ = {
+        id: Date.now().toString(),
+        category: selectedTheme,
+        type: selectedType,
+        question: data.questions[0].text,
+        advice: data.questions[0].advice,
+        suggested_answer: data.questions[0].suggested_answer,
+      };
+      setActiveQuestion(newQ);
+      setShowHint(false);
+      setShowSuggestion(false);
+      setUserAnswer('');
+      setFeedback(null);
+      queryClient.invalidateQueries({ queryKey: ['quotas'] }); // Invalide et rafraîchit les quotas
     }
-  };
+  });
 
-  const handleEvaluate = async () => {
-    if (!userAnswer.trim()) return;
-    setIsEvaluating(true);
-    setErrorMsg(null);
-
-    const requiredQuota = activeQuestion.type === 'MES' ? (quotas?.mes ?? 0) : (quotas?.qa ?? 0);
-    if (requiredQuota <= 0) {
-      setShowRechargeModal(true);
-      setIsEvaluating(false);
-      return;
-    }
-
-    try {
-      const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/evaluate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          theme: activeQuestion.category, 
-          question_type: activeQuestion.type, 
-          question_text: activeQuestion.question, 
-          user_answer: userAnswer,
-          interview_format: cvData?.interview_format,
-          stress_level: cvData?.stress_level,
-          target_language: cvData?.target_language || 'fr'
-        })
-      });
-      if (!res.ok) {
-        if (res.status === 402) setShowRechargeModal(true);
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.detail || "Erreur d'évaluation");
-      }
-      const data = await res.json();
-      setFeedback(data.feedback);
-      refreshAllStats(); // Ceci va re-déclencher le fetch des quotas
+  // [NOUVEAU] Remplacement de handleEvaluate par useMutation
+  const evaluateAnswerMutation = useMutation({
+    mutationFn: evaluateAnswerAPI,
+    onSuccess: (data) => {
+      // La mutation a réussi !
+      setFeedback(data.feedback); // Met à jour l'UI avec le feedback
+      refreshAllStats(); // Rafraîchit les stats globales et les quotas
       
       const completedQ = { ...activeQuestion, userAnswer, evaluation: data.feedback, feedback: data.feedback };
       
       // Injection silencieuse dans le cache local pour que l'historique "Questionnaire" l'affiche avec couleurs et /10
       try {
         localStorage.setItem(`training_${activeQuestion.id}`, JSON.stringify({
-          answer: userAnswer,
           userAnswer: userAnswer,
           evaluation: data.feedback,
           feedback: data.feedback
         }));
       } catch(e) { console.error("Erreur cache", e); }
 
+      // Met à jour l'historique local et global
       const updatedHistory = [...trainingHistory, completedQ];
       setTrainingHistory(updatedHistory);
       if (updateFormData) updateFormData("trainingQuestions", updatedHistory);
-    } catch (err: any) {
-      console.error("Erreur évaluation", err);
-      setErrorMsg(err.message);
-    } finally {
-      setIsEvaluating(false);
+    },
+    onError: (error: any) => {
+      // Gestion centralisée des erreurs
+      if (error.status === 402) {
+        setShowRechargeModal(true);
+      }
+      // L'erreur est automatiquement disponible dans `evaluateAnswerMutation.error` pour l'affichage
     }
+  });
+
+  const handleEvaluate = () => {
+    if (!userAnswer.trim() || !activeQuestion) return;
+    const requiredQuota = activeQuestion.type === 'MES' ? (quotas?.mes ?? 0) : (quotas?.qa ?? 0);
+    if (requiredQuota <= 0) {
+      setShowRechargeModal(true);
+      return;
+    }
+    evaluateAnswerMutation.mutate({
+      theme: activeQuestion.category,
+      question_type: activeQuestion.type,
+      question_text: activeQuestion.question,
+      user_answer: userAnswer,
+      interview_format: cvData?.interview_format,
+      stress_level: cvData?.stress_level,
+      target_language: cvData?.target_language || 'fr'
+    });
   };
 
   // Helper couleur
@@ -433,9 +448,9 @@ export default function TrainingTab() {
       <DashboardCard title="Nouvelle Session d'Entraînement" icon={<Settings2 size={24} />}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
-          {errorMsg && !activeQuestion && (
+          {generateQuestionMutation.isError && !activeQuestion && !generateQuestionMutation.isPending && (
             <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.2)', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--danger-text)' }}>
-              <AlertCircle size={18} /> {errorMsg}
+              <AlertCircle size={18} /> {generateQuestionMutation.error.message}
             </div>
           )}
 
@@ -490,13 +505,20 @@ export default function TrainingTab() {
           {/* Bouton Générer */}
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
             <button 
-              onClick={() => { if ((quotas?.qa ?? 0) > 0 || (quotas?.mes ?? 0) > 0) handleGenerate(); else setShowRechargeModal(true); }}
-              disabled={isGenerating}
+              onClick={() => {
+                const requiredQuota = selectedType === 'MES' ? (quotas?.mes ?? 0) : (quotas?.qa ?? 0);
+                if (requiredQuota > 0) {
+                  generateQuestionMutation.mutate({ theme: selectedTheme, type: selectedType, lang: cvData?.target_language || 'fr' });
+                } else {
+                  setShowRechargeModal(true);
+                }
+              }}
+              disabled={generateQuestionMutation.isPending}
               className="btn-primary"
               style={{ padding: '1rem 3rem', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
             >
-              {isGenerating ? <RefreshCw className="spin" size={20} /> : <Target size={20} />}
-              {isGenerating ? "Génération par l'IA..." : "Générer mon défi"}
+              {generateQuestionMutation.isPending ? <RefreshCw className="spin" size={20} /> : <Target size={20} />}
+              {generateQuestionMutation.isPending ? "Génération par l'IA..." : "Générer mon défi"}
             </button>
           </div>
         </div>
@@ -529,17 +551,17 @@ export default function TrainingTab() {
             style={{ width: '100%', minHeight: '120px', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-main)', marginBottom: '1rem' }}
           />
 
-          {errorMsg && isEvaluating === false && (
+          {evaluateAnswerMutation.isError && !evaluateAnswerMutation.isPending && (
             <div style={{ marginBottom: '1rem', color: 'var(--danger-text)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <AlertCircle size={16} /> {errorMsg}
+              <AlertCircle size={16} /> {evaluateAnswerMutation.error.message}
             </div>
           )}
 
           {(() => {
             const remainingForType = activeQuestion.type === 'MES' ? (quotas?.mes ?? 0) : (quotas?.qa ?? 0);
             return (
-              <button onClick={handleEvaluate} disabled={isEvaluating || !userAnswer.trim()} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {isEvaluating ? <RefreshCw className="spin" size={18} /> : <MessageSquare size={18} />} {isEvaluating ? "Évaluation..." : `Soumettre & Évaluer (${remainingForType} restants)`}
+              <button onClick={handleEvaluate} disabled={evaluateAnswerMutation.isPending || !userAnswer.trim()} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {evaluateAnswerMutation.isPending ? <RefreshCw className="spin" size={18} /> : <MessageSquare size={18} />} {evaluateAnswerMutation.isPending ? "Évaluation..." : `Soumettre & Évaluer (${remainingForType} restants)`}
               </button>
             );
           })()}

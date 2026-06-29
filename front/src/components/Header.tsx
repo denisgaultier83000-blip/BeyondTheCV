@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth'; // [NOUVEAU] Importer le hook d'authentification
+import { useIsFetching, useIsMutating } from '@tanstack/react-query';
 import './Header.css';
 import LanguageSelector from './LanguageSelector';
 
@@ -26,6 +27,11 @@ interface HeaderProps {
   const { t } = useTranslation();
   // [NOUVEAU] On utilise le hook d'authentification pour obtenir l'utilisateur et son état
   const { user, isAuthenticated: isUserAuthenticated, logout } = useAuth();
+
+  // [NOUVEAU] Hooks pour le chargement global
+  const isFetching = useIsFetching();
+  const isMutating = useIsMutating();
+  const isGlobalLoading = isFetching > 0 || isMutating > 0;
   const contextUserName = user?.first_name;
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -124,6 +130,9 @@ interface HeaderProps {
           </button>
         </div>
       </div>
+
+      {/* Barre de chargement globale non-intrusive */}
+      {isGlobalLoading && <div className="global-loader" />}
     </header>
   );
 }

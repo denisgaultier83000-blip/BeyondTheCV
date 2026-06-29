@@ -52,22 +52,38 @@ export const CompanySearch = () => {
 
   // Le hook useMutation pour l'action de validation
   const validateCompanyMutation = useMutation({
-    mutationFn: validateCompanyAPI, // La fonction qui effectue la modification
-    onSuccess: (data) => {
-      // La mutation a réussi !
-      console.log('Validation réussie:', data.validatedCompany);
+    mutationFn: validateCompanyAPI,
+    // 1. onMutate est appelé AVANT la mutation. C'est ici que la magie opère.
+    onMutate: async (selectedCompany) => {
+      // Annuler les requêtes en cours pour la liste des entreprises pour éviter les conflits
+      await queryClient.cancelQueries({ queryKey: ['companies', searchTerm] });
 
-      // On peut invalider des requêtes en cache pour forcer leur rafraîchissement.
-      // Par exemple, si on a une liste de "dossiers de candidature" quelque part :
-      queryClient.invalidateQueries({ queryKey: ['application_dossiers'] });
+      // Sauvegarder l'état précédent de la liste
+      const previousCompanies = queryClient.getQueryData(['companies', searchTerm]);
 
-      // On peut aussi mettre à jour manuellement une query avec la nouvelle donnée,
-      // pour une mise à jour instantanée sans re-fetch (Optimistic Update).
-      // queryClient.setQueryData(['dossier', data.validatedCompany.id], data.validatedCompany);
+      // Mettre à jour l'UI de manière optimiste : on retire l'entreprise de la liste
+      queryClient.setQueryData(['companies', searchTerm], (oldData: any[] | undefined) => 
+        oldData ? oldData.filter(c => c.id !== selectedCompany.id) : []
+      );
+
+      // Retourner le snapshot de l'état précédent
+      return { previousCompanies };
     },
-    onError: (error) => {
-      // La mutation a échoué. L'erreur est capturée ici.
-      console.error('Erreur de validation:', error.message);
+    // 2. onError est appelé si la mutation échoue.
+    onError: (err, variables, context) => {
+      // On restaure les données précédentes depuis le contexte retourné par onMutate
+      if (context?.previousCompanies) {
+        queryClient.setQueryData(['companies', searchTerm], context.previousCompanies);
+      }
+      console.error('Erreur de validation (optimiste):', err.message);
+    },
+    // 3. onSettled est toujours appelé à la fin (succès ou erreur).
+    onSettled: () => {
+      // On invalide la requête pour resynchroniser l'état de l'UI avec le serveur.
+      // C'est la source de vérité finale.
+      queryClient.invalidateQueries({ queryKey: ['companies', searchTerm] });
+      // On peut aussi invalider d'autres données qui dépendent de cette action
+      queryClient.invalidateQueries({ queryKey: ['application_dossiers'] });
     },
   });
 
