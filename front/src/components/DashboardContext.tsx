@@ -1,5 +1,6 @@
 // @refresh reset
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 
@@ -7,9 +8,7 @@ import { authenticatedFetch } from '../utils/auth';
 interface DashboardContextType {
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  pilotData: any;
   quotas: { [key: string]: number };
-  isPilotLoading: boolean;
   researchResult: any;
   salaryResult: any;
   gapResult: any;
@@ -23,11 +22,18 @@ interface DashboardContextType {
   customScenariosResult: any;
   globalStatus: string;
   cvData: any;
-  setCurrentStep: (step: number) => void;
-  triggerResearch: () => Promise<void>;
-  fetchPilotData: () => Promise<void>;
   fetchQuotas: () => Promise<void>;
   updateFormData?: (key: string, value: any) => void;
+  
+  // React Query hooks
+  pilotQuery: any; // Remplace pilotData, isPilotLoading, pilotError
+  purgeCacheMutation: any;
+  regenerateActionPlanMutation: any;
+
+  // Fonctions de navigation/action
+  setCurrentStep: (step: number) => void;
+  triggerResearch: () => Promise<void>;
+
   pilotError: string | null;
 }
 
@@ -97,18 +103,7 @@ export const DashboardProvider = ({
   // État de navigation interne
   const [activeTab, setActiveTab] = useState<string>('cockpit');
 
-  // État des données de la vue Bento (Résumé)
-  const [pilotData, setPilotData] = useState<any>(null);
-  const [isPilotLoading, setIsPilotLoading] = useState<boolean>(false);
-  const [pilotError, setPilotError] = useState<string | null>(null);
-  const [quotas, setQuotas] = useState<{[key: string]: number}>({
-    pitch: 0,
-    qa: 0,
-    mes: 0,
-    negotiation: 0,
-    regeneration: 0,
-    update: 0,
-  });
+  const queryClient = useQueryClient();
 
   const fetchQuotas = useCallback(async () => {
     // [FIX] Logique pour les testeurs avec quotas illimités
@@ -132,60 +127,67 @@ export const DashboardProvider = ({
     try {
         const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/balance`);
         if (response.ok) {
-            const data = await response.json();
-            setQuotas(data);
+            return await response.json();
         }
+        throw new Error("Could not fetch quotas");
     } catch (e: any) {
         console.error("Impossible de récupérer les quotas, utilisation des valeurs par défaut.", e);
+        return { pitch: 0, qa: 0, mes: 0, negotiation: 0, regeneration: 0, update: 0 };
     }
   }, [localCvData?.email]);
 
-  // Mémoïsation de la fonction d'appel pour éviter les re-rendus infinis dans les useEffect
-  const fetchPilotData = useCallback(async () => {
-    if (!initialCvData) return;
-    
-    setIsPilotLoading(true);
-    setPilotError(null);
-    try {
-      // [FIX] On injecte les résultats de marché pour une synthèse beaucoup plus riche
-      const payload = { ...initialCvData };
-      if (initialResearchResult) {
-        payload.research_data = initialResearchResult;
-      }
-      if (initialGapResult) {
-        payload.gap_analysis = initialGapResult;
-      }
+  const { data: quotas = { pitch: 0, qa: 0, mes: 0, negotiation: 0, regeneration: 0, update: 0 } } = useQuery({
+    queryKey: ['quotas', localCvData?.email],
+    queryFn: fetchQuotas,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
+  // --- QUERIES & MUTATIONS ---
+
+  const pilotQuery = useQuery({
+    queryKey: ['pilotData', localCvData?.id],
+    queryFn: async () => {
+      const payload = { ...localCvData, research_data: initialResearchResult, gap_analysis: initialGapResult };
       const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/dashboard/summary`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
       });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setPilotData(data);
-      } else {
-        let errMsg = `Erreur serveur (${response.status})`;
-        try { const errObj = await response.json(); errMsg = errObj.detail || errMsg; } catch(e) {}
-        setPilotError(errMsg);
-        console.error(`[DashboardContext] Failed to fetch pilot data. Status: ${response.status}`, errMsg);
-      }
-    } catch (error: any) {
-      setPilotError(error.message || "Erreur réseau (Timeout). L'intelligence artificielle met trop de temps à répondre.");
-      console.error("[DashboardContext] Error fetching pilot data:", error);
-    } finally {
-      setIsPilotLoading(false);
-    }
-  // [FIX EXPERT] On évite le re-rendu infini en stringifiant les objets dans les dépendances.
-  // Sinon, React recrée la fonction à chaque rendu parent (changement de référence mémoire), ce qui spamme le backend.
-  }, [JSON.stringify(initialCvData), JSON.stringify(initialResearchResult), JSON.stringify(initialGapResult)]); 
+      if (!response.ok) throw new Error((await response.json()).detail || "Erreur lors du chargement du résumé.");
+      return response.json();
+    },
+    enabled: !!localCvData?.id, // Ne s'exécute que si les données du CV sont chargées
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
 
-  // Auto-fetch ultra-robuste quand le CV (mock puis réel) est mis à jour
+  const regenerateActionPlanMutation = useMutation({
+    mutationFn: async () => {
+      const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/regenerate/action-plan`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(localCvData)
+      });
+      if (!res.ok) throw new Error((await res.json()).detail || "Erreur lors de la regénération.");
+      return res.json();
+    },
+    onSuccess: (newData) => {
+      // Invalider et mettre à jour les données du plan d'action
+      queryClient.setQueryData(['actionPlanResult'], newData);
+      handleUpdateFormData('actionPlanResult', newData);
+      handleUpdateFormData('cockpitCheckedItems', []);
+      handleUpdateFormData('trainingScores', {});
+    }
+  });
+
+  const purgeCacheMutation = useMutation({
+    mutationFn: async (contentType: string) => {
+      return await authenticatedFetch(`${API_BASE_URL}/api/cv/cache?content_type=${contentType}`, { method: 'DELETE' });
+    },
+    onSuccess: () => {
+      // On pourrait invalider des queries spécifiques ici si nécessaire
+      alert("Cache purgé. Veuillez rafraîchir la page (F5) pour générer de nouvelles données.");
+    }
+  });
+
   useEffect(() => {
-    fetchPilotData();
-    fetchQuotas(); // `fetchQuotas` a maintenant `localCvData.email` en dépendance
-  }, [fetchPilotData, fetchQuotas]);
+    queryClient.invalidateQueries({ queryKey: ['quotas'] });
+  }, [localCvData?.email, queryClient]);
 
   return (
     // [FIX ARCHITECTURAL] On garantit ici que les props ne seront JAMAIS null.
@@ -193,8 +195,6 @@ export const DashboardProvider = ({
     // dans tous les composants enfants, sans avoir à les modifier un par un.
     <DashboardContext.Provider value={{
       activeTab, setActiveTab,
-      pilotData, fetchPilotData,
-      isPilotLoading,
       quotas,
       fetchQuotas,
       cvData: localCvData || {},
@@ -213,7 +213,11 @@ export const DashboardProvider = ({
       setCurrentStep: onSetCurrentStep,
       triggerResearch: onTriggerResearch,
       updateFormData: handleUpdateFormData,
-      pilotError,
+      pilotQuery,
+      purgeCacheMutation,
+      regenerateActionPlanMutation,
+      // Pour la compatibilité descendante, on peut exposer l'erreur de la query principale
+      pilotError: pilotQuery.error?.message || null,
     }}>
       {children}
     </DashboardContext.Provider>

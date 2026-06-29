@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useDashboard } from './DashboardContext';
+import { useDashboard, } from './DashboardContext';
 import { Mic, MessageSquare, Play, Pause, RotateCcw, BrainCircuit, ArrowLeft, Loader2, RefreshCw, Lightbulb, Shield, Users, Briefcase, Building, Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DashboardCard } from './DashboardCard';
@@ -12,7 +12,6 @@ import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
 import SalaryNegotiator from './SalaryNegotiator';
 import PitchOralTrainer from './PitchOralTrainer';
-
 // --- LOGIQUE TÉLÉPROMPTEUR DÉPLACÉE ICI (À LA RACINE) ---
 const Teleprompter = ({ fullPitchText, setIsTeleprompterOpen, isDark, t }: { fullPitchText: string, setIsTeleprompterOpen: any, isDark: boolean, t: any }) => {
   const [timer, setTimer] = useState(180);
@@ -75,7 +74,7 @@ const Teleprompter = ({ fullPitchText, setIsTeleprompterOpen, isDark, t }: { ful
 };
 
 export const InterviewTab = () => {
-  const { pitchResult, questionsResult, customScenariosResult, globalStatus, cvData, updateFormData } = useDashboard();
+  const { pitchResult, questionsResult, customScenariosResult, globalStatus, cvData, updateFormData, purgeCacheMutation } = useDashboard();
   const { t } = useTranslation();
   const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false);
   const [isDark] = useState(() => document.body.classList.contains('dark-mode'));
@@ -146,13 +145,8 @@ export const InterviewTab = () => {
 
   const handlePurgeCache = async () => {
     if (window.confirm(t('confirm_purge', "Voulez-vous effacer vos anciennes réponses et forcer l'IA à regénérer un nouveau set de questions au prochain chargement ?"))) {
-      try {
-        await authenticatedFetch(`${API_BASE_URL}/api/cv/cache?content_type=interview_questions`, { method: 'DELETE' });
-        await authenticatedFetch(`${API_BASE_URL}/api/cv/cache?content_type=extra_scenarios`, { method: 'DELETE' });
-        alert(t('purge_success', "Cache purgé. Veuillez rafraîchir la page (F5) pour générer de nouvelles questions vierges."));
-      } catch (e) {
-        console.error(e);
-      }
+      purgeCacheMutation.mutate('interview_questions');
+      purgeCacheMutation.mutate('extra_scenarios');
     }
   };
 
@@ -363,7 +357,7 @@ export const InterviewTab = () => {
           featureId="interview_questions"
           headerAction={
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button onClick={handlePurgeCache} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} title="Effacer l'historique d'entraînement du profil">
+              <button onClick={handlePurgeCache} disabled={purgeCacheMutation.isPending} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} title="Effacer l'historique d'entraînement du profil">
                 <RotateCcw size={16} /> Purger le cache
               </button>
             </div>

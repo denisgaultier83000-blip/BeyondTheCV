@@ -29,8 +29,8 @@ interface DeliverableItem {
 export const DashboardView = () => {
   const { t } = useTranslation();
   const { 
-    activeTab, setActiveTab, pilotData, isPilotLoading, pilotError, cvData, fetchPilotData,
-    researchResult, salaryResult, setCurrentStep,
+    activeTab, setActiveTab, pilotQuery, cvData,
+    researchResult, salaryResult,
     jobDecoderResult, recruiterResult, realityResult, flawCoachingResult,
     globalStatus, triggerResearch,
     pitchResult, questionsResult, gapResult, customScenariosResult, actionPlanResult
@@ -39,6 +39,8 @@ export const DashboardView = () => {
   // --- GESTION DES NOTIFICATIONS ---
   const [viewedTabs, setViewedTabs] = useState<string[]>(['cockpit']);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const { data: pilotData, isLoading: isPilotLoading, error: pilotError, refetch: fetchPilotData } = pilotQuery;
+
   
   // --- GESTION DE L'IMPRESSION ---
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
@@ -206,13 +208,6 @@ export const DashboardView = () => {
   const marketUnseen = hasUnseen('market', [gapResult, researchResult, jobDecoderResult]);
   const cockpitUnseen = hasUnseen('cockpit', [actionPlanResult]);
 
-  // [FIX CRITIQUE] On force le chargement du résumé si les données sont absentes pour briser la boucle de crash
-  useEffect(() => {
-    if ((activeTab === 'overview' || activeTab === 'cockpit') && !pilotData && !pilotError && typeof fetchPilotData === 'function') {
-      fetchPilotData();
-    }
-  }, [activeTab, pilotData, pilotError, fetchPilotData]);
-
   // La condition de chargement est maintenant robuste grâce a l'état explicite `isPilotLoading`
   const isLoadingOverview = isPilotLoading || (!pilotData && !pilotError);
 
@@ -362,7 +357,7 @@ export const DashboardView = () => {
                 <div className="bento-card col-span-3" style={{ textAlign: 'center', padding: '3rem 1rem', border: '1px solid var(--danger-text)', background: 'var(--bg-card)' }}>
                   <AlertTriangle size={48} color="var(--danger-text)" style={{ margin: '0 auto 1rem auto' }} />
                   <h3 style={{ color: 'var(--danger-text)', marginBottom: '0.5rem' }}>Analyse momentanément interrompue</h3>
-                  <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>{pilotError}</p>
+                  <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>{pilotError?.message}</p>
                   <button onClick={fetchPilotData} className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
                     <RotateCcw size={16} /> Réessayer
                   </button>

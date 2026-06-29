@@ -38,10 +38,8 @@ export const CockpitTab: React.FC<CockpitProps> = ({
   interviewTarget 
 }) => {
   const { t } = useTranslation();
-  const { cvData, updateFormData } = useDashboard();
+  const { cvData, updateFormData, regenerateActionPlanMutation } = useDashboard();
   const [checkedItems, setCheckedItems] = useState<number[]>(cvData?.cockpitCheckedItems || []);
-  const [isRegenerating, setIsRegenerating] = useState(false);
-  const [localData, setLocalData] = useState(actionPlanData);
   const [error, setError] = useState<string | null>(null);
   const [selectedTrainingModule, setSelectedTrainingModule] = useState<TrainingModule | null>(null);
   const [hasFiredConfetti, setHasFiredConfetti] = useState(false);
@@ -49,7 +47,7 @@ export const CockpitTab: React.FC<CockpitProps> = ({
 
   useEffect(() => {
     setLocalData(actionPlanData);
-  }, [actionPlanData]);
+  }, [actionPlanData]); // Renommée en localData pour éviter conflit de nom
 
   useEffect(() => {
     if (cvData?.cockpitCheckedItems) {
@@ -65,37 +63,14 @@ export const CockpitTab: React.FC<CockpitProps> = ({
 
   const handleRegenerate = async () => {
     if (!window.confirm("Voulez-vous forcer l'IA à calculer une nouvelle stratégie d'action ?")) return;
-    setIsRegenerating(true);
     setError(null);
-    try {
-      const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/regenerate/action-plan`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cvData)
-      });
-      if (!res.ok) throw new Error("Erreur réseau");
-      const newData = await res.json();
-      setLocalData(newData);
-      setCheckedItems([]); // On vide la sélection locale
-      setTrainingScores({}); // On vide les scores précédents
-      if (updateFormData) {
-        updateFormData('actionPlanResult', newData);
-        updateFormData('cockpitCheckedItems', []); // On vide la sélection sauvegardée
-        updateFormData('trainingScores', {});
-      }
-      // Hard-sync pour forcer la persistance au-delà du contexte local
-      const currentDataRaw = localStorage.getItem("cvData");
-      if (currentDataRaw) {
-        try {
-          const parsed = JSON.parse(currentDataRaw);
-          parsed.cockpitCheckedItems = [];
-          parsed.trainingScores = {};
-          localStorage.setItem("cvData", JSON.stringify(parsed));
-        } catch (e) {}
-      }
-    } catch (e) {
-      setError("Erreur lors de la regénération. Veuillez réessayer.");
-    } finally {
-      setIsRegenerating(false);
-    }
+    regenerateActionPlanMutation.mutate(undefined, {
+      onSuccess: () => {
+        setCheckedItems([]);
+        setTrainingScores({});
+      },
+      onError: (e: any) => setError(e.message || "Erreur lors de la regénération.")
+    });
   };
 
   // Sécurisation des données en cas de génération partielle de l'IA
@@ -116,7 +91,7 @@ export const CockpitTab: React.FC<CockpitProps> = ({
     return parsed || {};
   };
 
-  const actualData = getParsedData(localData);
+  const actualData = getParsedData(actionPlanData);
   const plan: ActionTask[] = actualData.action_plan || actualData.actionPlan || [];
   const training: TrainingModule[] = actualData.training_plan || actualData.trainingPlan || [];
   const advice = actualData.strategy_advice || actualData.strategyAdvice || "Aucun conseil stratégique disponible pour le moment.";
@@ -209,8 +184,8 @@ export const CockpitTab: React.FC<CockpitProps> = ({
             {t('cockpit_title', 'Cockpit Stratégique')}
           </h2>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <button onClick={handleRegenerate} disabled={isRegenerating} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-secondary)', color: 'var(--text-main)', border: '1px solid var(--border-color)', padding: '0.5rem 1rem', borderRadius: '2rem', transition: 'all 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'var(--border-color)'} onMouseOut={e => e.currentTarget.style.background = 'var(--bg-secondary)'}>
-              {isRegenerating ? <Loader2 size={16} className="spin" /> : <RefreshCw size={16} />} {isRegenerating ? "Calcul IA..." : "Régénérer"}
+            <button onClick={handleRegenerate} disabled={regenerateActionPlanMutation.isPending} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-secondary)', color: 'var(--text-main)', border: '1px solid var(--border-color)', padding: '0.5rem 1rem', borderRadius: '2rem', transition: 'all 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'var(--border-color)'} onMouseOut={e => e.currentTarget.style.background = 'var(--bg-secondary)'}>
+              {regenerateActionPlanMutation.isPending ? <Loader2 size={16} className="spin" /> : <RefreshCw size={16} />} {regenerateActionPlanMutation.isPending ? "Calcul IA..." : "Régénérer"}
             </button>
             <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger-text)', padding: '0.5rem 1rem', borderRadius: '2rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
               <Activity size={16} style={{ animation: 'pulse 2s infinite' }} /> {displayDate}
@@ -233,9 +208,9 @@ export const CockpitTab: React.FC<CockpitProps> = ({
           </div>
         </div>
 
-        {error && (
+        {(error || regenerateActionPlanMutation.error) && (
           <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger-text)', padding: '0.75rem 1rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.2)', marginBottom: '1.5rem' }}>
-            <AlertTriangle size={18} /> {error}
+            <AlertTriangle size={18} /> {error || regenerateActionPlanMutation.error?.message}
           </div>
         )}
 
@@ -305,7 +280,7 @@ export const CockpitTab: React.FC<CockpitProps> = ({
             </div>
           ) : (
             <div className="skeleton-pulse" style={{ height: '200px', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-              {(localData as any)?.status === 'PENDING' || (localData as any)?.status === 'PROCESSING' ? <><Loader2 className="spin" size={18} style={{ marginRight: '8px' }} /> Stratégie d'actions en cours de calcul...</> : "Aucune action disponible."}
+              {(actionPlanData as any)?.status === 'PENDING' || (actionPlanData as any)?.status === 'PROCESSING' ? <><Loader2 className="spin" size={18} style={{ marginRight: '8px' }} /> Stratégie d'actions en cours de calcul...</> : "Aucune action disponible."}
             </div>
           )}
         </div>
@@ -368,7 +343,7 @@ export const CockpitTab: React.FC<CockpitProps> = ({
             </div>
           ) : (
             <div className="skeleton-pulse" style={{ height: '200px', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-              {(localData as any)?.status === 'PENDING' || (localData as any)?.status === 'PROCESSING' ? <><Loader2 className="spin" size={18} style={{ marginRight: '8px' }} /> Planification de l'entraînement en cours...</> : "Aucun entraînement disponible."}
+              {(actionPlanData as any)?.status === 'PENDING' || (actionPlanData as any)?.status === 'PROCESSING' ? <><Loader2 className="spin" size={18} style={{ marginRight: '8px' }} /> Planification de l'entraînement en cours...</> : "Aucun entraînement disponible."}
             </div>
           )}
         </div>

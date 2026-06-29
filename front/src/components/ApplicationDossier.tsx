@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Printer, Trash2, Download, Eye, Briefcase, Calendar, CheckCircle2, ArrowLeft, Loader2, Building, Target, Mic, LineChart, MessageSquare, AlertTriangle, Zap, UserCheck, Monitor, HeartPulse } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { TrainingPlanTimeline } from './TrainingPlanTimeline';
@@ -12,49 +13,36 @@ interface ApplicationDossierProps {
 }
 
 export function ApplicationDossier({ appId, onBack, onOpenDeliverable, onGoToTraining }: ApplicationDossierProps) {
-  const [loading, setLoading] = useState(true);
-  const [appData, setAppData] = useState<any>(null);
-  const [deliverablesData, setDeliverablesData] = useState<any>({});
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const loadDossier = async () => {
-      try {
-        const response = await authenticatedFetch(`${API_BASE_URL}/api/applications/${appId}/load`);
-        if (!response.ok) throw new Error("Erreur lors du chargement du dossier");
-        
-        const json = await response.json();
-        setAppData(json.application);
-        setDeliverablesData(json.data);
-      } catch (err) {
-        console.error(err);
-      setError("Impossible de charger le contenu de ce dossier.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    loadDossier();
-  }, [appId, onBack]);
-
-  const handleDelete = async () => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer définitivement ce dossier et toutes ses analyses ?")) return;
-    
-    setIsDeleting(true);
-    setError(null);
-    try {
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/applications/${appId}`, {
-        method: 'DELETE'
-      });
-      if (!response.ok) throw new Error("Échec de la suppression");
-      onBack();
-    } catch (err) {
-      console.error(err);
-      setError("Erreur lors de la suppression de la candidature.");
-      setIsDeleting(false);
+  const { data, isLoading, error: queryError } = useQuery({
+    queryKey: ['applicationDossier', appId],
+    queryFn: async () => {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/applications/${appId}/load`);
+      if (!response.ok) throw new Error("Erreur lors du chargement du dossier");
+      return response.json();
     }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/applications/${appId}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error("Échec de la suppression");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['applications'] }); // Invalide la liste des dossiers
+      onBack();
+    }
+  });
+
+  const handleDelete = () => {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer définitivement ce dossier et toutes ses analyses ?")) return;
+    deleteMutation.mutate();
   };
+
+  const appData = data?.application;
+  const deliverablesData = data?.data || {};
+  const error = queryError?.message || deleteMutation.error?.message;
 
   const handlePrintAll = () => {
     // Charge toutes les données dans le contexte global puis lance l'impression
@@ -62,7 +50,7 @@ export function ApplicationDossier({ appId, onBack, onOpenDeliverable, onGoToTra
     onOpenDeliverable('print_all', deliverablesData);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
         <Loader2 className="spin" size={48} color="var(--primary)" style={{ marginBottom: '1rem' }} />
@@ -187,8 +175,8 @@ export function ApplicationDossier({ appId, onBack, onOpenDeliverable, onGoToTra
         <button onClick={() => window.print()} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 1.5rem' }}>
           <Printer size={20} /> Tout imprimer
         </button>
-        <button onClick={handleDelete} disabled={isDeleting} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 1.5rem', background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600 }}>
-          {isDeleting ? <Loader2 size={20} className="spin" /> : <Trash2 size={20} />}
+        <button onClick={handleDelete} disabled={deleteMutation.isPending} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 1.5rem', background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600 }}>
+          {deleteMutation.isPending ? <Loader2 size={20} className="spin" /> : <Trash2 size={20} />}
           Supprimer
         </button>
       </div>
