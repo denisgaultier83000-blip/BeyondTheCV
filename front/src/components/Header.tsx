@@ -21,12 +21,12 @@ interface HeaderProps {
   showStepper?: boolean;
   steps?: Step[];
   currentStep?: number;
-  onLanguageChange: (lang: string) => void;
+  onLanguageChange?: (lang: string) => void;
 }
 
 export default function Header(props: HeaderProps) {
   const { 
-    darkMode, setDarkMode, showLogin, showLangSelector, onLanguageChange 
+    darkMode, setDarkMode, showLogin, showLangSelector, onLanguageChange
   } = props;
   const { t } = useTranslation();
   // [NOUVEAU] On utilise le hook d'authentification pour obtenir l'utilisateur et son état
@@ -76,7 +76,7 @@ export default function Header(props: HeaderProps) {
 
         <div className="header-actions">
           {/* Menu Langue Contrôlé */}
-          {showLangSelector && <LanguageSelector 
+          {showLangSelector && <LanguageSelector
             onChange={onLanguageChange}
             style={{ marginRight: "10px" }}
           />}
@@ -126,7 +126,7 @@ export default function Header(props: HeaderProps) {
               )}
             </div>
           ) : (
-            showLogin && <Link to="/login" className="login-link">{t('login')}</Link>
+            showLogin && <Link to="/login" className="login-link">{t('login') || 'Login'}</Link>
           )}
 
           <button onClick={() => setDarkMode(prev => !prev)} className="dark-mode-toggle">
