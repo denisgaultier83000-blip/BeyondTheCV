@@ -89,6 +89,14 @@ export function useDashboardLogic() {
   const [pilotData, setPilotData] = useState<any | null>(null);
   const [toasts, setToasts] = useState<Array<{ id: number; text: string }>>([]);
 
+  // [FIX EXPERT] Sécurisation des mises à jour d'état sur les composants démontés.
+  // Empêche les erreurs "Can't perform a React state update on an unmounted component".
+  const isMounted = React.useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
+
 
   const fetchPilotData = async () => {
     if (pilotData || !formData) return; // Already fetched or no data
@@ -124,16 +132,20 @@ export function useDashboardLogic() {
         });
       }
     } catch (err) { 
-      console.error('Erreur API Dashboard Summary:', err); 
-      setPilotData({
-        matchScore: 0,
-        summary: "Données non disponibles.",
-        strengths: [],
-        gapsMatrix: [],
-        recommendedStrategy: ""
-      });
+      console.error('Erreur API Dashboard Summary:', err);
+      // [SÉCURITÉ] On vérifie que le composant est toujours monté avant de mettre à jour l'état.
+      if (isMounted.current) {
+        setPilotData({
+          matchScore: 0,
+          summary: "Données non disponibles.",
+          strengths: [],
+          gapsMatrix: [],
+          recommendedStrategy: ""
+        });
+      }
     } finally {
-      setIsPilotLoading(false);
+      // [SÉCURITÉ] On vérifie aussi ici.
+      if (isMounted.current) setIsPilotLoading(false);
     }
   };
 
