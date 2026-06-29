@@ -1,31 +1,43 @@
-# Étape 1 : Image Python légère et officielle
-FROM python:3.11-slim
+# --- Étape 1: Construction des dépendances ---
+FROM python:3.11-slim as builder
 
-# Étape 2 : Variables d'environnement pour optimiser Python
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PORT=8080
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
-# Étape 3 : Installation des dépendances système (si besoin pour PostgreSQL ou LaTeX)
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libpq-dev \
-    texlive-latex-base \
-    texlive-latex-extra \
-    texlive-fonts-recommended \
-    && rm -rf /var/lib/apt/lists/*
-
-# Étape 4 : Création du dossier de travail
 WORKDIR /app
 
-# Étape 5 : Installation des dépendances Python
+# Installation des dépendances système (LaTeX pour la génération PDF)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    texlive-latex-base \
+    texlive-fonts-recommended \
+    texlive-latex-extra \
+    latexmk \
+    lmodern \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Création d'un environnement virtuel pour isoler les dépendances
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Installation des dépendances Python (cette couche ne sera reconstruite que si requirements.txt change)
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# Étape 6 : Copie du code source
-COPY . .
+# --- Étape 2: Image finale de production ---
+FROM python:3.11-slim
 
-# Étape 7 : Exposition du port et lancement de Uvicorn
-EXPOSE $PORT
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT}"]
+WORKDIR /app
+
+# Copie de l'environnement virtuel avec les dépendances pré-installées
+COPY --from=builder /opt/venv /opt/venv
+COPY ./backend /app
+
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Exposition du port et lancement de l'application
+EXPOSE 8080
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
