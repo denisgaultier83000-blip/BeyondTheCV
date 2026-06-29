@@ -25,11 +25,6 @@ export function RecruiterView({ data, loading, error }: RecruiterViewProps) {
   const { t } = useTranslation();
   const recruiter_persona = data?.recruiter_persona;
 
-  // [FIX EXPERT] Garde de sécurité pour empêcher le crash si les données sont absentes.
-  if (!loading && !error && !recruiter_persona) {
-    return null;
-  }
-
   const rawVerdict = recruiter_persona?.verdict || "À l'étude";
   
   // Traduction "Intelligente" des réponses brutes de l'IA française
@@ -53,7 +48,7 @@ export function RecruiterView({ data, loading, error }: RecruiterViewProps) {
       loading={loading}
       loadingText={t('rv_loading', "Simulation du recruteur en cours...")}
       error={error || (!loading && !recruiter_persona)}
-      errorText={t('rv_error', "Analyse échouée. Veuillez réessayer plus tard.")}
+      errorText={t('rv_error', "Analyse indisponible. Veuillez compléter votre profil ou réessayer.")}
       featureId="recruiter_view"
     >
       {recruiter_persona && (
