@@ -7,45 +7,51 @@
 
 let isStorageAccessible: boolean | null = null;
 
-const checkStorageAccess = (): boolean => {
+const checkStorageAccess = (storage: Storage): boolean => {
   if (isStorageAccessible !== null) return isStorageAccessible;
   try {
     const testKey = '__storage_test__';
-    localStorage.setItem(testKey, testKey);
-    localStorage.removeItem(testKey);
+    storage.setItem(testKey, testKey);
+    storage.removeItem(testKey);
     isStorageAccessible = true;
     return true;
   } catch (e) {
     isStorageAccessible = false;
-    console.warn("LocalStorage access is denied by the browser.");
+    console.warn("Web Storage access is denied by the browser.");
     return false;
   }
 };
 
+const createStorageWrapper = (storage: Storage) => {
+  const isAccessible = checkStorageAccess(storage);
+  return {
+    isAccessible,
+    getItem: (key: string): string | null => {
+      if (!isAccessible) return null;
+      try {
+        return storage.getItem(key);
+      } catch (e) {
+        return null;
+      }
+    },
+    setItem: (key: string, value: string): void => {
+      if (!isAccessible) return;
+      try {
+        storage.setItem(key, value);
+      } catch (e) {
+        console.error(`Failed to write to storage: ${e}`);
+      }
+    },
+    removeItem: (key: string): void => {
+      if (!isAccessible) return;
+      try {
+        storage.removeItem(key);
+      } catch (e) { /* ignore */ }
+    },
+  };
+};
+
 export const storageManager = {
-  isAccessible: checkStorageAccess(),
-
-  getItem: (key: string): string | null => {
-    if (!storageManager.isAccessible) return null;
-    return localStorage.getItem(key);
-  },
-
-  setItem: (key: string, value: string): void => {
-    if (!storageManager.isAccessible) return;
-    try {
-      localStorage.setItem(key, value);
-    } catch (e) {
-      console.error(`Failed to write to localStorage: ${e}`);
-    }
-  },
-
-  removeItem: (key: string): void => {
-    if (!storageManager.isAccessible) return;
-    localStorage.removeItem(key);
-  },
-
-  clear: (): void => {
-    if (!storageManager.isAccessible) return;
-    localStorage.clear();
-  }
+  local: createStorageWrapper(localStorage),
+  session: createStorageWrapper(sessionStorage),
 };

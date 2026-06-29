@@ -277,8 +277,8 @@ function AppContent() {
   // --- RESTAURATION DE CANDIDATURE (Depuis Mes Documents) ---
   useEffect(() => {
     if (isAuthenticated) {
+      const restoredDataStr = storageManager.session.getItem('restored_application_data');
       try {
-        const restoredDataStr = sessionStorage.getItem('restored_application_data');
         if (restoredDataStr) {
           const parsedData = JSON.parse(restoredDataStr);
           setRestoredData(parsedData);
@@ -286,10 +286,9 @@ function AppContent() {
           setToasts(prev => [...prev, { id: Date.now(), text: "Dossier de candidature restauré avec succès." }]);
         }
       } catch (e) {
-        console.error("Erreur de lecture/parsing des données restaurées depuis sessionStorage", e);
-      } finally {
-        try { sessionStorage.removeItem('restored_application_data'); } catch (e) { /* ignore */ }
+        console.error("Erreur de parsing des données restaurées depuis sessionStorage", e);
       }
+      storageManager.session.removeItem('restored_application_data');
     }
   }, [isAuthenticated, setCurrentStep, setToasts]);
 
