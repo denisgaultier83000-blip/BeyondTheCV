@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { storageManager } from '../utils/storageManager'; // [FIX] Importer le manager sécurisé
 
 const AdminLogin = () => {
   const [username, setUsername] = useState('');
@@ -9,8 +10,9 @@ const AdminLogin = () => {
   const navigate = useNavigate();
 
   // Si un token est déjà présent, on redirige directement vers le dashboard
+  // [FIX] Utilisation du storageManager pour éviter le crash
   useEffect(() => {
-    if (localStorage.getItem('admin_token')) {
+    if (storageManager.getItem('admin_token')) {
       navigate('/admin/dashboard');
     }
   }, [navigate]);
@@ -38,7 +40,7 @@ const AdminLogin = () => {
       }
 
       // Stockage du token dans le localStorage pour les requêtes futures
-      localStorage.setItem('admin_token', data.access_token);
+      storageManager.setItem('admin_token', data.access_token); // [FIX] Utilisation du storageManager
       
       // Redirection vers le tableau de bord de l'administration
       navigate('/admin/dashboard');
