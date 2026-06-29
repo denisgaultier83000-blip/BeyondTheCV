@@ -16,7 +16,10 @@ interface VocalPitchTrainerProps {
 
 export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDescription, onSuccess }: VocalPitchTrainerProps) => {
   const { t } = useTranslation();
-  const { quotas, fetchQuotas } = useDashboard();
+  const dashboardContext = useDashboard();
+  if (!dashboardContext) return null;
+
+  const { quotas, fetchQuotas } = dashboardContext;
   
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
