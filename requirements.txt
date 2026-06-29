@@ -25,6 +25,7 @@ email-validator>=2.1.0            # Validation des emails dans Pydantic
 # --- Utilities & External Services ---
 python-dotenv>=1.0.1     # Chargement des variables .env
 requests>=2.31.0         # Appels HTTP synchrones (Search API)
+tenacity>=8.2.3          # [AJOUT] Pour les re-tentatives automatiques des appels IA
 stripe>=8.1.0            # Gestion des paiements
 
 # Note: pdflatex doit être installé au niveau système (MiKTeX ou TeX Live), pas via pip.
