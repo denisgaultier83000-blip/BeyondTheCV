@@ -317,7 +317,7 @@ function AppContent() {
 
   useEffect(() => {
     document.body.classList.toggle('dark-mode', darkMode);
-    storageManager.local.setItem('theme', darkMode ? 'dark' : 'light');
+    storageManager.local.setItem('theme', darkMode ? 'dark' : 'light'); // Utilisation du wrapper sécurisé
   }, [darkMode]);
 
   // --- LOGIQUE DE CACHE (DIRTY CHECK) ---
