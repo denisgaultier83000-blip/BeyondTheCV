@@ -22,8 +22,9 @@ interface Props {
 export function CareerRealityCheck({ data, loading, error, score }: Props) {
   const [copied, setCopied] = useState(false);
   const reality_check = data?.reality_check;
-
-  if (!reality_check && !loading && !error) {
+  
+  // [FIX EXPERT] Garde de sécurité pour empêcher le crash si les données sont absentes.
+  if (!loading && !error && !reality_check) {
     return null;
   }
 
