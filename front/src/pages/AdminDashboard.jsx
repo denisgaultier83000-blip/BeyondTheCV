@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { storageManager } from '../utils/storageManager';
 
 const StatCard = ({ label, value, unit = '' }) => {
   const statCardStyle = {
@@ -43,7 +44,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const token = localStorage.getItem('admin_token');
+        const token = storageManager.getItem('admin_token');
         if (!token) {
           throw new Error('Token administrateur non trouvé. Veuillez vous reconnecter.');
         }
