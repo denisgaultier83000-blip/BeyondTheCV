@@ -8,21 +8,19 @@ export const PilotBento = ({
 }: { data: any, onGoToGap: () => void }) => {
   const [animatedScore, setAnimatedScore] = useState(0);
 
-  // Données mockées d'attente si pilotData n'est pas encore redescendu du backend
+  // [FIX EXPERT] Garde de sécurité pour éviter le crash si `data` est null.
+  // On fournit un objet par défaut avec des valeurs neutres.
   const displayData = data || {
-    matchScore: 82,
-    summary: "Votre profil correspond bien aux attentes du marché, mais manque d'une certification technique clé.",
-    strengths: ["Management Agile", "Architecture Cloud", "Leadership technique"],
-    gapsMatrix: [
-      { skill: "Certification Requise", impact: "High", action: "Planifier l'examen d'ici 3 mois" },
-      { skill: "Expérience Spécifique", impact: "Medium", action: "Mettre en valeur le projet X sur le CV" }
-    ],
-    recommendedStrategy: "Concentrez-vous sur vos réalisations Cloud lors des entretiens et compensez le manque de certification par des cas d'usage concrets."
+    matchScore: 0,
+    summary: "Analyse en cours...",
+    strengths: [],
+    gapsMatrix: [],
+    recommendedStrategy: ""
   };
 
   // Animation du score (Compteur de 0 à la cible)
   useEffect(() => {
-    const baseScore = displayData.matchScore > 0 ? displayData.matchScore : 0;
+    const baseScore = displayData.matchScore || 0;
     const targetScore = Math.min(100, baseScore);
     let current = animatedScore;
     const step = targetScore > current ? 1 : -1;
