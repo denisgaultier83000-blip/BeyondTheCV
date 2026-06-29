@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useDashboard } from './DashboardContext'; // [NOUVEAU] Importer le hook
+import { useAuth } from '../hooks/useAuth'; // [NOUVEAU] Importer le hook d'authentification
 import './Header.css';
 import LanguageSelector from './LanguageSelector';
 
@@ -42,10 +42,9 @@ export default function Header({
   isAuthenticated
 }: HeaderProps) {
   const { t } = useTranslation();
-  // [NOUVEAU] On récupère le contexte du dashboard, qui sera `null` sur la page d'accueil
-  const dashboardContext = useDashboard();
-  // Le nom de l'utilisateur est maintenant lu depuis le contexte s'il existe
-  const contextUserName = dashboardContext?.cvData?.first_name;
+  // [NOUVEAU] On utilise le hook d'authentification pour obtenir l'utilisateur et son état
+  const { user, isAuthenticated: isUserAuthenticated, logout } = useAuth();
+  const contextUserName = user?.first_name;
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -56,7 +55,7 @@ export default function Header({
   useEffect(() => {
     try {
       const userStr = localStorage.getItem('user');
-      const adminEmail = import.meta.env.VITE_REACT_APP_ADMIN_EMAIL;
+      const adminEmail = (import.meta.env.VITE_REACT_APP_ADMIN_EMAIL || '').toLowerCase();
       if (userStr && adminEmail) {
         const user = JSON.parse(userStr);
         setIsAdmin(user?.email?.toLowerCase() === adminEmail.toLowerCase());
@@ -64,7 +63,7 @@ export default function Header({
         setIsAdmin(false); // S'assurer de réinitialiser si l'utilisateur n'est plus là
       }
     } catch (e) { setIsAdmin(false); }
-  }, [userName, isAuthenticated]); // [FIX] On recalcule si l'utilisateur change OU si le statut d'authentification change.
+  }, [user, isUserAuthenticated]); // [FIX] On recalcule si l'utilisateur change OU si le statut d'authentification change.
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
