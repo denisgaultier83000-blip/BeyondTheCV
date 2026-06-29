@@ -28,6 +28,7 @@ import { authenticatedFetch } from '../utils/auth';
 import { useDashboard } from './DashboardContext';
 import { VocalPitchTrainer } from './VocalPitchTrainer';
 import { RechargeModal } from './RechargeModal';
+import { storageManager } from '../utils/storageManager';
 
 // --- API Functions ---
 
@@ -177,7 +178,7 @@ export default function TrainingTab() {
       
       // Injection silencieuse dans le cache local pour que l'historique "Questionnaire" l'affiche avec couleurs et /10
       try {
-        localStorage.setItem(`training_${activeQuestion.id}`, JSON.stringify({
+        storageManager.local.setItem(`training_${activeQuestion.id}`, JSON.stringify({
           userAnswer: userAnswer,
           evaluation: data.feedback,
           feedback: data.feedback

@@ -4,6 +4,7 @@ import { ShieldAlert, Clock, Zap, Target, CheckCircle2, Circle, Mic, CalendarDay
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { useDashboard } from './DashboardContext';
+import { storageManager } from '../utils/storageManager';
 import OralSimulatorModal from './OralSimulatorModal';
 
 interface TrainingModule {
@@ -108,12 +109,12 @@ export const CockpitTab: React.FC<CockpitProps> = ({
     }
     
     // Hard-sync pour forcer la persistance et éviter la perte lors du changement d'onglet
-    const currentDataRaw = localStorage.getItem("cvData");
+    const currentDataRaw = storageManager.local.getItem("cvData");
     if (currentDataRaw) {
       try {
         const parsed = JSON.parse(currentDataRaw);
         parsed.cockpitCheckedItems = newChecked;
-        localStorage.setItem("cvData", JSON.stringify(parsed));
+        storageManager.local.setItem("cvData", JSON.stringify(parsed));
         // Sauvegarde silencieuse en DB pour garantir la synchro
         authenticatedFetch(`${API_BASE_URL}/api/cv/me/profile`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(parsed) }).catch(() => {});
       } catch (e) {}
