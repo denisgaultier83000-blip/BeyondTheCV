@@ -10,6 +10,7 @@ on:
       - staging
       - staging1
       - staging2
+      - staging4
   workflow_dispatch:
 
 jobs:
