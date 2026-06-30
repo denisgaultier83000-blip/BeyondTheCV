@@ -47,3 +47,23 @@ def test_get_profile_fallback_to_users(test_client, mock_db):
     assert "form" in data
     assert data["form"]["first_name"] == "Bob"
     assert data["form"]["email"] == "mock@test.com"
+
+def test_admin_login_success(test_client, monkeypatch):
+    """Vérifie que la connexion avec les identifiants admin via les variables d'environnement fonctionne."""
+    # Définir les variables d'environnement pour ce test spécifique
+    admin_email = "superadmin@test.com"
+    admin_password = "verysecretpassword123"
+    monkeypatch.setenv("ADMIN_EMAIL", admin_email)
+    monkeypatch.setenv("ADMIN_PASSWORD", admin_password)
+
+    # Simuler l'envoi du formulaire de connexion
+    login_data = {
+        "username": admin_email,
+        "password": admin_password
+    }
+    response = test_client.post("/api/auth/token", data=login_data)
+
+    assert response.status_code == 200
+    json_response = response.json()
+    assert json_response.get("is_admin") is True
+    assert "access_token" in json_response

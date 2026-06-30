@@ -1,5 +1,6 @@
 name: Deploy to VPS
 
+needs: build
 on:
   workflow_run:
     workflows: ["Build and Push Docker Images"]

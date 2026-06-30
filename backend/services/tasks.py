@@ -240,56 +240,14 @@ async def _run_pitch_logic(task_id: str, candidate_data: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
         user_id = candidate_data.get("user_id", "unknown_user")
+        # La logique de génération de pitch est maintenant dans cv_services.generate_pitch
+        # On l'appelle directement pour la cohérence.
+        from .cv_services import generate_pitch
         is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "pitch", candidate_data, "Pitch récupéré en cache")
         if is_cached: return
 
-        prompt_template = load_prompt(get_prompt_path("pitch_v1.md"))
-        
-        # [FIX EXPERT] Whitelist stricte pour éviter l'explosion de tokens (qui génère {"error": True})
-        safe_data = {
-            "experiences": candidate_data.get("experiences", []),
-            "educations": candidate_data.get("educations", []),
-            "skills": candidate_data.get("skills", []),
-            "free_text": candidate_data.get("free_text", "")
-        }
-        
-        context_str = json.dumps(safe_data, indent=2, ensure_ascii=False, default=str)
-        
-        # [FIX] Ajout du contexte de l'annonce/poste visé pour un pitch pertinent
-        target_job = candidate_data.get('target_job', 'Poste visé')
-        target_company = candidate_data.get('target_company', 'Entreprise cible')
+        result = await generate_pitch(candidate_data, quality='smart')
         target_lang = normalize_language(candidate_data.get('target_language', 'French'))
-        
-        # [NEW] Injection des clarifications pour nourrir le pitch
-        clarifications = candidate_data.get('clarifications', [])
-        clarifications_str = "\n".join([f"Q: {c.get('question')}\nA: {c.get('answer')}" for c in clarifications if c.get('answer')])
-        
-        # [NEW] Injection des données de recherche asynchrone (Entreprise & Marché)
-        research_context = ""
-        rd = candidate_data.get("research_data")
-        if rd:
-            cr = rd.get("company_report", {})
-            mr = rd.get("market_report", {})
-            research_context = f"\nINFOS STRATÉGIQUES SUR L'ENTREPRISE ET LE MARCHÉ :\n- ADN Entreprise : {cr.get('identity_dna', 'Non spécifié')}\n- Enjeux / Défis : {cr.get('usp', 'Non spécifiés')}\n- Tendances marché : {mr.get('trends', 'Non spécifiées')}\n\n⚠️ UTILISE IMPÉRATIVEMENT CES INFOS POUR PERSONNALISER LA PARTIE 'POURQUOI CE POSTE' (PROJECTION)."
-
-        final_prompt = f"""
-        {prompt_template}
-        
-        CONTEXTE CIBLE :
-        Poste : {target_job}
-        Entreprise : {target_company}
-        {research_context}
-        
-        CLARIFICATIONS APPORTÉES PAR LE CANDIDAT :
-        {clarifications_str}
-        
-        DONNÉES CANDIDAT :
-        {context_str}
-        
-        OUTPUT LANGUAGE: {target_lang}
-        """
-        
-        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction=f"You are a senior recruiter. ALL JSON VALUES MUST BE ENTIRELY WRITTEN IN {target_lang.upper()}. Output STRICT JSON.")
         if "error" not in result:
             await set_cached_content(cache_key, user_id, "pitch", result)
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
