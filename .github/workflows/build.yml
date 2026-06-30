@@ -6,6 +6,9 @@ on:
       - master
       - staging1
       - staging2
+      - staging3
+      - staging4
+      - staging5
   workflow_dispatch:
 
 env:

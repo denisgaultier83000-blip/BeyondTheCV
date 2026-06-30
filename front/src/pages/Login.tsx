@@ -29,6 +29,27 @@ export default function Login({ onLoginSuccess, onLogin }: LoginProps) {
     setError(null);
 
     try {
+      // [NOUVEAU] Tentative de connexion en tant qu'admin d'abord
+      const adminLoginData = new URLSearchParams();
+      adminLoginData.append('username', formData.email);
+      adminLoginData.append('password', formData.password);
+
+      const adminRes = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: adminLoginData
+      });
+
+      if (adminRes.ok) {
+        const adminData = await adminRes.json();
+        if (adminData.role === 'admin') {
+          localStorage.setItem('token', adminData.access_token);
+          window.location.href = '/admin'; // Redirection vers le dashboard admin
+          return; // Arrête l'exécution pour ne pas continuer avec le login normal
+        }
+      }
+      // Si la connexion admin échoue (ce qui est normal pour un user), on continue sans erreur.
+
       if (isRegister) {
         // 1. Appel à la route d'inscription
         const registerRes = await fetch(`${API_BASE_URL}/api/auth/register`, {

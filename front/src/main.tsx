@@ -39,7 +39,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 
           {/* Nouvelle route pour le Dashboard Administrateur */}
           <Route path="/admin" element={
-            <AdminFeedbacks />
+            <ProtectedRoute>
+              <AdminFeedbacks />
+            </ProtectedRoute>
           } />
 
           {/* Redirection par défaut vers la racine */}
