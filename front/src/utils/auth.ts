@@ -1,5 +1,9 @@
 import { storageManager } from './storageManager';
 
+export const getToken = (): string | null => {
+  return storageManager.local.getItem("token");
+};
+
 export const isAuthenticated = (): boolean => {
   return !!storageManager.local.getItem("token");
 };
@@ -14,7 +18,7 @@ export const getUser = (): any | null => {
   }
 };
 
-export const removeAuthToken = (): void => {
+export const removeToken = (): void => {
   storageManager.local.removeItem("token");
   storageManager.local.removeItem("user");
 };
