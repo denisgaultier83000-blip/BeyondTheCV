@@ -38,25 +38,10 @@ export default function Header(props: HeaderProps) { // Signature de fonction co
   const isMutating = useIsMutating();
   const isGlobalLoading = isFetching > 0 || isMutating > 0;
   const contextUserName = user?.first_name;
+  const isAdmin = user?.is_admin === true; // [CORRECTION] On utilise directement la donnée du hook useAuth. C'est la source de vérité.
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // [CORRECTIF FINAL] Vérification locale et directe du statut admin.
-  // On abandonne le contexte pour cette logique pour garantir la fiabilité.
-  const [isAdmin, setIsAdmin] = useState(false);
-  useEffect(() => {
-    try {
-      const userStr = storageManager.local.getItem('user');
-      const adminEmail = (import.meta.env.VITE_REACT_APP_ADMIN_EMAIL || '').toLowerCase();
-      if (userStr && adminEmail) {
-        const user = JSON.parse(userStr);
-        setIsAdmin(user?.email?.toLowerCase() === adminEmail.toLowerCase());
-      } else {
-        setIsAdmin(false); // S'assurer de réinitialiser si l'utilisateur n'est plus là
-      }
-    } catch (e) { setIsAdmin(false); } // eslint-disable-line no-empty
-  }, [user, isUserAuthenticated]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

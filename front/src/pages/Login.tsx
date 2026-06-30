@@ -1,156 +1,74 @@
-import React, { useState } from 'react';
-import { Mail, Lock, User, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
-import { API_BASE_URL } from '../config';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { login } from '../api/auth'; // Assurez-vous que le chemin est correct
+import { useAuth } from '../hooks/useAuth';
 
-import { storageManager } from '../utils/storageManager';
-interface LoginProps {
-  onLoginSuccess?: () => void;
-  onLogin?: () => void;
-}
-
-export default function Login({ onLoginSuccess, onLogin }: LoginProps) {
-  const [isRegister, setIsRegister] = useState(false);
+const LoginPage = () => {
+  const { t } = useTranslation();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: ''
-  });
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth(); // Récupère l'état d'authentification global
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  // Effet pour gérer la redirection si l'utilisateur est déjà authentifié
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (user?.is_admin) {
+        navigate('/admin'); // Redirige vers la page admin si l'utilisateur est admin
+      } else {
+        navigate('/dashboard'); // Redirige vers le tableau de bord pour les utilisateurs normaux
+      }
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
-
+    setError('');
     try {
-      if (isRegister) {
-        // 1. Appel à la route d'inscription
-        const registerRes = await fetch(`${API_BASE_URL}/api/auth/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: formData.email,
-            password: formData.password,
-            first_name: formData.firstName,
-            last_name: formData.lastName
-          })
-        });
-
-        if (!registerRes.ok) {
-          const errData = await registerRes.json();
-          throw new Error(errData.detail || 'Erreur lors de l\'inscription. Cet email est peut-être déjà utilisé.');
-        }
-      }
-
-      // 2. Appel à la route de connexion (OAuth2 standard) pour obtenir le JWT
-      const loginData = new URLSearchParams();
-      loginData.append('username', formData.email);
-      loginData.append('password', formData.password);
-
-      const loginRes = await fetch(`${API_BASE_URL}/api/auth/token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: loginData
-      });
-
-      if (!loginRes.ok) {
-        throw new Error('Identifiants incorrects.');
-      }
-
-      const tokenData = await loginRes.json();
+      // Appelle la fonction de connexion qui interagit avec le backend
+      const response = await login(email, password);
       
-      // 3. Sauvegarde de la session
-      storageManager.local.setItem('token', tokenData.access_token);
-      storageManager.local.setItem('user', JSON.stringify({
-        name: formData.firstName || 'Candidat',
-        email: formData.email,
-        subscription_status: 'active' // Remplacé par la vraie valeur venant du backend idéalement
-      }));
-
-      if (onLoginSuccess) onLoginSuccess(); // Notifie App.tsx du succès
-      if (onLogin) onLogin(); // Notifie main.tsx du succès
+      // La fonction `login` stocke déjà le token et renvoie l'objet `user`
+      // Le hook `useAuth` sera mis à jour, déclenchant l'useEffect ci-dessus.
+      // Pour une redirection immédiate sans attendre le re-fetch de useAuth:
+      if (response.user?.is_admin) {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
 
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || t('auth_error_signin_failed'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 'calc(100vh - 80px)', padding: '2rem' }}>
-      <div style={{ background: 'var(--bg-card)', padding: '2.5rem', borderRadius: '1.5rem', border: '1px solid var(--border-color)', width: '100%', maxWidth: '420px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}>
-        
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <h2 style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
-            {isRegister ? 'Créer un compte' : 'Bon retour'}
-          </h2>
-          <p style={{ color: 'var(--text-muted)' }}>
-            {isRegister ? 'Rejoignez BeyondTheCV pour propulser votre carrière.' : 'Connectez-vous pour accéder à votre tableau de bord.'}
-          </p>
-        </div>
-
-        {error && (
-          <div className="error-box" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem', borderRadius: '0.5rem' }}>
-            <AlertCircle size={18} color="var(--danger)" />
-            <span style={{ color: 'var(--danger)', fontSize: '0.9rem' }}>{error}</span>
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: 'var(--bg-body)' }}>
+      <div style={{ padding: '2rem', backgroundColor: 'var(--bg-card)', borderRadius: '0.75rem', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px', border: '1px solid var(--border-color)' }}>
+        <h2 style={{ textAlign: 'center', color: 'var(--text-main)', marginBottom: '1.5rem' }}>{t('nav_login')}</h2>
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '1rem' }}>
+            <label htmlFor="email" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-main)', fontWeight: '600' }}>{t('auth_email')}</label>
+            <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '0.5rem', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-main)' }} />
           </div>
-        )}
-
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          
-          {isRegister && (
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <div className="input-group" style={{ flex: 1 }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.5rem' }}>Prénom</label>
-                <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} required className="input-field" placeholder="Jean" />
-              </div>
-              <div className="input-group" style={{ flex: 1 }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.5rem' }}>Nom</label>
-                <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} required className="input-field" placeholder="Dupont" />
-              </div>
-            </div>
-          )}
-
-          <div className="input-group">
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.5rem' }}>Adresse Email</label>
-            <div style={{ position: 'relative' }}>
-              <Mail size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-              <input type="email" name="email" value={formData.email} onChange={handleChange} required className="input-field" placeholder="jean.dupont@email.com" style={{ paddingLeft: '2.75rem', width: '100%', boxSizing: 'border-box' }} />
-            </div>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label htmlFor="password" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-main)', fontWeight: '600' }}>{t('auth_password')}</label>
+            <input type="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '0.5rem', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-main)' }} />
           </div>
-
-          <div className="input-group">
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.5rem' }}>Mot de passe</label>
-            <div style={{ position: 'relative' }}>
-              <Lock size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-              <input type="password" name="password" value={formData.password} onChange={handleChange} required className="input-field" placeholder="••••••••" style={{ paddingLeft: '2.75rem', width: '100%', boxSizing: 'border-box' }} minLength={6} />
-            </div>
-          </div>
-
-          <button type="submit" disabled={loading} className="btn-primary" style={{ width: '100%', padding: '0.875rem', marginTop: '0.5rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
-            {loading ? <Loader2 size={18} className="spin" /> : (isRegister ? 'S\'inscrire' : 'Se connecter')}
-            {!loading && <ArrowRight size={18} />}
+          {error && <p style={{ color: '#ef4444', textAlign: 'center', marginBottom: '1rem' }}>{error}</p>}
+          <button type="submit" disabled={loading} style={{ width: '100%', padding: '0.75rem', backgroundColor: 'var(--primary)', color: 'white', border: 'none', borderRadius: '0.5rem', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', opacity: loading ? 0.7 : 1 }}>
+            {loading ? t('auth_signing_in') : t('auth_sign_in')}
           </button>
         </form>
-
-        <div style={{ textAlign: 'center', marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
-            {isRegister ? 'Vous avez déjà un compte ?' : 'Nouveau sur BeyondTheCV ?'}
-            <button type="button" onClick={() => setIsRegister(!isRegister)} className="btn-link" style={{ marginLeft: '0.5rem', fontWeight: 600 }}>
-              {isRegister ? 'Se connecter' : 'Créer un compte'}
-            </button>
-          </p>
-        </div>
-
       </div>
     </div>
   );
-}
+};
+
+export default LoginPage;
