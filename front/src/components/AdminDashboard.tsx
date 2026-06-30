@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminQuotaManager from './AdminQuotaManager';
 import { useNavigate } from 'react-router-dom';
+import { storageManager } from '../utils/storageManager';
 import { User, Shield, Calendar, Eye, Database, CheckCircle, XCircle, Percent, BarChart3, DollarSign, Users, Cpu, Package, AlertTriangle, LifeBuoy, ArrowRight } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -65,7 +66,7 @@ export function AdminDashboard() {
     setError('');
     try {
       // Remplacez 'token' par la clé exacte que vous utilisez dans le localStorage (ex: 'access_token')
-      const token = localStorage.getItem('token'); 
+      const token = storageManager.local.getItem('token'); 
       const headers = {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -122,7 +123,7 @@ export function AdminDashboard() {
     setSubLoading(true);
     
     try {
-      const token = localStorage.getItem('token');
+      const token = storageManager.local.getItem('token');
       const res = await fetch(`/api/admin/users/${subscriptionModalUser.id}/subscription`, {
         method: 'POST',
         headers: {
@@ -147,7 +148,7 @@ export function AdminDashboard() {
 
   const toggleUserActive = async (userId: string) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = storageManager.local.getItem('token');
       const res = await fetch(`/api/admin/users/${userId}/toggle-active`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { storageManager } from '../utils/storageManager';
 import { Calendar, Clock, Target, ChevronRight, CheckCircle2, Circle } from 'lucide-react';
 
 export interface TrainingModule {
@@ -15,13 +16,13 @@ interface Props {
 export const TrainingPlanTimeline: React.FC<Props> = ({ plan }) => {
   // Chargement des étapes terminées depuis le cache local
   const [checkedItems, setCheckedItems] = useState<number[]>(() => {
-    const saved = localStorage.getItem("trainingPlanChecked");
+    const saved = storageManager.local.getItem("trainingPlanChecked");
     return saved ? JSON.parse(saved) : [];
   });
 
   // Sauvegarde à chaque modification
   useEffect(() => {
-    localStorage.setItem("trainingPlanChecked", JSON.stringify(checkedItems));
+    storageManager.local.setItem("trainingPlanChecked", JSON.stringify(checkedItems));
   }, [checkedItems]);
 
   const toggleCheck = (idx: number) => {

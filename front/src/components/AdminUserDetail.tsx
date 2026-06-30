@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, Calendar, Shield, Briefcase, FileText, Download, Trash2, Loader2, AlertTriangle, DollarSign, Cpu, Activity, Clock, PlusCircle, Repeat, RefreshCw, UserX } from 'lucide-react';
 import { authenticatedFetch } from '../utils/auth';
+import { storageManager } from '../utils/storageManager';
 import { API_BASE_URL } from '../config';
 import { AsyncBoundary } from './AsyncBoundary';
 
@@ -55,7 +56,7 @@ export function AdminUserDetail() {
 
   useEffect(() => {
     const adminEmail = import.meta.env.VITE_REACT_APP_ADMIN_EMAIL;
-    const userStr = localStorage.getItem('user');
+    const userStr = storageManager.local.getItem('user');
     if (!userStr) {
       navigate('/');
       return;

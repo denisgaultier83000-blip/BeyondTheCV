@@ -1,15 +1,17 @@
+import { storageManager } from '../utils/storageManager';
+
 const API_URL = import.meta.env.VITE_API_URL;
 
 export function getToken() {
-  return localStorage.getItem("token");
+  return storageManager.local.getItem("token");
 }
 
 export function setToken(token: string) {
-  localStorage.setItem("token", token);
+  storageManager.local.setItem("token", token);
 }
 
 export function clearToken() {
-  localStorage.removeItem("token");
+  storageManager.local.removeItem("token");
 }
 
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {

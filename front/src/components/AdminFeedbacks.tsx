@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ThumbsUp, ThumbsDown, MessageSquare, Activity, BarChart3, ArrowLeft, Trash2, Loader2, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { authenticatedFetch } from '../utils/auth';
+import { storageManager } from '../utils/storageManager';
 import { API_ROUTES } from '../api/routes';
 import { API_BASE_URL } from '../config';
 import { AsyncBoundary } from './AsyncBoundary';
@@ -29,7 +30,7 @@ export default function AdminFeedbacks() {
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (sessionStorage.getItem('admin_auth') === 'true') {
+    if (storageManager.session.getItem('admin_auth') === 'true') {
       setIsAuthorized(true);
     }
   }, []);
@@ -39,7 +40,7 @@ export default function AdminFeedbacks() {
     if (authPass === 'beyond2026') {
       setIsAuthorized(true);
       setAuthError(null);
-      sessionStorage.setItem('admin_auth', 'true');
+      storageManager.session.setItem('admin_auth', 'true');
     } else {
       setAuthError('Mot de passe incorrect');
     }

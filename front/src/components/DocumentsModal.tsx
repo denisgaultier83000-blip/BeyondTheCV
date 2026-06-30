@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { authenticatedFetch } from "../utils/auth";
 import { API_ROUTES } from "../api/routes";
+import { storageManager } from '../utils/storageManager';
 import { API_BASE_URL } from "../config";
 import { Briefcase, Calendar, ChevronRight, ArrowLeft, FileText, Mic, MessageSquare, Building, BrainCircuit, Download, Trash2, FolderOpen, Printer, Eye, AlertTriangle } from 'lucide-react';
 import { AsyncBoundary } from './AsyncBoundary';
@@ -128,7 +129,7 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
       const loadedData = await response.json();
       
       // On utilise le sessionStorage pour transférer ce gros payload au composant parent (App/Interface)
-      sessionStorage.setItem('restored_application_data', JSON.stringify(loadedData.data));
+      storageManager.session.setItem('restored_application_data', JSON.stringify(loadedData.data));
       
       // Redirection/Rechargement pour initialiser le Dashboard avec ces nouvelles données
       window.location.reload(); 

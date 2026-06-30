@@ -32,8 +32,8 @@ i18n
     },
     // Options de détection de langue
     detection: {
-      order: ['localStorage', 'navigator'],
-      caches: ['localStorage'],
+      order: ['navigator'],
+      caches: [],
     },
     // Désactive l'échappement des valeurs (React le fait déjà pour se protéger du XSS)
     interpolation: {
