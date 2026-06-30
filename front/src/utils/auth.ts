@@ -25,13 +25,19 @@ export const removeToken = (): void => {
 
 export const authenticatedFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
   const token = storageManager.local.getItem("token");
-  
-  const headers = new Headers(options.headers || {});
+
+  // Create a new Headers object, preserving existing headers
+  const headers = new Headers(options.headers);
+
+  // Set Authorization header if a token exists
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(url, { ...options, headers });
+  // Ensure Content-Type is set for methods that have a body, if not already set
+  if (options.body && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
 
-  return response;
+  return fetch(url, { ...options, headers });
 };
