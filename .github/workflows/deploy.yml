@@ -7,7 +7,11 @@ on:
       - completed
     branches:
       - master
+      - staging1
+      - staging2
+      - staging3
       - staging4
+      - staging5
   workflow_dispatch:
 
 jobs:
@@ -15,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
 
     # [FIX EXPERT] Prépare le terrain pour les Environnements GitHub Secrets si tu les utilises un jour
-    environment: ${{ github.event.workflow_run.head_branch == 'master' && 'production' || (github.ref_name == 'master' && 'production' || 'staging') }}
+    environment: ${{ github.event.workflow_run.head_branch == 'master' && 'production' || (github.ref_name == 'master' && 'production' || 'staging4') }}
 
     # Ne s'exécute que si le workflow de build a réussi, ou si lancé manuellement
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
