@@ -138,6 +138,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             "user": {
                 "id": str(user_dict.get("id", "")),
                 "name": f"{user_dict.get('first_name', '')} {user_dict.get('last_name', '')}".strip(),
+                "first_name": user_dict.get('first_name', ''),
                 "email": user_dict.get("email", ""),
                 "is_premium": bool(user_dict.get("is_premium", False)),
                 "credits": user_credits,
@@ -152,6 +153,11 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         traceback.print_exc()
         print(f"[AUTH ERROR CRITICAL] {e}", flush=True)
         raise HTTPException(status_code=500, detail=f"Erreur interne : {str(e)}")
+
+@router.get("/api/me")
+async def read_users_me(current_user: dict = Depends(get_current_user)):
+    """Route to get the current logged-in user's data."""
+    return current_user
 
 @router.post("/api/auth/register")
 async def register(user: UserRegister):

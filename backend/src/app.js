@@ -556,11 +556,22 @@ export function createApp(opts = {}) {
 
   app.post("/auth/login", (req, res) => {
     const { email, password } = req.body || {};
-    if (!email || !password) return res.status(400).json({ error: "missing_credentials" });
+    if (!email || !password) {
+      return res.status(400).json({ error: "missing_credentials" });
+    }
 
-    const user = { id: "demo-user", email };
-    const token = signToken(user);
-    return res.json({ token });
+    // Logique d'authentification administrateur
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    if (email.toLowerCase() === adminEmail?.toLowerCase() && password === adminPassword) {
+      // C'est l'administrateur
+      const user = { id: "admin-user", email: adminEmail, roles: ["admin"], first_name: "Admin" };
+      const token = signToken(user);
+      return res.json({ token });
+    }
+
+    return res.status(401).json({ error: "invalid_credentials" });
   });
 
   app.get("/me", requireAuth, (req, res) => res.json(req.user));
