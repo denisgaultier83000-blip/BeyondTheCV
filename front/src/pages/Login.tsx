@@ -4,7 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { login } from '../api/auth'; // Assurez-vous que le chemin est correct
 import { useAuth } from '../hooks/useAuth';
 
-const LoginPage = () => {
+interface LoginPageProps {
+  onLoginSuccess?: () => void;
+}
+
+const LoginPage = ({ onLoginSuccess }: LoginPageProps) => {
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,10 +35,14 @@ const LoginPage = () => {
     try {
       // Appelle la fonction de connexion qui interagit avec le backend
       const response = await login(email, password);
-      
-      // La fonction `login` stocke déjà le token et renvoie l'objet `user`
-      // Le hook `useAuth` sera mis à jour, déclenchant l'useEffect ci-dessus.
-      // Pour une redirection immédiate sans attendre le re-fetch de useAuth:
+
+      // Notifie le parent que la connexion est réussie pour rafraîchir l'état global
+      if (onLoginSuccess) {
+        onLoginSuccess();
+      }
+
+      // [CORRECTION] Redirection immédiate basée sur la réponse de l'API,
+      // sans attendre la mise à jour du hook `useAuth`. C'est plus rapide et fiable.
       if (response.user?.is_admin) {
         navigate('/admin');
       } else {

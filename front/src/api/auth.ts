@@ -1,12 +1,24 @@
 import { api, setToken } from "./client";
 import { API_ROUTES } from "./routes"; // Supposons que routes.ts exporte les chemins relatifs
 
-export async function login(email: string, password: string) {
+interface LoginResponse {
+  access_token: string;
+  token_type: string;
+  user: {
+    id: string;
+    first_name: string;
+    email: string;
+    is_admin: boolean;
+  };
+}
+
+export async function login(email: string, password: string): Promise<LoginResponse> {
   // On utilise la constante centralisée au lieu d'une chaîne de caractères en dur.
-  const data = await api<{ token: string }>(API_ROUTES.AUTH.LOGIN, {
+  const data = await api<LoginResponse>(API_ROUTES.AUTH.LOGIN, {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    // Le client 'api' gère la conversion en FormData pour OAuth2PasswordRequestForm
+    body: { username: email, password: password },
   });
-  setToken(data.token);
+  setToken(data.access_token);
   return data;
 }

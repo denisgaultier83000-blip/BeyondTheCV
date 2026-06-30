@@ -50,6 +50,27 @@ async def _insert_user(uid, email, hashed_pw, first, last, created):
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     try:
         # [FIX] On gère la casse de l'email pour garantir un login fiable
+        email_form = form_data.username.lower().strip()
+        password_form = form_data.password
+
+        # --- VÉRIFICATION ADMIN EN PRIORITÉ ---
+        admin_email = os.getenv("ADMIN_EMAIL", "").lower().strip()
+        admin_password = os.getenv("ADMIN_PASSWORD", "")
+
+        if admin_email and admin_password and email_form == admin_email and password_form == admin_password:
+            print(f"[AUTH] ✨ Connexion administrateur réussie pour {admin_email}", flush=True)
+            access_token = create_access_token(data={"sub": "admin-user"})
+            return {
+                "access_token": access_token,
+                "token_type": "bearer",
+                "user": {
+                    "id": "admin-user",
+                    "first_name": "Admin",
+                    "email": admin_email,
+                    "is_admin": True,
+                }
+            }
+
         email = form_data.username.lower().strip()
         async with db.get_connection() as conn:
             # Fail-safe : Création de la colonne credits avant le SELECT
