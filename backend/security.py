@@ -51,6 +51,20 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     """Décode le token JWT et retourne les informations de l'utilisateur."""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        
+        # New simple path for admin
+        if payload.get("role") == "admin":
+            return {
+                "email": payload.get("sub"),
+                "is_admin": True,
+                "is_tester": True, # Admins are testers
+                # Add other fields if needed, or keep it minimal
+                "id": "admin_user",
+                "first_name": "Admin",
+                "last_name": "",
+                "is_premium": True,
+            }
+        
         user_id: str = payload.get("sub")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid authentication credentials")

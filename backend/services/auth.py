@@ -67,52 +67,25 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             cursor = await db.execute(conn, "SELECT id, email, hashed_password, first_name, last_name, created_at, is_premium, credits, is_admin, is_active, is_tester FROM users WHERE email = ?", (email,))
             user_row = await cursor.fetchone()
 
-        # [FIX EXPERT] Priorité à l'authentification de l'admin via variables d'environnement
-        # pour éviter les conflits si l'email admin existe en base avec un autre mot de passe.
-        admin_emails_str = os.getenv("ADMIN_EMAIL", "")
-        admin_emails_env = {e.strip().lower() for e in admin_emails_str.split(',') if e.strip()}
-        admin_password_env = os.getenv("ADMIN_PASSWORD")
-        
-        # [FIX] On vérifie si l'email de connexion fait partie de la liste des admins d'environnement
-        if admin_emails_env and admin_password_env and email in admin_emails_env and form_data.password == admin_password_env:
-            admin_email_env = email # On utilise l'email qui a réussi à se connecter
-            print(f"[AUTH] ✅ Connexion réussie pour l'administrateur via les variables d'environnement : {email}", flush=True)
+        # Simple admin authentication
+        admin_email = os.getenv("ADMIN_EMAIL", "").lower()
+        admin_password = os.getenv("ADMIN_PASSWORD")
+
+        if admin_email and admin_password and email == admin_email and form_data.password == admin_password:
+            print(f"[AUTH] ✅ Admin login successful for: {email}", flush=True)
             access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-            access_token = create_access_token(data={"sub": user_row["id"] if user_row else admin_email_env}, expires_delta=access_token_expires)
+            access_token = create_access_token(data={"sub": email, "role": "admin"}, expires_delta=access_token_expires)
             return {
                 "access_token": access_token,
                 "token_type": "bearer",
                 "user": {
-                    "email": admin_email_env,
+                    "email": email,
                     "is_admin": True,
-                    "is_tester": True
                 }
             }
 
         if not user_row:
             raise HTTPException(status_code=401, detail="Identifiants incorrects.")
-            
-        # [FIX] Sécurisation absolue du mapping pour gérer tuples, sqlite3.Row, asyncpg.Record et dicts
-        if isinstance(user_row, dict):
-            user_dict = user_row
-        elif hasattr(user_row, 'keys'):
-            user_dict = dict(user_row)
-        elif isinstance(user_row, tuple):
-            user_dict = {
-                "id": user_row[0],
-                "email": user_row[1],
-                "hashed_password": user_row[2],
-                "first_name": user_row[3],
-                "last_name": user_row[4],
-                "created_at": user_row[5],
-                "is_premium": user_row[6] if len(user_row) > 6 else False,
-                "credits": user_row[7] if len(user_row) > 7 else 100,
-                "is_admin": user_row[8] if len(user_row) > 8 else False,
-                "is_active": user_row[9] if len(user_row) > 9 else True,
-                "is_tester": user_row[10] if len(user_row) > 10 else False
-            }
-        else:
-            user_dict = dict(user_row)
             
         # [SÉCURITÉ] Vérification si le compte a été bloqué par un administrateur
         is_active = user_dict.get("is_active")
