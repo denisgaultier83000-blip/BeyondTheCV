@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
 
     # [FIX EXPERT] Prépare le terrain pour les Environnements GitHub Secrets si tu les utilises un jour
-    environment: ${{ github.event.workflow_run.head_branch == 'master' && 'production' || (github.ref_name == 'master' && 'production' || 'staging') }}
+    environment: ${{ github.event.workflow_run.head_branch == 'master' && 'production' || 'staging') }}
 
     # Ne s'exécute que si le workflow de build a réussi, ou si lancé manuellement
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
@@ -52,7 +52,7 @@ jobs:
           JWT_SEC: ${{ secrets.JWT_SECRET }}
           
           # [FIX EXPERT] Sécurisation de la variable de branche pour éviter les injections bash sur ton serveur
-          TARGET_BRANCH: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+          TARGET_BRANCH: ${{ github.event.workflow_run.head_branch || github.event.inputs.branch || 'staging4' }}
           TESTER_EMAILS: ${{ secrets.TESTER_EMAILS_LIST }}
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
         with:

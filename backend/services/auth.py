@@ -30,10 +30,15 @@ async def _insert_user(uid, email, hashed_pw, first, last, created):
                 await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT 100")
             except Exception:
                 pass
+            # [FIX] Ajout de la colonne is_tester si elle n'existe pas
+            try:
+                await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_tester BOOLEAN DEFAULT FALSE")
+            except Exception:
+                pass
             await db.execute(conn, """
-                INSERT INTO users (id, email, hashed_password, first_name, last_name, created_at, is_premium, credits)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (uid, email, hashed_pw, first, last, created, False, 100))
+                INSERT INTO users (id, email, hashed_password, first_name, last_name, created_at, is_premium, credits, is_tester)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (uid, email, hashed_pw, first, last, created, False, 100, True))
             
             # [FIX] Initialisation des compteurs dans les nouvelles colonnes de la table users
             try:
@@ -129,27 +134,25 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             expires_delta=access_token_expires
         )
 
-        # --- GESTION DES CRÉDITS & RELANCE TESTEURS ---
-        tester_emails_str = os.getenv("TESTER_EMAILS_LIST", "") # ex: "email1@test.com,email2@example.com"
-        TESTER_EMAILS = {e.strip().lower() for e in tester_emails_str.split(',') if e.strip()}
-        is_not_prod = os.getenv("ENVIRONMENT", "production") != "production"
+        # --- [MODIFICATION] GESTION DES CRÉDITS & RELANCE TESTEURS ---
+        # Recharge automatique de 60 crédits si le solde est bas.
         user_credits = user_dict.get("credits")
-
-        # Relance automatique des quotas si c'est un testeur OU si l'environnement n'est pas la production
-        if email in TESTER_EMAILS or is_not_prod:
-            user_credits = 100
+        if user_credits is not None and user_credits <= 5:
+            user_credits += 60
             async with db.get_connection() as conn:
                 try:
-                    await db.execute(conn, "UPDATE users SET credits = 100, quota_pitch = 100, quota_qa = 100, quota_mes = 100, quota_negotiation = 100, quota_regeneration = 100, quota_update = 100 WHERE id = ?", (user_dict.get("id"),))
+                    await db.execute(conn, "UPDATE users SET credits = credits + 60, quota_pitch = quota_pitch + 60, quota_qa = quota_qa + 60, quota_mes = quota_mes + 60, quota_negotiation = quota_negotiation + 60, quota_regeneration = quota_regeneration + 60, quota_update = quota_update + 60 WHERE id = ?", (user_dict.get("id"),))
+                    print(f"[AUTH] 🎁 +60 crédits accordés (Solde bas) pour : {email}", flush=True)
                 except Exception:
                     pass
-            print(f"[AUTH] 🎁 Quotas maximums accordés (Mode Testeur / Hors Prod) pour : {email}", flush=True)
 
+        # --- [MODIFICATION] Tous les utilisateurs sont des testeurs ---
+        is_tester_flag = True
+        
         admin_emails_str = os.getenv("ADMIN_EMAIL", "")
         admin_emails = {e.strip().lower() for e in admin_emails_str.split(',') if e.strip()}
         # [CORRECTIF] On vérifie si l'utilisateur est admin via la DB OU via la variable d'environnement.
         is_admin_flag = bool(user_dict.get("is_admin")) or (email in admin_emails)
-        is_tester_flag = bool(user_dict.get("is_tester")) or (email in TESTER_EMAILS) or is_not_prod
 
         return {
             "access_token": access_token,
