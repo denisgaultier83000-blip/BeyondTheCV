@@ -47,6 +47,23 @@ export default function Header({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+<<<<<<< HEAD
+=======
+  // [CORRECTIF FINAL] Vérification locale et directe du statut admin.
+  // On abandonne le contexte pour cette logique pour garantir la fiabilité.
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem('user');
+      const adminEmail = import.meta.env.VITE_REACT_APP_ADMIN_EMAIL;
+      if (userStr && adminEmail) {
+        const user = JSON.parse(userStr);
+        setIsAdmin(user?.email?.toLowerCase() === adminEmail.toLowerCase());
+      }
+    } catch (e) {}
+  }, [userName]); // On recalcule si l'utilisateur change (login/logout)
+
+>>>>>>> parent of e044586 (fix: Update admin status handling in Header component to reset state when user is not present)
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {

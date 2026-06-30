@@ -7,10 +7,7 @@ on:
       - completed
     branches:
       - master
-      - staging
-      - staging1
-      - staging2
-      - staging3
+      - staging4
   workflow_dispatch:
 
 jobs:
@@ -63,7 +60,7 @@ jobs:
 
             BRANCH="$TARGET_BRANCH"
 
-            if [ "$BRANCH" = "staging" ] || [ "$BRANCH" = "staging2" ] || [ "$BRANCH" = "staging3" ]; then
+            if [ "$BRANCH" = "staging4" ] || [ "$BRANCH" = "staging2" ] || [ "$BRANCH" = "staging3" ]; then
               COMPOSE_FILE="docker-compose.staging.yml"
               PROJECT_NAME="btcv-staging"
               ENVIRONMENT="staging"
