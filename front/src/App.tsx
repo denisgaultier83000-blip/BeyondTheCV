@@ -509,7 +509,13 @@ function AppContent() {
       return (
         <div className="app-container">
           <main className="main-content" style={{ paddingTop: '2rem', display: 'flex', justifyContent: 'center' }}>
-            <Login onLoginSuccess={() => setIsAuthenticated(true)} />
+            <Login onLoginSuccess={() => {
+              setIsAuthenticated(true);
+              const user = JSON.parse(localStorage.getItem('user') || '{}');
+              if (user.is_admin) {
+                navigate('/admin', { replace: true });
+              }
+            }} />
           </main>
         </div>
       );

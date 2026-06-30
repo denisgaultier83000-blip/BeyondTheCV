@@ -65,21 +65,19 @@ export default function Login({ onLoginSuccess, onLogin }: LoginProps) {
 
       const tokenData = await loginRes.json();
       
-      // [FIX] Redirection conditionnelle en fonction du rôle
-      if (tokenData.user && tokenData.user.is_admin) {
-        localStorage.setItem('token', tokenData.access_token);
-        localStorage.setItem('user', JSON.stringify(tokenData.user));
-        window.location.href = '/admin';
-        return;
-      }
-
       // 3. Sauvegarde de la session
       localStorage.setItem('token', tokenData.access_token);
-      localStorage.setItem('user', JSON.stringify({
-        name: formData.firstName || 'Candidat',
-        email: formData.email,
-        subscription_status: 'active' // Remplacé par la vraie valeur venant du backend idéalement
-      }));
+      
+      // Sauvegarder l'objet utilisateur complet si il existe
+      if (tokenData.user) {
+        localStorage.setItem('user', JSON.stringify(tokenData.user));
+      } else {
+        localStorage.setItem('user', JSON.stringify({
+          name: formData.firstName || 'Candidat',
+          email: formData.email,
+          subscription_status: 'active' // Remplacé par la vraie valeur venant du backend idéalement
+        }));
+      }
 
       if (onLoginSuccess) onLoginSuccess(); // Notifie App.tsx du succès
       if (onLogin) onLogin(); // Notifie main.tsx du succès
