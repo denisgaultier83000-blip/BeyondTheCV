@@ -5,8 +5,8 @@ export const API_ROUTES = {
     LOGIN: `${API_BASE_URL}/api/login`,
   },
   PROFILE: {
-    GET: `${API_BASE_URL}/api/cv/me/profile`,
-    SAVE: `${API_BASE_URL}/api/cv/me/profile`,
+    GET: `${API_BASE_URL}/me`,
+    SAVE: `${API_BASE_URL}/me`,
     PARSE_LINKEDIN: `${API_BASE_URL}/api/cv/parse-linkedin`,
   },
   DOCUMENTS: {
