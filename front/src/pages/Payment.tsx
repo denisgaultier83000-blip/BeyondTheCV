@@ -12,7 +12,7 @@ import { storageManager } from "../utils/storageManager";
 // Note: Vite utilise import.meta.env au lieu de process.env
 const STRIPE_PK = import.meta.env.VITE_STRIPE_PK || "pk_test_TYooMQauvdEDq54NiTphI7jx";
 
-const stripePromise = loadStripe(STRIPE_PK);
+const stripePromise = loadStripe(STRIPE_PK, { advancedFraudSignals: false });
 
 // Composant de formulaire interne
 const CheckoutForm = ({ onSuccess }: { onSuccess: () => void }) => {
