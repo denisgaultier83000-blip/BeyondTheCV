@@ -324,44 +324,63 @@ async def generate_gap_analysis(data, job_desc, quality='smart'):
         return {}
     return result
 
-async def generate_pitch(data, quality='smart'):
-    # [AMELIORATION] Utilisation des clarifications et fallback conseils
-    clarifications = data.get('clarifications', [])
-    target_lang = normalize_language(data.get('target_language', 'fr'))
-    clarifications_str = "\n".join([f"Q: {c.get('question')}\nA: {c.get('answer')}" for c in clarifications if c.get('answer')])
-    
-    interview_type = data.get('meta', {}).get('interview_type') or data.get('interview_type', 'Non précisé')
-    interview_format = data.get('meta', {}).get('interview_format') or data.get('interview_format', 'Non précisé')
-    
-    # [NEW] Injection des données de recherche asynchrone (Entreprise & Marché)
-    research_context = ""
-    rd = data.get("research_data")
-    if rd:
-        cr = rd.get("company_report", {})
-        mr = rd.get("market_report", {})
-        research_context = f"\nCONTEXTE ENTREPRISE & MARCHÉ (À UTILISER POUR LA PROJECTION) :\n- ADN: {cr.get('identity_dna', '')}\n- Défis: {cr.get('usp', '')}\n- Marché: {mr.get('trends', '')}\n"
+def truncate(text: str, max_length: int) -> str:
+    """Tronque un texte à une longueur maximale."""
+    if not text or not isinstance(text, str):
+        return ""
+    return text if len(text) <= max_length else text[:max_length] + "..."
 
-    prompt_template = load_prompt(get_prompt_path("pitch_v1.md"))
-    prompt = f"""
-    {prompt_template}
-    
-    DONNÉES CANDIDAT :
-    {json.dumps(_sanitize_data_for_ai(data, strict=True), default=str)}
-    
-    CLARIFICATIONS APPORTÉES :
-    {clarifications_str}
-    {research_context}
-    
-    CONTRAINTE D'ENTRETIEN :
-    - Type d'interlocuteur : {interview_type}
-    - Format : {interview_format}
-    
-    OUTPUT LANGUAGE: {target_lang}
-    """
-    result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a senior recruiter. ALL CONTENT MUST BE ENTIRELY WRITTEN IN {target_lang.upper()}. Output STRICT JSON.")
-    if "error" in result:
-        return {}
-    return result
+def compact_experiences(experiences: List[Dict[str, Any]], max_items: int = 6) -> List[Dict[str, Any]]:
+    """Compacte les expériences pour le prompt."""
+    if not experiences: return []
+    return [{
+        "role": exp.get("role", ""), "company": exp.get("company", ""),
+        "start_date": exp.get("start_date", ""), "end_date": exp.get("end_date", ""),
+        "description": truncate(exp.get("description", ""), 500)
+    } for exp in experiences[:max_items]]
+
+def compact_clarifications(clarifications: List[Dict[str, Any]], max_items: int = 8) -> List[Dict[str, Any]]:
+    """Compacte les clarifications pour le prompt."""
+    if not clarifications: return []
+    return [{ "question": c.get("question", ""), "answer": truncate(c.get("answer", ""), 300) } for c in clarifications[:max_items]]
+
+def compact_research(research_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Compacte les données de recherche pour le prompt."""
+    if not research_data: return {}
+    return { k: v for k, v in research_data.items() if k in ["company_report", "market_report"] }
+
+async def generate_pitch(data, quality='smart'):
+    target_lang = normalize_language(data.get('target_language', 'fr'))
+    prompt_template = load_prompt(get_prompt_path("strategic_pitch_v2.md"))
+
+    # Construction du payload de données riche et compacté pour l'IA
+    safe_data = {
+        "target": {
+            "job": data.get("target_job", ""),
+            "company": data.get("target_company", ""),
+            "language": target_lang,
+            "job_description": truncate(data.get("job_description", ""), 3500),
+            "interview_type": data.get("interview_type", "")
+        },
+        "profile": {
+            "experiences": compact_experiences(data.get("experiences", []), max_items=6),
+            "educations": data.get("educations", [])[:4],
+            "skills": data.get("skills", [])[:30],
+            "strengths": data.get("strengths", [])[:10],
+            "flaws": data.get("flaws", [])[:8],
+            "free_text": truncate(data.get("free_text", ""), 2500)
+        },
+        "clarifications": compact_clarifications(data.get("clarifications", []), max_items=8),
+        "research": compact_research(data.get("research_data", {}))
+    }
+
+    context_str = json.dumps(safe_data, indent=2, ensure_ascii=False, default=str)
+
+    final_prompt = prompt_template.replace("{{CANDIDATE_DATA_JSON}}", context_str) \
+                                  .replace("{{TARGET_LANGUAGE}}", target_lang)
+
+    system_instruction = f"You are an Executive Coach. Output STRICT JSON in {target_lang.upper()}. Ensure all pitches are distinct and follow the specified structure."
+    return await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction=system_instruction)
 
 @router.post("/coach-flaw")
 async def coach_flaw(request: FlawCoachRequest, current_user: dict = Depends(require_active_subscription)):
