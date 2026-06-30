@@ -5,11 +5,7 @@
 // Gère automatiquement l'URL du backend (Docker, VPS, Localhost)
 
 const getApiBaseUrl = () => {
-  if (typeof window === 'undefined') {
-    // Fournir une URL par défaut pour l'environnement de build/serveur
-    return process.env.VITE_API_URL || 'http://localhost:8000';
-  }
-
+  // This code runs in the browser, so `window` is always available.
   const hostname = window.location.hostname;
 
   if (hostname === 'staging.beyondthecv.app') {
@@ -26,7 +22,7 @@ const getApiBaseUrl = () => {
   return import.meta.env.VITE_API_URL || 'http://localhost:8000';
 };
 
-
 // Utilise l'URL injectée au build par Vite (via build.yml), ou bascule en local par défaut
 export const API_BASE_URL = getApiBaseUrl();
+
 
