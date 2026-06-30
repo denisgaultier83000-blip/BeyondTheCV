@@ -5,12 +5,34 @@
  * Expose un état pour permettre à l'UI de réagir et conserve une mémoire de secours.
  */
 
-const createStorageWrapper = (storage: Storage) => {
+const createStorageWrapper = (storageFactory: () => Storage | null) => {
   let isAccessible: boolean | null = null;
   const fallbackStore = new Map<string, string>();
+  let cachedStorage: Storage | null | undefined;
+
+  const getStorage = (): Storage | null => {
+    if (cachedStorage !== undefined) {
+      return cachedStorage;
+    }
+
+    try {
+      cachedStorage = storageFactory();
+    } catch (e) {
+      cachedStorage = null;
+    }
+
+    return cachedStorage;
+  };
 
   const ensureAccessible = (): boolean => {
     if (isAccessible !== null) return isAccessible;
+
+    const storage = getStorage();
+    if (!storage) {
+      isAccessible = false;
+      console.warn('Web Storage is not available in this environment.');
+      return isAccessible;
+    }
 
     try {
       const testKey = '__storage_test__';
@@ -34,6 +56,12 @@ const createStorageWrapper = (storage: Storage) => {
       if (!ensureAccessible()) {
         return fallbackStore.get(key) ?? null;
       }
+
+      const storage = getStorage();
+      if (!storage) {
+        return fallbackStore.get(key) ?? null;
+      }
+
       try {
         return storage.getItem(key);
       } catch (e) {
@@ -47,6 +75,13 @@ const createStorageWrapper = (storage: Storage) => {
         fallbackStore.set(key, value);
         return;
       }
+
+      const storage = getStorage();
+      if (!storage) {
+        fallbackStore.set(key, value);
+        return;
+      }
+
       try {
         storage.setItem(key, value);
       } catch (e) {
@@ -60,17 +95,31 @@ const createStorageWrapper = (storage: Storage) => {
         fallbackStore.delete(key);
         return;
       }
-      try {
-        storage.removeItem(key);
-      } catch (e) {
-        console.warn(`Failed to remove storage entry for key ${key}:`, e);
+
+      const storage = getStorage();
+      if (storage) {
+        try {
+          storage.removeItem(key);
+        } catch (e) {
+          console.warn(`Failed to remove storage entry for key ${key}:`, e);
+        }
       }
+
       fallbackStore.delete(key);
     },
   };
 };
 
+const getBrowserStorage = (type: 'local' | 'session'): Storage | null => {
+  if (typeof globalThis === 'undefined') return null;
+  try {
+    return type === 'local' ? globalThis.localStorage : globalThis.sessionStorage;
+  } catch (e) {
+    return null;
+  }
+};
+
 export const storageManager = {
-  local: createStorageWrapper(localStorage),
-  session: createStorageWrapper(sessionStorage),
+  local: createStorageWrapper(() => getBrowserStorage('local')),
+  session: createStorageWrapper(() => getBrowserStorage('session')),
 };
