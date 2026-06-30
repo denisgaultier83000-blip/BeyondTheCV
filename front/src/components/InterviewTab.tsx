@@ -82,7 +82,6 @@ export const InterviewTab = () => {
 
   const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false);
   const [isDark] = useState(() => document.body.classList.contains('dark-mode'));
-  const [pitchMatrix, setPitchMatrix] = useState<any>(pitchResult || null);
   const [activePitch, setActivePitch] = useState('pitch_3_minutes');
   const [editablePitch, setEditablePitch] = useState({
     accroche: "",
@@ -218,7 +217,7 @@ export const InterviewTab = () => {
   const handleTabClick = (pitchType: string) => {
     setActivePitch(pitchType);
     // Au clic, on met à jour les 4 champs avec le contenu correspondant
-    populateFieldsFromMatrix(pitchMatrix, pitchType);
+    populateFieldsFromMatrix(pitchResult, pitchType);
   };
 
   // Convertir les Mises en Situation (MES) en format "Question" pour les fusionner
@@ -274,7 +273,7 @@ export const InterviewTab = () => {
         
         <div id="pitch_section">
         <DashboardCard
-          title={t('deliv_pitch', "Pitch de 3 minutes")}
+          title={t('deliv_pitch', "matrice de pitchs stratégiques")}
           icon={<Mic size={24} />}
           loading={globalStatus === 'PROCESSING' && !pitchResult}
           loadingText={t('pitch_loading', "Génération de votre pitch...")}
@@ -301,7 +300,7 @@ export const InterviewTab = () => {
                   <div className="pitch-selector-tabs">
                     <button onClick={() => handleTabClick('pitch_30_seconds')} className={activePitch === 'pitch_30_seconds' ? 'active' : ''}><Clock size={16}/> 30 sec</button>
                     <button onClick={() => handleTabClick('pitch_1_minute')} className={activePitch === 'pitch_1_minute' ? 'active' : ''}><Clock size={16}/> 1 min</button>
-                    <button onClick={() => handleTabClick('pitch_3_minutes')} className={activePitch === 'pitch_3_minutes' ? 'active' : ''}><Clock size={16}/> Stratégique</button>
+                    <button onClick={() => handleTabClick('pitch_3_minutes')} className={activePitch === 'pitch_3_minutes' ? 'active' : ''}><Clock size={16}/> 3 minutes</button>
                   </div>
                 </div>
                 <div className="pitch-selector-group">
