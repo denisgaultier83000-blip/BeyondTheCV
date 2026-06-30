@@ -250,13 +250,29 @@ function AppContent() {
   useEffect(() => {
     if (isAuthenticated) {
       setShowLanding(false);
-      if (location.pathname === '/') navigate('/candidate', { replace: true });
-      loadProfile();
+
       const storedUser = localStorage.getItem('user');
+      let user = null;
       if (storedUser && storedUser !== "undefined" && storedUser !== "null") {
         try {
-          const user = JSON.parse(storedUser);
-          
+          user = JSON.parse(storedUser);
+        } catch (e) {
+          console.warn("Could not parse user from localStorage", e);
+        }
+      }
+
+      if (location.pathname === '/') {
+        if (user && user.is_admin) {
+            navigate('/admin', { replace: true });
+        } else {
+            navigate('/candidate', { replace: true });
+        }
+      }
+      
+      loadProfile();
+
+      if (user) {
+        try {
           // Vérifie si l'utilisateur est admin ou possède le flag is_tester
           const isTester = user.is_admin || user.is_tester;
           
