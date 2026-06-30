@@ -70,7 +70,13 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
       // [FIX EXPERT] Le backend renvoie 'access_token', pas 'token'
       if (data.access_token) {
         localStorage.setItem("token", data.access_token);
-        if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
+        if (data.user) {
+          localStorage.setItem("user", JSON.stringify(data.user));
+          if (data.user.is_admin) {
+            window.location.href = '/admin';
+            return;
+          }
+        }
         onLoginSuccess();
       }
     } catch (err: any) {
