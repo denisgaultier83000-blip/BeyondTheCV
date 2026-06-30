@@ -5,20 +5,23 @@ on:
     workflows: ["Build and Push Docker Images"]
     types:
       - completed
-    branches:
+    branches: # [CORRECTIF] Syntaxe YAML corrigée. Accepte 'master' et toutes les branches 'staging*'.
       - master
-      - staging
-      - staging1
-      - staging2
-      - staging4
+      - 'staging*'
   workflow_dispatch:
+    inputs:
+      branch:
+        description: 'La branche à déployer (ex: master, staging4)'
+        required: true
+        default: 'staging4'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     # [FIX EXPERT] Prépare le terrain pour les Environnements GitHub Secrets si tu les utilises un jour
-    environment: ${{ github.event.workflow_run.head_branch == 'master' ? 'production' : 'staging' }}
+    # [CORRECTIF] Gère les deux types de déclenchements (auto et manuel) pour éviter les erreurs.
+    environment: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.branch == 'master') || (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'master') ? 'production' : 'staging' }}
 
     # Ne s'exécute que si le workflow de build a réussi, ou si lancé manuellement
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
