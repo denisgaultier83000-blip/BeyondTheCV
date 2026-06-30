@@ -102,7 +102,7 @@ const StrategicInputs: React.FC<StrategicInputsProps> = ({
       </div>
 
       <div className="form-group">
-        <label htmlFor="desiredStyle">Quel style de pitch souhaitez-vous ?</p>
+        <label htmlFor="desiredStyle">Quel style de pitch souhaitez-vous ?</label>
         <select
           id="desiredStyle"
           value={desiredStyle}
