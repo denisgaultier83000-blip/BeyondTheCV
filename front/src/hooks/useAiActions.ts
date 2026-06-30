@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { generateStrategicPitchMatrix } from '../api/pitchApi';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 
@@ -44,6 +46,18 @@ export function useAiActions({
 
   const payload = { ...form, experiences, educations, successes, failures };
 
+  // Nouvelle gestion de la génération de pitch avec React Query
+  const pitchMutation = useMutation({
+    mutationFn: () => generateStrategicPitchMatrix(payload),
+    onSuccess: (data) => {
+      setPitchData(data);
+      setShowPitch(true);
+    },
+    onError: (error: any) => {
+      setToast({ type: "error", message: error.message || "La génération du pitch a échoué." });
+    },
+  });
+
   const handleAction = async (action: string) => {
     setLoading(true);
     setProgress(0);
@@ -69,19 +83,8 @@ export function useAiActions({
         setShowQuestionnaire(true);
       }
       else if (action === "Pitch") {
-        const res = await authenticatedFetch(`${API_BASE_URL}/api/generate`, {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "Pitch", data: payload }),
-        });
-        if (!res.ok) throw new Error("Failed to generate pitch");
-        const data = await res.json();
-        if (data.pitch?.status === "missing_info") {
-            setMissingPitchFields(data.pitch.missing_fields);
-            setShowPitchMissingInfo(true);
-        } else {
-            setPitchData(data.pitch);
-            setShowPitch(true);
-        }
+        // On utilise la nouvelle mutation
+        pitchMutation.mutate();
       }
       else if (action === "Market Research" || action === "Company Research") {
         const type = action === "Market Research" ? "market" : "company";

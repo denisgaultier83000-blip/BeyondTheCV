@@ -23,7 +23,12 @@ const INITIAL_DATA = {
   languages: [],
   free_text: "",
   clarifications: [], // Pour stocker les réponses aux questions générées
-  provider: "gemini"
+  provider: "gemini",
+  // [NOUVEAU] Champs pour enrichir le contexte du pitch
+  pitch_context_main_challenge: "", // Enjeu principal du poste
+  pitch_context_likely_objection: "", // Objection probable
+  pitch_context_strong_proof: "", // Preuve forte
+  pitch_context_desired_style: "sobre", // Style souhaité
 };
 
 export function useDashboardLogic() {

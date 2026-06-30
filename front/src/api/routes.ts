@@ -33,5 +33,8 @@ export const API_ROUTES = {
   RESEARCH: {
     DISAMBIGUATE: `${API_BASE_URL}/api/research/disambiguate`,
     START: `${API_BASE_URL}/api/research/start`,
+  },
+  PITCH: {
+    GENERATE: `${API_BASE_URL}/api/pitch`,
   }
 };

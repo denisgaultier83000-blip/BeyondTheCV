@@ -27,7 +27,7 @@ const fetchCurrentUser = async () => {
   if (!getToken()) {
     throw new Error('No token found');
   }
-  const response = await authenticatedFetch(`${API_BASE_URL}/api/users/me/profile`);
+  const response = await authenticatedFetch(`${API_BASE_URL}/me`);
   if (!response.ok) {
     // Si le token est invalide ou expiré, le serveur renverra une erreur (ex: 401)
     throw new Error('User not authenticated');
