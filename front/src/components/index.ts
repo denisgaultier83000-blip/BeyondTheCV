@@ -1,2 +1,3 @@
 export * from './ProtectedRoute';
-export * from './AdminProtectedRoute';
+// Use default export for AdminProtectedRoute
+export { default as AdminProtectedRoute } from './AdminProtectedRoute';
