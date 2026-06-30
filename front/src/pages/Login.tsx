@@ -65,11 +65,12 @@ export default function Login({ onLoginSuccess, onLogin }: LoginProps) {
 
       const tokenData = await loginRes.json();
       
-      // [NOUVEAU] Redirection conditionnelle en fonction du rôle
-      if (tokenData.role === 'admin') {
+      // [FIX] Redirection conditionnelle en fonction du rôle
+      if (tokenData.user && tokenData.user.is_admin) {
         localStorage.setItem('token', tokenData.access_token);
-        window.location.href = '/admin'; // Redirection vers la page admin
-        return; // On arrête l'exécution ici
+        localStorage.setItem('user', JSON.stringify(tokenData.user));
+        window.location.href = '/admin';
+        return;
       }
 
       // 3. Sauvegarde de la session

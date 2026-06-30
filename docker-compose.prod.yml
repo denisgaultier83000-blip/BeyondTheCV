@@ -26,6 +26,9 @@ services:
     container_name: btcv-backend-prod
     restart: unless-stopped
 
+    env_file:
+      - .env
+
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
