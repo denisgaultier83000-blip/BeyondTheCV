@@ -80,6 +80,8 @@ export const InterviewTab = () => {
   if (!dashboardContext) return null;
   const { pitchResult, questionsResult, customScenariosResult, globalStatus, cvData, updateFormData, purgeCacheMutation } = dashboardContext;
 
+  console.log('pitchResult:', JSON.stringify(pitchResult, null, 2));
+
   const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false);
   const [isDark] = useState(() => document.body.classList.contains('dark-mode'));
   const [activePitch, setActivePitch] = useState('pitch_3_minutes');
@@ -100,11 +102,12 @@ export const InterviewTab = () => {
         populateFieldsFromMatrix(pitchResult, 'pitch_3_minutes');
       }
     }
-  }, [pitchResult]);
+  }, [pitchResult, cvData]);
 
   // Peuple les 4 champs à partir de la matrice de l'IA
   const populateFieldsFromMatrix = (matrix: any, pitchType: string) => {
     const pitchData = matrix?.[pitchType];
+    console.log('Populating fields for', pitchType, 'with data:', pitchData);
     if (!pitchData) return;
 
     let newFields;
