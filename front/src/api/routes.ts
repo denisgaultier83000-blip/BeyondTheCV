@@ -2,7 +2,7 @@ import { API_BASE_URL } from '../config';
 
 export const API_ROUTES = {
   AUTH: {
-    LOGIN: `${API_BASE_URL}/api/login`,
+    LOGIN: `${API_BASE_URL}/auth/login`,
   },
   PROFILE: {
     GET: `${API_BASE_URL}/me`,
