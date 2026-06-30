@@ -3,7 +3,8 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import App from "./App";
-import { ProtectedRoute } from "./components/ProtectedRoute";
+import { ProtectedRoute } from "./components/ProtectedRoute"; // Keep for general routes
+import { AdminProtectedRoute } from "./components/AdminProtectedRoute"; // Import the new component
 import Payment from "./pages/Payment";
 import ResearchReport from "./pages/ResearchReport"; // Importer la nouvelle page
 import AdminFeedbacks from "./components/AdminFeedbacks";
@@ -39,9 +40,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 
           {/* Nouvelle route pour le Dashboard Administrateur */}
           <Route path="/admin" element={
-            <ProtectedRoute>
+            <AdminProtectedRoute>
               <AdminFeedbacks />
-            </ProtectedRoute>
+            </AdminProtectedRoute>
           } />
 
           {/* Redirection par défaut vers la racine */}
