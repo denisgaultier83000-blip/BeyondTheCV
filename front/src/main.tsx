@@ -6,13 +6,14 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import Login from "./pages/Login";
 import App from "./App";
 import { ProtectedRoute } from "./components/ProtectedRoute";
-import Payment from "./pages/Payment";
 import ResearchReport from "./pages/ResearchReport"; // Importer la nouvelle page
 import AdminFeedbacks from "./components/AdminFeedbacks";
 import ErrorBoundary from "./components/ErrorBoundary";
 import "./index.css";
 import "./theme.css";
 import "./i18n";
+
+const Payment = React.lazy(() => import("./pages/Payment"));
 
 const queryClient = new QueryClient();
 
