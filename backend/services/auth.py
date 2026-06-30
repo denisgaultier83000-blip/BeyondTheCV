@@ -70,6 +70,11 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         # Simple admin authentication
         admin_email = os.getenv("ADMIN_EMAIL", "").lower()
         admin_password = os.getenv("ADMIN_PASSWORD")
+        print(f"[AUTH DEBUG] Admin email from env: {admin_email}", flush=True)
+        if admin_password:
+            print(f"[AUTH DEBUG] Admin password from env is set. Length: {len(admin_password)}. Starts with: {admin_password[:2]}", flush=True)
+        else:
+            print("[AUTH DEBUG] Admin password from env is NOT set.", flush=True)
 
         if admin_email and admin_password and email == admin_email and form_data.password == admin_password:
             print(f"[AUTH] ✅ Admin login successful for: {email}", flush=True)
