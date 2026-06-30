@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - staging
       - staging1
       - staging2
       - staging4
