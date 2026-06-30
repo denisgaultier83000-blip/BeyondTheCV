@@ -140,6 +140,7 @@ export const DashboardProvider = ({
     queryKey: ['quotas', localCvData?.email],
     queryFn: fetchQuotas,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!localCvData?.email, // Ne s'exécute que si l'email de l'utilisateur est connu
   });
 
   // --- QUERIES & MUTATIONS ---
