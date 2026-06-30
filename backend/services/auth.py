@@ -49,6 +49,25 @@ async def _insert_user(uid, email, hashed_pw, first, last, created):
 @router.post("/api/auth/token")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     try:
+        # [FIX EXPERT] Priorité à l'authentification de l'admin via variables d'environnement
+        # pour éviter les conflits si l'email admin existe en base avec un autre mot de passe.
+        admin_email_env = os.getenv("ADMIN_EMAIL", "").lower().strip()
+        admin_password_env = os.getenv("ADMIN_PASSWORD")
+        
+        if admin_email_env and admin_password_env and form_data.username.lower().strip() == admin_email_env and form_data.password == admin_password_env:
+            print(f"[AUTH] ✅ Connexion réussie pour l'administrateur via les variables d'environnement : {admin_email_env}", flush=True)
+            access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+            access_token = create_access_token(data={"sub": admin_email_env}, expires_delta=access_token_expires)
+            return {
+                "access_token": access_token,
+                "token_type": "bearer",
+                "user": {
+                    "email": admin_email_env,
+                    "is_admin": True,
+                    "is_tester": True
+                }
+            }
+
         # [FIX] On gère la casse de l'email pour garantir un login fiable
         email = form_data.username.lower().strip()
         async with db.get_connection() as conn:
