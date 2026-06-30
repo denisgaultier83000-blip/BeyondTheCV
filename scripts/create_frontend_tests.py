@@ -77,10 +77,16 @@ describe('Header Component', () => {
 
   it('calls onLogout when logout button is clicked', () => {
     const handleLogout = vi.fn();
-    render(<Header isAuthenticated={true} onLogout={handleLogout} />);
+    render(
+      <Header 
+        isAuthenticated={true} 
+        onLogout={handleLogout} 
+        steps={mockSteps} 
+        currentStep={1} 
+      />
+    );
     
-    // Le bouton peut être trouvé par son titre (title="Se déconnecter") ou son texte
-    const logoutBtn = screen.getByTitle('Se déconnecter');
+    const logoutBtn = screen.getByRole('button', { name: /se déconnecter/i });
     fireEvent.click(logoutBtn);
     expect(handleLogout).toHaveBeenCalledTimes(1);
   });

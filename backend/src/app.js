@@ -504,13 +504,22 @@ export function createApp(opts = {}) {
   // -----------------------------
   // CORS (dev)
   // -----------------------------
-  // Autorise les requêtes de l'URL du frontend définie dans l'environnement, ou localhost:5173 par défaut
-  const allowedOrigin = process.env.FRONTEND_URL || "http://localhost:5173";
+  // Liste blanche des domaines autorisés à accéder à l'API
+  const allowedOrigins = [
+    "http://localhost:5173", // Développement local
+    "https://staging.beyondthecv.app", // Staging
+    "https://www.beyondthecv.app", // Production (à ajuster si besoin)
+    process.env.FRONTEND_URL // URL personnalisée depuis les variables d'environnement
+  ].filter(Boolean); // Retire les entrées vides ou nulles
+
   app.use((req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.includes(origin)) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+    }
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-    if (req.method === "OPTIONS") return res.sendStatus(204);
+    if (req.method === "OPTIONS") return res.sendStatus(204); // Répond aux requêtes pre-flight
     next();
   });
 
