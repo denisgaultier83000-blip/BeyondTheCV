@@ -1,21 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { login } from '../api/auth'; // Assurez-vous que le chemin est correct
+import { login as apiLogin } from '../api/auth'; // Renommé pour éviter un conflit de nom
 import { useAuth } from '../hooks/useAuth';
 
-interface LoginPageProps {
-  onLoginSuccess?: () => void;
-}
-
-const LoginPage = ({ onLoginSuccess }: LoginPageProps) => {
+const LoginPage = () => {
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth(); // Récupère l'état d'authentification global
+  const { user, isAuthenticated, login } = useAuth(); // On récupère la fonction login du contexte
 
   // Effet pour gérer la redirection si l'utilisateur est déjà authentifié
   useEffect(() => {
@@ -34,15 +30,11 @@ const LoginPage = ({ onLoginSuccess }: LoginPageProps) => {
     setError('');
     try {
       // Appelle la fonction de connexion qui interagit avec le backend
-      const response = await login(email, password);
+      const response = await apiLogin(email, password);
 
-      // Notifie le parent que la connexion est réussie pour rafraîchir l'état global
-      if (onLoginSuccess) {
-        onLoginSuccess();
-      }
+      // Met à jour l'état global avec le token et les données utilisateur
+      login(response.access_token, response.user);
 
-      // [CORRECTION] Redirection immédiate basée sur la réponse de l'API,
-      // sans attendre la mise à jour du hook `useAuth`. C'est plus rapide et fiable.
       if (response.user?.is_admin) {
         navigate('/admin');
       } else {

@@ -1,10 +1,13 @@
 import React from "react";
 import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
-import { getToken } from "../api/client";
+import { useAuth } from "../hooks/useAuth";
 
 export function ProtectedRoute({ children }: { children: ReactNode }) {
-  const token = getToken();
-  if (!token) return <Navigate to="/login" replace />;
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) return <div>Loading...</div>; // Or a spinner component
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+
   return <>{children}</>;
 }

@@ -196,7 +196,12 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
             question_type: q.type,
             question_text: questionText,
             interview_format: cvData?.interview_format,
-            stress_level: cvData?.stress_level
+            stress_level: cvData?.stress_level,
+            // [AJOUT] Enrichissement de l'appel avec les données stratégiques
+            job_challenge: cvData?.job_challenge,
+            likely_objection: cvData?.likely_objection,
+            strong_proof: cvData?.strong_proof,
+            desired_style: cvData?.desired_style,
         }),
       });
 
