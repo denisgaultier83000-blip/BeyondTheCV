@@ -24,21 +24,6 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
-      - name: Sanitize Inputs
-        id: sanitize
-        # [FIX EXPERT] Nettoie l'IP pour éviter que l'action SSH ne tente de se connecter à un serveur fantôme à cause d'un saut de ligne
-        env:
-          RAW_IP: ${{ secrets.SERVER_HOST }}
-        run: |
-          CLEAN_IP=$(echo "$RAW_IP" | tr -d '\n\r ')
-          
-          if [ -z "$CLEAN_IP" ]; then
-            echo "::error::Le secret SERVER_HOST est manquant ou vide. Le déploiement est annulé."
-            exit 1
-          fi
-          
-          echo "clean_ip=$CLEAN_IP" >> $GITHUB_OUTPUT
-
       - name: Deploy on VPS
         uses: appleboy/ssh-action@v1.0.3
         env:
@@ -50,33 +35,34 @@ jobs:
           GEM_KEY: ${{ secrets.GEMINI_API_KEY }}
           SERPER_KEY: ${{ secrets.SERPER_API_KEY }}
           JWT_SEC: ${{ secrets.JWT_SECRET }}
+          ADMIN_PASS: ${{ secrets.ADMIN_PASSWORD }} # [SÉCURITÉ] On passe le mot de passe admin pour l'injecter au runtime
           
           # [FIX EXPERT] Sécurisation de la variable de branche pour éviter les injections bash sur ton serveur
           TARGET_BRANCH: ${{ github.event.workflow_run.head_branch || github.event.inputs.branch || 'staging4' }}
           TESTER_EMAILS: ${{ secrets.TESTER_EMAILS_LIST }}
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          FRONTEND_URL_VAR: ${{ github.event.workflow_run.head_branch == 'master' && 'https://beyondthecv.app' || 'https://staging.beyondthecv.app' }}
         with:
-          host: ${{ secrets.SERVER_HOST }}
+          host: ${{ secrets.SERVER_HOST }} # [CORRECTIF] L'action appleboy/ssh-action nettoie déjà les inputs. La sanitization manuelle n'est plus nécessaire.
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: DB_USER,DB_PASS,DB_NAME,OAI_KEY,GEM_KEY,SERPER_KEY,JWT_SEC,TARGET_BRANCH,FRONTEND_URL,TESTER_EMAILS,ADMIN_EMAIL
+          envs: DB_USER,DB_PASS,DB_NAME,OAI_KEY,GEM_KEY,SERPER_KEY,JWT_SEC,ADMIN_PASS,TARGET_BRANCH,TESTER_EMAILS,ADMIN_EMAIL,FRONTEND_URL_VAR
           script: |
             set -e
 
             BRANCH="$TARGET_BRANCH"
 
-            if [ "$BRANCH" = "staging4" ] || [ "$BRANCH" = "staging2" ]; then
-              COMPOSE_FILE="docker-compose.staging.yml"
-              PROJECT_NAME="btcv-staging"
-              ENVIRONMENT="staging"
-              API_HOST="api-staging.beyondthecv.app"
-              FRONTEND_URL="https://staging.beyondthecv.app"
-            elif [ "$BRANCH" = "master" ]; then
+            # [MAINTENABILITÉ] Logique de déploiement flexible basée sur le nom de la branche
+            if [[ "$BRANCH" == "master" ]]; then
               COMPOSE_FILE="docker-compose.prod.yml"
               PROJECT_NAME="btcv-prod"
               ENVIRONMENT="production"
-              API_HOST="api.beyondthecv.app"
-              FRONTEND_URL="https://beyondthecv.app"
+              API_HOST="api.beyondthecv.app" # Utilisé pour Traefik
+            elif [[ "$BRANCH" == "staging"* ]]; then
+              COMPOSE_FILE="docker-compose.staging.yml"
+              PROJECT_NAME="btcv-staging"
+              ENVIRONMENT="staging"
+              API_HOST="api-staging.beyondthecv.app" # Utilisé pour Traefik
             else
               echo "Unsupported branch: $BRANCH"
               exit 1
@@ -104,12 +90,16 @@ jobs:
             SAFE_OAI_KEY="${OAI_KEY//\$/\$\$}"
             SAFE_GEM_KEY="${GEM_KEY//\$/\$\$}"
             SAFE_SERPER_KEY="${SERPER_KEY//\$/\$\$}"
+            SAFE_ADMIN_PASS="${ADMIN_PASS//\$/\$\$}"
+            SAFE_TESTER_EMAILS="${TESTER_EMAILS//\$/\$\$}"
+            SAFE_ADMIN_EMAIL="${ADMIN_EMAIL//\$/\$\$}"
 
+            # [SÉCURITÉ] Injection sécurisée des variables dans le fichier .env
             cat <<EOF > "$ENV_FILE"
             VERSION=${BRANCH}
             ENVIRONMENT=${ENVIRONMENT}
             API_HOST=${API_HOST}
-            FRONTEND_URL=${FRONTEND_URL}
+            FRONTEND_URL=${FRONTEND_URL_VAR}
             POSTGRES_USER=${DB_USER}
             POSTGRES_PASSWORD=${SAFE_DB_PASS}
             POSTGRES_DB=${DB_NAME}
@@ -117,15 +107,16 @@ jobs:
             GEMINI_API_KEY=${SAFE_GEM_KEY}
             SERPER_API_KEY=${SAFE_SERPER_KEY}
             JWT_SECRET=${SAFE_JWT_SEC}
-            TESTER_EMAILS_LIST=${TESTER_EMAILS}
-            ADMIN_EMAIL=${ADMIN_EMAIL}
+            TESTER_EMAILS_LIST=${SAFE_TESTER_EMAILS}
+            ADMIN_EMAIL=${SAFE_ADMIN_EMAIL}
+            ADMIN_PASSWORD=${SAFE_ADMIN_PASS}
             EOF
 
             # [FIX RESEAU] Reconnexion au réseau global 'web' utilisé par Traefik
             WEB_NETWORK="web"
             docker network inspect "$WEB_NETWORK" >/dev/null 2>&1 || docker network create "$WEB_NETWORK"
 
-            # Libérer de l'espace disque AVANT de télécharger de nouvelles images
+            # [OPTIMISATION] Libérer de l'espace disque AVANT de télécharger de nouvelles images
             docker image prune -a -f
 
             docker compose \
@@ -138,7 +129,7 @@ jobs:
               -f "$COMPOSE_FILE" \
               up -d --force-recreate --remove-orphans
 
-            # Sécurise le fichier pour qu'il reste disponible pour les redémarrages Docker
+            # [SÉCURITÉ] Sécurise le fichier pour qu'il reste disponible pour les redémarrages Docker
             chmod 600 "$ENV_FILE"
 
             docker image prune -f

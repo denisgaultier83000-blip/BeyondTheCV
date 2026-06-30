@@ -69,11 +69,14 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
         # [FIX EXPERT] Priorité à l'authentification de l'admin via variables d'environnement
         # pour éviter les conflits si l'email admin existe en base avec un autre mot de passe.
-        admin_email_env = os.getenv("ADMIN_EMAIL", "").lower().strip()
+        admin_emails_str = os.getenv("ADMIN_EMAIL", "")
+        admin_emails_env = {e.strip().lower() for e in admin_emails_str.split(',') if e.strip()}
         admin_password_env = os.getenv("ADMIN_PASSWORD")
         
-        if admin_email_env and admin_password_env and email == admin_email_env and form_data.password == admin_password_env:
-            print(f"[AUTH] ✅ Connexion réussie pour l'administrateur via les variables d'environnement : {admin_email_env}", flush=True)
+        # [FIX] On vérifie si l'email de connexion fait partie de la liste des admins d'environnement
+        if admin_emails_env and admin_password_env and email in admin_emails_env and form_data.password == admin_password_env:
+            admin_email_env = email # On utilise l'email qui a réussi à se connecter
+            print(f"[AUTH] ✅ Connexion réussie pour l'administrateur via les variables d'environnement : {email}", flush=True)
             access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
             access_token = create_access_token(data={"sub": user_row["id"] if user_row else admin_email_env}, expires_delta=access_token_expires)
             return {

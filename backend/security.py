@@ -69,7 +69,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
                 # [FIX EXPERT] On vérifie aussi si l'utilisateur courant correspond aux emails de la variable ADMIN_EMAIL
                 admin_emails_str = os.getenv("ADMIN_EMAIL", "")
                 admin_emails = {e.strip().lower() for e in admin_emails_str.split(',') if e.strip()}
-                is_admin_env = bool(user_email.lower() in admin_emails)
+                is_admin_env = user_email.lower() in admin_emails
                 
                 tester_emails_str = os.getenv("TESTER_EMAILS_LIST", "")
                 tester_emails = {e.strip().lower() for e in tester_emails_str.split(',') if e.strip()}
