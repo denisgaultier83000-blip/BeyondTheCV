@@ -4,7 +4,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import App from "./App";
 import Payment from "./pages/Payment";
-import { ProtectedRoute, AdminProtectedRoute } from "./components/Auth";
+import ProtectedRoute from "./components/ProtectedRoute";
+import AdminProtectedRoute from "./components/AdminProtectedRoute";
 import ResearchReport from "./pages/ResearchReport"; // Importer la nouvelle page
 import AdminFeedbacks from "./components/AdminFeedbacks";
 import AdminLayout from "./components/AdminLayout"; // Nouveau Layout Admin
@@ -26,11 +27,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <Route path="/" element={<App />} />
           
           {/* [FIX] Remplacement de la redirection JS par une redirection React pour éviter le rechargement de la page */}
-          <Route path="/login" element={
-            <ProtectedRoute>
-              <Navigate to="/candidate" replace />
-            </ProtectedRoute>
-          } />
+          <Route path="/login" element={<Login />} />
           
           {/* Page de paiement intermédiaire */}
           <Route path="/payment" element={
