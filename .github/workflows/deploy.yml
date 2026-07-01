@@ -112,6 +112,10 @@ jobs:
             ADMIN_PASSWORD=${SAFE_ADMIN_PASS}
             EOF
 
+            # [DEBUG] Vérification post-écriture pour s'assurer que le fichier .env est bien créé et lu
+            echo "Vérification du fichier .env sur le serveur :"
+            grep -v 'PASSWORD\|KEY\|SECRET' "$ENV_FILE" || echo "Le fichier .env semble vide ou illisible."
+
             # [FIX RESEAU] Reconnexion au réseau global 'web' utilisé par Traefik
             WEB_NETWORK="web"
             docker network inspect "$WEB_NETWORK" >/dev/null 2>&1 || docker network create "$WEB_NETWORK"
