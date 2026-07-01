@@ -201,6 +201,20 @@ function AppContent() {
           if ((frontendData as any).target_language) {
             i18n.changeLanguage((frontendData as any).target_language.toLowerCase());
           }
+
+          // [FIX] La redirection doit avoir lieu APRÈS le chargement du profil
+          // pour avoir la donnée `is_admin` la plus à jour depuis le backend.
+          const storedUser = localStorage.getItem('user');
+          if (storedUser) {
+            try {
+              const user = JSON.parse(storedUser);
+              if (user && user.is_admin && !location.pathname.startsWith('/admin')) {
+                navigate('/admin', { replace: true });
+              } else if (user && !user.is_admin && (location.pathname === '/' || location.pathname === '/login')) {
+                navigate('/candidate', { replace: true });
+              }
+            } catch (e) { console.warn("Could not parse user from localStorage for redirection", e); }
+          }
           setLastSaveTime(new Date());
         }
       } else if (response.status === 404) {
@@ -261,14 +275,6 @@ function AppContent() {
         }
       }
 
-      // [FIX] Redirection de l'admin vers son interface, peu importe la page initiale.
-      // On s'assure qu'il n'est pas déjà sur une page admin pour éviter une boucle.
-      if (user && user.is_admin && !location.pathname.startsWith('/admin')) {
-        navigate('/admin', { replace: true });
-      } else if (user && !user.is_admin && (location.pathname === '/' || location.pathname === '/login')) {
-        navigate('/candidate', { replace: true });
-      }
-      
       loadProfile();
 
       if (user) {
