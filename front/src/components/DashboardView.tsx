@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { useDashboard } from './DashboardContext';
 import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass, Mic, Search, Eye, Navigation, Network, Loader2, RotateCcw, CheckSquare, Dumbbell, ArrowUp, Printer, Building, ShieldAlert, Calendar, UserCheck, Monitor, HeartPulse, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
