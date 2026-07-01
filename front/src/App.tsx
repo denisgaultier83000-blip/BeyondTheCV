@@ -569,19 +569,21 @@ function AppContent() {
       <main className="main-content">
         {showLanding && !isAuthenticated ? (
           <LandingPage darkMode={darkMode} onStart={() => setShowLanding(false)} onShowCGU={() => setShowCGU(true)} onShowPrivacy={() => setShowPrivacy(true)} onShowLegal={() => setShowLegal(true)} />
-        ) : 
+        ) :
          !isAuthenticated ?
-            <Login onLoginSuccess={() => {
+            <Login onLoginSuccess={(loginResponse) => {
               setIsAuthenticated(true);
-              const userStr = localStorage.getItem('user');
-              if (userStr && userStr !== 'undefined') {
-                const user = JSON.parse(userStr);
-                if (user.is_admin) {
-                  navigate('/admin', { replace: true });
-                } else {
-                  navigate('/candidate', { replace: true });
-                }
+              // [FIX] La redirection se base maintenant sur la réponse de l'API,
+              // qui contient `role: "admin"` pour les administrateurs.
+              if (loginResponse?.role === 'admin') {
+                navigate('/admin', { replace: true });
+              } else if (loginResponse?.user?.is_admin) {
+                // Fallback pour les anciens tokens ou structures
+                navigate('/admin', { replace: true });
+              } else if (location.state?.from) {
+                navigate(location.state.from, { replace: true });
               } else {
+                // Redirection par défaut pour un utilisateur standard
                 navigate('/candidate', { replace: true });
               }
               }} /> :
