@@ -404,7 +404,7 @@ export const DashboardView = () => {
               {/* Seules les cartes dépendantes de la synthèse affichent le Skeleton */}
               {isLoadingOverview ? (
                 <div className="bento-grid">
-                   <div className="bento-card row-span-2 skeleton-pulse" style={{ minHeight: '350px' }}></div>
+                   <div className="bento-card row-span-2 skeleton-pulse" style={{ minHeight: '350px' }}></div> {/* This was the unclosed div */}
                    <div className="bento-card col-span-2 skeleton-pulse" style={{ minHeight: '150px' }}></div>
                    <div className="bento-card col-span-2 skeleton-pulse" style={{ minHeight: '150px' }}></div>
                 </div>
