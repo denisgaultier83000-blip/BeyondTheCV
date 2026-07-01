@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useDashboard } from './DashboardContext';
+import { useDashboard } from '../hooks/DashboardContext';
 import { Mic, MessageSquare, Play, Pause, RotateCcw, BrainCircuit, ArrowLeft, Loader2, RefreshCw, Lightbulb, Shield, Users, Briefcase, Building, Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DashboardCard } from './DashboardCard';
@@ -89,8 +89,6 @@ export const InterviewTab = () => {
   });
 
   useEffect(() => {
-    console.log('--- Pitch Result ---');
-    console.log(JSON.stringify(pitchResult, null, 2));
     if (pitchResult) {
       const savedEditablePitch = cvData?.editablePitch;
       if (savedEditablePitch && Object.values(savedEditablePitch).some(v => v)) {
@@ -116,8 +114,6 @@ export const InterviewTab = () => {
   // Peuple les 4 champs à partir de la matrice de l'IA
   const populateFieldsFromMatrix = (matrix: any, pitchKey: string, pitchGroup: string) => {
     const pitchData = matrix?.[pitchGroup]?.[pitchKey];
-    console.log(`--- Populating from matrix with key "${pitchKey}" and group "${pitchGroup}" ---`);
-    console.log('Pitch Data:', JSON.stringify(pitchData, null, 2));
     if (!pitchData) return;
 
     // La nouvelle structure est plus simple : on a toujours `oral` et `written`.
