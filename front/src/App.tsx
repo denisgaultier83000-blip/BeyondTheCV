@@ -197,25 +197,9 @@ function AppContent() {
         const rawProfileData = await response.json();
         if (rawProfileData && Object.keys(rawProfileData).length > 0) {
           const frontendData = transformProfileForFrontend(rawProfileData);
-          setFormData(frontendData); // On utilise le setter du hook global
-          if ((frontendData as any).target_language) {
-            i18n.changeLanguage((frontendData as any).target_language.toLowerCase());
-          }
-
-          // [FIX] La redirection doit avoir lieu APRÈS le chargement du profil
-          // pour avoir la donnée `is_admin` la plus à jour depuis le backend.
-          const storedUser = localStorage.getItem('user');
-          if (storedUser) {
-            try {
-              const user = JSON.parse(storedUser);
-              if (user && user.is_admin && !location.pathname.startsWith('/admin')) {
-                navigate('/admin', { replace: true });
-              } else if (user && !user.is_admin && (location.pathname === '/' || location.pathname === '/login')) {
-                navigate('/candidate', { replace: true });
-              }
-            } catch (e) { console.warn("Could not parse user from localStorage for redirection", e); }
-          }
-          setLastSaveTime(new Date());
+          setFormData(frontendData);
+          if ((frontendData as any).target_language) { i18n.changeLanguage((frontendData as any).target_language.toLowerCase()); }
+          setLastSaveTime(new Date()); // On met à jour l'heure de sauvegarde avant la redirection potentielle
         }
       } else if (response.status === 404) {
         resetDashboard(); // Le hook gère la réinitialisation à INITIAL_DATA
@@ -276,18 +260,21 @@ function AppContent() {
       }
 
       loadProfile();
-
-      if (user) {
-        try {
-          // Vérifie si l'utilisateur est admin ou possède le flag is_tester
-          const isTester = user.is_admin || user.is_tester;
-          
-          const isExpired = !isTester && (user.subscription_status === 'expired' || (user.subscription_expiration_date && new Date(user.subscription_expiration_date) < new Date()));
-          setIsFrozen(isExpired);
-        } catch (e) {
-          console.warn("Could not parse user subscription", e);
-        }
+      
+      // [FIX] La redirection doit avoir lieu APRÈS le chargement du profil
+      // pour avoir la donnée `is_admin` la plus à jour depuis le backend.
+      if (user && user.is_admin && !location.pathname.startsWith('/admin')) {
+        navigate('/admin', { replace: true });
+      } else if (user && !user.is_admin && (location.pathname === '/' || location.pathname === '/login')) {
+        navigate('/candidate', { replace: true });
       }
+      
+      try {
+        const isTester = user.is_admin || user.is_tester;
+        const isExpired = !isTester && (user.subscription_status === 'expired' || (user.subscription_expiration_date && new Date(user.subscription_expiration_date) < new Date()));
+        setIsFrozen(isExpired);
+      } catch (e) { console.warn("Could not parse user subscription", e); }
+      
     } else if (localStorage.getItem('token')) {
       setIsAuthenticated(true);
     } else {
