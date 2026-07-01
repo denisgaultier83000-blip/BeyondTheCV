@@ -138,6 +138,35 @@ async def admin_list_users(limit: int = 50, offset: int = 0):
         users_list.append(user_dict)
     return {"users": users_list}
 
+@router.get("/users/{user_id}")
+async def admin_get_user_details(user_id: str):
+    """[NOUVEAU] Récupère les détails complets d'un utilisateur."""
+    async with db.get_connection() as conn:
+        cursor = await db.execute(conn, """
+            SELECT id, email, first_name, last_name, created_at, last_login, subscription_status as status,
+                   subscription_expiration_date as expiration_date, total_ia_cost, quota_qa as sessions_remaining,
+                   (SELECT COUNT(*) FROM login_history WHERE user_id = users.id) as login_count
+            FROM users WHERE id = ?
+        """, (user_id,))
+        user = await cursor.fetchone()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable.")
+    
+    user_data = dict(user)
+    user_data['offer_name'] = 'Stratégique' # Placeholder
+    return user_data
+
+@router.get("/users/{user_id}/generations")
+async def admin_get_user_generations(user_id: str, limit: int = 5):
+    """[NOUVEAU] Récupère les dernières générations pour un utilisateur spécifique."""
+    async with db.get_connection() as conn:
+        cursor = await db.execute(conn, """
+            SELECT id, module, status, created_at, estimated_cost FROM tasks
+            WHERE user_id = ? ORDER BY created_at DESC LIMIT ?
+        """, (user_id, limit))
+        generations = await cursor.fetchall()
+    return {"generations": [dict(g) for g in generations]}
+
 
 @router.post("/users/{user_id}/toggle-active")
 async def admin_toggle_user_active(user_id: str):

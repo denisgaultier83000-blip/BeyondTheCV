@@ -48,7 +48,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           {/* Section Administrateur avec Layout dédié */}
           <Route 
             path="/admin" 
-            element={<AdminLayout />}
+            element={<ProtectedRoute adminRoute={true}><AdminLayout /></ProtectedRoute>}
           >
             <Route index element={<Navigate to="users" replace />} /> {/* Redirige /admin vers /admin/users */}
             <Route path="users" element={<AdminUsers />} />

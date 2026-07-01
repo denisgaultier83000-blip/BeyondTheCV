@@ -2,7 +2,7 @@ import uuid
 import os
 import secrets
 import smtplib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -20,6 +20,29 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
+
+# --- [NOUVEAU] Types pour les données Admin ---
+class AdminUser(BaseModel):
+    id: str
+    email: str
+    first_name: str | None
+    last_name: str | None
+    offer_name: str
+    status: str
+    created_at: datetime
+    last_login: datetime
+    sessions_remaining: int
+    total_ia_cost: float
+
+class AdminPayment(BaseModel):
+    id: str
+    user_email: str
+    status: str
+    offer_name: str
+    amount_paid: float
+    currency: str
+    purchase_date: datetime
+    stripe_invoice_url: str | None
 
 async def _insert_user(uid, email, hashed_pw, first, last, created):
     """Insère un nouvel utilisateur."""
@@ -313,3 +336,82 @@ async def reset_password(request: ResetPasswordRequest):
     except Exception as e:
         print(f"[AUTH ERROR] Reset password failed: {e}", flush=True)
         raise HTTPException(status_code=500, detail="Erreur interne lors de la réinitialisation.")
+
+# --- [NOUVEAU] Endpoints pour le Dashboard Admin ---
+
+@router.get("/api/admin/users", response_model=dict)
+async def get_all_users(current_user: dict = Depends(get_current_user)):
+    if not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Accès refusé.")
+
+    async with db.get_connection() as conn:
+        # [FIX] Ajout de la colonne total_ia_cost si elle n'existe pas
+        try:
+            await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS total_ia_cost REAL DEFAULT 0.0")
+        except Exception: pass
+
+        cursor = await db.execute(conn, """
+            SELECT id, email, first_name, last_name, subscription_status as status, 
+                   created_at, last_login, quota_qa as sessions_remaining, total_ia_cost
+            FROM users ORDER BY created_at DESC
+        """)
+        rows = await cursor.fetchall()
+
+    users_list = []
+    for row in rows:
+        user_data = dict(row)
+        # Logique pour déterminer le nom de l'offre (à affiner)
+        user_data['offer_name'] = 'Stratégique' # Placeholder
+        users_list.append(AdminUser(**user_data))
+
+    return {"users": users_list}
+
+@router.get("/api/admin/billing", response_model=dict)
+async def get_billing_data(current_user: dict = Depends(get_current_user)):
+    if not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Accès refusé.")
+
+    async with db.get_connection() as conn:
+        # [FIX] Création de la table payments si elle n'existe pas
+        await db.execute(conn, """
+            CREATE TABLE IF NOT EXISTS payments (
+                id TEXT PRIMARY KEY, user_id TEXT, user_email TEXT, status TEXT, offer_name TEXT, 
+                amount_paid REAL, currency TEXT, purchase_date TIMESTAMP, stripe_invoice_url TEXT
+            )
+        """)
+        
+        p_cursor = await db.execute(conn, "SELECT * FROM payments ORDER BY purchase_date DESC")
+        payments = [AdminPayment(**dict(row)) for row in await p_cursor.fetchall()]
+
+        # Calcul des statistiques
+        stats_cursor = await db.execute(conn, """
+            SELECT 
+                SUM(amount_paid) as total_revenue,
+                SUM(CASE WHEN purchase_date >= ? THEN amount_paid ELSE 0 END) as revenue_last_30d,
+                (SELECT COUNT(DISTINCT user_id) FROM users) as total_users
+            FROM payments WHERE status = 'succeeded'
+        """, (datetime.now(timezone.utc) - timedelta(days=30),))
+        stats_row = await stats_cursor.fetchone()
+        stats_data = dict(stats_row) if stats_row else {}
+        total_revenue = stats_data.get('total_revenue', 0) or 0
+        total_users = stats_data.get('total_users', 1) or 1
+
+    stats = {"total_revenue": total_revenue, "revenue_last_30d": stats_data.get('revenue_last_30d', 0) or 0, "total_refunds": 0.0, "arpu": total_revenue / total_users}
+    return {"payments": payments, "stats": stats}
+
+@router.get("/api/admin/generations", response_model=dict)
+async def get_generations_history(current_user: dict = Depends(get_current_user)):
+    if not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Accès refusé.")
+
+    async with db.get_connection() as conn:
+        cursor = await db.execute(conn, """
+            SELECT t.id, u.email as user_email, t.module, t.status, t.created_at, 
+                   t.estimated_cost, t.duration_ms, t.model_used, t.prompt_version, t.error_message
+            FROM tasks t
+            JOIN users u ON t.user_id = u.id
+            ORDER BY t.created_at DESC LIMIT 100
+        """)
+        rows = await cursor.fetchall()
+
+    return {"generations": [dict(row) for row in rows]}

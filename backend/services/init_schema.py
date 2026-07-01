@@ -171,9 +171,18 @@ def initialize_schema():
             cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_regeneration INTEGER DEFAULT 3;")
             cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_update INTEGER DEFAULT 1;")
             cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT 100;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS total_ia_cost REAL DEFAULT 0.0;")
         except Exception as e:
             conn.rollback()
             print(f"     ⚠️ Impossible d'altérer la table 'users' (elle n'existe peut-être pas encore) : {e}")
+
+        print("   - Vérification de la table 'payments'...")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS payments (
+                id TEXT PRIMARY KEY, user_id TEXT, user_email TEXT, status TEXT, offer_name TEXT, 
+                amount_paid REAL, currency TEXT, purchase_date TIMESTAMP, stripe_invoice_url TEXT
+            )
+        """)
 
         conn.commit()
         print("\n🎉 Schéma vérifié et fonctionnel pour les données à venir !")
