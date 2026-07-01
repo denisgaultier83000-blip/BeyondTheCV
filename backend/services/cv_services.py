@@ -62,7 +62,7 @@ class FlawCoachRequest(BaseModel):
 class InterviewAnswerRequest(BaseModel):
     question: str
     category: Optional[str] = "Question d'entretien"
-    suggested_framework: Optional[str] = ""
+    suggested_framework: Optional[str] = None
     user_answer: str
     application_id: Optional[str] = None
     task_id: Optional[str] = None
@@ -465,10 +465,10 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
         # [FIX EXPERT] Sécurisation anti-concurrence (Lock) pour éviter l'écrasement des JSON (Read-Modify-Write)
         # si le candidat évalue plusieurs réponses exactement en même temps.
         user_lock_key = f"eval_{current_user['id']}"
-        if user_lock_key not in _CACHE_LOCKS:
-            _CACHE_LOCKS[user_lock_key] = asyncio.Lock()
+        if user_lock_key not in _CACHE_LOCKS: # type: ignore
+            _CACHE_LOCKS[user_lock_key] = asyncio.Lock() # type: ignore
             
-        async with _CACHE_LOCKS[user_lock_key]:
+        async with _CACHE_LOCKS[user_lock_key]: # type: ignore
             async with db.get_connection() as conn:
                 try:
                     await db.execute(conn, """
@@ -477,7 +477,7 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                     """, (session_id, current_user["id"], app_id, request.question, request.user_answer, result.get("score", 0), json.dumps(result), datetime.now()))
                 except Exception as e:
                     print(f"[DB WARNING] Failed to insert interview session (missing table?): {e}", flush=True)
-                
+
                 def parse_deep_json(raw_str):
                     parsed = raw_str
                     for _ in range(5):
@@ -498,14 +498,14 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                             break
                     return parsed
     
-                def update_question_node(node):
+                def update_question_node(node: Any) -> bool:
                     def normalize_str(s):
                         return re.sub(r'\W+', '', str(s)).lower() if s else ""
                         
                     if isinstance(node, dict):
                         req_q = normalize_str(request.question)
                         
-                        def is_match(a, b):
+                        def is_match(a: str, b: str) -> bool:
                             if not a or not b: return False
                             if len(a) > 10 and a in b: return True
                             if len(b) > 10 and b in a: return True
@@ -513,7 +513,7 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                             
                         # [FIX EXPERT] Sécurité : on s'assure de n'altérer que des noeuds qui ressemblent à des questions
                         if any(k in node for k in ["question", "scenario", "situation", "text", "contexte", "description", "defi"]):
-                            for k, v in list(node.items()):
+                            for k, v in node.items():
                                 if isinstance(v, str) and len(v) > 5:
                                     if is_match(req_q, normalize_str(v)):
                                         node["user_answer"] = request.user_answer
@@ -521,7 +521,7 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                                         return True
                                         
                         for v in list(node.values()):
-                            if update_question_node(v): return True
+                            if isinstance(v, (dict, list)) and update_question_node(v): return True
                     elif isinstance(node, list):
                         for item in node:
                             if update_question_node(item): return True
@@ -529,14 +529,14 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
     
                 # [FIX EXPERT] Mise à jour du JSON de la tâche pour que les scores soient rechargés au retour
                 task_to_update = request.task_id
-                
+
                 # [FIX EXPERT] Recherche robuste de la tâche avec priorité ciblée sur le tasks_map
                 if not task_to_update and request.application_id:
                     try:
                         cursor = await db.execute(conn, "SELECT tasks_map FROM job_applications WHERE id = ?", (request.application_id,))
                         row = await cursor.fetchone()
                         if row:
-                            t_map_raw = row[0] if isinstance(row, tuple) else row.get("tasks_map")
+                            t_map_raw = row[0] if isinstance(row, tuple) else row.get("tasks_map", "{}")
                             if t_map_raw:
                                 t_map = json.loads(t_map_raw) if isinstance(t_map_raw, str) else t_map_raw
                                 possible_tasks = []
@@ -546,7 +546,7 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                                 for tid in possible_tasks:
                                     cursor = await db.execute(conn, "SELECT result FROM tasks WHERE id = ?", (tid,))
                                     t_row = await cursor.fetchone()
-                                    if t_row:
+                                    if t_row and t_row[0]:
                                         t_res = t_row[0] if isinstance(t_row, tuple) else t_row.get("result")
                                         if t_res:
                                             task_result = parse_deep_json(t_res)
@@ -556,7 +556,7 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                                                 break
                     except Exception as e:
                         print(f"[DB WARNING] Failed to use tasks_map: {e}")
-                        
+
                 if not task_to_update:
                     try:
                         cursor = await db.execute(conn, """
@@ -567,17 +567,17 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                         """, (current_user["id"], current_user["id"]))
                         rows = await cursor.fetchall()
                         for row in rows:
-                            t_res = row[1] if isinstance(row, tuple) else row.get("result")
+                            t_res = row[1] if isinstance(row, tuple) else row.get("result", "")
                             if not t_res: continue
                             
                             task_result = parse_deep_json(t_res)
                             if update_question_node(task_result):
                                 task_to_update = row[0] if isinstance(row, tuple) else row.get("id")
                                 await db.execute(conn, "UPDATE tasks SET result = ? WHERE id = ?", (json.dumps(task_result), task_to_update))
-                                break
+                                break # On a trouvé et mis à jour la tâche, on arrête la boucle
                     except Exception as e:
                         print(f"[DB WARNING] Failed to auto-discover task: {e}", flush=True)
-    
+
                 elif request.task_id:
                     try:
                         cursor = await db.execute(conn, "SELECT result FROM tasks WHERE id = ?", (task_to_update,))
@@ -589,13 +589,13 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                                 if update_question_node(task_result):
                                     await db.execute(conn, "UPDATE tasks SET result = ? WHERE id = ?", (json.dumps(task_result), task_to_update))
                     except Exception as e:
-                        print(f"[DB WARNING] Failed to update task JSON: {e}", flush=True)
-                        
+                        print(f"[DB WARNING] Failed to update task JSON by ID: {e}", flush=True)
+
                 try:
                     # [FIX EXPERT] Mise à jour du Cache pour que les réponses survivent au rechargement de page (F5)
                     cursor = await db.execute(conn, "SELECT cache_key, result FROM generation_cache WHERE user_id = ? AND content_type IN ('interview_questions', 'extra_scenarios') ORDER BY created_at DESC LIMIT 5", (current_user["id"],))
                     cache_rows = await cursor.fetchall()
-                    for c_row in cache_rows:
+                    for c_row in cache_rows or []:
                         c_key = c_row[0] if isinstance(c_row, tuple) else c_row.get("cache_key")
                         c_res = c_row[1] if isinstance(c_row, tuple) else c_row.get("result")
                         try:
