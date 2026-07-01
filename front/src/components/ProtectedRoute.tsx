@@ -31,24 +31,26 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, adminR
     return <LoadingScreen title="Vérification de l'accès..." />;
   }
 
-  const isAuthenticated = !!user;
-  const isAdmin = user?.is_admin;
+  const isAuthenticated = !!user && !!localStorage.getItem('token');
+  const isAdmin = isAuthenticated && user?.is_admin;
 
   if (!isAuthenticated) {
+    // Si l'utilisateur n'est pas authentifié, on le renvoie vers la page de connexion.
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   if (adminRoute && !isAdmin) {
+    // Si un utilisateur non-admin essaie d'accéder à une route admin, on le redirige vers son dashboard.
     return <Navigate to="/candidate" replace />;
   }
 
-  // [FIX] Si un admin est connecté et essaie d'aller sur une page non-admin, on le redirige vers son dashboard
-  if (!adminRoute && isAdmin && location.pathname === '/') {
+  // Si un admin est connecté et essaie d'aller sur une page non-admin (comme la racine), on le redirige vers son propre dashboard.
+  if (isAdmin && !adminRoute && (location.pathname === '/candidate' || location.pathname === '/')) {
     return <Navigate to="/admin" replace />;
   }
 
-  // [FIX] Si un utilisateur standard est connecté et est sur la page d'accueil (ou login), on le redirige vers son dashboard
-  if (!adminRoute && !isAdmin && (location.pathname === '/' || location.pathname === '/login')) {
+  // Si un utilisateur standard est sur la page d'accueil, on le redirige vers son dashboard.
+  if (!isAdmin && (location.pathname === '/' || location.pathname === '/login')) {
     return <Navigate to="/candidate" replace />;
   }
 
