@@ -10,6 +10,13 @@ import { useSpeechToText } from '../hooks/useSpeechToText';
 import { AnalysisTab } from './AnalysisTab';
 import { JobDecoder } from './JobDecoder';
 import { CareerRealityCheck } from './CareerRealityCheck';
+import { CockpitTab } from './CockpitTab';
+import { RecruiterView } from './RecruiterView';
+import FlawCoaching from './FlawCoaching';
+import TrainingTab from './TrainingTab';
+import { PrintableDossier } from './PrintableDossier';
+import { CoachingSummaryCard } from './CoachingSummaryCard';
+const PostureTab = lazy(() => import('./PostureTab'));
 
 interface DeliverableItem {
   name: string;
