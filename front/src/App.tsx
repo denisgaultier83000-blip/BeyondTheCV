@@ -96,6 +96,7 @@ function AppContent() {
       bio: source.bio || '',
       experiences: (source.experiences || []).map((exp: any, i: number) => ({ ...exp, id: exp.id || `exp_${Date.now()}_${i}` })),
       educations: (source.educations || []).map((edu: any, i: number) => ({ ...edu, id: edu.id || `edu_${Date.now()}_${i}` })),
+      pitch_result: source.pitch_result || null, // [FIX] Pré-remplissage des pitchs
       skills: source.skills || []
     };
 
@@ -199,6 +200,14 @@ function AppContent() {
           const frontendData = transformProfileForFrontend(rawProfileData);
           setFormData(frontendData);
           if ((frontendData as any).target_language) { i18n.changeLanguage((frontendData as any).target_language.toLowerCase()); }
+
+          // [FIX] La redirection doit avoir lieu ICI, après le chargement du profil,
+          // pour avoir la donnée `is_admin` la plus à jour depuis le backend.
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          if (user && user.is_admin && !location.pathname.startsWith('/admin')) {
+            navigate('/admin', { replace: true });
+          }
+
           setLastSaveTime(new Date()); // On met à jour l'heure de sauvegarde avant la redirection potentielle
         }
       } else if (response.status === 404) {
@@ -261,11 +270,7 @@ function AppContent() {
 
       loadProfile();
       
-      // [FIX] La redirection doit avoir lieu APRÈS le chargement du profil
-      // pour avoir la donnée `is_admin` la plus à jour depuis le backend.
-      if (user && user.is_admin && !location.pathname.startsWith('/admin')) {
-        navigate('/admin', { replace: true });
-      } else if (user && !user.is_admin && (location.pathname === '/' || location.pathname === '/login')) {
+      if (user && !user.is_admin && (location.pathname === '/' || location.pathname === '/login')) {
         navigate('/candidate', { replace: true });
       }
       

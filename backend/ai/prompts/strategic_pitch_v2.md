@@ -53,10 +53,10 @@ Tu dois retourner un objet JSON unique contenant la matrice complète des pitchs
       "oral": "Version orale de 30 secondes, directe et mémorisable.",
       "goal": "Accrocher rapidement en début de conversation ou en réseau."
     },
-    "one_minute": {
-      "written": "Version écrite structurée pour répondre à 'Parlez-moi de vous'.",
-      "oral": "Version orale d'une minute, fluide et équilibrée.",
-      "goal": "Répondre de manière standard et efficace à la première question de l'entretien."
+    "three_minutes": {
+      "written": "Version écrite détaillée pour un développement complet, structurée avec la méthode Situation-Complication-Résolution.",
+      "oral": "Version orale de 3 minutes, racontant une histoire de valeur avec des preuves chiffrées.",
+      "goal": "Développer un narratif complet et convaincant pour un entretien approfondi."
     }
   },
   "audience_adaptations": {
