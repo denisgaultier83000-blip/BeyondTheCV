@@ -23,8 +23,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ErrorBoundary>
         <Routes>
-          {/* La Landing Page doit être publique */}
-          <Route path="/" element={<App />} />
+          {/* La racine redirige vers /candidate si connecté, sinon affiche App (Landing/Login) */}
+          <Route path="/" element={<ProtectedRoute><App /></ProtectedRoute>} />
           
           {/* [FIX] Remplacement de la redirection JS par une redirection React pour éviter le rechargement de la page */}
           <Route path="/login" element={<Login />} />

@@ -67,7 +67,7 @@ function AppContent() {
     gapResult, actionPlanResult,
     researchResult, salaryResult,
     jobDecoderResult,
-    pitchResult, questionsResult,
+    pitchResult, setPitchResult, questionsResult,
     recruiterResult, realityResult, flawCoachingResult,
     globalStatus, error,
     customScenariosResult,
@@ -201,11 +201,19 @@ function AppContent() {
           setFormData(frontendData);
           if ((frontendData as any).target_language) { i18n.changeLanguage((frontendData as any).target_language.toLowerCase()); }
 
+          // [FIX ULTIME] Pré-remplissage des résultats d'analyse depuis le profil
+          if ((frontendData as any).pitch_result) {
+            setPitchResult((frontendData as any).pitch_result);
+          }
+
           // [FIX] La redirection doit avoir lieu ICI, après le chargement du profil,
           // pour avoir la donnée `is_admin` la plus à jour depuis le backend.
           const user = JSON.parse(localStorage.getItem('user') || '{}');
           if (user && user.is_admin && !location.pathname.startsWith('/admin')) {
             navigate('/admin', { replace: true });
+          } else if (user && !user.is_admin && (location.pathname === '/' || location.pathname === '/login')) {
+            // [FIX] On déplace la redirection du non-admin ici pour éviter la race condition
+            navigate('/candidate', { replace: true });
           }
 
           setLastSaveTime(new Date()); // On met à jour l'heure de sauvegarde avant la redirection potentielle
@@ -269,10 +277,6 @@ function AppContent() {
       }
 
       loadProfile();
-      
-      if (user && !user.is_admin && (location.pathname === '/' || location.pathname === '/login')) {
-        navigate('/candidate', { replace: true });
-      }
       
       try {
         const isTester = user.is_admin || user.is_tester;
