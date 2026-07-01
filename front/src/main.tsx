@@ -1,6 +1,7 @@
 import React, { Suspense } from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Login from "./pages/Login";
 import App from "./App";
 import Payment from "./pages/Payment"; // Ce composant n'est plus utilisé, mais on le garde pour référence
 import { ProtectedRoute } from "./components/ProtectedRoute"; // Le seul composant de protection nécessaire
@@ -28,7 +29,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           } />
           
           {/* [FIX] Remplacement de la redirection JS par une redirection React pour éviter le rechargement de la page */}
-          <Route path="/login" element={<App />} />
+          <Route path="/login" element={<Login onLoginSuccess={() => window.location.href = '/'} />} />
           
           {/* Page de paiement intermédiaire */}
           <Route path="/payment" element={

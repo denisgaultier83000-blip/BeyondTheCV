@@ -77,9 +77,9 @@ const Teleprompter = ({ fullPitchText, setIsTeleprompterOpen, isDark, t }: { ful
 export const InterviewTab = () => {
   const { pitchResult, questionsResult, customScenariosResult, globalStatus, cvData, updateFormData } = useDashboard();
   const { t } = useTranslation();
-  const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false);
+  const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false); // État pour le téléprompteur
   const [isDark] = useState(() => document.body.classList.contains('dark-mode'));
-  const [activePitchKey, setActivePitchKey] = useState('one_minute'); // Clé du pitch actif
+  const [activePitchKey, setActivePitchKey] = useState('three_minutes'); // [FIX] Le pitch par défaut est maintenant celui de 3 minutes
   const [activePitchGroup, setActivePitchGroup] = useState('core_pitches'); // Groupe du pitch actif
   const [editablePitch, setEditablePitch] = useState({
     written: "",
@@ -92,10 +92,10 @@ export const InterviewTab = () => {
     if (pitchResult) {
       const savedEditablePitch = cvData?.editablePitch;
       if (savedEditablePitch && Object.values(savedEditablePitch).some(v => v)) {
-        setEditablePitch(savedEditablePitch);
+        setEditablePitch(savedEditablePitch); // Restaure les modifications de l'utilisateur
       } else {
-        // On charge le pitch par défaut (1 minute)
-        populateFieldsFromMatrix(pitchResult, 'one_minute', 'core_pitches');
+        // [FIX] On charge le pitch de 3 minutes par défaut au premier chargement
+        populateFieldsFromMatrix(pitchResult, 'three_minutes', 'core_pitches');
       }
     }
   }, [pitchResult]);
@@ -143,8 +143,8 @@ export const InterviewTab = () => {
     }
   };
 
-  // Le format court est maintenant défini par les `core_pitches`
-  const isShortFormat = activePitchGroup === 'core_pitches';
+  // [FIX] Seul le pitch de 30 secondes est un format court avec un seul champ.
+  const isShortFormat = activePitchKey === 'thirty_seconds';
   const currentPitchData = pitchResult?.[activePitchGroup]?.[activePitchKey];
   const coachingAngle = currentPitchData?.angle || currentPitchData?.goal || null;
 
@@ -319,7 +319,7 @@ export const InterviewTab = () => {
                   <h6 className="pitch-selector-title">Format</h6>
                   <div className="pitch-selector-tabs">
                     <button onClick={() => handleTabClick('thirty_seconds', 'core_pitches')} className={activePitchKey === 'thirty_seconds' ? 'active' : ''}><Clock size={16}/> 30 sec</button>
-                    <button onClick={() => handleTabClick('three_minutes', 'core_pitches')} className={activePitchKey === 'one_minute' ? 'active' : ''}><Clock size={16}/> 3 min</button>
+                    <button onClick={() => handleTabClick('three_minutes', 'core_pitches')} className={activePitchKey === 'three_minutes' ? 'active' : ''}><Clock size={16}/> 3 min</button>
                   </div>
                 </div>
                 <div className="pitch-selector-group">
