@@ -261,12 +261,12 @@ function AppContent() {
         }
       }
 
-      if (location.pathname === '/' || location.pathname === '/login') {
-        if (user && user.is_admin) {
-            navigate('/admin', { replace: true });
-        } else {
-            navigate('/candidate', { replace: true });
-        }
+      // [FIX] Redirection de l'admin vers son interface, peu importe la page initiale.
+      // On s'assure qu'il n'est pas déjà sur une page admin pour éviter une boucle.
+      if (user && user.is_admin && !location.pathname.startsWith('/admin')) {
+        navigate('/admin', { replace: true });
+      } else if (user && !user.is_admin && (location.pathname === '/' || location.pathname === '/login')) {
+        navigate('/candidate', { replace: true });
       }
       
       loadProfile();

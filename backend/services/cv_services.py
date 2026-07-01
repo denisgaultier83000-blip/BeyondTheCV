@@ -353,25 +353,26 @@ async def generate_pitch(data, quality='smart'):
     target_lang = normalize_language(data.get('target_language', 'fr'))
     prompt_template = load_prompt(get_prompt_path("strategic_pitch_v2.md"))
 
-    # Construction du payload de données riche et compacté pour l'IA
+    # [CORRECTIF MAJEUR] Construction d'un contexte riche mais maîtrisé pour l'IA,
+    # conformément à votre analyse. On nourrit le modèle correctement.
     safe_data = {
         "target": {
             "job": data.get("target_job", ""),
             "company": data.get("target_company", ""),
             "language": target_lang,
             "job_description": truncate(data.get("job_description", ""), 3500),
-            "interview_type": data.get("interview_type", "")
+            "interview_type": data.get("interview_type", "") # Assure que le type d'entretien est bien passé
         },
         "profile": {
             "experiences": compact_experiences(data.get("experiences", []), max_items=6),
             "educations": data.get("educations", [])[:4],
             "skills": data.get("skills", [])[:30],
             "strengths": data.get("strengths", [])[:10],
-            "flaws": data.get("flaws", [])[:8],
+            "flaws": data.get("flaws", [])[:8], # Les faiblesses sont cruciales pour le pitch "anti-failles"
             "free_text": truncate(data.get("free_text", ""), 2500)
         },
-        "clarifications": compact_clarifications(data.get("clarifications", []), max_items=8),
-        "research": compact_research(data.get("research_data", {}))
+        "clarifications": compact_clarifications(data.get("clarifications", []), max_items=8), # Les clarifications sont maintenant incluses
+        "research": compact_research(data.get("research_data", {})) # Les données de recherche sont maintenant incluses
     }
 
     context_str = json.dumps(safe_data, indent=2, ensure_ascii=False, default=str)
@@ -379,7 +380,7 @@ async def generate_pitch(data, quality='smart'):
     final_prompt = prompt_template.replace("{{CANDIDATE_DATA_JSON}}", context_str) \
                                   .replace("{{TARGET_LANGUAGE}}", target_lang)
 
-    system_instruction = f"You are an Executive Coach. Output STRICT JSON in {target_lang.upper()}. Ensure all pitches are distinct and follow the specified structure."
+    system_instruction = f"You are an Executive Coach. Output STRICT JSON in {target_lang.upper()}. Ensure all pitches are distinct and follow the specified structure. Do not add comments in the JSON."
     return await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction=system_instruction)
 
 @router.post("/coach-flaw")

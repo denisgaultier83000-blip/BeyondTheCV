@@ -15,6 +15,7 @@ import TrainingTab from './TrainingTab';
 import { PrintableDossier } from './PrintableDossier';
 import { TrainingPlanTimeline } from './TrainingPlanTimeline';
 import { CockpitTab } from './CockpitTab';
+import { CoachingSummaryCard } from './CoachingSummaryCard'; // Import de la nouvelle carte
 
 interface DeliverableItem {
   name: string;
@@ -372,6 +373,11 @@ export const DashboardView = () => {
                   <PilotBento 
                       data={pilotData} 
                       onGoToGap={() => handleTabChange('market', 'gap_section')} 
+                  />
+                  {/* [NOUVEAU] Carte de synthèse du coaching vocal */}
+                  <CoachingSummaryCard 
+                    data={pitchResult?.coaching_notes}
+                    loading={isProcessing && !pitchResult}
                   />
                   <CareerRealityCheck data={realityResult} score={pilotData?.matchScore} loading={isProcessing && !realityResult && !isCommando} />
                   {(!isCommando || recruiterResult) && (

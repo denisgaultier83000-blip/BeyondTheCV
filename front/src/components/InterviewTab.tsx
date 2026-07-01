@@ -79,13 +79,13 @@ export const InterviewTab = () => {
   const { t } = useTranslation();
   const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false);
   const [isDark] = useState(() => document.body.classList.contains('dark-mode'));
-  const [pitchMatrix, setPitchMatrix] = useState<any>(pitchResult || null);
-  const [activePitch, setActivePitch] = useState('pitch_3_minutes');
+  const [activePitchKey, setActivePitchKey] = useState('one_minute'); // Clé du pitch actif
+  const [activePitchGroup, setActivePitchGroup] = useState('core_pitches'); // Groupe du pitch actif
   const [editablePitch, setEditablePitch] = useState({
-    accroche: "",
-    preuve: "",
-    valeur: "",
-    projection: ""
+    written: "",
+    oral: "",
+    // Les 4 champs sont conservés pour l'édition fine, mais peuplés différemment
+    accroche: "", preuve: "", valeur: "", projection: ""
   });
 
   useEffect(() => {
@@ -94,8 +94,8 @@ export const InterviewTab = () => {
       if (savedEditablePitch && Object.values(savedEditablePitch).some(v => v)) {
         setEditablePitch(savedEditablePitch);
       } else {
-        // On charge le pitch stratégique par défaut (`pitch_3_minutes`)
-        populateFieldsFromMatrix(pitchResult, 'pitch_3_minutes');
+        // On charge le pitch par défaut (1 minute)
+        populateFieldsFromMatrix(pitchResult, 'one_minute', 'core_pitches');
       }
     }
   }, [pitchResult]);
@@ -112,12 +112,25 @@ export const InterviewTab = () => {
   };
 
   // Peuple les 4 champs à partir de la matrice de l'IA
-  const populateFieldsFromMatrix = (matrix: any, pitchType: string) => {
-    const fullText = matrix?.[pitchType]?.oral || matrix?.[pitchType]?.written || '';
-    const newFields = splitTextIntoFields(fullText);
-    setEditablePitch(newFields);
+  const populateFieldsFromMatrix = (matrix: any, pitchKey: string, pitchGroup: string) => {
+    const pitchData = matrix?.[pitchGroup]?.[pitchKey];
+    if (!pitchData) return;
+
+    // La nouvelle structure est plus simple : on a toujours `oral` et `written`.
+    // On utilise le texte oral pour le découper en 4 champs éditables.
+    const fullText = pitchData.oral || pitchData.written || '';
+    const fourFields = splitTextIntoFields(fullText);
+
+    const newEditablePitch = {
+      ...fourFields,
+      written: pitchData.written || '',
+      oral: pitchData.oral || ''
+    };
+
+    setEditablePitch(newEditablePitch);
+
     if (updateFormData) {
-      updateFormData('editablePitch', newFields);
+      updateFormData('editablePitch', newEditablePitch);
     }
   };
 
@@ -130,9 +143,11 @@ export const InterviewTab = () => {
     }
   };
 
-  // Définir les formats de pitch qui doivent utiliser une seule zone de texte
-  const shortPitchFormats = ['pitch_30_seconds', 'networking_pitch'];
-  const isShortFormat = shortPitchFormats.includes(activePitch);
+  // Le format court est maintenant défini par les `core_pitches`
+  const isShortFormat = activePitchGroup === 'core_pitches';
+  const currentPitchData = pitchResult?.[activePitchGroup]?.[activePitchKey];
+  const coachingAngle = currentPitchData?.angle || currentPitchData?.goal || null;
+
 
   // Le texte du téléprompteur est la concaténation des 4 champs éditables
   const fullPitchText = [editablePitch.accroche, editablePitch.preuve, editablePitch.valeur, editablePitch.projection].filter(Boolean).join('\n\n');
@@ -141,7 +156,7 @@ export const InterviewTab = () => {
     if (!window.confirm(t('confirm_reset_pitch', "Voulez-vous vraiment annuler vos modifications et restaurer le pitch original généré par l'IA ?"))) return;
     // On repeuple les champs avec la version sélectionnée actuellement
     if (pitchResult) {
-      populateFieldsFromMatrix(pitchResult, activePitch);
+      populateFieldsFromMatrix(pitchResult, activePitchKey, activePitchGroup);
     }
   };
 
@@ -218,10 +233,11 @@ export const InterviewTab = () => {
     return (Object.values(payload).find(v => Array.isArray(v)) as any[]) || [];
   };
 
-  const handleTabClick = (pitchType: string) => {
-    setActivePitch(pitchType);
+  const handleTabClick = (pitchKey: string, pitchGroup: string) => {
+    setActivePitchKey(pitchKey);
+    setActivePitchGroup(pitchGroup);
     // Au clic, on met à jour les 4 champs avec le contenu correspondant
-    populateFieldsFromMatrix(pitchMatrix, pitchType);
+    populateFieldsFromMatrix(pitchResult, pitchKey, pitchGroup);
   };
 
   // Convertir les Mises en Situation (MES) en format "Question" pour les fusionner
@@ -302,26 +318,36 @@ export const InterviewTab = () => {
                 <div className="pitch-selector-group">
                   <h6 className="pitch-selector-title">Format</h6>
                   <div className="pitch-selector-tabs">
-                    <button onClick={() => handleTabClick('pitch_30_seconds')} className={activePitch === 'pitch_30_seconds' ? 'active' : ''}><Clock size={16}/> 30 sec</button>
-                    <button onClick={() => handleTabClick('pitch_1_minute')} className={activePitch === 'pitch_1_minute' ? 'active' : ''}><Clock size={16}/> 1 min</button>
-                    <button onClick={() => handleTabClick('pitch_3_minutes')} className={activePitch === 'pitch_3_minutes' ? 'active' : ''}><Clock size={16}/> Stratégique</button>
+                    <button onClick={() => handleTabClick('thirty_seconds', 'core_pitches')} className={activePitchKey === 'thirty_seconds' ? 'active' : ''}><Clock size={16}/> 30 sec</button>
+                    <button onClick={() => handleTabClick('one_minute', 'core_pitches')} className={activePitchKey === 'one_minute' ? 'active' : ''}><Clock size={16}/> 1 min</button>
                   </div>
                 </div>
                 <div className="pitch-selector-group">
                   <h6 className="pitch-selector-title">Par Audience</h6>
                   <div className="pitch-selector-tabs">
-                    <button onClick={() => handleTabClick('recruiter_pitch')} className={activePitch === 'recruiter_pitch' ? 'active' : ''}><Briefcase size={16}/> Recruteur</button>
-                    <button onClick={() => handleTabClick('executive_pitch')} className={activePitch === 'executive_pitch' ? 'active' : ''}><Building size={16}/> Dirigeant</button>
-                    <button onClick={() => handleTabClick('hr_pitch')} className={activePitch === 'hr_pitch' ? 'active' : ''}><Users size={16}/> RH</button>
-                    <button onClick={() => handleTabClick('networking_pitch')} className={activePitch === 'networking_pitch' ? 'active' : ''}><Users size={16}/> Réseau</button>
-                    <button onClick={() => handleTabClick('anti_flaw_pitch')} className={activePitch === 'anti_flaw_pitch' ? 'active' : ''}><Shield size={16}/> Anti-Failles</button>
+                    <button onClick={() => handleTabClick('role_fit_pitch', 'audience_adaptations')} className={activePitchKey === 'role_fit_pitch' ? 'active' : ''}><Briefcase size={16}/> Recruteur</button>
+                    <button onClick={() => handleTabClick('business_impact_pitch', 'audience_adaptations')} className={activePitchKey === 'business_impact_pitch' ? 'active' : ''}><Building size={16}/> Dirigeant</button>
+                    <button onClick={() => handleTabClick('culture_fit_pitch', 'audience_adaptations')} className={activePitchKey === 'culture_fit_pitch' ? 'active' : ''}><Users size={16}/> RH</button>
+                    <button onClick={() => handleTabClick('objection_handling_pitch', 'audience_adaptations')} className={activePitchKey === 'objection_handling_pitch' ? 'active' : ''}><Shield size={16}/> Anti-Failles</button>
                   </div>
                 </div>
               </div>
 
+              {/* --- NOUVEAU BLOC DE COACHING --- */}
+              {coachingAngle && (
+                <div className="coaching-angle-box" style={{ animation: 'fadeIn 0.4s ease-out' }}>
+                  <Lightbulb size={18} />
+                  <div>
+                    <strong>Angle stratégique :</strong>
+                    <p>{coachingAngle}</p>
+                  </div>
+                </div>
+              )}
+
+
               {/* --- BLOC DES 4 CHAMPS ÉDITABLES --- */}
               {isShortFormat ? (
-                // --- VUE POUR FORMATS COURTS (30s, Réseau) ---
+                // --- VUE POUR FORMATS COURTS (ex: 30s, Réseau) ---
                 <div className="pitch-single-field" style={{ animation: 'fadeIn 0.4s ease-out' }}>
                   <textarea
                     className="pitch-textarea"
@@ -329,9 +355,10 @@ export const InterviewTab = () => {
                     onChange={e => {
                       // On met à jour les 4 champs en se basant sur le texte unique
                       const newFields = splitTextIntoFields(e.target.value);
-                      setEditablePitch(newEditablePitch => ({...newEditablePitch, ...newFields}));
+                      const newEditablePitch = { ...editablePitch, ...newFields };
+                      setEditablePitch(newEditablePitch);
                       if (updateFormData) {
-                        updateFormData('editablePitch', newFields);
+                        updateFormData('editablePitch', newEditablePitch);
                       }
                     }}
                     rows={10}

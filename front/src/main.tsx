@@ -25,7 +25,12 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           {/* La Landing Page doit être publique */}
           <Route path="/" element={<App />} />
           
-          <Route path="/login" element={<Login onLogin={() => window.location.href = '/candidate'} />} />
+          {/* [FIX] Remplacement de la redirection JS par une redirection React pour éviter le rechargement de la page */}
+          <Route path="/login" element={
+            <ProtectedRoute>
+              <Navigate to="/candidate" replace />
+            </ProtectedRoute>
+          } />
           
           {/* Page de paiement intermédiaire */}
           <Route path="/payment" element={
