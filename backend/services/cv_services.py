@@ -356,34 +356,39 @@ def compact_clarifications(clarifications: List[Dict[str, Any]], max_items: int 
     return [{ "question": c.get("question", ""), "answer": truncate(c.get("answer", ""), 300) } for c in clarifications[:max_items]]
 
 def compact_research(research_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Compacte les données de recherche pour le prompt."""
+    """Compacte les données de recherche pour le prompt en ne gardant que l'essentiel."""
     if not research_data: return {}
-    return { k: v for k, v in research_data.items() if k in ["company_report", "market_report"] }
+    
+    compacted = {}
+    if "company_report" in research_data:
+        cr = research_data["company_report"]
+        compacted["company_report"] = {
+            "identity_dna": truncate(cr.get("identity_dna", ""), 200),
+            "usp": truncate(cr.get("usp", ""), 200),
+            "strategic_challenges": (cr.get("strategic_challenges") or [])[:2]
+        }
+    if "market_report" in research_data:
+        mr = research_data["market_report"]
+        compacted["market_report"] = {
+            "trends": truncate(mr.get("trends", ""), 200),
+            "recruitment_dynamics": truncate(mr.get("recruitment_dynamics", ""), 200)
+        }
+    return compacted
 
 async def generate_pitch(data, quality='smart'):
     target_lang = normalize_language(data.get('target_language', 'fr'))
     prompt_template = load_prompt(get_prompt_path("strategic_pitch_v2.md"))
 
-    # [CORRECTIF MAJEUR] Construction d'un contexte riche mais maîtrisé pour l'IA,
-    # conformément à votre analyse. On nourrit le modèle correctement.
     safe_data = {
         "target": {
             "job": data.get("target_job", ""),
             "company": data.get("target_company", ""),
             "language": target_lang,
-            "job_description": truncate(data.get("job_description", ""), 3500),
-            "interview_type": data.get("interview_type", "") # Assure que le type d'entretien est bien passé
+            "job_description": truncate(data.get("job_description", ""), 3500)
         },
-        "profile": {
-            "experiences": compact_experiences(data.get("experiences", []), max_items=6),
-            "educations": data.get("educations", [])[:4],
-            "skills": data.get("skills", [])[:30],
-            "strengths": data.get("strengths", [])[:10],
-            "flaws": data.get("flaws", [])[:8], # Les faiblesses sont cruciales pour le pitch "anti-failles"
-            "free_text": truncate(data.get("free_text", ""), 2500)
-        },
-        "clarifications": compact_clarifications(data.get("clarifications", []), max_items=8), # Les clarifications sont maintenant incluses
-        "research": compact_research(data.get("research_data", {})) # Les données de recherche sont maintenant incluses
+        "profile": _sanitize_data_for_ai(data, strict=True),
+        "clarifications": compact_clarifications(data.get("clarifications", [])),
+        "research": compact_research(data.get("research_data", {}))
     }
 
     context_str = json.dumps(safe_data, indent=2, ensure_ascii=False, default=str)

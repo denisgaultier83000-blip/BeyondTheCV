@@ -115,16 +115,27 @@ export const InterviewTab = () => {
 
   // Peuple les 4 champs à partir de la matrice de l'IA
   const populateFieldsFromMatrix = (matrix: any, pitchKey: string, pitchGroup: string) => {
-    const pitchData = matrix?.[pitchGroup]?.[pitchKey];
-    if (!pitchData) return;
+    let pitchData = matrix?.[pitchGroup]?.[pitchKey];
+    if (!pitchData) {
+      // [FIX] Fallback pour l'ancien format plat
+      if (matrix.accroche && matrix.preuve && matrix.valeur && matrix.projection) {
+        pitchData = {
+          written: [matrix.accroche, matrix.preuve, matrix.valeur, matrix.projection].join('\n\n'),
+          oral: [matrix.accroche, matrix.preuve, matrix.valeur, matrix.projection].join('\n\n')
+        };
+      } else {
+        return;
+      }
+    }
 
     // La nouvelle structure est plus simple : on a toujours `oral` et `written`.
     // On utilise le texte oral pour le découper en 4 champs éditables.
     const fullText = pitchData.oral || pitchData.written || '';
     const fourFields = splitTextIntoFields(fullText);
 
+
     const newEditablePitch = {
-      ...fourFields,
+      ...fourFields, // accroche, preuve, valeur, projection
       written: pitchData.written || '',
       oral: pitchData.oral || ''
     };
