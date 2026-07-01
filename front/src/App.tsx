@@ -584,7 +584,7 @@ function AppContent() {
               } else {
                 navigate('/candidate', { replace: true });
               }
-            }} />
+            }} />) :
           (<div style={{ paddingTop: '100px', paddingBottom: '2rem', width: '100%', maxWidth: '1200px', margin: '0 auto', paddingLeft: '1rem', paddingRight: '1rem', boxSizing: 'border-box' }}>
             {/* [FIX] Ajout d'un padding-top de 100px pour descendre sous le Header et centrage global de l'interface */}
             {/* [FIX] Forcer la largeur à 100% et injecter un padding fantôme à droite pour éviter la coupure au scroll */}

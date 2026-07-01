@@ -850,17 +850,10 @@ async def generate_roadmap(request: RoadmapRequest, current_user: dict = Depends
     context_str = json.dumps(request.context.model_dump(), indent=2)
     profile_str = json.dumps(_sanitize_data_for_ai(request.profile, strict=True), indent=2, default=str)
 
-    final_prompt = f"""
-    {prompt_template}
-
-    CONTEXTE DE L'ENTRETIEN:
-    {context_str}
-
-    PROFIL DU CANDIDAT:
-    {profile_str}
-
-    LANGUE DE SORTIE: {target_lang}
-    """
+    # Remplacement des placeholders dans le prompt
+    final_prompt = prompt_template.replace("{{context_str}}", context_str) \
+                                  .replace("{{profile_str}}", profile_str) \
+                                  .replace("{{target_lang}}", target_lang)
 
     try:
         result = await ai_service.generate_valid_json(
