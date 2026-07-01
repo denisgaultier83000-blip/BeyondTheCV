@@ -283,6 +283,9 @@ export const DashboardView = () => {
         <button className={`tab-btn ${activeTab === 'market' ? 'active' : ''}`} onClick={() => handleTabChange('market')} style={{ position: 'relative' }}>
           <Globe size={18} /> {t('tab_market_offer', "Marché & Offre")} {marketUnseen && <span className="notification-dot"></span>}
         </button>
+        <button className={`tab-btn ${activeTab === 'posture' ? 'active' : ''}`} onClick={() => handleTabChange('posture')}>
+          <Award size={18} /> {t('tab_posture', "Réussir l'entretien")}
+        </button>
       </div>
 
       {/* SOUS-MENUS */}
@@ -465,6 +468,12 @@ export const DashboardView = () => {
            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
              <TrainingTab />
            </div>
+        )}
+
+        {activeTab === 'posture' && (
+          <Suspense fallback={<div className="p-8 text-center">Chargement du module...</div>}>
+            <PostureTab />
+          </Suspense>
         )}
       </div>
 
