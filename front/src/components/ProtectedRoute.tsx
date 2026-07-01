@@ -44,13 +44,13 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, adminR
     return <Navigate to="/candidate" replace />;
   }
 
-  // Si un admin est connecté et essaie d'aller sur une page non-admin (comme la racine), on le redirige vers son propre dashboard.
-  if (isAdmin && !adminRoute && (location.pathname === '/candidate' || location.pathname === '/')) {
+  // [FIX] Si un admin est connecté, il ne doit JAMAIS pouvoir aller sur une route non-admin.
+  // On le redirige de force vers son dashboard.
+  if (isAdmin && !adminRoute) {
     return <Navigate to="/admin" replace />;
   }
 
-  // Si un utilisateur standard est sur la page d'accueil, on le redirige vers son dashboard.
-  if (!isAdmin && (location.pathname === '/' || location.pathname === '/login')) {
+  if (!isAdmin && location.pathname === '/admin') {
     return <Navigate to="/candidate" replace />;
   }
 
