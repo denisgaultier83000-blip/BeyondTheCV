@@ -89,6 +89,8 @@ export const InterviewTab = () => {
   });
 
   useEffect(() => {
+    console.log('--- Pitch Result (Final Debug) ---');
+    console.log(JSON.stringify(pitchResult, null, 2));
     if (pitchResult) {
       const savedEditablePitch = cvData?.editablePitch;
       if (savedEditablePitch && Object.values(savedEditablePitch).some(v => v)) {
@@ -293,7 +295,7 @@ export const InterviewTab = () => {
         
         <div id="pitch_section">
         <DashboardCard
-          title={t('deliv_pitch', "Matrice de Pitch")}
+          title={t('deliv_pitch', "Matrice de Pitchs")}
           icon={<Mic size={24} />}
           loading={globalStatus === 'PROCESSING' && !pitchResult}
           loadingText={t('pitch_loading', "Génération de votre pitch...")}
