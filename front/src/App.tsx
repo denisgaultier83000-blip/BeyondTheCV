@@ -206,16 +206,6 @@ function AppContent() {
             setPitchResult((frontendData as any).pitch_result);
           }
 
-          // [FIX] La redirection doit avoir lieu ICI, après le chargement du profil,
-          // pour avoir la donnée `is_admin` la plus à jour depuis le backend.
-          const user = JSON.parse(localStorage.getItem('user') || '{}');
-          if (user && user.is_admin && !location.pathname.startsWith('/admin')) {
-            navigate('/admin', { replace: true });
-          } else if (user && !user.is_admin && (location.pathname === '/' || location.pathname === '/login')) {
-            // [FIX] On déplace la redirection du non-admin ici pour éviter la race condition
-            navigate('/candidate', { replace: true });
-          }
-
           setLastSaveTime(new Date()); // On met à jour l'heure de sauvegarde avant la redirection potentielle
         }
       } else if (response.status === 404) {

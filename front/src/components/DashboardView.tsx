@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useDashboard } from './DashboardContext';
 import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass, Mic, Search, Eye, Navigation, Network, Loader2, RotateCcw, CheckSquare, Dumbbell, ArrowUp, Printer, Building, ShieldAlert, Calendar, UserCheck, Monitor, HeartPulse, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PilotBento } from './PilotBento';
 import { GapAnalysisFull } from './GapAnalysisFull';
 import { InterviewTab } from './InterviewTab';
+import { useSpeechToText } from '../hooks/useSpeechToText';
 import { AnalysisTab } from './AnalysisTab';
 import { JobDecoder } from './JobDecoder';
 import { CareerRealityCheck } from './CareerRealityCheck';
@@ -26,6 +27,51 @@ interface DeliverableItem {
   disabled?: boolean;
   disabledReason?: string;
 }
+
+// --- Composant pour la pratique du Pitch ---
+const PitchPractice = ({ title, pitchText, onSave }) => {
+  const { t, i18n } = useTranslation();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedText, setEditedText] = useState(pitchText);
+
+  // [FIX] Déplacement de la logique du hook ici pour isoler l'état de chaque instance
+  const [isRecording, setIsRecording] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const recognitionRef = useRef(null);
+
+  const startRecording = useCallback(() => {
+    setIsRecording(true);
+    setTranscript('');
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = i18n.language;
+      recognitionRef.current.onresult = (event) => {
+        const interimTranscript = Array.from(event.results).map(result => result[0].transcript).join('');
+        setEditedText(prev => prev ? `${prev} ${interimTranscript}` : interimTranscript);
+      };
+      recognitionRef.current.start();
+    }
+  }, [i18n.language]);
+
+  const stopRecording = useCallback(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    setIsRecording(false);
+  }, []);
+
+  const handleSave = () => {
+    onSave(editedText);
+    setIsEditing(false);
+  };
+
+  return (
+    <div className="pitch-practice-card"></div>
+  );
+};
 
 export const DashboardView = () => {
   const { t } = useTranslation();

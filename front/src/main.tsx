@@ -1,11 +1,9 @@
 import React, { Suspense } from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Login from "./pages/Login";
 import App from "./App";
-import Payment from "./pages/Payment";
-import { ProtectedRoute } from "./components/ProtectedRoute";
-import AdminProtectedRoute from "./components/AdminProtectedRoute";
+import Payment from "./pages/Payment"; // Ce composant n'est plus utilisé, mais on le garde pour référence
+import { ProtectedRoute } from "./components/ProtectedRoute"; // Le seul composant de protection nécessaire
 import ResearchReport from "./pages/ResearchReport"; // Importer la nouvelle page
 import AdminFeedbacks from "./components/AdminFeedbacks";
 import AdminLayout from "./components/AdminLayout"; // Nouveau Layout Admin
@@ -23,31 +21,33 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ErrorBoundary>
         <Routes>
-          {/* La racine redirige vers /candidate si connecté, sinon affiche App (Landing/Login) */}
-          <Route path="/" element={<ProtectedRoute><App /></ProtectedRoute>} />
+          {/* [FIX] La racine redirige vers la bonne interface si connecté, sinon affiche App (Landing/Login) */}
+          <Route path="/" element={
+            <ProtectedRoute adminRoute={false}><App /></ProtectedRoute>
+          } />
           
           {/* [FIX] Remplacement de la redirection JS par une redirection React pour éviter le rechargement de la page */}
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<App />} />
           
           {/* Page de paiement intermédiaire */}
           <Route path="/payment" element={
-            <ProtectedRoute><Payment /></ProtectedRoute>
+            <ProtectedRoute adminRoute={false}><Payment /></ProtectedRoute>
           } />
 
           {/* Restaure la route /candidate pour que le Header affiche correctement les pastilles d'avancement */}
           <Route path="/candidate" element={
-            <ProtectedRoute><App /></ProtectedRoute>
+            <ProtectedRoute adminRoute={false}><App /></ProtectedRoute>
           } />
 
           {/* Nouvelle route pour les rapports de recherche */}
           <Route path="/report" element={
-            <ProtectedRoute><ResearchReport /></ProtectedRoute>
+            <ProtectedRoute adminRoute={false}><ResearchReport /></ProtectedRoute>
           } />
 
           {/* Section Administrateur avec Layout dédié */}
           <Route 
             path="/admin" 
-            element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}
+            element={<ProtectedRoute adminRoute={true}><AdminLayout /></ProtectedRoute>}
           >
             <Route index element={<Navigate to="users" replace />} /> {/* Redirige /admin vers /admin/users */}
             <Route path="users" element={<AdminUsers />} />
