@@ -72,10 +72,6 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
         localStorage.setItem("token", data.access_token);
         if (data.user) {
           localStorage.setItem("user", JSON.stringify(data.user));
-          if (data.user.is_admin) {
-            window.location.href = '/admin';
-            return;
-          }
         }
         onLoginSuccess();
       }

@@ -4,9 +4,13 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import App from "./App";
 import Payment from "./pages/Payment";
-import { ProtectedRoute, AdminProtectedRoute } from "./components";
+import { ProtectedRoute, AdminProtectedRoute } from "./components/Auth";
 import ResearchReport from "./pages/ResearchReport"; // Importer la nouvelle page
 import AdminFeedbacks from "./components/AdminFeedbacks";
+import AdminLayout from "./components/AdminLayout"; // Nouveau Layout Admin
+import AdminUsers from "./components/AdminUsers"; // Nouvelle page Admin
+import AdminBilling from "./components/AdminBilling"; // Nouvelle page Admin
+import AdminGenerations from "./components/AdminGenerations"; // Nouvelle page Admin
 import ErrorBoundary from "./components/ErrorBoundary";
 import "./index.css";
 import "./theme.css";
@@ -38,12 +42,17 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <ProtectedRoute><ResearchReport /></ProtectedRoute>
           } />
 
-          {/* Nouvelle route pour le Dashboard Administrateur */}
-          <Route path="/admin" element={
-            <AdminProtectedRoute>
-              <AdminFeedbacks />
-            </AdminProtectedRoute>
-          } />
+          {/* Section Administrateur avec Layout dédié */}
+          <Route 
+            path="/admin" 
+            element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}
+          >
+            <Route index element={<Navigate to="users" replace />} /> {/* Redirige /admin vers /admin/users */}
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="billing" element={<AdminBilling />} />
+            <Route path="generations" element={<AdminGenerations />} />
+            <Route path="feedbacks" element={<AdminFeedbacks />} />
+          </Route>
 
           {/* Redirection par défaut vers la racine */}
           <Route path="*" element={<Navigate to="/" replace />} />

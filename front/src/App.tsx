@@ -261,7 +261,7 @@ function AppContent() {
         }
       }
 
-      if (location.pathname === '/') {
+      if (location.pathname === '/' || location.pathname === '/login') {
         if (user && user.is_admin) {
             navigate('/admin', { replace: true });
         } else {
