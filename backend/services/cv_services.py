@@ -81,6 +81,7 @@ class TrainingEvaluateRequest(BaseModel):
     question_type: str
     question_text: str
     user_answer: str
+    application_id: Optional[str] = None
     target_job: Optional[str] = "Candidat"
     target_company: Optional[str] = "Entreprise cible"
     interview_format: Optional[str] = "Non précisé"
@@ -904,10 +905,11 @@ async def evaluate_training_answer(request: TrainingEvaluateRequest, current_use
         session_id = str(uuid.uuid4())
         try:
             async with db.get_connection() as conn:
-                await db.execute(conn, """
-                    INSERT INTO training_sessions (id, user_id, theme, question_type, question_text, user_answer, score, strengths, weaknesses, improved_answer, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (session_id, current_user["id"], request.theme, request.question_type, request.question_text, request.user_answer, feedback.get("score", 0), json.dumps(feedback.get("strengths", [])), json.dumps(feedback.get("weaknesses", [])), feedback.get("improved_answer", ""), datetime.now()))
+                await db.execute(conn,
+                    """INSERT INTO training_sessions (id, user_id, theme, question_type, question_text, user_answer, score, strengths, weaknesses, improved_answer, created_at, application_id)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (session_id, current_user["id"], request.theme, request.question_type, request.question_text, request.user_answer, feedback.get("score", 0), json.dumps(feedback.get("strengths", [])), json.dumps(feedback.get("weaknesses", [])), feedback.get("improved_answer", ""), datetime.now(), request.application_id)
+                )
         except Exception as e:
             print(f"[DB WARNING] Failed to insert training_session: {e}")
             

@@ -205,6 +205,7 @@ def main():
                 strengths TEXT,
                 weaknesses TEXT,
                 improved_answer TEXT,
+                application_id TEXT REFERENCES job_applications(id) ON DELETE SET NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)

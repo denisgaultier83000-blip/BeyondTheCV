@@ -160,19 +160,10 @@ async def get_applications(current_user: dict = Depends(get_current_user)):
             SELECT 
                 ja.id as app_id, ja.target_company, ja.target_job, ja.created_at as app_created_at,
                 d.id as doc_id, d.filename, d.type as doc_type, d.created_at as doc_created_at
-            FROM job_applications ja
-            LEFT JOIN documents d ON d.application_id = ja.id
-            WHERE ja.user_id = ?
-            
-            UNION ALL
-            
-            SELECT 
-                'archives_id' as app_id, 'Archives' as target_company, 'Anciens Documents' as target_job, '2000-01-01 00:00:00' as app_created_at,
-                id as doc_id, filename, type as doc_type, created_at as doc_created_at
-            FROM documents 
-            WHERE user_id = ? AND (application_id IS NULL OR application_id = '')
-            ORDER BY app_created_at DESC
-        """, (current_user["id"], current_user["id"]))
+            FROM job_applications ja LEFT JOIN documents d ON d.application_id = ja.id
+            WHERE ja.user_id = ? 
+            ORDER BY ja.created_at DESC, d.created_at DESC
+        """, (current_user["id"],))
         rows = await cursor.fetchall()
         
     apps = {}

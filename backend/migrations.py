@@ -168,6 +168,24 @@ def create_tables():
         print("✅ Table 'feedbacks' created")
 
         cur.execute("""
+            CREATE TABLE IF NOT EXISTS training_sessions (
+                id TEXT PRIMARY KEY,
+                user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+                theme TEXT,
+                question_type TEXT,
+                question_text TEXT,
+                user_answer TEXT,
+                score INTEGER,
+                strengths TEXT,
+                weaknesses TEXT,
+                improved_answer TEXT,
+                application_id TEXT REFERENCES job_applications(id) ON DELETE SET NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        print("✅ Table 'training_sessions' created")
+
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS tasks (
                 id TEXT PRIMARY KEY,
                 user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
