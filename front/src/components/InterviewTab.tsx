@@ -297,8 +297,8 @@ export const InterviewTab = () => {
           icon={<Mic size={24} />}
           loading={globalStatus === 'PROCESSING' && !pitchResult}
           loadingText={t('pitch_loading', "Génération de votre pitch...")}
-          error={!pitchResult && (globalStatus === 'COMPLETED' || globalStatus === 'FAILED')}
-          errorText={t('pitch_error', "Le pitch n'a pas pu être généré.")}
+          error={pitchResult?.error || (!pitchResult && (globalStatus === 'COMPLETED' || globalStatus === 'FAILED'))}
+          errorText={pitchResult?.message ? `Erreur IA : ${pitchResult.message}` : t('pitch_error', "Le pitch n'a pas pu être généré.")}
           featureId="pitch_3_min"
           headerAction={pitchResult && (
             <div style={{ display: 'flex', gap: '0.5rem' }}>
