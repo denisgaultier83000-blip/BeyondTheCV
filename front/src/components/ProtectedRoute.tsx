@@ -25,7 +25,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, adminR
       setUser(null);
     }
     setIsLoading(false);
-  }, [location.key]);
+  }, [location]); // [FIX] On ré-évalue l'utilisateur à chaque changement de page
 
   if (isLoading) {
     return <LoadingScreen title="Vérification de l'accès..." />;

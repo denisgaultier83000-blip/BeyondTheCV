@@ -10,14 +10,6 @@ import { useSpeechToText } from '../hooks/useSpeechToText';
 import { AnalysisTab } from './AnalysisTab';
 import { JobDecoder } from './JobDecoder';
 import { CareerRealityCheck } from './CareerRealityCheck';
-import { RecruiterView } from './RecruiterView';
-import { DashboardCard } from './DashboardCard';
-import FlawCoaching from './FlawCoaching';
-import TrainingTab from './TrainingTab';
-import { PrintableDossier } from './PrintableDossier';
-import { TrainingPlanTimeline } from './TrainingPlanTimeline';
-import { CockpitTab } from './CockpitTab';
-import { CoachingSummaryCard } from './CoachingSummaryCard'; // Import de la nouvelle carte
 
 interface DeliverableItem {
   name: string;
