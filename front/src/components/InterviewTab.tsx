@@ -4,7 +4,7 @@ import { useDashboard } from '../hooks/DashboardContext';
 import { Mic, MessageSquare, Play, Pause, RotateCcw, BrainCircuit, ArrowLeft, Loader2, RefreshCw, Lightbulb, Shield, Users, Briefcase, Building, Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DashboardCard } from './DashboardCard';
-import { SituationSimulator } from './SituationSimulator';
+
 import Questionnaire from './Questionnaire';
 import Flashcards from './Flashcards';
 import { API_BASE_URL } from '../config';
@@ -80,11 +80,10 @@ export const InterviewTab = () => {
   const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false); // État pour le téléprompteur
   const [isDark] = useState(() => document.body.classList.contains('dark-mode'));
   const [activePitchKey, setActivePitchKey] = useState('three_minutes'); // [FIX] Le pitch par défaut est maintenant celui de 3 minutes
-  const [activePitchGroup, setActivePitchGroup] = useState('core_pitches'); // Groupe du pitch actif
+  const [activePitchGroup, setActivePitchGroup] = useState('core_pitches');
   const [editablePitch, setEditablePitch] = useState({
     written: "",
     oral: "",
-    // Les 4 champs sont conservés pour l'édition fine, mais peuplés différemment
     accroche: "", preuve: "", valeur: "", projection: ""
   });
 
@@ -115,23 +114,23 @@ export const InterviewTab = () => {
 
   // Peuple les 4 champs à partir de la matrice de l'IA
   const populateFieldsFromMatrix = (matrix: any, pitchKey: string, pitchGroup: string) => {
-    let pitchData = matrix?.[pitchGroup]?.[pitchKey];
-    if (!pitchData) {
-      // [FIX] Fallback pour l'ancien format plat
-      if (matrix.accroche && matrix.preuve && matrix.valeur && matrix.projection) {
-        pitchData = {
-          written: [matrix.accroche, matrix.preuve, matrix.valeur, matrix.projection].join('\n\n'),
-          oral: [matrix.accroche, matrix.preuve, matrix.valeur, matrix.projection].join('\n\n')
-        };
-      } else {
-        return;
-      }
-    }
+    const pitchData = matrix?.[pitchGroup]?.[pitchKey];
+    if (!pitchData) return;
 
     // La nouvelle structure est plus simple : on a toujours `oral` et `written`.
     // On utilise le texte oral pour le découper en 4 champs éditables.
     const fullText = pitchData.oral || pitchData.written || '';
     const fourFields = splitTextIntoFields(fullText);
+
+    // [FIX] Si le pitch est court (30s), on met tout dans l'accroche
+    if (pitchKey === 'thirty_seconds') {
+      setEditablePitch({
+        accroche: fullText,
+        preuve: '', valeur: '', projection: '',
+        written: pitchData.written || '', oral: pitchData.oral || ''
+      });
+      return;
+    }
 
 
     const newEditablePitch = {
@@ -159,7 +158,7 @@ export const InterviewTab = () => {
   // [FIX] Seul le pitch de 30 secondes est un format court avec un seul champ.
   const isShortFormat = activePitchKey === 'thirty_seconds';
   const currentPitchData = pitchResult?.[activePitchGroup]?.[activePitchKey];
-  const coachingAngle = currentPitchData?.angle || currentPitchData?.goal || null;
+  const coachingAngle = currentPitchData?.angle || currentPitchData?.goal || pitchResult?.coaching_notes?.strongest_angle || null;
 
 
   // Le texte du téléprompteur est la concaténation des 4 champs éditables
@@ -327,28 +326,28 @@ export const InterviewTab = () => {
           {pitchResult && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               {/* --- NOUVELLE INTERFACE À ONGLETS --- */}
-              <div className="pitch-selector-container">
-                <div className="pitch-selector-group">
-                  <h6 className="pitch-selector-title">Format</h6>
-                  <div className="pitch-selector-tabs">
-                    <button onClick={() => handleTabClick('thirty_seconds', 'core_pitches')} className={activePitchKey === 'thirty_seconds' ? 'active' : ''}><Clock size={16}/> 30 sec</button>
-                    <button onClick={() => handleTabClick('three_minutes', 'core_pitches')} className={activePitchKey === 'three_minutes' ? 'active' : ''}><Clock size={16}/> 3 min</button>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <h6 style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Format</h6>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button onClick={() => handleTabClick('thirty_seconds', 'core_pitches')} className={`btn-tab-pitch ${activePitchKey === 'thirty_seconds' ? 'active' : ''}`}><Clock size={14}/> 30s</button>
+                    <button onClick={() => handleTabClick('three_minutes', 'core_pitches')} className={`btn-tab-pitch ${activePitchKey === 'three_minutes' ? 'active' : ''}`}><Clock size={14}/> 3min</button>
                   </div>
                 </div>
-                <div className="pitch-selector-group">
-                  <h6 className="pitch-selector-title">Par Audience</h6>
-                  <div className="pitch-selector-tabs">
-                    <button onClick={() => handleTabClick('role_fit_pitch', 'audience_adaptations')} className={activePitchKey === 'role_fit_pitch' ? 'active' : ''}><Briefcase size={16}/> Recruteur</button>
-                    <button onClick={() => handleTabClick('business_impact_pitch', 'audience_adaptations')} className={activePitchKey === 'business_impact_pitch' ? 'active' : ''}><Building size={16}/> Dirigeant</button>
-                    <button onClick={() => handleTabClick('culture_fit_pitch', 'audience_adaptations')} className={activePitchKey === 'culture_fit_pitch' ? 'active' : ''}><Users size={16}/> RH</button>
-                    <button onClick={() => handleTabClick('objection_handling_pitch', 'audience_adaptations')} className={activePitchKey === 'objection_handling_pitch' ? 'active' : ''}><Shield size={16}/> Anti-Failles</button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <h6 style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Par Audience</h6>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button onClick={() => handleTabClick('role_fit_pitch', 'audience_adaptations')} className={`btn-tab-pitch ${activePitchKey === 'role_fit_pitch' ? 'active' : ''}`}><Briefcase size={14}/> Manager</button>
+                    <button onClick={() => handleTabClick('business_impact_pitch', 'audience_adaptations')} className={`btn-tab-pitch ${activePitchKey === 'business_impact_pitch' ? 'active' : ''}`}><Building size={14}/> Dirigeant</button>
+                    <button onClick={() => handleTabClick('culture_fit_pitch', 'audience_adaptations')} className={`btn-tab-pitch ${activePitchKey === 'culture_fit_pitch' ? 'active' : ''}`}><Users size={14}/> RH</button>
+                    <button onClick={() => handleTabClick('objection_handling_pitch', 'audience_adaptations')} className={`btn-tab-pitch ${activePitchKey === 'objection_handling_pitch' ? 'active' : ''}`}><Shield size={14}/> Anti-Failles</button>
                   </div>
                 </div>
               </div>
 
               {/* --- NOUVEAU BLOC DE COACHING --- */}
               {coachingAngle && (
-                <div className="coaching-angle-box" style={{ animation: 'fadeIn 0.4s ease-out' }}>
+                <div style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(59, 130, 246, 0.2)', display: 'flex', gap: '0.75rem', alignItems: 'flex-start', animation: 'fadeIn 0.4s ease-out' }}>
                   <Lightbulb size={18} />
                   <div>
                     <strong>Angle stratégique :</strong>

@@ -379,14 +379,20 @@ async def generate_pitch(data, quality='smart'):
     target_lang = normalize_language(data.get('target_language', 'fr'))
     prompt_template = load_prompt(get_prompt_path("strategic_pitch_v2.md"))
 
+    # [FIX] Enrichissement massif du contexte envoyé à l'IA, comme suggéré.
+    # On ne peut pas demander des pitchs différenciés sans donner la matière pour les créer.
     safe_data = {
         "target": {
             "job": data.get("target_job", ""),
             "company": data.get("target_company", ""),
             "language": target_lang,
-            "job_description": truncate(data.get("job_description", ""), 3500)
+            "job_description": truncate(data.get("job_description", ""), 3500),
+            "interview_type": data.get("interview_type", "")
         },
-        "profile": _sanitize_data_for_ai(data, strict=True),
+        "profile": {
+            **_sanitize_data_for_ai(data, strict=True), # Utilise la fonction existante
+            "experiences": compact_experiences(data.get("experiences", []), max_items=6) # On s'assure que les expériences sont compactées
+        },
         "clarifications": compact_clarifications(data.get("clarifications", [])),
         "research": compact_research(data.get("research_data", {}))
     }

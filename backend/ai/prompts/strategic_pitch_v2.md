@@ -24,6 +24,22 @@ Avant de rédiger, identifie mentalement :
 5.  La différence d'attente entre un RH (`culture_fit`), un manager (`role_fit`) et un dirigeant (`business_impact`).
 Ne montre pas ce raisonnement. Utilise-le uniquement pour produire le JSON final.
 
+## 🏦 BANQUE DE PREUVES OBLIGATOIRE
+Avant de rédiger, construis mentalement une banque de preuves distinctes à partir du profil du candidat :
+- **Preuves opérationnelles :** méthodes, livrables, responsabilités, résultats terrain.
+- **Preuves business :** chiffre d’affaires, coûts, risques, croissance, transformation, marché.
+- **Preuves humaines :** leadership, coopération, adaptation, communication, culture.
+- **Preuves de résilience :** reconversion, trou dans le CV, parcours atypique, gestion du changement, objection principale.
+
+Chaque pitch doit utiliser une catégorie de preuve dominante différente.
+
+## 📏 LONGUEURS OBLIGATOIRES
+- **thirty_seconds :** 70 à 90 mots.
+- **three_minutes :** 380 à 520 mots.
+- **role_fit_pitch (Manager) :** 130 à 180 mots.
+- **business_impact_pitch (Dirigeant) :** 130 à 180 mots.
+- **culture_fit_pitch (RH) :** 120 à 160 mots.
+
 ## ⛔ CONTRAINTES IMPÉRATIVES
 - **ZÉRO JARGON RH :** Bannis les mots "passionné", "dynamique", "motivé", "force de proposition". Sois factuel, orienté résultats.
 - **PAS D'INTRODUCTION SCOLAIRE :** Ne commence jamais par "Bonjour, je m'appelle...".
@@ -32,6 +48,24 @@ Ne montre pas ce raisonnement. Utilise-le uniquement pour produire le JSON final
   - **`written` :** Version propre, structurée, avec des phrases complètes.
   - **`oral` :** Version naturelle, phrases plus courtes, mots de transition, conçue pour être dite. Exemple : "Ce qui résume bien mon parcours, c'est..." au lieu de "J'ai construit mon parcours autour de...".
 - **LANGUE :** La sortie DOIT être intégralement dans la langue cible (`target_language`).
+
+## ⛓️ CONTRAINTE DE DIFFÉRENCIATION FORTE
+Tu ne dois pas produire plusieurs versions du même pitch. Chaque pitch doit répondre à une **question cachée** différente :
+- **thirty_seconds :** “Pourquoi devrais-je retenir ce profil en 30 secondes ?”
+- **three_minutes :** “Quelle histoire professionnelle prouve cette valeur ?”
+- **role_fit_pitch :** “Cette personne va-t-elle résoudre mes problèmes opérationnels ?”
+- **business_impact_pitch :** “Cette personne comprend-elle mes enjeux business et peut-elle créer de la valeur mesurable ?”
+- **culture_fit_pitch :** “Cette personne est-elle cohérente, fiable et intégrable dans l’organisation ?”
+- **objection_handling_pitch :** “Quelle réserve pourrait me faire hésiter, et pourquoi ne doit-elle pas bloquer la décision ?”
+
+Chaque pitch doit donc avoir :
+- une **première phrase différente** ;
+- un **axe dominant différent** ;
+- une **preuve principale différente** ;
+- une **dernière phrase différente**.
+
+**Interdiction :**
+- d’utiliser la même preuve principale dans plus de deux pitchs.
 
 ## 🔁 RÈGLE ANTI-RÉPÉTITION
 Les pitchs ne doivent pas être de simples reformulations les uns des autres.
@@ -51,43 +85,59 @@ Tu dois retourner un objet JSON unique contenant la matrice complète des pitchs
     "thirty_seconds": {
       "written": "Version écrite ultra-concise pour une accroche rapide.",
       "oral": "Version orale de 30 secondes, directe et mémorisable.",
-      "goal": "Accrocher rapidement en début de conversation ou en réseau."
+      "goal": "Accrocher rapidement en début de conversation ou en réseau.",
+      "dominant_angle": "La promesse principale.",
+      "word_count_target": "70-90"
     },
     "three_minutes": {
       "written": "Version écrite détaillée pour un développement complet, structurée avec la méthode Situation-Complication-Résolution.",
       "oral": "Version orale de 3 minutes, racontant une histoire de valeur avec des preuves chiffrées.",
-      "goal": "Développer un narratif complet et convaincant pour un entretien approfondi."
+      "goal": "Développer un narratif complet et convaincant pour un entretien approfondi.",
+      "dominant_angle": "La trajectoire et la logique du parcours.",
+      "word_count_target": "380-520"
     }
   },
   "audience_adaptations": {
     "role_fit_pitch": {
       "written": "Version écrite orientée adéquation au poste, compétences et preuves (STAR).",
       "oral": "Version orale pour un manager opérationnel, centrée sur les résultats.",
-      "angle": "Démontrer que vous êtes la solution technique et opérationnelle au problème du poste."
+      "angle": "Démontrer que vous êtes la solution technique et opérationnelle au problème du poste.",
+      "dominant_angle": "Opérationnel",
+      "main_proof_used": "Nom de la preuve opérationnelle principale utilisée."
     },
     "business_impact_pitch": {
       "written": "Version écrite stratégique, orientée business, impact P&L et vision marché.",
       "oral": "Version orale pour un dirigeant, axée sur la création de valeur.",
-      "angle": "Prouver que vous comprenez les enjeux business et que vous êtes un investissement rentable."
+      "angle": "Prouver que vous comprenez les enjeux business et que vous êtes un investissement rentable.",
+      "dominant_angle": "Business",
+      "main_proof_used": "Nom de la preuve business principale utilisée."
     },
     "culture_fit_pitch": {
       "written": "Version écrite axée sur la motivation, la cohérence du parcours et les valeurs.",
       "oral": "Version orale pour un RH, centrée sur l'humain et l'intégration.",
-      "angle": "Rassurer sur votre personnalité, votre motivation et votre capacité à vous intégrer à la culture."
+      "angle": "Rassurer sur votre personnalité, votre motivation et votre capacité à vous intégrer à la culture.",
+      "dominant_angle": "Cohérence humaine",
+      "main_proof_used": "Nom de la preuve humaine principale utilisée."
     },
     "objection_handling_pitch": {
       "identified_flaw": "La faiblesse principale que tu as identifiée dans le profil (ex: 'Reconversion récente du marketing vers la data').",
       "written": "Version écrite du pitch qui désamorce cette faiblesse et la transforme en force.",
       "oral": "Version orale naturelle du pitch anti-failles.",
-      "angle": "Transformer une faiblesse perçue en un avantage unique ou une preuve de résilience."
+      "angle": "Transformer une faiblesse perçue en un avantage unique ou une preuve de résilience.",
+      "dominant_angle": "Désamorçage",
+      "main_proof_used": "Nom de la preuve de résilience principale utilisée."
     }
+  },
+  "differentiation_check": {
+    "manager_vs_hr": "Explique en une phrase la différence réelle entre le pitch manager et RH.",
+    "manager_vs_executive": "Explique en une phrase la différence réelle entre le pitch manager et dirigeant.",
+    "similarity_risk": "low | medium | high"
   },
   "coaching_notes": {
     "strongest_angle": "L'angle d'attaque le plus puissant pour ce candidat (ex: 'Son expertise sur la réduction des coûts via l'automatisation').",
     "main_risk": "Le risque principal que le recruteur pourrait percevoir (ex: 'Manque d'expérience dans le secteur de la finance').",
     "phrases_to_avoid": ["Liste de 2-3 phrases ou mots clichés que le candidat devrait éviter."],
-    "recommended_pitch_for_interview": "Le nom du pitch le plus adapté pour le premier entretien (ex: 'role_fit_pitch').",
-    "global_score": 8,
+    "recommended_pitch_for_first_interview": "Le nom du pitch le plus adapté pour le premier entretien (ex: 'role_fit_pitch').",
     "critique": "Une phrase courte sur l'impact global et la mémorabilité du discours du candidat."
   }
 }
@@ -103,48 +153,3 @@ Si un pitch pouvait convenir à un autre candidat, c'est qu'il est raté. Person
 
 ## 🌍 LANGUE DE SORTIE
 `{{TARGET_LANGUAGE}}`
-
-### 2. Mise à jour du Backend (`cv_services.py`)
-
-Nous modifions la tâche `_run_pitch_logic` pour qu'elle utilise ce nouveau prompt et la nouvelle structure de données.
-
-```diff
-        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "pitch", candidate_data, "Pitch récupéré en cache")
-        if is_cached: return
-
-        prompt_template = load_prompt(get_prompt_path("strategic_pitch_v2.md"))
-        
-        # [FIX EXPERT] Whitelist stricte pour éviter l'explosion de tokens (qui génère {"error": True})
-        safe_data = {
-            "educations": candidate_data.get("educations", []),
-            "skills": candidate_data.get("skills", []),
-            "free_text": candidate_data.get("free_text", "")
-        }
-        
-        context_str = json.dumps(safe_data, indent=2, ensure_ascii=False, default=str)
-        
-        # [FIX] Ajout du contexte de l'annonce/poste visé pour un pitch pertinent
-        target_job = candidate_data.get('target_job', 'Poste visé')
-        target_company = candidate_data.get('target_company', 'Entreprise cible')
-        target_lang = normalize_language(candidate_data.get('target_language', 'French'))
-        
-        # [NEW] Injection des clarifications pour nourrir le pitch
-        clarifications = candidate_data.get('clarifications', [])
-        clarifications_str = "\n".join([f"Q: {c.get('question')}\nA: {c.get('answer')}" for c in clarifications if c.get('answer')])
-        
-        # [NEW] Injection des données de recherche asynchrone (Entreprise & Marché)
-        research_context = ""
-        rd = candidate_data.get("research_data")
-        if rd:
-            cr = rd.get("company_report", {})
-            mr = rd.get("market_report", {})
-            research_context = f"\nINFOS STRATÉGIQUES SUR L'ENTREPRISE ET LE MARCHÉ :\n- ADN Entreprise : {cr.get('identity_dna', 'Non spécifié')}\n- Enjeux / Défis : {cr.get('usp', 'Non spécifiés')}\n- Tendances marché : {mr.get('trends', 'Non spécifiées')}\n\n⚠️ UTILISE IMPÉRATIVEMENT CES INFOS POUR PERSONNALISER LA PARTIE 'POURQUOI CE POSTE' (PROJECTION)."
-
-        # Remplacement des placeholders dans le nouveau prompt
-        final_prompt = prompt_template.replace("{{CANDIDATE_DATA_JSON}}", context_str) \
-                                      .replace("{{TARGET_LANGUAGE}}", target_lang)
-        
-        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction=f"You are an Executive Coach. Output STRICT JSON in {target_lang.upper()}.")
-        if "error" not in result:
-            await set_cached_content(cache_key, user_id, "pitch", result)
-        await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
