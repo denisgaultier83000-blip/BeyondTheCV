@@ -306,12 +306,7 @@ function AppContent() {
     }
   }, [globalStatus]);
 
-  // [FIX] Redirection si un utilisateur connecté arrive sur la page de login
-  useEffect(() => {
-    if (isAuthenticated && location.pathname === '/login') {
-      navigate('/candidate', { replace: true });
-    }
-  }, [isAuthenticated, location.pathname, navigate]);
+
 
   // [FIX EXPERT] Interception globale pour forcer l'ouverture de la page de paiement dans un nouvel onglet
   // Cela évite de perdre le contexte de l'application (ex: une réponse vocale en cours d'évaluation)
@@ -526,9 +521,17 @@ function AppContent() {
           <main className="main-content" style={{ paddingTop: '2rem', display: 'flex', justifyContent: 'center' }}>
             <Login onLoginSuccess={() => {
               setIsAuthenticated(true);
-              const user = JSON.parse(localStorage.getItem('user') || '{}');
-              if (user.is_admin) {
-                navigate('/admin', { replace: true });
+              const userStr = localStorage.getItem('user');
+              if (userStr && userStr !== 'undefined') {
+                const user = JSON.parse(userStr);
+                if (user.is_admin) {
+                  navigate('/admin', { replace: true });
+                } else {
+                  navigate('/candidate', { replace: true });
+                }
+              } else {
+                // Fallback for safety
+                navigate('/candidate', { replace: true });
               }
             }} />
           </main>
@@ -568,7 +571,20 @@ function AppContent() {
           <LandingPage darkMode={darkMode} onStart={() => setShowLanding(false)} onShowCGU={() => setShowCGU(true)} onShowPrivacy={() => setShowPrivacy(true)} onShowLegal={() => setShowLegal(true)} />
         ) : 
          !isAuthenticated ?
-            (<Login onLoginSuccess={() => setIsAuthenticated(true)} />) : 
+            <Login onLoginSuccess={() => {
+              setIsAuthenticated(true);
+              const userStr = localStorage.getItem('user');
+              if (userStr && userStr !== 'undefined') {
+                const user = JSON.parse(userStr);
+                if (user.is_admin) {
+                  navigate('/admin', { replace: true });
+                } else {
+                  navigate('/candidate', { replace: true });
+                }
+              } else {
+                navigate('/candidate', { replace: true });
+              }
+            }} />
           (<div style={{ paddingTop: '100px', paddingBottom: '2rem', width: '100%', maxWidth: '1200px', margin: '0 auto', paddingLeft: '1rem', paddingRight: '1rem', boxSizing: 'border-box' }}>
             {/* [FIX] Ajout d'un padding-top de 100px pour descendre sous le Header et centrage global de l'interface */}
             {/* [FIX] Forcer la largeur à 100% et injecter un padding fantôme à droite pour éviter la coupure au scroll */}
