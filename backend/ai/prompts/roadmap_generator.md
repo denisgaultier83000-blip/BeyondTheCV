@@ -32,63 +32,48 @@ Tu recevras deux objets JSON :
 - **LANGUE** : La sortie DOIT être intégralement dans la langue cible (`target_language`).
 
 ## 📦 FORMAT DE SORTIE (JSON STRICT) - SUIVRE CETTE STRUCTURE À LA LETTRE
-Tu dois retourner un objet JSON unique contenant la feuille de route.
+Tu dois retourner un objet JSON unique contenant la feuille de route. Le JSON doit être valide.
 
 ```json
 {
-  "roadmap": {
-    "title": "Feuille de Route pour votre entretien en [type] avec [interlocuteur]",
-    "recruiter_focus": [
-      "Ce que l'interlocuteur va chercher à valider en priorité n°1 (ex: 'Votre capacité à être opérationnel rapidement').",
-      "Ce que l'interlocuteur va chercher à valider n°2.",
-      "Ce que l'interlocuteur va chercher à valider n°3."
-    ],
-    "key_messages": [
-      "Message clé n°1 que le candidat doit marteler (ex: 'Je suis une solution, pas une charge de formation').",
-      "Message clé n°2.",
-      "Message clé n°3."
-    ],
+  "title": "Feuille de Route pour l'Entretien [Type d'interlocuteur]",
+  "recruiter_focus": [
+    "Ce que le recruteur va chercher à valider en priorité (ex: 'Votre capacité à gérer des projets complexes sous pression').",
+    "Deuxième point de focus.",
+    "Troisième point de focus."
+  ],
+  "key_messages": [
+    "Le premier message clé que le candidat doit absolument faire passer (ex: 'Je suis un problem-solver qui transforme les défis techniques en opportunités business').",
+    "Deuxième message clé.",
+    "Troisième message clé."
+  ],
     "golden_rules": [
-      "Règle d'or n°1 spécifique au contexte.",
-      "Règle d'or n°2...",
-      "Règle d'or n°3...",
-      "Règle d'or n°4...",
-      "Règle d'or n°5..."
+    "Une règle d'or comportementale (ex: 'Parler 50% du temps maximum, poser des questions pertinentes.').",
+    "Deuxième règle d'or.",
+    "Troisième règle d'or."
     ],
     "mistakes_to_avoid": [
-      "Erreur fréquente n°1 à éviter pour ce type de profil/contexte.",
-      "Erreur fréquente n°2...",
-      "Erreur fréquente n°3...",
-      "Erreur fréquente n°4...",
-      "Erreur fréquente n°5..."
+    "Une erreur fatale à éviter (ex: 'Critiquer un ancien employeur ou manager.').",
+    "Deuxième erreur à éviter.",
+    "Troisième erreur à éviter."
     ],
     "pre_interview_checklist": {
       "h_minus_24": [
-        "Action concrète à faire 24h avant (ex: 'Préparer et tester votre matériel de visioconférence').",
+        "Action 1 à faire 24h avant (ex: 'Re-lire la fiche de poste et identifier 3 points de connexion avec votre profil').",
         "Autre action..."
       ],
       "h_minus_1": [
-        "Action concrète à faire 1h avant (ex: 'Couper toutes les notifications sur vos appareils').",
+        "Action 1 à faire 1h avant (ex: 'Couper toutes les notifications et s'isoler dans un endroit calme').",
         "Autre action..."
       ],
       "h_minus_5": [
-        "Action concrète à faire 5 min avant (ex: 'Faire un exercice de respiration lente de 2 minutes').",
+        "Action 1 à faire 5 min avant (ex: 'Prendre une grande inspiration et visualiser le succès de l'entretien.').",
         "Autre action..."
       ]
     },
-    "opening_statement": "Une phrase d'ouverture percutante et adaptée à l'interlocuteur, que le candidat peut utiliser pour lancer la conversation avec confiance.",
-    "closing_statement": "Une phrase de conclusion mémorable pour laisser une impression forte et ouvrir sur les prochaines étapes.",
-    "posture_advice": "Un paragraphe de conseils ciblés sur la posture, le ton, le langage corporel et la gestion du stress, spécifiquement adaptés au format de l'entretien (visio, présentiel, etc.) et au niveau de séniorité du candidat."
-  }
-  "title": "Feuille de Route pour l'Entretien [Type d'interlocuteur]",
-  "recruiter_focus": [ "Ce que le recruteur va chercher à valider en priorité (ex: 'Votre capacité à gérer des projets complexes sous pression').", "Deuxième point de focus.", "Troisième point de focus." ],
-  "key_messages": [ "Le premier message clé que le candidat doit absolument faire passer (ex: 'Je suis un problem-solver qui transforme les défis techniques en opportunités business').", "Deuxième message clé.", "Troisième message clé." ],
-  "golden_rules": [ "Une règle d'or comportementale (ex: 'Parler 50% du temps maximum, poser des questions pertinentes.').", "Deuxième règle d'or.", "Troisième règle d'or." ],
-  "mistakes_to_avoid": [ "Une erreur fatale à éviter (ex: 'Critiquer un ancien employeur ou manager.').", "Deuxième erreur à éviter.", "Troisième erreur à éviter." ],
-  "pre_interview_checklist": { "h_minus_24": [ "Action 1 à faire 24h avant (ex: 'Re-lire la fiche de poste et identifier 3 points de connexion avec votre profil').", "Action 2..." ], "h_minus_1": [ "Action 1 à faire 1h avant (ex: 'Couper toutes les notifications et s'isoler dans un endroit calme').", "Action 2..." ], "h_minus_5": [ "Action 1 à faire 5 min avant (ex: 'Prendre une grande inspiration et visualiser le succès de l'entretien.').", "Action 2..." ] },
   "opening_statement": "Une phrase d'ouverture percutante pour répondre à 'Parlez-moi de vous' qui n'est PAS un résumé du CV.",
   "closing_statement": "Une phrase de conclusion forte pour marquer les esprits et réitérer sa motivation.",
-  "posture_advice": "Un conseil général sur la posture à adopter (langage corporel, ton de la voix) adapté au contexte."
+    "posture_advice": "Un paragraphe de conseils ciblés sur la posture, le ton, le langage corporel et la gestion du stress, spécifiquement adaptés au format de l'entretien (visio, présentiel, etc.) et au niveau de séniorité du candidat."
 }
 ```
 
