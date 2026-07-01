@@ -16,7 +16,7 @@ from .ai_generator import ai_service
 router = APIRouter(
     prefix="/api/admin",
     tags=["Administration"],
-    dependencies=[Depends(require_admin_user)] # Protège toutes les routes de ce routeur
+    dependencies=[Depends(require_admin_user)] # [FIX] Protège toutes les routes de ce routeur
 )
 
 class CreditQuotaRequest(BaseModel):

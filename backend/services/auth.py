@@ -97,14 +97,13 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         if admin_email and admin_password and email == admin_email and form_data.password == admin_password:
             print(f"[AUTH] ✅ Admin login successful for: {email}", flush=True)
             access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-            access_token = create_access_token(data={"sub": email, "role": "admin"}, expires_delta=access_token_expires)
+            # [FIX] Le token contient maintenant le rôle pour la protection des endpoints
+            access_token = create_access_token(data={"sub": email, "role": "admin", "is_admin": True}, expires_delta=access_token_expires)
             return {
                 "access_token": access_token,
                 "token_type": "bearer",
-                "user": {
-                    "email": email,
-                    "is_admin": True,
-                }
+                "role": "admin", # [FIX] Signal clair pour la redirection frontend
+                "user": { "email": email, "is_admin": True }
             }
 
         if not user_row:
