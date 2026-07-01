@@ -183,3 +183,53 @@ const GuideCard = ({ icon, title, children }: { icon: React.ReactNode, title: st
     </div>
   </div>
 );
+
+export default function PostureTab() {
+  const { t } = useTranslation();
+  const [isRoadmapModalOpen, setIsRoadmapModalOpen] = useState(false);
+
+  return (
+    <div className="animate-fadeIn space-y-8 p-1">
+      <div className="text-center">
+        <h2 className="text-3xl font-bold text-gray-800">Maîtriser sa Posture en Entretien</h2>
+        <p className="mt-2 text-lg text-gray-600 max-w-3xl mx-auto">
+          Au-delà des compétences, c'est votre posture qui fait la différence. Apprenez à maîtriser les codes implicites de l'entretien.
+        </p>
+      </div>
+
+      <div className="p-6 bg-blue-50 border-2 border-blue-200 rounded-2xl text-center">
+        <h3 className="text-xl font-bold text-blue-800 mb-3">Feuille de Route Personnalisée</h3>
+        <p className="text-blue-700 max-w-2xl mx-auto mb-6">
+          Générez un plan d'action sur-mesure en fonction du type d'entretien, de votre interlocuteur et de votre niveau de séniorité. Obtenez des conseils de posture, des phrases clés et une check-list pour ne rien laisser au hasard.
+        </p>
+        <button onClick={() => setIsRoadmapModalOpen(true)} className="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:bg-blue-700 transition-all">
+          <MapIcon className="inline-block mr-2" size={20} />
+          Ouvrir le Générateur de Feuille de Route
+        </button>
+      </div>
+
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <GuideCard icon={<Video />} title="Posture en Visioconférence">
+          <p>Regardez la caméra, pas l'écran. Assurez un arrière-plan neutre et un bon éclairage. Testez votre micro et votre connexion en amont.</p>
+        </GuideCard>
+        <GuideCard icon={<Users />} title="Posture face à un Manager">
+          <p>Parlez "résultats" et "impact business". Montrez comment vous pouvez résoudre SES problèmes. Soyez proactif et orienté solution.</p>
+        </GuideCard>
+        <GuideCard icon={<User />} title="Posture face à un RH">
+          <p>Mettez en avant votre personnalité, vos soft skills et votre adéquation avec la culture de l'entreprise. Montrez votre motivation et votre vision à long terme.</p>
+        </GuideCard>
+        <GuideCard icon={<Coffee />} title="Le Café Post-Entretien">
+          <p>Même si le cadre devient informel, restez professionnel. C'est une extension de l'entretien pour évaluer votre savoir-être.</p>
+        </GuideCard>
+        <GuideCard icon={<Phone />} title="L'Entretien Téléphonique">
+          <p>Le non-verbal ne passe pas. Compensez avec une voix dynamique, des silences maîtrisés et un discours clair. Souriez, ça s'entend !</p>
+        </GuideCard>
+        <GuideCard icon={<Award />} title="Négociation Salariale">
+          <p>Ne donnez jamais de chiffre en premier. Ancrez la discussion sur votre valeur et les standards du marché, pas sur vos besoins personnels.</p>
+        </GuideCard>
+      </div>
+
+      {isRoadmapModalOpen && <RoadmapGeneratorModal onClose={() => setIsRoadmapModalOpen(false)} />}
+    </div>
+  );
+}
