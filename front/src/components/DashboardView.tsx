@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useDashboard } from './DashboardContext';
 import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass, Mic, Search, Eye, Navigation, Network, Loader2, RotateCcw, CheckSquare, Dumbbell, ArrowUp, Printer, Building, ShieldAlert, Calendar, UserCheck, Monitor, HeartPulse, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Loader2, AlertCircle, CheckCircle, Mic, StopCircle, Copy, Download, ChevronDown, ChevronUp, FileText, BrainCircuit, MessageSquare, Briefcase, DollarSign, Search, Shield, Star, Zap, Target, Lightbulb, UserCheck, BarChart3, Settings, Edit2, Trash2, PlusCircle, Save, X, RotateCcw, Lock, Activity, Globe, Dumbbell, Award } from 'lucide-react';
 import { PilotBento } from './PilotBento';
 import { GapAnalysisFull } from './GapAnalysisFull';
 import { InterviewTab } from './InterviewTab';
