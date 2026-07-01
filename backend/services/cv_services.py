@@ -111,6 +111,16 @@ class OralPitchRequest(BaseModel):
 class BulkStatusRequest(BaseModel):
     task_ids: List[str]
 
+class RoadmapContext(BaseModel):
+    type: str
+    interlocutor: str
+    level: str
+    context: str
+
+class RoadmapRequest(BaseModel):
+    context: RoadmapContext
+    profile: dict
+
 def _remove_file_safe(path: str):
     """Supprime un fichier temporaire après son envoi sans crasher en cas d'erreur."""
     try:
@@ -824,6 +834,44 @@ async def evaluate_written_pitch(request: EvaluatePitchRequest, current_user: di
         return await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are an expert pitch coach. Output STRICT JSON.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur d'évaluation du pitch : {str(e)}")
+
+@router.post("/generate-roadmap")
+async def generate_roadmap(request: RoadmapRequest, current_user: dict = Depends(require_active_subscription)):
+    """Génère une feuille de route stratégique pour un entretien."""
+    req_dump = request.model_dump() if hasattr(request, "model_dump") else request.dict()
+    cache_key = _generate_cache_key(current_user["id"], "generate_roadmap", req_dump)
+    cached = await get_cached_content(cache_key)
+    if cached:
+        return {"roadmap": cached}
+
+    target_lang = normalize_language(req_dump.get("profile", {}).get("target_language", "fr"))
+    prompt_template = load_prompt(get_prompt_path("roadmap_generator.md"))
+
+    context_str = json.dumps(request.context.model_dump(), indent=2)
+    profile_str = json.dumps(_sanitize_data_for_ai(request.profile, strict=True), indent=2, default=str)
+
+    final_prompt = f"""
+    {prompt_template}
+
+    CONTEXTE DE L'ENTRETIEN:
+    {context_str}
+
+    PROFIL DU CANDIDAT:
+    {profile_str}
+
+    LANGUE DE SORTIE: {target_lang}
+    """
+
+    try:
+        result = await ai_service.generate_valid_json(
+            final_prompt,
+            provider="openai",
+            system_instruction=f"Tu es un coach de carrière de classe mondiale. Ta réponse doit être un JSON valide en {target_lang}."
+        )
+        await set_cached_content(cache_key, current_user["id"], "generate_roadmap", result)
+        return {"roadmap": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Roadmap generation failed: {str(e)}")
 
 @router.post("/training/generate-question")
 async def generate_training_question(request: CustomQuestionRequest, current_user: dict = Depends(require_active_subscription)):
