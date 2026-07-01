@@ -52,6 +52,21 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
 
   const getLevel = (item: any) => item.impact_level || item.impact || item.severity || item.niveau || item.risk_level || '';
 
+  // [FIX] Tri des défauts par ordre de criticité (Critique > Modéré > Faible)
+  const getImpactOrder = (level: string) => {
+    const l = level?.toLowerCase() || '';
+    if (l.includes('p1') || l.includes('high') || l.includes('critique')) return 1;
+    if (l.includes('p2') || l.includes('medium') || l.includes('vigilance')) return 2;
+    if (l.includes('p3') || l.includes('low') || l.includes('mineur')) return 3;
+    return 4; // Non classé
+  };
+
+  const sortedCoachingList = [...coachingList].sort((a, b) => {
+    const levelA = getLevel(a);
+    const levelB = getLevel(b);
+    return getImpactOrder(levelA) - getImpactOrder(levelB);
+  });
+
   // Calcul des statistiques de risque global
   const highRiskCount = coachingList.filter((item: any) => {
     return getLevel(item).toLowerCase().match(/p1|high|critique/);
@@ -119,13 +134,13 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
           </div>
         )}
 
-        {coachingList.length === 0 ? (
+        {sortedCoachingList.length === 0 ? (
           <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '3rem', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px dashed var(--border-color)' }}>
             {t('flaw_no_data', "Aucun défaut n'a été sélectionné lors de l'étape 5, l'analyse n'a donc pas été générée.")}
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
-            {coachingList.map((item: any, idx: number) => {
+            {sortedCoachingList.map((item: any, idx: number) => {
               const level = getLevel(item);
               const impact = getImpactConfig(level);
               return (
@@ -177,7 +192,7 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
         )}
 
       {/* Section de Feedback (Pouces) affichée uniquement si on a des données */}
-      {coachingList.length > 0 && (
+      {sortedCoachingList.length > 0 && (
         <FeedbackWidget 
           feature="parade_defauts" 
           question={t('flaw_feedback_q', "Ces conseils vous sont-ils utiles ?")} 

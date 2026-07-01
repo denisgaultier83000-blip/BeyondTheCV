@@ -27,9 +27,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           } />
           
           {/* [FIX] Remplacement de la redirection JS par une redirection React pour éviter le rechargement de la page */}
-          <Route path="/login" element={
-            <ProtectedRoute adminRoute={false}><App /></ProtectedRoute>
-          } />
+          <Route path="/login" element={<App />} />
           
           {/* Page de paiement intermédiaire */}
           <Route path="/payment" element={

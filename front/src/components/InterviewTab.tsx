@@ -293,7 +293,7 @@ export const InterviewTab = () => {
         
         <div id="pitch_section">
         <DashboardCard
-          title={t('deliv_pitch', "Pitch de 3 minutes")}
+          title={t('deliv_pitch', "Matrice de Pitch")}
           icon={<Mic size={24} />}
           loading={globalStatus === 'PROCESSING' && !pitchResult}
           loadingText={t('pitch_loading', "Génération de votre pitch...")}
@@ -319,7 +319,7 @@ export const InterviewTab = () => {
                   <h6 className="pitch-selector-title">Format</h6>
                   <div className="pitch-selector-tabs">
                     <button onClick={() => handleTabClick('thirty_seconds', 'core_pitches')} className={activePitchKey === 'thirty_seconds' ? 'active' : ''}><Clock size={16}/> 30 sec</button>
-                    <button onClick={() => handleTabClick('one_minute', 'core_pitches')} className={activePitchKey === 'one_minute' ? 'active' : ''}><Clock size={16}/> 1 min</button>
+                    <button onClick={() => handleTabClick('three_minutes', 'core_pitches')} className={activePitchKey === 'one_minute' ? 'active' : ''}><Clock size={16}/> 3 min</button>
                   </div>
                 </div>
                 <div className="pitch-selector-group">

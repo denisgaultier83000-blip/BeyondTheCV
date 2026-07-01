@@ -306,6 +306,13 @@ function AppContent() {
     }
   }, [globalStatus]);
 
+  // [FIX] Redirection si un utilisateur connecté arrive sur la page de login
+  useEffect(() => {
+    if (isAuthenticated && location.pathname === '/login') {
+      navigate('/candidate', { replace: true });
+    }
+  }, [isAuthenticated, location.pathname, navigate]);
+
   // [FIX EXPERT] Interception globale pour forcer l'ouverture de la page de paiement dans un nouvel onglet
   // Cela évite de perdre le contexte de l'application (ex: une réponse vocale en cours d'évaluation)
   // lorsque l'utilisateur clique sur une proposition de recharge.
