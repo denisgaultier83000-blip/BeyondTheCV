@@ -9,6 +9,7 @@ import AdminFeedbacks from "./components/AdminFeedbacks";
 import AdminLayout from "./components/AdminLayout"; // Nouveau Layout Admin
 import AdminUsers from "./components/AdminUsers"; // Nouvelle page Admin
 import AdminBilling from "./components/AdminBilling"; // Nouvelle page Admin
+import AdminUserDetails from "./components/AdminUserDetails"; // Nouvelle page de détail
 import AdminGenerations from "./components/AdminGenerations"; // Nouvelle page Admin
 import ErrorBoundary from "./components/ErrorBoundary";
 import "./index.css";
@@ -51,6 +52,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           >
             <Route index element={<Navigate to="users" replace />} /> {/* Redirige /admin vers /admin/users */}
             <Route path="users" element={<AdminUsers />} />
+            <Route path="user/:userId" element={<AdminUserDetails />} />
             <Route path="billing" element={<AdminBilling />} />
             <Route path="generations" element={<AdminGenerations />} />
             <Route path="feedbacks" element={<AdminFeedbacks />} />
