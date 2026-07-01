@@ -174,4 +174,12 @@ function RoadmapGeneratorModal({ onClose }: RoadmapGeneratorModalProps) {
 
 const GuideCard = ({ icon, title, children }: { icon: React.ReactNode, title: string, children: React.ReactNode }) => (
   <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-
+    <div className="flex items-start gap-4">
+      <div className="text-blue-500 bg-blue-50 p-3 rounded-lg mt-1">{icon}</div>
+      <div>
+        <h3 className="font-bold text-lg text-gray-800 mb-1">{title}</h3>
+        <div className="text-sm text-gray-600 space-y-2">{children}</div>
+      </div>
+    </div>
+  </div>
+);
