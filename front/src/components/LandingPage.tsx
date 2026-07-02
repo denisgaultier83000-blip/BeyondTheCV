@@ -1,15 +1,13 @@
 import React from 'react';
 import { Target, FileText, ArrowRight, CheckCircle2, Compass, Search, Mic, FolderOpen, Award, ShieldQuestion, BarChart3, Users, BatteryCharging, Package, Box, Archive, ShoppingCart } from 'lucide-react';
 
+import { Link } from 'react-router-dom';
+
 interface LandingPageProps {
-  onStart: () => void;
-  onShowCGU: () => void;
-  onShowPrivacy: () => void;
-  onShowLegal: () => void;
   darkMode?: boolean;
 }
 
-export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, darkMode }: LandingPageProps) {
+export function LandingPage({ darkMode }: LandingPageProps) {
   return (
     <div className="lp-container">
       {/* Styles encapsulés pour un rendu "Plug & Play" */}
@@ -224,9 +222,9 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
         <p className="lp-hero-subtitle">
           Le CV n'est qu'un ticket d'entrée. <strong>Beyond The CV</strong> est votre plateforme d'Intelligence Stratégique pour décoder votre cible, anticiper ses failles et structurer un discours exécutif implacable. Pensé pour les cadres et dirigeants.
         </p>
-        <button onClick={onStart} className="lp-cta-main">
+        <Link to="/login" className="lp-cta-main">
           Démarrer l'audit de mon profil <ArrowRight size={18} />
-        </button>
+        </Link>
         
         <div style={{ marginTop: '4rem', padding: '0 1rem' }}>
           {/* EMPLACEMENT CAPTURE D'ÉCRAN N°1 : Le Cockpit / Hub Central */}
@@ -340,7 +338,7 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
               <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Pitch & 8 questions probables</div>
               <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> <strong>3 séances d'entraînement IA</strong></div>
             </div>
-            <button onClick={onStart} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>Sélectionner</button>
+            <Link to="/login" className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>Sélectionner</Link>
           </div>
 
           {/* Offre Stratégique */}
@@ -357,7 +355,7 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
               <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> <strong>15 séances d'entraînement IA</strong></div>
               {/* Recharges sont maintenant dans une section dédiée */}
             </div>
-            <button onClick={onStart} className="lp-cta-main" style={{ width: '100%', justifyContent: 'center' }}>Créer mon profil</button>
+            <Link to="/login" className="lp-cta-main" style={{ width: '100%', justifyContent: 'center' }}>Créer mon profil</Link>
           </div>
 
           {/* Offre Intensive */}
@@ -372,7 +370,7 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
               <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Stress Test & Négociation salaire</div>
               <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> <strong>30 séances d'entraînement IA</strong></div>
             </div>
-            <button onClick={onStart} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>Sélectionner</button>
+            <Link to="/login" className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>Sélectionner</Link>
           </div>
         </div>
 
@@ -413,15 +411,15 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
       <footer style={{ textAlign: 'center', padding: '3rem 2rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)' }}>
         <p>© 2026 BeyondTheCV. Tous droits réservés.</p>
         <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', marginTop: '1rem', fontSize: '0.85rem' }}>
-          <button onClick={onShowLegal} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, font: 'inherit' }}>
+          <Link to="/legal" style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, font: 'inherit', textDecoration: 'none' }}>
             Mentions Légales
-          </button>
-          <button onClick={onShowCGU} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, font: 'inherit' }}>
+          </Link>
+          <Link to="/cgu" style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, font: 'inherit', textDecoration: 'none' }}>
             CGU
-          </button>
-          <button onClick={onShowPrivacy} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, font: 'inherit' }}>
+          </Link>
+          <Link to="/privacy" style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, font: 'inherit', textDecoration: 'none' }}>
             Politique de Confidentialité
-          </button>
+          </Link>
         </div>
       </footer>
     </div>
