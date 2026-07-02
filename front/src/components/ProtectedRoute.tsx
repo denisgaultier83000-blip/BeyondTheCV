@@ -34,6 +34,12 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, adminR
   const isAuthenticated = !!user && !!localStorage.getItem('token');
   const isAdmin = isAuthenticated && user?.is_admin;
 
+  // [NOUVEAU] Si la route est la page d'accueil, on ne protège pas.
+  // Cela permet aux nouveaux utilisateurs de voir la Landing Page.
+  if (location.pathname === '/') {
+    return isAuthenticated ? <Navigate to="/candidate" replace /> : children;
+  }
+
   if (!isAuthenticated) {
     // Si l'utilisateur n'est pas authentifié, on le renvoie vers la page de connexion.
     return <Navigate to="/login" state={{ from: location }} replace />;
