@@ -65,6 +65,14 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       }
 
       const tokenData = await loginRes.json();
+
+      // [FEATURE] Admin redirection
+      if (tokenData.user && tokenData.user.is_admin) {
+        localStorage.setItem('token', tokenData.access_token);
+        localStorage.setItem('user', JSON.stringify(tokenData.user));
+        navigate('/admin', { replace: true });
+        return; // Important to stop execution here
+      }
       
       // 3. Sauvegarde de la session
       localStorage.setItem('token', tokenData.access_token);
