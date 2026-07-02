@@ -187,35 +187,35 @@ const GuideCard = ({ icon, title, children }: { icon: React.ReactNode, title: st
 export default function PostureTab() {
   const { t } = useTranslation();
   const [isRoadmapModalOpen, setIsRoadmapModalOpen] = useState(false);
-
+  
   return (
-    <div className="animate-fadeIn space-y-8 p-1">
-      <div className="text-center">
+    <div className="animate-fadeIn space-y-12 p-1">
+      <div className="text-center" style={{ animation: 'fadeIn 0.5s ease-out' }}>
         <h2 className="text-3xl font-bold text-gray-800">Maîtriser sa Posture en Entretien</h2>
         <p className="mt-2 text-lg text-gray-600 max-w-3xl mx-auto">
           Au-delà des compétences, c'est votre posture qui fait la différence. Apprenez à maîtriser les codes implicites de l'entretien.
         </p>
       </div>
 
-      <div className="p-6 bg-blue-50 border-2 border-blue-200 rounded-2xl text-center">
+      <div className="p-8 bg-blue-50 border-2 border-blue-200 rounded-2xl text-center" style={{ animation: 'fadeIn 0.5s ease-out 0.2s', animationFillMode: 'backwards' }}>
         <h3 className="text-xl font-bold text-blue-800 mb-3">Feuille de Route Personnalisée</h3>
         <p className="text-blue-700 max-w-2xl mx-auto mb-6">
           Générez un plan d'action sur-mesure en fonction du type d'entretien, de votre interlocuteur et de votre niveau de séniorité. Obtenez des conseils de posture, des phrases clés et une check-list pour ne rien laisser au hasard.
         </p>
-        <button onClick={() => setIsRoadmapModalOpen(true)} className="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:bg-blue-700 transition-all">
-          <MapIcon className="inline-block mr-2" size={20} />
+        <button onClick={() => setIsRoadmapModalOpen(true)} className="btn-primary" style={{ padding: '0.75rem 1.5rem', fontSize: '1rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+          <MapIcon size={20} />
           Ouvrir le Générateur de Feuille de Route
         </button>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6" style={{ animation: 'fadeIn 0.5s ease-out 0.4s', animationFillMode: 'backwards' }}>
         <GuideCard icon={<Video />} title="Posture en Visioconférence">
           <p>Regardez la caméra, pas l'écran. Assurez un arrière-plan neutre et un bon éclairage. Testez votre micro et votre connexion en amont.</p>
         </GuideCard>
         <GuideCard icon={<Users />} title="Posture face à un Manager">
           <p>Parlez "résultats" et "impact business". Montrez comment vous pouvez résoudre SES problèmes. Soyez proactif et orienté solution.</p>
         </GuideCard>
-        <GuideCard icon={<User />} title="Posture face à un RH">
+        <GuideCard icon={<UserCheck />} title="Posture face à un RH">
           <p>Mettez en avant votre personnalité, vos soft skills et votre adéquation avec la culture de l'entreprise. Montrez votre motivation et votre vision à long terme.</p>
         </GuideCard>
         <GuideCard icon={<Coffee />} title="Le Café Post-Entretien">

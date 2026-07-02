@@ -464,6 +464,7 @@ function AppContent() {
             initialGlobalStatus={restoredData ? "COMPLETED" : globalStatus} 
             onSetCurrentStep={setCurrentStep} 
             onTriggerResearch={triggerResearch}
+            onUpdateFormData={handleChange}
           >
             <DashboardView />
             {/* Exemple d'intégration si vous appelez ApplicationDossier depuis App.tsx : */}

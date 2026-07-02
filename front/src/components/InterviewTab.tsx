@@ -100,17 +100,6 @@ export const InterviewTab = () => {
     }
   }, [pitchResult]);
 
-  // Sépare un texte en 4 parties
-  const splitTextIntoFields = (text: string) => {
-    const paragraphs = text.split('\n').filter(p => p.trim() !== '');
-    return {
-      accroche: paragraphs[0] || '',
-      preuve: paragraphs[1] || '',
-      valeur: paragraphs[2] || '',
-      projection: paragraphs.slice(3).join('\n\n') || '',
-    };
-  };
-
   // Peuple les 4 champs à partir de la matrice de l'IA
   const populateFieldsFromMatrix = (matrix: any, pitchKey: string, pitchGroup: string) => {
     const pitchData = matrix?.[pitchGroup]?.[pitchKey];
@@ -119,23 +108,11 @@ export const InterviewTab = () => {
     // La nouvelle structure est plus simple : on a toujours `oral` et `written`.
     // On utilise le texte oral pour le découper en 4 champs éditables.
     const fullText = pitchData.oral || pitchData.written || '';
-    const fourFields = splitTextIntoFields(fullText);
-
-    // [FIX] Si le pitch est court (30s), on met tout dans l'accroche
-    if (pitchKey === 'thirty_seconds') {
-      setEditablePitch({
-        accroche: fullText,
-        preuve: '', valeur: '', projection: '',
-        written: pitchData.written || '', oral: pitchData.oral || ''
-      });
-      return;
-    }
-
 
     const newEditablePitch = {
-      ...fourFields, // accroche, preuve, valeur, projection
       written: pitchData.written || '',
-      oral: pitchData.oral || ''
+      oral: pitchData.oral || '',
+      full_text: fullText // [NOUVEAU] On stocke le texte complet pour l'édition
     };
 
     setEditablePitch(newEditablePitch);
@@ -146,22 +123,20 @@ export const InterviewTab = () => {
   };
 
   // Gère le changement dans un des 4 champs
-  const handleFieldChange = (field: keyof typeof editablePitch, value: string) => {
-    const newEditablePitch = { ...editablePitch, [field]: value };
+  const handlePitchChange = (newText: string) => {
+    const newEditablePitch = { ...editablePitch, full_text: newText };
     setEditablePitch(newEditablePitch);
     if (updateFormData) {
       updateFormData('editablePitch', newEditablePitch);
     }
   };
 
-  // [FIX] Seul le pitch de 30 secondes est un format court avec un seul champ.
-  const isShortFormat = activePitchKey === 'thirty_seconds';
   const currentPitchData = pitchResult?.[activePitchGroup]?.[activePitchKey];
   const coachingAngle = currentPitchData?.angle || currentPitchData?.goal || pitchResult?.coaching_notes?.strongest_angle || null;
 
 
-  // Le texte du téléprompteur est la concaténation des 4 champs éditables
-  const fullPitchText = [editablePitch.accroche, editablePitch.preuve, editablePitch.valeur, editablePitch.projection].filter(Boolean).join('\n\n');
+  // Le texte du téléprompteur est maintenant directement le champ éditable
+  const fullPitchText = editablePitch.full_text || "";
 
   const handleResetPitch = () => {
     if (!window.confirm(t('confirm_reset_pitch', "Voulez-vous vraiment annuler vos modifications et restaurer le pitch original généré par l'IA ?"))) return;
@@ -325,17 +300,17 @@ export const InterviewTab = () => {
           {pitchResult && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               {/* --- NOUVELLE INTERFACE À ONGLETS --- */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <h6 style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Format</h6>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <button onClick={() => handleTabClick('thirty_seconds', 'core_pitches')} className={`btn-tab-pitch ${activePitchKey === 'thirty_seconds' ? 'active' : ''}`}><Clock size={14}/> 30s</button>
                     <button onClick={() => handleTabClick('three_minutes', 'core_pitches')} className={`btn-tab-pitch ${activePitchKey === 'three_minutes' ? 'active' : ''}`}><Clock size={14}/> 3min</button>
                   </div>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <h6 style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Par Audience</h6>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
                     <button onClick={() => handleTabClick('role_fit_pitch', 'audience_adaptations')} className={`btn-tab-pitch ${activePitchKey === 'role_fit_pitch' ? 'active' : ''}`}><Briefcase size={14}/> Manager</button>
                     <button onClick={() => handleTabClick('business_impact_pitch', 'audience_adaptations')} className={`btn-tab-pitch ${activePitchKey === 'business_impact_pitch' ? 'active' : ''}`}><Building size={14}/> Dirigeant</button>
                     <button onClick={() => handleTabClick('culture_fit_pitch', 'audience_adaptations')} className={`btn-tab-pitch ${activePitchKey === 'culture_fit_pitch' ? 'active' : ''}`}><Users size={14}/> RH</button>
@@ -357,33 +332,15 @@ export const InterviewTab = () => {
 
 
               {/* --- BLOC DES 4 CHAMPS ÉDITABLES --- */}
-              {isShortFormat ? (
-                // --- VUE POUR FORMATS COURTS (ex: 30s, Réseau) ---
-                <div className="pitch-single-field" style={{ animation: 'fadeIn 0.4s ease-out' }}>
-                  <textarea
-                    className="pitch-textarea"
-                    value={fullPitchText}
-                    onChange={e => {
-                      // On met à jour les 4 champs en se basant sur le texte unique
-                      const newFields = splitTextIntoFields(e.target.value);
-                      const newEditablePitch = { ...editablePitch, ...newFields };
-                      setEditablePitch(newEditablePitch);
-                      if (updateFormData) {
-                        updateFormData('editablePitch', newEditablePitch);
-                      }
-                    }}
-                    rows={10}
-                  />
-                </div>
-              ) : (
-                // --- VUE POUR FORMATS LONGS (Structure en 4 parties) ---
-                <div className="pitch-grid" style={{ animation: 'fadeIn 0.4s ease-out' }}>
-                  <div className="pitch-card"><h4>{t('pitch_hook', 'Accroche')}</h4><textarea className="pitch-textarea" value={editablePitch.accroche} onChange={e => handleFieldChange('accroche', e.target.value)} /></div>
-                  <div className="pitch-card"><h4>{t('pitch_proof', 'Preuve & Impact')}</h4><textarea className="pitch-textarea" value={editablePitch.preuve} onChange={e => handleFieldChange('preuve', e.target.value)} /></div>
-                  <div className="pitch-card"><h4>{t('pitch_value', 'Valeur Ajoutée')}</h4><textarea className="pitch-textarea" value={editablePitch.valeur} onChange={e => handleFieldChange('valeur', e.target.value)} /></div>
-                  <div className="pitch-card"><h4>{t('pitch_projection', 'Projection')}</h4><textarea className="pitch-textarea" value={editablePitch.projection} onChange={e => handleFieldChange('projection', e.target.value)} /></div>
-                </div>
-              )}
+              {/* --- [NOUVEAU] Champ d'édition unique --- */}
+              <div className="pitch-single-field" style={{ animation: 'fadeIn 0.4s ease-out' }}>
+                <textarea
+                  className="pitch-textarea"
+                  value={fullPitchText}
+                  onChange={e => handlePitchChange(e.target.value)}
+                  rows={12}
+                />
+              </div>
               
               {/* NOUVEAU MODULE D'ENTRAÎNEMENT ORAL DU PITCH */}
               <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '1rem', marginBottom: '1rem', textAlign: 'center' }}>

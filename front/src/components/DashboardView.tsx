@@ -357,7 +357,7 @@ export const DashboardView: FC = () => {
           <Globe size={18} /> {t('tab_market_offer', "Marché & Offre")} {marketUnseen && <span className="notification-dot"></span>}
         </button>
         <button className={`tab-btn ${activeTab === 'posture' ? 'active' : ''}`} onClick={() => handleTabChange('posture')}>
-          <Award size={18} /> {t('tab_posture', "Réussir son entretien")}
+          <Award size={18} /> {t('tab_posture', "Réussir l'entretien")}
         </button>
       </div>
 
