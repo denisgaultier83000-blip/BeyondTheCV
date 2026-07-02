@@ -264,12 +264,12 @@ export const DashboardView: FC = () => {
     if (lowerStr.includes("48h") || lowerStr.includes("48 h") || lowerStr.includes("2 jours") || lowerStr.includes("2 days")) return 2;
     
     // 2. Détection des dates exactes (YYYY-MM-DD ou DD/MM/YYYY)
-    let match = lowerStr.match(/(\d{4})-/-//);
+    let match = lowerStr.match(/(\d{4})-(\d{2})-(\d{2})/);
     let parsedDate: Date | null = null;
     if (match) {
       parsedDate = new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]));
     } else {
-      match = lowerStr.match(/(\d{1,2})-/-//);
+      match = lowerStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
       if (match) parsedDate = new Date(parseInt(match[3]), parseInt(match[2]) - 1, parseInt(match[1]));
     }
     
