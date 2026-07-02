@@ -1811,7 +1811,7 @@ async def start_analysis(background_tasks: BackgroundTasks, data: dict = Body(..
         if has_research_data and not cv_dict.get('is_partial_start'):
             # [FIX EXPERT] On restaure le cache ET on prévient le frontend via WebSocket
             async def restore_research_cache(tid, cached_data):
-                await asyncio.to_thread(update_task_status_sync, tid, "SUCCESS", cached_data)
+                await asyncio.to_thread(update_task_status_sync, tid, "COMPLETED", cached_data)
                 await manager.broadcast(tid, "Analyse restaurée depuis le cache.", status="COMPLETED", data=cached_data)
             background_tasks.add_task(restore_research_cache, tasks_map["market_research"], rd)
         elif cv_dict.get('target_company') or cv_dict.get('target_industry'):
