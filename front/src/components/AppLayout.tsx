@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Header from './Header';
-import { useGlobalDashboard } from '../hooks/DashboardContext';
+import { useDashboard as useGlobalDashboard } from '../hooks/DashboardContext';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
@@ -70,9 +70,9 @@ const AppLayout = () => {
             <button className="btn-ghost" onClick={() => navigate('/admin')}>Dashboard Admin</button><span className="footer-separator">|</span>
           </>
         )}
-        <button className="btn-ghost" >{t('footer_legal', 'Mentions Légales')}</button><span>|</span>
-        <button className="btn-ghost" >{t('footer_cgu', 'CGU')}</button><span>|</span>
-        <button className="btn-ghost" >{t('footer_privacy', 'Politique de Confidentialité')}</button>
+        <button className="btn-ghost" onClick={() => navigate('/legal')}>{t('footer_legal', 'Mentions Légales')}</button><span>|</span>
+        <button className="btn-ghost" onClick={() => navigate('/cgu')}>{t('footer_cgu', 'CGU')}</button><span>|</span>
+        <button className="btn-ghost" onClick={() => navigate('/privacy')}>{t('footer_privacy', 'Politique de Confidentialité')}</button>
       </footer>
     </div>
   );

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useGlobalDashboard } from '../hooks/DashboardContext';
+import { useDashboard as useGlobalDashboard } from '../hooks/DashboardContext';
 import { LoadingScreen } from './LoadingScreen';
 
 interface ProtectedRouteProps {

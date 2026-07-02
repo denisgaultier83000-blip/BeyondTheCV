@@ -1,14 +1,18 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { AdminDashboard } from '../components/AdminDashboard';
 import { DashboardView } from '../components/DashboardView';
 import Login from '../pages/Login';
 import { LandingPage } from '../components/LandingPage';
 import AppLayout from '../components/AppLayout';
-import { useGlobalDashboard } from '../hooks/DashboardContext';
+import { useDashboard as useGlobalDashboard } from '../hooks/DashboardContext';
+import { CGU } from '../components/CGU';
+import { PrivacyPolicy } from '../components/PrivacyPolicy';
+import { LegalNotice } from '../components/LegalNotice';
 
 const AppRouter = () => {
   const { isAuthenticated, setIsAuthenticated } = useGlobalDashboard();
+  const navigate = useNavigate();
 
   const userStr = localStorage.getItem('user');
   let isAdmin = false;
@@ -26,7 +30,12 @@ const AppRouter = () => {
       <Route element={<AppLayout />}>
         {/* Public Routes */}
         <Route path="/login" element={isAuthenticated ? <Navigate to={isAdmin ? "/admin" : "/candidate"} /> : <Login onLoginSuccess={() => setIsAuthenticated(true)} />} />
-        <Route path="/" element={isAuthenticated ? <Navigate to={isAdmin ? "/admin" : "/candidate"} /> : <LandingPage onStart={() => {}} onShowCGU={() => {}} onShowPrivacy={() => {}} onShowLegal={() => {}} darkMode={false} />} />
+        <Route path="/" element={isAuthenticated ? <Navigate to={isAdmin ? "/admin" : "/candidate"} /> : <LandingPage onStart={() => navigate('/login')} onShowCGU={() => navigate('/cgu')} onShowPrivacy={() => navigate('/privacy')} onShowLegal={() => navigate('/legal')} darkMode={false} />} />
+        
+        {/* Legal Routes */}
+        <Route path="/cgu" element={<CGU />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/legal" element={<LegalNotice />} />
 
         {/* Protected Routes for Candidates */}
         <Route 
