@@ -453,7 +453,7 @@ function AppContent() {
             initialGapResult={restoredData?.gapResult || gapResult} 
             initialActionPlanResult={restoredData?.actionPlanResult || actionPlanResult} 
             initialResearchResult={restoredData?.researchResult || researchResult} 
-            initialSalaryResult={restoredData?.salaryResult || salaryResult} 
+            initialSalaryResult={restoredData?.salaryResult || salaryResult}
             initialJobDecoderResult={restoredData?.jobDecoderResult || jobDecoderResult} 
             initialPitchResult={restoredData?.pitchResult || pitchResult} 
             initialQuestionsResult={restoredData?.questionsResult || questionsResult} 
@@ -654,7 +654,7 @@ function AppContent() {
       <footer className="app-footer" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.5rem', padding: '2rem', flexWrap: 'wrap', opacity: 0.8, marginTop: 'auto' }}>
         {isAdmin && (
           <>
-            <button className="btn-ghost" onClick={() => navigate('/admin')}>Dashboard Admin</button><span>|</span>
+            <button className="btn-ghost" onClick={() => navigate('/admin')}>Dashboard Admin</button><span className="footer-separator">|</span>
             <button className="btn-ghost" onClick={() => setShowAdmin(true)}>Feedbacks Admin</button><span>|</span>
           </>
         )}

@@ -21,8 +21,8 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
       loadingText="Décodage de l'annonce en cours..."
       errorText="Une erreur est survenue lors du décodage de l'annonce. Vérifiez la description de poste."
     >
-      {data && Object.keys(data?.job_decoder_result || data || {}).length > 0 && (() => {
-        const decoderData = data?.job_decoder_result || data;
+      {data && Object.keys(data || {}).length > 0 && (() => {
+        const decoderData = data;
         const realityCheck = decoderData.reality_check || [];
         const realExpectations = decoderData.real_expectations || [];
         const redFlags = decoderData.red_flags || [];
