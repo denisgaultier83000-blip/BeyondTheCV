@@ -186,10 +186,10 @@ const GuideCard = ({ icon, title, children }: { icon: React.ReactNode, title: st
 
 export default function PostureTab() {
   const { t } = useTranslation();
-  const [isRoadmapModalOpen, setIsRoadmapModalOpen] = useState(false); // Gardé pour la logique du bouton
+  const [isRoadmapModalOpen, setIsRoadmapModalOpen] = useState(false);
 
   return (
-    <div className="animate-fadeIn space-y-12 p-1">
+    <div className="animate-fadeIn space-y-8 p-1">
       <div className="text-center">
         <h2 className="text-3xl font-bold text-gray-800">Maîtriser sa Posture en Entretien</h2>
         <p className="mt-2 text-lg text-gray-600 max-w-3xl mx-auto">
@@ -197,13 +197,13 @@ export default function PostureTab() {
         </p>
       </div>
 
-      <div className="p-8 bg-blue-50 border-2 border-blue-200 rounded-2xl text-center">
+      <div className="p-6 bg-blue-50 border-2 border-blue-200 rounded-2xl text-center">
         <h3 className="text-xl font-bold text-blue-800 mb-3">Feuille de Route Personnalisée</h3>
         <p className="text-blue-700 max-w-2xl mx-auto mb-6">
           Générez un plan d'action sur-mesure en fonction du type d'entretien, de votre interlocuteur et de votre niveau de séniorité. Obtenez des conseils de posture, des phrases clés et une check-list pour ne rien laisser au hasard.
         </p>
-        <button onClick={() => setIsRoadmapModalOpen(true)} className="btn-primary" style={{ padding: '0.75rem 1.5rem', fontSize: '1rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-          <MapIcon size={20} />
+        <button onClick={() => setIsRoadmapModalOpen(true)} className="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:bg-blue-700 transition-all">
+          <MapIcon className="inline-block mr-2" size={20} />
           Ouvrir le Générateur de Feuille de Route
         </button>
       </div>
