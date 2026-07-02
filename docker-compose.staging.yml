@@ -36,9 +36,9 @@ services:
       SERPER_API_KEY: ${SERPER_API_KEY}
       JWT_SECRET: ${JWT_SECRET}
       ENVIRONMENT: staging
-      # Secrets pour l'API Admin
-      ADMIN_EMAIL="pimpampoum@live.fr"
-      ADMIN_PASSWORD="beyond2026"
+      # Secrets pour l'API Admin, chargés depuis le fichier .env
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       # Injection dynamique pour les CORS
       FRONTEND_URL: "https://staging.beyondthecv.app"
 
