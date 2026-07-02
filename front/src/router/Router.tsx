@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { AdminDashboard } from '../components/AdminDashboard';
 import { DashboardView } from '../components/DashboardView';
@@ -10,7 +10,7 @@ import { CGU } from '../components/CGU';
 import { PrivacyPolicy } from '../components/PrivacyPolicy';
 import { LegalNotice } from '../components/LegalNotice';
 
-const AppRouter = () => {
+const RouterContent = () => {
   const { isAuthenticated, setIsAuthenticated } = useGlobalDashboard();
 
   const userStr = localStorage.getItem('user');
@@ -59,5 +59,9 @@ const AppRouter = () => {
     </Routes>
   );
 };
+
+const AppRouter = () => {
+  return <RouterContent />;
+}
 
 export default AppRouter;
