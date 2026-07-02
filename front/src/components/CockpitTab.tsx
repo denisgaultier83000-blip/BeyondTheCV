@@ -325,7 +325,7 @@ export const CockpitTab: React.FC<CockpitProps> = ({
                 const accentColor = isUpcoming ? '#94a3b8' : '#8b5cf6'; // Gris ardoise si futur, sinon Violet
                 
                 return (
-                  <div key={idx} style={{ background: isUpcoming ? 'var(--bg-card)' : 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', border: `1px ${isUpcoming ? 'dashed' : 'solid'} var(--border-color)`, display: 'flex', gap: '1rem', alignItems: 'flex-start', opacity: isUpcoming ? 0.7 : 1 }}>
+                   <div key={idx} style={{ background: isUpcoming ? 'transparent' : 'var(--bg-card)', border: `1px solid ${isUpcoming ? 'transparent' : 'var(--border-color)'}`, borderRadius: '0.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'hidden', minWidth: '55px', flexShrink: 0 }}>
                     {/* Icon Calendrier stylisé */}
                     <div style={{ background: isUpcoming ? 'transparent' : '#f8fafc', border: `1px solid ${isUpcoming ? 'transparent' : '#e2e8f0'}`, borderRadius: '0.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'hidden', minWidth: '55px', flexShrink: 0 }}>
                       <div style={{ background: accentColor, color: 'white', width: '100%', fontSize: '0.65rem', fontWeight: 800, textAlign: 'center', padding: '0.2rem 0', textTransform: 'uppercase' }}>
