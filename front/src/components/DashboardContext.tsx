@@ -105,6 +105,19 @@ export const DashboardProvider = ({
     return INITIAL_DATA;
   });
 
+  const [debouncedFormData, setDebouncedFormData] = useState<any>(formData);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedFormData(formData);
+    }, 500);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [formData]);
+
+
     // --- ÉTAT DU PIPELINE ---
   const [taskIds, setTaskIds] = useState<{ [key: string]: string } | null>(() => {
     const saved = localStorage.getItem("taskIds");
@@ -182,13 +195,13 @@ export const DashboardProvider = ({
   }, [formData?.email]);
 
   const fetchPilotData = useCallback(async () => {
-    if (pilotData || !formData) return; // Already fetched or no data
+    if (pilotData || !debouncedFormData) return; // Already fetched or no data
     console.log("Fetching pilot data...");
     setIsPilotLoading(true);
     setPilotError(null);
     try {
       // [OPTIMISATION] On injecte les résultats de marché pour que la synthèse IA soit beaucoup plus riche
-      const enrichedPayload = { ...formData };
+      const enrichedPayload = { ...debouncedFormData };
       if (researchResult) enrichedPayload.research_data = researchResult;
        if (gapResult) {
         enrichedPayload.gap_analysis = gapResult;
@@ -215,7 +228,8 @@ export const DashboardProvider = ({
             impact: (typeof item === 'object' && item.impact) ? item.impact : 'High',
             action: (typeof item === 'object' && item.action) ? item.action : 'À prioriser pour ce poste' 
           })),
-          recommendedStrategy: data.recommendedStrategy || (Array.isArray(data.application_strategy) ? data.application_strategy.join('\n• ') : '')
+          recommendedStrategy: data.recommendedStrategy || (Array.isArray(data.application_strategy) ? data.application_strategy.join('
+• ') : '')
         });
       }
     } catch (err) { 
@@ -231,7 +245,7 @@ export const DashboardProvider = ({
     } finally {
       setIsPilotLoading(false);
     }
-  }, [JSON.stringify(formData), JSON.stringify(researchResult), JSON.stringify(gapResult)]);
+  }, [JSON.stringify(debouncedFormData), JSON.stringify(researchResult), JSON.stringify(gapResult)]);
 
   // --- Conversion de Devise ---
   const EUROPEAN_COUNTRIES = ['FRANCE', 'GERMANY', 'SPAIN', 'ITALY', 'PORTUGAL', 'BELGIUM', 'NETHERLANDS', 'AUSTRIA', 'IRELAND', 'DE', 'ES', 'FR', 'IT', 'PT'];
@@ -543,8 +557,11 @@ export const DashboardProvider = ({
 
   useEffect(() => {
     fetchPilotData();
+  }, [fetchPilotData]);
+
+  useEffect(() => {
     fetchQuotas();
-  }, [fetchPilotData, fetchQuotas]);
+  }, [fetchQuotas]);
 
   return (
     <DashboardContext.Provider value={{
@@ -599,4 +616,3 @@ export const useDashboard = () => {
   }
   return context;
 };
-
