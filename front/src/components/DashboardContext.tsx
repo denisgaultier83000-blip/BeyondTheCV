@@ -231,7 +231,7 @@ export const DashboardProvider = ({
     } finally {
       setIsPilotLoading(false);
     }
-  }, [pilotData, JSON.stringify(formData), JSON.stringify(researchResult), JSON.stringify(gapResult)]);
+  }, [JSON.stringify(formData), JSON.stringify(researchResult), JSON.stringify(gapResult)]);
 
   // --- Conversion de Devise ---
   const EUROPEAN_COUNTRIES = ['FRANCE', 'GERMANY', 'SPAIN', 'ITALY', 'PORTUGAL', 'BELGIUM', 'NETHERLANDS', 'AUSTRIA', 'IRELAND', 'DE', 'ES', 'FR', 'IT', 'PT'];
