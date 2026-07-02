@@ -181,7 +181,7 @@ export const DashboardProvider = ({
     }
   }, [formData?.email]);
 
-  const fetchPilotData = async () => {
+  const fetchPilotData = useCallback(async () => {
     if (pilotData || !formData) return; // Already fetched or no data
     console.log("Fetching pilot data...");
     setIsPilotLoading(true);
@@ -231,7 +231,7 @@ export const DashboardProvider = ({
     } finally {
       setIsPilotLoading(false);
     }
-  };
+  }, [pilotData, JSON.stringify(formData), JSON.stringify(researchResult), JSON.stringify(gapResult)]);
 
   // --- Conversion de Devise ---
   const EUROPEAN_COUNTRIES = ['FRANCE', 'GERMANY', 'SPAIN', 'ITALY', 'PORTUGAL', 'BELGIUM', 'NETHERLANDS', 'AUSTRIA', 'IRELAND', 'DE', 'ES', 'FR', 'IT', 'PT'];
