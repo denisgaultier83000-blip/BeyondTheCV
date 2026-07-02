@@ -4,11 +4,10 @@ import { Mail, Lock, User, ArrowRight, Loader2, AlertCircle } from 'lucide-react
 import { API_BASE_URL } from '../config';
 
 interface LoginProps {
-  onLoginSuccess?: () => void;
+  onLoginSuccess: () => void;
 }
 
 export default function Login({ onLoginSuccess }: LoginProps) {
-  const navigate = useNavigate();
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,14 +73,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         localStorage.setItem('user', JSON.stringify(tokenData.user));
       }
 
-      // 4. Déléguer la redirection au composant parent (App.tsx)
-      if (onLoginSuccess) {
-        // On passe la réponse complète de l'API pour que le parent puisse décider de la route
-        onLoginSuccess(tokenData);
-      } else {
-        // Comportement de secours (ne devrait pas arriver dans notre cas)
-        navigate('/', { replace: true });
-      }
+      // 4. Notifier le parent que le login a réussi
+      onLoginSuccess();
 
     } catch (err: any) {
       setError(err.message);
