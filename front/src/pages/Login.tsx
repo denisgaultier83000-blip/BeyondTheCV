@@ -66,32 +66,20 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
       const tokenData = await loginRes.json();
 
-      // [FEATURE] Admin redirection
-      if (tokenData.user && tokenData.user.is_admin) {
-        localStorage.setItem('token', tokenData.access_token);
-        localStorage.setItem('user', JSON.stringify(tokenData.user));
-        navigate('/admin', { replace: true });
-        return; // Important to stop execution here
-      }
-      
       // 3. Sauvegarde de la session
       localStorage.setItem('token', tokenData.access_token);
       
-      // Sauvegarder l'objet utilisateur complet si il existe
+      // Sauvegarder l'objet utilisateur complet s'il existe
       if (tokenData.user) {
         localStorage.setItem('user', JSON.stringify(tokenData.user));
-      } else {
-        localStorage.setItem('user', JSON.stringify({
-          name: formData.firstName || 'Candidat',
-          email: formData.email,
-          subscription_status: 'active' // Remplacé par la vraie valeur venant du backend idéalement
-        }));
       }
 
+      // 4. Déléguer la redirection au composant parent (App.tsx)
       if (onLoginSuccess) {
-        onLoginSuccess();
+        // On passe la réponse complète de l'API pour que le parent puisse décider de la route
+        onLoginSuccess(tokenData);
       } else {
-        // Comportement par défaut : redirection vers la page principale
+        // Comportement de secours (ne devrait pas arriver dans notre cas)
         navigate('/', { replace: true });
       }
 
