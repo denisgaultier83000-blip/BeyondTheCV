@@ -172,62 +172,50 @@ function RoadmapGeneratorModal({ onClose }: RoadmapGeneratorModalProps) {
   );
 }
 
-const GuideCard = ({ icon, title, children }: { icon: React.ReactNode, title: string, children: React.ReactNode }) => (
-  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-    <div className="flex items-start gap-4">
-      <div className="text-blue-500 bg-blue-50 p-3 rounded-lg mt-1">{icon}</div>
-      <div>
-        <h3 className="font-bold text-lg text-gray-800 mb-1">{title}</h3>
-        <div className="text-sm text-gray-600 space-y-2">{children}</div>
-      </div>
-    </div>
-  </div>
-);
+import { DashboardCard } from './DashboardCard';
 
 export default function PostureTab() {
   const { t } = useTranslation();
   const [isRoadmapModalOpen, setIsRoadmapModalOpen] = useState(false);
   
   return (
-    <div className="animate-fadeIn space-y-12 p-1">
-      <div className="text-center" style={{ animation: 'fadeIn 0.5s ease-out' }}>
-        <h2 className="text-3xl font-bold text-gray-800">Maîtriser sa Posture en Entretien</h2>
-        <p className="mt-2 text-lg text-gray-600 max-w-3xl mx-auto">
-          Au-delà des compétences, c'est votre posture qui fait la différence. Apprenez à maîtriser les codes implicites de l'entretien.
-        </p>
-      </div>
-
-      <div className="p-8 bg-blue-50 border-2 border-blue-200 rounded-2xl text-center" style={{ animation: 'fadeIn 0.5s ease-out 0.2s', animationFillMode: 'backwards' }}>
-        <h3 className="text-xl font-bold text-blue-800 mb-3">Feuille de Route Personnalisée</h3>
-        <p className="text-blue-700 max-w-2xl mx-auto mb-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', animation: 'fadeIn 0.3s ease-out' }}>
+      <DashboardCard
+        title="Feuille de Route Personnalisée"
+        icon={<MapIcon size={24} />}
+      >
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
           Générez un plan d'action sur-mesure en fonction du type d'entretien, de votre interlocuteur et de votre niveau de séniorité. Obtenez des conseils de posture, des phrases clés et une check-list pour ne rien laisser au hasard.
         </p>
-        <button onClick={() => setIsRoadmapModalOpen(true)} className="btn-primary" style={{ padding: '0.75rem 1.5rem', fontSize: '1rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+        <button onClick={() => setIsRoadmapModalOpen(true)} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
           <MapIcon size={20} />
           Ouvrir le Générateur de Feuille de Route
         </button>
-      </div>
+      </DashboardCard>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6" style={{ animation: 'fadeIn 0.5s ease-out 0.4s', animationFillMode: 'backwards' }}>
-        <GuideCard icon={<Video />} title="Posture en Visioconférence">
-          <p>Regardez la caméra, pas l'écran. Assurez un arrière-plan neutre et un bon éclairage. Testez votre micro et votre connexion en amont.</p>
-        </GuideCard>
-        <GuideCard icon={<Users />} title="Posture face à un Manager">
-          <p>Parlez "résultats" et "impact business". Montrez comment vous pouvez résoudre SES problèmes. Soyez proactif et orienté solution.</p>
-        </GuideCard>
-        <GuideCard icon={<UserCheck />} title="Posture face à un RH">
-          <p>Mettez en avant votre personnalité, vos soft skills et votre adéquation avec la culture de l'entreprise. Montrez votre motivation et votre vision à long terme.</p>
-        </GuideCard>
-        <GuideCard icon={<Coffee />} title="Le Café Post-Entretien">
-          <p>Même si le cadre devient informel, restez professionnel. C'est une extension de l'entretien pour évaluer votre savoir-être.</p>
-        </GuideCard>
-        <GuideCard icon={<Phone />} title="L'Entretien Téléphonique">
-          <p>Le non-verbal ne passe pas. Compensez avec une voix dynamique, des silences maîtrisés et un discours clair. Souriez, ça s'entend !</p>
-        </GuideCard>
-        <GuideCard icon={<Award />} title="Négociation Salariale">
-          <p>Ne donnez jamais de chiffre en premier. Ancrez la discussion sur votre valeur et les standards du marché, pas sur vos besoins personnels.</p>
-        </GuideCard>
-      </div>
+      <DashboardCard
+        title="Guides de Posture"
+        icon={<UserCog size={24} />}
+      >
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+          {[
+            { icon: <Video />, title: "Posture en Visioconférence", desc: "Regardez la caméra, pas l'écran. Assurez un arrière-plan neutre et un bon éclairage. Testez votre micro et votre connexion en amont." },
+            { icon: <Users />, title: "Posture face à un Manager", desc: "Parlez \"résultats\" et \"impact business\". Montrez comment vous pouvez résoudre SES problèmes. Soyez proactif et orienté solution." },
+            { icon: <UserCheck />, title: "Posture face à un RH", desc: "Mettez en avant votre personnalité, vos soft skills et votre adéquation avec la culture de l'entreprise. Montrez votre motivation et votre vision à long terme." },
+            { icon: <Coffee />, title: "Le Café Post-Entretien", desc: "Même si le cadre devient informel, restez professionnel. C'est une extension de l'entretien pour évaluer votre savoir-être." },
+            { icon: <Phone />, title: "L'Entretien Téléphonique", desc: "Le non-verbal ne passe pas. Compensez avec une voix dynamique, des silences maîtrisés et un discours clair. Souriez, ça s'entend !" },
+            { icon: <Award />, title: "Négociation Salariale", desc: "Ne donnez jamais de chiffre en premier. Ancrez la discussion sur votre valeur et les standards du marché, pas sur vos besoins personnels." },
+          ].map((item, index) => (
+            <div key={index} style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+              <div style={{ color: 'var(--primary)', marginTop: '4px', flexShrink: 0 }}>{React.cloneElement(item.icon, { size: 22 })}</div>
+              <div>
+                <h4 style={{ margin: 0, color: 'var(--text-main)', fontWeight: 600, fontSize: '1rem' }}>{item.title}</h4>
+                <p style={{ margin: '0.25rem 0 0 0', color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.5 }}>{item.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </DashboardCard>
 
       {isRoadmapModalOpen && <RoadmapGeneratorModal onClose={() => setIsRoadmapModalOpen(false)} />}
     </div>
