@@ -11,6 +11,19 @@ interface JobDecoderProps {
   error?: boolean;
 }
 
+const extractDecoderData = (data: any) => {
+  if (!data) return null;
+  // Gère les encapsulations possibles : { result: ... }, { job_decoder_result: ... }, etc.
+  let payload = data.result || data.job_decoder_result || data;
+  if (typeof payload === 'string') {
+    try {
+      const match = payload.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+      payload = JSON.parse(match ? match[1] : payload);
+    } catch (e) { return null; }
+  }
+  return payload || null;
+};
+
 export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) => {
   return (
     <AsyncBoundary
@@ -21,8 +34,10 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
       loadingText="Décodage de l'annonce en cours..."
       errorText="Une erreur est survenue lors du décodage de l'annonce. Vérifiez la description de poste."
     >
-      {data && Object.keys(data || {}).length > 0 && (() => {
-        const decoderData = data;
+      {data && (() => {
+        const decoderData = extractDecoderData(data);
+        if (!decoderData || Object.keys(decoderData).length === 0) return null;
+
         const realityCheck = decoderData.reality_check || [];
         const realExpectations = decoderData.real_expectations || [];
         const redFlags = decoderData.red_flags || [];

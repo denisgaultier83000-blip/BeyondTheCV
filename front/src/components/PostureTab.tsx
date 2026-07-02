@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
-  Video, Phone, User, Users, Coffee, Award, CheckSquare, Clock, UserCog, Briefcase, Anchor, GitBranch, Map as MapIcon, 
-  X, Zap, Loader2, AlertTriangle, Target, MessageCircle, Shield, Star, ChevronsRight, ChevronsLeft, UserCheck 
+  Video, Phone, Users, Coffee, Award, UserCog, Map as MapIcon, 
+  X, Zap, Loader2, AlertTriangle, Target, MessageCircle, Shield, Star, ChevronsRight, ChevronsLeft, UserCheck, Clock,
+  WifiOff, PhoneMissed, VolumeX, BrainCircuit, DollarSign, HelpCircle, Send
 } from 'lucide-react';
 import { useDashboard } from './DashboardContext';
 import { API_BASE_URL } from '../config';
@@ -211,6 +212,48 @@ export default function PostureTab() {
               <div>
                 <h4 style={{ margin: 0, color: 'var(--text-main)', fontWeight: 600, fontSize: '1rem' }}>{item.title}</h4>
                 <p style={{ margin: '0.25rem 0 0 0', color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.5 }}>{item.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </DashboardCard>
+
+      {/* NOUVEAU : Section Gérer les Imprévus */}
+      <DashboardCard
+        title="Gérer les Imprévus"
+        icon={<Shield size={24} />}
+      >
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
+          Des réponses prêtes à l’emploi pour rester professionnel même quand l’entretien ne se déroule pas comme prévu.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+          {[
+            { icon: <WifiOff />, title: "Problème de connexion visio", content: "Bonjour,\n\nJe rencontre un problème de connexion pour rejoindre notre entretien. Je tente de me reconnecter immédiatement.\n\nSi le problème persiste, je reste joignable par téléphone au [Votre Numéro] et suis disponible pour poursuivre l'échange selon le format qui vous conviendra.\n\nMerci pour votre compréhension.\n\nBien cordialement,\n[Prénom Nom]" },
+            { icon: <Clock />, title: "Retard du recruteur (> 5 min)", content: "Bonjour,\n\nJe suis bien connecté pour notre entretien prévu à [heure]. Je reste disponible en ligne.\n\nN’hésitez pas à me dire si vous souhaitez maintenir l’échange ou le reprogrammer à un moment plus adapté.\n\nBien cordialement,\n[Prénom Nom]" },
+            { icon: <PhoneMissed />, title: "Vous êtes en retard", content: "Bonjour,\n\nJe suis désolé, je rencontre un imprévu et serai en retard de quelques minutes pour notre entretien.\n\nJe fais le nécessaire pour être disponible au plus vite. Si cela perturbe votre agenda, je m’adapterai bien entendu à vos disponibilités.\n\nBien cordialement,\n[Prénom Nom]" },
+            { icon: <VolumeX />, title: "Bruit ou interruption imprévue", content: "Je vous prie de m'excuser pour cette interruption. Donnez-moi juste un instant pour régler cela... C'est bon, je suis de nouveau à vous." },
+            { icon: <BrainCircuit />, title: "Trou de mémoire", content: "C'est une excellente question. Je vais prendre quelques secondes pour structurer ma réponse afin de vous répondre clairement." },
+            { icon: <Shield />, title: "Question agressive / déstabilisante", content: "C’est un point légitime. Je ne vais pas le contourner : il y a effectivement un sujet à expliquer. Ce que j’en retiens surtout, c’est [enseignement], et c’est précisément ce qui me permet aujourd’hui d’aborder ce type de situation avec plus de méthode." },
+            { icon: <DollarSign />, title: "Le salaire est abordé trop tôt", content: "Je préfère d’abord m'assurer de bien comprendre le périmètre exact du poste, les responsabilités attendues et vos enjeux prioritaires. Cela me permettra de vous donner une fourchette cohérente et réaliste." },
+            { icon: <HelpCircle />, title: "Recruteur froid ou peu expressif", content: "(Posture à adopter) Restez factuel, ne sur-interprétez pas. Concentrez-vous sur votre structure (STAR), posez des questions ouvertes pour l'impliquer ('Quel est le principal défi sur ce poste actuellement ?') et validez sa compréhension ('Est-ce que cela répond à votre question ?')." },
+            { icon: <Send />, title: "L'entretien se termine sans suite claire", content: "Merci pour cet échange très instructif. Pour ma part, je suis très intéressé. Quelles sont les prochaines étapes du processus de votre côté ?" },
+          ].map((item, index) => (
+            <div key={index} style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ color: 'var(--primary)', flexShrink: 0 }}>{React.cloneElement(item.icon, { size: 20 })}</div>
+                <h4 style={{ margin: 0, color: 'var(--text-main)', fontWeight: 600, fontSize: '1rem' }}>{item.title}</h4>
+              </div>
+              <div style={{ 
+                background: 'var(--bg-card)', 
+                padding: '1rem', 
+                borderRadius: '0.5rem', 
+                border: '1px dashed var(--border-color)', 
+                whiteSpace: 'pre-wrap', 
+                fontSize: '0.9rem', 
+                color: 'var(--text-muted)',
+                flexGrow: 1
+              }}>
+                {item.content}
               </div>
             </div>
           ))}

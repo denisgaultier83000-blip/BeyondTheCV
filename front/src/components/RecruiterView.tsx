@@ -3,6 +3,7 @@ import React from 'react';
 import { Eye, ThumbsUp, ThumbsDown, Lightbulb } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 import { useTranslation } from 'react-i18next';
+import { BulletList } from './BulletList';
 
 interface RecruiterData {
   recruiter_persona: {
@@ -89,9 +90,7 @@ export function RecruiterView({ data, loading, error }: RecruiterViewProps) {
               <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--danger-text)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <ThumbsDown size={16} /> {t('rv_red_flags', 'Doutes & Risques')}
               </h4>
-              <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--danger-text)', fontSize: '0.9rem' }}>
-                  {(recruiter_persona.red_flags || []).map((flag: any, idx: number) => <li key={idx} style={{ marginBottom: '0.25rem' }}>{typeof flag === 'string' ? flag : (flag.text || flag.description || JSON.stringify(flag))}</li>)}
-              </ul>
+              <BulletList type="danger" items={(recruiter_persona.red_flags || []).map((flag: any) => typeof flag === 'string' ? flag : (flag.text || flag.description || JSON.stringify(flag)))} />
           </div>
 
           {/* GREEN FLAGS */}
@@ -99,9 +98,7 @@ export function RecruiterView({ data, loading, error }: RecruiterViewProps) {
               <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--success)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <ThumbsUp size={16} /> {t('rv_green_flags', 'Points Rassurants')}
               </h4>
-              <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--success)', fontSize: '0.9rem' }}>
-                  {(recruiter_persona.reassurance_points || []).map((pt: any, idx: number) => <li key={idx} style={{ marginBottom: '0.25rem' }}>{typeof pt === 'string' ? pt : (pt.text || pt.description || JSON.stringify(pt))}</li>)}
-              </ul>
+              <BulletList type="success" items={(recruiter_persona.reassurance_points || []).map((pt: any) => typeof pt === 'string' ? pt : (pt.text || pt.description || JSON.stringify(pt)))} />
           </div>
       </div>
 

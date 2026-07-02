@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Map, Zap, Loader2, AlertTriangle, Target, MessageCircle, Shield, Star, CheckSquare, Clock, ChevronsRight, ChevronsLeft, UserCheck } from 'lucide-react';
+import { X, Map, Zap, Loader2, AlertTriangle, Target, MessageCircle, Shield, Star, CheckSquare, Clock, ChevronsRight, ChevronsLeft, UserCheck, LifeBuoy } from 'lucide-react';
 import { useDashboard } from './DashboardContext';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
+import { BulletList } from './BulletList';
 
 interface RoadmapGeneratorModalProps {
   onClose: () => void;
@@ -74,12 +75,6 @@ export default function RoadmapGeneratorModal({ onClose }: RoadmapGeneratorModal
         {children}
       </div>
     </div>
-  );
-
-  const BulletList = ({ items }: { items: string[] }) => (
-    <ul className="space-y-2">
-      {items.map((item, index) => <li key={index} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}><ChevronsRight size={16} color="var(--primary)" style={{ marginTop: '0.125rem', flexShrink: 0 }}/><span>{item}</span></li>)}
-    </ul>
   );
 
   return (
@@ -214,6 +209,15 @@ export default function RoadmapGeneratorModal({ onClose }: RoadmapGeneratorModal
             <RoadmapSection title="Conseils de Posture" icon={<UserCheck size={20} />}>
               <p>{result.posture_advice}</p>
             </RoadmapSection>
+
+            {/* NOUVEAU : Section Plan d'Urgence */}
+            {result.contingency_plan && result.contingency_plan.length > 0 && (
+              <RoadmapSection title="Plan d'Urgence (Imprévus)" icon={<LifeBuoy size={20} />} color="var(--warning-dark)">
+                {result.contingency_plan.map((plan: any, index: number) => (
+                  <div key={index} style={{ borderLeft: '3px solid var(--warning)', paddingLeft: '1rem', marginBottom: '1rem' }}><strong>{plan.situation}:</strong> {plan.action}<br/><em>Message prêt: "{plan.ready_to_send_message}"</em></div>
+                ))}
+              </RoadmapSection>
+            )}
 
             <div style={{ textAlign: 'center', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
               <button onClick={() => setResult(null)} className="btn-secondary">Générer un autre plan</button>

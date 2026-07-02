@@ -8,6 +8,7 @@ import { useDashboard } from './DashboardContext';
 import { RechargeModal } from './RechargeModal';
 import { formatMarkdownReact } from '../utils/formatUtils';
 import { AsyncBoundary } from './AsyncBoundary';
+import { BulletList } from './BulletList';
 
 interface QuestionnaireProps {
   questions: any[];
@@ -459,11 +460,11 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
                     <div style={{ background: 'rgba(34, 197, 94, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
                       <h4 style={{ margin: '0 0 1rem 0', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={18} /> {t('q_strengths', 'Ce qui fonctionne bien')}</h4>
-                      <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-main)', fontSize: '0.9rem', lineHeight: '1.5' }}>{(feedback.strengths || []).map((s: string, i: number) => <li key={i} style={{ marginBottom: '0.5rem' }}>{s}</li>)}</ul>
+                      <BulletList type="success" items={feedback.strengths || []} />
                     </div>
                     <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
                       <h4 style={{ margin: '0 0 1rem 0', color: 'var(--danger-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><AlertTriangle size={18} /> {t('q_weaknesses', "Ce qu'il manque")}</h4>
-                      <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-main)', fontSize: '0.9rem', lineHeight: '1.5' }}>{(feedback.weaknesses || []).map((w: string, i: number) => <li key={i} style={{ marginBottom: '0.5rem' }}>{w}</li>)}</ul>
+                      <BulletList type="danger" items={feedback.weaknesses || []} />
                     </div>
                  </div>
                  <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', borderLeft: '4px solid #8b5cf6' }}>
