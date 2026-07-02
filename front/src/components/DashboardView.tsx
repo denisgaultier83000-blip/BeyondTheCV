@@ -1,12 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback, lazy, Suspense, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, lazy, Suspense, useMemo, FC } from 'react';
 import { useDashboard } from './DashboardContext';
-import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass, Mic, Search, Eye, Navigation, Network, Loader2, RotateCcw, CheckSquare, Dumbbell, ArrowUp, Printer, Building, ShieldAlert, Calendar, UserCheck, Monitor, HeartPulse, Zap } from 'lucide-react';
+import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass, Mic, Search, Eye, Navigation, Network, Loader2, RotateCcw, CheckSquare, Dumbbell, ArrowUp, Printer, Building, ShieldAlert, Calendar, UserCheck, Monitor, HeartPulse, Zap, Award } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Loader2, AlertCircle, CheckCircle, Mic, StopCircle, Copy, Download, ChevronDown, ChevronUp, FileText, BrainCircuit, MessageSquare, Briefcase, DollarSign, Search, Shield, Star, Zap, Target, Lightbulb, UserCheck, BarChart3, Settings, Edit2, Trash2, PlusCircle, Save, X, RotateCcw, Lock, Activity, Globe, Dumbbell, Award } from 'lucide-react';
 import { PilotBento } from './PilotBento';
 import { GapAnalysisFull } from './GapAnalysisFull';
 import { InterviewTab } from './InterviewTab';
-import { useSpeechToText } from '../hooks/useSpeechToText';
 import { AnalysisTab } from './AnalysisTab';
 import { JobDecoder } from './JobDecoder';
 import { CareerRealityCheck } from './CareerRealityCheck';
@@ -28,8 +26,140 @@ interface DeliverableItem {
   disabledReason?: string;
 }
 
+// --- Composant pour la pratique du Pitch ---
+const PitchPractice = ({ title, pitchText, onSave }: { title: string, pitchText: string, onSave: (text: string) => void }) => {
+  const { t, i18n } = useTranslation();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedText, setEditedText] = useState(pitchText);
 
-export const DashboardView = () => {
+  // [FIX] Déplacement de la logique du hook ici pour isoler l'état de chaque instance
+  const [isRecording, setIsRecording] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const recognitionRef = useRef<any>(null);
+
+  const startRecording = useCallback(() => {
+    setIsRecording(true);
+    setTranscript('');
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = i18n.language;
+      recognitionRef.current.onresult = (event: any) => {
+        const interimTranscript = Array.from(event.results).map((result: any) => result[0].transcript).join('');
+        setEditedText((prev: string) => prev ? `${prev} ${interimTranscript}` : interimTranscript);
+      };
+      recognitionRef.current.start();
+    }
+  }, [i18n.language]);
+
+  const stopRecording = useCallback(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    setIsRecording(false);
+  }, []);
+
+  const handleSave = () => {
+    onSave(editedText);
+    setIsEditing(false);
+  };
+
+  return (
+    <div className="pitch-practice-card"></div>
+  );
+};
+
+
+// --- STATIC DATA (Moved outside component) ---
+const subMenus: Record<string, {label: string, id: string}[]> = {
+  overview: [
+    { label: 'Centre de Suivi', id: 'hub_section' },
+    { label: 'Vue Recruteur', id: 'recruiter_section' }
+  ],
+  interview: [
+    { label: 'Pitch', id: 'pitch_section' },
+    { label: 'Questions & Mises en situation', id: 'questionnaire_section' },
+    { label: 'Parades aux Défauts', id: 'flaws_section' }
+  ],
+  market: [
+    { label: 'Gap Analysis', id: 'gap_section' },
+    { label: 'Entreprise', id: 'company_section' },
+    { label: 'Marché', id: 'market_section' },
+    { label: 'Décodeur d\'Annonce', id: 'decoder_section' }
+  ]
+};
+
+const interviewTypeLabels: Record<string, string> = { rh: 'Ressources Humaines', manager: 'Manager / Opérationnel', tech: 'Équipe Technique', final: 'Direction (Final)' };
+const formatLabels: Record<string, string> = { visio: 'Visioconférence', phone: 'Téléphone', onsite: 'En Présentiel' };
+
+// --- [FIX] SUB-COMPONENTS (for readability) ---
+
+const DeliverablesHub = ({ deliverableItems, isProcessing, longLoading, viewedTabs, isDataReady, onPrintClick, onItemClick }: any) => {
+  const { t } = useTranslation();
+  return (
+    <div className="bento-card col-span-3" id="hub_section" style={{ background: 'var(--bg-card)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div className="bento-header" style={{ marginBottom: 0 }}><Activity size={20} color="var(--primary)"/> {t('hub_title', 'Centre de Suivi des Analyses')}</div>
+        <button 
+          onClick={onPrintClick} 
+          disabled={isProcessing}
+          className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem', opacity: isProcessing ? 0.5 : 1, cursor: isProcessing ? 'not-allowed' : 'pointer' }}>
+          <Printer size={16} /> Imprimer mon Dossier
+        </button>
+      </div>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: '0 0 1rem 0' }}>{t('hub_desc', 'Suivez la génération de vos outils en temps réel et cliquez pour y accéder.')}</p>
+    
+      {isProcessing && longLoading && (
+        <div style={{ padding: '0.75rem', backgroundColor: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)', borderRadius: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500, animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}>
+          <Loader2 size={16} className="spin" />
+          {t('hub_long_loading', "L'analyse IA est très approfondie et prend un peu plus de temps. Merci de patienter (jusqu'à 60 secondes)...")}
+        </div>
+      )}
+    
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+        {deliverableItems.map((item: DeliverableItem, idx: number) => {
+            const isReady = isDataReady(item.data) && !item.disabled;
+            const isPending = isProcessing && !isReady && !item.disabled;
+            const isNew = isReady && !viewedTabs.includes(item.tab) && !item.disabled;
+            return (
+              <div 
+                  key={idx} 
+                  onClick={() => !item.disabled && !isPending && onItemClick(item.tab, item.anchor)} 
+                  style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', border: `1px solid ${isReady ? 'var(--primary)' : 'var(--border-color)'}`, display: 'flex', flexDirection: 'column', gap: '0.5rem', cursor: (item.disabled || isPending) ? 'not-allowed' : 'pointer', opacity: item.disabled ? 0.5 : (isPending ? 0.7 : 1), transition: 'all 0.2s', boxShadow: isNew ? '0 4px 12px rgba(59, 130, 246, 0.15)' : 'none' }} 
+                  onMouseOver={(e) => !item.disabled && !isPending && (e.currentTarget.style.transform = 'translateY(-2px)')} 
+                  onMouseOut={(e) => !item.disabled && !isPending && (e.currentTarget.style.transform = 'none')}
+              >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: isReady ? 'var(--text-main)' : 'var(--text-muted)', fontWeight: isReady ? 600 : 400 }}>
+                        <div style={{ color: isReady ? 'var(--primary)' : 'var(--text-muted)', display: 'flex' }}>{item.icon}</div>
+                        <span style={{ fontSize: '0.95rem' }}>{item.name}</span>
+                    </div>
+                    {item.disabled ? null : isNew ? (
+                        <span style={{ background: '#ef4444', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, animation: 'pulse-new 2s infinite' }}>{t('badge_new', 'NEW')}</span>
+                    ) : isReady ? (
+                        <span style={{ background: '#dcfce7', color: '#16a34a', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700 }}>{t('badge_ready', 'PRÊT')}</span>
+                    ) : isPending ? (
+                        <Loader2 size={16} className="spin" color="var(--text-muted)" />
+                    ) : (
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t('badge_pending', 'En attente')}</span>
+                    )}
+                  </div>
+                  {item.disabled && item.disabledReason && (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--danger-text)', fontWeight: 600 }}>
+                      {item.disabledReason}
+                    </div>
+                  )}
+              </div>
+            );
+        })}
+      </div>
+    </div>
+  );
+};
+
+export const DashboardView: FC = () => {
   const { t } = useTranslation();
   const { 
     activeTab, setActiveTab, pilotData, isPilotLoading, pilotError, cvData, fetchPilotData,
@@ -42,10 +172,6 @@ export const DashboardView = () => {
   // --- GESTION DES NOTIFICATIONS ---
   const [viewedTabs, setViewedTabs] = useState<string[]>(['cockpit']);
   const [showBackToTop, setShowBackToTop] = useState(false);
-
-  // Traduction des labels
-  const interviewTypeLabels: Record<string, string> = { rh: 'Ressources Humaines', manager: 'Manager / Opérationnel', tech: 'Équipe Technique', final: 'Direction (Final)' };
-  const formatLabels: Record<string, string> = { visio: 'Visioconférence', phone: 'Téléphone', onsite: 'En Présentiel' };
   
   // --- GESTION DE L'IMPRESSION ---
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
@@ -138,12 +264,12 @@ export const DashboardView = () => {
     if (lowerStr.includes("48h") || lowerStr.includes("48 h") || lowerStr.includes("2 jours") || lowerStr.includes("2 days")) return 2;
     
     // 2. Détection des dates exactes (YYYY-MM-DD ou DD/MM/YYYY)
-    let match = lowerStr.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    let match = lowerStr.match(/(\d{4})-/-//);
     let parsedDate: Date | null = null;
     if (match) {
       parsedDate = new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]));
     } else {
-      match = lowerStr.match(/(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+      match = lowerStr.match(/(\d{1,2})-/-//);
       if (match) parsedDate = new Date(parseInt(match[3]), parseInt(match[2]) - 1, parseInt(match[1]));
     }
     
@@ -208,8 +334,7 @@ export const DashboardView = () => {
   const isLoadingOverview = isPilotLoading || (!pilotData && !pilotError);
 
   // Extraction de la logique d'affichage du hub dans un composant mémoïsé
-  const MemoizedDeliverablesHub = React.memo(DeliverablesHub);
-
+  const MemoizedDeliverablesHub = React.memo(DeliverablesHub as any);
 
   return (
     <div className="dashboard-wrapper">
@@ -232,7 +357,7 @@ export const DashboardView = () => {
           <Globe size={18} /> {t('tab_market_offer', "Marché & Offre")} {marketUnseen && <span className="notification-dot"></span>}
         </button>
         <button className={`tab-btn ${activeTab === 'posture' ? 'active' : ''}`} onClick={() => handleTabChange('posture')}>
-          <Award size={18} /> {t('tab_posture', "Réussir l'entretien")}
+          <Award size={18} /> {t('tab_posture', "Réussir son entretien")}
         </button>
       </div>
 
@@ -394,7 +519,7 @@ export const DashboardView = () => {
                 return (
                   <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', color: 'var(--text-main)', fontSize: '0.95rem' }}>
                     <input type="checkbox" checked={printSelection[key as keyof typeof printSelection]} onChange={() => togglePrintSelection(key as keyof typeof printSelection)} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
-                    {labels[key]}
+                    {labels[key as keyof typeof labels]}
                   </label>
                 );
               })}
