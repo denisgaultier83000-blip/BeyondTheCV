@@ -94,6 +94,16 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         admin_email = os.getenv("ADMIN_EMAIL", "").lower()
         admin_password = os.getenv("ADMIN_PASSWORD")
 
+        # [ACTION] Debugging admin login
+        print(f"--- ADMIN LOGIN DEBUG ---", flush=True)
+        print(f"Env ADMIN_EMAIL: '{admin_email}'", flush=True)
+        print(f"Env ADMIN_PASSWORD: '{admin_password}'", flush=True)
+        print(f"Form email: '{email}'", flush=True)
+        print(f"Form password: '{form_data.password}'", flush=True)
+        print(f"Email match: {email == admin_email}", flush=True)
+        print(f"Password match: {form_data.password == admin_password}", flush=True)
+        print(f"--- END ADMIN LOGIN DEBUG ---", flush=True)
+
         if admin_email and admin_password and email == admin_email and form_data.password == admin_password:
             print(f"[AUTH] ✅ Admin login successful for: {email}", flush=True)
             access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
