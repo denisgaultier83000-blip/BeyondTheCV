@@ -228,8 +228,7 @@ export const DashboardProvider = ({
             impact: (typeof item === 'object' && item.impact) ? item.impact : 'High',
             action: (typeof item === 'object' && item.action) ? item.action : 'À prioriser pour ce poste' 
           })),
-          recommendedStrategy: data.recommendedStrategy || (Array.isArray(data.application_strategy) ? data.application_strategy.join('
-• ') : '')
+          recommendedStrategy: data.recommendedStrategy || (Array.isArray(data.application_strategy) ? data.application_strategy.join('\n• ') : '')
         });
       }
     } catch (err) { 
