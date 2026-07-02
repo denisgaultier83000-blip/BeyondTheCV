@@ -82,13 +82,13 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
               
               {/* NOUVEAU: Défis Stratégiques Actuels */}
               {strategicChallenges && strategicChallenges.length > 0 && (
-                <div style={{ background: '#fef2f2', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid #fee2e2', gridColumn: '1 / -1' }}>
-                  <h4 style={{ margin: '0 0 0.5rem 0', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.2)', gridColumn: '1 / -1' }}>
+                  <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--danger-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <Target size={18}/> Défis Stratégiques
                   </h4>
-                  <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#7f1d1d', fontSize: '0.95rem' }}>
+                  <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--danger-text)', fontSize: '0.95rem' }}>
                     {strategicChallenges.map((defi: string, idx: number) => (
-                      <li key={idx} style={{ marginBottom: '0.35rem', lineHeight: '1.4' }}>{defi}</li>
+                      <li key={idx} style={{ marginBottom: '0.35rem', lineHeight: '1.4', opacity: 0.9 }}>{defi}</li>
                     ))}
                   </ul>
                 </div>

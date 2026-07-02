@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useCallback, lazy, Suspense, useMemo } from 'react';
 import { useDashboard } from './DashboardContext';
 import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass, Mic, Search, Eye, Navigation, Network, Loader2, RotateCcw, CheckSquare, Dumbbell, ArrowUp, Printer, Building, ShieldAlert, Calendar, UserCheck, Monitor, HeartPulse, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -28,50 +28,6 @@ interface DeliverableItem {
   disabledReason?: string;
 }
 
-// --- Composant pour la pratique du Pitch ---
-const PitchPractice = ({ title, pitchText, onSave }) => {
-  const { t, i18n } = useTranslation();
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedText, setEditedText] = useState(pitchText);
-
-  // [FIX] Déplacement de la logique du hook ici pour isoler l'état de chaque instance
-  const [isRecording, setIsRecording] = useState(false);
-  const [transcript, setTranscript] = useState('');
-  const recognitionRef = useRef(null);
-
-  const startRecording = useCallback(() => {
-    setIsRecording(true);
-    setTranscript('');
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true;
-      recognitionRef.current.lang = i18n.language;
-      recognitionRef.current.onresult = (event) => {
-        const interimTranscript = Array.from(event.results).map(result => result[0].transcript).join('');
-        setEditedText(prev => prev ? `${prev} ${interimTranscript}` : interimTranscript);
-      };
-      recognitionRef.current.start();
-    }
-  }, [i18n.language]);
-
-  const stopRecording = useCallback(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
-    setIsRecording(false);
-  }, []);
-
-  const handleSave = () => {
-    onSave(editedText);
-    setIsEditing(false);
-  };
-
-  return (
-    <div className="pitch-practice-card"></div>
-  );
-};
 
 export const DashboardView = () => {
   const { t } = useTranslation();
@@ -86,6 +42,10 @@ export const DashboardView = () => {
   // --- GESTION DES NOTIFICATIONS ---
   const [viewedTabs, setViewedTabs] = useState<string[]>(['cockpit']);
   const [showBackToTop, setShowBackToTop] = useState(false);
+
+  // Traduction des labels
+  const interviewTypeLabels: Record<string, string> = { rh: 'Ressources Humaines', manager: 'Manager / Opérationnel', tech: 'Équipe Technique', final: 'Direction (Final)' };
+  const formatLabels: Record<string, string> = { visio: 'Visioconférence', phone: 'Téléphone', onsite: 'En Présentiel' };
   
   // --- GESTION DE L'IMPRESSION ---
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
@@ -135,24 +95,6 @@ export const DashboardView = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const subMenus: Record<string, {label: string, id: string}[]> = {
-    overview: [
-      { label: t('submenu_hub', 'Centre de Suivi'), id: 'hub_section' },
-      { label: t('submenu_recruiter', 'Vue Recruteur'), id: 'recruiter_section' }
-    ],
-    interview: [
-      { label: t('submenu_pitch', 'Pitch'), id: 'pitch_section' },
-      { label: t('submenu_questionnaire', 'Questions & Mises en situation'), id: 'questionnaire_section' },
-      { label: t('submenu_flaws', 'Parades aux Défauts'), id: 'flaws_section' }
-    ],
-    market: [
-      { label: t('submenu_gap', 'Gap Analysis'), id: 'gap_section' },
-      { label: t('submenu_company', 'Entreprise'), id: 'company_section' },
-      { label: t('submenu_market', 'Marché'), id: 'market_section' },
-      { label: t('submenu_decoder', 'Décodeur d\'Annonce'), id: 'decoder_section' }
-    ]
-  };
-
   const isProcessing = globalStatus === "PROCESSING" || globalStatus === "STARTING";
 
   // --- GESTION DES TIMEOUTS ET MESSAGES DE PATIENCE ---
@@ -184,9 +126,6 @@ export const DashboardView = () => {
 
   // --- EXTRACTION DU CONTEXTE CANDIDAT ---
   const meta = cvData?.meta || cvData || {};
-  const interviewTypeLabels: Record<string, string> = { rh: 'Ressources Humaines', manager: 'Manager / Opérationnel', tech: 'Équipe Technique', final: 'Direction (Final)' };
-  const formatLabels: Record<string, string> = { visio: 'Visioconférence', phone: 'Téléphone', onsite: 'En Présentiel' };
-  const stressLabels: Record<string, string> = { low: 'Confiant', medium: 'Stress Modéré', high: 'Stress Élevé' };
 
   // Détection du Mode Commando (Entretien dans < 48h)
   const getDaysUntilInterview = (dateStr: string): number => {
@@ -217,38 +156,43 @@ export const DashboardView = () => {
     }
     return 999;
   };
-  const isCommando = getDaysUntilInterview(meta.interview_date || "") <= 2;
+  const isCommando = useMemo(() => getDaysUntilInterview(meta.interview_date || "") <= 2, [meta.interview_date]);
   const commandoReason = t('commando_disabled_reason', "Désactivé (Urgence : Entretien imminent)");
 
   const hasJobDesc = !!(cvData?.job_description && cvData.job_description.trim().length > 0);
 
   // Liste de tous les livrables avec leur état
-  const deliverableItems: DeliverableItem[] = [
-    { name: t('deliv_pitch', "Pitch de 3 minutes"), tab: "interview", anchor: "pitch_section", data: pitchResult, icon: <Mic size={18}/> },
-    { name: t('card_interview_title', "Questionnaire d'Entretien"), tab: "interview", anchor: "questionnaire_section", data: questionsResult, icon: <MessageSquare size={18}/> },
-    { name: t('deliv_mes', "Mises en situation"), tab: "interview", anchor: "mes_anchor", data: customScenariosResult || cvData, icon: <ShieldAlert size={18}/> },
-    { name: t('deliv_flaws', "Parades aux Défauts"), tab: "interview", anchor: "flaws_section", data: flawCoachingResult, icon: <AlertTriangle size={18}/> },
-    { name: t('deliv_gap', "Analyse d'Écarts (Gap)"), tab: "market", anchor: "gap_section", data: gapResult, icon: <Target size={18}/> },
-    { name: t('deliv_company', "Rapport Entreprise"), tab: "market", anchor: "company_section", data: researchResult, icon: <Building size={18}/> },
-    { name: t('deliv_market', "Rapport Marché"), tab: "market", anchor: "market_section", data: researchResult, icon: <Globe size={18}/> },
-    { 
-      name: t('deliv_decoder', "Décodeur d'Annonce"), 
-      tab: "market", 
-      anchor: "decoder_section", 
-      data: jobDecoderResult, 
-      icon: <Search size={18}/>,
-      disabled: !hasJobDesc || (isCommando && !jobDecoderResult),
-      disabledReason: !hasJobDesc ? t('card_decoder_disabled', "Annonce non renseignée. Ajoutez l'annonce dans votre profil pour l'analyser.") : (isCommando ? commandoReason : undefined)
-    },
-    { name: t('deliv_recruiter', "Vue Recruteur"), tab: "overview", anchor: "recruiter_section", data: recruiterResult, icon: <Eye size={18}/>, disabled: isCommando && !recruiterResult, disabledReason: isCommando ? commandoReason : undefined }
-  ];
+  const deliverableItems: DeliverableItem[] = useMemo(() => [
+      { name: t('deliv_pitch', "Pitch de 3 minutes"), tab: "interview", anchor: "pitch_section", data: pitchResult, icon: <Mic size={18}/> },
+      { name: t('card_interview_title', "Questionnaire d'Entretien"), tab: "interview", anchor: "questionnaire_section", data: questionsResult, icon: <MessageSquare size={18}/> },
+      { name: t('deliv_mes', "Mises en situation"), tab: "interview", anchor: "mes_anchor", data: customScenariosResult || cvData, icon: <ShieldAlert size={18}/> },
+      { name: t('deliv_flaws', "Parades aux Défauts"), tab: "interview", anchor: "flaws_section", data: flawCoachingResult, icon: <AlertTriangle size={18}/> },
+      { name: t('deliv_gap', "Analyse d'Écarts (Gap)"), tab: "market", anchor: "gap_section", data: gapResult, icon: <Target size={18}/> },
+      { name: t('deliv_company', "Rapport Entreprise"), tab: "market", anchor: "company_section", data: researchResult, icon: <Building size={18}/> },
+      { name: t('deliv_market', "Rapport Marché"), tab: "market", anchor: "market_section", data: researchResult, icon: <Globe size={18}/> },
+      { 
+        name: t('deliv_decoder', "Décodeur d'Annonce"), 
+        tab: "market", 
+        anchor: "decoder_section", 
+        data: jobDecoderResult, 
+        icon: <Search size={18}/>,
+        disabled: !hasJobDesc || (isCommando && !jobDecoderResult),
+        disabledReason: !hasJobDesc ? t('card_decoder_disabled', "Annonce non renseignée. Ajoutez l'annonce dans votre profil pour l'analyser.") : (isCommando ? commandoReason : undefined)
+      },
+      { name: t('deliv_recruiter', "Vue Recruteur"), tab: "overview", anchor: "recruiter_section", data: recruiterResult, icon: <Eye size={18}/>, disabled: isCommando && !recruiterResult, disabledReason: isCommando ? commandoReason : undefined }
+    ], 
+    [
+      t, pitchResult, questionsResult, customScenariosResult, cvData, flawCoachingResult, 
+      gapResult, researchResult, jobDecoderResult, recruiterResult, hasJobDesc, isCommando, commandoReason
+    ]
+  );
 
   // Calcul des pastilles par onglet
   const hasUnseen = (tabName: string, items: any[]) => {
     if (viewedTabs.includes(tabName)) return false;
     return items.some(item => isDataReady(item));
   };
-
+  
   const interviewUnseen = hasUnseen('interview', [pitchResult, questionsResult, flawCoachingResult]);
   const marketUnseen = hasUnseen('market', [gapResult, researchResult, jobDecoderResult]);
   const cockpitUnseen = hasUnseen('cockpit', [actionPlanResult]);
@@ -262,6 +206,10 @@ export const DashboardView = () => {
 
   // La condition de chargement est maintenant robuste grâce à l'état explicite `isPilotLoading`
   const isLoadingOverview = isPilotLoading || (!pilotData && !pilotError);
+
+  // Extraction de la logique d'affichage du hub dans un composant mémoïsé
+  const MemoizedDeliverablesHub = React.memo(DeliverablesHub);
+
 
   return (
     <div className="dashboard-wrapper">
@@ -290,7 +238,7 @@ export const DashboardView = () => {
 
       {/* SOUS-MENUS */}
       {subMenus[activeTab] && (
-        <div className="sub-tabs-navigation">
+        <div className="sub-tabs-navigation" key={activeTab}>
           {subMenus[activeTab].map((sub) => (
             <button key={sub.id} className="sub-tab-btn" onClick={() => {
               const el = document.getElementById(sub.id);
@@ -343,63 +291,15 @@ export const DashboardView = () => {
               {/* [FIX ARCHITECTURE] Le Hub est sorti de la condition de chargement. 
                   Il s'affiche instantanément. Les analyses terminées en amont (ex: Marché) 
                   seront cliquables immédiatement sans attendre la synthèse IA. */}
-              <div className="bento-card col-span-3" id="hub_section" style={{ background: 'var(--bg-card)' }}>
-                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-                   <div className="bento-header" style={{ marginBottom: 0 }}><Activity size={20} color="var(--primary)"/> {t('hub_title', 'Centre de Suivi des Analyses')}</div>
-                   <button 
-                     onClick={() => setIsPrintModalOpen(true)} 
-                     disabled={isProcessing}
-                     className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem', opacity: isProcessing ? 0.5 : 1, cursor: isProcessing ? 'not-allowed' : 'pointer' }}>
-                     <Printer size={16} /> Imprimer mon Dossier
-                   </button>
-                 </div>
-                 <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: '0 0 1rem 0' }}>{t('hub_desc', 'Suivez la génération de vos outils en temps réel et cliquez pour y accéder.')}</p>
-               
-               {isProcessing && longLoading && (
-                 <div style={{ padding: '0.75rem', backgroundColor: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)', borderRadius: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500, animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}>
-                   <Loader2 size={16} className="spin" />
-                   {t('hub_long_loading', "L'analyse IA est très approfondie et prend un peu plus de temps. Merci de patienter (jusqu'à 60 secondes)...")}
-                 </div>
-               )}
-               
-                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                    {deliverableItems.map((item, idx) => {
-                       const isReady = isDataReady(item.data) && !item.disabled;
-                       const isPending = isProcessing && !isReady && !item.disabled;
-                       const isNew = isReady && !viewedTabs.includes(item.tab) && !item.disabled;
-                       return (
-                          <div 
-                             key={idx} 
-                             onClick={() => !item.disabled && !isPending && handleTabChange(item.tab, item.anchor)} 
-                             style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', border: `1px solid ${isReady ? 'var(--primary)' : 'var(--border-color)'}`, display: 'flex', flexDirection: 'column', gap: '0.5rem', cursor: (item.disabled || isPending) ? 'not-allowed' : 'pointer', opacity: item.disabled ? 0.5 : (isPending ? 0.7 : 1), transition: 'all 0.2s', boxShadow: isNew ? '0 4px 12px rgba(59, 130, 246, 0.15)' : 'none' }} 
-                             onMouseOver={(e) => !item.disabled && !isPending && (e.currentTarget.style.transform = 'translateY(-2px)')} 
-                             onMouseOut={(e) => !item.disabled && !isPending && (e.currentTarget.style.transform = 'none')}
-                          >
-                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: isReady ? 'var(--text-main)' : 'var(--text-muted)', fontWeight: isReady ? 600 : 400 }}>
-                                   <div style={{ color: isReady ? 'var(--primary)' : 'var(--text-muted)', display: 'flex' }}>{item.icon}</div>
-                                   <span style={{ fontSize: '0.95rem' }}>{item.name}</span>
-                                </div>
-                                {item.disabled ? null : isNew ? (
-                                   <span style={{ background: '#ef4444', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, animation: 'pulse-new 2s infinite' }}>{t('badge_new', 'NEW')}</span>
-                                ) : isReady ? (
-                                   <span style={{ background: '#dcfce7', color: '#16a34a', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700 }}>{t('badge_ready', 'PRÊT')}</span>
-                                ) : isPending ? (
-                                   <Loader2 size={16} className="spin" color="var(--text-muted)" />
-                                ) : (
-                                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t('badge_pending', 'En attente')}</span>
-                                )}
-                             </div>
-                             {item.disabled && item.disabledReason && (
-                               <div style={{ fontSize: '0.75rem', color: 'var(--danger-text)', fontWeight: 600 }}>
-                                 {item.disabledReason}
-                               </div>
-                             )}
-                          </div>
-                       );
-                    })}
-                 </div>
-              </div>
+              <MemoizedDeliverablesHub
+                deliverableItems={deliverableItems}
+                isProcessing={isProcessing}
+                longLoading={longLoading}
+                viewedTabs={viewedTabs}
+                isDataReady={isDataReady}
+                onPrintClick={() => setIsPrintModalOpen(true)}
+                onItemClick={handleTabChange}
+              />
 
               {/* Seules les cartes dépendantes de la synthèse affichent le Skeleton */}
               {isLoadingOverview ? (
