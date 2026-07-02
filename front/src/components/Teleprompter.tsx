@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { createPortal } from 'react-dom';
 import { ArrowLeft, Play, Pause, RotateCcw } from 'lucide-react';
 
