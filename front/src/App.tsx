@@ -1,13 +1,13 @@
 import React from 'react';
-import { DashboardProvider as GlobalProvider } from './hooks/DashboardContext';
+import { DashboardProvider } from './components/DashboardContext';
 import AppRouter from './router/Router';
 import './index.css';
 
 function App() {
   return (
-    <GlobalProvider>
+    <DashboardProvider>
       <AppRouter />
-    </GlobalProvider>
+    </DashboardProvider>
   );
 }
 

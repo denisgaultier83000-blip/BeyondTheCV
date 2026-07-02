@@ -1,12 +1,12 @@
 import React from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Header from './Header';
-import { useDashboard as useGlobalDashboard } from '../hooks/DashboardContext';
+import { useDashboard } from './DashboardContext';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 const AppLayout = () => {
-  const { isAuthenticated, setIsAuthenticated, resetDashboard, cvData } = useGlobalDashboard();
+  const { isAuthenticated, setIsAuthenticated, resetDashboard, cvData } = useDashboard();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();

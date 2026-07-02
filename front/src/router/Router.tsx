@@ -5,13 +5,13 @@ import { DashboardView } from '../components/DashboardView';
 import Login from '../pages/Login';
 import { LandingPage } from '../components/LandingPage';
 import AppLayout from '../components/AppLayout';
-import { useDashboard as useGlobalDashboard } from '../hooks/DashboardContext';
+import { useDashboard } from '../components/DashboardContext';
 import { CGU } from '../components/CGU';
 import { PrivacyPolicy } from '../components/PrivacyPolicy';
 import { LegalNotice } from '../components/LegalNotice';
 
 const RouterContent = () => {
-  const { isAuthenticated, setIsAuthenticated } = useGlobalDashboard();
+  const { isAuthenticated, setIsAuthenticated } = useDashboard();
 
   const userStr = localStorage.getItem('user');
   let isAdmin = false;

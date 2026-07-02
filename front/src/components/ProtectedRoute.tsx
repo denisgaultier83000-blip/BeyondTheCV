@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useDashboard as useGlobalDashboard } from '../hooks/DashboardContext';
+import { useDashboard } from './DashboardContext';
 import { LoadingScreen } from './LoadingScreen';
 
 interface ProtectedRouteProps {
@@ -9,7 +9,7 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, adminRoute = false }) => {
-  const { isAuthenticated } = useGlobalDashboard();
+  const { isAuthenticated } = useDashboard();
   const location = useLocation();
   const [isLoading, setIsLoading] = React.useState(true);
   const [user, setUser] = React.useState<any>(null);
