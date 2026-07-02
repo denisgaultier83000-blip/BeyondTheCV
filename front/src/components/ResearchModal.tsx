@@ -45,9 +45,9 @@ const ResearchModal: React.FC<ResearchModalProps> = ({ data, mode = 'company', o
       zIndex: 2000, padding: '1rem', backdropFilter: 'blur(4px)'
     }}>
       <div style={{
-        background: 'white', padding: '2.5rem', borderRadius: '1rem', width: '90%', maxWidth: '800px', position: 'relative',
+        background: 'var(--bg-card)', padding: '2.5rem', borderRadius: '1rem', width: '90%', maxWidth: '800px', position: 'relative',
         boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
-        maxHeight: '90vh', overflowY: 'auto', border: '1px solid #e2e8f0'
+        maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--border-color)'
       }}>
         <button 
             style={{ position: 'absolute', top: '1rem', right: '1rem', background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '36px', height: '36px', fontSize: '1.2rem', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }} 
@@ -61,7 +61,7 @@ const ResearchModal: React.FC<ResearchModalProps> = ({ data, mode = 'company', o
         <h2 style={{ textAlign: 'center', color: '#0f172a', marginBottom: '0.5rem', fontSize: '1.8rem' }}>
             {mode === 'company' ? (company ? `${t('modal_company_title', 'Rapport :')} ${company}` : t('card_company_title', 'Rapport Entreprise')) : t('modal_market_title', 'Rapport Marché')}
         </h2>
-        <div style={{ textAlign: 'center', color: '#64748b', fontSize: '0.9rem', marginBottom: '2rem' }}>{t('modal_generated_by', 'Généré par BeyondTheCV Intelligence')}</div>
+        <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '2rem' }}>{t('modal_generated_by', 'Généré par BeyondTheCV Intelligence')}</div>
 
         {!hasNewFormat && (
             <div style={{ padding: 20, background: "#fff7ed", color: "#c2410c", borderRadius: 8, marginBottom: 20, textAlign: "center" }}>
@@ -107,7 +107,7 @@ const ResearchModal: React.FC<ResearchModalProps> = ({ data, mode = 'company', o
                               const isDummyUrl = urlStr === '#';
                               const fullUrl = isDummyUrl ? '#' : (urlStr.startsWith('http') ? urlStr : `https://${urlStr}`);
                               return (
-                                <div key={i} style={{ background: 'white', padding: '0.75rem', borderRadius: '6px', border: '1px solid rgba(225, 29, 72, 0.2)' }} onClick={(e) => e.stopPropagation()}>
+                                <div key={i} style={{ background: 'var(--bg-card)', padding: '0.75rem', borderRadius: '6px', border: '1px solid rgba(225, 29, 72, 0.2)' }} onClick={(e) => e.stopPropagation()}>
                                   <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
                                     {!isDummyUrl ? (
                                         <>

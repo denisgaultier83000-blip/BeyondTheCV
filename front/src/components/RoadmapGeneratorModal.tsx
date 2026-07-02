@@ -59,18 +59,18 @@ export default function RoadmapGeneratorModal({ onClose }: RoadmapGeneratorModal
 
   const SelectField = ({ label, value, onChange, options }: { label: string, value: string, onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void, options: { value: string, label: string }[] }) => (
     <div>
-      <label className="block text-sm font-medium text-gray-600 mb-1">{label}</label>
-      <select value={value} onChange={onChange} className="w-full p-2 border border-gray-300 rounded-md bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
+      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-muted)', marginBottom: '0.25rem' }}>{label}</label>
+      <select value={value} onChange={onChange} className="select-input" style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--border-color)', borderRadius: '0.375rem', background: 'var(--bg-secondary)'}}>
         {options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
       </select>
     </div>
   );
 
   // --- NOUVEAU : Sous-composants pour l'affichage des résultats ---
-  const RoadmapSection = ({ title, icon, children, color = 'text-gray-800' }: { title: string, icon: React.ReactNode, children: React.ReactNode, color?: string }) => (
-    <div className="bg-gray-50 p-5 rounded-xl border border-gray-200">
-      <h4 className={`font-bold ${color} flex items-center gap-3 mb-3 text-lg`}>{icon} {title}</h4>
-      <div className="text-sm text-gray-700 space-y-2 pl-1">
+  const RoadmapSection = ({ title, icon, children, color = 'var(--text-main)' }: { title: string, icon: React.ReactNode, children: React.ReactNode, color?: string }) => (
+    <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
+      <h4 style={{ fontWeight: 'bold', color, display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem', fontSize: '1.125rem' }}>{icon} {title}</h4>
+      <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingLeft: '0.25rem' }}>
         {children}
       </div>
     </div>
@@ -78,7 +78,7 @@ export default function RoadmapGeneratorModal({ onClose }: RoadmapGeneratorModal
 
   const BulletList = ({ items }: { items: string[] }) => (
     <ul className="space-y-2">
-      {items.map((item, index) => <li key={index} className="flex items-start gap-2"><ChevronsRight size={16} className="text-blue-500 mt-0.5 shrink-0"/><span>{item}</span></li>)}
+      {items.map((item, index) => <li key={index} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}><ChevronsRight size={16} color="var(--primary)" style={{ marginTop: '0.125rem', flexShrink: 0 }}/><span>{item}</span></li>)}
     </ul>
   );
 
@@ -102,17 +102,17 @@ export default function RoadmapGeneratorModal({ onClose }: RoadmapGeneratorModal
           <X size={20} />
         </button>
 
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-gray-800 flex items-center justify-center gap-3">
-            <Map size={28} className="text-blue-600" />
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+            <Map size={28} color="var(--primary)" />
             Générateur de Feuille de Route
           </h2>
-          <p className="text-gray-500 mt-2">Configurez le contexte de votre entretien pour un plan sur-mesure.</p>
+          <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Configurez le contexte de votre entretien pour un plan sur-mesure.</p>
         </div>
 
         {!result ? (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
               <SelectField
                 label="Type d'entretien"
                 value={selections.type}
@@ -159,16 +159,16 @@ export default function RoadmapGeneratorModal({ onClose }: RoadmapGeneratorModal
             </div>
 
             {error && (
-              <div className="bg-red-50 text-red-700 p-3 rounded-md mb-6 flex items-center gap-2 text-sm">
+              <div style={{ background: 'rgba(239, 68, 68, 0.05)', color: 'var(--danger-text)', padding: '0.75rem', borderRadius: '0.375rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
                 <AlertTriangle size={18} /> {error}
               </div>
             )}
 
-            <div className="flex justify-center">
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
               <button
                 onClick={handleGenerate}
                 disabled={loading}
-                className="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg flex items-center gap-2 shadow-lg hover:bg-blue-700 transition-all disabled:opacity-50"
+                className="btn-primary"
               >
                 {loading ? <Loader2 size={20} className="animate-spin" /> : <Zap size={20} />}
                 {loading ? "Génération en cours..." : "Générer mon plan"}
@@ -176,46 +176,46 @@ export default function RoadmapGeneratorModal({ onClose }: RoadmapGeneratorModal
             </div>
           </>
         ) : (
-          <div className="animate-fadeIn space-y-6">
-            <h3 className="text-xl font-bold text-center text-blue-700">{result.title}</h3>
+          <div style={{ animation: 'fadeIn 0.3s ease-out', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'center', color: 'var(--primary)' }}>{result.title}</h3>
 
-            <RoadmapSection title="Focus du Recruteur" icon={<Target size={20} />} color="text-blue-800">
-              <p className="text-xs text-gray-500 italic mb-3">Ce que votre interlocuteur cherchera à valider en priorité.</p>
+            <RoadmapSection title="Focus du Recruteur" icon={<Target size={20} />} color="var(--primary-dark)">
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: '0.75rem' }}>Ce que votre interlocuteur cherchera à valider en priorité.</p>
               <BulletList items={result.recruiter_focus || []} />
             </RoadmapSection>
 
-            <RoadmapSection title="Messages Clés à Marteler" icon={<MessageCircle size={20} />} color="text-green-800">
-               <p className="text-xs text-gray-500 italic mb-3">Les 3 idées que vous devez absolument faire passer, peu importe les questions.</p>
+            <RoadmapSection title="Messages Clés à Marteler" icon={<MessageCircle size={20} />} color="var(--success-dark)">
+               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: '0.75rem' }}>Les 3 idées que vous devez absolument faire passer, peu importe les questions.</p>
               <BulletList items={result.key_messages || []} />
             </RoadmapSection>
 
-            <RoadmapSection title="Règles d'Or" icon={<Star size={20} />} color="text-amber-700">
+            <RoadmapSection title="Règles d'Or" icon={<Star size={20} />} color="var(--warning-dark)">
               <BulletList items={result.golden_rules || []} />
             </RoadmapSection>
 
-            <RoadmapSection title="Erreurs à Éviter" icon={<Shield size={20} />} color="text-red-700">
+            <RoadmapSection title="Erreurs à Éviter" icon={<Shield size={20} />} color="var(--danger-dark)">
               <BulletList items={result.mistakes_to_avoid || []} />
             </RoadmapSection>
 
             <RoadmapSection title="Check-list Avant Entretien" icon={<CheckSquare size={20} />}>
-              <div className="space-y-4">
-                <div><h5 className="font-semibold flex items-center gap-2 mb-2"><Clock size={16}/> 24h avant</h5><BulletList items={result.pre_interview_checklist?.h_minus_24 || []} /></div>
-                <div><h5 className="font-semibold flex items-center gap-2 mb-2"><Clock size={16}/> 1h avant</h5><BulletList items={result.pre_interview_checklist?.h_minus_1 || []} /></div>
-                <div><h5 className="font-semibold flex items-center gap-2 mb-2"><Clock size={16}/> 5 min avant</h5><BulletList items={result.pre_interview_checklist?.h_minus_5 || []} /></div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div><h5 style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}><Clock size={16}/> 24h avant</h5><BulletList items={result.pre_interview_checklist?.h_minus_24 || []} /></div>
+                <div><h5 style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}><Clock size={16}/> 1h avant</h5><BulletList items={result.pre_interview_checklist?.h_minus_1 || []} /></div>
+                <div><h5 style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}><Clock size={16}/> 5 min avant</h5><BulletList items={result.pre_interview_checklist?.h_minus_5 || []} /></div>
               </div>
             </RoadmapSection>
 
             <RoadmapSection title="Phrase d'Ouverture" icon={<ChevronsRight size={20} />}>
-              <p className="italic">"{result.opening_statement}"</p>
+              <p style={{ fontStyle: 'italic' }}>"{result.opening_statement}"</p>
             </RoadmapSection>
             <RoadmapSection title="Phrase de Conclusion" icon={<ChevronsLeft size={20} />}>
-              <p className="italic">"{result.closing_statement}"</p>
+              <p style={{ fontStyle: 'italic' }}>"{result.closing_statement}"</p>
             </RoadmapSection>
             <RoadmapSection title="Conseils de Posture" icon={<UserCheck size={20} />}>
               <p>{result.posture_advice}</p>
             </RoadmapSection>
 
-            <div className="text-center pt-4 border-t border-gray-200">
+            <div style={{ textAlign: 'center', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
               <button onClick={() => setResult(null)} className="btn-secondary">Générer un autre plan</button>
             </div>
           </div>
