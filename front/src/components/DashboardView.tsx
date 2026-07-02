@@ -453,7 +453,7 @@ export const DashboardView: FC = () => {
                     data={pitchResult?.coaching_notes}
                     loading={isProcessing && !pitchResult}
                   />
-                  <CareerRealityCheck data={realityResult} score={pilotData?.matchScore} loading={isProcessing && !realityResult && !isCommando} />
+                  <CareerRealityCheck data={realityResult} score={realityResult?.score} loading={isProcessing && !realityResult && !isCommando} />
                   {(!isCommando || recruiterResult) && (
                     <div id="recruiter_section">
                       <RecruiterView data={recruiterResult} loading={isProcessing && !recruiterResult} />
