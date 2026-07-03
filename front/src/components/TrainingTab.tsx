@@ -426,8 +426,11 @@ export default function TrainingTab() {
         onSuccess={refreshAllStats} 
       />
 
+      </div>
+
       {/* --- SECTION CONFIGURATION --- */}
-      <DashboardCard title="Nouvelle Session d'Entraînement" icon={<Settings2 size={24} />}>
+      <div id="training_mes_section">
+        <DashboardCard title="Nouvelle Session d'Entraînement" icon={<Settings2 size={24} />}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
           {errorMsg && !activeQuestion && (
@@ -493,6 +496,7 @@ export default function TrainingTab() {
           </div>
         </div>
       </DashboardCard>
+      </div>
 
       {/* --- SESSION INTERACTIVE EN COURS --- */}
       {activeQuestion && (
