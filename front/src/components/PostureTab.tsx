@@ -202,7 +202,7 @@ export default function PostureTab() {
       <DashboardCard
         title="Dernière Heure Avant l'Entretien"
         icon={<Clock size={24} />}
-        id="last_hour_section"
+        id="last_hour_section" // ID pour l'ancrage
       >
         <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
           Le guide de survie ultime. Pas de théorie, uniquement des actions à mener dans les 60 minutes qui précèdent l'échange.
@@ -230,7 +230,7 @@ export default function PostureTab() {
       <DashboardCard
         title="Questions Stratégiques à Poser"
         icon={<HelpCircle size={24} />}
-        id="strategic_questions_section"
+        id="strategic_questions_section" // ID pour l'ancrage
       >
         <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
           Ne subissez plus l'entretien, pilotez-le. Des questions pertinentes pour chaque type d'interlocuteur.
@@ -266,7 +266,7 @@ export default function PostureTab() {
       <DashboardCard
         title="Signaux à Observer (Pendant l'entretien)"
         icon={<Eye size={24} />}
-        id="signals_section"
+        id="signals_section" // ID pour l'ancrage
       >
         <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
           Vous n'êtes pas seulement évalué, vous évaluez aussi. Gardez ces points en tête pour prendre la bonne décision.
@@ -290,7 +290,7 @@ export default function PostureTab() {
       <DashboardCard
         title="Guides de Posture"
         icon={<UserCog size={24} />}
-        id="posture_guides_section"
+        id="posture_guides_section" // ID pour l'ancrage
       >
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
           {[
@@ -316,7 +316,7 @@ export default function PostureTab() {
       <DashboardCard
         title="Débrief d'Entretien"
         icon={<Edit size={24} />}
-        id="debrief_section"
+        id="debrief_section" // ID pour l'ancrage
       >
         <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
           Capitalisez sur chaque échange. Enregistrez vos impressions à chaud pour transformer chaque entretien en une leçon stratégique pour le suivant.
@@ -331,7 +331,7 @@ export default function PostureTab() {
       <DashboardCard
         title="Gérer les Imprévus (Plan de Secours)"
         icon={<LifeBuoy size={24} />}
-        id="contingency_plan_section"
+        id="contingency_plan_section" // ID pour l'ancrage
       >
         <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
           Des réponses prêtes à l’emploi pour rester professionnel même quand l’entretien ne se déroule pas comme prévu.

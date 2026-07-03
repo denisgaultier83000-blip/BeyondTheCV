@@ -285,7 +285,7 @@ export default function TrainingTab() {
       )}
 
       {/* --- NOUVEAU : AFFICHAGE DES QUOTAS PAR MODULE --- */}
-      <DashboardCard title="Simulations Notées Disponibles" icon={<Dumbbell size={24} />}>
+      <DashboardCard title="Simulations Notées Disponibles" icon={<Dumbbell size={24} />} id="training_pitch_section">
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
           Votre pack inclut un nombre de simulations évaluées par l'IA pour chaque type d'exercice. L'entraînement libre (lecture des questions et réponses) est illimité.
         </p>

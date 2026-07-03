@@ -159,9 +159,11 @@ export const CockpitTab: React.FC<CockpitProps> = ({
   };
 
   // Calcul de la jauge de préparation
-  const actionScore = plan.length > 0 ? (checkedItems.length / plan.length) * 100 : 0;
+  const rawActionScore = plan.length > 0 ? (checkedItems.length / plan.length) * 100 : 0;
+  const actionScore = Math.min(rawActionScore, 100); // Plafonne à 100%
   const completedTrainingCount = training.filter(t => trainingScores[t.module] !== undefined).length;
-  const trainingScore = training.length > 0 ? (completedTrainingCount / training.length) * 100 : 0;
+  const rawTrainingScore = training.length > 0 ? (completedTrainingCount / training.length) * 100 : 0;
+  const trainingScore = Math.min(rawTrainingScore, 100); // Plafonne à 100%
   
   let progressPercentage = 0;
   if (plan.length > 0 && training.length > 0) {
@@ -171,7 +173,7 @@ export const CockpitTab: React.FC<CockpitProps> = ({
   } else if (training.length > 0) {
     progressPercentage = Math.round(trainingScore);
   }
-  const readinessColor = progressPercentage === 100 ? '#10b981' : progressPercentage >= 50 ? '#f59e0b' : '#ef4444';
+  const readinessColor = progressPercentage >= 100 ? '#10b981' : progressPercentage >= 50 ? '#f59e0b' : '#ef4444';
 
   useEffect(() => {
     if (progressPercentage === 100 && !hasFiredConfetti) {
@@ -228,7 +230,7 @@ export const CockpitTab: React.FC<CockpitProps> = ({
             <div style={{ width: `${progressPercentage}%`, height: '100%', background: readinessColor, transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1), background 0.5s ease' }} />
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
-            <span>Logistique : {Math.round(actionScore)}%</span>
+            <span>Logistique : {Math.round(rawActionScore)}%</span>
             <span>Entraînements : {Math.round(trainingScore)}%</span>
           </div>
         </div>
