@@ -418,7 +418,7 @@ export default function TrainingTab() {
         </div>
       </DashboardCard>
 
-      {/* --- NOUVEAU MODULE : ENTRAÎNEMENT AU PITCH VOCAL --- */}
+      {/* --- NOUVEAU MODULE : ENTRAINEMENT AU PITCH VOCAL --- */}
       <VocalPitchTrainer 
         targetJob={cvData?.target_job || cvData?.target_role_primary || "Candidat"} 
         targetCompany={cvData?.target_company}
