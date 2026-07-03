@@ -118,34 +118,17 @@ body.dark-mode {
   gap: 0.5rem;
 }
 
-.pitch-selector-tabs button {
-  flex-grow: 1;
-  padding: 0.6rem 1rem;
+.pitch-selector-tabs .btn-outline {
+  /* Le style est maintenant hérité de .btn-outline dans index.css */
+  /* On ajoute juste des ajustements spécifiques si nécessaire */
+  padding: 0.6rem 1rem; /* Un peu moins de padding vertical pour la densité */
   font-size: 0.9rem;
-  font-weight: 600;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  background-color: var(--bg-secondary);
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: all 0.2s ease;
-  cursor: pointer;
 }
 
-.pitch-selector-tabs button:hover {
-  background-color: var(--bg-card);
-  color: var(--text-main);
+.pitch-selector-tabs .btn-outline.active {
+  background: var(--primary);
+  color: var(--primary-fg);
   border-color: var(--primary);
-}
-
-.pitch-selector-tabs button.active {
-  background: var(--primary-gradient);
-  color: white;
-  border-color: transparent;
-  box-shadow: 0 4px 10px -2px rgba(59, 130, 246, 0.3);
 }
 
 /* --- Styles pour le contenu du Pitch --- */
