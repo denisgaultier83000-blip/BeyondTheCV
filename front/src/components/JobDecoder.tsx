@@ -14,7 +14,11 @@ interface JobDecoderProps {
 const extractDecoderData = (data: any) => {
   if (!data) return null;
   // Gère les encapsulations possibles : { result: ... }, { job_decoder_result: ... }, etc.
-  let payload = data.result || data.job_decoder_result || data;
+  let payload = data.result || data.job_decoder_result || data.job_decoder || data;
+  // Cas où la donnée est directement à la racine
+  if (data.reality_check || data.real_expectations) {
+    payload = data;
+  }
   if (typeof payload === 'string') {
     try {
       const match = payload.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
@@ -112,12 +116,4 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
                   <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatMarkdown(cultureFit).__html) }} />
                 </p>
               </div>
-            )}
-
-            <FeedbackWidget feature="job_decoder" question="Cette traduction de l'annonce vous est-elle utile ?" />
-          </div>
-        );
-      })()}
-    </AsyncBoundary>
-  );
-}
+      

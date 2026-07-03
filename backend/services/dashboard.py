@@ -13,6 +13,7 @@ from .ai_generator import ai_service
 from .tasks import (
     process_research_in_background, 
     process_salary_in_background, 
+    process_job_decoder_in_background,
 )
 from .utils import clean_ai_json_response, normalize_language, _generate_cache_key, get_cached_content, set_cached_content
 from .websocket_manager import manager
@@ -21,7 +22,11 @@ router = APIRouter(tags=["Dashboard & Research"])
 
 @router.post("/api/research/start")
 async def start_research(request: ResearchRequest, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
-    tasks_map = {"research": str(uuid.uuid4()), "salary": str(uuid.uuid4())}
+    tasks_map = {
+        "research": str(uuid.uuid4()), 
+        "salary": str(uuid.uuid4())
+    }
+
     print(f"[API] 🟢 Manual Research Triggered. Tasks: {tasks_map}", flush=True)
     # [FIX] On passe un objet datetime natif pour respecter le typage strict d'asyncpg (TIMESTAMP)
     now = datetime.now()
@@ -61,6 +66,13 @@ async def start_research(request: ResearchRequest, background_tasks: BackgroundT
         for tid in tasks_map.values():
             await db.execute(conn, "INSERT INTO tasks (id, status, result, created_at, application_id) VALUES (?, ?, ?, ?, ?)", (tid, "PENDING", None, now, application_id))
             
+    # [FIX] Si une description de poste est fournie, on lance aussi le décodeur.
+    if unified_data.get("job_description"):
+        job_decoder_task_id = str(uuid.uuid4())
+        tasks_map["job_decoder"] = job_decoder_task_id
+        background_tasks.add_task(process_job_decoder_in_background, job_decoder_task_id, unified_data)
+        print(f"[API] 🕵️ Job Decoder triggered as well. Task ID: {job_decoder_task_id}", flush=True)
+
     # On passe le dictionnaire qui contient désormais l'application_id injecté
     background_tasks.add_task(process_research_in_background, tasks_map["research"], unified_data)
     background_tasks.add_task(process_salary_in_background, tasks_map["salary"], unified_data)
