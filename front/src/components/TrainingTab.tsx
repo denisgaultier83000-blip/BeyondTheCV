@@ -486,7 +486,7 @@ export default function TrainingTab() {
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
             <button 
               onClick={() => { if ((quotas?.qa ?? 0) > 0 || (quotas?.mes ?? 0) > 0) handleGenerate(); else setShowRechargeModal(true); }}
-              disabled={isGenerating}
+              disabled={isGenerating} // This was the line with the missing parenthesis
               className="btn-primary"
               style={{ padding: '1rem 3rem', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
             >
