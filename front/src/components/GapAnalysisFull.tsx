@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, X, Target, CheckCircle, Lightbulb, Clock } from 'lucide-react';
 import Gauge from './Gauge';
+import { DashboardCard } from './DashboardCard';
 import { FeedbackWidget } from './FeedbackWidget';
 
 export const GapAnalysisFull = ({ data, loading, onBack }: { data: any, loading?: boolean, onBack: () => void }) => {
@@ -24,17 +25,16 @@ export const GapAnalysisFull = ({ data, loading, onBack }: { data: any, loading?
   const renderTime = (item: any) => typeof item === 'object' ? item?.estimated_time || item?.time_to_bridge || item?.time : null;
 
   return (
-    <>
-    <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '1rem', border: '1px solid var(--border-color)', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
-        <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-main)' }}>
-          <Target size={28} color="var(--primary)" /> Analyse d'Écarts (Gap Analysis)
-        </h2>
-        <button onClick={onBack} className="btn-action btn-secondary-action" style={{ maxWidth: '150px' }}>
-          <X size={16} /> Retour
-        </button>
-      </div>
-
+    <DashboardCard
+      title="Analyse d'Écarts (Gap Analysis)"
+      icon={<Target size={24} />}
+      loading={loading}
+      error={!loading && (!payload || Object.keys(payload).length === 0)}
+      errorText="L'analyse des écarts n'a pas pu être chargée."
+      featureId="gap_analysis"
+      feedbackQuestion="Cette analyse d'écarts vous semble-t-elle pertinente et actionable ?"
+      headerAction={<button onClick={onBack} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><X size={16} /> Retour</button>}
+    >
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2.5rem' }}>
         <Gauge score={match_score} color={scoreColor} />
         <div style={{ marginTop: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>Score d'Adéquation</div>
@@ -105,9 +105,6 @@ export const GapAnalysisFull = ({ data, loading, onBack }: { data: any, loading?
           </div>
         )}
       </div>
-    </div>
-
-    <FeedbackWidget feature="gap_analysis" question="Cette analyse d'écarts vous semble-t-elle pertinente et actionable ?" />
-    </>
+    </DashboardCard>
   );
 };

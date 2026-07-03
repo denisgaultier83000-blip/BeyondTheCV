@@ -713,4 +713,3 @@ export const DashboardView: FC = () => {
     </div>
   );
 };
-        .teleprompter-close {

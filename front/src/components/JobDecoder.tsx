@@ -3,7 +3,7 @@ import { Search, AlertCircle, MessageSquare, Target, ShieldAlert, Building, Arro
 import { formatMarkdown } from '../utils/markdown';
 import DOMPurify from 'dompurify';
 import { FeedbackWidget } from './FeedbackWidget';
-import { AsyncBoundary } from './AsyncBoundary';
+import { DashboardCard } from './DashboardCard';
 
 interface JobDecoderProps {
   data?: any;
@@ -29,19 +29,19 @@ const extractDecoderData = (data: any) => {
 };
 
 export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) => {
+  const decoderData = extractDecoderData(data);
+
   return (
-    <AsyncBoundary
-      loading={loading}
-      error={error}
+    <DashboardCard
       title="Décodeur d'Annonce"
       icon={<Search size={24} />}
+      loading={loading}
       loadingText="Décodage de l'annonce en cours..."
+      error={error || (!loading && !decoderData)}
       errorText="Une erreur est survenue lors du décodage de l'annonce. Vérifiez la description de poste."
+      featureId="job_decoder"
     >
-      {data && (() => {
-        const decoderData = extractDecoderData(data);
-        if (!decoderData || Object.keys(decoderData).length === 0) return null;
-
+      {decoderData && (() => {
         const realityCheck = decoderData.reality_check || [];
         const realExpectations = decoderData.real_expectations || [];
         const redFlags = decoderData.red_flags || [];
@@ -49,14 +49,9 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
 
         return (
           <div className="result-card" style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '0 0 1.5rem 0', color: 'var(--primary)' }}>
-              <Search size={24} /> Décodeur d'Annonce
-            </h3>
-
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '-0.5rem', marginBottom: '1.5rem' }}>
               Traduction du jargon RH en réalité opérationnelle pour déjouer les pièges de l'offre.
             </p>
-
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
               {/* Reality Check (Jargon translation) */}
               <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
@@ -120,7 +115,7 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
           </div>
         );
       })()}
-    </AsyncBoundary>
+    </DashboardCard>
   );
 };
       
