@@ -8,7 +8,7 @@ import { DashboardView } from './components/DashboardView';
 import { DashboardProvider as GlobalProvider, useDashboard as useGlobalDashboard } from './hooks/DashboardContext';
 import { DashboardProvider as TabProvider } from './components/DashboardContext';
 import { 
-  StepImport, StepProfile, StepTarget, StepEducation, StepExperience, 
+  StepImport, StepProfile, StepTarget, StepEducation, StepExperience,
   StepQualitiesFlaws, StepClarification 
 } from './components/CandidateSteps';
 import AdminFeedbacks from './components/AdminFeedbacks';
@@ -70,7 +70,7 @@ function AppContent() {
     pitchResult, setPitchResult, questionsResult,
     recruiterResult, realityResult, flawCoachingResult,
     globalStatus, error,
-    customScenariosResult,
+    customScenariosResult, setJobDecoderResult,
     handleNextStep,
     cvData,
     setFormData,
@@ -290,6 +290,10 @@ function AppContent() {
           const parsedData = JSON.parse(restoredDataStr);
           setRestoredData(parsedData);
           setCurrentStep(8); // Redirection immédiate vers le Dashboard
+      // [FIX] On s'assure que le jobDecoder est aussi restauré
+      if (parsedData.jobDecoderResult) {
+        setJobDecoderResult(parsedData.jobDecoderResult);
+      }
           setToasts(prev => [...prev, { id: Date.now(), text: "Dossier de candidature restauré avec succès." }]);
         } catch (e) {
           console.error("Erreur de parsing des données restaurées", e);
@@ -562,7 +566,7 @@ function AppContent() {
         isAuthenticated={isAuthenticated}
         userName={parsedUserName} 
         onOpenProfile={() => setShowDocsModal(true)} 
-        onLogout={() => { localStorage.removeItem('token'); localStorage.removeItem('user'); resetDashboard(); setIsAuthenticated(false); navigate('/', { replace: true }); }} 
+        onLogout={() => { localStorage.removeItem('token'); localStorage.removeItem('user'); resetDashboard(); setIsAuthenticated(false); navigate('/login', { replace: true }); }} 
         onLanguageChange={handleLanguageChange} 
         steps={CAREER_EDGE_STEPS}
         currentStep={currentStep}

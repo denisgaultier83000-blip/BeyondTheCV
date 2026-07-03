@@ -80,9 +80,10 @@ async def start_research(request: ResearchRequest, background_tasks: BackgroundT
     return {
         "message": "Research started",
         "application_id": application_id,
-        "tasks": tasks_map,
-        "task_id": tasks_map["research"],
-        "salary_task_id": tasks_map["salary"]
+        "tasks": tasks_map, # [FIX] On renvoie toute la map des tâches
+        "task_id": tasks_map["research"], # Compatibilité ascendante
+        "salary_task_id": tasks_map.get("salary"), # Compatibilité ascendante
+        "job_decoder_task_id": tasks_map.get("job_decoder") # [FIX] On renvoie l'ID spécifique
     }
 
 @router.post("/api/analyze-completeness")

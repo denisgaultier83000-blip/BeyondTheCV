@@ -15,7 +15,7 @@ const extractDecoderData = (data: any) => {
   if (!data) return null;
   // Gère les encapsulations possibles : { result: ... }, { job_decoder_result: ... }, etc.
   let payload = data.result || data.job_decoder_result || data.job_decoder || data;
-  // Cas où la donnée est directement à la racine
+  // Cas où la donnée est directement à la racine.
   if (data.reality_check || data.real_expectations) {
     payload = data;
   }
