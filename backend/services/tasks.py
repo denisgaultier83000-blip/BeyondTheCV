@@ -1083,7 +1083,7 @@ async def orchestrate_dashboard_tasks(tasks_map: dict, cv_dict: dict):
                         print(f"[ORCHESTRATOR DB ERROR] Impossible de MAJ le statut pour {tid}: {db_err}", flush=True)
                         
         # [FIX EXPERT] Garde une référence forte de la tâche pour éviter sa destruction
-        # silencieuse par le Garbage Collector quand l'orchestrateur a fini de s'exécuter.
+        # silencieuse par le Garbage collector quand l'orchestrateur a fini de s'exécuter.
         task = asyncio.create_task(safe_coro())
         _active_orchestrator_tasks.add(task)
         task.add_done_callback(_active_orchestrator_tasks.discard)

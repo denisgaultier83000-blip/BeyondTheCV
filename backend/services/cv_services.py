@@ -131,31 +131,24 @@ def _remove_file_safe(path: str):
 
 def _get_days_until_interview(interview_date: str) -> int:
     """Analyse la date saisie par le candidat pour déclencher le mode Commando."""
-    if not interview_date:
-        return 999
-    try:
-        # Essayer de parser directement une date ISO (YYYY-MM-DD)
-        interview_dt = datetime.fromisoformat(interview_date.split('T')[0])
-        return (interview_dt - datetime.now()).days
-    except (ValueError, TypeError):
-        # Si ce n'est pas une date ISO, on traite le texte
-        date_str = str(interview_date).strip().lower()
-        
-        if any(w in date_str for w in ["aujourd'hui", "today", "ce jour"]): return 0
-        if any(w in date_str for w in ["demain", "tomorrow", "24h", "24 h"]): return 1
-        if any(w in date_str for w in ["48h", "48 h", "2 jours", "2 days"]): return 2
-        
-        match = re.search(r'(\d{4})[-/](\d{1,2})[-/](\d{1,2})', date_str)
-        if match:
-            try: return (datetime(int(match.group(1)), int(match.group(2)), int(match.group(3))) - datetime.now()).days
-            except: pass
-        match2 = re.search(r'(\d{1,2})[-/](\d{1,2})[-/](\d{4})', date_str)
-        if match2:
-            try: return (datetime(int(match2.group(3)), int(match2.group(2)), int(match2.group(1))) - datetime.now()).days
-            except: pass
-        match3 = re.search(r'dans\s*(\d+)\s*(jour|day)', date_str)
-        if match3: return int(match3.group(1))
-        return 999
+    if not interview_date: return 999
+    date_str = str(interview_date).strip().lower()
+    
+    if any(w in date_str for w in ["aujourd'hui", "today", "ce jour"]): return 0
+    if any(w in date_str for w in ["demain", "tomorrow", "24h", "24 h"]): return 1
+    if any(w in date_str for w in ["48h", "48 h", "2 jours", "2 days"]): return 2
+    
+    match = re.search(r'(\d{4})[-/](\d{1,2})[-/](\d{1,2})', date_str)
+    if match:
+        try: return (datetime(int(match.group(1)), int(match.group(2)), int(match.group(3))) - datetime.now()).days
+        except: pass
+    match2 = re.search(r'(\d{1,2})[-/](\d{1,2})[-/](\d{4})', date_str)
+    if match2:
+        try: return (datetime(int(match2.group(3)), int(match2.group(2)), int(match2.group(1))) - datetime.now()).days
+        except: pass
+    match3 = re.search(r'dans\s*(\d+)\s*(jour|day)', date_str)
+    if match3: return int(match3.group(1))
+    return 999
 
 # --- Gardien d'Abonnement (Paywall Backend) ---
 async def require_active_subscription(current_user: dict = Depends(get_current_user)):
