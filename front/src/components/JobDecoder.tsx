@@ -116,4 +116,11 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
                   <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatMarkdown(cultureFit).__html) }} />
                 </p>
               </div>
+            )}
+          </div>
+        );
+      })()}
+    </AsyncBoundary>
+  );
+};
       
