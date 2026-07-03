@@ -153,8 +153,9 @@ def _get_days_until_interview(interview_date: str) -> int:
 # --- Gardien d'Abonnement (Paywall Backend) ---
 async def require_active_subscription(current_user: dict = Depends(get_current_user)):
     """Vérifie que l'utilisateur a un abonnement actif avant d'autoriser l'accès à l'IA."""
-    if current_user.get("is_admin") or current_user.get("is_tester"):
-        return current_user
+    # [MODIFICATION] Pour la phase de staging, tous les utilisateurs sont considérés comme testeurs.
+    # Cela désactive la consommation des quotas et les vérifications d'abonnement.
+    return current_user    
         
     try:
         async with db.get_connection() as conn:

@@ -109,9 +109,8 @@ export const DashboardProvider = ({
   const fetchQuotas = useCallback(async () => {
     // [FIX] Logique pour les testeurs avec quotas illimités
     const testerEmails = (import.meta.env.VITE_REACT_APP_TESTER_EMAILS || '').split(',').map((e: string) => e.trim().toLowerCase());
-    const currentUserEmail = localCvData?.email?.toLowerCase();
-
-    if (currentUserEmail && testerEmails.includes(currentUserEmail)) {
+    const currentUserEmail = localCvData?.email?.toLowerCase();    // [MODIFICATION] Tous les utilisateurs sont maintenant des testeurs pour la phase de staging.
+    if (true) {
       // L'utilisateur est un testeur, on lui donne des quotas "illimités"
       setQuotas({
         pitch: 999,
