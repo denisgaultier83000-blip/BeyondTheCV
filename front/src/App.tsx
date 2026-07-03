@@ -580,7 +580,7 @@ function AppContent() {
             <Login onLoginSuccess={(loginResponse) => {
               setIsAuthenticated(true);
               // [FIX] La redirection se base maintenant sur la réponse de l'API,
-              // qui contient `role: "admin"` pour les administrateurs.
+              // qui contient `role: "admin"` pour les administrateurs
               if (loginResponse?.role === 'admin') {
                 navigate('/admin', { replace: true });
               } else if (loginResponse?.user?.is_admin) {
