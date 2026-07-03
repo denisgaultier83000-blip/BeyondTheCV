@@ -32,22 +32,22 @@ async def start_research(request: ResearchRequest, background_tasks: BackgroundT
     except AttributeError:
         req_dict = request.dict()
         
-    candidate_data = req_dict.get("candidate_data", {})
-    application_id = candidate_data.get("application_id")
+    # [FIX] Unification des données pour garantir que toutes les tâches reçoivent le même contexte complet.
+    # `req_dict` contient la structure complète, `candidate_data` n'était qu'une partie.
+    # On s'assure que toutes les informations sont au premier niveau.
+    candidate_data = req_dict.get("candidate_data", {}) 
+    unified_data = {**candidate_data, **req_dict}
+    application_id = unified_data.get("application_id")
     if not application_id:
         application_id = str(uuid.uuid4())
-        candidate_data["application_id"] = application_id
-        
-    # [FIX EXPERT] Ré-affectation pour garantir que le dictionnaire modifié n'est pas orphelin
-    req_dict["candidate_data"] = candidate_data
+        unified_data["application_id"] = application_id
     
     # [FIX EXPERT] Prévention du crash SQL (NOT NULL constraint) si la valeur est None
-    target_company = req_dict.get("target_company") or candidate_data.get("target_company") or "Général"
-    target_job = req_dict.get("target_job") or candidate_data.get("target_job") or "Poste non spécifié"
+    target_company = unified_data.get("target_company") or "Général"
+    target_job = unified_data.get("target_job") or "Poste non spécifié"
 
     # [FIX EXPERT] Injection de l'user_id pour le système de cache (évite "unknown_user" et le crash SQL cache_key=null)
-    req_dict["user_id"] = current_user["id"]
-    candidate_data["user_id"] = current_user["id"]
+    unified_data["user_id"] = current_user["id"]
 
     async with db.get_connection() as conn:
         # 1. Création de la session de candidature
@@ -62,8 +62,8 @@ async def start_research(request: ResearchRequest, background_tasks: BackgroundT
             await db.execute(conn, "INSERT INTO tasks (id, status, result, created_at, application_id) VALUES (?, ?, ?, ?, ?)", (tid, "PENDING", None, now, application_id))
             
     # On passe le dictionnaire qui contient désormais l'application_id injecté
-    background_tasks.add_task(process_research_in_background, tasks_map["research"], req_dict)
-    background_tasks.add_task(process_salary_in_background, tasks_map["salary"], candidate_data)
+    background_tasks.add_task(process_research_in_background, tasks_map["research"], unified_data)
+    background_tasks.add_task(process_salary_in_background, tasks_map["salary"], unified_data)
     
     return {
         "message": "Research started",

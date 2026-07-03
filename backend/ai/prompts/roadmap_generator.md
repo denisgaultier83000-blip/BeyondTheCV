@@ -9,7 +9,6 @@ Tu recevras un objet JSON unique contenant le profil du candidat et le contexte 
 
 ## 🎯 OBJECTIF
 Générer une **feuille de route d'entretien personnalisée et actionnable** pour un candidat. Ce document doit être un guide pratique et concis que le candidat peut utiliser pour se préparer dans les dernières heures avant son entretien.
-GÉNÈRE UN JSON STRICT avec la structure suivante :
 Le but est de donner au candidat un plan de match complet : avant, pendant et après l'entretien.
 
 ## 🧩 MÉTHODE DE TRAVAIL INTERNE
