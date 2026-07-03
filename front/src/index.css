@@ -319,6 +319,12 @@ button { cursor: pointer; font-family: inherit; }
   gap: 0.5rem;
 }
 
+.pitch-selector-tabs .btn-outline {
+  /* Le style est maintenant hérité de .btn-outline */
+  padding: 0.6rem 1rem; /* Ajustement pour la densité */
+  font-size: 0.9rem;
+}
+
 .pitch-selector-tabs .btn-outline.active {
   background: var(--primary);
   color: var(--primary-fg);
