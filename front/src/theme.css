@@ -89,7 +89,7 @@ body.dark-mode {
   animation: gradientBG 15s ease infinite !important;
 }
 
-/* --- Styles pour le sélecteur de Pitch Stratégique --- */
+/* --- Styles pour le sélecteur de Pitchs Stratégique --- */
 .pitch-selector-container {
   display: flex;
   flex-direction: column;
