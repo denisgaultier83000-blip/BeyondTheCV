@@ -88,6 +88,19 @@ const subMenus: Record<string, {label: string, id: string}[]> = {
     { label: 'Entreprise', id: 'company_section' },
     { label: 'Marché', id: 'market_section' },
     { label: 'Décodeur d\'Annonce', id: 'decoder_section' }
+  ],
+  training: [
+    { label: 'Mises en situation', id: 'training_mes_section' },
+    { label: 'Entraînement au Pitch', id: 'training_pitch_section' }
+  ],
+  posture: [
+    { label: 'Feuille de Route', id: 'roadmap_section' },
+    { label: 'Dernière Heure', id: 'last_hour_section' },
+    { label: 'Questions Stratégiques', id: 'strategic_questions_section' },
+    { label: 'Signaux à Observer', id: 'signals_section' },
+    { label: 'Guides de Posture', id: 'posture_guides_section' },
+    { label: 'Débrief', id: 'debrief_section' },
+    { label: 'Plan de Secours', id: 'contingency_plan_section' }
   ]
 };
 
@@ -700,3 +713,4 @@ export const DashboardView: FC = () => {
     </div>
   );
 };
+        .teleprompter-close {
