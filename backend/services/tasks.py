@@ -961,106 +961,6 @@ async def process_executive_summary_in_background(task_ids: dict, data: dict):
             await asyncio.to_thread(update_task_status_sync, tid, "FAILED", err_data)
             await manager.broadcast(tid, "Erreur", status="FAILED", data=err_data)
 
-async def process_market_strategy_in_background(task_ids: dict, data: dict):
-    """
-    FUSION OPTIMISÉE: Traite Job Decoder, Risk Analysis et Hidden Market en 1 seul appel IA.
-    """
-    print(f"[Tasks] 🚀 Starting Unified Market Strategy...")
-    
-    # 1. On passe les 3 tâches en RUNNING
-    for tid in task_ids.values():
-        await asyncio.to_thread(update_task_status_sync, tid, "RUNNING")
-        
-    try:
-        user_id = data.get("user_id", "unknown_user")
-        cache_key = _generate_cache_key(user_id, "market_strategy", data)
-        cached = await get_cached_content(cache_key)
-        if cached:
-            if "job_decoder" in task_ids: 
-                await asyncio.to_thread(update_task_status_sync, task_ids["job_decoder"], "SUCCESS", cached.get("job_decoder_result", {}))
-                await manager.broadcast(task_ids["job_decoder"], "Décodeur récupéré en cache", status="COMPLETED", data=cached.get("job_decoder_result", {}))
-            if "risk_analysis" in task_ids: 
-                await asyncio.to_thread(update_task_status_sync, task_ids["risk_analysis"], "SUCCESS", cached.get("risk_analysis_result", {}))
-                await manager.broadcast(task_ids["risk_analysis"], "Analyse récupérée en cache", status="COMPLETED", data=cached.get("risk_analysis_result", {}))
-            if "hidden_market" in task_ids: 
-                await asyncio.to_thread(update_task_status_sync, task_ids["hidden_market"], "SUCCESS", cached.get("hidden_market_result", {}))
-                await manager.broadcast(task_ids["hidden_market"], "Marché caché récupéré en cache", status="COMPLETED", data=cached.get("hidden_market_result", {}))
-            return
-
-        target_lang = normalize_language(data.get('target_language', 'French'))
-        target_role = data.get('target_role_primary') or data.get('target_job') or 'Non défini'
-        target_company = data.get('target_company', 'Non spécifiée')
-        target_industry = data.get('target_industry', 'Non spécifié')
-        job_desc = data.get('job_description', 'Non fournie')
-        
-        prompt = f"""
-        Tu es un Consultant Stratégique en Carrière de haut niveau.
-        Ta mission est d'analyser le poste visé et le profil du candidat sous 3 angles différents, et de renvoyer un JSON unique.
-        
-        PROFIL CANDIDAT :
-        {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
-        
-        CIBLE :
-        Poste : {target_role}
-        Entreprise : {target_company}
-        Secteur : {target_industry}
-        Description de l'offre : {job_desc}
-        
-        ATTENTES :
-        1. "job_decoder_result" : Décoder l'offre d'emploi (les vrais besoins cachés derrière le jargon).
-        2. "risk_analysis_result" : Évaluer les risques (surqualification, drapeaux rouges dans l'offre, stabilité).
-        3. "hidden_market_result" : Stratégie réseau pour contourner les candidatures classiques (marché caché).
-        
-        OUTPUT STRICT JSON (Conserve exactement ces clés en anglais):
-        {{
-            "job_decoder_result": {{
-                "reality_check": [ {{ "jargon": "Phrase RH typique", "translation": "Ce que ça veut dire en vrai" }} ],
-                "real_expectations": ["Attente concrète 1", "Attente concrète 2"],
-                "red_flags": ["Signal d'alerte 1"],
-                "culture_fit": "Analyse de la culture d'entreprise déduite"
-            }},
-            "risk_analysis_result": {{
-                "overall_risk_level": "Low" | "Medium" | "High",
-                "warnings": ["..."],
-                "positive_signals": ["..."],
-                "advice": "..."
-            }},
-            "hidden_market_result": {{
-                "target_profiles": [ {{ "role": "Titre cible", "reason": "Pourquoi le contacter" }} ],
-                "suggested_companies": ["Nom Entr 1", "Nom Entr 2"],
-                "connection_strategy": "Stratégie globale...",
-                "outreach_message": {{ "subject": "Objet du message", "body": "Corps du message..." }},
-                "networking_tips": ["Astuce 1", "Astuce 2"]
-            }}
-        }}
-        LANGUAGE: {target_lang}
-        """
-        
-        result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are a Strategic Career Advisor. Output STRICT JSON.")
-        
-        if "error" in result:
-            raise Exception(result["error"])
-            
-        await set_cached_content(cache_key, user_id, "market_strategy", result)
-
-        # 2. On dispatche les résultats vers les tâches du Frontend
-        if "job_decoder" in task_ids: 
-            await asyncio.to_thread(update_task_status_sync, task_ids["job_decoder"], "SUCCESS", result.get("job_decoder_result", {}))
-            await manager.broadcast(task_ids["job_decoder"], "Décodeur d'offre généré", status="COMPLETED", data=result.get("job_decoder_result", {}))
-        if "risk_analysis" in task_ids: 
-            await asyncio.to_thread(update_task_status_sync, task_ids["risk_analysis"], "SUCCESS", result.get("risk_analysis_result", {}))
-            await manager.broadcast(task_ids["risk_analysis"], "Analyse des risques terminée", status="COMPLETED", data=result.get("risk_analysis_result", {}))
-        if "hidden_market" in task_ids: 
-            await asyncio.to_thread(update_task_status_sync, task_ids["hidden_market"], "SUCCESS", result.get("hidden_market_result", {}))
-            await manager.broadcast(task_ids["hidden_market"], "Stratégie marché caché générée", status="COMPLETED", data=result.get("hidden_market_result", {}))
-        
-    except Exception as e:
-        for tid in task_ids.values():
-            await asyncio.to_thread(update_task_status_sync, tid, "FAILED", {"error": str(e)})
-            err_data = {"error": str(e)}
-            await asyncio.to_thread(update_task_status_sync, tid, "FAILED", err_data)
-            await manager.broadcast(tid, "Erreur", status="FAILED", data=err_data)
-
 async def process_action_plan_in_background(task_id: str, cv_dict: dict):
     """Génère la To-Do list (Plan d'Action) en tâche de fond"""
     print(f"[Task {task_id}] 📋 Starting Action Plan (Async)...")
@@ -1207,5 +1107,8 @@ async def orchestrate_dashboard_tasks(tasks_map: dict, cv_dict: dict):
     if "action_plan" in tasks_map: fire("action_plan", process_action_plan_in_background(tasks_map["action_plan"], cv_dict))
         
     if "job_decoder" in tasks_map: fire("job_decoder", process_job_decoder_in_background(tasks_map["job_decoder"], cv_dict))
+    if "risk_analysis" in tasks_map: fire("risk_analysis", process_risk_analysis_in_background(tasks_map["risk_analysis"], cv_dict))
+    if "hidden_market" in tasks_map: fire("hidden_market", process_hidden_market_in_background(tasks_map["hidden_market"], cv_dict))
+
 
     print("[ORCHESTRATOR] ✅ All tasks queued successfully. Semaphore is handling the flow.", flush=True)

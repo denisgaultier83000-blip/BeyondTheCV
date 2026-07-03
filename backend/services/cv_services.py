@@ -1711,6 +1711,8 @@ async def start_analysis(background_tasks: BackgroundTasks, data: dict = Body(..
             tasks_map["recruiter_view"] = str(uuid.uuid4())
             if cv_dict.get('job_description') and str(cv_dict.get('job_description')).strip():
                 tasks_map["job_decoder"] = str(uuid.uuid4())
+            tasks_map["risk_analysis"] = str(uuid.uuid4())
+            tasks_map["hidden_market"] = str(uuid.uuid4())
             tasks_map["reality_check"] = str(uuid.uuid4())
             
         if cv_dict.get('target_company') or cv_dict.get('target_industry'):
