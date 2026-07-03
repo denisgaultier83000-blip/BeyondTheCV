@@ -89,69 +89,6 @@ body.dark-mode {
   animation: gradientBG 15s ease infinite !important;
 }
 
-/* 2. Titres avec dégradé (Text Gradient) */
-h1, h2, .hero-title, .section-title, .auth-title {
-  background: var(--primary-gradient) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  background-clip: text !important;
-  display: inline-block;
-}
-
-/* 3. Glassmorphism sur les cartes (Transparence + Flou) */
-.bento-card, .result-card, .step-content, .card, .auth-card {
-  background: rgba(255, 255, 255, 0.6) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.8) !important;
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1) !important;
-  border-radius: 16px !important;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  position: relative;
-  overflow: hidden;
-}
-
-body.dark-mode .bento-card, body.dark-mode .result-card, body.dark-mode .step-content, body.dark-mode .card, body.dark-mode .auth-card {
-  background: rgba(30, 41, 59, 0.6) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
-}
-
-/* Liseré supérieur coloré sur les cartes */
-.bento-card::before, .result-card::before, .step-content::before, .card::before, .auth-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0; height: 4px;
-  background: var(--primary-gradient);
-  z-index: 10;
-}
-
-.bento-card:hover, .result-card:hover, .step-content:hover, .card:hover, .auth-card:hover {
-  transform: translateY(-5px) scale(1.01) !important;
-  box-shadow: 0 15px 35px rgba(59, 130, 246, 0.2) !important;
-}
-
-/* 4. Boutons : Effet Pulse + Glow */
-@keyframes pulseGlow {
-  0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.5); }
-  70% { box-shadow: 0 0 0 15px rgba(139, 92, 246, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
-}
-
-.btn-primary {
-  background: var(--primary-gradient) !important;
-  color: white !important;
-  border: none !important;
-  animation: pulseGlow 2s infinite !important; /* Animation de battement */
-  transition: all 0.3s ease !important;
-}
-
-.btn-primary:hover {
-  transform: translateY(-3px) !important;
-  animation: none !important; /* Arrête le battement au survol */
-  box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.6) !important; /* Grosse lueur */
-}
-
 /* --- Styles pour le sélecteur de Pitch Stratégique --- */
 .pitch-selector-container {
   display: flex;
