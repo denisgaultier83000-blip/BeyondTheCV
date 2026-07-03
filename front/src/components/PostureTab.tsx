@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
-  Video, Phone, Users, Coffee, Award, UserCog, Map as MapIcon, 
-  X, Zap, Loader2, AlertTriangle, Target, MessageCircle, Shield, Star, ChevronsRight, ChevronsLeft, UserCheck, Clock,
+  Video, Phone, Users, Coffee, Award, UserCog, Map as MapIcon,
+  X, Zap, Loader2, AlertTriangle, Target, MessageCircle, Shield, Star, ChevronsRight, ChevronsLeft, UserCheck, Clock, Check,
+  HelpCircle, Mail, Eye,
   WifiOff, PhoneMissed, VolumeX, BrainCircuit, DollarSign, HelpCircle, Send
 } from 'lucide-react';
 import { useDashboard } from './DashboardContext';
@@ -194,6 +195,92 @@ export default function PostureTab() {
         </button>
       </DashboardCard>
 
+      {/* NOUVEAU : Dernière Heure avant l'Entretien */}
+      <DashboardCard
+        title="Dernière Heure Avant l'Entretien"
+        icon={<Clock size={24} />}
+      >
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
+          Le guide de survie ultime. Pas de théorie, uniquement des actions à mener dans les 60 minutes qui précèdent l'échange.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
+          {[
+            "Relire son pitch en 90 secondes.",
+            "Relire les 3 messages clés à faire passer.",
+            "Vérifier le nom et la fonction des interlocuteurs.",
+            "Préparer 3 questions intelligentes.",
+            "Préparer une réponse courte sur salaire, disponibilité et motivation.",
+            "Fermer les onglets inutiles.",
+            "Couper les notifications.",
+            "Respirer lentement 2 minutes.",
+          ].map((item, index) => (
+            <div key={index} style={{ background: 'var(--bg-secondary)', padding: '0.75rem 1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <Check size={18} color="var(--primary)" />
+              <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>{item}</span>
+            </div>
+          ))}
+        </div>
+      </DashboardCard>
+
+      {/* NOUVEAU : Questions à Poser */}
+      <DashboardCard
+        title="Questions Stratégiques à Poser"
+        icon={<HelpCircle size={24} />}
+      >
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
+          Ne subissez plus l'entretien, pilotez-le. Des questions pertinentes pour chaque type d'interlocuteur.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+          <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
+            <h4 style={{ margin: 0, color: 'var(--text-main)', fontWeight: 600, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}><Users size={20} /> Face à un RH</h4>
+            <ul style={{ margin: 0, paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', color: 'var(--text-muted)' }}>
+              <li>Quels sont les critères qui feront qu’un candidat sera considéré comme réussi sur ce poste ?</li>
+              <li>Quelles sont les prochaines étapes du processus ?</li>
+              <li>Y a-t-il des points de mon parcours que vous souhaitez approfondir ?</li>
+            </ul>
+          </div>
+          <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
+            <h4 style={{ margin: 0, color: 'var(--text-main)', fontWeight: 600, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}><UserCog size={20} /> Face à un Manager</h4>
+            <ul style={{ margin: 0, paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', color: 'var(--text-muted)' }}>
+              <li>Quels sont les trois enjeux prioritaires sur les six premiers mois ?</li>
+              <li>Qu’est-ce qui vous ferait dire dans six mois que le recrutement est réussi ?</li>
+              <li>Quels sont les irritants actuels dans l’équipe ou l’organisation ?</li>
+            </ul>
+          </div>
+          <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
+            <h4 style={{ margin: 0, color: 'var(--text-main)', fontWeight: 600, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}><Award size={20} /> Face à un Dirigeant</h4>
+            <ul style={{ margin: 0, paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', color: 'var(--text-muted)' }}>
+              <li>Quelle contribution attendez-vous de ce poste sur la trajectoire globale de l’entreprise ?</li>
+              <li>Quels arbitrages stratégiques auront le plus d’impact dans les prochains mois ?</li>
+            </ul>
+          </div>
+        </div>
+      </DashboardCard>
+
+      {/* NOUVEAU : Signaux à Observer */}
+      <DashboardCard
+        title="Signaux à Observer (Pendant l'entretien)"
+        icon={<Eye size={24} />}
+      >
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
+          Vous n'êtes pas seulement évalué, vous évaluez aussi. Gardez ces points en tête pour prendre la bonne décision.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+          {[
+            "Le recruteur décrit-il clairement le poste ?",
+            "Les attentes sont-elles cohérentes avec les moyens annoncés ?",
+            "Le manager parle-t-il de l’équipe avec respect ?",
+            "Les délais, objectifs et responsabilités sont-ils réalistes ?",
+            "Le processus de recrutement est-il clair ?",
+            "Y a-t-il des contradictions entre RH, manager et fiche de poste ?",
+          ].map((item, index) => (
+            <div key={index} style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', color: 'var(--text-main)', fontWeight: 500 }}>
+              {item}
+            </div>
+          ))}
+        </div>
+      </DashboardCard>
+
       <DashboardCard
         title="Guides de Posture"
         icon={<UserCog size={24} />}
@@ -215,6 +302,41 @@ export default function PostureTab() {
               </div>
             </div>
           ))}
+        </div>
+      </DashboardCard>
+
+      {/* NOUVEAU : Débrief Post-Entretien */}
+      <DashboardCard
+        title="Débrief & Suivi Post-Entretien"
+        icon={<Mail size={24} />}
+      >
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
+          À chaud, juste après l'entretien, prenez 5 minutes pour noter ces points. Ils sont cruciaux pour votre suivi et votre prochain entretien.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+          <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
+            <h4 style={{ margin: 0, color: 'var(--text-main)', fontWeight: 600, fontSize: '1rem', marginBottom: '1rem' }}>Points à noter à chaud</h4>
+            <ul style={{ margin: 0, paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', color: 'var(--text-muted)' }}>
+              <li>Ce qui s’est bien passé</li>
+              <li>Les questions qui vous ont mis en difficulté</li>
+              <li>Les points à clarifier</li>
+              <li>Les signaux positifs et les signaux faibles inquiétants</li>
+              <li>L’action de suivi à faire (et le délai)</li>
+            </ul>
+          </div>
+          <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
+            <h4 style={{ margin: 0, color: 'var(--text-main)', fontWeight: 600, fontSize: '1rem', marginBottom: '1rem' }}>Modèle de Mail de Remerciement (J+1)</h4>
+            <div style={{ background: 'var(--bg-card)', padding: '1rem', borderRadius: '0.5rem', border: '1px dashed var(--border-color)', whiteSpace: 'pre-wrap', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              <strong>Objet :</strong> Suite à notre entretien pour le poste de [Poste]
+              <br/><br/>
+              Bonjour [Nom de l'interlocuteur],<br/><br/>
+              Je tenais à vous remercier pour le temps que vous m'avez accordé. Nos échanges ont confirmé mon vif intérêt pour le poste et pour les défis de [Entreprise].<br/><br/>
+              J'ai été particulièrement intéressé par [mentionner un point précis de la discussion]. Cela fait écho à mon expérience où j'ai pu [votre réussite clé en une phrase].<br/><br/>
+              Je reste à votre entière disposition pour les prochaines étapes.<br/><br/>
+              Cordialement,<br/>
+              [Votre Nom]
+            </div>
+          </div>
         </div>
       </DashboardCard>
 
