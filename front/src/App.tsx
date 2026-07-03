@@ -570,10 +570,10 @@ function AppContent() {
       <main className="main-content">
         {showLanding && !isAuthenticated ? (
           <LandingPage 
-              darkMode={darkMode} 
-              onStart={() => setShowLanding(false)} 
-              onLoginRedirect={() => setShowLanding(false)} 
-              onShowCGU={() => setShowCGU(true)} 
+              darkMode={darkMode}
+              onStart={() => navigate('/login')}
+              onLoginRedirect={() => navigate('/login')}
+              onShowCGU={() => setShowCGU(true)}
               onShowPrivacy={() => setShowPrivacy(true)} 
               onShowLegal={() => setShowLegal(true)} />        ) :
          !isAuthenticated ?
