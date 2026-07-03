@@ -330,3 +330,9 @@ button { cursor: pointer; font-family: inherit; }
   color: var(--primary-fg);
   border-color: var(--primary);
 }
+
+.btn-outline.active {
+  background: var(--primary);
+  color: var(--primary-fg);
+  border-color: var(--primary);
+}

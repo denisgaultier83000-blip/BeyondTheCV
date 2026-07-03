@@ -471,12 +471,7 @@ export default function TrainingTab() {
                 <button
                   key={t}
                   onClick={() => setSelectedTheme(t)}
-                  style={{
-                    padding: '0.75rem 1.5rem', borderRadius: '2rem', fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
-                    background: selectedTheme === t ? 'var(--primary)' : 'var(--bg-secondary)',
-                    color: selectedTheme === t ? 'white' : 'var(--text-main)',
-                    border: `1px solid ${selectedTheme === t ? 'var(--primary)' : 'var(--border-color)'}`
-                  }}
+                  className={`btn-outline ${selectedTheme === t ? 'active' : ''}`}
                 >
                   {t}
                 </button>

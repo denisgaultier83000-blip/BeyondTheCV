@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   Video, Phone, Users, Coffee, Award, UserCog, Map as MapIcon,
-  X, Zap, Loader2, AlertTriangle, Target, MessageCircle, Shield, Star, ChevronsRight, ChevronsLeft, UserCheck, Clock, Check,
+  X, Zap, Loader2, AlertTriangle, Target, MessageCircle, Shield, Star, ChevronsRight, ChevronsLeft, UserCheck, Clock, Check, Edit, LifeBuoy,
   HelpCircle, Mail, Eye,
   WifiOff, PhoneMissed, VolumeX, BrainCircuit, DollarSign, HelpCircle, Send
 } from 'lucide-react';
 import { useDashboard } from './DashboardContext';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
+import { DebriefModal } from './DebriefModal';
 
 // --- [NOUVEAU] La modale est maintenant intégrée dans ce fichier ---
 
@@ -179,6 +180,7 @@ import { DashboardCard } from './DashboardCard';
 export default function PostureTab() {
   const { t } = useTranslation();
   const [isRoadmapModalOpen, setIsRoadmapModalOpen] = useState(false);
+  const [isDebriefModalOpen, setIsDebriefModalOpen] = useState(false);
   
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', animation: 'fadeIn 0.3s ease-out' }}>
@@ -305,45 +307,24 @@ export default function PostureTab() {
         </div>
       </DashboardCard>
 
-      {/* NOUVEAU : Débrief Post-Entretien */}
+      {/* NOUVEAU : Débrief Post-Entretien (Statique pour l'instant) */}
       <DashboardCard
-        title="Débrief & Suivi Post-Entretien"
-        icon={<Mail size={24} />}
+        title="Débrief d'Entretien"
+        icon={<Edit size={24} />}
       >
         <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
-          À chaud, juste après l'entretien, prenez 5 minutes pour noter ces points. Ils sont cruciaux pour votre suivi et votre prochain entretien.
+          Capitalisez sur chaque échange. Enregistrez vos impressions à chaud pour transformer chaque entretien en une leçon stratégique pour le suivant.
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-          <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
-            <h4 style={{ margin: 0, color: 'var(--text-main)', fontWeight: 600, fontSize: '1rem', marginBottom: '1rem' }}>Points à noter à chaud</h4>
-            <ul style={{ margin: 0, paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', color: 'var(--text-muted)' }}>
-              <li>Ce qui s’est bien passé</li>
-              <li>Les questions qui vous ont mis en difficulté</li>
-              <li>Les points à clarifier</li>
-              <li>Les signaux positifs et les signaux faibles inquiétants</li>
-              <li>L’action de suivi à faire (et le délai)</li>
-            </ul>
-          </div>
-          <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
-            <h4 style={{ margin: 0, color: 'var(--text-main)', fontWeight: 600, fontSize: '1rem', marginBottom: '1rem' }}>Modèle de Mail de Remerciement (J+1)</h4>
-            <div style={{ background: 'var(--bg-card)', padding: '1rem', borderRadius: '0.5rem', border: '1px dashed var(--border-color)', whiteSpace: 'pre-wrap', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              <strong>Objet :</strong> Suite à notre entretien pour le poste de [Poste]
-              <br/><br/>
-              Bonjour [Nom de l'interlocuteur],<br/><br/>
-              Je tenais à vous remercier pour le temps que vous m'avez accordé. Nos échanges ont confirmé mon vif intérêt pour le poste et pour les défis de [Entreprise].<br/><br/>
-              J'ai été particulièrement intéressé par [mentionner un point précis de la discussion]. Cela fait écho à mon expérience où j'ai pu [votre réussite clé en une phrase].<br/><br/>
-              Je reste à votre entière disposition pour les prochaines étapes.<br/><br/>
-              Cordialement,<br/>
-              [Votre Nom]
-            </div>
-          </div>
-        </div>
+        <button onClick={() => setIsDebriefModalOpen(true)} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Edit size={20} />
+          Enregistrer un nouveau débrief
+        </button>
       </DashboardCard>
 
       {/* NOUVEAU : Section Gérer les Imprévus */}
       <DashboardCard
-        title="Gérer les Imprévus"
-        icon={<Shield size={24} />}
+        title="Gérer les Imprévus (Plan de Secours)"
+        icon={<LifeBuoy size={24} />}
       >
         <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
           Des réponses prêtes à l’emploi pour rester professionnel même quand l’entretien ne se déroule pas comme prévu.
@@ -383,6 +364,7 @@ export default function PostureTab() {
       </DashboardCard>
 
       {isRoadmapModalOpen && <RoadmapGeneratorModal onClose={() => setIsRoadmapModalOpen(false)} />}
+      {isDebriefModalOpen && <DebriefModal onClose={() => setIsDebriefModalOpen(false)} cvData={useDashboard().cvData} />}
     </div>
   );
 }
