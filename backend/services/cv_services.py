@@ -1842,7 +1842,7 @@ async def start_analysis(background_tasks: BackgroundTasks, data: dict = Body(..
     if not cv_dict.get('is_partial_start'):
         background_tasks.add_task(orchestrate_dashboard_tasks, tasks_map, cv_dict)
     # [FIX] Si c'est une relance partielle (juste la recherche), on lance quand même l'orchestrateur
-    # sur les tâches restantes pour garantir que le dashboard se peuple.
+    # sur les tâches restantes pour garantir que le dashboard se peuple
     elif "market_research" in tasks_map:
         background_tasks.add_task(orchestrate_dashboard_tasks, tasks_map, cv_dict)
     return {
