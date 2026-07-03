@@ -297,3 +297,30 @@ button { cursor: pointer; font-family: inherit; }
     padding: 20px;
   }
 }
+
+/* --- Styles Spécifiques aux Composants (Migrés depuis theme.css) --- */
+
+/* Styles pour le sélecteur de Pitch Stratégique */
+.pitch-selector-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pitch-selector-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.pitch-selector-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.pitch-selector-tabs .btn-outline.active {
+  background: var(--primary);
+  color: var(--primary-fg);
+  border-color: var(--primary);
+}
