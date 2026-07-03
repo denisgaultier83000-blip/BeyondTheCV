@@ -1828,6 +1828,10 @@ async def start_analysis(background_tasks: BackgroundTasks, data: dict = Body(..
             background_tasks.add_task(process_research_in_background, tasks_map["market_research"], research_payload)
         else:
             background_tasks.add_task(update_task_status_sync, tasks_map["market_research"], "COMPLETED", {"info": "Skipped, no company provided"})
+            # Si la recherche est skippée, on retire la tâche de la map pour ne pas lancer l'orchestrateur dessus
+            # et éviter qu'il ne tourne dans le vide.
+            if "market_research" in tasks_map:
+                del tasks_map["market_research"]
 
     if "salary_estimation" in tasks_map:
         background_tasks.add_task(process_salary_in_background, tasks_map["salary_estimation"], cv_dict)
@@ -1835,7 +1839,10 @@ async def start_analysis(background_tasks: BackgroundTasks, data: dict = Body(..
     # Lancement orchestré par vagues pour éviter les Timeouts d'API (Thundering Herd)
     if not cv_dict.get('is_partial_start'):
         background_tasks.add_task(orchestrate_dashboard_tasks, tasks_map, cv_dict)
-
+    # [FIX] Si c'est une relance partielle (juste la recherche), on lance quand même l'orchestrateur
+    # sur les tâches restantes pour garantir que le dashboard se peuple.
+    elif "market_research" in tasks_map:
+        background_tasks.add_task(orchestrate_dashboard_tasks, tasks_map, cv_dict)
     return {
         "message": "Pipeline started",
         "application_id": application_id,
