@@ -426,8 +426,6 @@ export default function TrainingTab() {
         onSuccess={refreshAllStats} 
       />
 
-      </div>
-
       {/* --- SECTION CONFIGURATION --- */}
       <div id="training_mes_section">
         <DashboardCard title="Nouvelle Session d'Entraînement" icon={<Settings2 size={24} />}>
