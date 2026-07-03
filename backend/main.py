@@ -585,22 +585,7 @@ cors_origins = [
 frontend_env = os.getenv("FRONTEND_URL")
 if frontend_env and frontend_env not in cors_origins:
     cors_origins.append(frontend_env)
-# app = FastAPI(..., dependencies=[Depends(rate_limiter)])
 
-# Configuration CORS
-# [FIX CORS] Le middleware CORS doit être le PREMIER middleware ajouté.
-# S'il est placé après le middleware de logging, toute exception levée avant
-# que la requête n'atteigne le CORSMiddleware (ex: dans le logger) renverra
-# une réponse SANS les en-têtes CORS, provoquant une erreur CORS côté client
-# qui masque la véritable erreur 500 du backend.
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["Content-Length", "Content-Disposition", "X-CV-Analysis"], # CRUCIAL pour la barre de progression et le score
-)
 # [DEBUG] Middleware pour tracer les requêtes entrantes (Confirme la connexion réseau)
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
