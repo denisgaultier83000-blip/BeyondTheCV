@@ -3,13 +3,14 @@ import { Target, FileText, ArrowRight, CheckCircle2, Compass, Search, Mic, Folde
 
 interface LandingPageProps {
   onStart: () => void;
+  onLoginRedirect: () => void; // Ajout de la prop pour la redirection post-login
   onShowCGU: () => void;
   onShowPrivacy: () => void;
   onShowLegal: () => void;
   darkMode?: boolean;
 }
 
-export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, darkMode }: LandingPageProps) {
+export function LandingPage({ onStart, onLoginRedirect, onShowCGU, onShowPrivacy, onShowLegal, darkMode }: LandingPageProps) {
   return (
     <div className="lp-container">
       {/* Styles encapsulés pour un rendu "Plug & Play" */}
@@ -224,7 +225,7 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
         <p className="lp-hero-subtitle">
           Le CV n'est qu'un ticket d'entrée. <strong>Beyond The CV</strong> est votre plateforme d'Intelligence Stratégique pour décoder votre cible, anticiper ses failles et structurer un discours exécutif implacable. Pensé pour les cadres et dirigeants.
         </p>
-        <button onClick={onStart} className="lp-cta-main">
+        <button onClick={onLoginRedirect} className="lp-cta-main">
           Démarrer l'audit de mon profil <ArrowRight size={18} />
         </button>
         
@@ -340,7 +341,7 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
               <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Pitch & 8 questions probables</div>
               <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> <strong>3 séances d'entraînement IA</strong></div>
             </div>
-            <button onClick={onStart} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>Sélectionner</button>
+            <button onClick={onLoginRedirect} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>Sélectionner</button>
           </div>
 
           {/* Offre Stratégique */}
@@ -357,7 +358,7 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
               <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> <strong>15 séances d'entraînement IA</strong></div>
               {/* Recharges sont maintenant dans une section dédiée */}
             </div>
-            <button onClick={onStart} className="lp-cta-main" style={{ width: '100%', justifyContent: 'center' }}>Créer mon profil</button>
+            <button onClick={onLoginRedirect} className="lp-cta-main" style={{ width: '100%', justifyContent: 'center' }}>Créer mon profil</button>
           </div>
 
           {/* Offre Intensive */}
@@ -372,7 +373,7 @@ export function LandingPage({ onStart, onShowCGU, onShowPrivacy, onShowLegal, da
               <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Stress Test & Négociation salaire</div>
               <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> <strong>30 séances d'entraînement IA</strong></div>
             </div>
-            <button onClick={onStart} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>Sélectionner</button>
+            <button onClick={onLoginRedirect} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>Sélectionner</button>
           </div>
         </div>
 
