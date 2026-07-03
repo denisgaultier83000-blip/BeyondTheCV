@@ -621,19 +621,6 @@ async def log_requests(request: Request, call_next):
         print(f"[NET LOG ERROR] Could not log request: {e}", flush=True)
     return response
 
-# Note: rate_limiter dependency can be added globally or per router
-# app = FastAPI(..., dependencies=[Depends(rate_limiter)])
-
-# Configuration CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["Content-Length", "Content-Disposition", "X-CV-Analysis"], # CRUCIAL pour la barre de progression et le score
-)
-
 # [ROBUSTESSE] Chargement défensif des routeurs
 # Si un fichier plante (ex: erreur de syntaxe ou d'import), l'API démarre quand même.
 def include_safe_router(module_name, from_services=True):
