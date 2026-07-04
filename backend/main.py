@@ -188,8 +188,58 @@ async def lifespan(app: FastAPI):
                                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                             )
                         """)
+                        cur.execute("""
+                            CREATE TABLE IF NOT EXISTS interview_debriefs (
+                                id TEXT PRIMARY KEY,
+                                user_id TEXT NOT NULL,
+                                application_id TEXT,
+                                company_name TEXT,
+                                job_title TEXT,
+                                interview_date TIMESTAMP,
+                                interview_format TEXT,
+                                interlocutor_type TEXT,
+                                interlocutor_name TEXT,
+                                interlocutor_role TEXT,
+                                next_step_known BOOLEAN,
+                                next_step_details TEXT,
+                                ambiance JSONB,
+                                positive_signals JSONB,
+                                red_flags JSONB,
+                                questions_asked TEXT,
+                                difficult_questions TEXT,
+                                learnings TEXT,
+                                preparation_points TEXT,
+                                interest_level INTEGER,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+                                FOREIGN KEY(application_id) REFERENCES job_applications(id) ON DELETE SET NULL
+                            )
+                        """)
                     conn.commit()
             except Exception as e:
+                print(f"[DB WARNING] Failed to create tables: {e}", flush=True)
+
+            # [NOUVEAU] Ajout des colonnes de quotas granulaires à la table users
+            try:
+                with conn.cursor() as cur:
+                    try:
+                        cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name='users'")
+                        user_columns_raw = cur.fetchall()
+                        user_columns = [col[0] for col in user_columns_raw]
+                    except Exception: # Fallback pour SQLite
+                        cur.execute("PRAGMA table_info(users)")
+                        user_columns_raw = cur.fetchall()
+                        user_columns = [col[1] for col in user_columns_raw]
+
+                    quota_cols = { "quota_pitch": "INTEGER DEFAULT 10", "quota_qa": "INTEGER DEFAULT 25", "quota_mes": "INTEGER DEFAULT 6", "quota_negotiation": "INTEGER DEFAULT 4", "quota_regeneration": "INTEGER DEFAULT 3", "quota_update": "INTEGER DEFAULT 1" }
+                    
+                    for col, col_type in quota_cols.items():
+                        if col not in user_columns:
+                            print(f"[DB MIGRATE] Adding column {col} to users table.")
+                            cur.execute(f"ALTER TABLE users ADD COLUMN {col} {col_type}")
+                conn.commit()
+            except Exception as e:
+                print(f"[DB WARNING] Failed to add quota columns to users table: {e}", flush=True)
                 print(f"[DB WARNING] Failed to create generation_cache table: {e}", flush=True)
                 
             print("[DB] Database initialized successfully.", flush=True)
@@ -314,6 +364,14 @@ frontend_env = os.getenv("FRONTEND_URL")
 if frontend_env and frontend_env not in cors_origins:
     cors_origins.append(frontend_env)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # [DEBUG] Middleware pour tracer les requêtes entrantes (Confirme la connexion réseau)
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -335,19 +393,6 @@ async def log_requests(request: Request, call_next):
     except Exception as e:
         print(f"[NET LOG ERROR] Could not log request: {e}", flush=True)
     return response
-
-# Note: rate_limiter dependency can be added globally or per router
-# app = FastAPI(..., dependencies=[Depends(rate_limiter)])
-
-# Configuration CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["Content-Length", "Content-Disposition", "X-CV-Analysis"], # CRUCIAL pour la barre de progression et le score
-)
 
 # [ROBUSTESSE] Chargement défensif des routeurs
 # Si un fichier plante (ex: erreur de syntaxe ou d'import), l'API démarre quand même.
@@ -373,6 +418,7 @@ include_safe_router("profile")
 include_safe_router("simulation_service")
 include_safe_router("documents")
 include_safe_router("payment")
+include_safe_router("admin_service")
 # New routes for products, evaluations, and subscriptions
 include_safe_router("routes_products", from_services=False)
 

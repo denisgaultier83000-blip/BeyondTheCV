@@ -24,6 +24,8 @@ services:
       - .env  # Injecte les variables (OPENAI_API_KEY, etc.) dans le conteneur backend
     environment:
       - DATABASE_URL=${DATABASE_URL}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
 
     volumes:
       - ./backend:/app  # <--- AJOUT CRUCIAL : Synchronise ton code local avec le conteneur

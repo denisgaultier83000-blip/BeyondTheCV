@@ -52,7 +52,15 @@ def init_db(conn):
                 first_name TEXT,
                 last_name TEXT,
                 created_at TEXT,
-                is_premium BOOLEAN DEFAULT FALSE
+                is_premium BOOLEAN DEFAULT FALSE,
+                is_tester BOOLEAN DEFAULT FALSE,
+                credits INTEGER DEFAULT 100,
+                quota_pitch INTEGER DEFAULT 10,
+                quota_qa INTEGER DEFAULT 25,
+                quota_mes INTEGER DEFAULT 6,
+                quota_negotiation INTEGER DEFAULT 4,
+                quota_regeneration INTEGER DEFAULT 3,
+                quota_update INTEGER DEFAULT 1
             )
         """)
         cur.execute("""
@@ -104,9 +112,9 @@ def seed_users(conn):
             
             try:
                 cur.execute("""
-                    INSERT INTO users (id, email, hashed_password, first_name, last_name, created_at, is_premium) 
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                """, (user_id, email, hashed_pw, f"Candidat{i}", "Test", now, True))
+                    INSERT INTO users (id, email, hashed_password, first_name, last_name, created_at, is_premium, is_tester) 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """, (user_id, email, hashed_pw, f"Candidat{i}", "Test", now, True, True))
                 
                 # Mock Data basique pour le profil
                 mock_data = {

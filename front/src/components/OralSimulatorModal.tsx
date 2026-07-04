@@ -5,6 +5,8 @@ import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
 import { RechargeModal } from './RechargeModal';
+import { useDashboard } from './DashboardContext';
+import { AsyncBoundary } from './AsyncBoundary';
 
 interface OralSimulatorModalProps {
   isOpen: boolean;
@@ -14,10 +16,13 @@ interface OralSimulatorModalProps {
   jobDescription?: string;
   targetLanguage?: string;
   onScoreUpdate?: (score: number) => void;
+  trainingTitle?: string;
+  trainingFocus?: string;
 }
 
-export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetCompany, jobDescription, targetLanguage = 'fr', onScoreUpdate }: OralSimulatorModalProps) {
+export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetCompany, jobDescription, targetLanguage = 'fr', onScoreUpdate, trainingTitle, trainingFocus }: OralSimulatorModalProps) {
   const { t } = useTranslation();
+  const { quotas, fetchQuotas } = useDashboard();
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [duration, setDuration] = useState(0);
@@ -37,6 +42,17 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
+
+  // Reset de la modale à chaque ouverture ou changement d'exercice
+  useEffect(() => {
+    if (isOpen) {
+      setTranscript("");
+      setDuration(0);
+      setStatus('idle');
+      setFeedback(null);
+      setErrorMsg(null);
+    }
+  }, [isOpen, trainingTitle, trainingFocus]);
 
   if (!isOpen) return null;
 
@@ -120,6 +136,12 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
     setStatus('analyzing');
     setErrorMsg(null);
     
+    if ((quotas?.pitch ?? 0) <= 0) {
+      setShowRechargeModal(true);
+      setStatus('idle');
+      return;
+    }
+    
     try {
       const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/evaluate-vocal-pitch`, {
         method: 'POST',
@@ -147,6 +169,7 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
       if (onScoreUpdate && data.score) {
         onScoreUpdate(data.score);
       }
+      if (fetchQuotas) fetchQuotas();
     } catch (e: any) {
       setErrorMsg(e.message || "Une erreur est survenue lors de l'analyse vocale.");
       setStatus('idle');
@@ -185,14 +208,21 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
               <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', textAlign: 'center', maxWidth: '600px', margin: 0 }}>
                 L'IA va analyser votre rythme, repérer vos tics de langage et évaluer l'impact de votre discours. Prêt à vous entraîner ?
               </p>
+
+              {trainingTitle && trainingFocus && (
+                <div style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '1.25rem', borderRadius: '0.75rem', borderLeft: '4px solid var(--primary)', width: '100%', textAlign: 'left', marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+                  <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary)', fontSize: '1.05rem' }}>{trainingTitle}</h4>
+                  <p style={{ margin: 0, color: 'var(--text-main)', fontSize: '0.95rem', lineHeight: '1.5' }}><strong>🎯 Consigne / Question :</strong> {trainingFocus}</p>
+                </div>
+              )}
               
-              <div style={{ background: 'var(--bg-secondary)', width: '100%', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', minHeight: '150px', position: 'relative' }}>
-                {transcript ? (
-                  <div style={{ color: 'var(--text-main)', fontSize: '1.1rem', lineHeight: '1.6' }}>{transcript}</div>
-                ) : (
-                  <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'center', marginTop: '2rem' }}>La retranscription de votre voix s'affichera ici...</div>
-                )}
-              </div>
+              <textarea 
+                value={transcript}
+                onChange={(e) => setTranscript(e.target.value)}
+                placeholder={t('oral_sim_placeholder', "La retranscription de votre voix s'affichera ici. Vous pouvez corriger le texte manuellement avant de lancer l'analyse...")}
+                disabled={isRecording}
+                style={{ width: '100%', background: 'var(--bg-secondary)', color: 'var(--text-main)', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '1.5rem', fontSize: '1.1rem', lineHeight: '1.6', minHeight: '150px', resize: 'vertical', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s' }}
+              />
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', width: '100%', justifyContent: 'center' }}>
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '120px' }}>
@@ -219,24 +249,29 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
               {errorMsg && <div style={{ color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', padding: '0.75rem 1rem', borderRadius: '0.5rem' }}>{errorMsg}</div>}
 
               {transcript.length > 20 && !isRecording && (
-                <button onClick={handleEvaluate} className="btn-primary" style={{ padding: '1rem 2.5rem', fontSize: '1.1rem' }}>Analyser ma prestation</button>
+                <button onClick={handleEvaluate} className="btn-primary" style={{ padding: '1rem 2.5rem', fontSize: '1.1rem' }}>
+                  Analyser ma prestation ({quotas?.pitch ?? 0} restants)
+                </button>
               )}
             </div>
           )}
 
           {status === 'analyzing' && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 0', color: 'var(--primary)', gap: '1.5rem' }}>
-              <Loader2 size={48} className="spin" />
-              <h3 style={{ margin: 0, color: 'var(--text-main)' }}>Analyse vocale en cours...</h3>
-              <p style={{ margin: 0, color: 'var(--text-muted)' }}>Extraction du débit, des tics et de la structure du discours.</p>
-            </div>
+            <AsyncBoundary
+              loading={true}
+              title="Analyse vocale en cours..."
+              loadingText="Extraction du débit, des tics et de la structure du discours."
+              style={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none' }}
+            >
+              <></>
+            </AsyncBoundary>
           )}
 
           {status === 'result' && feedback && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', animation: 'fadeIn 0.4s ease' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
                 <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <ScoreGauge score={feedback.score} label="Score d'Impact" />
+                <ScoreGauge score={feedback.score / 10} label="Score d'Impact" />
                 </div>
                 <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '1rem' }}>
                   <div>
@@ -248,8 +283,17 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.5rem' }}>Tics de langage détectés</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                       {feedback.metrics?.filler_words_detected?.length > 0 ? feedback.metrics.filler_words_detected.map((w: string, i: number) => (
-                        <span key={i} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.85rem', fontWeight: 600 }}>{w}</span>
+                        <span key={i} style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#d97706', border: '1px solid rgba(245, 158, 11, 0.2)', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.85rem', fontWeight: 600 }}>{w}</span>
                       )) : <span style={{ color: '#10b981', fontSize: '0.9rem', fontWeight: 600 }}>Aucun tic détecté ✨</span>}
+                    </div>
+                  </div>
+                  
+                  <div style={{ marginTop: '1rem' }}>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.5rem' }}>Mots dévalorisants / Interdits</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      {feedback.metrics?.negative_words_detected?.length > 0 ? feedback.metrics.negative_words_detected.map((w: string, i: number) => (
+                        <span key={i} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.85rem', fontWeight: 600 }}>{w}</span>
+                      )) : <span style={{ color: '#10b981', fontSize: '0.9rem', fontWeight: 600 }}>Aucun mot négatif ✨</span>}
                     </div>
                   </div>
                 </div>

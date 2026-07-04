@@ -162,6 +162,28 @@ def initialize_schema():
             )
         """)
 
+        print("   - Migration de la table 'users' (Ajout des quotas)...")
+        try:
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_pitch INTEGER DEFAULT 10;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_qa INTEGER DEFAULT 25;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_mes INTEGER DEFAULT 6;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_negotiation INTEGER DEFAULT 4;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_regeneration INTEGER DEFAULT 3;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_update INTEGER DEFAULT 1;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT 100;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS total_ia_cost REAL DEFAULT 0.0;")
+        except Exception as e:
+            conn.rollback()
+            print(f"     ⚠️ Impossible d'altérer la table 'users' (elle n'existe peut-être pas encore) : {e}")
+
+        print("   - Vérification de la table 'payments'...")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS payments (
+                id TEXT PRIMARY KEY, user_id TEXT, user_email TEXT, status TEXT, offer_name TEXT, 
+                amount_paid REAL, currency TEXT, purchase_date TIMESTAMP, stripe_invoice_url TEXT
+            )
+        """)
+
         conn.commit()
         print("\n🎉 Schéma vérifié et fonctionnel pour les données à venir !")
 

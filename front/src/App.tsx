@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AlertCircle, RotateCcw, RefreshCw, Loader2, FileText, Target, MessageSquare, BarChart3, Bell as LucideBell, X as LucideX, Lock, CheckCircle2 } from 'lucide-react';
+ import { AlertCircle, RotateCcw, RefreshCw, Loader2, FileText, Target, MessageSquare, BarChart3, Bell as LucideBell, X as LucideX, Lock, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Login from './pages/Login';
@@ -8,10 +8,11 @@ import { DashboardView } from './components/DashboardView';
 import { DashboardProvider as GlobalProvider, useDashboard as useGlobalDashboard } from './hooks/DashboardContext';
 import { DashboardProvider as TabProvider } from './components/DashboardContext';
 import { 
-  StepImport, StepProfile, StepTarget, StepEducation, StepExperience, 
+  StepImport, StepProfile, StepTarget, StepEducation, StepExperience,
   StepQualitiesFlaws, StepClarification 
 } from './components/CandidateSteps';
 import AdminFeedbacks from './components/AdminFeedbacks';
+import { AdminDashboard } from './components/AdminDashboard';
 import { LandingPage } from './components/LandingPage';
 import { CGU } from './components/CGU';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
@@ -66,10 +67,10 @@ function AppContent() {
     gapResult, actionPlanResult,
     researchResult, salaryResult,
     jobDecoderResult,
-    pitchResult, questionsResult,
+    pitchResult, setPitchResult, questionsResult,
     recruiterResult, realityResult, flawCoachingResult,
     globalStatus, error,
-    customScenariosResult,
+    customScenariosResult, setJobDecoderResult,
     handleNextStep,
     cvData,
     setFormData,
@@ -95,6 +96,7 @@ function AppContent() {
       bio: source.bio || '',
       experiences: (source.experiences || []).map((exp: any, i: number) => ({ ...exp, id: exp.id || `exp_${Date.now()}_${i}` })),
       educations: (source.educations || []).map((edu: any, i: number) => ({ ...edu, id: edu.id || `edu_${Date.now()}_${i}` })),
+      pitch_result: source.pitch_result || null, // [FIX] Pré-remplissage des pitchs
       skills: source.skills || []
     };
 
@@ -196,11 +198,15 @@ function AppContent() {
         const rawProfileData = await response.json();
         if (rawProfileData && Object.keys(rawProfileData).length > 0) {
           const frontendData = transformProfileForFrontend(rawProfileData);
-          setFormData(frontendData); // On utilise le setter du hook global
-          if ((frontendData as any).target_language) {
-            i18n.changeLanguage((frontendData as any).target_language.toLowerCase());
+          setFormData(frontendData);
+          if ((frontendData as any).target_language) { i18n.changeLanguage((frontendData as any).target_language.toLowerCase()); }
+
+          // [FIX ULTIME] Pré-remplissage des résultats d'analyse depuis le profil
+          if ((frontendData as any).pitch_result) {
+            setPitchResult((frontendData as any).pitch_result);
           }
-          setLastSaveTime(new Date());
+
+          setLastSaveTime(new Date()); // On met à jour l'heure de sauvegarde avant la redirection potentielle
         }
       } else if (response.status === 404) {
         resetDashboard(); // Le hook gère la réinitialisation à INITIAL_DATA
@@ -249,18 +255,25 @@ function AppContent() {
   useEffect(() => {
     if (isAuthenticated) {
       setShowLanding(false);
-      if (location.pathname === '/') navigate('/candidate', { replace: true });
-      loadProfile();
+
       const storedUser = localStorage.getItem('user');
+      let user = null;
       if (storedUser && storedUser !== "undefined" && storedUser !== "null") {
         try {
-          const user = JSON.parse(storedUser);
-          const isExpired = user.subscription_status === 'expired' || (user.subscription_expiration_date && new Date(user.subscription_expiration_date) < new Date());
-          setIsFrozen(isExpired);
+          user = JSON.parse(storedUser);
         } catch (e) {
-          console.warn("Could not parse user subscription", e);
+          console.warn("Could not parse user from localStorage", e);
         }
       }
+
+      loadProfile();
+      
+      try {
+        const isTester = user.is_admin || user.is_tester;
+        const isExpired = !isTester && (user.subscription_status === 'expired' || (user.subscription_expiration_date && new Date(user.subscription_expiration_date) < new Date()));
+        setIsFrozen(isExpired);
+      } catch (e) { console.warn("Could not parse user subscription", e); }
+      
     } else if (localStorage.getItem('token')) {
       setIsAuthenticated(true);
     } else {
@@ -277,6 +290,10 @@ function AppContent() {
           const parsedData = JSON.parse(restoredDataStr);
           setRestoredData(parsedData);
           setCurrentStep(8); // Redirection immédiate vers le Dashboard
+      // [FIX] On s'assure que le jobDecoder est aussi restauré
+      if (parsedData.jobDecoderResult) {
+        setJobDecoderResult(parsedData.jobDecoderResult);
+      }
           setToasts(prev => [...prev, { id: Date.now(), text: "Dossier de candidature restauré avec succès." }]);
         } catch (e) {
           console.error("Erreur de parsing des données restaurées", e);
@@ -292,6 +309,24 @@ function AppContent() {
       setRestoredData(null);
     }
   }, [globalStatus]);
+
+
+
+  // [FIX EXPERT] Interception globale pour forcer l'ouverture de la page de paiement dans un nouvel onglet
+  // Cela évite de perdre le contexte de l'application (ex: une réponse vocale en cours d'évaluation)
+  // lorsque l'utilisateur clique sur une proposition de recharge.
+  useEffect(() => {
+    const handleGlobalClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const link = target.closest('a');
+      if (link && link.href && link.href.includes('/payment') && link.target !== '_blank') {
+        e.preventDefault();
+        window.open(link.href, '_blank');
+      }
+    };
+    document.addEventListener('click', handleGlobalClick);
+    return () => document.removeEventListener('click', handleGlobalClick);
+  }, []);
 
   useEffect(() => {
     document.body.classList.toggle('dark-mode', darkMode);
@@ -422,7 +457,7 @@ function AppContent() {
             initialGapResult={restoredData?.gapResult || gapResult} 
             initialActionPlanResult={restoredData?.actionPlanResult || actionPlanResult} 
             initialResearchResult={restoredData?.researchResult || researchResult} 
-            initialSalaryResult={restoredData?.salaryResult || salaryResult} 
+            initialSalaryResult={restoredData?.salaryResult || salaryResult}
             initialJobDecoderResult={restoredData?.jobDecoderResult || jobDecoderResult} 
             initialPitchResult={restoredData?.pitchResult || pitchResult} 
             initialQuestionsResult={restoredData?.questionsResult || questionsResult} 
@@ -433,6 +468,7 @@ function AppContent() {
             initialGlobalStatus={restoredData ? "COMPLETED" : globalStatus} 
             onSetCurrentStep={setCurrentStep} 
             onTriggerResearch={triggerResearch}
+            onUpdateFormData={handleChange}
           >
             <DashboardView />
             {/* Exemple d'intégration si vous appelez ApplicationDossier depuis App.tsx : */}
@@ -460,12 +496,14 @@ function AppContent() {
 
   // [FIX] Sécurisation du parsing JSON du nom d'utilisateur pour éviter la page blanche au login
   let parsedUserName = undefined;
+  let isAdmin = false;
   if (isAuthenticated) {
     try {
       const storedUser = localStorage.getItem('user');
       if (storedUser && storedUser !== "undefined" && storedUser !== "null") {
           const u = JSON.parse(storedUser);
           parsedUserName = u.first_name || u.name || t('default_candidate_name', "Candidat");
+          isAdmin = !!u.is_admin;
       }
     } catch (e) {
         parsedUserName = t('default_candidate_name', "Candidat");
@@ -480,6 +518,46 @@ function AppContent() {
     parsedUserName = parsedUserName.charAt(0).toUpperCase() + parsedUserName.slice(1);
   }
 
+  // Interception de la route pour l'interface Administrateur
+  if (location.pathname === '/admin') {
+    if (!isAuthenticated) {
+      return (
+        <div className="app-container">
+          <main className="main-content" style={{ paddingTop: '2rem', display: 'flex', justifyContent: 'center' }}>
+            <Login onLoginSuccess={() => {
+              setIsAuthenticated(true);
+              const userStr = localStorage.getItem('user');
+              if (userStr && userStr !== 'undefined') {
+                const user = JSON.parse(userStr);
+                if (user.is_admin) {
+                  navigate('/admin', { replace: true });
+                } else {
+                  navigate('/candidate', { replace: true });
+                }
+              } else {
+                // Fallback for safety
+                navigate('/candidate', { replace: true });
+              }
+            }} />
+          </main>
+        </div>
+      );
+    }
+    if (!isAdmin) {
+      return (
+        <div className="app-container"><main className="main-content" style={{ paddingTop: '4rem', textAlign: 'center', color: 'var(--danger-text)', fontWeight: 'bold' }}>🚨 Accès refusé : Droits administrateur requis.</main></div>
+      );
+    }
+    return (
+      <div className="app-container">
+        <main className="main-content" style={{ paddingTop: '2rem' }}>
+          <button onClick={() => navigate('/candidate')} className="btn-outline" style={{ marginBottom: '2rem' }}>← Retour à l'application</button>
+          <AdminDashboard />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="app-container">
       <Header 
@@ -488,17 +566,37 @@ function AppContent() {
         isAuthenticated={isAuthenticated}
         userName={parsedUserName} 
         onOpenProfile={() => setShowDocsModal(true)} 
-        onLogout={() => { localStorage.removeItem('token'); localStorage.removeItem('user'); resetDashboard(); setIsAuthenticated(false); navigate('/', { replace: true }); }} 
+        onLogout={() => { localStorage.removeItem('token'); localStorage.removeItem('user'); resetDashboard(); setIsAuthenticated(false); navigate('/login', { replace: true }); }} 
         onLanguageChange={handleLanguageChange} 
         steps={CAREER_EDGE_STEPS}
         currentStep={currentStep}
       />
       <main className="main-content">
         {showLanding && !isAuthenticated ? (
-          <LandingPage darkMode={darkMode} onStart={() => setShowLanding(false)} onShowCGU={() => setShowCGU(true)} onShowPrivacy={() => setShowPrivacy(true)} onShowLegal={() => setShowLegal(true)} />
-        ) : 
+          <LandingPage 
+              darkMode={darkMode}
+              onStart={() => navigate('/login')}
+              onLoginRedirect={() => navigate('/login')}
+              onShowCGU={() => setShowCGU(true)}
+              onShowPrivacy={() => setShowPrivacy(true)} 
+              onShowLegal={() => setShowLegal(true)} />        ) :
          !isAuthenticated ?
-            (<Login onLoginSuccess={() => setIsAuthenticated(true)} />) : 
+            <Login onLoginSuccess={(loginResponse) => {
+              setIsAuthenticated(true);
+              // [FIX] La redirection se base maintenant sur la réponse de l'API,
+              // qui contient `role: "admin"` pour les administrateurs
+              if (loginResponse?.role === 'admin') {
+                navigate('/admin', { replace: true });
+              } else if (loginResponse?.user?.is_admin) {
+                // Fallback pour les anciens tokens ou structures
+                navigate('/admin', { replace: true });
+              } else if (location.state?.from) {
+                navigate(location.state.from, { replace: true });
+              } else {
+                // Redirection par défaut pour un utilisateur standard
+                navigate('/candidate', { replace: true });
+              }
+              }} /> :
           (<div style={{ paddingTop: '100px', paddingBottom: '2rem', width: '100%', maxWidth: '1200px', margin: '0 auto', paddingLeft: '1rem', paddingRight: '1rem', boxSizing: 'border-box' }}>
             {/* [FIX] Ajout d'un padding-top de 100px pour descendre sous le Header et centrage global de l'interface */}
             {/* [FIX] Forcer la largeur à 100% et injecter un padding fantôme à droite pour éviter la coupure au scroll */}
@@ -555,7 +653,7 @@ function AppContent() {
               <p>{t('paywall_desc', 'Vos 3 mois d\'accès illimité sont terminés. Rassurez-vous, votre historique est sauvegardé.')}</p>
               <div className="modal-actions">
                  <button onClick={() => setShowPaywall(false)} className="btn-outline">{t('btn_later', 'Plus tard')}</button>
-                 <button onClick={() => window.location.href = '/payment?plan=renewal'} className="btn-primary">{t('btn_unlock', 'Débloquer pour 30 €')}</button>
+                 <button onClick={() => window.open('/payment?plan=renewal', '_blank')} className="btn-primary">{t('btn_unlock', 'Débloquer pour 30 €')}</button>
               </div>
            </div>
         </div>)}
@@ -564,7 +662,12 @@ function AppContent() {
 
       {/* [FIX] Alignement centré et aéré du Footer réglementaire */}
       <footer className="app-footer" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.5rem', padding: '2rem', flexWrap: 'wrap', opacity: 0.8, marginTop: 'auto' }}>
-        <button className="btn-ghost" onClick={() => setShowAdmin(true)}>{t('footer_admin', 'Accès Administrateur')}</button><span>|</span>
+        {isAdmin && (
+          <>
+            <button className="btn-ghost" onClick={() => navigate('/admin')}>Dashboard Admin</button><span className="footer-separator">|</span>
+            <button className="btn-ghost" onClick={() => setShowAdmin(true)}>Feedbacks Admin</button><span>|</span>
+          </>
+        )}
         <button className="btn-ghost" onClick={() => setShowLegal(true)}>{t('footer_legal', 'Mentions Légales')}</button><span>|</span>
         <button className="btn-ghost" onClick={() => setShowCGU(true)}>{t('footer_cgu', 'CGU')}</button><span>|</span>
         <button className="btn-ghost" onClick={() => setShowPrivacy(true)}>{t('footer_privacy', 'Politique de Confidentialité')}</button>

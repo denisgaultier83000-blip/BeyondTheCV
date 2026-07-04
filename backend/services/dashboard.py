@@ -5,7 +5,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, WebSocke
 from fastapi.responses import JSONResponse
 
 from database import db
-from security import get_current_user
+from security import get_current_user, require_admin_user
 from models import ResearchRequest, DisambiguationRequest
 # [FIX] Import relatif cohérent
 from .ai_generator import ai_service
@@ -13,6 +13,7 @@ from .ai_generator import ai_service
 from .tasks import (
     process_research_in_background, 
     process_salary_in_background, 
+    process_job_decoder_in_background,
 )
 from .utils import clean_ai_json_response, normalize_language, _generate_cache_key, get_cached_content, set_cached_content
 from .websocket_manager import manager
@@ -21,7 +22,11 @@ router = APIRouter(tags=["Dashboard & Research"])
 
 @router.post("/api/research/start")
 async def start_research(request: ResearchRequest, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
-    tasks_map = {"research": str(uuid.uuid4()), "salary": str(uuid.uuid4())}
+    tasks_map = {
+        "research": str(uuid.uuid4()), 
+        "salary": str(uuid.uuid4())
+    }
+
     print(f"[API] 🟢 Manual Research Triggered. Tasks: {tasks_map}", flush=True)
     # [FIX] On passe un objet datetime natif pour respecter le typage strict d'asyncpg (TIMESTAMP)
     now = datetime.now()
@@ -32,22 +37,22 @@ async def start_research(request: ResearchRequest, background_tasks: BackgroundT
     except AttributeError:
         req_dict = request.dict()
         
-    candidate_data = req_dict.get("candidate_data", {})
-    application_id = candidate_data.get("application_id")
+    # [FIX] Unification des données pour garantir que toutes les tâches reçoivent le même contexte complet.
+    # `req_dict` contient la structure complète, `candidate_data` n'était qu'une partie.
+    # On s'assure que toutes les informations sont au premier niveau.
+    candidate_data = req_dict.get("candidate_data", {}) 
+    unified_data = {**candidate_data, **req_dict}
+    application_id = unified_data.get("application_id")
     if not application_id:
         application_id = str(uuid.uuid4())
-        candidate_data["application_id"] = application_id
-        
-    # [FIX EXPERT] Ré-affectation pour garantir que le dictionnaire modifié n'est pas orphelin
-    req_dict["candidate_data"] = candidate_data
+        unified_data["application_id"] = application_id
     
     # [FIX EXPERT] Prévention du crash SQL (NOT NULL constraint) si la valeur est None
-    target_company = req_dict.get("target_company") or candidate_data.get("target_company") or "Général"
-    target_job = req_dict.get("target_job") or candidate_data.get("target_job") or "Poste non spécifié"
+    target_company = unified_data.get("target_company") or "Général"
+    target_job = unified_data.get("target_job") or "Poste non spécifié"
 
     # [FIX EXPERT] Injection de l'user_id pour le système de cache (évite "unknown_user" et le crash SQL cache_key=null)
-    req_dict["user_id"] = current_user["id"]
-    candidate_data["user_id"] = current_user["id"]
+    unified_data["user_id"] = current_user["id"]
 
     async with db.get_connection() as conn:
         # 1. Création de la session de candidature
@@ -61,16 +66,24 @@ async def start_research(request: ResearchRequest, background_tasks: BackgroundT
         for tid in tasks_map.values():
             await db.execute(conn, "INSERT INTO tasks (id, status, result, created_at, application_id) VALUES (?, ?, ?, ?, ?)", (tid, "PENDING", None, now, application_id))
             
+    # [FIX] Si une description de poste est fournie, on lance aussi le décodeur.
+    if unified_data.get("job_description"):
+        job_decoder_task_id = str(uuid.uuid4())
+        tasks_map["job_decoder"] = job_decoder_task_id
+        background_tasks.add_task(process_job_decoder_in_background, job_decoder_task_id, unified_data)
+        print(f"[API] 🕵️ Job Decoder triggered as well. Task ID: {job_decoder_task_id}", flush=True)
+
     # On passe le dictionnaire qui contient désormais l'application_id injecté
-    background_tasks.add_task(process_research_in_background, tasks_map["research"], req_dict)
-    background_tasks.add_task(process_salary_in_background, tasks_map["salary"], candidate_data)
+    background_tasks.add_task(process_research_in_background, tasks_map["research"], unified_data)
+    background_tasks.add_task(process_salary_in_background, tasks_map["salary"], unified_data)
     
     return {
         "message": "Research started",
         "application_id": application_id,
-        "tasks": tasks_map,
-        "task_id": tasks_map["research"],
-        "salary_task_id": tasks_map["salary"]
+        "tasks": tasks_map, # [FIX] On renvoie toute la map des tâches
+        "task_id": tasks_map["research"], # Compatibilité ascendante
+        "salary_task_id": tasks_map.get("salary"), # Compatibilité ascendante
+        "job_decoder_task_id": tasks_map.get("job_decoder") # [FIX] On renvoie l'ID spécifique
     }
 
 @router.post("/api/analyze-completeness")
@@ -160,19 +173,10 @@ async def get_applications(current_user: dict = Depends(get_current_user)):
             SELECT 
                 ja.id as app_id, ja.target_company, ja.target_job, ja.created_at as app_created_at,
                 d.id as doc_id, d.filename, d.type as doc_type, d.created_at as doc_created_at
-            FROM job_applications ja
-            LEFT JOIN documents d ON d.application_id = ja.id
-            WHERE ja.user_id = ?
-            
-            UNION ALL
-            
-            SELECT 
-                'archives_id' as app_id, 'Archives' as target_company, 'Anciens Documents' as target_job, '2000-01-01 00:00:00' as app_created_at,
-                id as doc_id, filename, type as doc_type, created_at as doc_created_at
-            FROM documents 
-            WHERE user_id = ? AND (application_id IS NULL OR application_id = '')
-            ORDER BY app_created_at DESC
-        """, (current_user["id"], current_user["id"]))
+            FROM job_applications ja LEFT JOIN documents d ON d.application_id = ja.id
+            WHERE ja.user_id = ? 
+            ORDER BY ja.created_at DESC, d.created_at DESC
+        """, (current_user["id"],))
         rows = await cursor.fetchall()
         
     apps = {}
@@ -315,7 +319,7 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str):
         manager.disconnect(websocket, task_id) # Garanti d'être exécuté à 100%, libérant la mémoire
 
 @router.get("/api/admin/migrate-archives")
-async def migrate_archives():
+async def migrate_archives(current_user: dict = Depends(require_admin_user)):
     """Route temporaire pour ranger les anciens documents orphelins dans un dossier Archives."""
     try:
         async with db.get_connection() as conn:

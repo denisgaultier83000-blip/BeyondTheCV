@@ -34,21 +34,21 @@ export default function Header({
   showLogin = false,
   showLangSelector = true,
   loginText = "Login",
-  showStepper = false,
-  steps = Array.from({ length: 10 }, (_, i) => ({ id: i + 1, title: `Step ${i + 1}` })),
-  currentStep = 1,
-  goToStep = () => {},
   userName,
   onOpenProfile,
   onLogout,
-  onLanguageChange
+  onLanguageChange,
+  isAuthenticated
 }: HeaderProps) {
   const { t } = useTranslation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> staging4
   // [CORRECTIF FINAL] Vérification locale et directe du statut admin.
   // On abandonne le contexte pour cette logique pour garantir la fiabilité.
   const [isAdmin, setIsAdmin] = useState(false);
@@ -59,11 +59,20 @@ export default function Header({
       if (userStr && adminEmail) {
         const user = JSON.parse(userStr);
         setIsAdmin(user?.email?.toLowerCase() === adminEmail.toLowerCase());
+<<<<<<< HEAD
       }
     } catch (e) {}
   }, [userName]); // On recalcule si l'utilisateur change (login/logout)
 
 >>>>>>> parent of e044586 (fix: Update admin status handling in Header component to reset state when user is not present)
+=======
+      } else {
+        setIsAdmin(false); // S'assurer de réinitialiser si l'utilisateur n'est plus là
+      }
+    } catch (e) { setIsAdmin(false); }
+  }, [userName, isAuthenticated]); // [FIX] On recalcule si l'utilisateur change OU si le statut d'authentification change.
+
+>>>>>>> staging4
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -75,26 +84,11 @@ export default function Header({
   }, []);
 
   return (
-    <header className={`app-header ${showStepper ? 'with-stepper' : ''}`}>
+    <header className="app-header">
       <div className="header-main">
         <div className="header-logo">
           <img src="/logo_reduit_BTCV.png" alt="BeyondTheCV" className="logo-img" />
         </div>
-
-        {showStepper && (
-          <div className="stepper-container header-stepper">
-            {steps.map((step, index) => (
-              <div
-                key={step.id}
-                className={`step-item ${currentStep >= step.id ? 'active' : ''}`}
-                onClick={() => step.id <= currentStep && goToStep(step.id)}
-              >
-                <div className="step-circle">{step.id}</div>
-                <span className="step-label">{step.title}</span>
-              </div>
-            ))}
-          </div>
-        )}
 
         <div className="header-actions">
           {/* Menu Langue Contrôlé */}
@@ -116,6 +110,15 @@ export default function Header({
                   boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', minWidth: '200px', 
                   display: 'flex', flexDirection: 'column', overflow: 'hidden', zIndex: 1000
                 }}>
+              {isAdmin && (
+                <Link to="/admin" style={{ padding: '0.75rem 1rem', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-color)', textAlign: 'left', cursor: 'pointer', color: 'var(--primary)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}
+                  onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                  onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                  onClick={() => setDropdownOpen(false)}
+                >
+                  👑 Administration
+                </Link>
+              )}
                   <button 
                     onClick={() => { 
                       setDropdownOpen(false); 

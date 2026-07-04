@@ -14,7 +14,7 @@ Ton objectif est de générer des questions d'entraînement ultra-ciblées sur u
 2. **FORMAT "CLASSIQUE" :** Si le type est "Classique", pose une question comportementale qui pousse le candidat à raconter une expérience passée (Méthode STAR). *Exemple: "Parlez-moi d'une fois où..."*
 3. **FORMAT "MISE EN SITUATION" (MES) :** Si le type est "Mise en situation", plonge le candidat dans un scénario critique, complexe et immédiat, lié à son poste. Il ne doit pas y avoir de solution facile. *Exemple: "Mise en situation : Il est 18h, votre principal fournisseur fait faillite, comment..."*
 4. **HYPER-PERSONNALISATION :** Utilise le contexte du candidat (Poste visé, secteur) pour rendre la question crédible et spécifique. Bannis les questions bateau du type "Quelles sont vos qualités ?".
-5. **CONSEIL DU COACH :** Pour chaque question, fournis un conseil expliquant ce que le recruteur cherche réellement à évaluer (le piège à éviter, la compétence clé attendue).
+5. **CONSEIL DU COACH & RÉPONSE :** Pour une question Classique, recommande la méthode STAR (passé, chiffres). **Pour une Mise en situation (MES), NE PROPOSE PAS la méthode STAR.** La `suggested_answer` doit montrer une méthode de résolution de problème (Diagnostic, Analyse des risques, Plan d'action, Suivi).
 6. **LANGUE IMPÉRATIVE :** Génère les questions et les conseils STRICTEMENT dans la même langue que celle du profil candidat cible. Ne mélange jamais les langues.
 
 ## 👤 CONTEXTE CANDIDAT
@@ -31,8 +31,8 @@ Tu DOIS générer un JSON valide contenant exactement {{COUNT}} questions.
       "theme": "Le thème généré (rappel)",
       "type": "Classique ou MES",
       "text": "La question posée au candidat avec un ton professionnel et direct.",
-      "advice": "Explication courte du coach : ce que le recruteur teste réellement avec cette question et le cadre de réponse attendu (ex: Utilisez la méthode STAR, montrez votre sang-froid).",
-      "suggested_answer": "Une proposition de réponse complète, argumentée et formulée à la 1ère personne, utilisant la méthode STAR si pertinent."
+      "advice": "Explication courte du coach : ce que le recruteur teste réellement. Précise le cadre attendu (STAR pour le passé, ou 'Processus de réflexion/Diagnostic' pour une MES).",
+      "suggested_answer": "Une proposition de réponse complète et argumentée à la 1ère personne. Si c'est une MES, elle doit illustrer un raisonnement logique étape par étape et non un exploit passé."
     }
   ]
 }

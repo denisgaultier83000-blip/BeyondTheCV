@@ -6,19 +6,9 @@ import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
 import { useDashboard } from './DashboardContext';
 import { RechargeModal } from './RechargeModal';
-
-// [FIX EXPERT] Mini-parseur robuste pour rendre le gras (**) généré par l'IA sans faille XSS
-const formatText = (text: string) => {
-  if (!text) return text;
-  if (typeof text !== 'string') return text;
-  const parts = text.split(/(\*\*.*?\*\*)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={i} style={{ color: 'inherit' }}>{part.slice(2, -2)}</strong>;
-    }
-    return part;
-  });
-};
+import { formatMarkdownReact } from '../utils/formatUtils';
+import { AsyncBoundary } from './AsyncBoundary';
+import { BulletList } from './BulletList';
 
 interface QuestionnaireProps {
   questions: any[];
@@ -42,6 +32,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
   const dashboard = useDashboard();
   
   const cvData = dashboard?.cvData;
+  const { quotas, fetchQuotas } = dashboard;
   const updateFormData = dashboard?.updateFormData;
   
   const userAnswersKey = `${storageKeyPrefix}UserAnswers`;
@@ -192,6 +183,13 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
     setIsSubmitting(qKey);
     setErrors(prev => ({ ...prev, [qKey]: "" }));
     
+    // [NOUVEAU] Vérification du quota avant de lancer l'évaluation
+    if ((quotas?.qa ?? 0) <= 0) {
+      setShowRechargeModal(true);
+      setIsSubmitting(null);
+      return;
+    }
+
     // Sécurisation des clés pour l'envoi API
     const questionText = q.question || q.text || "Question non spécifiée";
     const suggestedAnswer = q.suggested_answer || q.answer || q.reponse_suggeree || q.reponse || "";
@@ -233,6 +231,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
       setActiveMode(prev => ({ ...prev, [qKey]: false }));
       
       if (onEvaluateSuccess) onEvaluateSuccess();
+      if (fetchQuotas) fetchQuotas(); // [NOUVEAU] Rafraîchissement des quotas
     } catch (error: any) {
       console.error("Erreur lors de l'évaluation IA :", error);
       setErrors(prev => ({ ...prev, [qKey]: error.message || "Une erreur de communication avec l'IA est survenue. Veuillez réessayer." }));
@@ -359,7 +358,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
             })()}
                   </div>
                   <h3 style={{ margin: 0, fontSize: '1.05rem', lineHeight: '1.5', color: 'var(--text-main)', fontWeight: '600' }}>
-                    {formatText(questionText)}
+                    {formatMarkdownReact(questionText)}
                   </h3>
                 </div>
               </div>
@@ -400,6 +399,11 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
 
             {/* MODE ACTIF (Entraînement) */}
             {isActive && !feedback && (
+              <AsyncBoundary 
+                loading={isSubmittingThis} 
+                loadingText={t('q_ai_analyzing', 'Analyse IA en cours...')}
+                style={{ background: 'transparent', border: 'none', padding: 0 }}
+              >
               <div style={{ marginTop: '1rem', background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)', animation: 'fadeIn 0.3s ease-out' }}>
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                     <div style={{ fontSize: '0.95rem', color: 'var(--text-main)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -427,17 +431,17 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                     onChange={(e) => setUserAnswers(prev => ({ ...prev, [qKey]: e.target.value }))}
                     placeholder={t('q_answer_placeholder', "Commencez à parler ou tapez votre réponse ici...")}
                     rows={4}
-                    disabled={isSubmittingThis}
                     style={{ width: '100%', background: 'var(--bg-card)', color: 'var(--text-main)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0.75rem', fontFamily: 'inherit', fontSize: '0.95rem', resize: 'vertical', outline: 'none', marginBottom: '1rem' }}
                  />
 
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <button onClick={() => { setActiveMode(prev => ({...prev, [qKey]: false})); setErrors(prev => ({...prev, [qKey]: ""})); }} className="btn-ghost" style={{ fontSize: '0.85rem' }} disabled={isSubmittingThis}>{t('btn_cancel', 'Annuler')}</button>
-                    <button onClick={() => handleSubmit(qKey, q)} disabled={!(userAnswers[qKey] || "").trim() || isSubmittingThis} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
-                      {isSubmittingThis ? <><Loader2 size={16} className="spin" /> {t('q_ai_analyzing', 'Analyse IA en cours...')}</> : <><Send size={16} /> {t('q_analyze_answer', 'Analyser ma réponse')}</>}
+                    <button onClick={() => { setActiveMode(prev => ({...prev, [qKey]: false})); setErrors(prev => ({...prev, [qKey]: ""})); }} className="btn-ghost" style={{ fontSize: '0.85rem' }}>{t('btn_cancel', 'Annuler')}</button>
+                    <button onClick={() => handleSubmit(qKey, q)} disabled={!(userAnswers[qKey] || "").trim()} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
+                      <Send size={16} /> {`${t('q_analyze_answer', 'Analyser ma réponse')} (${quotas?.qa ?? 0} restants)`}
                     </button>
                  </div>
               </div>
+              </AsyncBoundary>
             )}
 
             {/* FEEDBACK IA APRÈS ENTRAÎNEMENT */}
@@ -456,11 +460,11 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
                     <div style={{ background: 'rgba(34, 197, 94, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
                       <h4 style={{ margin: '0 0 1rem 0', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={18} /> {t('q_strengths', 'Ce qui fonctionne bien')}</h4>
-                      <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-main)', fontSize: '0.9rem', lineHeight: '1.5' }}>{(feedback.strengths || []).map((s: string, i: number) => <li key={i} style={{ marginBottom: '0.5rem' }}>{s}</li>)}</ul>
+                      <BulletList type="success" items={feedback.strengths || []} />
                     </div>
                     <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
                       <h4 style={{ margin: '0 0 1rem 0', color: 'var(--danger-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><AlertTriangle size={18} /> {t('q_weaknesses', "Ce qu'il manque")}</h4>
-                      <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-main)', fontSize: '0.9rem', lineHeight: '1.5' }}>{(feedback.weaknesses || []).map((w: string, i: number) => <li key={i} style={{ marginBottom: '0.5rem' }}>{w}</li>)}</ul>
+                      <BulletList type="danger" items={feedback.weaknesses || []} />
                     </div>
                  </div>
                  <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', borderLeft: '4px solid #8b5cf6' }}>
@@ -512,7 +516,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
             {advice && isRevealed && (
                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', gap: '0.5rem', marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px dashed var(--border-color)', animation: 'fadeIn 0.3s ease-out' }}>
                  <Lightbulb size={16} style={{ flexShrink: 0, color: '#eab308' }} /> 
-                 <span>{formatText(advice)}</span>
+                 <span>{formatMarkdownReact(advice)}</span>
                </div>
             )}
           </div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Building, Target, Lightbulb, TrendingUp, Users, DollarSign, Newspaper } from 'lucide-react';
+import { formatStrategicAnalysisReact } from '../utils/formatUtils';
 
 interface ResearchData {
   // Support Backend V1 & V2
@@ -161,8 +162,9 @@ export function ResearchReport({ data, companyName }: ResearchReportProps) {
                     </div>
                   )}
                   {article.strategic_analysis && (
-                    <div style={{ fontSize: '0.85rem', color: '#475569', borderLeft: '3px solid var(--primary)', paddingLeft: '0.75rem', marginTop: '0.75rem', fontStyle: 'italic', lineHeight: 1.5 }}>
-                      <strong style={{ color: 'var(--primary)', fontStyle: 'normal' }}>Conseil Stratégique :</strong> {article.strategic_analysis}
+                    <div style={{ fontSize: '0.9rem', color: '#334155', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '1rem', marginTop: '1rem' }}>
+                      <strong style={{ color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}><Target size={16} color="#2563eb" /> Angle d'Entretien</strong>
+                      {formatStrategicAnalysisReact(article.strategic_analysis)}
                     </div>
                   )}
                   {article.hidden_meaning && (

@@ -4,6 +4,7 @@ import re
 import hashlib
 from datetime import datetime
 import asyncio
+from fastapi import HTTPException
 from database import db
 
 from asyncio import Lock
@@ -20,6 +21,50 @@ def load_prompt(filename: str) -> str:
     except Exception as e:
         print(f"[TASK ERROR] Could not load prompt {filename}: {e}")
         return ""
+
+async def consume_quota(user_id: str, quota_type: str, cost: int = 1):
+    """Vérifie le solde d'un quota spécifique et le décrémente si suffisant."""
+    
+    # [SÉCURITÉ] Whitelist des noms de colonnes pour éviter l'injection SQL
+    valid_quotas = ["pitch", "qa", "mes", "negotiation", "regeneration", "update"]
+    if quota_type not in valid_quotas:
+        raise HTTPException(status_code=400, detail=f"Type de quota invalide : {quota_type}")
+    
+    column_name = f"quota_{quota_type}"
+    
+    async with db.get_connection() as conn:
+        # On utilise un lock pour éviter les race conditions si l'utilisateur clique très vite
+        user_lock_key = f"quota_{user_id}"
+        if user_lock_key not in _CACHE_LOCKS:
+            _CACHE_LOCKS[user_lock_key] = asyncio.Lock()
+        
+        async with _CACHE_LOCKS[user_lock_key]:
+            cursor = await db.execute(conn, f"SELECT {column_name} FROM users WHERE id = ?", (user_id,))
+            row = await cursor.fetchone()
+            
+            if not row:
+                raise HTTPException(status_code=404, detail="Utilisateur introuvable pour la gestion des quotas.")
+            
+            balance = row[0] if isinstance(row, tuple) else row.get(column_name)
+            
+            if balance is None or balance < cost:
+                raise HTTPException(status_code=402, detail=f"Crédits '{quota_type}' insuffisants (Solde: {balance or 0}, Requis: {cost}).")
+            
+            await db.execute(conn, f"UPDATE users SET {column_name} = {column_name} - ? WHERE id = ?", (cost, user_id))
+    return True
+
+async def refund_quota(user_id: str, quota_type: str, cost: int = 1):
+    """Rembourse un quota en cas d'erreur de l'API IA."""
+    valid_quotas = ["pitch", "qa", "mes", "negotiation", "regeneration", "update"]
+    if quota_type not in valid_quotas:
+        return
+    
+    column_name = f"quota_{quota_type}"
+    try:
+        async with db.get_connection() as conn:
+            await db.execute(conn, f"UPDATE users SET {column_name} = {column_name} + ? WHERE id = ?", (cost, user_id))
+    except Exception as e:
+        print(f"[DB WARNING] Refund quota failed for {user_id} on {quota_type}: {e}")
 
 def clean_ai_json_response(response_text: str):
     """Cleans and parses JSON from AI, removing markdown code blocks."""

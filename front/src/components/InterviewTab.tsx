@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import { useDashboard } from './DashboardContext';
-import { Mic, MessageSquare, Play, Pause, RotateCcw, BrainCircuit, ArrowLeft, Loader2, RefreshCw, Lightbulb } from 'lucide-react';
+import { createPortal } from 'react-dom';import { useDashboard } from '../hooks/DashboardContext';
+import { Mic, MessageSquare, Play, Pause, RotateCcw, BrainCircuit, ArrowLeft, Loader2, RefreshCw, Lightbulb, Shield, Users, Briefcase, Building, Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DashboardCard } from './DashboardCard';
-import { SituationSimulator } from './SituationSimulator';
+
 import Questionnaire from './Questionnaire';
 import Flashcards from './Flashcards';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
 import SalaryNegotiator from './SalaryNegotiator';
+import PitchOralTrainer from './PitchOralTrainer';
 
 // --- LOGIQUE TÉLÉPROMPTEUR DÉPLACÉE ICI (À LA RACINE) ---
 const Teleprompter = ({ fullPitchText, setIsTeleprompterOpen, isDark, t }: { fullPitchText: string, setIsTeleprompterOpen: any, isDark: boolean, t: any }) => {
@@ -76,75 +76,73 @@ const Teleprompter = ({ fullPitchText, setIsTeleprompterOpen, isDark, t }: { ful
 export const InterviewTab = () => {
   const { pitchResult, questionsResult, customScenariosResult, globalStatus, cvData, updateFormData } = useDashboard();
   const { t } = useTranslation();
-  const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false);
+  const [isTeleprompterOpen, setIsTeleprompterOpen] = useState(false); // État pour le téléprompteur
   const [isDark] = useState(() => document.body.classList.contains('dark-mode'));
-
-  const [pitchAnalysis, setPitchAnalysis] = useState<any>(null);
-  const [isEvaluatingPitch, setIsEvaluatingPitch] = useState(false);
-
-  const [editablePitch, setEditablePitch] = useState<{accroche: string, preuve: string, valeur: string, projection: string}>({
+  const [activePitchKey, setActivePitchKey] = useState('three_minutes'); // [FIX] Le pitch par défaut est maintenant celui de 3 minutes
+  const [activePitchGroup, setActivePitchGroup] = useState('core_pitches');
+  const [editablePitch, setEditablePitch] = useState({
+    written: "",
+    oral: "",
     accroche: "", preuve: "", valeur: "", projection: ""
   });
 
   useEffect(() => {
+    console.log('--- Pitch Result (Final Debug) ---');
+    console.log(JSON.stringify(pitchResult, null, 2));
     if (pitchResult) {
-      const p = pitchResult?.pitch || pitchResult;
-      const savedPitch = cvData?.editablePitch;
-      setEditablePitch({
-        accroche: savedPitch?.accroche || p?.accroche || "",
-        preuve: savedPitch?.preuve || p?.preuve || "",
-        valeur: savedPitch?.valeur || p?.valeur || "",
-        projection: savedPitch?.projection || p?.projection || ""
-      });
-      setPitchAnalysis(p?.analysis || null);
+      const savedEditablePitch = cvData?.editablePitch;
+      if (savedEditablePitch && Object.values(savedEditablePitch).some(v => v)) {
+        setEditablePitch(savedEditablePitch); // Restaure les modifications de l'utilisateur
+      } else {
+        // [FIX] On charge le pitch de 3 minutes par défaut au premier chargement
+        populateFieldsFromMatrix(pitchResult, 'three_minutes', 'core_pitches');
+      }
     }
   }, [pitchResult]);
 
-  const handlePitchChange = (field: keyof typeof editablePitch, value: string) => {
-    const newPitch = { ...editablePitch, [field]: value };
-    setEditablePitch(newPitch);
+  // Peuple les 4 champs à partir de la matrice de l'IA
+  const populateFieldsFromMatrix = (matrix: any, pitchKey: string, pitchGroup: string) => {
+    const pitchData = matrix?.[pitchGroup]?.[pitchKey];
+    if (!pitchData) return;
+
+    // La nouvelle structure est plus simple : on a toujours `oral` et `written`.
+    // On utilise le texte oral pour le découper en 4 champs éditables.
+    const fullText = pitchData.oral || pitchData.written || '';
+
+    const newEditablePitch = {
+      written: pitchData.written || '',
+      oral: pitchData.oral || '',
+      full_text: fullText // [NOUVEAU] On stocke le texte complet pour l'édition
+    };
+
+    setEditablePitch(newEditablePitch);
+
     if (updateFormData) {
-      updateFormData('editablePitch', newPitch);
+      updateFormData('editablePitch', newEditablePitch);
     }
   };
 
-  const fullPitchText = [editablePitch.accroche, editablePitch.preuve, editablePitch.valeur, editablePitch.projection].filter(Boolean).join('\n\n');
+  // Gère le changement dans un des 4 champs
+  const handlePitchChange = (newText: string) => {
+    const newEditablePitch = { ...editablePitch, full_text: newText };
+    setEditablePitch(newEditablePitch);
+    if (updateFormData) {
+      updateFormData('editablePitch', newEditablePitch);
+    }
+  };
+
+  const currentPitchData = pitchResult?.[activePitchGroup]?.[activePitchKey];
+  const coachingAngle = currentPitchData?.angle || currentPitchData?.goal || pitchResult?.coaching_notes?.strongest_angle || null;
+
+
+  // Le texte du téléprompteur est maintenant directement le champ éditable
+  const fullPitchText = editablePitch.full_text || "";
 
   const handleResetPitch = () => {
     if (!window.confirm(t('confirm_reset_pitch', "Voulez-vous vraiment annuler vos modifications et restaurer le pitch original généré par l'IA ?"))) return;
-    const p = pitchResult?.pitch || pitchResult;
-    const originalPitch = {
-      accroche: p?.accroche || "",
-      preuve: p?.preuve || "",
-      valeur: p?.valeur || "",
-      projection: p?.projection || ""
-    };
-    setEditablePitch(originalPitch);
-    if (updateFormData) {
-      updateFormData('editablePitch', originalPitch);
-    }
-  };
-
-  const handleEvaluatePitch = async () => {
-    setIsEvaluatingPitch(true);
-    try {
-      const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/evaluate-pitch`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          ...editablePitch, 
-          target_job: cvData?.target_job || cvData?.target_role_primary || 'Candidat',
-          target_language: cvData?.target_language || 'fr'
-        })
-      });
-      const data = await res.json();
-      if (data.analysis) {
-        setPitchAnalysis(data.analysis);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsEvaluatingPitch(false);
+    // On repeuple les champs avec la version sélectionnée actuellement
+    if (pitchResult) {
+      populateFieldsFromMatrix(pitchResult, activePitchKey, activePitchGroup);
     }
   };
 
@@ -221,6 +219,13 @@ export const InterviewTab = () => {
     return (Object.values(payload).find(v => Array.isArray(v)) as any[]) || [];
   };
 
+  const handleTabClick = (pitchKey: string, pitchGroup: string) => {
+    setActivePitchKey(pitchKey);
+    setActivePitchGroup(pitchGroup);
+    // Au clic, on met à jour les 4 champs avec le contenu correspondant
+    populateFieldsFromMatrix(pitchResult, pitchKey, pitchGroup);
+  };
+
   // Convertir les Mises en Situation (MES) en format "Question" pour les fusionner
   const getScenariosAsQuestions = (data: any): any[] => {
     if (!data) return [];
@@ -274,12 +279,12 @@ export const InterviewTab = () => {
         
         <div id="pitch_section">
         <DashboardCard
-          title={t('deliv_pitch', "Pitch de 3 minutes")}
+          title={t('deliv_pitch', "Matrice de Pitchs")}
           icon={<Mic size={24} />}
           loading={globalStatus === 'PROCESSING' && !pitchResult}
           loadingText={t('pitch_loading', "Génération de votre pitch...")}
-          error={!pitchResult && (globalStatus === 'COMPLETED' || globalStatus === 'FAILED')}
-          errorText={t('pitch_error', "Le pitch n'a pas pu être généré.")}
+          error={pitchResult?.error || (!pitchResult && (globalStatus === 'COMPLETED' || globalStatus === 'FAILED'))}
+          errorText={pitchResult?.message ? `Erreur IA : ${pitchResult.message}` : t('pitch_error', "Le pitch n'a pas pu être généré.")}
           featureId="pitch_3_min"
           headerAction={pitchResult && (
             <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -294,37 +299,55 @@ export const InterviewTab = () => {
         >
           {pitchResult && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div className="pitch-grid">
-                <div className="pitch-card"><h4>{t('pitch_hook', 'Accroche')}</h4><textarea className="pitch-textarea" value={editablePitch.accroche} onChange={e => handlePitchChange('accroche', e.target.value)} /></div>
-                <div className="pitch-card"><h4>{t('pitch_proof', 'Preuve & Impact')}</h4><textarea className="pitch-textarea" value={editablePitch.preuve} onChange={e => handlePitchChange('preuve', e.target.value)} /></div>
-                <div className="pitch-card"><h4>{t('pitch_value', 'Valeur Ajoutée')}</h4><textarea className="pitch-textarea" value={editablePitch.valeur} onChange={e => handlePitchChange('valeur', e.target.value)} /></div>
-                <div className="pitch-card"><h4>{t('pitch_projection', 'Projection')}</h4><textarea className="pitch-textarea" value={editablePitch.projection} onChange={e => handlePitchChange('projection', e.target.value)} /></div>
+              {/* --- NOUVELLE INTERFACE À ONGLETS --- */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <h6 style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Format</h6>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button onClick={() => handleTabClick('thirty_seconds', 'core_pitches')} className={`btn-outline ${activePitchKey === 'thirty_seconds' ? 'active' : ''}`}><Clock size={14}/> 30s</button>
+                    <button onClick={() => handleTabClick('three_minutes', 'core_pitches')} className={`btn-outline ${activePitchKey === 'three_minutes' ? 'active' : ''}`}><Clock size={14}/> 3min</button>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <h6 style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Par Audience</h6>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <button onClick={() => handleTabClick('role_fit_pitch', 'audience_adaptations')} className={`btn-outline ${activePitchKey === 'role_fit_pitch' ? 'active' : ''}`}><Briefcase size={14}/> Manager</button>
+                    <button onClick={() => handleTabClick('business_impact_pitch', 'audience_adaptations')} className={`btn-outline ${activePitchKey === 'business_impact_pitch' ? 'active' : ''}`}><Building size={14}/> Dirigeant</button>
+                    <button onClick={() => handleTabClick('culture_fit_pitch', 'audience_adaptations')} className={`btn-outline ${activePitchKey === 'culture_fit_pitch' ? 'active' : ''}`}><Users size={14}/> RH</button>
+                    <button onClick={() => handleTabClick('objection_handling_pitch', 'audience_adaptations')} className={`btn-outline ${activePitchKey === 'objection_handling_pitch' ? 'active' : ''}`}><Shield size={14}/> Anti-Failles</button>
+                  </div>
+                </div>
               </div>
 
-              <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                  <h4 style={{ margin: 0, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <BrainCircuit size={18} color="var(--primary)" /> Évaluation de votre Pitch
-                  </h4>
-                  <button onClick={handleEvaluatePitch} disabled={isEvaluatingPitch} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
-                    {isEvaluatingPitch ? <Loader2 size={16} className="spin" /> : <RefreshCw size={16} />} 
-                    {isEvaluatingPitch ? "Analyse en cours..." : "Analyser mon Pitch"}
-                  </button>
+              {/* --- NOUVEAU BLOC DE COACHING --- */}
+              {coachingAngle && (
+                <div style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(59, 130, 246, 0.2)', display: 'flex', gap: '0.75rem', alignItems: 'flex-start', animation: 'fadeIn 0.4s ease-out' }}>
+                  <Lightbulb size={18} />
+                  <div>
+                    <strong>Angle stratégique :</strong>
+                    <p>{coachingAngle}</p>
+                  </div>
                 </div>
-                
-                {pitchAnalysis && (
-                  <ScoreGauge 
-                    score={Number(pitchAnalysis.global_score) || 0} 
-                    label={t('pitch_impact_score', "Score d'Impact du Pitch")} 
-                    critique={pitchAnalysis.critique}
-                    metrics={[
-                      { label: "Structure", value: pitchAnalysis.structure || "N/A" },
-                      { label: "Clarté", value: pitchAnalysis.clarity || "N/A" },
-                      { label: "Conviction", value: pitchAnalysis.conviction || "N/A" }
-                    ]}
-                  />
-                )}
+              )}
+
+
+              {/* --- BLOC DES 4 CHAMPS ÉDITABLES --- */}
+              {/* --- [NOUVEAU] Champ d'édition unique --- */}
+              <div className="pitch-single-field" style={{ animation: 'fadeIn 0.4s ease-out' }}>
+                <textarea
+                  className="pitch-textarea"
+                  style={{ fontSize: 'clamp(1rem, 2.5vw, 1.25rem)' }}
+                  value={fullPitchText}
+                  onChange={e => handlePitchChange(e.target.value)}
+                  rows={12}
+                />
               </div>
+              
+              {/* NOUVEAU MODULE D'ENTRAÎNEMENT ORAL DU PITCH */}
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '1rem', marginBottom: '1rem', textAlign: 'center' }}>
+                {t('teleprompter_pitch_hint', "Le téléprompteur utilisera le contenu de la version orale que vous avez sélectionnée et modifiée ci-dessus.")}
+              </p>
+              <PitchOralTrainer />
             </div>
           )}
         </DashboardCard>
@@ -361,30 +384,7 @@ export const InterviewTab = () => {
                     <div id="mes_anchor"><Questionnaire questions={scenariosArray} hideHeader={true} /></div>
                   )}
                       {smartQuestions.length > 0 && (
-                        <div style={{ marginTop: '1rem' }}>
-                          <h3 style={{ color: 'var(--text-main)', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem' }}>
-                            <Lightbulb size={22} color="var(--primary)" /> Vos questions de fin d'entretien
-                          </h3>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {smartQuestions.map((q, idx) => (
-                              <div key={idx} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                                <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.3rem 0.75rem', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)', borderRadius: '1rem', textTransform: 'uppercase' }}>
-                                  {q.axis || "Stratégie"}
-                                </span>
-                                <h4 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)', margin: '1.25rem 0' }}>
-                                  {q.question}
-                                </h4>
-                                <div style={{ background: 'var(--bg-card)', borderLeft: '4px solid #f59e0b', borderRadius: '0 0.5rem 0.5rem 0', padding: '1.25rem', display: 'flex', gap: '1rem', alignItems: 'flex-start', border: '1px solid var(--border-color)', borderLeftWidth: '4px' }}>
-                                  <span style={{ fontSize: '1.25rem' }}>💡</span>
-                                  <div>
-                                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#b45309', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pourquoi la poser ?</div>
-                                    <div style={{ fontSize: '0.95rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>{q.intention || q.advice || q.suggested_answer}</div>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
+                        <SmartQuestionsList questions={smartQuestions} />
                       )}
                 </div>
               ) : (

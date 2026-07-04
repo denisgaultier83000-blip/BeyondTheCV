@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { authenticatedFetch } from '../utils/auth';
 import { API_ROUTES } from '../api/routes';
 import { API_BASE_URL } from '../config';
+import { AsyncBoundary } from './AsyncBoundary';
 
 interface Feedback {
   id: number;
@@ -106,12 +107,14 @@ export default function AdminFeedbacks() {
     );
   }
 
-  if (loading) {
-    return <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>Chargement des données...</div>;
-  }
-
-  if (error) {
-    return <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--danger-text)' }}>{error}</div>;
+  if (loading || error) {
+    return (
+      <div style={{ maxWidth: '1000px', margin: '2rem auto', padding: '2rem' }}>
+        <AsyncBoundary loading={loading} error={error || undefined} loadingText="Chargement des retours utilisateurs...">
+          <></>
+        </AsyncBoundary>
+      </div>
+    );
   }
 
   // Extraction des fonctionnalités uniques pour le filtre

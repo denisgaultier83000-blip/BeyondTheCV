@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useDashboard } from './DashboardContext';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
+import { formatMarkdownReact, formatStrategicAnalysisReact } from '../utils/formatUtils';
 
 export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
   const { 
@@ -76,19 +77,6 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
     return (Object.values(payload).find(v => Array.isArray(v)) as any[]) || [];
   };
 
-  // Parseur minimaliste pour interpréter le **gras** (Markdown) renvoyé par l'IA lors de l'impression
-  const formatMarkdown = (text: string | undefined | null): React.ReactNode => {
-    if (!text) return null;
-    if (typeof text !== 'string') return text as any;
-    const parts = text.split(/(\*\*.*?\*\*)/g);
-    return parts.map((part, i) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={i} style={{ color: '#0f172a', fontWeight: 700 }}>{part.slice(2, -2)}</strong>;
-      }
-      return part;
-    });
-  };
-  
   // Parseur de sécurité pour éviter les NaN si l'IA renvoie du texte (ex: "85/100" ou "Excellent") au lieu d'un nombre
   const formatSafeScore100 = (score: any, fallback = "N/A"): string => {
     if (score === undefined || score === null) return fallback;
@@ -296,7 +284,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
           <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>🎯 Stratégie & Adéquation</h2>
           <div className="print-box">
             <h3 style={{ color: '#0f172a', marginBottom: '0.5rem' }}>Stratégie recommandée</h3>
-            <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, fontSize: '1.1rem', margin: 0 }}>{formatMarkdown(pilotData?.recommendedStrategy) || "Stratégie non générée."}</p>
+            <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, fontSize: '1.1rem', margin: 0 }}>{formatMarkdownReact(pilotData?.recommendedStrategy) || "Stratégie non générée."}</p>
           </div>
 
             {gapData?.missing_gaps && gapData.missing_gaps.length > 0 && (
@@ -308,7 +296,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
                     const time = gap.estimated_time;
                     return (
                       <li key={idx} style={{ marginBottom: '0.25rem' }}>
-                        {formatMarkdown(skill)} {time && <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>(⏱️ {time})</span>}
+                    {formatMarkdownReact(skill)} {time && <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>(⏱️ {time})</span>}
                       </li>
                     );
                   })}
@@ -325,7 +313,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
                     const time = adj.estimated_time;
                     return (
                       <li key={idx} style={{ marginBottom: '0.25rem' }}>
-                        {formatMarkdown(action)} {time && <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>(⏱️ {time})</span>}
+                    {formatMarkdownReact(action)} {time && <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>(⏱️ {time})</span>}
                       </li>
                     );
                   })}
@@ -345,7 +333,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
                 <h3 style={{ color: '#0f172a', fontSize: '1.1rem', marginTop: 0 }}>Jargon décodé</h3>
                 <ul style={{ margin: 0 }}>
                   {(jobDecoderResult.reality_check || []).map((item: any, idx: number) => (
-                    <li key={idx} style={{ marginBottom: '0.25rem', lineHeight: 1.5 }}><strong>{item.jargon} :</strong> {formatMarkdown(item.translation)}</li>
+                <li key={idx} style={{ marginBottom: '0.25rem', lineHeight: 1.5 }}><strong>{item.jargon} :</strong> {formatMarkdownReact(item.translation)}</li>
                   ))}
                 </ul>
                 </div>
@@ -354,7 +342,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
                     <h3 style={{ color: '#16a34a', fontSize: '1.1rem', marginTop: 0 }}>✅ Véritables attentes</h3>
                     <ul style={{ color: '#15803d', margin: 0 }}>
                       {(jobDecoderResult.real_expectations || []).map((item: string, idx: number) => (
-                        <li key={idx} style={{ marginBottom: '0.25rem', lineHeight: 1.5 }}>{formatMarkdown(item)}</li>
+                    <li key={idx} style={{ marginBottom: '0.25rem', lineHeight: 1.5 }}>{formatMarkdownReact(item)}</li>
                       ))}
                     </ul>
                   </div>
@@ -401,7 +389,12 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
               {companyReport.news_links.map((link: any, idx: number) => (
                 <div key={idx} style={{ marginBottom: '1rem' }}>
                   <p style={{ margin: '0 0 0.25rem 0', fontWeight: 'bold' }}>• {link.title}</p>
-                  {link.strategic_analysis && <p style={{ margin: 0, fontStyle: 'italic', color: '#475569', paddingLeft: '1rem' }}>Conseil Stratégique : {link.strategic_analysis}</p>}
+                  {link.strategic_analysis && (
+                    <div style={{ margin: '0.5rem 0 0 0', color: '#475569', paddingLeft: '1rem', fontSize: '0.95rem', lineHeight: 1.6 }}>
+                      <strong style={{ color: '#0f172a' }}>Conseil Stratégique :</strong>
+                  <div style={{ marginTop: '0.25rem' }}>{formatStrategicAnalysisReact(link.strategic_analysis)}</div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -415,10 +408,10 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
           <h2 style={{ borderBottom: '2px solid #0f172a', paddingBottom: '0.5rem' }}>💬 Questions d'Entretien</h2>
           {questionsArray.map((q: any, idx: number) => (
             <div key={idx} className="print-box avoid-break">
-              <h3 style={{ color: '#0f172a', fontSize: '1.1rem', margin: '0 0 0.5rem 0' }}>{q.category === "Questions à poser au recruteur" || q.category === "Questions to Ask Recruiter" ? "💡 Question à poser :" : "Q :"} {formatMarkdown(q.question || q.text)}</h3>
+              <h3 style={{ color: '#0f172a', fontSize: '1.1rem', margin: '0 0 0.5rem 0' }}>{q.category === "Questions à poser au recruteur" || q.category === "Questions to Ask Recruiter" ? "💡 Question à poser :" : "Q :"} {formatMarkdownReact(q.question || q.text)}</h3>
               
               {q.intention && (
-                <p style={{ margin: '0 0 0.5rem 0', color: '#b45309', fontStyle: 'italic', fontSize: '0.95rem' }}><strong>Intention visée :</strong> {formatMarkdown(q.intention)}</p>
+                <p style={{ margin: '0 0 0.5rem 0', color: '#b45309', fontStyle: 'italic', fontSize: '0.95rem' }}><strong>Intention visée :</strong> {formatMarkdownReact(q.intention)}</p>
               )}
 
               {q.user_answer ? (
@@ -435,7 +428,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
                 <div style={{ background: '#f1f5f9', padding: '1rem', borderRadius: '6px', marginTop: '0.75rem', border: '1px dashed #cbd5e1' }}>
                   <p style={{ margin: '0 0 0.5rem 0', color: '#64748b', fontStyle: 'italic', fontSize: '0.9rem' }}>Non répondu lors de l'entraînement.</p>
                   <p style={{ margin: 0, color: '#0f172a', fontSize: '0.95rem', lineHeight: '1.5' }}>
-                    <strong style={{ color: '#3b82f6' }}>💡 Conseil du coach :</strong> {formatMarkdown((q.suggested_answer || q.answer || q.advice || "À vous de jouer !").replace(/^(Suggestion|Conseil)\s*:\s*/i, ''))}
+                <strong style={{ color: '#3b82f6' }}>💡 Conseil du coach :</strong> {formatMarkdownReact((q.suggested_answer || q.answer || q.advice || "À vous de jouer !").replace(/^(Suggestion|Conseil)\s*:\s*/i, ''))}
                   </p>
                 </div>
               )}

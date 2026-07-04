@@ -157,6 +157,7 @@ class FeedbackRequest(BaseModel):
 class PaymentIntentRequest(BaseModel):
     amount: int
     currency: str = "usd"
+    plan_name: Optional[str] = None
 
 class DocumentMetadata(BaseModel):
     id: str

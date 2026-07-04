@@ -240,56 +240,14 @@ async def _run_pitch_logic(task_id: str, candidate_data: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
         user_id = candidate_data.get("user_id", "unknown_user")
+        # La logique de génération de pitch est maintenant dans cv_services.generate_pitch
+        # On l'appelle directement pour la cohérence.
+        from .cv_services import generate_pitch
         is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "pitch", candidate_data, "Pitch récupéré en cache")
         if is_cached: return
 
-        prompt_template = load_prompt(get_prompt_path("pitch_v1.md"))
-        
-        # [FIX EXPERT] Whitelist stricte pour éviter l'explosion de tokens (qui génère {"error": True})
-        safe_data = {
-            "experiences": candidate_data.get("experiences", []),
-            "educations": candidate_data.get("educations", []),
-            "skills": candidate_data.get("skills", []),
-            "free_text": candidate_data.get("free_text", "")
-        }
-        
-        context_str = json.dumps(safe_data, indent=2, ensure_ascii=False, default=str)
-        
-        # [FIX] Ajout du contexte de l'annonce/poste visé pour un pitch pertinent
-        target_job = candidate_data.get('target_job', 'Poste visé')
-        target_company = candidate_data.get('target_company', 'Entreprise cible')
+        result = await generate_pitch(candidate_data, quality='smart')
         target_lang = normalize_language(candidate_data.get('target_language', 'French'))
-        
-        # [NEW] Injection des clarifications pour nourrir le pitch
-        clarifications = candidate_data.get('clarifications', [])
-        clarifications_str = "\n".join([f"Q: {c.get('question')}\nA: {c.get('answer')}" for c in clarifications if c.get('answer')])
-        
-        # [NEW] Injection des données de recherche asynchrone (Entreprise & Marché)
-        research_context = ""
-        rd = candidate_data.get("research_data")
-        if rd:
-            cr = rd.get("company_report", {})
-            mr = rd.get("market_report", {})
-            research_context = f"\nINFOS STRATÉGIQUES SUR L'ENTREPRISE ET LE MARCHÉ :\n- ADN Entreprise : {cr.get('identity_dna', 'Non spécifié')}\n- Enjeux / Défis : {cr.get('usp', 'Non spécifiés')}\n- Tendances marché : {mr.get('trends', 'Non spécifiées')}\n\n⚠️ UTILISE IMPÉRATIVEMENT CES INFOS POUR PERSONNALISER LA PARTIE 'POURQUOI CE POSTE' (PROJECTION)."
-
-        final_prompt = f"""
-        {prompt_template}
-        
-        CONTEXTE CIBLE :
-        Poste : {target_job}
-        Entreprise : {target_company}
-        {research_context}
-        
-        CLARIFICATIONS APPORTÉES PAR LE CANDIDAT :
-        {clarifications_str}
-        
-        DONNÉES CANDIDAT :
-        {context_str}
-        
-        OUTPUT LANGUAGE: {target_lang}
-        """
-        
-        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction=f"You are a senior recruiter. ALL JSON VALUES MUST BE ENTIRELY WRITTEN IN {target_lang.upper()}. Output STRICT JSON.")
         if "error" not in result:
             await set_cached_content(cache_key, user_id, "pitch", result)
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
@@ -924,185 +882,6 @@ async def process_flaw_coaching_in_background(task_id: str, data: dict):
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", err)
         await manager.broadcast(task_id, "Erreur", status="FAILED", data=err)
 
-async def process_executive_summary_in_background(task_ids: dict, data: dict):
-    """
-    FUSION OPTIMISÉE: Traite One-Liner, Career Radar et Recruiter View en 1 seul appel IA.
-    """
-    print(f"[Tasks] 🚀 Starting Unified Executive Summary...")
-    
-    # 1. On passe les 3 tâches en RUNNING
-    for tid in task_ids.values():
-        await asyncio.to_thread(update_task_status_sync, tid, "RUNNING")
-        
-    try:
-        target_lang = normalize_language(data.get('target_language', 'French'))
-        target_role = data.get('target_role_primary') or data.get('target_job') or 'Non défini'
-        
-        prompt = f"""
-        Tu es un expert RH de haut niveau. Ta mission est d'analyser ce profil sous 3 angles différents et de renvoyer un JSON unique.
-        
-        PROFIL CANDIDAT :
-        {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
-        
-        POSTE VISÉ : {target_role}
-        
-        ATTENTES :
-        1. "one_liner_result" : Une phrase unique, dense et mémorable résumant le profil (Titre + Expérience + Valeur).
-        2. "career_radar_result" : Analyse de la trajectoire (risques, opportunités, cohérence).
-        3. "recruiter_view_result" : L'avis impitoyable d'un DRH (red flags, points rassurants, probabilité d'entretien sur 100, et un conseil "brutal_truth"). Ignore les erreurs de frappe du brouillon.
-        
-        OUTPUT STRICT JSON (Conserve exactement ces clés en anglais):
-        {{
-            "one_liner_result": {{ "one_liner": "..." }},
-            "career_radar_result": {{ 
-                "trajectories": [
-                    {{
-                        "title": "Nom du poste alternatif",
-                        "match_percent": 85,
-                        "salary_potential": "ex: 55k€ - 65k€",
-                        "time_to_reach": "ex: Immédiat / 6 mois",
-                        "rationale": "Pourquoi ce pivot a du sens",
-                        "gap": "Ce qu'il manque pour y arriver"
-                    }}
-                ]
-            }},
-            "recruiter_view_result": {{
-                "recruiter_persona": {{
-                    "first_impression": "...", "red_flags": ["..."], "reassurance_points": ["..."],
-                    "interview_probability": 80, "verdict": "Convoquer", "brutal_truth": "..."
-                }}
-            }}
-        }}
-        LANGUAGE: {target_lang}
-        """
-        
-        result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are an Executive Profiler. Output STRICT JSON.")
-        
-        if "error" in result:
-            raise Exception(result["error"])
-            
-        user_id = data.get("user_id", "unknown_user")
-        cache_key = _generate_cache_key(user_id, "executive_summary", data)
-        await set_cached_content(cache_key, user_id, "executive_summary", result)
-
-        # 2. On dispatche intelligemment les résultats vers les bonnes tâches Frontend
-        if "one_liner" in task_ids: 
-            await asyncio.to_thread(update_task_status_sync, task_ids["one_liner"], "SUCCESS", result.get("one_liner_result", {}))
-            await manager.broadcast(task_ids["one_liner"], "One-Liner générée", status="COMPLETED", data=result.get("one_liner_result", {}))
-        if "career_radar" in task_ids: 
-            await asyncio.to_thread(update_task_status_sync, task_ids["career_radar"], "SUCCESS", result.get("career_radar_result", {}))
-            await manager.broadcast(task_ids["career_radar"], "Radar généré", status="COMPLETED", data=result.get("career_radar_result", {}))
-        if "recruiter_view" in task_ids: 
-            await asyncio.to_thread(update_task_status_sync, task_ids["recruiter_view"], "SUCCESS", result.get("recruiter_view_result", {}))
-            await manager.broadcast(task_ids["recruiter_view"], "Vue recruteur générée", status="COMPLETED", data=result.get("recruiter_view_result", {}))
-        
-    except Exception as e:
-        for tid in task_ids.values():
-            await asyncio.to_thread(update_task_status_sync, tid, "FAILED", {"error": str(e)})
-            err_data = {"error": str(e)}
-            await asyncio.to_thread(update_task_status_sync, tid, "FAILED", err_data)
-            await manager.broadcast(tid, "Erreur", status="FAILED", data=err_data)
-
-async def process_market_strategy_in_background(task_ids: dict, data: dict):
-    """
-    FUSION OPTIMISÉE: Traite Job Decoder, Risk Analysis et Hidden Market en 1 seul appel IA.
-    """
-    print(f"[Tasks] 🚀 Starting Unified Market Strategy...")
-    
-    # 1. On passe les 3 tâches en RUNNING
-    for tid in task_ids.values():
-        await asyncio.to_thread(update_task_status_sync, tid, "RUNNING")
-        
-    try:
-        user_id = data.get("user_id", "unknown_user")
-        cache_key = _generate_cache_key(user_id, "market_strategy", data)
-        cached = await get_cached_content(cache_key)
-        if cached:
-            if "job_decoder" in task_ids: 
-                await asyncio.to_thread(update_task_status_sync, task_ids["job_decoder"], "SUCCESS", cached.get("job_decoder_result", {}))
-                await manager.broadcast(task_ids["job_decoder"], "Décodeur récupéré en cache", status="COMPLETED", data=cached.get("job_decoder_result", {}))
-            if "risk_analysis" in task_ids: 
-                await asyncio.to_thread(update_task_status_sync, task_ids["risk_analysis"], "SUCCESS", cached.get("risk_analysis_result", {}))
-                await manager.broadcast(task_ids["risk_analysis"], "Analyse récupérée en cache", status="COMPLETED", data=cached.get("risk_analysis_result", {}))
-            if "hidden_market" in task_ids: 
-                await asyncio.to_thread(update_task_status_sync, task_ids["hidden_market"], "SUCCESS", cached.get("hidden_market_result", {}))
-                await manager.broadcast(task_ids["hidden_market"], "Marché caché récupéré en cache", status="COMPLETED", data=cached.get("hidden_market_result", {}))
-            return
-
-        target_lang = normalize_language(data.get('target_language', 'French'))
-        target_role = data.get('target_role_primary') or data.get('target_job') or 'Non défini'
-        target_company = data.get('target_company', 'Non spécifiée')
-        target_industry = data.get('target_industry', 'Non spécifié')
-        job_desc = data.get('job_description', 'Non fournie')
-        
-        prompt = f"""
-        Tu es un Consultant Stratégique en Carrière de haut niveau.
-        Ta mission est d'analyser le poste visé et le profil du candidat sous 3 angles différents, et de renvoyer un JSON unique.
-        
-        PROFIL CANDIDAT :
-        {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
-        
-        CIBLE :
-        Poste : {target_role}
-        Entreprise : {target_company}
-        Secteur : {target_industry}
-        Description de l'offre : {job_desc}
-        
-        ATTENTES :
-        1. "job_decoder_result" : Décoder l'offre d'emploi (les vrais besoins cachés derrière le jargon).
-        2. "risk_analysis_result" : Évaluer les risques (surqualification, drapeaux rouges dans l'offre, stabilité).
-        3. "hidden_market_result" : Stratégie réseau pour contourner les candidatures classiques (marché caché).
-        
-        OUTPUT STRICT JSON (Conserve exactement ces clés en anglais):
-        {{
-            "job_decoder_result": {{
-                "reality_check": [ {{ "jargon": "Phrase RH typique", "translation": "Ce que ça veut dire en vrai" }} ],
-                "real_expectations": ["Attente concrète 1", "Attente concrète 2"],
-                "red_flags": ["Signal d'alerte 1"],
-                "culture_fit": "Analyse de la culture d'entreprise déduite"
-            }},
-            "risk_analysis_result": {{
-                "overall_risk_level": "Low" | "Medium" | "High",
-                "warnings": ["..."],
-                "positive_signals": ["..."],
-                "advice": "..."
-            }},
-            "hidden_market_result": {{
-                "target_profiles": [ {{ "role": "Titre cible", "reason": "Pourquoi le contacter" }} ],
-                "suggested_companies": ["Nom Entr 1", "Nom Entr 2"],
-                "connection_strategy": "Stratégie globale...",
-                "outreach_message": {{ "subject": "Objet du message", "body": "Corps du message..." }},
-                "networking_tips": ["Astuce 1", "Astuce 2"]
-            }}
-        }}
-        LANGUAGE: {target_lang}
-        """
-        
-        result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are a Strategic Career Advisor. Output STRICT JSON.")
-        
-        if "error" in result:
-            raise Exception(result["error"])
-            
-        await set_cached_content(cache_key, user_id, "market_strategy", result)
-
-        # 2. On dispatche les résultats vers les tâches du Frontend
-        if "job_decoder" in task_ids: 
-            await asyncio.to_thread(update_task_status_sync, task_ids["job_decoder"], "SUCCESS", result.get("job_decoder_result", {}))
-            await manager.broadcast(task_ids["job_decoder"], "Décodeur d'offre généré", status="COMPLETED", data=result.get("job_decoder_result", {}))
-        if "risk_analysis" in task_ids: 
-            await asyncio.to_thread(update_task_status_sync, task_ids["risk_analysis"], "SUCCESS", result.get("risk_analysis_result", {}))
-            await manager.broadcast(task_ids["risk_analysis"], "Analyse des risques terminée", status="COMPLETED", data=result.get("risk_analysis_result", {}))
-        if "hidden_market" in task_ids: 
-            await asyncio.to_thread(update_task_status_sync, task_ids["hidden_market"], "SUCCESS", result.get("hidden_market_result", {}))
-            await manager.broadcast(task_ids["hidden_market"], "Stratégie marché caché générée", status="COMPLETED", data=result.get("hidden_market_result", {}))
-        
-    except Exception as e:
-        for tid in task_ids.values():
-            await asyncio.to_thread(update_task_status_sync, tid, "FAILED", {"error": str(e)})
-            err_data = {"error": str(e)}
-            await asyncio.to_thread(update_task_status_sync, tid, "FAILED", err_data)
-            await manager.broadcast(tid, "Erreur", status="FAILED", data=err_data)
-
 async def process_action_plan_in_background(task_id: str, cv_dict: dict):
     """Génère la To-Do list (Plan d'Action) en tâche de fond"""
     print(f"[Task {task_id}] 📋 Starting Action Plan (Async)...")
@@ -1225,7 +1004,7 @@ async def orchestrate_dashboard_tasks(tasks_map: dict, cv_dict: dict):
                         print(f"[ORCHESTRATOR DB ERROR] Impossible de MAJ le statut pour {tid}: {db_err}", flush=True)
                         
         # [FIX EXPERT] Garde une référence forte de la tâche pour éviter sa destruction
-        # silencieuse par le Garbage Collector quand l'orchestrateur a fini de s'exécuter.
+        # silencieuse par le Garbage collector quand l'orchestrateur a fini de s'exécuter.
         task = asyncio.create_task(safe_coro())
         _active_orchestrator_tasks.add(task)
         task.add_done_callback(_active_orchestrator_tasks.discard)
@@ -1249,5 +1028,8 @@ async def orchestrate_dashboard_tasks(tasks_map: dict, cv_dict: dict):
     if "action_plan" in tasks_map: fire("action_plan", process_action_plan_in_background(tasks_map["action_plan"], cv_dict))
         
     if "job_decoder" in tasks_map: fire("job_decoder", process_job_decoder_in_background(tasks_map["job_decoder"], cv_dict))
+    if "risk_analysis" in tasks_map: fire("risk_analysis", process_risk_analysis_in_background(tasks_map["risk_analysis"], cv_dict))
+    if "hidden_market" in tasks_map: fire("hidden_market", process_hidden_market_in_background(tasks_map["hidden_market"], cv_dict))
+
 
     print("[ORCHESTRATOR] ✅ All tasks queued successfully. Semaphore is handling the flow.", flush=True)

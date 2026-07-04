@@ -8,6 +8,7 @@ interface DashboardContextType {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   pilotData: any;
+  quotas: { [key: string]: number };
   isPilotLoading: boolean;
   researchResult: any;
   salaryResult: any;
@@ -25,6 +26,7 @@ interface DashboardContextType {
   setCurrentStep: (step: number) => void;
   triggerResearch: () => Promise<void>;
   fetchPilotData: () => Promise<void>;
+  fetchQuotas: () => Promise<void>;
   updateFormData?: (key: string, value: any) => void;
   pilotError: string | null;
 }
@@ -95,6 +97,43 @@ export const DashboardProvider = ({
   const [pilotData, setPilotData] = useState<any>(null);
   const [isPilotLoading, setIsPilotLoading] = useState<boolean>(false);
   const [pilotError, setPilotError] = useState<string | null>(null);
+  const [quotas, setQuotas] = useState<{[key: string]: number}>({
+    pitch: 0,
+    qa: 0,
+    mes: 0,
+    negotiation: 0,
+    regeneration: 0,
+    update: 0,
+  });
+
+  const fetchQuotas = useCallback(async () => {
+    // [FIX] Logique pour les testeurs avec quotas illimités
+    const testerEmails = (import.meta.env.VITE_REACT_APP_TESTER_EMAILS || '').split(',').map((e: string) => e.trim().toLowerCase());
+    const currentUserEmail = localCvData?.email?.toLowerCase();    // [MODIFICATION] Tous les utilisateurs sont maintenant des testeurs pour la phase de staging.
+    if (true) {
+      // L'utilisateur est un testeur, on lui donne des quotas "illimités"
+      setQuotas({
+        pitch: 999,
+        qa: 999,
+        mes: 999,
+        negotiation: 999,
+        regeneration: 999,
+        update: 999,
+      });
+      return; // On arrête ici, pas besoin d'appeler l'API
+    }
+
+    // Logique normale pour les utilisateurs standards
+    try {
+        const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/balance`);
+        if (response.ok) {
+            const data = await response.json();
+            setQuotas(data);
+        }
+    } catch (e: any) {
+        console.error("Impossible de récupérer les quotas, utilisation des valeurs par défaut.", e);
+    }
+  }, [localCvData?.email]);
 
   // Mémoïsation de la fonction d'appel pour éviter les re-rendus infinis dans les useEffect
   const fetchPilotData = useCallback(async () => {
@@ -140,13 +179,16 @@ export const DashboardProvider = ({
   // Auto-fetch ultra-robuste quand le CV (mock puis réel) est mis à jour
   useEffect(() => {
     fetchPilotData();
-  }, [fetchPilotData]);
+    fetchQuotas(); // `fetchQuotas` a maintenant `localCvData.email` en dépendance
+  }, [fetchPilotData, fetchQuotas]);
 
   return (
     <DashboardContext.Provider value={{
       activeTab, setActiveTab,
       pilotData, fetchPilotData,
       isPilotLoading,
+      quotas,
+      fetchQuotas,
       cvData: localCvData,
       gapResult: initialGapResult,
       researchResult: initialResearchResult,
@@ -163,7 +205,7 @@ export const DashboardProvider = ({
       setCurrentStep: onSetCurrentStep,
       triggerResearch: onTriggerResearch,
       updateFormData: handleUpdateFormData,
-      pilotError
+      pilotError,
     }}>
       {children}
     </DashboardContext.Provider>

@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Sparkles, MessageSquare, AlertTriangle, Lightbulb, Info, AlertCircle, ShieldAlert, ShieldCheck, Activity } from 'lucide-react';
 import { FeedbackWidget } from './FeedbackWidget';
+import { AsyncBoundary } from './AsyncBoundary';
 
 export default function FlawCoaching({ data, onBack, inline = false, loading = false }: { data: any, onBack?: () => void, inline?: boolean, loading?: boolean }) {
   const { t } = useTranslation();
@@ -22,10 +23,15 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
 
   if (loading) {
     return (
-      <div className="result-card" style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--primary)', margin: '0 0 1.5rem 0' }}><Sparkles size={24} /> {t('flaw_main_title', 'Parades aux Défauts (Entretien)')}</h3>
-        <div className="skeleton-pulse" style={{ width: '100%', height: '150px', borderRadius: '8px' }}></div>
-      </div>
+      <AsyncBoundary 
+        loading={true} 
+        title={t('flaw_main_title', 'Parades aux Défauts (Entretien)')} 
+        icon={<Sparkles size={24} />} 
+        loadingText="Préparation de vos parades en cours..." 
+        style={{ marginTop: '0.5rem' }}
+      >
+        <></>
+      </AsyncBoundary>
     );
   }
 
@@ -45,6 +51,21 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
   };
 
   const getLevel = (item: any) => item.impact_level || item.impact || item.severity || item.niveau || item.risk_level || '';
+
+  // [FIX] Tri des défauts par ordre de criticité (Critique > Modéré > Faible)
+  const getImpactOrder = (level: string) => {
+    const l = level?.toLowerCase() || '';
+    if (l.includes('p1') || l.includes('high') || l.includes('critique')) return 1;
+    if (l.includes('p2') || l.includes('medium') || l.includes('vigilance')) return 2;
+    if (l.includes('p3') || l.includes('low') || l.includes('mineur')) return 3;
+    return 4; // Non classé
+  };
+
+  const sortedCoachingList = [...coachingList].sort((a, b) => {
+    const levelA = getLevel(a);
+    const levelB = getLevel(b);
+    return getImpactOrder(levelA) - getImpactOrder(levelB);
+  });
 
   // Calcul des statistiques de risque global
   const highRiskCount = coachingList.filter((item: any) => {
@@ -113,13 +134,13 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
           </div>
         )}
 
-        {coachingList.length === 0 ? (
+        {sortedCoachingList.length === 0 ? (
           <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '3rem', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px dashed var(--border-color)' }}>
             {t('flaw_no_data', "Aucun défaut n'a été sélectionné lors de l'étape 5, l'analyse n'a donc pas été générée.")}
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
-            {coachingList.map((item: any, idx: number) => {
+            {sortedCoachingList.map((item: any, idx: number) => {
               const level = getLevel(item);
               const impact = getImpactConfig(level);
               return (
@@ -171,7 +192,7 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
         )}
 
       {/* Section de Feedback (Pouces) affichée uniquement si on a des données */}
-      {coachingList.length > 0 && (
+      {sortedCoachingList.length > 0 && (
         <FeedbackWidget 
           feature="parade_defauts" 
           question={t('flaw_feedback_q', "Ces conseils vous sont-ils utiles ?")} 

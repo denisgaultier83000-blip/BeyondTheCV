@@ -1,5 +1,6 @@
 import React from 'react';
 import { Network, Users, MessageCircle, Lightbulb, AlertCircle, Compass } from 'lucide-react';
+import { AsyncBoundary } from './AsyncBoundary';
 import { FeedbackWidget } from './FeedbackWidget';
 
 interface HiddenMarketData {
@@ -17,15 +18,6 @@ interface HiddenMarketProps {
 }
 
 export function HiddenMarket({ data, loading, error }: HiddenMarketProps) {
-  if (error) {
-    return (
-      <div className="error-box" style={{ padding: '1.5rem', borderRadius: '1rem' }}>
-        <AlertCircle size={24} />
-        <span>Une erreur est survenue lors de l'analyse du marché caché et réseau. Veuillez réessayer.</span>
-      </div>
-    );
-  }
-
   // Résolution robuste (Support de l'encapsulation IA)
   let actualData = data && 'result' in data ? (data as any).result : data;
   
@@ -38,18 +30,13 @@ export function HiddenMarket({ data, loading, error }: HiddenMarketProps) {
   
   const hidden_market: any = actualData && 'hidden_market' in actualData ? actualData.hidden_market : actualData;
   
-  if (loading) return null;
-  if (!hidden_market || Object.keys(hidden_market).length === 0) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Analyse du marché caché indisponible.</div>
-    );
-  }
-
-  const outreach = hidden_market.outreach_message || { subject: "", body: "" };
-  const tips = hidden_market.networking_tips || [];
-  const strategy = hidden_market.connection_strategy || "";
+  const outreach = hidden_market?.outreach_message || { subject: "", body: "" };
+  const tips = hidden_market?.networking_tips || [];
+  const strategy = hidden_market?.connection_strategy || "";
 
   return (
+    <AsyncBoundary loading={loading} error={error} errorText="Une erreur est survenue lors de l'analyse du marché caché et réseau. Veuillez réessayer." style={{ background: 'transparent', border: 'none', padding: 0 }}>
+      {hidden_market && Object.keys(hidden_market).length > 0 ? (
     <>
       <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
         Stratégie pour accéder aux offres non publiées (qui représentent jusqu'à 80% du marché).
@@ -137,5 +124,9 @@ export function HiddenMarket({ data, loading, error }: HiddenMarketProps) {
         </div>
       </div>
     </>
+      ) : (
+        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Analyse du marché caché indisponible.</div>
+      )}
+    </AsyncBoundary>
   );
 }

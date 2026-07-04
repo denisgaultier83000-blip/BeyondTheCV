@@ -1,15 +1,7 @@
 {
   "name": "beyondthecv-frontend",
-  "private": true,
   "version": "1.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "test": "vitest",
-    "coverage": "vitest run --coverage"
-  },
+  "private": true,
   "dependencies": {
     "@stripe/react-stripe-js": "^2.5.0",
     "@stripe/stripe-js": "^3.0.0",
@@ -17,6 +9,7 @@
     "i18next": "^23.10.0",
     "i18next-browser-languagedetector": "^7.2.0",
     "i18next-http-backend": "^2.5.0",
+    "jwt-decode": "^4.0.0",
     "lucide-react": "^0.330.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -24,6 +17,12 @@
     "react-router-dom": "^6.22.0",
     "recharts": "^3.8.1",
     "zod": "^3.22.4"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "vitest",
+    "preview": "vite preview"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.2",

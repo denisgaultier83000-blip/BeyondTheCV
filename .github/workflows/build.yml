@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - staging
       - staging1
       - staging2
       - staging3
@@ -12,8 +13,6 @@ on:
   workflow_dispatch:
 
 env:
-  # Désactive l'avertissement de dépréciation Node.js dans GitHub Actions
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   VERSION: ""
   BACKEND_IMAGE: ""
   FRONTEND_IMAGE: ""

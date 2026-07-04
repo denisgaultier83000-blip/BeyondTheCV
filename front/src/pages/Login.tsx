@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 
 interface LoginProps {
   onLoginSuccess?: () => void;
-  onLogin?: () => void;
 }
 
-export default function Login({ onLoginSuccess, onLogin }: LoginProps) {
+export default function Login({ onLoginSuccess }: LoginProps) {
+  const navigate = useNavigate();
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,24 +65,23 @@ export default function Login({ onLoginSuccess, onLogin }: LoginProps) {
       }
 
       const tokenData = await loginRes.json();
-      
-      // [NOUVEAU] Logique de redirection unifiée
-      if (tokenData.role === 'admin') {
-        localStorage.setItem('token', tokenData.access_token);
-        window.location.href = '/admin';
-        return;
-      }
 
       // 3. Sauvegarde de la session
       localStorage.setItem('token', tokenData.access_token);
-      localStorage.setItem('user', JSON.stringify({
-        name: formData.firstName || 'Candidat',
-        email: formData.email,
-        subscription_status: 'active' // Remplacé par la vraie valeur venant du backend idéalement
-      }));
+      
+      // Sauvegarder l'objet utilisateur complet s'il existe
+      if (tokenData.user) {
+        localStorage.setItem('user', JSON.stringify(tokenData.user));
+      }
 
-      if (onLoginSuccess) onLoginSuccess(); // Notifie App.tsx du succès
-      if (onLogin) onLogin(); // Notifie main.tsx du succès
+      // 4. Déléguer la redirection au composant parent (App.tsx)
+      if (onLoginSuccess) {
+        // On passe la réponse complète de l'API pour que le parent puisse décider de la route
+        onLoginSuccess(tokenData);
+      } else {
+        // Comportement de secours (ne devrait pas arriver dans notre cas)
+        navigate('/', { replace: true });
+      }
 
     } catch (err: any) {
       setError(err.message);

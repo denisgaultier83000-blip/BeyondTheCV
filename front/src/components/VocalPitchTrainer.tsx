@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Square, Play, RotateCcw, Loader2, Activity, MessageSquare, AlertTriangle, CheckCircle2, Dumbbell } from 'lucide-react';
+import { Mic, Square, Play, RotateCcw, Loader2, Activity, MessageSquare, AlertTriangle, CheckCircle2, Dumbbell, Ban } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { useTranslation } from 'react-i18next';
+import { useDashboard } from './DashboardContext';
 import { RechargeModal } from './RechargeModal';
+import { AsyncBoundary } from './AsyncBoundary';
 
 interface VocalPitchTrainerProps {
   targetJob?: string;
@@ -14,6 +16,7 @@ interface VocalPitchTrainerProps {
 
 export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDescription, onSuccess }: VocalPitchTrainerProps) => {
   const { t } = useTranslation();
+  const { quotas, fetchQuotas } = useDashboard();
   
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -78,18 +81,18 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDe
     if (recognitionRef.current) recognitionRef.current.stop();
     if (timerRef.current) clearInterval(timerRef.current);
     setIsRecording(false);
-
-    if (seconds < 10) {
-      alert("L'enregistrement est trop court (minimum 10 secondes) pour une analyse pertinente.");
-      return;
-    }
-    
-    analyzePitch();
   };
 
   const analyzePitch = async () => {
     setIsAnalyzing(true);
     setError(null);
+
+    if ((quotas?.pitch ?? 0) <= 0) {
+      setShowRechargeModal(true);
+      setIsAnalyzing(false);
+      return;
+    }
+
     try {
       const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/evaluate-vocal-pitch`, {
         method: 'POST',
@@ -111,6 +114,7 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDe
       const data = await response.json();
       setResult(data);
       if (onSuccess) onSuccess();
+      if (fetchQuotas) fetchQuotas();
     } catch (e: any) {
       console.error(e);
       setError(e.message || "L'analyse a échoué. L'IA a mis trop de temps à répondre.");
@@ -165,31 +169,52 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDe
             )}
           </div>
           
-          {isRecording ? (
-            <button onClick={stopRecording} className="btn-primary" style={{ background: '#ef4444', borderColor: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem', fontSize: '1.1rem', animation: 'pulse-record 1.5s infinite' }}>
-              <Square size={20} /> Stopper et Analyser
-            </button>
-          ) : (
-            <button onClick={startRecording} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem', fontSize: '1.1rem' }}>
-              <Play size={20} /> Démarrer l'enregistrement
-            </button>
-          )}
-          
-          {transcript && <div style={{ marginTop: '1rem', fontStyle: 'italic', color: 'var(--text-muted)', maxWidth: '80%', textAlign: 'center' }}>"{transcript.slice(-100)}..."</div>}
+          <textarea 
+            value={transcript}
+            onChange={e => setTranscript(e.target.value)}
+            placeholder="La retranscription s'affichera ici. Vous pouvez corriger le texte manuellement avant l'analyse..."
+            style={{ width: '100%', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '0.75rem', padding: '1rem', color: 'var(--text-main)', fontFamily: 'inherit', fontSize: '1rem', minHeight: '120px', resize: 'vertical', outline: 'none' }}
+            disabled={isRecording}
+          />
+
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            {isRecording ? (
+              <button onClick={stopRecording} className="btn-primary" style={{ background: '#ef4444', borderColor: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem', fontSize: '1.1rem', animation: 'pulse-record 1.5s infinite' }}>
+                <Square size={20} /> Arrêter l'enregistrement
+              </button>
+            ) : (
+              <>
+                <button onClick={startRecording} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem', fontSize: '1.1rem' }}>
+                  <Play size={20} /> {transcript ? "Nouvel enregistrement" : "Démarrer l'enregistrement"}
+                </button>
+                {transcript.trim().length > 0 && (
+                  <button onClick={() => {
+                    if (seconds < 10) { alert("L'enregistrement est trop court (minimum 10 secondes) pour une analyse pertinente."); return; }
+                    analyzePitch();
+                  }} className="btn-primary" style={{ background: '#10b981', borderColor: '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem', fontSize: '1.1rem' }}>
+                    <Activity size={20} /> Analyser ma prestation ({quotas?.pitch ?? 0} restants)
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         </div>
       )}
 
       {isAnalyzing && (
-        <div style={{ textAlign: 'center', padding: '3rem' }}>
-          <Loader2 size={40} className="spin" color="#8b5cf6" style={{ margin: '0 auto 1rem auto' }} />
-          <h3 style={{ color: 'var(--text-main)' }}>Analyse vocale en cours...</h3>
-          <p style={{ color: 'var(--text-muted)' }}>Extraction de la prosodie, du débit et de la structure sémantique.</p>
-        </div>
+        <AsyncBoundary 
+          loading={true} 
+          title="Analyse vocale en cours..." 
+          loadingText="Extraction de la prosodie, du débit et de la structure sémantique."
+          style={{ border: 'none', background: 'transparent', boxShadow: 'none' }}
+        >
+          <></>
+        </AsyncBoundary>
       )}
 
       {result && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', animation: 'fadeIn 0.5s ease-out' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
             <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', textAlign: 'center' }}>
               <Activity size={24} color="#3b82f6" style={{ margin: '0 auto 0.5rem auto' }} />
               <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-main)' }}>{result.metrics.wpm}</div>
@@ -198,7 +223,12 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDe
             <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', textAlign: 'center' }}>
               <AlertTriangle size={24} color="#f59e0b" style={{ margin: '0 auto 0.5rem auto' }} />
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#b45309' }}>{Array.isArray(result.metrics?.filler_words_detected) && result.metrics.filler_words_detected.length > 0 ? result.metrics.filler_words_detected.join(', ') : "Aucun"}</div>
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Tics de langage détectés</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Tics de langage</div>
+            </div>
+            <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+              <Ban size={24} color="#ef4444" style={{ margin: '0 auto 0.5rem auto' }} />
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#b91c1c' }}>{Array.isArray(result.metrics?.negative_words_detected) && result.metrics.negative_words_detected.length > 0 ? result.metrics.negative_words_detected.join(', ') : "Aucun"}</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Mots dévalorisants</div>
             </div>
             <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', textAlign: 'center' }}>
               <CheckCircle2 size={24} color="#10b981" style={{ margin: '0 auto 0.5rem auto' }} />

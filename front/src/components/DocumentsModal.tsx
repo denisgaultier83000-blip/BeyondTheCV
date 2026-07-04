@@ -4,6 +4,7 @@ import { authenticatedFetch } from "../utils/auth";
 import { API_ROUTES } from "../api/routes";
 import { API_BASE_URL } from "../config";
 import { Briefcase, Calendar, ChevronRight, ArrowLeft, FileText, Mic, MessageSquare, Building, BrainCircuit, Download, Trash2, FolderOpen, Printer, Eye, AlertTriangle } from 'lucide-react';
+import { AsyncBoundary } from './AsyncBoundary';
 
 interface Document {
   id: string;
@@ -170,13 +171,13 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
         </div>
       )}
 
-          {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-              <p style={{ color: "var(--text-muted)" }}>{t('loading', 'Chargement de vos dossiers...')}</p>
-            </div>
-          ) : error ? (
-            <p style={{ textAlign: "center", color: "var(--danger-text)" }}>{error}</p>
-          ) : applications.length === 0 ? (
+          <AsyncBoundary 
+            loading={loading} 
+            error={error || undefined} 
+            loadingText={t('loading', 'Chargement de vos dossiers...')} 
+            style={{ border: 'none', background: 'transparent' }}
+          >
+            {applications.length === 0 ? (
             <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-muted)" }}>
               <FolderOpen size={64} style={{ opacity: 0.2, margin: '0 auto 20px auto' }} />
               <p>{t('no_documents_found', 'Aucune candidature récente trouvée.')}</p>
@@ -314,6 +315,7 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
               )}
             </>
           )}
+          </AsyncBoundary>
         </div>
       </div>
       <style>{`

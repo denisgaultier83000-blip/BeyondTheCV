@@ -26,6 +26,9 @@ services:
     container_name: btcv-backend-staging
     restart: unless-stopped
 
+    env_file:
+      - .env
+
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}_staging
       OPENAI_API_KEY: ${OPENAI_API_KEY}
@@ -33,6 +36,9 @@ services:
       SERPER_API_KEY: ${SERPER_API_KEY}
       JWT_SECRET: ${JWT_SECRET}
       ENVIRONMENT: staging
+      # Secrets pour l'API Admin, chargés depuis le fichier .env
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       # Injection dynamique pour les CORS
       FRONTEND_URL: "https://staging.beyondthecv.app"
 

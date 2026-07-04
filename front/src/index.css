@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 :root {
   /* --- Palette Officielle (Validée) --- */
   --bleu-fonce: #0F2650;
@@ -9,6 +11,8 @@
   --primary: var(--bleu-fonce);
   --secondary: var(--bleu-moyen);
   --accent: var(--bleu-clair);
+  --gradient-primary: linear-gradient(45deg, #6DBEF7, #446285);
+  --gradient-premium: linear-gradient(45deg, #F59E0B, #EA580C); /* Dégradé Doré/Orange */
   
   --bg-body: var(--blanc-logo);
   --bg-card: #ffffff;
@@ -47,11 +51,12 @@
   --error-text: #991b1b;
 
   /* --- Ombres Standardisées --- */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-brand: 0 0 0 2px var(--bleu-clair), 0 0 0 4px #ffffff, 0 0 0 6px var(--bleu-fonce), 0 10px 25px rgba(0, 0, 0, 0.1);
+  /* Ombres basées sur le bleu de la marque pour un look plus soigné */
+  --shadow-sm: 0 1px 2px 0 rgba(15, 38, 80, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(15, 38, 80, 0.1), 0 2px 4px -1px rgba(15, 38, 80, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 38, 80, 0.1), 0 4px 6px -2px rgba(15, 38, 80, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(15, 38, 80, 0.1), 0 10px 10px -5px rgba(15, 38, 80, 0.04);
+  --shadow-brand: 0 0 0 2px var(--bleu-clair), 0 0 0 4px #ffffff, 0 0 0 6px var(--bleu-fonce), 0 10px 25px rgba(15, 38, 80, 0.1);
 }
 
 /* --- Dark Mode --- */
@@ -69,6 +74,7 @@
   --primary: var(--bleu-clair);
   --primary-hover: #8ed2f9;
   --primary-fg: var(--bleu-fonce);
+  --gradient-premium: linear-gradient(45deg, #FBBF24, #EA580C); /* Plus lumineux pour le mode sombre */
 
   /* --- Couleurs sémantiques pour les états (Dark) --- */
   --success-text: #bbf7d0;
@@ -98,8 +104,9 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  background-color: var(--bg-body);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  /* Un fond subtilement dégradé pour casser l'aspect plat */
+  background: linear-gradient(170deg, var(--bg-body) 0%, var(--bg-secondary) 100%);
   color: var(--text-main);
   -webkit-font-smoothing: antialiased;
   transition: background-color 0.3s;
@@ -118,12 +125,33 @@ label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; c
 button { cursor: pointer; font-family: inherit; }
 
 .btn-primary {
-  background: var(--primary); color: var(--primary-fg); border: none; padding: 10px 24px; border-radius: 8px;
-  font-weight: 600; font-size: 14px; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); transition: background 0.2s;
+  /* On passe au dégradé pour un look plus moderne et un effet au survol */
+  background: var(--gradient-primary);
+  color: var(--primary-fg); border: none; padding: 10px 24px; border-radius: 8px;
+  font-weight: 600; font-size: 14px;
+  box-shadow: var(--shadow-sm);
   text-decoration: none; display: inline-block;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.btn-primary:hover { background: var(--primary-hover); }
-.btn-primary:disabled { opacity: 0.7; cursor: not-allowed; }
+.btn-primary:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+.btn-primary:disabled { background: var(--bleu-moyen); opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.btn-premium {
+  background: var(--gradient-premium);
+  color: #ffffff; border: none; padding: 10px 24px; border-radius: 8px;
+  font-weight: 600; font-size: 14px;
+  box-shadow: var(--shadow-sm);
+  text-decoration: none; display: inline-block;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-premium:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+.btn-premium:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
 
 .btn-secondary {
   background: var(--bg-card); color: var(--text-main); border: 1px solid var(--input-border); padding: 10px 24px; border-radius: 8px;
@@ -178,12 +206,6 @@ button { cursor: pointer; font-family: inherit; }
   font-weight: 600; font-size: 12px; transition: background 0.2s;
 }
 .btn-danger:hover { background: var(--danger-hover); }
-
-.card {
-  background: var(--bg-card); border-radius: 16px;
-  padding: 40px; max-width: 900px; margin: 0 auto;
-  box-shadow: var(--shadow-brand);
-}
 
 .section-title { font-size: 24px; font-weight: 700; color: var(--text-main); margin-bottom: 24px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
@@ -259,7 +281,8 @@ button { cursor: pointer; font-family: inherit; }
   background: var(--bg-card);
   padding: 24px; /* 1.5rem */
   border-radius: 16px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-color); /* On garde une bordure discrète */
+  border-top: 3px solid var(--accent); /* Mais on ajoute un accent de couleur en haut */
   box-shadow: var(--shadow-md);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
@@ -271,6 +294,45 @@ button { cursor: pointer; font-family: inherit; }
 
 @media (max-width: 640px) {
   .result-card {
-    padding: 16px;
+    padding: 20px;
   }
+}
+
+/* --- Styles Spécifiques aux Composants (Migrés depuis theme.css) --- */
+
+/* Styles pour le sélecteur de Pitch Stratégique */
+.pitch-selector-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pitch-selector-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.pitch-selector-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.pitch-selector-tabs .btn-outline {
+  /* Le style est maintenant hérité de .btn-outline */
+  padding: 0.6rem 1rem; /* Ajustement pour la densité */
+  font-size: 0.9rem;
+}
+
+.pitch-selector-tabs .btn-outline.active {
+  background: var(--primary);
+  color: var(--primary-fg);
+  border-color: var(--primary);
+}
+
+.btn-outline.active {
+  background: var(--primary);
+  color: var(--primary-fg);
+  border-color: var(--primary);
 }

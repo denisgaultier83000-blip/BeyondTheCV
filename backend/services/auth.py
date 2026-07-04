@@ -1,16 +1,20 @@
 import uuid
 import os
 import secrets
-import httpx
-from datetime import datetime, timedelta
+import smtplib
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr
 from models import UserLogin, UserRegister
 from security import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user, verify_password, get_password_hash
 from database import db
-
-router = APIRouter(tags=["Authentication"])
+router = APIRouter(
+    prefix="/api/auth",
+    tags=["Authentication"]
+)
 
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
@@ -19,52 +23,122 @@ class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
 
+# --- [NOUVEAU] Types pour les données Admin ---
+class AdminUser(BaseModel):
+    id: str
+    email: str
+    first_name: str | None
+    last_name: str | None
+    offer_name: str
+    status: str
+    created_at: datetime
+    last_login: datetime
+    sessions_remaining: int
+    total_ia_cost: float
+
+class AdminPayment(BaseModel):
+    id: str
+    user_email: str
+    status: str
+    offer_name: str
+    amount_paid: float
+    currency: str
+    purchase_date: datetime
+    stripe_invoice_url: str | None
+
 async def _insert_user(uid, email, hashed_pw, first, last, created):
     """Insère un nouvel utilisateur."""
     try:
         async with db.get_connection() as conn:
+            # Fail-safe : Création de la colonne credits si elle n'existe pas
+            try:
+                await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT 100")
+            except Exception:
+                pass
+            # [FIX] Ajout de la colonne is_tester si elle n'existe pas
+            try:
+                await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_tester BOOLEAN DEFAULT FALSE")
+            except Exception:
+                pass
             await db.execute(conn, """
-                INSERT INTO users (id, email, hashed_password, first_name, last_name, created_at, is_premium)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (uid, email, hashed_pw, first, last, created, False))
+                INSERT INTO users (id, email, hashed_password, first_name, last_name, created_at, is_premium, credits, is_tester)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (uid, email, hashed_pw, first, last, created, False, 100, True))
+            
+            # [FIX] Initialisation des compteurs dans les nouvelles colonnes de la table users
+            try:
+                await db.execute(conn, "UPDATE users SET quota_pitch = 10, quota_qa = 25, quota_mes = 6, quota_negotiation = 4, quota_regeneration = 3, quota_update = 1 WHERE id = ?", (uid,))
+            except Exception as q_err:
+                print(f"[DB WARNING] Impossible d'initialiser les quotas : {q_err}", flush=True)
     except Exception as e:
         print(f"[DB ERROR] _insert_user: {e}", flush=True)
         raise e
 
 # --- Routes ---
 
-@router.post("/api/auth/token")
+@router.post("/token")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     try:
         # [FIX] On gère la casse de l'email pour garantir un login fiable
         email = form_data.username.lower().strip()
         async with db.get_connection() as conn:
+            # Fail-safe : Création de la colonne credits avant le SELECT
+            try:
+                await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT 100")
+            except Exception:
+                pass
             # Requête propre et directe
-            cursor = await db.execute(conn, "SELECT id, email, hashed_password, first_name, last_name, created_at, is_premium FROM users WHERE email = ?", (email,))
-            row = await cursor.fetchone()
+            # [CORRECTIF] Ajout de is_admin dans le SELECT pour qu'il soit bien récupéré.
+            cursor = await db.execute(conn, "SELECT id, email, hashed_password, first_name, last_name, created_at, is_premium, credits, is_admin, is_active, is_tester FROM users WHERE email = ?", (email,))
+            user_row = await cursor.fetchone()
 
-        if not row:
-            print(f"[AUTH ERROR] Échec : Email introuvable en base ({email})", flush=True)
+        # Simple admin authentication
+        admin_email = os.getenv("ADMIN_EMAIL", "").lower()
+        admin_password = os.getenv("ADMIN_PASSWORD")
+
+        if admin_email and admin_password and email == admin_email and form_data.password == admin_password:
+            print(f"[AUTH] ✅ Admin login successful for: {email}", flush=True)
+            access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+            # [FIX] Le token contient maintenant le rôle pour la protection des endpoints
+            access_token = create_access_token(data={"sub": email, "role": "admin", "is_admin": True}, expires_delta=access_token_expires)
+            return {
+                "access_token": access_token,
+                "token_type": "bearer",
+                "role": "admin", # [FIX] Signal clair pour la redirection frontend
+                "user": { "email": email, "is_admin": True }
+            }
+
+        if not user_row:
             raise HTTPException(status_code=401, detail="Identifiants incorrects.")
-            
+
         # [FIX] Sécurisation absolue du mapping pour gérer tuples, sqlite3.Row, asyncpg.Record et dicts
-        if isinstance(row, dict):
-            user_dict = row
-        elif hasattr(row, 'keys'):
-            user_dict = dict(row)
-        elif isinstance(row, tuple):
+        if isinstance(user_row, dict):
+            user_dict = user_row
+        elif hasattr(user_row, 'keys'):
+            user_dict = dict(user_row)
+        elif isinstance(user_row, tuple):
             user_dict = {
-                "id": row[0],
-                "email": row[1],
-                "hashed_password": row[2],
-                "first_name": row[3],
-                "last_name": row[4],
-                "created_at": row[5],
-                "is_premium": row[6] if len(row) > 6 else False
+                "id": user_row[0],
+                "email": user_row[1],
+                "hashed_password": user_row[2],
+                "first_name": user_row[3],
+                "last_name": user_row[4],
+                "created_at": user_row[5],
+                "is_premium": user_row[6] if len(user_row) > 6 else False,
+                "credits": user_row[7] if len(user_row) > 7 else 100,
+                "is_admin": user_row[8] if len(user_row) > 8 else False,
+                "is_active": user_row[9] if len(user_row) > 9 else True,
+                "is_tester": user_row[10] if len(user_row) > 10 else False
             }
         else:
-            user_dict = dict(row)
+            user_dict = dict(user_row)
             
+        # [SÉCURITÉ] Vérification si le compte a été bloqué par un administrateur
+        is_active = user_dict.get("is_active")
+        if is_active is False or is_active == 0 or str(is_active).lower() == "false":
+            print(f"[AUTH ERROR] Échec : Compte banni ou inactif ({email})", flush=True)
+            raise HTTPException(status_code=403, detail="Votre compte a été désactivé par l'administration. Veuillez contacter le support.")
+
         try:
             is_valid = verify_password(form_data.password, user_dict.get("hashed_password", ""))
         except Exception as hash_err:
@@ -81,6 +155,26 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             expires_delta=access_token_expires
         )
 
+        # --- [MODIFICATION] GESTION DES CRÉDITS & RELANCE TESTEURS ---
+        # Recharge automatique de 60 crédits si le solde est bas.
+        user_credits = user_dict.get("credits")
+        if user_credits is not None and user_credits <= 5:
+            user_credits += 60
+            async with db.get_connection() as conn:
+                try:
+                    await db.execute(conn, "UPDATE users SET credits = credits + 60, quota_pitch = quota_pitch + 60, quota_qa = quota_qa + 60, quota_mes = quota_mes + 60, quota_negotiation = quota_negotiation + 60, quota_regeneration = quota_regeneration + 60, quota_update = quota_update + 60 WHERE id = ?", (user_dict.get("id"),))
+                    print(f"[AUTH] 🎁 +60 crédits accordés (Solde bas) pour : {email}", flush=True)
+                except Exception:
+                    pass
+
+        # --- [MODIFICATION] Tous les utilisateurs sont des testeurs ---
+        is_tester_flag = True
+        
+        admin_emails_str = os.getenv("ADMIN_EMAIL", "")
+        admin_emails = {e.strip().lower() for e in admin_emails_str.split(',') if e.strip()}
+        # [CORRECTIF] On vérifie si l'utilisateur est admin via la DB OU via la variable d'environnement.
+        is_admin_flag = bool(user_dict.get("is_admin")) or (email in admin_emails)
+
         return {
             "access_token": access_token,
             "token_type": "bearer",
@@ -88,7 +182,10 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
                 "id": str(user_dict.get("id", "")),
                 "name": f"{user_dict.get('first_name', '')} {user_dict.get('last_name', '')}".strip(),
                 "email": user_dict.get("email", ""),
-                "is_premium": bool(user_dict.get("is_premium", False))
+                "is_premium": bool(user_dict.get("is_premium", False)),
+                "credits": user_credits,
+                "is_admin": is_admin_flag,
+                "is_tester": is_tester_flag
             }
         }
     except HTTPException:
@@ -99,7 +196,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         print(f"[AUTH ERROR CRITICAL] {e}", flush=True)
         raise HTTPException(status_code=500, detail=f"Erreur interne : {str(e)}")
 
-@router.post("/api/auth/register")
+@router.post("/register")
 async def register(user: UserRegister):
     print(f"[AUTH] Register attempt for: {user.email}", flush=True)
     email = user.email.lower().strip()
@@ -133,55 +230,54 @@ async def register(user: UserRegister):
 async def get_user_status(current_user: dict = Depends(get_current_user)):
     """Vérifie le statut Premium de l'utilisateur."""
 
-async def send_reset_email(to_email: str, reset_token: str):
-    """Envoie l'email de réinitialisation de mot de passe via l'API SendGrid."""
-    sg_key = os.getenv("SENDGRID_API_KEY")
-    from_email = os.getenv("SENDGRID_FROM_EMAIL", "noreply@beyondthecv.app")
+def send_reset_email(to_email: str, reset_token: str):
+    """Envoie l'email de réinitialisation de mot de passe via SMTP, de manière synchrone."""
+    smtp_host = os.getenv("SMTP_HOST")
+    smtp_port = int(os.getenv("SMTP_PORT", 587))
+    smtp_user = os.getenv("SMTP_USER")
+    smtp_pass = os.getenv("SMTP_PASS")
+
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-    
     reset_link = f"{frontend_url}/reset-password?token={reset_token}"
     
-    if not sg_key:
-        print(f"[AUTH] ⚠️ SENDGRID_API_KEY non configurée. Lien de reset pour {to_email} : {reset_link}", flush=True)
+    if not all([smtp_host, smtp_user, smtp_pass]):
+        print(f"[AUTH] ⚠️ Configuration SMTP manquante. Email de reset non envoyé. Lien : {reset_link}", flush=True)
         return
         
-    headers = {
-        "Authorization": f"Bearer {sg_key}",
-        "Content-Type": "application/json"
-    }
-    
-    html_content = f"""
+    msg = MIMEMultipart("alternative")
+    msg["From"] = f"Support BeyondTheCV <{smtp_user}>"
+    msg["To"] = to_email
+    msg["Subject"] = "Réinitialisation de votre mot de passe - BeyondTheCV"
+
+    plain_body = f"""Bonjour,\n\nVous avez demandé à réinitialiser le mot de passe de votre compte BeyondTheCV.\n\nCliquez sur le lien suivant pour créer un nouveau mot de passe (ce lien expire dans 15 minutes) :\n{reset_link}\n\nSi vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email.\n\nL'équipe BeyondTheCV"""
+
+    html_body = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
         <h2 style="color: #0F2650;">Réinitialisation de votre mot de passe</h2>
         <p>Bonjour,</p>
         <p>Vous avez demandé à réinitialiser le mot de passe de votre compte BeyondTheCV.</p>
         <p>Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe :</p>
         <div style="text-align: center; margin: 30px 0;">
-            <a href="{reset_link}" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Réinitialiser mon mot de passe</a>
+            <a href="{reset_link}" style="background-color: #0F2650; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Réinitialiser mon mot de passe</a>
         </div>
         <p style="color: #64748b; font-size: 0.9em;">Ce lien expirera dans 15 minutes.</p>
         <p style="color: #64748b; font-size: 0.9em;">Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email.</p>
     </div>
     """
-    
-    data = {
-        "personalizations": [{"to": [{"email": to_email}]}],
-        "from": {"email": from_email, "name": "BeyondTheCV"},
-        "subject": "Réinitialisation de mot de passe - BeyondTheCV",
-        "content": [{"type": "text/html", "value": html_content}]
-    }
-    
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post("https://api.sendgrid.com/v3/mail/send", headers=headers, json=data)
-            if resp.status_code >= 400:
-                print(f"[SENDGRID ERROR] {resp.status_code} - {resp.text}", flush=True)
-            else:
-                print(f"[AUTH] 📧 Email de récupération envoyé à {to_email}", flush=True)
-    except Exception as e:
-        print(f"[SENDGRID ERROR] Échec de l'envoi : {e}", flush=True)
 
-@router.post("/api/auth/forgot-password")
+    msg.attach(MIMEText(plain_body, "plain", "utf-8"))
+    msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+    try:
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.send_message(msg)
+            print(f"[AUTH] 📧 Email de récupération envoyé à {to_email}", flush=True)
+    except Exception as e:
+        print(f"[SMTP ERROR] Échec de l'envoi : {e}", flush=True)
+
+@router.post("/forgot-password")
 async def forgot_password(request: ForgotPasswordRequest, background_tasks: BackgroundTasks):
     """Génère un token de récupération et l'envoie par email."""
     email = request.email.lower().strip()
@@ -211,7 +307,7 @@ async def forgot_password(request: ForgotPasswordRequest, background_tasks: Back
     # [SÉCURITÉ] Renvoie toujours "success" pour empêcher l'Account Enumeration (Deviner si un email existe)
     return {"status": "success", "message": "Si ce compte existe, un email a été envoyé."}
 
-@router.post("/api/auth/reset-password")
+@router.post("/reset-password")
 async def reset_password(request: ResetPasswordRequest):
     """Vérifie le token et met à jour le mot de passe."""
     token = request.token.strip()
@@ -241,3 +337,82 @@ async def reset_password(request: ResetPasswordRequest):
     except Exception as e:
         print(f"[AUTH ERROR] Reset password failed: {e}", flush=True)
         raise HTTPException(status_code=500, detail="Erreur interne lors de la réinitialisation.")
+
+# --- [NOUVEAU] Endpoints pour le Dashboard Admin ---
+
+@router.get("/api/admin/users", response_model=dict)
+async def get_all_users(current_user: dict = Depends(get_current_user)):
+    if not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Accès refusé.")
+
+    async with db.get_connection() as conn:
+        # [FIX] Ajout de la colonne total_ia_cost si elle n'existe pas
+        try:
+            await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS total_ia_cost REAL DEFAULT 0.0")
+        except Exception: pass
+
+        cursor = await db.execute(conn, """
+            SELECT id, email, first_name, last_name, subscription_status as status, 
+                   created_at, last_login, quota_qa as sessions_remaining, total_ia_cost
+            FROM users ORDER BY created_at DESC
+        """)
+        rows = await cursor.fetchall()
+
+    users_list = []
+    for row in rows:
+        user_data = dict(row)
+        # Logique pour déterminer le nom de l'offre (à affiner)
+        user_data['offer_name'] = 'Stratégique' # Placeholder
+        users_list.append(AdminUser(**user_data))
+
+    return {"users": users_list}
+
+@router.get("/api/admin/billing", response_model=dict)
+async def get_billing_data(current_user: dict = Depends(get_current_user)):
+    if not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Accès refusé.")
+
+    async with db.get_connection() as conn:
+        # [FIX] Création de la table payments si elle n'existe pas
+        await db.execute(conn, """
+            CREATE TABLE IF NOT EXISTS payments (
+                id TEXT PRIMARY KEY, user_id TEXT, user_email TEXT, status TEXT, offer_name TEXT, 
+                amount_paid REAL, currency TEXT, purchase_date TIMESTAMP, stripe_invoice_url TEXT
+            )
+        """)
+        
+        p_cursor = await db.execute(conn, "SELECT * FROM payments ORDER BY purchase_date DESC")
+        payments = [AdminPayment(**dict(row)) for row in await p_cursor.fetchall()]
+
+        # Calcul des statistiques
+        stats_cursor = await db.execute(conn, """
+            SELECT 
+                SUM(amount_paid) as total_revenue,
+                SUM(CASE WHEN purchase_date >= ? THEN amount_paid ELSE 0 END) as revenue_last_30d,
+                (SELECT COUNT(DISTINCT user_id) FROM users) as total_users
+            FROM payments WHERE status = 'succeeded'
+        """, (datetime.now(timezone.utc) - timedelta(days=30),))
+        stats_row = await stats_cursor.fetchone()
+        stats_data = dict(stats_row) if stats_row else {}
+        total_revenue = stats_data.get('total_revenue', 0) or 0
+        total_users = stats_data.get('total_users', 1) or 1
+
+    stats = {"total_revenue": total_revenue, "revenue_last_30d": stats_data.get('revenue_last_30d', 0) or 0, "total_refunds": 0.0, "arpu": total_revenue / total_users}
+    return {"payments": payments, "stats": stats}
+
+@router.get("/api/admin/generations", response_model=dict)
+async def get_generations_history(current_user: dict = Depends(get_current_user)):
+    if not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Accès refusé.")
+
+    async with db.get_connection() as conn:
+        cursor = await db.execute(conn, """
+            SELECT t.id, u.email as user_email, t.module, t.status, t.created_at, 
+                   t.estimated_cost, t.duration_ms, t.model_used, t.prompt_version, t.error_message
+            FROM tasks t
+            JOIN users u ON t.user_id = u.id
+            ORDER BY t.created_at DESC LIMIT 100
+        """)
+        rows = await cursor.fetchall()
+
+    return {"generations": [dict(row) for row in rows]}

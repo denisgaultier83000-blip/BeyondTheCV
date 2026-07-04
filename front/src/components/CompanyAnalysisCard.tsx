@@ -2,6 +2,7 @@ import React from 'react';
 import { Building, Newspaper, ExternalLink, Globe2, Target, Users, TrendingUp, BookOpen, Brain, Activity } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 import { useTranslation } from 'react-i18next';
+import { formatStrategicAnalysisReact as formatMarkdownReact } from '../utils/formatUtils';
 
 interface CompanyAnalysisCardProps {
   data: any;
@@ -39,6 +40,8 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
   const sources = data?.sources || []; // Exploitation des sources Web fournies par le backend
   
   let newsLinks = report.news_links || [];
+
+  const formatStrategicAnalysis = (text: string) => formatMarkdownReact(text);
 
   return (
     <DashboardCard
@@ -79,13 +82,13 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
               
               {/* NOUVEAU: Défis Stratégiques Actuels */}
               {strategicChallenges && strategicChallenges.length > 0 && (
-                <div style={{ background: '#fef2f2', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid #fee2e2', gridColumn: '1 / -1' }}>
-                  <h4 style={{ margin: '0 0 0.5rem 0', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.2)', gridColumn: '1 / -1' }}>
+                  <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--danger-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <Target size={18}/> Défis Stratégiques
                   </h4>
-                  <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#7f1d1d', fontSize: '0.95rem' }}>
+                  <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--danger-text)', fontSize: '0.95rem' }}>
                     {strategicChallenges.map((defi: string, idx: number) => (
-                      <li key={idx} style={{ marginBottom: '0.35rem', lineHeight: '1.4' }}>{defi}</li>
+                      <li key={idx} style={{ marginBottom: '0.35rem', lineHeight: '1.4', opacity: 0.9 }}>{defi}</li>
                     ))}
                   </ul>
                 </div>
@@ -173,17 +176,23 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
                         <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <span style={{ color: 'var(--text-muted)' }}>{news.date}</span>
                           {news.interview_relevance !== undefined && (
-                            <span style={{ background: news.interview_relevance >= 8 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)', color: news.interview_relevance >= 8 ? '#10b981' : '#f59e0b', padding: '0.2rem 0.4rem', borderRadius: '0.25rem', fontSize: '0.75rem' }}>
-                              Score: {news.interview_relevance}/10
+                            <span style={{ background: news.interview_relevance >= 80 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)', color: news.interview_relevance >= 80 ? '#10b981' : '#f59e0b', padding: '0.2rem 0.4rem', borderRadius: '0.25rem', fontSize: '0.75rem' }}>
+                              Score: {news.interview_relevance}/100
                             </span>
                           )}
                         </span>
                       </div>
-                    <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'var(--text-main)' }}>
-                        <div style={{ fontWeight: 600, fontSize: '1rem', lineHeight: 1.4, transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--primary)'} onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-main)'}>
-                          {news.title}
-                        </div>
-                      </a>
+              {isDummyUrl ? (
+                <div style={{ fontWeight: 600, fontSize: '1rem', lineHeight: 1.4, color: 'var(--text-main)' }}>
+                  {news.title}
+                </div>
+              ) : (
+                <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'var(--text-main)' }}>
+                  <div style={{ fontWeight: 600, fontSize: '1rem', lineHeight: 1.4, transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--primary)'} onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-main)'}>
+                    {news.title}
+                  </div>
+                </a>
+              )}
                     </div>
                     <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
                       {isValid(news.hidden_meaning) && (
@@ -193,14 +202,16 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
                         </div>
                       )}
                       {isValid(news.strategic_analysis) && (
-                        <div style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '1rem', borderRadius: '0.5rem', borderLeft: '3px solid var(--primary)' }}>
-                          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--primary)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Action Entretien</div>
-                          <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-main)' }}>{news.strategic_analysis}</p>
+                        <div style={{ background: 'var(--bg-card)', padding: '1.25rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Target size={16} color="var(--primary)" /> Angle d'Entretien</div>
+                          <div style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-main)' }}>{formatStrategicAnalysis(news.strategic_analysis)}</div>
                         </div>
                       )}
-                    <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ marginTop: 'auto', fontSize: '0.85rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600, textDecoration: 'none' }}>
-                        Source Originale <ExternalLink size={14} />
-                      </a>
+              {!isDummyUrl && (
+                <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ marginTop: 'auto', fontSize: '0.85rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600, textDecoration: 'none' }}>
+                  Source Originale <ExternalLink size={14} />
+                </a>
+              )}
                     </div>
                   </div>
               )})}

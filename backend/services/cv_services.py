@@ -4,6 +4,7 @@ import json
 import io
 import asyncio
 import re
+import shutil
 from datetime import datetime, timezone
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks, Body, Depends, Query
 from fastapi.responses import JSONResponse, FileResponse
@@ -14,7 +15,7 @@ from pydantic import BaseModel
 
 from database import db
 from models import GenerateRequest, CVFinal, FeedbackRequest, ExperienceRequest, SkillExtractionRequest, FullCVData
-from security import get_current_user
+from security import get_current_user, require_admin_user
 # [FIX] Utilisation du service unifié au lieu d'imports inexistants
 from .ai_generator import ai_service
 from .latex import generate_pdf_from_latex
@@ -37,7 +38,8 @@ from .tasks import (
 )
 from .utils import (
     clean_ai_json_response, normalize_language, load_prompt, _get_sortable_date_tuple,
-    _sanitize_data_for_ai, _generate_cache_key, get_cached_content, set_cached_content,
+    _sanitize_data_for_ai, _generate_cache_key, get_cached_content, set_cached_content, 
+    consume_quota, refund_quota,
     _CACHE_LOCKS
 )
 from .tasks import get_prompt_path
@@ -60,7 +62,7 @@ class FlawCoachRequest(BaseModel):
 class InterviewAnswerRequest(BaseModel):
     question: str
     category: Optional[str] = "Question d'entretien"
-    suggested_framework: Optional[str] = ""
+    suggested_framework: Optional[str] = None
     user_answer: str
     application_id: Optional[str] = None
     task_id: Optional[str] = None
@@ -79,6 +81,7 @@ class TrainingEvaluateRequest(BaseModel):
     question_type: str
     question_text: str
     user_answer: str
+    application_id: Optional[str] = None
     target_job: Optional[str] = "Candidat"
     target_company: Optional[str] = "Entreprise cible"
     interview_format: Optional[str] = "Non précisé"
@@ -101,8 +104,22 @@ class EvaluatePitchRequest(BaseModel):
     target_job: Optional[str] = "Candidat"
     target_language: Optional[str] = "fr"
 
+class OralPitchRequest(BaseModel):
+    target_job: str
+    transcript: str
+
 class BulkStatusRequest(BaseModel):
     task_ids: List[str]
+
+class RoadmapContext(BaseModel):
+    type: str
+    interlocutor: str
+    level: str
+    context: str
+
+class RoadmapRequest(BaseModel):
+    context: RoadmapContext
+    profile: dict
 
 def _remove_file_safe(path: str):
     """Supprime un fichier temporaire après son envoi sans crasher en cas d'erreur."""
@@ -136,6 +153,10 @@ def _get_days_until_interview(interview_date: str) -> int:
 # --- Gardien d'Abonnement (Paywall Backend) ---
 async def require_active_subscription(current_user: dict = Depends(get_current_user)):
     """Vérifie que l'utilisateur a un abonnement actif avant d'autoriser l'accès à l'IA."""
+    # [MODIFICATION] Pour la phase de staging, tous les utilisateurs sont considérés comme testeurs.
+    # Cela désactive la consommation des quotas et les vérifications d'abonnement.
+    return current_user    
+        
     try:
         async with db.get_connection() as conn:
             cursor = await db.execute(conn, "SELECT subscription_status, subscription_expiration_date FROM users WHERE id = ?", (current_user["id"],))
@@ -156,44 +177,7 @@ async def require_active_subscription(current_user: dict = Depends(get_current_u
                 
     if is_expired:
         raise HTTPException(status_code=402, detail="Abonnement expiré. L'accès aux modèles d'Intelligence Artificielle est verrouillé.")
-        
     return current_user
-
-# --- Gardien de Consommation IA (Séances d'entraînement) ---
-async def consume_training_sessions(user_id: str, cost: int = 1):
-    """Vérifie le solde de séances d'entraînement et le décrémente si suffisant."""
-    async with db.get_connection() as conn:
-        try:
-            cursor = await db.execute(conn, "SELECT training_sessions_balance FROM users WHERE id = ?", (user_id,))
-        except Exception:
-            # Ajout dynamique de la colonne si elle est absente (Auto-Migration)
-            try:
-                await db.execute(conn, "ALTER TABLE users ADD COLUMN training_sessions_balance INTEGER DEFAULT 15")
-                cursor = await db.execute(conn, "SELECT training_sessions_balance FROM users WHERE id = ?", (user_id,))
-            except Exception as e:
-                print(f"[DB WARNING] Failed to add training_sessions_balance: {e}")
-                return True  # Fallback permissif pour ne pas bloquer
-        
-        row = await cursor.fetchone()
-        if row:
-            balance = row[0] if isinstance(row, tuple) else row.get("training_sessions_balance")
-            if balance is None:
-                balance = 15
-                await db.execute(conn, "UPDATE users SET training_sessions_balance = 15 WHERE id = ?", (user_id,))
-            
-            if balance < cost:
-                raise HTTPException(status_code=402, detail=f"Séances d'entraînement insuffisantes (Solde: {balance}, Requis: {cost}).")
-            
-            await db.execute(conn, "UPDATE users SET training_sessions_balance = training_sessions_balance - ? WHERE id = ?", (cost, user_id))
-    return True
-
-async def refund_training_sessions(user_id: str, cost: int = 1):
-    """Rembourse les séances en cas d'erreur de l'API IA (Timeout, hallucination)."""
-    try:
-        async with db.get_connection() as conn:
-            await db.execute(conn, "UPDATE users SET training_sessions_balance = training_sessions_balance + ? WHERE id = ?", (cost, user_id))
-    except Exception:
-        pass
 
 def _generate_smart_filename(data: dict, doc_type: str = "CV", ext: str = "pdf") -> str:
     """Génère un nom de fichier propre et explicite: Type_Nom_Poste_Entreprise_Date.ext"""
@@ -352,44 +336,75 @@ async def generate_gap_analysis(data, job_desc, quality='smart'):
         return {}
     return result
 
-async def generate_pitch(data, quality='smart'):
-    # [AMELIORATION] Utilisation des clarifications et fallback conseils
-    clarifications = data.get('clarifications', [])
-    target_lang = normalize_language(data.get('target_language', 'fr'))
-    clarifications_str = "\n".join([f"Q: {c.get('question')}\nA: {c.get('answer')}" for c in clarifications if c.get('answer')])
-    
-    interview_type = data.get('meta', {}).get('interview_type') or data.get('interview_type', 'Non précisé')
-    interview_format = data.get('meta', {}).get('interview_format') or data.get('interview_format', 'Non précisé')
-    
-    # [NEW] Injection des données de recherche asynchrone (Entreprise & Marché)
-    research_context = ""
-    rd = data.get("research_data")
-    if rd:
-        cr = rd.get("company_report", {})
-        mr = rd.get("market_report", {})
-        research_context = f"\nCONTEXTE ENTREPRISE & MARCHÉ (À UTILISER POUR LA PROJECTION) :\n- ADN: {cr.get('identity_dna', '')}\n- Défis: {cr.get('usp', '')}\n- Marché: {mr.get('trends', '')}\n"
+def truncate(text: str, max_length: int) -> str:
+    """Tronque un texte à une longueur maximale."""
+    if not text or not isinstance(text, str):
+        return ""
+    return text if len(text) <= max_length else text[:max_length] + "..."
 
-    prompt_template = load_prompt(get_prompt_path("pitch_v1.md"))
-    prompt = f"""
-    {prompt_template}
+def compact_experiences(experiences: List[Dict[str, Any]], max_items: int = 6) -> List[Dict[str, Any]]:
+    """Compacte les expériences pour le prompt."""
+    if not experiences: return []
+    return [{
+        "role": exp.get("role", ""), "company": exp.get("company", ""),
+        "start_date": exp.get("start_date", ""), "end_date": exp.get("end_date", ""),
+        "description": truncate(exp.get("description", ""), 500)
+    } for exp in experiences[:max_items]]
+
+def compact_clarifications(clarifications: List[Dict[str, Any]], max_items: int = 8) -> List[Dict[str, Any]]:
+    """Compacte les clarifications pour le prompt."""
+    if not clarifications: return []
+    return [{ "question": c.get("question", ""), "answer": truncate(c.get("answer", ""), 300) } for c in clarifications[:max_items]]
+
+def compact_research(research_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Compacte les données de recherche pour le prompt en ne gardant que l'essentiel."""
+    if not research_data: return {}
     
-    DONNÉES CANDIDAT :
-    {json.dumps(_sanitize_data_for_ai(data, strict=True), default=str)}
-    
-    CLARIFICATIONS APPORTÉES :
-    {clarifications_str}
-    {research_context}
-    
-    CONTRAINTE D'ENTRETIEN :
-    - Type d'interlocuteur : {interview_type}
-    - Format : {interview_format}
-    
-    OUTPUT LANGUAGE: {target_lang}
-    """
-    result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a senior recruiter. ALL CONTENT MUST BE ENTIRELY WRITTEN IN {target_lang.upper()}. Output STRICT JSON.")
-    if "error" in result:
-        return {}
-    return result
+    compacted = {}
+    if "company_report" in research_data:
+        cr = research_data["company_report"]
+        compacted["company_report"] = {
+            "identity_dna": truncate(cr.get("identity_dna", ""), 200),
+            "usp": truncate(cr.get("usp", ""), 200),
+            "strategic_challenges": (cr.get("strategic_challenges") or [])[:2]
+        }
+    if "market_report" in research_data:
+        mr = research_data["market_report"]
+        compacted["market_report"] = {
+            "trends": truncate(mr.get("trends", ""), 200),
+            "recruitment_dynamics": truncate(mr.get("recruitment_dynamics", ""), 200)
+        }
+    return compacted
+
+async def generate_pitch(data, quality='smart'):
+    target_lang = normalize_language(data.get('target_language', 'fr'))
+    prompt_template = load_prompt(get_prompt_path("strategic_pitch_v2.md"))
+
+    # [FIX] Enrichissement massif du contexte envoyé à l'IA, comme suggéré.
+    # On ne peut pas demander des pitchs différenciés sans donner la matière pour les créer.
+    safe_data = {
+        "target": {
+            "job": data.get("target_job", ""),
+            "company": data.get("target_company", ""),
+            "language": target_lang,
+            "job_description": truncate(data.get("job_description", ""), 3500),
+            "interview_type": data.get("interview_type", "")
+        },
+        "profile": {
+            **_sanitize_data_for_ai(data, strict=True), # Utilise la fonction existante
+            "experiences": compact_experiences(data.get("experiences", []), max_items=6) # On s'assure que les expériences sont compactées
+        },
+        "clarifications": compact_clarifications(data.get("clarifications", [])),
+        "research": compact_research(data.get("research_data", {}))
+    }
+
+    context_str = json.dumps(safe_data, indent=2, ensure_ascii=False, default=str)
+
+    final_prompt = prompt_template.replace("{{CANDIDATE_DATA_JSON}}", context_str) \
+                                  .replace("{{TARGET_LANGUAGE}}", target_lang)
+
+    system_instruction = f"You are an Executive Coach. Output STRICT JSON in {target_lang.upper()}. Ensure all pitches are distinct and follow the specified structure. Do not add comments in the JSON."
+    return await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction=system_instruction)
 
 @router.post("/coach-flaw")
 async def coach_flaw(request: FlawCoachRequest, current_user: dict = Depends(require_active_subscription)):
@@ -448,7 +463,8 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
     OUTPUT LANGUAGE: {normalize_language(request.target_language)}
     """
     
-    await consume_training_sessions(current_user["id"], cost=1)
+    if not current_user.get("is_admin"):
+        await consume_quota(current_user["id"], "qa", cost=1)
     try:
         result = await ai_service.generate_valid_json(
             final_prompt, 
@@ -471,10 +487,10 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
         # [FIX EXPERT] Sécurisation anti-concurrence (Lock) pour éviter l'écrasement des JSON (Read-Modify-Write)
         # si le candidat évalue plusieurs réponses exactement en même temps.
         user_lock_key = f"eval_{current_user['id']}"
-        if user_lock_key not in _CACHE_LOCKS:
-            _CACHE_LOCKS[user_lock_key] = asyncio.Lock()
+        if user_lock_key not in _CACHE_LOCKS: # type: ignore
+            _CACHE_LOCKS[user_lock_key] = asyncio.Lock() # type: ignore
             
-        async with _CACHE_LOCKS[user_lock_key]:
+        async with _CACHE_LOCKS[user_lock_key]: # type: ignore
             async with db.get_connection() as conn:
                 try:
                     await db.execute(conn, """
@@ -483,7 +499,7 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                     """, (session_id, current_user["id"], app_id, request.question, request.user_answer, result.get("score", 0), json.dumps(result), datetime.now()))
                 except Exception as e:
                     print(f"[DB WARNING] Failed to insert interview session (missing table?): {e}", flush=True)
-                
+
                 def parse_deep_json(raw_str):
                     parsed = raw_str
                     for _ in range(5):
@@ -504,14 +520,14 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                             break
                     return parsed
     
-                def update_question_node(node):
+                def update_question_node(node: Any) -> bool:
                     def normalize_str(s):
                         return re.sub(r'\W+', '', str(s)).lower() if s else ""
                         
                     if isinstance(node, dict):
                         req_q = normalize_str(request.question)
                         
-                        def is_match(a, b):
+                        def is_match(a: str, b: str) -> bool:
                             if not a or not b: return False
                             if len(a) > 10 and a in b: return True
                             if len(b) > 10 and b in a: return True
@@ -519,7 +535,7 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                             
                         # [FIX EXPERT] Sécurité : on s'assure de n'altérer que des noeuds qui ressemblent à des questions
                         if any(k in node for k in ["question", "scenario", "situation", "text", "contexte", "description", "defi"]):
-                            for k, v in list(node.items()):
+                            for k, v in node.items():
                                 if isinstance(v, str) and len(v) > 5:
                                     if is_match(req_q, normalize_str(v)):
                                         node["user_answer"] = request.user_answer
@@ -527,7 +543,7 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                                         return True
                                         
                         for v in list(node.values()):
-                            if update_question_node(v): return True
+                            if isinstance(v, (dict, list)) and update_question_node(v): return True
                     elif isinstance(node, list):
                         for item in node:
                             if update_question_node(item): return True
@@ -535,14 +551,14 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
     
                 # [FIX EXPERT] Mise à jour du JSON de la tâche pour que les scores soient rechargés au retour
                 task_to_update = request.task_id
-                
+
                 # [FIX EXPERT] Recherche robuste de la tâche avec priorité ciblée sur le tasks_map
                 if not task_to_update and request.application_id:
                     try:
                         cursor = await db.execute(conn, "SELECT tasks_map FROM job_applications WHERE id = ?", (request.application_id,))
                         row = await cursor.fetchone()
                         if row:
-                            t_map_raw = row[0] if isinstance(row, tuple) else row.get("tasks_map")
+                            t_map_raw = row[0] if isinstance(row, tuple) else row.get("tasks_map", "{}")
                             if t_map_raw:
                                 t_map = json.loads(t_map_raw) if isinstance(t_map_raw, str) else t_map_raw
                                 possible_tasks = []
@@ -552,7 +568,7 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                                 for tid in possible_tasks:
                                     cursor = await db.execute(conn, "SELECT result FROM tasks WHERE id = ?", (tid,))
                                     t_row = await cursor.fetchone()
-                                    if t_row:
+                                    if t_row and t_row[0]:
                                         t_res = t_row[0] if isinstance(t_row, tuple) else t_row.get("result")
                                         if t_res:
                                             task_result = parse_deep_json(t_res)
@@ -562,7 +578,7 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                                                 break
                     except Exception as e:
                         print(f"[DB WARNING] Failed to use tasks_map: {e}")
-                        
+
                 if not task_to_update:
                     try:
                         cursor = await db.execute(conn, """
@@ -573,17 +589,17 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                         """, (current_user["id"], current_user["id"]))
                         rows = await cursor.fetchall()
                         for row in rows:
-                            t_res = row[1] if isinstance(row, tuple) else row.get("result")
+                            t_res = row[1] if isinstance(row, tuple) else row.get("result", "")
                             if not t_res: continue
                             
                             task_result = parse_deep_json(t_res)
                             if update_question_node(task_result):
                                 task_to_update = row[0] if isinstance(row, tuple) else row.get("id")
                                 await db.execute(conn, "UPDATE tasks SET result = ? WHERE id = ?", (json.dumps(task_result), task_to_update))
-                                break
+                                break # On a trouvé et mis à jour la tâche, on arrête la boucle
                     except Exception as e:
                         print(f"[DB WARNING] Failed to auto-discover task: {e}", flush=True)
-    
+
                 elif request.task_id:
                     try:
                         cursor = await db.execute(conn, "SELECT result FROM tasks WHERE id = ?", (task_to_update,))
@@ -595,13 +611,13 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
                                 if update_question_node(task_result):
                                     await db.execute(conn, "UPDATE tasks SET result = ? WHERE id = ?", (json.dumps(task_result), task_to_update))
                     except Exception as e:
-                        print(f"[DB WARNING] Failed to update task JSON: {e}", flush=True)
-                        
+                        print(f"[DB WARNING] Failed to update task JSON by ID: {e}", flush=True)
+
                 try:
                     # [FIX EXPERT] Mise à jour du Cache pour que les réponses survivent au rechargement de page (F5)
                     cursor = await db.execute(conn, "SELECT cache_key, result FROM generation_cache WHERE user_id = ? AND content_type IN ('interview_questions', 'extra_scenarios') ORDER BY created_at DESC LIMIT 5", (current_user["id"],))
                     cache_rows = await cursor.fetchall()
-                    for c_row in cache_rows:
+                    for c_row in cache_rows or []:
                         c_key = c_row[0] if isinstance(c_row, tuple) else c_row.get("cache_key")
                         c_res = c_row[1] if isinstance(c_row, tuple) else c_row.get("result")
                         try:
@@ -616,10 +632,12 @@ async def evaluate_interview_answer(request: InterviewAnswerRequest, current_use
             
         return {"feedback": result}
     except HTTPException:
-        await refund_training_sessions(current_user["id"], cost=1)
+        if not (current_user.get("is_admin") or current_user.get("is_tester")):
+            await refund_quota(current_user["id"], "qa", cost=1)
         raise
     except Exception as e:
-        await refund_training_sessions(current_user["id"], cost=1)
+        if not current_user.get("is_admin"):
+            await refund_quota(current_user["id"], "qa", cost=1)
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'évaluation de la réponse: {str(e)}")
 
 @router.get("/interview/history")
@@ -677,11 +695,12 @@ async def evaluate_vocal_pitch(request: VocalPitchRequest, current_user: dict = 
 
     ANALYSE ATTENDUE :
     1. Tics de langage : Liste les mots parasites ("euh", "du coup", "en fait").
-    2. Rythme (Débit) : Le candidat parle-t-il trop vite ? Fait-il des pauses stratégiques ?
-    3. Clarté & Structure : Le discours a-t-il une accroche percutante et une conclusion claire ?
-    4. Impact & Longueur : Le discours est-il captivant ou ennuyeux ? Est-il trop long ou trop bref ?
-    5. Précision des exemples : Le candidat donne-t-il des faits concrets, des chiffres ou des méthodes (STAR), ou reste-t-il vague ("je gère des projets") ?
-    6. Lien avec l'offre & l'entreprise : Le pitch fait-il explicitement le pont entre les besoins spécifiques de cette entreprise et l'expertise du candidat ? S'il récite son CV sans faire de lien, pénalise-le.
+    2. Vocabulaire négatif/dévalorisant : Détecte les mots passifs, hésitants ou toxiques (ex: "petit", "essayer", "désolé", "problème", "un peu").
+    3. Rythme (Débit) : Le candidat parle-t-il trop vite ? Fait-il des pauses stratégiques ?
+    4. Clarté & Structure : Le discours a-t-il une accroche percutante et une conclusion claire ?
+    5. Impact & Longueur : Le discours est-il captivant ou ennuyeux ? Est-il trop long ou trop bref ?
+    6. Précision des exemples : Le candidat donne-t-il des faits concrets, des chiffres ou des méthodes (STAR), ou reste-t-il vague ("je gère des projets") ?
+    7. Lien avec l'offre & l'entreprise : Le pitch fait-il explicitement le pont entre les besoins spécifiques de cette entreprise et l'expertise du candidat ? S'il récite son CV sans faire de lien, pénalise-le.
 
     OUTPUT STRICT JSON:
     {{
@@ -689,7 +708,8 @@ async def evaluate_vocal_pitch(request: VocalPitchRequest, current_user: dict = 
         "metrics": {{
             "wpm": {wpm},
             "pace_status": "Idéal | Trop rapide | Trop lent",
-            "filler_words_detected": ["euh", "du coup"]
+            "filler_words_detected": ["euh", "du coup"],
+            "negative_words_detected": ["essayer", "un peu"]
         }},
         "feedback": {{
             "pace_and_silences": "Diagnostic sur le rythme et les silences...",
@@ -706,7 +726,8 @@ async def evaluate_vocal_pitch(request: VocalPitchRequest, current_user: dict = 
     LANGUAGE: {target_lang}
     """
     
-    await consume_training_sessions(current_user["id"], cost=2)
+    if not current_user.get("is_admin"):
+        await consume_quota(current_user["id"], "pitch", cost=2)
     try:
         result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are an elite Public Speaking Coach. Output STRICT JSON.")
         
@@ -715,6 +736,10 @@ async def evaluate_vocal_pitch(request: VocalPitchRequest, current_user: dict = 
         if "metrics" in result and not isinstance(result["metrics"].get("filler_words_detected"), list):
             fw = result["metrics"].get("filler_words_detected")
             result["metrics"]["filler_words_detected"] = [fw] if fw and isinstance(fw, str) else []
+            
+        if "metrics" in result and not isinstance(result["metrics"].get("negative_words_detected"), list):
+            nw = result["metrics"].get("negative_words_detected")
+            result["metrics"]["negative_words_detected"] = [nw] if nw and isinstance(nw, str) else []
             
         if not isinstance(result.get("micro_exercises"), list):
             me = result.get("micro_exercises")
@@ -738,11 +763,57 @@ async def evaluate_vocal_pitch(request: VocalPitchRequest, current_user: dict = 
             
         return result
     except HTTPException:
-        await refund_training_sessions(current_user["id"], cost=2)
+        if not current_user.get("is_admin"):
+            await refund_quota(current_user["id"], "pitch", cost=2)
         raise
     except Exception as e:
-        await refund_training_sessions(current_user["id"], cost=2)
+        if not current_user.get("is_admin"):
+            await refund_quota(current_user["id"], "pitch", cost=2)
         raise HTTPException(status_code=500, detail=f"Erreur d'évaluation vocale : {str(e)}")
+
+@router.post("/evaluate-oral-pitch")
+async def evaluate_oral_pitch(request: OralPitchRequest, current_user: dict = Depends(require_active_subscription)):
+    """Évalue un pitch dicté oralement par le candidat et sauvegarde l'historique."""
+    
+    if not current_user.get("is_admin"):
+        await consume_quota(current_user["id"], "pitch", cost=1)
+        
+    try:
+        prompt_template = load_prompt("evaluate_pitch.md")
+        final_prompt = f"POSTE CIBLÉ: {request.target_job}\n\nTRANSCRIPTION DU PITCH:\n{request.transcript}"
+        
+        result = await ai_service.generate_valid_json(
+            final_prompt, 
+            provider="openai", 
+            system_instruction=prompt_template
+        )
+        
+        # Sauvegarder dans l'historique d'entraînement pour les statistiques Dashboard
+        session_id = str(uuid.uuid4())
+        try:
+            async with db.get_connection() as conn:
+                await db.execute(conn, """
+                    INSERT INTO training_sessions (id, user_id, theme, question_type, question_text, user_answer, score, strengths, weaknesses, improved_answer, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    session_id, current_user["id"], "Pitch Oral", "Vocal", 
+                    "Parlez-moi de vous (Elevator Pitch)", request.transcript, 
+                    result.get("score", 0), json.dumps(result.get("strengths", [])), 
+                    json.dumps(result.get("weaknesses", [])), result.get("improved_pitch", ""), datetime.now()
+                ))
+        except Exception as e:
+            print(f"[DB WARNING] Failed to insert training_session for oral pitch: {e}")
+
+        return {"feedback": result}
+        
+    except HTTPException:
+        if not current_user.get("is_admin"):
+            await refund_quota(current_user["id"], "pitch", cost=1)
+        raise
+    except Exception as e:
+        if not current_user.get("is_admin"):
+            await refund_quota(current_user["id"], "pitch", cost=1)
+        raise HTTPException(status_code=500, detail=f"Erreur lors de l'analyse IA de votre pitch : {str(e)}")
 
 @router.post("/evaluate-pitch")
 async def evaluate_written_pitch(request: EvaluatePitchRequest, current_user: dict = Depends(require_active_subscription)):
@@ -776,6 +847,37 @@ async def evaluate_written_pitch(request: EvaluatePitchRequest, current_user: di
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur d'évaluation du pitch : {str(e)}")
 
+@router.post("/generate-roadmap")
+async def generate_roadmap(request: RoadmapRequest, current_user: dict = Depends(require_active_subscription)):
+    """Génère une feuille de route stratégique pour un entretien."""
+    req_dump = request.model_dump() if hasattr(request, "model_dump") else request.dict()
+    cache_key = _generate_cache_key(current_user["id"], "generate_roadmap", req_dump)
+    cached = await get_cached_content(cache_key)
+    if cached:
+        return {"roadmap": cached}
+
+    target_lang = normalize_language(req_dump.get("profile", {}).get("target_language", "fr"))
+    prompt_template = load_prompt(get_prompt_path("roadmap_generator.md"))
+
+    context_str = json.dumps(request.context.model_dump(), indent=2)
+    profile_str = json.dumps(_sanitize_data_for_ai(request.profile, strict=True), indent=2, default=str)
+
+    # Remplacement des placeholders dans le prompt
+    final_prompt = prompt_template.replace("{{context_str}}", context_str) \
+                                  .replace("{{profile_str}}", profile_str) \
+                                  .replace("{{target_lang}}", target_lang)
+
+    try:
+        result = await ai_service.generate_valid_json(
+            final_prompt,
+            provider="openai",
+            system_instruction=f"Tu es un coach de carrière de classe mondiale. Ta réponse doit être un JSON valide en {target_lang}."
+        )
+        await set_cached_content(cache_key, current_user["id"], "generate_roadmap", result)
+        return {"roadmap": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Roadmap generation failed: {str(e)}")
+
 @router.post("/training/generate-question")
 async def generate_training_question(request: CustomQuestionRequest, current_user: dict = Depends(require_active_subscription)):
     """Génère une question ciblée d'entraînement basée sur un thème."""
@@ -795,16 +897,20 @@ async def generate_training_question(request: CustomQuestionRequest, current_use
                                   
     final_prompt += f"\n\nOUTPUT LANGUAGE: {normalize_language(request.target_language)}"
                                   
-    await consume_training_sessions(current_user["id"], cost=1)
+    quota_to_consume = "mes" if request.question_type == "MES" else "qa"
+    if not current_user.get("is_admin"):
+        await consume_quota(current_user["id"], quota_to_consume, cost=1)
     try:
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="Tu es un Coach de Carrière expert.")
         await set_cached_content(cache_key, current_user["id"], "training_question", result)
         return result
     except HTTPException:
-        await refund_training_sessions(current_user["id"], cost=1)
+        if not current_user.get("is_admin"):
+            await refund_quota(current_user["id"], quota_to_consume, cost=1)
         raise
     except Exception as e:
-        await refund_training_sessions(current_user["id"], cost=1)
+        if not current_user.get("is_admin"):
+            await refund_quota(current_user["id"], quota_to_consume, cost=1)
         raise HTTPException(status_code=500, detail=f"Erreur de génération : {str(e)}")
 
 @router.post("/training/evaluate")
@@ -834,7 +940,9 @@ async def evaluate_training_answer(request: TrainingEvaluateRequest, current_use
     OUTPUT LANGUAGE: {normalize_language(request.target_language)}
     """
     
-    await consume_training_sessions(current_user["id"], cost=1)
+    quota_to_consume = "mes" if request.question_type == "MES" else "qa"
+    if not current_user.get("is_admin"):
+        await consume_quota(current_user["id"], quota_to_consume, cost=1)
     try:
         feedback = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an Expert Interview Coach. Output STRICT JSON.")
         
@@ -850,19 +958,22 @@ async def evaluate_training_answer(request: TrainingEvaluateRequest, current_use
         session_id = str(uuid.uuid4())
         try:
             async with db.get_connection() as conn:
-                await db.execute(conn, """
-                    INSERT INTO training_sessions (id, user_id, theme, question_type, question_text, user_answer, score, strengths, weaknesses, improved_answer, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (session_id, current_user["id"], request.theme, request.question_type, request.question_text, request.user_answer, feedback.get("score", 0), json.dumps(feedback.get("strengths", [])), json.dumps(feedback.get("weaknesses", [])), feedback.get("improved_answer", ""), datetime.now()))
+                await db.execute(conn,
+                    """INSERT INTO training_sessions (id, user_id, theme, question_type, question_text, user_answer, score, strengths, weaknesses, improved_answer, created_at, application_id)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (session_id, current_user["id"], request.theme, request.question_type, request.question_text, request.user_answer, feedback.get("score", 0), json.dumps(feedback.get("strengths", [])), json.dumps(feedback.get("weaknesses", [])), feedback.get("improved_answer", ""), datetime.now(), request.application_id)
+                )
         except Exception as e:
             print(f"[DB WARNING] Failed to insert training_session: {e}")
             
         return {"feedback": feedback}
     except HTTPException:
-        await refund_training_sessions(current_user["id"], cost=1)
+        if not current_user.get("is_admin"):
+            await refund_quota(current_user["id"], quota_to_consume, cost=1)
         raise
     except Exception as e:
-        await refund_training_sessions(current_user["id"], cost=1)
+        if not current_user.get("is_admin"):
+            await refund_quota(current_user["id"], quota_to_consume, cost=1)
         raise HTTPException(status_code=500, detail=f"Erreur d'évaluation : {str(e)}")
 
 @router.post("/generate-extra-scenarios")
@@ -908,30 +1019,44 @@ async def generate_extra_scenarios(data: dict = Body(...), current_user: dict = 
         LANGUAGE: {target_lang}
         """
         
-        await consume_training_sessions(current_user["id"], cost=2)
+        if not current_user.get("is_admin"):
+            await consume_quota(current_user["id"], "mes", cost=2)
         try:
             result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an Expert HR Assessor. Output STRICT JSON.")
             await set_cached_content(cache_key, current_user["id"], "extra_scenarios", result)
             return result
         except HTTPException:
-            await refund_training_sessions(current_user["id"], cost=2)
+            if not current_user.get("is_admin"):
+                await refund_quota(current_user["id"], "mes", cost=2)
             raise
         except Exception as e:
-            await refund_training_sessions(current_user["id"], cost=2)
+            if not current_user.get("is_admin"):
+                await refund_quota(current_user["id"], "mes", cost=2)
             raise HTTPException(status_code=500, detail=f"Erreur de génération des scénarios : {str(e)}")
 
 @router.get("/training/balance")
 async def get_training_balance(current_user: dict = Depends(require_active_subscription)):
-    """Récupère le solde restant de séances d'entraînement pour le candidat."""
+    """Retourne les quotas restants de l'utilisateur pour chaque module d'entraînement."""
     async with db.get_connection() as conn:
         try:
-            cursor = await db.execute(conn, "SELECT training_sessions_balance FROM users WHERE id = ?", (current_user["id"],))
+            # [NOUVEAU] Sélectionne toutes les colonnes de quotas
+            cursor = await db.execute(conn, 
+                "SELECT quota_pitch, quota_qa, quota_mes, quota_negotiation, quota_regeneration, quota_update FROM users WHERE id = ?", 
+                (current_user["id"],)
+            )
             row = await cursor.fetchone()
-            balance = row[0] if row and isinstance(row, tuple) else (row.get("training_sessions_balance") if row else 15)
-            if balance is None: balance = 15
-            return {"balance": balance}
-        except Exception:
-            return {"balance": 15}
+            if row:
+                # [FIX EXPERT] Utilisation de .keys() pour mapper dynamiquement les colonnes aux clés JSON
+                keys = [desc[0] for desc in cursor.description]
+                quotas = dict(zip(keys, row))
+                # Le frontend attend des clés courtes (pitch, qa, etc.)
+                return { "pitch": quotas.get("quota_pitch", 0), "qa": quotas.get("quota_qa", 0), "mes": quotas.get("quota_mes", 0), "negotiation": quotas.get("quota_negotiation", 0), "regeneration": quotas.get("quota_regeneration", 0), "update": quotas.get("quota_update", 0), }
+        except Exception as e:
+            print(f"[DB WARNING] Failed to fetch quotas, returning defaults: {e}")
+            # Fallback en cas d'erreur (ex: colonnes pas encore migrées)
+            return { "pitch": 10, "qa": 25, "mes": 6, "negotiation": 4, "regeneration": 3, "update": 1 }
+    # Si l'utilisateur n'est pas trouvé, on renvoie des valeurs par défaut pour éviter un crash frontend
+    return { "pitch": 0, "qa": 0, "mes": 0, "negotiation": 0, "regeneration": 0, "update": 0 }
 
 @router.get("/training/stats")
 async def get_training_stats(current_user: dict = Depends(require_active_subscription)):
@@ -1530,13 +1655,20 @@ async def render_final_cv(cv_final_data: CVFinal, preview: bool = Query(False), 
         
         if not preview:
             doc_id = str(uuid.uuid4())
-            # Compatibilité si CVFinal intègre application_id
             application_id = getattr(cv_final_data, "application_id", None)
+            
+            persistent_dir = "/app/documents"
+            os.makedirs(persistent_dir, exist_ok=True)
+            persistent_path = os.path.join(persistent_dir, f"{doc_id}_{filename}")
+            shutil.copy2(generated_path, persistent_path)
+            
             async with db.get_connection() as conn:
                 await db.execute(conn,
                     "INSERT INTO documents (id, user_id, filename, path, type, created_at, media_type, application_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                    (doc_id, current_user["id"], filename, generated_path, "CV_ATS", datetime.now(), 'application/pdf', application_id))
-            return FileResponse(path=generated_path, filename=filename, media_type='application/pdf')
+                    (doc_id, current_user["id"], filename, persistent_path, "CV_ATS", datetime.now(), 'application/pdf', application_id))
+            
+            _remove_file_safe(generated_path)
+            return FileResponse(path=persistent_path, filename=filename, media_type='application/pdf')
         else:
             return FileResponse(path=generated_path, filename=filename, media_type='application/pdf', background=BackgroundTask(_remove_file_safe, generated_path))
             
@@ -1580,6 +1712,8 @@ async def start_analysis(background_tasks: BackgroundTasks, data: dict = Body(..
             tasks_map["recruiter_view"] = str(uuid.uuid4())
             if cv_dict.get('job_description') and str(cv_dict.get('job_description')).strip():
                 tasks_map["job_decoder"] = str(uuid.uuid4())
+            tasks_map["risk_analysis"] = str(uuid.uuid4())
+            tasks_map["hidden_market"] = str(uuid.uuid4())
             tasks_map["reality_check"] = str(uuid.uuid4())
             
         if cv_dict.get('target_company') or cv_dict.get('target_industry'):
@@ -1680,7 +1814,7 @@ async def start_analysis(background_tasks: BackgroundTasks, data: dict = Body(..
         if has_research_data and not cv_dict.get('is_partial_start'):
             # [FIX EXPERT] On restaure le cache ET on prévient le frontend via WebSocket
             async def restore_research_cache(tid, cached_data):
-                await asyncio.to_thread(update_task_status_sync, tid, "SUCCESS", cached_data)
+                await asyncio.to_thread(update_task_status_sync, tid, "COMPLETED", cached_data)
                 await manager.broadcast(tid, "Analyse restaurée depuis le cache.", status="COMPLETED", data=cached_data)
             background_tasks.add_task(restore_research_cache, tasks_map["market_research"], rd)
         elif cv_dict.get('target_company') or cv_dict.get('target_industry'):
@@ -1697,6 +1831,10 @@ async def start_analysis(background_tasks: BackgroundTasks, data: dict = Body(..
             background_tasks.add_task(process_research_in_background, tasks_map["market_research"], research_payload)
         else:
             background_tasks.add_task(update_task_status_sync, tasks_map["market_research"], "COMPLETED", {"info": "Skipped, no company provided"})
+            # Si la recherche est skippée, on retire la tâche de la map pour ne pas lancer l'orchestrateur dessus
+            # et éviter qu'il ne tourne dans le vide.
+            if "market_research" in tasks_map:
+                del tasks_map["market_research"]
 
     if "salary_estimation" in tasks_map:
         background_tasks.add_task(process_salary_in_background, tasks_map["salary_estimation"], cv_dict)
@@ -1704,7 +1842,10 @@ async def start_analysis(background_tasks: BackgroundTasks, data: dict = Body(..
     # Lancement orchestré par vagues pour éviter les Timeouts d'API (Thundering Herd)
     if not cv_dict.get('is_partial_start'):
         background_tasks.add_task(orchestrate_dashboard_tasks, tasks_map, cv_dict)
-
+    # [FIX] Si c'est une relance partielle (juste la recherche), on lance quand même l'orchestrateur
+    # sur les tâches restantes pour garantir que le dashboard se peuple.
+    elif "market_research" in tasks_map:
+        background_tasks.add_task(orchestrate_dashboard_tasks, tasks_map, cv_dict)
     return {
         "message": "Pipeline started",
         "application_id": application_id,
@@ -1895,7 +2036,7 @@ async def submit_feedback(request: FeedbackPayload, current_user: dict = Depends
         raise HTTPException(status_code=500, detail="Erreur interne lors de l'enregistrement du feedback.")
 
 @router.get("/feedbacks")
-async def get_feedbacks(current_user: dict = Depends(get_current_user)):
+async def get_feedbacks(current_user: dict = Depends(require_admin_user)):
     """
     Récupère tous les feedbacks pour l'interface Admin.
     """

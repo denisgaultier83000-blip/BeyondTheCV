@@ -5,8 +5,42 @@ Test script for new PostgreSQL API endpoints.
 import requests
 import json
 import sys
+import os
 
 API_URL = "http://localhost:8000/api"
+
+def test_admin_login():
+    """Test admin login."""
+    print("\n🔑 Test 0: Admin login...")
+    
+    admin_email = os.environ.get("ADMIN_EMAIL")
+    admin_password = os.environ.get("ADMIN_PASSWORD")
+    
+    if not admin_email or not admin_password:
+        print("⚠️ ADMIN_EMAIL or ADMIN_PASSWORD not set, skipping admin login test.")
+        return
+
+    payload = {
+        "username": admin_email,
+        "password": admin_password
+    }
+    
+    try:
+        response = requests.post(f"{API_URL}/auth/token", data=payload)
+        print(f"Status: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print(f"Response: {json.dumps(data, indent=2)}")
+            if "access_token" in data and data.get("user", {}).get("is_admin") is True:
+                print("✅ Admin login successful and is_admin is true.")
+            else:
+                print("❌ Admin login successful but is_admin is not true or access_token is missing.")
+        else:
+            print(f"❌ Error: {response.text}")
+            
+    except Exception as e:
+        print(f"❌ Exception: {e}")
 
 def test_create_product():
     """Test creating a product."""
@@ -122,6 +156,9 @@ if __name__ == "__main__":
     print("=" * 60)
     
     try:
+        # Test 0: Admin login
+        test_admin_login()
+
         # Test 1: Create product
         product_id = test_create_product()
         
