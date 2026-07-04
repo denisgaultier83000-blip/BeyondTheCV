@@ -93,8 +93,7 @@ services:
       ENVIRONMENT: production
 
     networks:
-      - web
-      - btcv-prod-internal
+      - web # Assure la communication avec Traefik
 
     labels:
       - "traefik.enable=true"
