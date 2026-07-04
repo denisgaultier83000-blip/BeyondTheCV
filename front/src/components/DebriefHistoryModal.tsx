@@ -25,7 +25,7 @@ export function DebriefHistoryModal({ onClose }: DebriefHistoryModalProps) {
       setLoading(true);
       setError(null);
       try {
-        // NOTE: Cet endpoint est à créer côté backend: GET /api/debriefs
+        // NOTE: Cet endpoint est à créer côté backend: GET /api/debriefs.
         // const response = await authenticatedFetch(`${API_BASE_URL}/api/debriefs`);
         // if (!response.ok) throw new Error("Impossible de charger l'historique.");
         // const data = await response.json();

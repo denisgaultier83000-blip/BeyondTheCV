@@ -31,7 +31,7 @@ export function DebriefDetail({ debriefId, onBack }: DebriefDetailProps) {
       setLoading(true);
       setError(null);
       try {
-        // NOTE: Endpoint à créer: GET /api/debriefs/{debriefId}
+        // NOTE: Endpoint à créer: GET /api/debriefs/{debriefId}.
         // const response = await authenticatedFetch(`${API_BASE_URL}/api/debriefs/${debriefId}`);
         // if (!response.ok) throw new Error("Impossible de charger ce débrief.");
         // const data = await response.json();

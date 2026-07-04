@@ -4,7 +4,7 @@ import { DebriefHistoryModal } from './DebriefHistoryModal'; // Nouveau composan
 
 interface DebriefModalProps {
   onClose: () => void;
-  cvData: any; // Pour pré-remplir entreprise/poste
+  cvData: any; // Pour pré-remplir entreprise/poste.
 }
 
 const CheckboxGroup = ({ title, options, selected, onChange }: { title: string, options: string[], selected: string[], onChange: (value: string) => void }) => (
