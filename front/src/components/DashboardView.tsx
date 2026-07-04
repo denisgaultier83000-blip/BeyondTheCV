@@ -371,7 +371,7 @@ export const DashboardView: FC = () => {
         <button className={`tab-btn ${activeTab === 'posture' ? 'active' : ''}`} onClick={() => handleTabChange('posture')}>
           <Award size={18} /> {t('tab_posture', "Réussir l'entretien")}
         </button>
-        <button className={`tab-btn ${activeTab === 'debrief' ? 'active' : ''}`} onClick={() => handleTabChange('debrief')}>
+        <button className={`tab-btn ${activeTab === 'debrief' ? 'active' : ''}`} onClick={() => handleTabChange('debrief')} style={{ position: 'relative' }}>
           <ClipboardList size={18} /> {t('tab_debrief', "Débrief & Suivi")}
         </button>
       </div>

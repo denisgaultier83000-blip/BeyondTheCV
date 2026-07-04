@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Loader2, AlertTriangle, ArrowLeft, Briefcase, Calendar } from 'lucide-react';
-import { DebriefDetail } from './DebriefDetail'; // Assurez-vous que ce composant existe
+import { DebriefDetail } from './DebriefDetail';
 import { authenticatedFetch } from '../utils/auth';
 import { API_BASE_URL } from '../config';
 
@@ -42,7 +42,11 @@ export function DebriefHistoryModal({ onClose }: DebriefHistoryModalProps) {
   }, []);
 
   if (selectedDebriefId) {
-    return <DebriefDetail debriefId={selectedDebriefId} onBack={() => setSelectedDebriefId(null)} />;
+    // [FIX] On passe autoAnalyze à false par défaut quand on consulte depuis l'historique simple
+    return <DebriefDetail 
+      debriefId={selectedDebriefId} 
+      onBack={() => setSelectedDebriefId(null)} 
+    />;
   }
 
   return (

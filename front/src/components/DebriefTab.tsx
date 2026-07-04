@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Loader2, AlertTriangle, Briefcase, Calendar, User, Clock, ArrowRight, Zap, UserCheck, UserCog, Award, Edit } from 'lucide-react';
+import { Plus, Loader2, AlertTriangle, Briefcase, Calendar, User, Clock, ArrowRight, Zap, UserCheck, UserCog, Award, Edit, History } from 'lucide-react';
 import { DebriefModal } from './DebriefModal';
 import { useDashboard } from './DashboardContext';
 import { DebriefDetail } from './DebriefDetail';
@@ -12,7 +12,7 @@ interface DebriefSummary {
   job_title: string;
   interview_date: string;
   interlocutor_name?: string;
-  interlocutor_role?: string;
+  interlocutor_role?: string; // [FIX] Ajout du rôle pour affichage
   interlocutor_type?: 'rh' | 'manager' | 'tech' | 'final' | string;
 }
 
@@ -20,7 +20,7 @@ const DebriefTab = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDebriefId, setSelectedDebriefId] = useState<string | null>(null);
   const [editingDebriefId, setEditingDebriefId] = useState<string | null>(null);
-  const [analyzeOnOpen, setAnalyzeOnOpen] = useState(false);
+  const [analyzeOnOpen, setAnalyzeOnOpen] = useState(false); // État pour déclencher l'analyse à l'ouverture
   const [history, setHistory] = useState<DebriefSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +48,7 @@ const DebriefTab = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingDebriefId(null);
-    setAnalyzeOnOpen(false); // Réinitialiser
+    setAnalyzeOnOpen(false); // Réinitialiser l'état d'analyse
     setLoading(true);
     fetchHistory(); // Rafraîchit l'historique après la fermeture de la modale
   };
@@ -56,7 +56,7 @@ const DebriefTab = () => {
   if (selectedDebriefId) {
     return <DebriefDetail 
       debriefId={selectedDebriefId} 
-      onBack={() => { setSelectedDebriefId(null); setAnalyzeOnOpen(false); }} 
+      onBack={() => { setSelectedDebriefId(null); setAnalyzeOnOpen(false); }} // Assure la réinitialisation au retour
       autoAnalyze={analyzeOnOpen}
     />;
   }
@@ -68,7 +68,7 @@ const DebriefTab = () => {
       {/* En-tête */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--text-main)', margin: 0 }}>Débrief & Prochaine Étape</h1>
+          <h1 style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--text-main)', margin: 0 }}>Débrief & Préparation Stratégique</h1>
           <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem', fontSize: '1rem' }}>
             Transformez chaque entretien en avantage stratégique pour le suivant.
           </p>
@@ -80,7 +80,7 @@ const DebriefTab = () => {
 
       {/* Timeline / Historique */}
       <div className="bento-card" style={{ background: 'var(--bg-card)' }}>
-        <h2 className="bento-header" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}><Clock size={20} color="var(--primary)" /> Timeline du Processus</h2>
+        <h2 className="bento-header" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}><History size={20} color="var(--primary)" /> Timeline du Processus</h2>
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '3rem' }}><Loader2 size={32} className="spin" /></div>
         ) : error ? (
@@ -92,7 +92,7 @@ const DebriefTab = () => {
           </div>
         ) : (
           <div style={{ position: 'relative', paddingLeft: '2rem' }}>
-            <div style={{ position: 'absolute', left: '20px', top: 0, bottom: 0, width: '2px', background: 'var(--border-color)' }}></div>
+            <div style={{ position: 'absolute', left: '20px', top: '5px', bottom: '5px', width: '2px', background: 'var(--border-color)' }}></div>
             {history.map((debrief, index) => {
               const iconMap = { rh: UserCheck, manager: UserCog, final: Award, tech: UserCog };
               const Icon = iconMap[debrief.interlocutor_type as keyof typeof iconMap] || Briefcase;
@@ -113,17 +113,17 @@ const DebriefTab = () => {
                         </div>
                         <p style={{ margin: 0, color: 'var(--text-muted)', fontStyle: 'italic' }}>{debrief.job_title}</p>
                       </div>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                         <button onClick={() => setEditingDebriefId(debrief.id)} className="btn-ghost" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <Edit size={16} /> Modifier
                         </button>
-                        <button onClick={() => { setAnalyzeOnOpen(false); setSelectedDebriefId(debrief.id); }} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <button onClick={() => { setAnalyzeOnOpen(false); setSelectedDebriefId(debrief.id); }} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <ArrowRight size={16} /> Voir le Débrief
                         </button>
                         <button 
                           onClick={() => { setAnalyzeOnOpen(true); setSelectedDebriefId(debrief.id); }} 
                           className="btn-primary" 
-                          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--primary)' }}
                         >
                           <Zap size={16} /> Préparer la suite
                         </button>

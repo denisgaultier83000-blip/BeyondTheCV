@@ -74,6 +74,9 @@ export function DebriefModal({ onClose, cvData, debriefIdToEdit }: DebriefModalP
     learnings: '',
     preparation_points: '',
     interest_level: 3,
+    next_interview_date: '',
+    next_interview_type: '',
+    next_interview_interlocutor: '',
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -205,6 +208,23 @@ export function DebriefModal({ onClose, cvData, debriefIdToEdit }: DebriefModalP
               <div style={{ gridColumn: '1 / -1' }}>
                 <label>Points à préparer pour le prochain entretien</label>
                 <textarea value={state.preparation_points} onChange={e => handleChange('preparation_points', e.target.value)} rows={3} placeholder="Ex: Préparer les chiffres du marché X..."></textarea>
+              </div>
+            </div>
+
+            {/* [NOUVEAU] Prochain entretien */}
+            <div style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>Prochain entretien prévu (Optionnel)</h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                <div>
+                  <label>Date</label>
+                  <input type="date" value={state.next_interview_date || ''} onChange={e => handleChange('next_interview_date', e.target.value)} />
+                </div>
+                <div>
+                  <label>Type d'interlocuteur</label>
+                  <select value={state.next_interview_type || ''} onChange={e => handleChange('next_interview_type', e.target.value)}>
+                    <option value="">Non défini</option><option value="rh">RH</option><option value="manager">Manager</option><option value="tech">Technique</option><option value="final">Direction / Final</option>
+                  </select>
+                </div>
               </div>
             </div>
 
