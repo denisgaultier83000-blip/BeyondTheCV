@@ -18,9 +18,10 @@ RUN npm run build
 # Étape 2 : Serveur Web de Production (Nginx)
 FROM nginx:alpine
 
-# Copie des fichiers ultra-légers compilés depuis l'étape 1
+# Copie des fichiers compilés depuis l'étape 1
 COPY --from=build /app/dist /usr/share/nginx/html
 
+# [FIX] Copie de la configuration Nginx qui gère correctement les routes React.
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # [FIX] On remet le port standard 80 pour Nginx sur un VPS classique
