@@ -42,7 +42,7 @@ export function DebriefHistoryModal({ onClose }: DebriefHistoryModalProps) {
   }, []);
 
   if (selectedDebriefId) {
-    return <DebriefDetail debriefId={selectedDebriefId} onBack={() => setSelectedDebriefId(null)} />;//modification pour permettre le retour à l'historique après la visualisation d'un débrief
+    return <DebriefDetail debriefId={selectedDebriefId} onBack={() => setSelectedDebriefId(null)} />;
   }
 
   return (
