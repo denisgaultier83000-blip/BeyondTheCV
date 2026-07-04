@@ -45,6 +45,35 @@ async def create_debrief(debrief_data: InterviewDebriefRequest, current_user: di
 
     return {"id": debrief_id, "status": "created"}
 
+@router.put("/{debrief_id}", status_code=200)
+async def update_debrief(debrief_id: str, debrief_data: InterviewDebriefRequest, current_user: dict = Depends(get_current_user)):
+    """
+    Met à jour un compte rendu d'entretien existant.
+    """
+    user_id = current_user["id"]
+
+    query = """
+        UPDATE interview_debriefs SET
+            company_name = ?, job_title = ?, interview_date = ?, interview_format = ?,
+            interlocutor_type = ?, interlocutor_name = ?, interlocutor_role = ?, ambiance = ?,
+            positive_signals = ?, red_flags = ?, questions_asked = ?, difficult_questions = ?,
+            learnings = ?, preparation_points = ?, interest_level = ?
+        WHERE id = ? AND user_id = ?
+    """
+    values = (
+        debrief_data.company_name, debrief_data.job_title, debrief_data.interview_date,
+        debrief_data.interview_format, debrief_data.interlocutor_type, debrief_data.interlocutor_name,
+        debrief_data.interlocutor_role, json.dumps(debrief_data.ambiance),
+        json.dumps(debrief_data.positive_signals), json.dumps(debrief_data.red_flags),
+        debrief_data.questions_asked, debrief_data.difficult_questions, debrief_data.learnings,
+        debrief_data.preparation_points, debrief_data.interest_level, debrief_id, user_id
+    )
+
+    async with db.get_connection() as conn:
+        await db.execute(conn, query, values)
+
+    return {"id": debrief_id, "status": "updated"}
+
 @router.get("", response_model=dict)
 async def get_all_debriefs(current_user: dict = Depends(get_current_user)):
     """

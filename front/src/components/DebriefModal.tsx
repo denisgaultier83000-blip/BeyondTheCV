@@ -7,6 +7,7 @@ import { API_BASE_URL } from '../config';
 interface DebriefModalProps {
   onClose: () => void;
   cvData: any; // Pour pré-remplir entreprise/poste.
+  debriefIdToEdit?: string | null;
 }
 
 const CheckboxGroup = ({ title, options, selected, onChange }: { title: string, options: string[], selected: string[], onChange: (value: string) => void }) => (
@@ -56,7 +57,7 @@ const InterestSlider = ({ value, onChange }: { value: number, onChange: (value: 
   </div>
 );
 
-export function DebriefModal({ onClose, cvData }: DebriefModalProps) {
+export function DebriefModal({ onClose, cvData, debriefIdToEdit }: DebriefModalProps) {
   const [state, setState] = useState({
     company_name: cvData?.target_company || '',
     job_title: cvData?.target_job || '',
@@ -78,6 +79,30 @@ export function DebriefModal({ onClose, cvData }: DebriefModalProps) {
   const [success, setSuccess] = useState(false);
   const [showHistory, setShowHistory] = useState(false); // État pour afficher l'historique
 
+  useEffect(() => {
+    if (debriefIdToEdit) {
+      const fetchDebrief = async () => {
+        setLoading(true);
+        try {
+          const response = await authenticatedFetch(`${API_BASE_URL}/api/debriefs/${debriefIdToEdit}`);
+          if (!response.ok) throw new Error("Impossible de charger le débrief pour modification.");
+          const data = await response.json();
+          // On s'assure que les champs qui peuvent être null sont bien des chaînes vides
+          Object.keys(data).forEach(key => {
+            if (data[key] === null) data[key] = '';
+          });
+          setState({ ...data, interview_date: new Date(data.interview_date).toISOString().split('T')[0] });
+        } catch (err) {
+          console.error(err);
+          onClose(); // Ferme la modale en cas d'erreur de chargement
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchDebrief();
+    }
+  }, [debriefIdToEdit, onClose]);
+
   const handleChange = (field: string, value: any) => {
     setState(prev => ({ ...prev, [field]: value }));
   };
@@ -94,12 +119,14 @@ export function DebriefModal({ onClose, cvData }: DebriefModalProps) {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/debriefs`, {
-        method: 'POST',
+      const url = debriefIdToEdit ? `${API_BASE_URL}/api/debriefs/${debriefIdToEdit}` : `${API_BASE_URL}/api/debriefs`;
+      const method = debriefIdToEdit ? 'PUT' : 'POST';
+      const response = await authenticatedFetch(url, {
+        method: method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(state),
       });
-      if (!response.ok) throw new Error("Erreur lors de l'enregistrement du débrief.");
+      if (!response.ok) throw new Error(`Erreur lors de ${debriefIdToEdit ? 'la mise à jour' : "l'enregistrement"} du débrief.`);
       setSuccess(true);
       setTimeout(onClose, 2000); // Ferme la modale après 2s
     } catch (err) {
@@ -126,7 +153,7 @@ export function DebriefModal({ onClose, cvData }: DebriefModalProps) {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-main)', margin: 0 }}>
-            Débrief d'Entretien
+            {debriefIdToEdit ? "Modifier le Débrief" : "Débrief d'Entretien"}
           </h2>
           <button type="button" onClick={() => setShowHistory(true)} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><History size={16} /> Voir l'historique</button>
         </div>
@@ -134,7 +161,7 @@ export function DebriefModal({ onClose, cvData }: DebriefModalProps) {
         {success ? (
           <div style={{ textAlign: 'center', padding: '3rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
             <CheckCircle2 size={48} color="var(--success)" />
-            <p style={{ fontSize: '1.1rem', color: 'var(--text-main)', fontWeight: 500 }}>Votre compte rendu a bien été enregistré !</p>
+            <p style={{ fontSize: '1.1rem', color: 'var(--text-main)', fontWeight: 500 }}>{debriefIdToEdit ? "Modifications enregistrées !" : "Votre compte rendu a bien été enregistré !"}</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} style={{ overflowY: 'auto', paddingRight: '1rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -189,7 +216,7 @@ export function DebriefModal({ onClose, cvData }: DebriefModalProps) {
               <button type="button" onClick={onClose} className="btn-secondary">Annuler</button>
               <button type="submit" className="btn-primary" disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 {loading ? <Loader2 size={18} className="spin" /> : <Send size={18} />}
-                {loading ? 'Enregistrement...' : 'Enregistrer mon débrief'}
+                {loading ? 'Enregistrement...' : (debriefIdToEdit ? 'Mettre à jour' : 'Enregistrer mon débrief')}
               </button>
             </div>
           </form>

@@ -7,6 +7,7 @@ import { BulletList } from './BulletList';
 interface DebriefDetailProps {
   debriefId: string;
   onBack: () => void;
+  autoAnalyze?: boolean;
 }
 
 const DetailSection = ({ title, children }: { title: string, children: React.ReactNode }) => (
@@ -150,6 +151,10 @@ export function DebriefDetail({ debriefId, onBack }: DebriefDetailProps) {
       }
     };
     fetchDebrief();
+    // [NOUVEAU] Déclenchement automatique de l'analyse si demandé
+    if (autoAnalyze) {
+      handleAnalyze();
+    }
   }, [debriefId]);
 
   const handleAnalyze = async () => {

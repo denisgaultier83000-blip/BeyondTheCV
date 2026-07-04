@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Loader2, AlertTriangle, Briefcase, Calendar, User, Clock, ArrowRight, Zap } from 'lucide-react';
+import { Plus, Loader2, AlertTriangle, Briefcase, Calendar, User, Clock, ArrowRight, Zap, UserCheck, UserCog, Award, Edit } from 'lucide-react';
 import { DebriefModal } from './DebriefModal';
 import { useDashboard } from './DashboardContext';
 import { DebriefDetail } from './DebriefDetail';
@@ -13,11 +13,14 @@ interface DebriefSummary {
   interview_date: string;
   interlocutor_name?: string;
   interlocutor_role?: string;
+  interlocutor_type?: 'rh' | 'manager' | 'tech' | 'final' | string;
 }
 
 const DebriefTab = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDebriefId, setSelectedDebriefId] = useState<string | null>(null);
+  const [editingDebriefId, setEditingDebriefId] = useState<string | null>(null);
+  const [analyzeOnOpen, setAnalyzeOnOpen] = useState(false);
   const [history, setHistory] = useState<DebriefSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,17 +47,23 @@ const DebriefTab = () => {
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
+    setEditingDebriefId(null);
+    setAnalyzeOnOpen(false); // Réinitialiser
     setLoading(true);
     fetchHistory(); // Rafraîchit l'historique après la fermeture de la modale
   };
 
   if (selectedDebriefId) {
-    return <DebriefDetail debriefId={selectedDebriefId} onBack={() => setSelectedDebriefId(null)} />;
+    return <DebriefDetail 
+      debriefId={selectedDebriefId} 
+      onBack={() => { setSelectedDebriefId(null); setAnalyzeOnOpen(false); }} 
+      autoAnalyze={analyzeOnOpen}
+    />;
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      {isModalOpen && <DebriefModal onClose={handleCloseModal} cvData={cvData} />}
+      {(isModalOpen || editingDebriefId) && <DebriefModal onClose={handleCloseModal} cvData={cvData} debriefIdToEdit={editingDebriefId} />}
 
       {/* En-tête */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
@@ -64,7 +73,7 @@ const DebriefTab = () => {
             Transformez chaque entretien en avantage stratégique pour le suivant.
           </p>
         </div>
-        <button className="btn-primary" onClick={() => setIsModalOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <button className="btn-primary" onClick={() => { setEditingDebriefId(null); setIsModalOpen(true); }} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Plus size={18} /> Enregistrer un Entretien
         </button>
       </div>
@@ -82,33 +91,53 @@ const DebriefTab = () => {
             <p>Cliquez sur "Enregistrer un Entretien" pour commencer votre suivi.</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {history.map(debrief => (
-              <div key={debrief.id} style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                      <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Briefcase size={18} /> {debrief.company_name}</h3>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Calendar size={14} /> {new Date(debrief.interview_date).toLocaleDateString('fr-FR')}</span>
-                    </div>
-                    <p style={{ margin: 0, color: 'var(--text-muted)', fontStyle: 'italic' }}>{debrief.job_title}</p>
+          <div style={{ position: 'relative', paddingLeft: '2rem' }}>
+            <div style={{ position: 'absolute', left: '20px', top: 0, bottom: 0, width: '2px', background: 'var(--border-color)' }}></div>
+            {history.map((debrief, index) => {
+              const iconMap = { rh: UserCheck, manager: UserCog, final: Award, tech: UserCog };
+              const Icon = iconMap[debrief.interlocutor_type as keyof typeof iconMap] || Briefcase;
+
+              return (
+                <div key={debrief.id} style={{ position: 'relative', marginBottom: '2rem', paddingLeft: '2.5rem' }}>
+                  <div style={{ position: 'absolute', left: '-9px', top: '5px', width: '22px', height: '22px', borderRadius: '50%', background: 'var(--bg-card)', border: '2px solid var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon size={12} color="var(--primary)" />
                   </div>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button onClick={() => setSelectedDebriefId(debrief.id)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <ArrowRight size={16} /> Voir le Débrief
-                    </button>
-                    <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Zap size={16} /> Préparer la suite
-                    </button>
+                  <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                          <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>{debrief.company_name}</h3>
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', background: 'var(--bg-card)', padding: '0.2rem 0.5rem', borderRadius: '0.25rem', border: '1px solid var(--border-color)' }}>
+                            {new Date(debrief.interview_date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long' })}
+                          </span>
+                        </div>
+                        <p style={{ margin: 0, color: 'var(--text-muted)', fontStyle: 'italic' }}>{debrief.job_title}</p>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button onClick={() => setEditingDebriefId(debrief.id)} className="btn-ghost" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <Edit size={16} /> Modifier
+                        </button>
+                        <button onClick={() => { setAnalyzeOnOpen(false); setSelectedDebriefId(debrief.id); }} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <ArrowRight size={16} /> Voir le Débrief
+                        </button>
+                        <button 
+                          onClick={() => { setAnalyzeOnOpen(true); setSelectedDebriefId(debrief.id); }} 
+                          className="btn-primary" 
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        >
+                          <Zap size={16} /> Préparer la suite
+                        </button>
+                      </div>
+                    </div>
+                    {debrief.interlocutor_name && (
+                      <div style={{ borderTop: '1px solid var(--border-color)', marginTop: '1rem', paddingTop: '1rem', fontSize: '0.9rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <User size={16} /> Interlocuteur : <strong style={{ color: 'var(--text-main)' }}>{debrief.interlocutor_name}</strong> ({debrief.interlocutor_role})
+                      </div>
+                    )}
                   </div>
                 </div>
-                {debrief.interlocutor_name && (
-                  <div style={{ borderTop: '1px solid var(--border-color)', marginTop: '1rem', paddingTop: '1rem', fontSize: '0.9rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <User size={16} /> Interlocuteur : <strong style={{ color: 'var(--text-main)' }}>{debrief.interlocutor_name}</strong> ({debrief.interlocutor_role})
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
