@@ -23,7 +23,7 @@ import { DashboardCard } from './DashboardCard';
 import Questionnaire from './Questionnaire';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
-import { useDashboard } from './DashboardContext';
+import { useDashboard } from '../hooks/DashboardContext';
 import { VocalPitchTrainer } from './VocalPitchTrainer';
 import { RechargeModal } from './RechargeModal';
 

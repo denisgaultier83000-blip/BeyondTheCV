@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ShieldAlert, Clock, Zap, Target, CheckCircle2, Circle, Mic, CalendarDays, Timer, Lock, RefreshCw, Loader2, AlertTriangle, Flame, Activity } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
-import { useDashboard } from './DashboardContext';
+import { useDashboard } from '../hooks/DashboardContext';
 import OralSimulatorModal from './OralSimulatorModal';
 
 interface TrainingModule {

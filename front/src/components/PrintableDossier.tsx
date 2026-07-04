@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useDashboard } from './DashboardContext';
+import { useDashboard } from '../hooks/DashboardContext';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { formatMarkdownReact, formatStrategicAnalysisReact } from '../utils/formatUtils';

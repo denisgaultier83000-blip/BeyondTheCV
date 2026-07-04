@@ -4,7 +4,7 @@ import { HelpCircle, MessageSquare, Printer, ArrowLeft, CheckCircle2, Lightbulb,
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
-import { useDashboard } from './DashboardContext';
+import { useDashboard } from '../hooks/DashboardContext';
 import { RechargeModal } from './RechargeModal';
 import { formatMarkdownReact } from '../utils/formatUtils';
 import { AsyncBoundary } from './AsyncBoundary';
