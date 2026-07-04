@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Loader2, AlertTriangle, Briefcase, Calendar, User, Clock, ArrowRight, Zap, UserCheck, UserCog, Award, Edit, History } from 'lucide-react';
 import { DebriefModal } from './DebriefModal';
-import { useDashboard } from './DashboardContext';
+import { useDashboard } from '../hooks/DashboardContext';
 import { DebriefDetail } from './DebriefDetail';
 import { authenticatedFetch } from '../utils/auth';
 import { API_BASE_URL } from '../config';
