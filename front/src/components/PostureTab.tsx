@@ -22,8 +22,8 @@ function RoadmapGeneratorModal({ onClose }: RoadmapGeneratorModalProps) {
   const [result, setResult] = useState<any>(null);
 
   const [selections, setSelections] = useState({
-    type: cvData?.interview_format || 'visio',
-    interlocutor: cvData?.interview_type || 'manager',
+    type: 'visio', // Valeur par défaut
+    interlocutor: 'manager', // Valeur par défaut
     level: 'mid', // Valeur par défaut
     context: 'first_interview', // Valeur par défaut
   });

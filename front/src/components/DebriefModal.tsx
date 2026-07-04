@@ -158,7 +158,11 @@ export function DebriefModal({ onClose, cvData, debriefIdToEdit }: DebriefModalP
           <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-main)', margin: 0 }}>
             {debriefIdToEdit ? "Modifier le Débrief" : "Débrief d'Entretien"}
           </h2>
-          <button type="button" onClick={() => setShowHistory(true)} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><History size={16} /> Voir l'historique</button>
+          {/* [FIX] On s'assure de fermer la modale actuelle avant d'ouvrir l'historique */}
+          <button type="button" onClick={() => {
+            onClose(); // Ferme la modale de création/édition
+            setShowHistory(true); // Ouvre la modale d'historique
+          }} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><History size={16} /> Voir l'historique</button>
         </div>
 
         {success ? (
