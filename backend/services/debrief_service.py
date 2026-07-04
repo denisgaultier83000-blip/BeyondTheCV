@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional, Any
-import uuid
+import uuid, json
 from datetime import datetime
 
 from security import get_current_user
@@ -33,9 +33,9 @@ async def create_debrief(debrief_data: InterviewDebriefRequest, current_user: di
     """
     values = (
         debrief_id, user_id, debrief_data.company_name, debrief_data.job_title,
-        debrief_data.interview_date, debrief_data.interview_format, debrief_data.interlocutor_type,
-        debrief_data.interlocutor_name, debrief_data.interlocutor_role,
-        str(debrief_data.ambiance), str(debrief_data.positive_signals), str(debrief_data.red_flags),
+        debrief_data.interview_date, debrief_data.interview_format,
+        debrief_data.interlocutor_type, debrief_data.interlocutor_name, debrief_data.interlocutor_role,
+        json.dumps(debrief_data.ambiance), json.dumps(debrief_data.positive_signals), json.dumps(debrief_data.red_flags),
         debrief_data.questions_asked, debrief_data.difficult_questions, debrief_data.learnings,
         debrief_data.preparation_points, debrief_data.interest_level, datetime.now()
     )
