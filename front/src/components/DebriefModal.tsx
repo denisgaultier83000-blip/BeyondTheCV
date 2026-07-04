@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Loader2, Send, CheckCircle2, History } from 'lucide-react';
 import { DebriefHistoryModal } from './DebriefHistoryModal'; // Nouveau composant pour l'historique
+import { authenticatedFetch } from '../utils/auth';
+import { API_BASE_URL } from '../config';
 
 interface DebriefModalProps {
   onClose: () => void;
@@ -91,12 +93,20 @@ export function DebriefModal({ onClose, cvData }: DebriefModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Ici, vous appellerez votre endpoint POST /api/debriefs
-    console.log("Submitting debrief:", state);
-    await new Promise(resolve => setTimeout(resolve, 1500)); // Simule un appel réseau
-    setLoading(false);
-    setSuccess(true);
-    setTimeout(onClose, 2000); // Ferme la modale après 2s
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/debriefs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(state),
+      });
+      if (!response.ok) throw new Error("Erreur lors de l'enregistrement du débrief.");
+      setSuccess(true);
+      setTimeout(onClose, 2000); // Ferme la modale après 2s
+    } catch (err) {
+      console.error("Submit debrief error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const ambianceOptions = ["Très positive", "Positive", "Neutre", "Froide", "Tendue", "Floue", "Bienveillante"];

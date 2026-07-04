@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Loader2, AlertTriangle, ArrowLeft, Briefcase, Calendar } from 'lucide-react';
 import { DebriefDetail } from './DebriefDetail'; // Assurez-vous que ce composant existe
+import { authenticatedFetch } from '../utils/auth';
+import { API_BASE_URL } from '../config';
 
 interface DebriefHistoryModalProps {
   onClose: () => void;
@@ -25,20 +27,10 @@ export function DebriefHistoryModal({ onClose }: DebriefHistoryModalProps) {
       setLoading(true);
       setError(null);
       try {
-        // NOTE: Cet endpoint est à créer côté backend: GET /api/debriefs.
-        // const response = await authenticatedFetch(`${API_BASE_URL}/api/debriefs`);
-        // if (!response.ok) throw new Error("Impossible de charger l'historique.");
-        // const data = await response.json();
-        
-        // --- Données de simulation en attendant le backend ---
-        await new Promise(resolve => setTimeout(resolve, 800));
-        const mockData: DebriefSummary[] = [
-          { id: '1', company_name: 'Google', job_title: 'Software Engineer', interview_date: '2026-06-15', interlocutor_type: 'tech' },
-          { id: '2', company_name: 'Meta', job_title: 'Product Manager', interview_date: '2026-05-28', interlocutor_type: 'manager' },
-          { id: '3', company_name: 'LVMH', job_title: 'Data Analyst', interview_date: '2026-05-10', interlocutor_type: 'rh' },
-        ];
-        setHistory(mockData);
-        // --- Fin des données de simulation ---
+        const response = await authenticatedFetch(`${API_BASE_URL}/api/debriefs`);
+        if (!response.ok) throw new Error("Impossible de charger l'historique.");
+        const data = await response.json();
+        setHistory(data.debriefs || []);
 
       } catch (err: any) {
         setError(err.message);
