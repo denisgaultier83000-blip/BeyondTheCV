@@ -16,6 +16,7 @@ interface DebriefSummary {
   interlocutor_type?: 'rh' | 'manager' | 'tech' | 'final' | string;
 }
 
+// Trigger new build to clear cache
 const DebriefTab = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDebriefId, setSelectedDebriefId] = useState<string | null>(null);
