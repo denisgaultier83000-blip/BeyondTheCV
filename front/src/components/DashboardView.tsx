@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, lazy, Suspense, useMemo, FC } from 'react';
 import { useDashboard } from './DashboardContext';
-import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass, Mic, Search, Eye, Navigation, Network, Loader2, RotateCcw, CheckSquare, Dumbbell, ArrowUp, Printer, Building, ShieldAlert, Calendar, UserCheck, Monitor, HeartPulse, Zap, Award } from 'lucide-react';
+import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass, Mic, Search, Eye, Navigation, Network, Loader2, RotateCcw, CheckSquare, Dumbbell, ArrowUp, Printer, Building, ShieldAlert, Calendar, UserCheck, Monitor, HeartPulse, Zap, Award, ClipboardList } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PilotBento } from './PilotBento';
 import { GapAnalysisFull } from './GapAnalysisFull';
@@ -14,6 +14,7 @@ import FlawCoaching from './FlawCoaching';
 import TrainingTab from './TrainingTab';
 import { PrintableDossier } from './PrintableDossier';
 import { CoachingSummaryCard } from './CoachingSummaryCard';
+const DebriefTab = lazy(() => import('./DebriefTab'));
 const PostureTab = lazy(() => import('./PostureTab'));
 
 interface DeliverableItem {
@@ -90,16 +91,14 @@ const subMenus: Record<string, {label: string, id: string}[]> = {
     { label: 'Décodeur d\'Annonce', id: 'decoder_section' }
   ],
   training: [
-    { label: 'Mises en situation', id: 'training_mes_section' },
-    { label: 'Entraînement au Pitch', id: 'training_pitch_section' }
+    { label: 'Mises en situation', id: 'training_mes_section' }, // ID déjà présent
+    { label: 'Entraînement au Pitch', id: 'training_pitch_section' } // ID déjà présent
   ],
   posture: [
-    { label: 'Feuille de Route', id: 'roadmap_section' },
     { label: 'Dernière Heure', id: 'last_hour_section' },
     { label: 'Questions Stratégiques', id: 'strategic_questions_section' },
     { label: 'Signaux à Observer', id: 'signals_section' },
     { label: 'Guides de Posture', id: 'posture_guides_section' },
-    { label: 'Débrief', id: 'debrief_section' },
     { label: 'Plan de Secours', id: 'contingency_plan_section' }
   ]
 };
@@ -372,6 +371,12 @@ export const DashboardView: FC = () => {
         <button className={`tab-btn ${activeTab === 'posture' ? 'active' : ''}`} onClick={() => handleTabChange('posture')}>
           <Award size={18} /> {t('tab_posture', "Réussir l'entretien")}
         </button>
+        <button className={`tab-btn ${activeTab === 'debrief' ? 'active' : ''}`} onClick={() => handleTabChange('debrief')}>
+          <ClipboardList size={18} /> {t('tab_debrief', "Débrief & Suivi")}
+        </button>
+        <button className={`tab-btn ${activeTab === 'debrief' ? 'active' : ''}`} onClick={() => handleTabChange('debrief')}>
+          <ClipboardList size={18} /> {t('tab_debrief', "Débrief & Suivi")}
+        </button>
       </div>
 
       {/* SOUS-MENUS */}
@@ -511,6 +516,12 @@ export const DashboardView: FC = () => {
         {activeTab === 'posture' && (
           <Suspense fallback={<div className="p-8 text-center">Chargement du module...</div>}>
             <PostureTab />
+          </Suspense>
+        )}
+
+        {activeTab === 'debrief' && (
+          <Suspense fallback={<div className="p-8 text-center">Chargement du module...</div>}>
+            <DebriefTab />
           </Suspense>
         )}
       </div>

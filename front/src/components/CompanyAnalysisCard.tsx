@@ -176,8 +176,8 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
                         <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <span style={{ color: 'var(--text-muted)' }}>{news.date}</span>
                           {news.interview_relevance !== undefined && (
-                            <span style={{ background: news.interview_relevance >= 8 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)', color: news.interview_relevance >= 8 ? '#10b981' : '#f59e0b', padding: '0.2rem 0.4rem', borderRadius: '0.25rem', fontSize: '0.75rem' }}>
-                              Score: {news.interview_relevance}/10
+                            <span style={{ background: news.interview_relevance >= 80 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)', color: news.interview_relevance >= 80 ? '#10b981' : '#f59e0b', padding: '0.2rem 0.4rem', borderRadius: '0.25rem', fontSize: '0.75rem' }}>
+                              Score: {news.interview_relevance}/100
                             </span>
                           )}
                         </span>

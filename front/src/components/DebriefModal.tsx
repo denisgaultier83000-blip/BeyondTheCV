@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { X, Loader2, Send, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Loader2, Send, CheckCircle2, History } from 'lucide-react';
+import { DebriefHistoryModal } from './DebriefHistoryModal'; // Nouveau composant pour l'historique
 
 interface DebriefModalProps {
   onClose: () => void;
@@ -73,6 +74,7 @@ export function DebriefModal({ onClose, cvData }: DebriefModalProps) {
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [showHistory, setShowHistory] = useState(false); // État pour afficher l'historique
 
   const handleChange = (field: string, value: any) => {
     setState(prev => ({ ...prev, [field]: value }));
@@ -101,6 +103,10 @@ export function DebriefModal({ onClose, cvData }: DebriefModalProps) {
   const positiveSignalsOptions = ["Prochaines étapes claires", "Entretien > durée prévue", "Le recruteur 'vend' le poste", "Questions sur la disponibilité", "Évocation du salaire"];
   const redFlagsOptions = ["Poste mal défini", "Objectifs flous", "Turnover évoqué", "Urgence suspecte", "Manager peu clair", "Contradictions"];
 
+  if (showHistory) {
+    return <DebriefHistoryModal onClose={() => setShowHistory(false)} />;
+  }
+
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.7)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(4px)' }}>
       <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '1.25rem', width: '90%', maxWidth: '800px', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
@@ -108,9 +114,12 @@ export function DebriefModal({ onClose, cvData }: DebriefModalProps) {
           <X size={20} />
         </button>
 
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-main)', marginBottom: '1.5rem', textAlign: 'center' }}>
-          Débrief d'Entretien
-        </h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-main)', margin: 0 }}>
+            Débrief d'Entretien
+          </h2>
+          <button type="button" onClick={() => setShowHistory(true)} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><History size={16} /> Voir l'historique</button>
+        </div>
 
         {success ? (
           <div style={{ textAlign: 'center', padding: '3rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
