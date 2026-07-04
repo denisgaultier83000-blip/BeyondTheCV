@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, Loader2, AlertTriangle, Zap, Lightbulb, CheckCircle2, ShieldAlert, Mail, Copy, Check, MessageSquareQuote, Wand2 } from 'lucide-react';
 import { authenticatedFetch } from '../utils/auth';
 import { API_BASE_URL } from '../config';
@@ -126,13 +126,34 @@ const AnalysisResultDisplay = ({ analysis }: { analysis: any }) => {
   );
 };
 
-export function DebriefDetail({ debriefId, onBack }: DebriefDetailProps) {
+export function DebriefDetail({ debriefId, onBack, autoAnalyze }: DebriefDetailProps) {
   const [debrief, setDebrief] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+
+  const handleAnalyze = useCallback(async () => {
+    setIsAnalyzing(true);
+    setAnalysisError(null);
+    setAnalysisResult(null);
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/debriefs/${debriefId}/analyze`, {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.detail || "L'analyse a échoué.");
+      }
+      const data = await response.json();
+      setAnalysisResult(data.analysis);
+    } catch (err: any) {
+      setAnalysisError(err.message);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [debriefId]);
 
   useEffect(() => {
     const fetchDebrief = async () => {
@@ -155,28 +176,7 @@ export function DebriefDetail({ debriefId, onBack }: DebriefDetailProps) {
     if (autoAnalyze) {
       handleAnalyze();
     }
-  }, [debriefId]);
-
-  const handleAnalyze = async () => {
-    setIsAnalyzing(true);
-    setAnalysisError(null);
-    setAnalysisResult(null);
-    try {
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/debriefs/${debriefId}/analyze`, {
-        method: 'POST',
-      });
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.detail || "L'analyse a échoué.");
-      }
-      const data = await response.json();
-      setAnalysisResult(data.analysis);
-    } catch (err: any) {
-      setAnalysisError(err.message);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
+  }, [debriefId, autoAnalyze, handleAnalyze]);
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.7)', zIndex: 2002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(4px)' }}>
