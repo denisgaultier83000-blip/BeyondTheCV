@@ -94,6 +94,7 @@ services:
 
     networks:
       - web
+      - btcv-prod-internal
 
     labels:
       - "traefik.enable=true"
