@@ -771,6 +771,54 @@ Output JSON.`;
     }
   });
 
+  // [NOUVEAU] Analyse d'un débrief pour préparer l'étape suivante
+  app.post("/api/debriefs/:id/analyze", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { cvData, nextInterviewContext } = req.body; // Le front devra envoyer ces données
+
+      // 1. Récupérer le débrief existant (simulé ici, à remplacer par une lecture DB)
+      // Dans une vraie app, vous feriez : const debrief = await db.getDebriefById(id);
+      // Pour l'instant, on simule en attendant la DB.
+      const debriefData = {
+        id,
+        placeholder: "Données du débrief à récupérer depuis la base de données."
+      };
+
+      // 2. Lire le prompt du coach
+      const promptTemplate = await fs.readFile(
+        path.join(process.cwd(), "ai", "prompts", "next_step_prep.md"),
+        "utf-8"
+      );
+
+      // 3. Remplacer les placeholders
+      const finalPrompt = promptTemplate
+        .replace("{{CANDIDATE_PROFILE_JSON}}", JSON.stringify(cvData || {}, null, 2))
+        .replace("{{DEBRIEF_JSON}}", JSON.stringify(debriefData, null, 2))
+        .replace("{{NEXT_INTERVIEW_CONTEXT_JSON}}", JSON.stringify(nextInterviewContext || {}, null, 2))
+        .replace("{{TARGET_LANGUAGE}}", cvData?.target_language || "fr");
+
+      // 4. Appeler l'IA
+      const resp = await getOpenAI().chat.completions.create({
+        model: OPENAI_MODEL,
+        messages: [{ role: "user", content: finalPrompt }],
+        response_format: { type: "json_object" },
+      });
+
+      const rawJson = resp.choices[0].message.content;
+      const analysis = JSON.parse(rawJson);
+
+      return res.status(200).json({ analysis });
+
+    } catch (err) {
+      console.error("[/api/debriefs/:id/analyze] Error:", err);
+      return res.status(500).json({
+        error: "analysis_failed",
+        detail: err.message || "Une erreur interne est survenue lors de l'analyse du débrief."
+      });
+    }
+  });
+
   // ✅ TeX export (simple .tex generator)
   app.post("/cv/tex", requireAuth, async (req, res) => {
     try {

@@ -128,6 +128,8 @@ const AnalysisResultDisplay = ({ analysis }: { analysis: any }) => {
 
 export function DebriefDetail({ debriefId, onBack, autoAnalyze }: DebriefDetailProps) {
   const [debrief, setDebrief] = useState<any>(null);
+  // [FIX] On récupère le cvData pour l'envoyer à l'API d'analyse
+  const { cvData } = useDashboard(); 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -141,6 +143,11 @@ export function DebriefDetail({ debriefId, onBack, autoAnalyze }: DebriefDetailP
     try {
       const response = await authenticatedFetch(`${API_BASE_URL}/api/debriefs/${debriefId}/analyze`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cvData: cvData, // Envoyer le profil du candidat
+          nextInterviewContext: { /* Potentiellement, le contexte du prochain entretien si connu */ }
+        })
       });
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
@@ -153,7 +160,7 @@ export function DebriefDetail({ debriefId, onBack, autoAnalyze }: DebriefDetailP
     } finally {
       setIsAnalyzing(false);
     }
-  }, [debriefId]);
+  }, [debriefId, cvData]);
 
   useEffect(() => {
     const fetchDebrief = async () => {
