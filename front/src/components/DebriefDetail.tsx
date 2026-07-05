@@ -42,16 +42,22 @@ const AnalysisResultDisplay = ({ analysis }: { analysis: any }) => {
   if (!summary) return <p>L'analyse n'a pas pu être structurée correctement.</p>;
 
   // [NOUVEAU] État pour rendre le mail éditable et copiable
-  const [editedEmail, setEditedEmail] = useState(summary.next_interview_preparation?.follow_up_email || '');
+  const [emailSubject, setEmailSubject] = useState(summary.next_interview_preparation?.follow_up_email?.subject || '');
+  const [emailBody, setEmailBody] = useState(summary.next_interview_preparation?.follow_up_email?.body || '');
   const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
     // S'assure que le champ est mis à jour si une nouvelle analyse est lancée
-    setEditedEmail(summary.next_interview_preparation?.follow_up_email || '');
+    const emailData = summary.next_interview_preparation?.follow_up_email;
+    if (emailData && typeof emailData === 'object') {
+      setEmailSubject(emailData.subject || '');
+      setEmailBody(emailData.body || '');
+    }
   }, [summary.next_interview_preparation?.follow_up_email]);
 
   const handleCopyEmail = () => {
-    navigator.clipboard.writeText(editedEmail);
+    const fullEmail = `Objet: ${emailSubject}\n\n${emailBody}`;
+    navigator.clipboard.writeText(fullEmail);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
   };
@@ -96,6 +102,10 @@ const AnalysisResultDisplay = ({ analysis }: { analysis: any }) => {
                     <strong style={{ color: 'var(--success)', display: 'block', marginBottom: '0.25rem' }}>Suggestion de réponse :</strong>
                     <p style={{ margin: 0, color: 'var(--text-main)' }}>{item.suggested_improvement}</p>
                   </div>
+                  {item.ready_to_say_next_time && <div style={{ borderLeft: '3px solid var(--primary)', paddingLeft: '1rem', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '4px' }}>
+                    <strong style={{ color: 'var(--primary)', display: 'block', marginBottom: '0.25rem' }}>Prêt à dire la prochaine fois :</strong>
+                    <p style={{ margin: 0, color: 'var(--text-main)', fontStyle: 'italic' }}>"{item.ready_to_say_next_time}"</p>
+                  </div>}
                 </div>
               </div>
             ))}
@@ -103,22 +113,45 @@ const AnalysisResultDisplay = ({ analysis }: { analysis: any }) => {
         </AnalysisSection>
       )}
 
+      {/* [NOUVEAU] Affichage du plan de préparation */}
+      {summary.next_interview_preparation && (
+        <AnalysisSection title="Plan de Préparation pour le Prochain Entretien" icon={<Wand2 size={20} />}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {summary.next_interview_preparation.priority_topics?.length > 0 && <DetailSection title="Sujets prioritaires à maîtriser"><BulletList items={summary.next_interview_preparation.priority_topics} /></DetailSection>}
+            {summary.next_interview_preparation.answers_to_prepare?.length > 0 && <DetailSection title="Réponses à préparer"><BulletList items={summary.next_interview_preparation.answers_to_prepare} /></DetailSection>}
+            {summary.next_interview_preparation.research_to_do?.length > 0 && <DetailSection title="Recherches à effectuer"><BulletList items={summary.next_interview_preparation.research_to_do} /></DetailSection>}
+            {summary.next_interview_preparation.questions_to_ask_next?.length > 0 && <DetailSection title="Questions à poser au prochain entretien"><BulletList items={summary.next_interview_preparation.questions_to_ask_next} /></DetailSection>}
+          </div>
+        </AnalysisSection>
+      )}
+
       {summary.next_interview_preparation?.follow_up_email && (
         <AnalysisSection title="Suggestion de Mail de Suivi" icon={<Mail size={20} />}>
+          <input
+            type="text"
+            value={emailSubject}
+            onChange={(e) => setEmailSubject(e.target.value)}
+            placeholder="Objet de l'e-mail"
+            style={{
+              width: '100%', padding: '0.75rem', borderRadius: '0.5rem 0.5rem 0 0', border: '1px solid var(--border-color)',
+              background: 'var(--bg-body)', color: 'var(--text-main)', fontWeight: 'bold', outline: 'none',
+              borderBottom: 'none'
+            }}
+          />
           <textarea
-            value={editedEmail}
-            onChange={(e) => setEditedEmail(e.target.value)}
+            value={emailBody}
+            onChange={(e) => setEmailBody(e.target.value)}
             rows={12}
             style={{
               width: '100%', whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: '0.9rem',
-              padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)',
+              padding: '1rem', borderRadius: '0 0 0.5rem 0.5rem', border: '1px solid var(--border-color)',
               background: 'var(--bg-body)', color: 'var(--text-main)', resize: 'vertical',
               transition: 'border-color 0.2s', outline: 'none'
             }}
           />
           <button onClick={handleCopyEmail} className="btn-secondary" style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             {isCopied ? <Check size={16} color="var(--success)" /> : <Copy size={16} />}
-            {isCopied ? "Copié !" : "Copier le texte"}
+            {isCopied ? "Copié !" : "Copier l'e-mail"}
           </button>
         </AnalysisSection>
       )}
