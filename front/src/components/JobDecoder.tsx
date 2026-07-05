@@ -1,9 +1,9 @@
 import React from 'react';
-import { Search, AlertCircle, MessageSquare, Target, ShieldAlert, Building, ArrowRight } from 'lucide-react';
+import { Search, MessageSquare, Target, ShieldAlert, Building, ArrowRight, User, HelpCircle, Key, List, Lightbulb } from 'lucide-react';
 import { formatMarkdown } from '../utils/markdown';
 import DOMPurify from 'dompurify';
-import { FeedbackWidget } from './FeedbackWidget';
 import { DashboardCard } from './DashboardCard';
+import { BulletList } from './BulletList';
 
 interface JobDecoderProps {
   data?: any;
@@ -11,14 +11,29 @@ interface JobDecoderProps {
   error?: boolean;
 }
 
+// --- [NOUVEAU] Sous-composants pour la clarté ---
+const Section: React.FC<{ title: string; icon: React.ReactNode; children: React.ReactNode; className?: string }> = ({ title, icon, children, className }) => (
+  <div className={`decoder-section ${className || ''}`}>
+    <h4 className="decoder-section-title">
+      {icon} {title}
+    </h4>
+    <div className="decoder-section-content">{children}</div>
+  </div>
+);
+
+const InfoCard: React.FC<{ title: string; children: React.ReactNode; className?: string }> = ({ title, children, className }) => (
+  <div className={`info-card ${className || ''}`}>
+    <h5 className="info-card-title">{title}</h5>
+    {children}
+  </div>
+);
+
 const extractDecoderData = (data: any) => {
   if (!data) return null;
-  // Gère les encapsulations possibles : { result: ... }, { job_decoder_result: ... }, etc.
-  let payload = data.result || data.job_decoder_result || data.job_decoder || data;
-  // Cas où la donnée est directement à la racine.
-  if (data.reality_check || data.real_expectations) {
-    payload = data;
-  }
+  // [MODIFICATION] Gère la nouvelle structure `decoder` en priorité, tout en gardant la compatibilité.
+  let payload = data.decoder || data.result || data.job_decoder_result || data.job_decoder || data;
+  
+  // Si le payload est une chaîne JSON, on la parse.
   if (typeof payload === 'string') {
     try {
       const match = payload.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
@@ -31,6 +46,16 @@ const extractDecoderData = (data: any) => {
 export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) => {
   const decoderData = extractDecoderData(data);
 
+  const ConfidenceBadge: React.FC<{ level?: 'low' | 'medium' | 'high' }> = ({ level }) => {
+    if (!level) return null;
+    const styles = {
+      low: { background: 'rgba(100, 116, 139, 0.1)', color: '#475569' },
+      medium: { background: 'rgba(245, 158, 11, 0.1)', color: '#d97706' },
+      high: { background: 'rgba(239, 68, 68, 0.1)', color: '#dc2626' },
+    };
+    return <span className="confidence-badge" style={styles[level]}>{level}</span>;
+  };
+
   return (
     <DashboardCard
       title="Décodeur d'Annonce"
@@ -42,76 +67,147 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
       featureId="job_decoder"
     >
       {decoderData && (() => {
-        const realityCheck = decoderData.reality_check || [];
-        const realExpectations = decoderData.real_expectations || [];
-        const redFlags = decoderData.red_flags || [];
-        const cultureFit = decoderData.culture_fit || "";
 
         return (
-          <div className="result-card" style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '-0.5rem', marginBottom: '1.5rem' }}>
+          <div className="job-decoder-container">
+            <p className="job-decoder-intro">
               Traduction du jargon RH en réalité opérationnelle pour déjouer les pièges de l'offre.
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-              {/* Reality Check (Jargon translation) */}
-              <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
-                <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-main)', margin: '0 0 1rem 0' }}>
-                  <MessageSquare size={18} color="var(--primary)" /> Traduction du Jargon RH
-                </h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {realityCheck.map((item: any, idx: number) => (
-                    <div key={idx} style={{ background: 'var(--bg-card)', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', position: 'relative' }}>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.25rem', fontStyle: 'italic' }}>L'annonce dit :</div>
-                      <div style={{ fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.75rem' }}>"{item.jargon}"</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', fontSize: '0.85rem', marginBottom: '0.25rem' }}>
-                        <ArrowRight size={14} /> Ce que ça signifie vraiment :
+           {decoderData.job_summary && <p className="job-summary">{decoderData.job_summary}</p>}
+
+            <div className="job-decoder-grid">
+              {decoderData.manager_fear && (
+                <Section title="La Peur du Manager" icon={<User size={18} />} className="manager-fear-section">
+                  <InfoCard title="Hypothèse" className="hypothesis-card">
+                    <p>"{decoderData.manager_fear.hypothesis}"</p>
+                  </InfoCard>
+                  <InfoCard title="Comment Rassurer" className="reassurance-card">
+                    <p>{decoderData.manager_fear.how_to_reassure}</p>
+                  </InfoCard>
+                </Section>
+              )}
+
+              {decoderData.red_flags?.length > 0 && (
+                <Section title="Signaux d'Alerte (Red Flags)" icon={<ShieldAlert size={18} />} className="red-flags-section">
+                  {decoderData.red_flags.map((item: any, idx: number) => (
+                    <div key={idx} className="red-flag-item">
+                      <div className="red-flag-header">
+                        <p>"{item.signal}"</p>
+                        <ConfidenceBadge level={item.confidence} />
                       </div>
-                      <div style={{ color: 'var(--text-main)', fontSize: '0.95rem' }}>{item.translation}</div>
+                      <div className="red-flag-body">
+                        <div className="red-flag-risk"><strong>Risque :</strong> {item.risk}</div>
+                        <div className="red-flag-question"><strong>Question à poser :</strong> "{item.question_to_verify}"</div>
+                      </div>                    </div>
+                  ))}
+               </Section>
+              )}
+
+              {decoderData.candidate_positioning && (
+                <Section title="Votre Positionnement Stratégique" icon={<Target size={18} />} className="positioning-section">
+                  <InfoCard title="Posture Recommandée">
+                    <p>{decoderData.candidate_positioning.recommended_posture}</p>
+                  </InfoCard>
+                  <InfoCard title="Messages Clés à faire passer">
+                    <BulletList items={decoderData.candidate_positioning.messages_to_send} />
+                  </InfoCard>
+                  <InfoCard title="Erreurs à éviter">
+                    <BulletList items={decoderData.candidate_positioning.mistakes_to_avoid} type="danger" />
+                  </InfoCard>
+                </Section>
+              )}
+
+              {decoderData.implicit_expectations?.length > 0 && (
+                <Section title="Attentes Implicites" icon={<Lightbulb size={18} />}>
+                  {decoderData.implicit_expectations.map((item: any, idx: number) => (
+                    <div key={idx} className="expectation-item">
+                      <div className="expectation-header">
+                        <p>"{item.signal}"</p>
+                        <ConfidenceBadge level={item.confidence} />
+                      </div>
+                      <div className="expectation-body">
+                        <ArrowRight size={14} />
+                        <span>{item.interpretation}</span>
+                      </div>
                     </div>
                   ))}
-                </div>
-              </div>
+                </Section>
+              )}
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                {/* Real Expectations */}
-                <div style={{ background: 'rgba(34, 197, 94, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
-                  <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--success)', margin: '0 0 1rem 0' }}>
-                    <Target size={18} /> Les vraies attentes (Non écrites)
-                  </h4>
-                  <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-main)', lineHeight: '1.6' }}>
-                    {realExpectations.map((exp: string, idx: number) => (
-                      <li key={idx} style={{ marginBottom: '0.5rem' }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatMarkdown(exp).__html) }} />
-                    ))}
-                  </ul>
-                </div>
+              {decoderData.reality_check?.length > 0 && (
+                <Section title="Traduction du Jargon RH" icon={<MessageSquare size={18} />}>
+                  {decoderData.reality_check.map((item: any, idx: number) => (
+                    <div key={idx} className="reality-check-item">
+                      <div className="jargon">"{item.jargon}"</div>
+                      <div className="translation">
+                        <ArrowRight size={14} />
+                        <span>{item.translation}</span>
+                      </div>
+                      <div className="action"><strong>Action :</strong> {item.candidate_action}</div>
+                    </div>
+                  ))}
+                </Section>
+              )}
 
-                {/* Red Flags */}
-                {redFlags.length > 0 && (
-                  <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                    <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--danger-text)', margin: '0 0 1rem 0' }}>
-                      <ShieldAlert size={18} /> Signaux d'alerte (Red Flags)
-                    </h4>
-                    <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-main)', lineHeight: '1.6' }}>
-                      {redFlags.map((flag: string, idx: number) => (
-                        <li key={idx} style={{ marginBottom: '0.5rem' }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatMarkdown(flag).__html) }} />
-                      ))}
-                    </ul>
+              {decoderData.questions_to_ask?.length > 0 && (
+                <Section title="Questions Intelligentes à Poser" icon={<HelpCircle size={18} />}>
+                  <BulletList items={decoderData.questions_to_ask} />
+                </Section>
+              )}
+
+              {decoderData.explicit_requirements?.length > 0 && (
+                <Section title="Exigences Explicites du Poste" icon={<List size={18} />}>
+                  <BulletList items={decoderData.explicit_requirements} />
+                </Section>
+              )}
+
+              {decoderData.ats_keywords?.length > 0 && (
+                <Section title="Mots-clés pour l'ATS" icon={<Key size={18} />}>
+                  <div className="ats-keywords-list">
+                    {decoderData.ats_keywords.map((kw: string) => <span key={kw} className="ats-keyword">{kw}</span>)}
                   </div>
-                )}
-              </div>
-            </div>
+                </Section>
+              )}
 
-            {/* Culture Fit */}
-            {cultureFit && (
-              <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
-                <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>
-                  <Building size={18} color="var(--primary)" /> Culture d'Entreprise Déduite
-                </h4>
-                <p style={{ margin: 0, color: 'var(--text-main)', lineHeight: '1.6', fontSize: '0.95rem' }}>
-                  <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatMarkdown(cultureFit).__html) }} />
-                </p>
-              </div>
-            )}
+              {decoderData.culture_fit && (
+                <Section title="Culture d'Entreprise Déduite" icon={<Building size={18} />}>
+                  <p dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatMarkdown(decoderData.culture_fit).__html) }} />
+                </Section>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+      <style>{`
+        .job-decoder-container { background: var(--bg-card); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border-color); margin-top: 0.5rem; }
+        .job-decoder-intro { color: var(--text-muted); font-size: 0.9rem; margin-top: -0.5rem; margin-bottom: 1.5rem; }
+        .job-summary { font-size: 1.05rem; font-weight: 500; background: var(--bg-secondary); padding: 1rem; border-radius: 0.75rem; border-left: 4px solid var(--primary); margin-bottom: 2rem; }
+        .job-decoder-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem; }
+        .decoder-section { background: var(--bg-secondary); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 1rem; }
+        .decoder-section-title { display: flex; align-items: center; gap: 0.5rem; color: var(--text-main); margin: 0 0 0.5rem 0; font-size: 1.1rem; font-weight: 700; }
+        .info-card { background: var(--bg-card); padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color); }
+        .info-card-title { font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin: 0 0 0.5rem 0; font-weight: 600; }
+        .info-card p { margin: 0; font-size: 0.95rem; }
+        .manager-fear-section .reassurance-card { background: rgba(34, 197, 94, 0.05); border-color: rgba(34, 197, 94, 0.2); }
+        .manager-fear-section .reassurance-card p { color: var(--success-dark); }
+        .red-flag-item { background: var(--bg-card); padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color); }
+        .red-flag-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; font-weight: 600; }
+        .red-flag-header p { margin: 0; }
+        .red-flag-body { font-size: 0.9rem; margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem; }
+        .red-flag-risk { color: var(--danger-text); }
+        .red-flag-question { color: var(--text-muted); }
+        .confidence-badge { font-size: 0.7rem; padding: 0.1rem 0.5rem; border-radius: 1rem; text-transform: uppercase; font-weight: 700; }
+        .expectation-item { background: var(--bg-card); padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color); }
+        .expectation-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; font-weight: 600; font-style: italic; }
+        .expectation-header p { margin: 0; }
+        .expectation-body { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; font-size: 0.95rem; }
+        .reality-check-item { background: var(--bg-card); padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color); }
+        .jargon { font-weight: 600; font-style: italic; }
+        .translation { display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; }
+        .action { font-size: 0.85rem; color: var(--primary); font-weight: 600; }
+        .ats-keywords-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .ats-keyword { background: var(--bg-card); color: var(--primary); padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.85rem; border: 1px solid var(--primary); }
+      `}</style>            )}
           </div>
         );
       })()}
