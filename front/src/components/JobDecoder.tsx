@@ -40,7 +40,30 @@ const extractDecoderData = (data: any) => {
       payload = JSON.parse(match ? match[1] : payload);
     } catch (e) { return null; }
   }
-  return payload || null;
+
+  if (!payload) return null;
+
+  // [FIX] Normalisation des données pour gérer les anciens formats en cache.
+  // Si `red_flags` est un tableau de strings, on le transforme en tableau d'objets.
+  if (payload.red_flags && Array.isArray(payload.red_flags) && payload.red_flags.length > 0 && typeof payload.red_flags[0] === 'string') {
+    payload.red_flags = payload.red_flags.map((flag: string) => ({
+      signal: flag,
+      risk: "Analyse détaillée non disponible pour cette version.",
+      question_to_verify: "Quelle question pourrais-je poser pour clarifier ce point ?",
+      confidence: 'low'
+    }));
+  }
+
+  // Idem pour reality_check
+  if (payload.reality_check && Array.isArray(payload.reality_check) && payload.reality_check.length > 0 && typeof payload.reality_check[0] === 'string') {
+     payload.reality_check = payload.reality_check.map((item: string) => ({
+      jargon: item.split(':')[0] || "Jargon non spécifié",
+      translation: item.split(':')[1] || "Analyse non disponible.",
+      candidate_action: "Vérifier ce point en entretien."
+    }));
+  }
+
+  return payload;
 };
 
 export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) => {
