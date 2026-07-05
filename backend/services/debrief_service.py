@@ -7,7 +7,13 @@ from datetime import datetime
 from security import get_current_user
 from database import db
 from models import InterviewDebriefRequest
+# [FIX] Import des utilitaires nécessaires
 from .ai_generator import ai_service
+from .utils import load_prompt, normalize_language
+
+class AnalyzeDebriefRequest(BaseModel):
+    cvData: dict
+    nextInterviewContext: Optional[dict] = None
 
 router = APIRouter(
     prefix="/api/debriefs",
@@ -115,11 +121,40 @@ async def get_debrief_details(debrief_id: str, current_user: dict = Depends(get_
     return debrief_details
 
 @router.post("/{debrief_id}/analyze", response_model=dict)
-async def analyze_debrief(debrief_id: str, current_user: dict = Depends(get_current_user)):
+async def analyze_debrief(debrief_id: str, request: AnalyzeDebriefRequest, current_user: dict = Depends(get_current_user)):
     """
     Lance l'analyse IA sur un débrief pour générer le plan de préparation.
     """
-    debrief_details = await get_debrief_details(debrief_id, current_user)
+    async with db.get_connection() as conn:
+        cursor = await db.execute(conn, "SELECT * FROM interview_debriefs WHERE id = ? AND user_id = ?", (debrief_id, current_user["id"]))
+        debrief_row = await cursor.fetchone()
+
+    if not debrief_row:
+        raise HTTPException(status_code=404, detail="Debrief not found")
+
+    debrief_dict = dict(debrief_row)
+    target_lang = normalize_language(request.cvData.get('target_language', 'fr'))
+
+    # [FIX] Le prompt attend `NEXT_INTERVIEW_CONTEXT_JSON`, mais il n'était pas fourni.
+    # On s'assure de le récupérer du corps de la requête et de le formater en JSON.
+    # S'il est absent, on passe un objet JSON vide pour éviter un crash du template.
+    next_interview_context = request.nextInterviewContext or {}
+
+    # Chargement du prompt
+    prompt_template = load_prompt("next_step_prep.md")
+
+    # Remplacement des placeholders
+    final_prompt = prompt_template.replace("{{CANDIDATE_PROFILE_JSON}}", json.dumps(request.cvData, indent=2, ensure_ascii=False, default=str)) \
+                                  .replace("{{DEBRIEF_JSON}}", json.dumps(debrief_dict, indent=2, ensure_ascii=False, default=str)) \
+                                  .replace("{{TARGET_LANGUAGE}}", target_lang) \
+                                  .replace("{{NEXT_INTERVIEW_CONTEXT_JSON}}", json.dumps(next_interview_context, indent=2, ensure_ascii=False, default=str))
+
+    try:
+        # Appel au service IA pour générer l'analyse
+        analysis_result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction=f"You are a Career Coach. Output STRICT JSON in {target_lang}.")
+        return {"analysis": analysis_result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI analysis failed: {str(e)}")
     
     # On récupère le profil complet du candidat pour donner plus de contexte à l'IA
     async with db.get_connection() as conn:
