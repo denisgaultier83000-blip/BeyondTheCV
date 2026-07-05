@@ -208,9 +208,6 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
         .ats-keywords-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
         .ats-keyword { background: var(--bg-card); color: var(--primary); padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.85rem; border: 1px solid var(--primary); }
       `}</style>
-        </div>
-      );
-      })()}
     </DashboardCard>
   );
 };
