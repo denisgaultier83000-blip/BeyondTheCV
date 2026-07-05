@@ -60,6 +60,8 @@ def create_tables():
         """)
         # [NEW] Add the new column safely. "IF NOT EXISTS" prevents errors on subsequent runs.
         cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMP;")
+        # [FIX] Add the missing total_ia_cost column to track AI expenses per user.
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS total_ia_cost REAL DEFAULT 0.0;")
 
         print("✅ Table 'users' created")
 
