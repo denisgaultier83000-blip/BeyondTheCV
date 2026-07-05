@@ -353,49 +353,72 @@ export const InterviewTab = () => {
         </DashboardCard>
         </div>
 
+        {/* [MODIFICATION] Scission de la carte en deux pour plus de clarté */}
+
+        {/* 1. Carte pour les Questions Classiques et Stratégiques */}
         <div id="questionnaire_section">
-        <DashboardCard
-          title={t('deliv_questions', "Questions & Mises en situation")}
-          icon={<MessageSquare size={24} />}
-          loading={globalStatus === 'PROCESSING' && !questionsResult}
-          loadingText={t('questions_loading', "Génération des questions...")}
-          error={!!questionsResult?.error || (!questionsResult && (globalStatus === 'COMPLETED' || globalStatus === 'FAILED'))}
-          errorText={questionsResult?.error ? `Erreur IA : ${typeof questionsResult.error === 'boolean' ? "Limite de contexte atteinte (données trop lourdes)." : questionsResult.error}` : t('questions_error', "Le questionnaire n'a pas pu être généré.")}
-          featureId="interview_questions"
-          headerAction={
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button onClick={handlePurgeCache} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} title="Effacer l'historique d'entraînement du profil">
-                <RotateCcw size={16} /> Purger le cache
-              </button>
-            </div>
-          }
-        >
-          {questionsResult && (
-            <>
-              {/* [FIX] Amélioration de la visibilité de la légende */}
-              <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "1.5rem", fontStyle: "italic", background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
-                * Légende : <span style={{color: '#f59e0b', fontWeight: 'bold'}}>★</span> (1-Facile) à <span style={{color: '#f59e0b', fontWeight: 'bold'}}>★★★★★</span> (5-Très Difficile)
+          <DashboardCard
+            title={t('card_interview_title', "Questionnaire d'Entretien")}
+            icon={<MessageSquare size={24} />}
+            loading={globalStatus === 'PROCESSING' && !questionsResult}
+            loadingText={t('questions_loading', "Génération des questions...")}
+            error={!!questionsResult?.error || (!questionsResult && (globalStatus === 'COMPLETED' || globalStatus === 'FAILED'))}
+            errorText={questionsResult?.error ? `Erreur IA : ${typeof questionsResult.error === 'boolean' ? "Limite de contexte atteinte (données trop lourdes)." : questionsResult.error}` : t('questions_error', "Le questionnaire n'a pas pu être généré.")}
+            featureId="interview_questions"
+            headerAction={
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button onClick={handlePurgeCache} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} title="Effacer l'historique d'entraînement du profil">
+                  <RotateCcw size={16} /> Purger le cache
+                </button>
               </div>
-              {mergedQuestions.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                      {standardQuestions.length > 0 && (
-                        <Questionnaire questions={standardQuestions} hideHeader={true} />
-                  )}
-                  {scenariosArray.length > 0 && (
-                    <div id="mes_anchor"><Questionnaire questions={scenariosArray} hideHeader={true} /></div>
-                  )}
-                      {smartQuestions.length > 0 && (
-                        <SmartQuestionsList questions={smartQuestions} />
-                      )}
+            }
+          >
+            {questionsResult && (
+              <>
+                <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "1.5rem", fontStyle: "italic", background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
+                  * Légende : <span style={{color: '#f59e0b', fontWeight: 'bold'}}>★</span> (1-Facile) à <span style={{color: '#f59e0b', fontWeight: 'bold'}}>★★★★★</span> (5-Très Difficile)
                 </div>
-              ) : (
-                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  Les questions sont en cours d'analyse ou n'ont pas pu être formatées correctement.
+                {standardQuestions.length > 0 || smartQuestions.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                    {standardQuestions.length > 0 && <Questionnaire questions={standardQuestions} hideHeader={true} />}
+                    {smartQuestions.length > 0 && <SmartQuestionsList questions={smartQuestions} />}
+                  </div>
+                ) : (
+                  <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    Les questions sont en cours d'analyse ou n'ont pas pu être formatées correctement.
+                  </div>
+                )}
+              </>
+            )}
+          </DashboardCard>
+        </div>
+
+        {/* 2. Carte pour les Mises en Situation */}
+        <div id="mes_anchor">
+          <DashboardCard
+            title="Mises en Situation (Cas Pratiques)"
+            icon={<BrainCircuit size={24} />}
+            loading={globalStatus === 'PROCESSING' && !customScenariosResult}
+            loadingText="Génération de vos cas pratiques..."
+            error={!!customScenariosResult?.error || (!customScenariosResult && (globalStatus === 'COMPLETED' || globalStatus === 'FAILED'))}
+            errorText="Les mises en situation n'ont pas pu être générées."
+            featureId="custom_scenarios"
+          >
+            {customScenariosResult && (
+              <>
+                <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "1.5rem", fontStyle: "italic", background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
+                  * Légende : <span style={{color: '#f59e0b', fontWeight: 'bold'}}>★</span> (1-Facile) à <span style={{color: '#f59e0b', fontWeight: 'bold'}}>★★★★★</span> (5-Très Difficile)
                 </div>
-              )}
-            </>
-          )}
-        </DashboardCard>
+                {scenariosArray.length > 0 ? (
+                  <Questionnaire questions={scenariosArray} hideHeader={true} />
+                ) : (
+                  <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    Les scénarios sont en cours d'analyse ou n'ont pas pu être formatés correctement.
+                  </div>
+                )}
+              </>
+            )}
+          </DashboardCard>
         </div>
 
         <div id="negotiation_section">

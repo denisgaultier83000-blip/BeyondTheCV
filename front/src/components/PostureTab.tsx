@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   Video, Phone, Users, Coffee, Award, UserCog, Map as MapIcon,
-  X, Zap, Loader2, AlertTriangle, Target, MessageCircle, Shield, Star, ChevronsRight, ChevronsLeft, UserCheck, Clock, Check, Edit, LifeBuoy,
-  HelpCircle, Mail, Eye,
+  X, Zap, Loader2, AlertTriangle, Target, MessageCircle, Shield, Star, ChevronsRight, ChevronsLeft, UserCheck, Clock, Check, Edit, LifeBuoy, CheckSquare,
+  HelpCircle, Mail, Eye, 
   WifiOff, PhoneMissed, VolumeX, BrainCircuit, DollarSign, HelpCircle, Send
 } from 'lucide-react';
 import { API_BASE_URL } from '../config';

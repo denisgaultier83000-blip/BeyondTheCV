@@ -164,15 +164,21 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
         # --- [MODIFICATION] GESTION DES CRÉDITS & RELANCE TESTEURS ---
         # Recharge automatique de 60 crédits si le solde est bas.
+        # [MODIFICATION] Si le solde est à 0 ou moins, on le réinitialise à 60.
         user_credits = user_dict.get("credits")
-        if user_credits is not None and user_credits <= 5:
-            user_credits += 60
+        if user_credits is not None and user_credits <= 0:
+            new_balance = 60
+            user_credits = new_balance # Mise à jour pour le token
             async with db.get_connection() as conn:
                 try:
-                    await db.execute(conn, "UPDATE users SET credits = credits + 60, quota_pitch = quota_pitch + 60, quota_qa = quota_qa + 60, quota_mes = quota_mes + 60, quota_negotiation = quota_negotiation + 60, quota_regeneration = quota_regeneration + 60, quota_update = quota_update + 60 WHERE id = ?", (user_dict.get("id"),))
-                    print(f"[AUTH] 🎁 +60 crédits accordés (Solde bas) pour : {email}", flush=True)
-                except Exception:
-                    pass
+                    # On réinitialise tous les quotas à 60 pour une expérience de test fluide.
+                    await db.execute(conn, """
+                        UPDATE users SET credits = ?, quota_pitch = ?, quota_qa = ?, quota_mes = ?, quota_negotiation = ?, quota_regeneration = ?, quota_update = ? 
+                        WHERE id = ?
+                    """, (new_balance, new_balance, new_balance, new_balance, new_balance, new_balance, new_balance, user_dict.get("id")))
+                    print(f"[AUTH] 🎁 Compte recrédité à {new_balance} séances pour : {email}", flush=True)
+                except Exception as e:
+                    print(f"[AUTH WARNING] Échec de la recharge automatique des crédits : {e}", flush=True)
 
         # --- [MODIFICATION] Tous les utilisateurs sont des testeurs ---
         is_tester_flag = True
