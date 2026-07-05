@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, Loader2, AlertTriangle, Zap, Lightbulb, CheckCircle2, ShieldAlert, Mail, Copy, Check, MessageSquareQuote, Wand2 } from 'lucide-react';
 import { authenticatedFetch } from '../utils/auth';
+import { useDashboard } from '../hooks/DashboardContext';
 import { API_BASE_URL } from '../config';
 import { BulletList } from './BulletList';
 
