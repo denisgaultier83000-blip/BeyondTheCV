@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom'; // [NOUVEAU] Import pour la navigation
 import { authenticatedFetch } from '../../utils/auth'; // Assurez-vous d'avoir un utilitaire pour les appels authentifiés
 
 // --- ANALYSE DE L'EXPERT ---
@@ -36,6 +37,8 @@ interface User {
   created_at: string;
   last_login: string | null;
   total_ia_cost: number;
+  // [NOUVEAU] Ajout des champs pour les nouvelles colonnes
+  subscription_status: 'active' | 'expired' | 'extended' | null;
 }
 
 interface Pagination {
@@ -46,16 +49,18 @@ interface Pagination {
 interface Filters {
   search: string;
   status: string;
+  offer: string;
 }
 
 export const UserManagement: React.FC = () => {
+  const navigate = useNavigate(); // [NOUVEAU] Hook pour gérer la navigation
   const [users, setUsers] = useState<User[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);  
   
   const [pagination, setPagination] = useState<Pagination>({ offset: 0, limit: 20 });
-  const [filters, setFilters] = useState<Filters>({ search: '', status: '' });
+  const [filters, setFilters] = useState<Filters>({ search: '', status: '', offer: '' });
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -71,6 +76,9 @@ export const UserManagement: React.FC = () => {
     }
     if (filters.status) {
       params.append('status', filters.status);
+    }
+    if (filters.offer) {
+      params.append('offer', filters.offer);
     }
 
     try {
@@ -100,7 +108,7 @@ export const UserManagement: React.FC = () => {
     return () => {
       clearTimeout(handler);
     };
-  }, [filters.search, filters.status]); // Se déclenche uniquement si le filtre change
+  }, [filters.search, filters.status, filters.offer]); // Se déclenche si un des filtres change
 
   // Effet pour la pagination
   useEffect(() => {
@@ -138,6 +146,16 @@ export const UserManagement: React.FC = () => {
           <option value="">Tous les statuts</option>
           <option value="active">Actif</option>
           <option value="expired">Expiré</option>
+          <option value="extended">Prolongé</option>
+        </select>
+        <select 
+          value={filters.offer} 
+          onChange={(e) => setFilters(f => ({ ...f, offer: e.target.value }))}
+          style={{ padding: '0.5rem' }}
+        >
+          <option value="">Toutes les offres</option>
+          <option value="plan_1_month">1 Mois</option>
+          <option value="plan_3_months">3 Mois</option>
         </select>
       </div>
 
@@ -149,29 +167,37 @@ export const UserManagement: React.FC = () => {
           <thead>
             <tr style={{ background: '#f1f5f9' }}>
               <th style={thStyle}>Email</th>
-              <th style={thStyle}>Nom</th>
-              <th style={thStyle}>Statut</th>
-              <th style={thStyle}>Admin</th>
+              <th style={thStyle}>Statut Abonnement</th>
               <th style={thStyle}>Inscrit le</th>
               <th style={thStyle}>Dernier login</th>
+              <th style={thStyle}>Coût IA</th>
+              <th style={thStyle}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem' }}>Chargement...</td></tr>
+              <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem' }}>Chargement...</td></tr>
             ) : (
               users.map(user => (
                 <tr key={user.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                  <td style={tdStyle}>{user.email}</td>
-                  <td style={tdStyle}>{user.first_name} {user.last_name}</td>
                   <td style={tdStyle}>
-                    <span style={user.is_active ? statusBadge.active : statusBadge.inactive}>
-                      {user.is_active ? 'Actif' : 'Inactif'}
+                    <div>{user.email}</div>
+                    <div style={{fontSize: '0.8rem', color: '#64748b'}}>{user.first_name} {user.last_name}</div>
+                  </td>
+                  <td style={tdStyle}>
+                    <span style={statusBadge[user.subscription_status || 'inactive']}>
+                      {user.subscription_status || 'N/A'}
                     </span>
                   </td>
-                  <td style={tdStyle}>{user.is_admin ? 'Oui' : 'Non'}</td>
                   <td style={tdStyle}>{new Date(user.created_at).toLocaleDateString()}</td>
                   <td style={tdStyle}>{user.last_login ? new Date(user.last_login).toLocaleString() : 'Jamais'}</td>
+                  <td style={tdStyle}>{user.total_ia_cost.toFixed(2)} €</td>
+                  <td style={tdStyle}>
+                    {/* [NOUVEAU] Bouton pour voir le détail. Il faudra implémenter la navigation. */}
+                    <button onClick={() => navigate(`/admin/user/${user.id}`)} style={actionButton}>
+                      Voir détail
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
@@ -221,13 +247,25 @@ const statusBadge = {
     color: '#166534',
     backgroundColor: '#dcfce7',
   },
+  extended: {
+    color: '#1d4ed8',
+    backgroundColor: '#dbeafe',
+  },
   inactive: {
     color: '#991b1b',
     backgroundColor: '#fee2e2',
+  },
+  expired: {
+    color: '#713f12',
+    backgroundColor: '#fef3c7',
   }
 };
 
 statusBadge.active = {...statusBadge.base, ...statusBadge.active};
 statusBadge.inactive = {...statusBadge.base, ...statusBadge.inactive};
+statusBadge.expired = {...statusBadge.base, ...statusBadge.expired};
+statusBadge.extended = {...statusBadge.base, ...statusBadge.extended};
+
+const actionButton: React.CSSProperties = { background: 'transparent', border: '1px solid #cbd5e1', padding: '0.25rem 0.5rem', borderRadius: '0.25rem', cursor: 'pointer', fontSize: '0.8rem' };
 
 export default UserManagement;

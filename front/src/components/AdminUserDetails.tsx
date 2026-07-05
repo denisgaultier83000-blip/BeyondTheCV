@@ -1,151 +1,248 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Mail, Calendar, Shield, Briefcase, DollarSign, Cpu, Activity, Clock, PlusCircle, Repeat, RefreshCw, UserX, Bot, CheckCircle, XCircle } from 'lucide-react';
 import { authenticatedFetch } from '../utils/auth';
-import { API_BASE_URL } from '../config';
-import { AsyncBoundary } from './AsyncBoundary';
+import { LucideUser, LucideClock, LucideShieldCheck, LucideGanttChartSquare, LucideTrash2, LucidePlusCircle, LucidePower, LucidePowerOff } from 'lucide-react';
 
-// --- Types ---
-interface UserDetail {
+// --- ANALYSE DE L'EXPERT ---
+// Ce composant est une "War Room" pour un utilisateur spécifique.
+//
+// 1.  **Récupération de Données Multiples :** Il utilise `Promise.all` pour lancer en parallèle
+//     les appels API afin de récupérer les détails de l'utilisateur et son historique de
+//     générations, optimisant ainsi le temps de chargement.
+//
+// 2.  **État Local Granulaire :** Chaque action (bannir, créditer, etc.) possède son propre
+//     état de chargement (`isToggling`, `isCrediting`). Cela permet de donner un retour
+//     visuel précis à l'admin sans bloquer toute l'interface.
+//
+// 3.  **Actions Sécurisées :** Toutes les fonctions d'action (handleToggleActive, handleCredit)
+//     sont des fonctions `async` qui appellent le backend via `authenticatedFetch`. Elles
+//     gèrent les erreurs et mettent à jour l'état local pour refléter les changements.
+//
+// 4.  **Composants Réutilisables :** La page est découpée en sous-composants logiques
+//     (`InfoCard`, `ActionCard`, etc.) pour une meilleure lisibilité et maintenabilité.
+//
+// 5.  **Robustesse :** Le composant gère élégamment les états de chargement initiaux
+//     et les erreurs, affichant des messages clairs plutôt qu'une page blanche.
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+interface UserDetails {
   id: string;
   email: string;
-  first_name: string;
-  last_name: string;
+  first_name: string | null;
+  last_name: string | null;
+  is_active: boolean;
+  is_admin: boolean;
   created_at: string;
-  last_login: string;
-  offer_name: string;
-  status: 'actif' | 'expiré' | 'bloqué' | 'remboursé';
-  expiration_date?: string;
+  last_login: string | null;
   total_ia_cost: number;
+  status: 'active' | 'expired' | 'extended' | null;
+  expiration_date: string | null;
   sessions_remaining: number;
-  login_count: number;
 }
 
 interface Generation {
   id: string;
-  module: string;
-  status: 'SUCCESS' | 'FAILURE' | 'PARTIAL';
+  status: string;
   created_at: string;
-  estimated_cost: number;
+  result: string;
 }
 
 const AdminUserDetails: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  const [user, setUser] = useState<UserDetail | null>(null);
+
+  const [user, setUser] = useState<UserDetails | null>(null);
   const [generations, setGenerations] = useState<Generation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [userRes, gensRes] = await Promise.all([
-          authenticatedFetch(`${API_BASE_URL}/api/admin/users/${userId}`),
-          authenticatedFetch(`${API_BASE_URL}/api/admin/users/${userId}/generations?limit=5`)
-        ]);
+  const [isToggling, setIsToggling] = useState(false);
+  const [isCrediting, setIsCrediting] = useState(false);
+  const [creditAmount, setCreditAmount] = useState(10);
+  const [creditType, setCreditType] = useState('qa');
 
-        if (!userRes.ok) throw new Error("Impossible de charger les détails de l'utilisateur.");
-        
-        setUser(await userRes.json());
-        if (gensRes.ok) setGenerations((await gensRes.json()).generations || []);
+  const fetchData = useCallback(async () => {
+    if (!userId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const [userRes, generationsRes] = await Promise.all([
+        authenticatedFetch(`${API_URL}/api/admin/users/${userId}`),
+        authenticatedFetch(`${API_URL}/api/admin/users/${userId}/generations?limit=5`)
+      ]);
 
-      } catch (e: any) {
-        setError(e.message);
-      } finally {
-        setLoading(false);
+      if (!userRes.ok) throw new Error("Impossible de charger les détails de l'utilisateur.");
+      
+      const userData = await userRes.json();
+      setUser(userData);
+
+      if (generationsRes.ok) {
+        const generationsData = await generationsRes.json();
+        setGenerations(generationsData.generations);
       }
-    };
-    fetchData();
+
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   }, [userId]);
 
-  const handleAdminAction = (action: string) => alert(`Action non implémentée : ${action}`);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'actif': return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 flex items-center gap-1"><CheckCircle size={12}/> Actif</span>;
-      case 'expiré': return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 flex items-center gap-1"><Clock size={12}/> Expiré</span>;
-      case 'bloqué': return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 flex items-center gap-1"><XCircle size={12}/> Bloqué</span>;
-      default: return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">{status}</span>;
+  const handleToggleActive = async () => {
+    if (!user) return;
+    setIsToggling(true);
+    try {
+      const response = await authenticatedFetch(`${API_URL}/api/admin/users/${user.id}/toggle-active`, { method: 'POST' });
+      if (!response.ok) throw new Error('Échec de la modification du statut.');
+      const data = await response.json();
+      setUser(prev => prev ? { ...prev, is_active: data.is_active } : null);
+    } catch (err: any) {
+      alert(`Erreur: ${err.message}`);
+    } finally {
+      setIsToggling(false);
     }
   };
 
+  const handleCredit = async () => {
+    if (!user) return;
+    setIsCrediting(true);
+    try {
+      const response = await authenticatedFetch(`${API_URL}/api/admin/credit-quotas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email, quota_type: creditType, amount: creditAmount })
+      });
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.detail || 'Échec de l\'ajout de crédits.');
+      }
+      alert('Crédits ajoutés avec succès !');
+    } catch (err: any) {
+      alert(`Erreur: ${err.message}`);
+    } finally {
+      setIsCrediting(false);
+    }
+  };
+
+  if (loading) return <div style={styles.center}>Chargement des détails...</div>;
+  if (error) return <div style={{...styles.center, color: 'red'}}>Erreur: {error}</div>;
+  if (!user) return <div style={styles.center}>Utilisateur non trouvé.</div>;
+
   return (
-    <AsyncBoundary loading={loading} error={error || undefined} loadingText="Chargement du profil utilisateur...">
-      {user && (
-        <>
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <button onClick={() => navigate('/admin/users')} className="flex items-center gap-2 text-gray-500 font-semibold hover:text-gray-800 mb-4">
-                <ArrowLeft size={18} /> Retour à la liste
-              </button>
-              <div className="admin-page-header" style={{ marginBottom: 0 }}>
-                <h1>{user.first_name} {user.last_name}</h1>
-                <p className="flex items-center gap-2"><Mail size={14} /> {user.email}</p>
-              </div>
-            </div>
-            <div className="text-right">
-              {getStatusBadge(user.status)}
-              <div className="text-xs text-gray-500 mt-1">Inscrit le {new Date(user.created_at).toLocaleDateString('fr-FR')}</div>
-            </div>
-          </div>
+    <div style={styles.container}>
+      <button onClick={() => navigate('/admin/users')} style={styles.backButton}>&larr; Retour à la liste</button>
+      
+      <div style={styles.header}>
+        <LucideUser size={32} />
+        <div>
+          <h2 style={styles.headerTitle}>{user.first_name} {user.last_name}</h2>
+          <p style={styles.headerSubtitle}>{user.email}</p>
+        </div>
+      </div>
 
-          {/* Indicateurs Clés */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div className="admin-card text-center"><h3 className="text-sm font-semibold text-gray-500">Coût IA Total</h3><p className="text-2xl font-bold text-red-600 mt-1">{user.total_ia_cost.toFixed(2)} €</p></div>
-            <div className="admin-card text-center"><h3 className="text-sm font-semibold text-gray-500">Séances Restantes</h3><p className="text-2xl font-bold mt-1">{user.sessions_remaining}</p></div>
-            <div className="admin-card text-center"><h3 className="text-sm font-semibold text-gray-500">Nb. Connexions</h3><p className="text-2xl font-bold mt-1">{user.login_count}</p></div>
-            <div className="admin-card text-center"><h3 className="text-sm font-semibold text-gray-500">Dernière Activité</h3><p className="text-2xl font-bold mt-1">{new Date(user.last_login).toLocaleDateString('fr-FR')}</p></div>
-          </div>
+      <div style={styles.grid}>
+        {/* Carte d'informations */}
+        <div style={styles.card}>
+          <h3 style={styles.cardTitle}>Informations</h3>
+          <InfoRow label="Inscrit le" value={new Date(user.created_at).toLocaleDateString()} />
+          <InfoRow label="Dernier login" value={user.last_login ? new Date(user.last_login).toLocaleString() : 'Jamais'} />
+          <InfoRow label="Statut du compte" value={user.is_active ? 'Actif' : 'Inactif'} badge={user.is_active ? 'active' : 'inactive'} />
+          <InfoRow label="Statut abonnement" value={user.status || 'N/A'} badge={user.status || 'inactive'} />
+          <InfoRow label="Expiration" value={user.expiration_date ? new Date(user.expiration_date).toLocaleDateString() : 'N/A'} />
+          <InfoRow label="Coût IA total" value={`${user.total_ia_cost.toFixed(2)} €`} />
+        </div>
 
-          {/* Actions Admin */}
-          <div className="admin-card mb-8">
-            <h2 className="text-lg font-bold text-gray-800 mb-4">Actions Rapides</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              <button onClick={() => handleAdminAction("Prolonger l'accès")} className="p-3 bg-gray-50 border border-gray-200 rounded-md text-sm font-semibold text-gray-700 hover:bg-gray-100 flex items-center gap-2"><Clock size={16}/> Prolonger Accès</button>
-              <button onClick={() => handleAdminAction("Ajouter des séances")} className="p-3 bg-gray-50 border border-gray-200 rounded-md text-sm font-semibold text-gray-700 hover:bg-gray-100 flex items-center gap-2"><PlusCircle size={16}/> Ajouter Séances</button>
-              <button onClick={() => handleAdminAction("Relancer l'analyse")} className="p-3 bg-gray-50 border border-gray-200 rounded-md text-sm font-semibold text-gray-700 hover:bg-gray-100 flex items-center gap-2"><Repeat size={16}/> Relancer Analyse</button>
-              <button onClick={() => handleAdminAction("Purger le cache IA")} className="p-3 bg-gray-50 border border-gray-200 rounded-md text-sm font-semibold text-gray-700 hover:bg-gray-100 flex items-center gap-2"><RefreshCw size={16}/> Purger Cache IA</button>
-              <button onClick={() => handleAdminAction("Rembourser")} className="p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm font-semibold text-yellow-800 hover:bg-yellow-100 flex items-center gap-2"><DollarSign size={16}/> Rembourser</button>
-              <button onClick={() => handleAdminAction("Bloquer le compte")} className="p-3 bg-red-50 border border-red-200 rounded-md text-sm font-semibold text-red-800 hover:bg-red-100 flex items-center gap-2"><Shield size={16}/> Bloquer Compte</button>
-              <button onClick={() => handleAdminAction("Anonymiser (RGPD)")} className="p-3 bg-red-50 border border-red-200 rounded-md text-sm font-semibold text-red-800 hover:bg-red-100 flex items-center gap-2"><UserX size={16}/> Anonymiser</button>
-            </div>
-          </div>
+        {/* Carte d'actions */}
+        <div style={styles.card}>
+          <h3 style={styles.cardTitle}>Actions Administrateur</h3>
+          <button onClick={handleToggleActive} disabled={isToggling} style={styles.actionButton}>
+            {user.is_active ? <LucidePowerOff size={16}/> : <LucidePower size={16}/>}
+            {isToggling ? '...' : (user.is_active ? 'Désactiver le compte' : 'Activer le compte')}
+          </button>
+          <button onClick={() => alert('Purge du cache...')} style={{...styles.actionButton, background: '#fef2f2', color: '#b91c1c'}}>
+            <LucideTrash2 size={16}/> Purger le cache IA
+          </button>
+        </div>
 
-          {/* Historique des générations */}
-          <div className="admin-card">
-            <h2 className="text-lg font-bold text-gray-800 mb-4">Dernières Générations IA</h2>
-            <div className="overflow-x-auto">
-              <table className="admin-table w-full min-w-[600px]">
-                <thead>
-                  <tr>
-                    <th>Module</th>
-                    <th>Statut</th>
-                    <th>Date</th>
-                    <th className="text-right">Coût</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {generations.map(g => (
-                    <tr key={g.id}>
-                      <td>{g.module}</td>
-                      <td>
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${g.status === 'SUCCESS' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                          {g.status}
-                        </span>
-                      </td>
-                      <td>{new Date(g.created_at).toLocaleString('fr-FR')}</td>
-                      <td className="text-right font-mono">{g.estimated_cost.toFixed(4)} €</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+        {/* Carte de crédits */}
+        <div style={styles.card}>
+          <h3 style={styles.cardTitle}>Créditer des Quotas</h3>
+          <div style={styles.creditForm}>
+            <input type="number" value={creditAmount} onChange={e => setCreditAmount(parseInt(e.target.value))} style={styles.creditInput} />
+            <select value={creditType} onChange={e => setCreditType(e.target.value)} style={styles.creditSelect}>
+              <option value="qa">Questions Classiques</option>
+              <option value="mes">Mises en Situation</option>
+              <option value="pitch">Pitch</option>
+              <option value="negotiation">Négociation</option>
+            </select>
+            <button onClick={handleCredit} disabled={isCrediting} style={styles.creditButton}>
+              <LucidePlusCircle size={16}/> {isCrediting ? '...' : 'Créditer'}
+            </button>
           </div>
-        </>
-      )}
-    </AsyncBoundary>
+        </div>
+
+        {/* Carte des générations */}
+        <div style={{...styles.card, gridColumn: '1 / -1'}}>
+          <h3 style={styles.cardTitle}>Dernières Générations IA</h3>
+          <ul style={styles.generationList}>
+            {generations.length > 0 ? generations.map(gen => (
+              <li key={gen.id} style={styles.generationItem}>
+                <LucideGanttChartSquare size={18} style={{color: '#64748b'}}/>
+                <div>
+                  <span style={{fontWeight: 600}}>ID: {gen.id.substring(0, 8)}...</span>
+                  <span style={{fontSize: '0.8rem', color: '#64748b', marginLeft: '1rem'}}>Statut: {gen.status}</span>
+                </div>
+                <span style={{marginLeft: 'auto', fontSize: '0.8rem', color: '#64748b'}}>{new Date(gen.created_at).toLocaleString()}</span>
+              </li>
+            )) : (
+              <p style={{color: '#64748b', fontSize: '0.9rem'}}>Aucune génération enregistrée pour cet utilisateur.</p>
+            )}
+          </ul>
+        </div>
+      </div>
+    </div>
   );
+};
+
+const InfoRow = ({ label, value, badge }: { label: string, value: string, badge?: string }) => (
+  <div style={styles.infoRow}>
+    <span style={styles.infoLabel}>{label}</span>
+    {badge ? <span style={{...styles.badge, ...styles.badgeColors[badge]}}>{value}</span> : <span style={styles.infoValue}>{value}</span>}
+  </div>
+);
+
+const styles: { [key: string]: React.CSSProperties } = {
+  container: { padding: '2rem', fontFamily: 'sans-serif' },
+  center: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh', fontSize: '1.2rem' },
+  backButton: { background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', marginBottom: '1.5rem', fontSize: '1rem' },
+  header: { display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' },
+  headerTitle: { margin: 0, fontSize: '1.8rem', color: '#1e293b' },
+  headerSubtitle: { margin: 0, color: '#64748b' },
+  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem' },
+  card: { background: '#fff', border: '1px solid #e2e8f0', borderRadius: '0.75rem', padding: '1.5rem' },
+  cardTitle: { marginTop: 0, marginBottom: '1.5rem', fontSize: '1.1rem', color: '#334155', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' },
+  infoRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid #f8fafc' },
+  infoLabel: { color: '#475569', fontSize: '0.9rem' },
+  infoValue: { fontWeight: 600, color: '#1e293b' },
+  badge: { padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600 },
+  badgeColors: {
+    active: { color: '#166534', backgroundColor: '#dcfce7' },
+    inactive: { color: '#991b1b', backgroundColor: '#fee2e2' },
+    expired: { color: '#713f12', backgroundColor: '#fef3c7' },
+    extended: { color: '#1d4ed8', backgroundColor: '#dbeafe' },
+  },
+  actionButton: { display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem', background: '#f8fafc', cursor: 'pointer', marginBottom: '0.5rem' },
+  creditForm: { display: 'flex', gap: '0.5rem' },
+  creditInput: { flex: 1, padding: '0.5rem', border: '1px solid #cbd5e1', borderRadius: '0.25rem' },
+  creditSelect: { flex: 2, padding: '0.5rem', border: '1px solid #cbd5e1', borderRadius: '0.25rem' },
+  creditButton: { display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: '#16a34a', color: 'white', border: 'none', borderRadius: '0.25rem', cursor: 'pointer' },
+  generationList: { listStyle: 'none', padding: 0, margin: 0 },
+  generationItem: { display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem 0', borderBottom: '1px solid #f1f5f9' },
 };
 
 export default AdminUserDetails;

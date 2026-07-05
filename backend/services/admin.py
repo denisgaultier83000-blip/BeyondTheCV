@@ -34,13 +34,15 @@ router = APIRouter(
 async def list_users(
     limit: int = Query(50, ge=1, le=200), 
     offset: int = Query(0, ge=0),
-    search: str = Query(None, description="Recherche par email, nom ou prénom"),
-    status: str = Query(None, description="Filtre par statut d'abonnement")
+    search: str | None = Query(None, description="Recherche par email, nom ou prénom"),
+    status: str | None = Query(None, description="Filtre par statut d'abonnement (active, expired, etc.)"),
+    offer: str | None = Query(None, description="Filtre par type d'offre (plan_id)")
 ):
     """
     Récupère une liste paginée des utilisateurs pour le panneau d'administration.
     Accessible uniquement par les administrateurs.
     """
     # Délègue la logique de récupération et de comptage au service dédié.
-    user_data = await admin_list_users(limit=limit, offset=offset, search=search, status=status)
+    # [MISE À JOUR] On passe les nouveaux filtres au service.
+    user_data = await admin_list_users(limit=limit, offset=offset, search=search, status=status, offer=offer)
     return user_data
