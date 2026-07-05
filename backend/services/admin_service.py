@@ -95,7 +95,9 @@ async def credit_user_quotas(request: CreditQuotaRequest, background_tasks: Back
         user_id = user_row.get("id") if isinstance(user_row, dict) else user_row[0]
         
         try:
-            update_query = f"UPDATE users SET {column_name} = COALESCE({column_name}, 0) + %s WHERE id = %s RETURNING {column_name}"
+            # [FIX] Standardisation du placeholder SQL. Le code utilisait '%s' (psycopg2)
+            # alors que le reste du projet utilise '?' (sqlite/asyncpg).
+            update_query = f"UPDATE users SET {column_name} = COALESCE({column_name}, 0) + ? WHERE id = ? RETURNING {column_name}"
             result_cursor = await db.execute(conn, update_query, (request.amount, user_id))
             new_balance_row = await result_cursor.fetchone()
             new_balance = new_balance_row.get(column_name) if new_balance_row else "inconnu"
@@ -129,12 +131,20 @@ async def admin_list_users(limit: int = 50, offset: int = 0):
         
     users_list = []
     for r in rows:
-        user_dict = dict(r) if not isinstance(r, tuple) else {
-            # [FIX] Assurer la compatibilité avec les différents drivers DB
-            "id": r[0], "email": r[1], "first_name": r[2], "last_name": r[3], 
-            "created_at": r[4], "is_premium": r[5], "is_active": r[6], 
-            "subscription_expiration_date": r[7], "credits": r[8]
-        }
+        # [FIX] Accès sécurisé aux données pour éviter les erreurs d'index si le schéma change.
+        # Le code précédent était fragile car il dépendait de l'ordre des colonnes.
+        if isinstance(r, tuple):
+            keys = [desc[0] for desc in cursor.description]
+            user_dict = dict(zip(keys, r))
+        else:
+            user_dict = dict(r)
+
+        # On s'assure que les champs essentiels ont une valeur par défaut
+        user_dict.setdefault("is_premium", False)
+        user_dict.setdefault("is_active", True)
+        user_dict.setdefault("credits", 0)
+        user_dict.setdefault("subscription_expiration_date", None)
+
         users_list.append(user_dict)
     return {"users": users_list}
 
@@ -142,30 +152,48 @@ async def admin_list_users(limit: int = 50, offset: int = 0):
 async def admin_get_user_details(user_id: str):
     """[NOUVEAU] Récupère les détails complets d'un utilisateur."""
     async with db.get_connection() as conn:
+        # [FIX] La sous-requête pour login_count peut faire échouer toute la requête si la table n'existe pas.
+        # On la retire de la requête principale pour la rendre plus robuste.
         cursor = await db.execute(conn, """
             SELECT id, email, first_name, last_name, created_at, last_login, subscription_status as status,
-                   subscription_expiration_date as expiration_date, total_ia_cost, quota_qa as sessions_remaining,
-                   (SELECT COUNT(*) FROM login_history WHERE user_id = users.id) as login_count
+                   subscription_expiration_date as expiration_date, total_ia_cost, quota_qa as sessions_remaining
             FROM users WHERE id = ?
         """, (user_id,))
         user = await cursor.fetchone()
     if not user:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable.")
     
-    user_data = dict(user)
+    # [FIX] Accès sécurisé aux données pour gérer les tuples et les dictionnaires, comme dans les autres fonctions.
+    # Le `dict(user)` précédent pouvait causer un TypeError.
+    if isinstance(user, tuple):
+        keys = [desc[0] for desc in cursor.description]
+        user_data = dict(zip(keys, user))
+    else:
+        user_data = dict(user)
+
     user_data['offer_name'] = 'Stratégique' # Placeholder
     return user_data
 
 @router.get("/users/{user_id}/generations")
 async def admin_get_user_generations(user_id: str, limit: int = 5):
     """[NOUVEAU] Récupère les dernières générations pour un utilisateur spécifique."""
+    # [FIX] La table 'tasks' ne contient pas les colonnes 'module' ou 'estimated_cost'.
+    # La requête a été corrigée pour sélectionner les colonnes existantes.
     async with db.get_connection() as conn:
         cursor = await db.execute(conn, """
-            SELECT id, module, status, created_at, estimated_cost FROM tasks
+            SELECT id, status, created_at, result FROM tasks
             WHERE user_id = ? ORDER BY created_at DESC LIMIT ?
         """, (user_id, limit))
         generations = await cursor.fetchall()
-    return {"generations": [dict(g) for g in generations]}
+
+    # [FIX] Conversion sécurisée des résultats en dictionnaires.
+    result_list = []
+    for g in generations:
+        if isinstance(g, tuple):
+            result_list.append(dict(zip([desc[0] for desc in cursor.description], g)))
+        else:
+            result_list.append(dict(g))
+    return {"generations": result_list}
 
 
 @router.post("/users/{user_id}/toggle-active")
@@ -189,15 +217,19 @@ async def admin_get_stats():
     """[MODIFIÉ] 2. Analytics : Statistiques globales pour le dashboard."""
     async with db.get_connection() as conn:
         c1 = await db.execute(conn, "SELECT COUNT(*) FROM users")
-        total_users = (await c1.fetchone())[0] if c1 else 0
+        # [FIX] Vérification robuste pour éviter un crash si la requête ne renvoie rien.
+        total_users_row = await c1.fetchone()
+        total_users = total_users_row[0] if total_users_row else 0
         
         # [AJOUT] Nombre d'analyses complètes lancées (basé sur la création de dossiers)
         c2 = await db.execute(conn, "SELECT COUNT(*) FROM job_applications")
-        analyses_launched = (await c2.fetchone())[0] if c2 else 0
+        analyses_launched_row = await c2.fetchone()
+        analyses_launched = analyses_launched_row[0] if analyses_launched_row else 0
 
         # [AJOUT] Nombre de retours utilisateurs
         c3 = await db.execute(conn, "SELECT COUNT(*) FROM feedbacks")
-        feedbacks_count = (await c3.fetchone())[0] if c3 else 0
+        feedbacks_count_row = await c3.fetchone()
+        feedbacks_count = feedbacks_count_row[0] if feedbacks_count_row else 0
         
         # [AJOUT] Statistiques du cache d'articles
         c4 = await db.execute(conn, "SELECT value FROM system_stats WHERE key = 'article_cache_hits' AND date = CURRENT_DATE")
@@ -212,10 +244,10 @@ async def admin_get_stats():
         total_cache_requests = cache_hits + cache_misses
         cache_hit_ratio = (cache_hits / total_cache_requests) * 100 if total_cache_requests > 0 else 0
 
-        # [NOUVEAU] KPI Financiers & Coûts IA
-        # Note: Ces requêtes supposent l'existence de tables 'payments' et de colonnes de coût dans 'users'
+        # [FIX] KPI Financiers & Coûts IA dans un bloc try/except pour éviter un crash
+        # si les tables/colonnes ne sont pas encore migrées.
         try:
-            c6 = await db.execute(conn, "SELECT SUM(amount) FROM payments WHERE created_at >= date_trunc('month', CURRENT_DATE)")
+            c6 = await db.execute(conn, "SELECT SUM(amount_paid) FROM payments WHERE purchase_date >= date_trunc('month', CURRENT_DATE) AND status = 'succeeded'")
             revenue_month = (await c6.fetchone())[0] or 0
             c7 = await db.execute(conn, "SELECT SUM(total_ia_cost) FROM users") # Supposant une colonne 'total_ia_cost'
             ai_cost_total = (await c7.fetchone())[0] or 0
@@ -238,6 +270,7 @@ async def admin_get_stats():
 @router.get("/cache-history")
 async def admin_get_cache_history(days: int = 7):
     """[NOUVEAU] Récupère l'historique des hits/misses du cache sur les N derniers jours."""
+    start_date = datetime.now() - timedelta(days=days)
     async with db.get_connection() as conn:
         # Assurez-vous que la table system_stats a bien une colonne 'date'
         # et que 'key' et 'date' forment une clé primaire composite.
@@ -247,10 +280,10 @@ async def admin_get_cache_history(days: int = 7):
                    SUM(CASE WHEN key = 'article_cache_misses' THEN value ELSE 0 END) AS misses
             FROM system_stats
             WHERE key IN ('article_cache_hits', 'article_cache_misses')
-              AND date >= CURRENT_DATE - INTERVAL '? days'
+              AND date >= ?
             GROUP BY date
             ORDER BY date ASC
-        """, (days,))
+        """, (start_date,))
         rows = await cursor.fetchall()
 
     history = []
@@ -269,8 +302,18 @@ async def get_recent_users(limit: int = 5):
     async with db.get_connection() as conn:
         cursor = await db.execute(conn, "SELECT id, email, first_name, last_name, created_at FROM users ORDER BY created_at DESC LIMIT ?", (limit,))
         rows = await cursor.fetchall()
-    users = [dict(row) for row in rows]
-    return {"users": users}
+
+    users = []
+    for row in rows:
+        # [FIX] Accès sécurisé aux données pour éviter les erreurs d'index.
+        if isinstance(row, tuple):
+            keys = [desc[0] for desc in cursor.description]
+            user_dict = dict(zip(keys, row))
+            users.append(user_dict)
+        else: # row is a dict
+            users.append(dict(row))
+
+    return users
 
 @router.post("/users/{user_id}/subscription")
 async def admin_manage_subscription(user_id: str, req: AdminSubscriptionRequest):
