@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { authenticatedFetch } from '../utils/auth';
 import { API_BASE_URL } from '../config';
 import { AsyncBoundary } from './AsyncBoundary';
-import { DollarSign, CheckCircle, XCircle, RefreshCcw, Filter, Calendar, Tag, ExternalLink } from 'lucide-react';
+import { DollarSign, CheckCircle, XCircle, RefreshCcw, Filter, ExternalLink, Webhook } from 'lucide-react';
 
 // --- Types ---
 interface Payment {
@@ -17,8 +17,31 @@ interface Payment {
   stripe_charge_id?: string;
 }
 
+interface StripeWebhookStatus {
+  last_webhook_received_at: string | null;
+  last_payment_processed_at: string | null;
+  recent_failed_webhooks: {
+    id: string;
+    event_type: string;
+    failure_reason: string;
+    received_at: string;
+  }[];
+  unactivated_payments: {
+    stripe_charge_id: string;
+    user_email: string;
+    amount: number;
+    paid_at: string;
+  }[];
+  activated_without_payment: {
+    user_id: string;
+    user_email: string;
+    activated_at: string;
+  }[];
+}
+
 const AdminBilling: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [webhookStatus, setWebhookStatus] = useState<StripeWebhookStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState('all');
@@ -26,10 +49,20 @@ const AdminBilling: React.FC = () => {
   useEffect(() => {
     const fetchBillingData = async () => {
       try {
-        const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/billing`);
-        if (!response.ok) throw new Error("Impossible de charger les données de facturation.");
-        const data = await response.json();
-        setPayments(data.payments || []);
+        const [paymentsRes, webhookStatusRes] = await Promise.all([
+            authenticatedFetch(`${API_BASE_URL}/api/admin/billing`),
+            authenticatedFetch(`${API_BASE_URL}/api/admin/billing/webhook-status`)
+        ]);
+
+        if (!paymentsRes.ok) throw new Error("Impossible de charger les données de facturation.");
+        const paymentsData = await paymentsRes.json();
+        setPayments(paymentsData.payments || []);
+
+        if(webhookStatusRes.ok) {
+            const webhookStatusData = await webhookStatusRes.json();
+            setWebhookStatus(webhookStatusData);
+        }
+
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -66,14 +99,56 @@ const AdminBilling: React.FC = () => {
         <p>Consultez l'historique des paiements, les statuts et les indicateurs de revenus.</p>
       </div>
 
-
-      {/* Indicateurs Clés */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div className="admin-card"><h3 className="text-sm font-semibold text-gray-500">Revenus Totaux</h3><p className="text-3xl font-bold mt-2">{(stats.totalRevenue / 100).toFixed(2)} €</p></div>
         <div className="admin-card"><h3 className="text-sm font-semibold text-gray-500">Total Remboursé</h3><p className="text-3xl font-bold text-yellow-600 mt-2">{(stats.totalRefunds / 100).toFixed(2)} €</p></div>
       </div>
 
-      {/* Filtres */}
+      {/* Statut Webhooks Stripe */}
+      <div className="admin-card mb-6">
+        <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <Webhook size={20} /> Statut des Webhooks Stripe
+        </h2>
+        {webhookStatus ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <p><strong>Dernier webhook reçu:</strong> {webhookStatus.last_webhook_received_at ? new Date(webhookStatus.last_webhook_received_at).toLocaleString() : 'Jamais'}</p>
+              <p><strong>Dernier paiement traité:</strong> {webhookStatus.last_payment_processed_at ? new Date(webhookStatus.last_payment_processed_at).toLocaleString() : 'Jamais'}</p>
+            </div>
+            <div>
+              <h3 className="font-bold">Échecs récents</h3>
+              {webhookStatus.recent_failed_webhooks.length > 0 ? (
+                <ul>
+                  {webhookStatus.recent_failed_webhooks.map(wh => (
+                    <li key={wh.id}>{wh.event_type} - {wh.failure_reason}</li>
+                  ))}
+                </ul>
+              ) : <p>Aucun échec récent.</p>}
+            </div>
+            <div>
+              <h3 className="font-bold text-red-600">Paiements sans compte activé</h3>
+              {webhookStatus.unactivated_payments.length > 0 ? (
+                <ul>
+                  {webhookStatus.unactivated_payments.map(p => (
+                    <li key={p.stripe_charge_id}>{p.user_email} - {p.amount/100}€</li>
+                  ))}
+                </ul>
+              ) : <p>Aucun.</p>}
+            </div>
+            <div>
+              <h3 className="font-bold text-amber-600">Comptes activés sans paiement</h3>
+              {webhookStatus.activated_without_payment.length > 0 ? (
+                <ul>
+                  {webhookStatus.activated_without_payment.map(u => (
+                    <li key={u.user_id}>{u.user_email}</li>
+                  ))}
+                </ul>
+              ) : <p>Aucun.</p>}
+            </div>
+          </div>
+        ) : <p>Chargement du statut des webhooks...</p>}
+      </div>
+
       <div className="admin-card mb-6">
         <div className="flex items-center gap-4">
           <Filter size={18} className="text-gray-400" />
@@ -86,7 +161,6 @@ const AdminBilling: React.FC = () => {
         </div>
       </div>
 
-      {/* Tableau des paiements */}
       <div className="admin-card overflow-x-auto">
         <table className="admin-table w-full min-w-[800px]">
           <thead>

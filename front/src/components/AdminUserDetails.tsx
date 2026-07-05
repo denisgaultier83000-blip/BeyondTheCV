@@ -39,6 +39,8 @@ interface UserDetails {
   status: 'active' | 'expired' | 'extended' | null;
   expiration_date: string | null;
   sessions_remaining: number;
+  cgu_cgv_acceptance_date: string | null;
+  privacy_policy_acceptance_date: string | null;
 }
 
 interface Generation {
@@ -64,6 +66,11 @@ const AdminUserDetails: React.FC = () => {
   const [isPurgingCache, setIsPurgingCache] = useState(false);
   const [isExtending, setIsExtending] = useState(false);
   const [isAnonymizing, setIsAnonymizing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeletingApplications, setIsDeletingApplications] = useState(false);
+  const [isDeletingGenerations, setIsDeletingGenerations] = useState(false);
+  const [isDebiting, setIsDebiting] = useState(false);
+
 
   const fetchData = useCallback(async () => {
     if (!userId) return;
@@ -185,6 +192,88 @@ const AdminUserDetails: React.FC = () => {
     }
   };
 
+  const handleExportData = async () => {
+    if (!user) return;
+    alert("Cette fonctionnalité n'est pas encore entièrement implémentée. Action journalisée.");
+    // Placeholder for backend call
+    // The backend should generate a zip file and return a URL or the file directly.
+    console.log(`Demande d'export pour l'utilisateur ${user.id}`);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user || !window.confirm(`ATTENTION : Vous êtes sur le point de SUPPRIMER DÉFINITIVEMENT cet utilisateur et toutes ses données. Cette action est IRREVERSIBLE. Confirmez-vous ?`)) return;
+    setIsDeleting(true);
+    try {
+      const response = await authenticatedFetch(`${API_URL}/api/admin/users/${user.id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.detail || 'Échec de la suppression du compte.');
+      }
+      alert('Utilisateur supprimé avec succès.');
+      navigate('/admin/users');
+    } catch (err: any) {
+      alert(`Erreur: ${err.message}`);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteApplications = async () => {
+    if (!user || !window.confirm(`Confirmez-vous la suppression de tous les dossiers de candidature de cet utilisateur ? Cette action est irréversible.`)) return;
+    setIsDeletingApplications(true);
+    try {
+      const response = await authenticatedFetch(`${API_URL}/api/admin/users/${user.id}/applications`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Échec de la suppression des dossiers.');
+      alert('Dossiers de candidature supprimés.');
+      // Optionally re-fetch data if there's a visual representation of applications
+    } catch (err: any) {
+      alert(`Erreur: ${err.message}`);
+    } finally {
+      setIsDeletingApplications(false);
+    }
+  };
+
+  const handleDeleteGenerations = async () => {
+    if (!user || !window.confirm(`Confirmez-vous la suppression de toutes les générations IA de cet utilisateur ? Cette action est irréversible.`)) return;
+    setIsDeletingGenerations(true);
+    try {
+      const response = await authenticatedFetch(`${API_URL}/api/admin/users/${user.id}/generations`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Échec de la suppression des générations.');
+      alert('Générations IA supprimées.');
+      fetchData(); // Refresh generations list
+    } catch (err: any) {
+      alert(`Erreur: ${err.message}`);
+    } finally {
+      setIsDeletingGenerations(false);
+    }
+  };
+
+  const handleDebit = async () => {
+    if (!user) return;
+    const amountToDebit = Math.abs(creditAmount);
+    if (!window.confirm(`Êtes-vous sûr de vouloir retirer ${amountToDebit} crédit(s) de type '${creditType}' ?`)) return;
+
+    setIsDebiting(true);
+    try {
+      const response = await authenticatedFetch(`${API_URL}/api/admin/credit-quotas`, { // Assuming the same endpoint with negative value
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email, quota_type: creditType, amount: -amountToDebit })
+      });
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.detail || 'Échec du retrait de crédits.');
+      }
+      alert('Crédits retirés avec succès !');
+      fetchData();
+    } catch (err: any) {
+      alert(`Erreur: ${err.message}`);
+    } finally {
+      setIsDebiting(false);
+    }
+  };
+
+
   if (loading) return <div style={styles.center}>Chargement des détails...</div>;
   if (error) return <div style={{...styles.center, color: 'red'}}>Erreur: {error}</div>;
   if (!user) return <div style={styles.center}>Utilisateur non trouvé.</div>;
@@ -212,6 +301,8 @@ const AdminUserDetails: React.FC = () => {
           <InfoRow label="Expiration" value={user.expiration_date ? new Date(user.expiration_date).toLocaleDateString() : 'N/A'} />
           <InfoRow label="Coût IA total" value={`${user.total_ia_cost.toFixed(2)} €`} />
           <InfoRow label="Séances restantes" value={`${user.sessions_remaining}`} />
+          <InfoRow label="Acceptation CGU/CGV" value={user.cgu_cgv_acceptance_date ? new Date(user.cgu_cgv_acceptance_date).toLocaleString() : 'Non enregistré'} />
+          <InfoRow label="Acceptation Politique Conf." value={user.privacy_policy_acceptance_date ? new Date(user.privacy_policy_acceptance_date).toLocaleString() : 'Non enregistré'} />
         </div>
 
         {/* Carte d'actions */}
@@ -228,21 +319,26 @@ const AdminUserDetails: React.FC = () => {
 
         {/* Carte de crédits */}
         <div style={styles.card}>
-          <h3 style={styles.cardTitle}>Créditer des Quotas</h3>
-          <div style={styles.creditForm}>
-            <input type="number" value={creditAmount} onChange={e => setCreditAmount(parseInt(e.target.value))} style={styles.creditInput} />
-            <select value={creditType} onChange={e => setCreditType(e.target.value)} style={styles.creditSelect}>
-              <option value="qa">Questions Classiques</option>
-              <option value="mes">Mises en Situation</option>
-              <option value="pitch">Pitch</option>
-              <option value="negotiation">Négociation</option>
-              <option value="regeneration">Régénérations</option>
-              <option value="update">Mises à jour Marché</option>
-            </select>
-            <button onClick={handleCredit} disabled={isCrediting} style={styles.creditButton}>
-              <LucidePlusCircle size={16}/> {isCrediting ? '...' : 'Créditer'}
-            </button>
-          </div>
+            <h3 style={styles.cardTitle}>Gestion des Quotas</h3>
+            <div style={styles.creditForm}>
+                <input type="number" value={creditAmount} onChange={e => setCreditAmount(parseInt(e.target.value))} style={styles.creditInput} />
+                <select value={creditType} onChange={e => setCreditType(e.target.value)} style={styles.creditSelect}>
+                    <option value="qa">Questions Classiques</option>
+                    <option value="mes">Mises en Situation</option>
+                    <option value="pitch">Pitch</option>
+                    <option value="negotiation">Négociation</option>
+                    <option value="regeneration">Régénérations</option>
+                    <option value="update">Mises à jour Marché</option>
+                </select>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <button onClick={handleCredit} disabled={isCrediting || isDebiting} style={styles.creditButton}>
+                    <LucidePlusCircle size={16}/> {isCrediting ? '...' : 'Créditer'}
+                </button>
+                <button onClick={handleDebit} disabled={isDebiting || isCrediting} style={{...styles.creditButton, background: '#ef4444'}}>
+                    <LucideMinusCircle size={16}/> {isDebiting ? '...' : 'Débiter'}
+                </button>
+            </div>
         </div>
         
         {/* Carte d'abonnement */}
@@ -254,16 +350,54 @@ const AdminUserDetails: React.FC = () => {
             </button>
         </div>
 
-        {/* Zone de Danger */}
-        <div style={{...styles.card, gridColumn: '1 / -1', background: '#fff1f2', borderColor: '#fecaca'}}>
-            <h3 style={{...styles.cardTitle, color: '#be123c'}}>Zone de Danger</h3>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                <div>
-                    <p style={{margin: 0, fontWeight: 600, color: '#881337'}}>Anonymiser l'utilisateur (RGPD)</p>
-                    <p style={{margin: '0.25rem 0 0 0', fontSize: '0.9rem', color: '#9f1239'}}>Supprime toutes les données personnelles de l'utilisateur. Irréversible.</p>
+        {/* Bloc RGPD / Données personnelles */}
+        <div style={{...styles.card, gridColumn: '1 / -1', background: '#fffbeb', borderColor: '#fef3c7'}}>
+            <h3 style={{...styles.cardTitle, color: '#b45309'}}>Bloc RGPD / Données personnelles</h3>
+            <div style={styles.rgpdGrid}>
+                <div style={styles.rgpdAction}>
+                    <div>
+                        <p style={styles.rgpdActionTitle}>Exporter les données utilisateur</p>
+                        <p style={styles.rgpdActionDescription}>Générer une archive ZIP avec toutes les données de l'utilisateur.</p>
+                    </div>
+                    <button onClick={handleExportData} style={{...styles.actionButton, width: 'auto', background: '#f0f9ff', color: '#0284c7'}}>
+                        <LucideDownload size={16}/> Exporter
+                    </button>
                 </div>
-                <button onClick={handleAnonymize} disabled={isAnonymizing} style={{...styles.actionButton, width: 'auto', background: '#dc2626', color: 'white'}}>
+                <div style={styles.rgpdAction}>
+                    <div>
+                        <p style={styles.rgpdActionTitle}>Supprimer les dossiers de candidature</p>
+                        <p style={styles.rgpdActionDescription}>Efface tous les dossiers, CV et documents générés. Action irréversible.</p>
+                    </div>
+                    <button onClick={handleDeleteApplications} disabled={isDeletingApplications} style={{...styles.actionButton, width: 'auto', background: '#fef2f2', color: '#b91c1c'}}>
+                        <LucideTrash2 size={16}/> {isDeletingApplications ? 'Suppression...' : 'Supprimer les dossiers'}
+                    </button>
+                </div>
+                <div style={styles.rgpdAction}>
+                    <div>
+                        <p style={styles.rgpdActionTitle}>Supprimer les générations IA</p>
+                        <p style={styles.rgpdActionDescription}>Efface l'historique des générations IA pour cet utilisateur. Action irréversible.</p>
+                    </div>
+                    <button onClick={handleDeleteGenerations} disabled={isDeletingGenerations} style={{...styles.actionButton, width: 'auto', background: '#fef2f2', color: '#b91c1c'}}>
+                        <LucideTrash2 size={16}/> {isDeletingGenerations ? 'Suppression...' : 'Supprimer les générations'}
+                    </button>
+                </div>
+            </div>
+            <div style={{...styles.rgpdAction, borderTop: '1px solid #fde68a', paddingTop: '1rem', marginTop: '1rem'}}>
+                <div>
+                    <p style={{...styles.rgpdActionTitle, color: '#92400e'}}>Anonymiser l'utilisateur</p>
+                    <p style={styles.rgpdActionDescription}>Remplace les informations personnelles par des données anonymes. Garde les métriques. Irréversible.</p>
+                </div>
+                <button onClick={handleAnonymize} disabled={isAnonymizing} style={{...styles.actionButton, width: 'auto', background: '#fbbf24', color: '#92400e'}}>
                     <LucideShieldCheck size={16}/> {isAnonymizing ? 'Anonymisation...' : 'Anonymiser'}
+                </button>
+            </div>
+            <div style={{...styles.rgpdAction, borderTop: '1px solid #fde68a', paddingTop: '1rem', marginTop: '0.5rem'}}>
+                <div>
+                    <p style={{...styles.rgpdActionTitle, color: '#991b1b'}}>Supprimer le compte</p>
+                    <p style={styles.rgpdActionDescription}>Supprime DÉFINITIVEMENT le compte et toutes les données associées. Action irréversible.</p>
+                </div>
+                <button onClick={handleDeleteAccount} disabled={isDeleting} style={{...styles.actionButton, width: 'auto', background: '#dc2626', color: 'white'}}>
+                    <LucideTrash2 size={16}/> {isDeleting ? 'Suppression...' : 'Supprimer le compte'}
                 </button>
             </div>
         </div>
@@ -325,6 +459,10 @@ const styles: { [key: string]: React.CSSProperties } = {
   creditButton: { display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: '#16a34a', color: 'white', border: 'none', borderRadius: '0.25rem', cursor: 'pointer' },
   generationList: { listStyle: 'none', padding: 0, margin: 0 },
   generationItem: { display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem 0', borderBottom: '1px solid #f1f5f9' },
+  rgpdGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' },
+  rgpdAction: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' },
+  rgpdActionTitle: { margin: 0, fontWeight: 600, color: '#92400e' },
+  rgpdActionDescription: { margin: '0.25rem 0 0 0', fontSize: '0.9rem', color: '#b45309' },
 };
 
 export default AdminUserDetails;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Cpu, DollarSign, Clock, BarChart3, AlertTriangle, User, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowLeft, Cpu, DollarSign, BarChart3, AlertTriangle, User, TrendingUp, TrendingDown } from 'lucide-react';
 import { authenticatedFetch } from '../utils/auth';
 import { API_BASE_URL } from '../config';
 import { AsyncBoundary } from './AsyncBoundary';
@@ -21,7 +21,13 @@ interface UserAlert {
   price_paid: number;
   total_ia_cost: number;
   cost_ratio: number;
+  gross_margin: number;
   alert_level: 'Critique' | 'Élevé' | 'Alerte';
+}
+
+interface OfferMargin {
+    offer_name: string;
+    margin: number;
 }
 
 interface AiUsageStats {
@@ -33,6 +39,8 @@ interface AiUsageStats {
   total_regenerations: number;
   module_stats: ModuleStat[];
   user_alerts: UserAlert[];
+  gross_margin_by_offer?: OfferMargin[];
+  gross_margin_on_recharges?: number;
 }
 
 export function AdminAiUsage() {
@@ -87,6 +95,30 @@ export function AdminAiUsage() {
               <div className="bg-white p-5 rounded-xl shadow-sm border"><div className="text-sm text-slate-500">Coût max. observé</div><div className="text-2xl font-bold text-red-600 mt-1">{stats.max_cost_observed.toFixed(3)} €</div></div>
             </div>
 
+            {/* Marge par Offre et Recharges */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border">
+                <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <DollarSign size={20} /> Marge Brute Estimée
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <h3 className="font-semibold text-slate-600">Par Offre</h3>
+                        {stats.gross_margin_by_offer?.map(offer => (
+                            <div key={offer.offer_name} className="flex justify-between items-center mt-2">
+                                <span>{offer.offer_name}</span>
+                                <span className="font-bold">{offer.margin.toFixed(2)} €</span>
+                            </div>
+                        ))}
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-slate-600">Sur les Recharges</h3>
+                        <p className="text-2xl font-bold">
+                            {stats.gross_margin_on_recharges?.toFixed(2) ?? 'N/A'} €
+                        </p>
+                    </div>
+                </div>
+            </div>
+
             {/* Coût par Module */}
             <div className="bg-white p-6 rounded-xl shadow-sm border overflow-x-auto">
               <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><BarChart3 size={20} /> Rentabilité par Module</h2>
@@ -127,6 +159,7 @@ export function AdminAiUsage() {
                       <th className="px-4 py-2">Offre</th>
                       <th className="px-4 py-2 text-right">Coût IA / Prix Payé</th>
                       <th className="px-4 py-2 text-right">Ratio</th>
+                      <th className="px-4 py-2 text-right">Marge Brute</th>
                       <th className="px-4 py-2">Niveau d'Alerte</th>
                     </tr>
                   </thead>
@@ -144,6 +177,9 @@ export function AdminAiUsage() {
                           </td>
                           <td className={`px-4 py-3 text-right font-mono font-bold ${styles.text}`}>
                             {(alert.cost_ratio * 100).toFixed(1)}%
+                          </td>
+                          <td className="px-4 py-3 text-right font-mono font-bold">
+                            {alert.gross_margin.toFixed(2)}€
                           </td>
                           <td className="px-4 py-3">
                             <span className={`px-2 py-1 text-xs font-semibold rounded-full ${styles.bg} ${styles.text} border ${styles.border}`}>{alert.alert_level}</span>

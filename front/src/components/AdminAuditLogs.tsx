@@ -4,13 +4,20 @@ import { LucideBookUser } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+interface AuditLogDetails {
+  old_value?: string | number | null;
+  new_value?: string | number | null;
+  reason?: string;
+  result?: 'succès' | 'échec';
+}
+
 interface AuditLog {
   id: number;
   timestamp: string;
   admin_user_email: string;
   action: string;
   target_user_email: string;
-  details: any;
+  details: AuditLogDetails | null;
   ip_address: string;
 }
 
@@ -67,7 +74,10 @@ const AdminAuditLogs: React.FC = () => {
                   <th style={styles.th}>Admin</th>
                   <th style={styles.th}>Action</th>
                   <th style={styles.th}>Cible</th>
-                  <th style={styles.th}>Détails</th>
+                  <th style={styles.th}>Ancienne Valeur</th>
+                  <th style={styles.th}>Nouvelle Valeur</th>
+                  <th style={styles.th}>Motif</th>
+                  <th style={styles.th}>Résultat</th>
                   <th style={styles.th}>IP</th>
                 </tr>
               </thead>
@@ -78,7 +88,16 @@ const AdminAuditLogs: React.FC = () => {
                     <td style={styles.td}>{log.admin_user_email}</td>
                     <td style={styles.td}><span style={styles.badge}>{log.action}</span></td>
                     <td style={styles.td}>{log.target_user_email}</td>
-                    <td style={styles.td}><pre style={styles.pre}>{JSON.stringify(log.details, null, 2)}</pre></td>
+                    <td style={styles.td}>{log.details?.old_value ?? 'N/A'}</td>
+                    <td style={styles.td}>{log.details?.new_value ?? 'N/A'}</td>
+                    <td style={styles.td}>{log.details?.reason ?? 'N/A'}</td>
+                    <td style={styles.td}>
+                      {log.details?.result && (
+                        <span style={{...styles.resultBadge, ...(log.details.result === 'succès' ? styles.badgeSuccess : styles.badgeFailure)}}>
+                          {log.details.result}
+                        </span>
+                      )}
+                    </td>
                     <td style={styles.td}>{log.ip_address}</td>
                   </tr>
                 ))}
@@ -115,7 +134,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderBottom: '1px solid #f1f5f9',
     padding: '0.75rem 1rem',
     fontSize: '0.9rem',
-    verticalAlign: 'top',
+    verticalAlign: 'middle',
   },
   badge: {
     display: 'inline-block',
@@ -126,14 +145,20 @@ const styles: { [key: string]: React.CSSProperties } = {
     background: '#eef2ff',
     color: '#4338ca',
   },
-  pre: {
-    margin: 0,
-    fontSize: '0.8rem',
-    background: '#f1f5f9',
-    padding: '0.5rem',
+  resultBadge: {
+    display: 'inline-block',
+    padding: '0.2rem 0.6rem',
+    fontSize: '0.75rem',
+    fontWeight: 600,
     borderRadius: '0.25rem',
-    whiteSpace: 'pre-wrap',
-    wordBreak: 'break-all',
+  },
+  badgeSuccess: {
+    color: '#166534',
+    backgroundColor: '#dcfce7',
+  },
+  badgeFailure: {
+    color: '#991b1b',
+    backgroundColor: '#fee2e2',
   },
   pagination: {
     display: 'flex',

@@ -1,11 +1,47 @@
 import React, { useState, useEffect } from 'react';
 import { authenticatedFetch } from '../utils/auth';
 import { API_BASE_URL } from '../config';
-import { Loader2, AlertTriangle, Settings } from 'lucide-react';
+import { Loader2, AlertTriangle, Settings, GitCommit, Terminal, Layers, DollarSign, Cpu, FileText, CheckCircle, XCircle } from 'lucide-react';
+
+interface ActiveOffer {
+    name: string;
+    price: string;
+    quotas: string;
+    duration: string;
+}
+
+interface AiModelUsage {
+    module: string;
+    model_name: string;
+}
+
+interface ActivePrompt {
+    module: string;
+    prompt_version: string;
+}
 
 interface SystemSettings {
-  [key: string]: string;
+  environment: 'staging' | 'production';
+  frontend_version: string;
+  backend_version: string;
+  last_git_commit: string;
+  last_deployment_at: string;
+  maintenance_mode: boolean;
+  active_offers: ActiveOffer[];
+  ai_models_by_module: AiModelUsage[];
+  active_prompts: ActivePrompt[];
+  ia_cost_alert_threshold: number;
 }
+
+const InfoCard: React.FC<{title: string, value: string | React.ReactNode, icon: React.ReactNode}> = ({ title, value, icon }) => (
+    <div className="admin-card flex items-center gap-4">
+        <div className="bg-slate-100 p-3 rounded-lg">{icon}</div>
+        <div>
+            <h4 className="text-sm font-semibold text-gray-500">{title}</h4>
+            <p className="text-lg font-bold mt-1">{value}</p>
+        </div>
+    </div>
+);
 
 const AdminSettings = () => {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
@@ -21,8 +57,7 @@ const AdminSettings = () => {
         if (!response.ok) {
           throw new Error('Failed to fetch system settings.');
         }
-        const data = await response.json();
-        setSettings(data.settings);
+        setSettings(await response.json());
       } catch (e: any) {
         setError(e.message);
       } finally {
@@ -34,7 +69,7 @@ const AdminSettings = () => {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between border-b pb-4 mb-6">
         <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
           <Settings className="text-blue-600" /> Configuration Système
@@ -59,22 +94,60 @@ const AdminSettings = () => {
       )}
 
       {settings && (
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg border border-gray-200">
-          <div className="border-t border-gray-200">
-            <dl>
-              {Object.entries(settings).map(([key, value], idx) => (
-                <div 
-                  key={key} 
-                  className={`${
-                    idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'
-                  } px-6 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 border-b border-gray-100 last:border-0 hover:bg-blue-50/50 transition-colors`}
-                >
-                  <dt className="text-sm font-semibold text-gray-500">{key}</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 font-medium">{value}</dd>
+        <div className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <InfoCard title="Environnement" value={settings.environment} icon={<Terminal size={20} />} />
+                <InfoCard title="Version Frontend" value={settings.frontend_version} icon={<Layers size={20} />} />
+                <InfoCard title="Version Backend" value={settings.backend_version} icon={<Layers size={20} />} />
+                <InfoCard title="Dernier Commit" value={settings.last_git_commit.substring(0,7)} icon={<GitCommit size={20} />} />
+                <InfoCard title="Dernier Déploiement" value={new Date(settings.last_deployment_at).toLocaleString()} icon={<CheckCircle size={20} />} />
+                <InfoCard title="Mode Maintenance" value={settings.maintenance_mode ? <XCircle className="text-red-500"/> : <CheckCircle className="text-green-500"/>} icon={<AlertTriangle size={20} />} />
+            </div>
+
+            <div className="admin-card">
+                <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><DollarSign size={20}/> Offres Actives</h3>
+                <table className="admin-table">
+                    <thead><tr><th>Nom</th><th>Prix</th><th>Quotas</th><th>Durée</th></tr></thead>
+                    <tbody>
+                        {settings.active_offers.map(offer => (
+                            <tr key={offer.name}>
+                                <td>{offer.name}</td>
+                                <td>{offer.price}</td>
+                                <td>{offer.quotas}</td>
+                                <td>{offer.duration}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+            <div className="admin-card">
+                <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><Cpu size={20}/> Configuration IA</h3>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-1">
+                        <h4 className="font-bold mb-2">Modèles par module</h4>
+                        <table className="admin-table text-sm">
+                           <thead><tr><th>Module</th><th>Modèle</th></tr></thead>
+                           <tbody>
+                                {settings.ai_models_by_module.map(m => <tr key={m.module}><td>{m.module}</td><td>{m.model_name}</td></tr>)}
+                           </tbody>
+                        </table>
+                    </div>
+                     <div className="lg:col-span-1">
+                        <h4 className="font-bold mb-2">Prompts actifs</h4>
+                        <table className="admin-table text-sm">
+                           <thead><tr><th>Module</th><th>Version</th></tr></thead>
+                           <tbody>
+                                {settings.active_prompts.map(p => <tr key={p.module}><td>{p.module}</td><td>{p.prompt_version}</td></tr>)}
+                           </tbody>
+                        </table>
+                    </div>
+                     <div className="lg:col-span-1">
+                        <h4 className="font-bold mb-2">Seuils</h4>
+                        <p>Alerte coût IA: {settings.ia_cost_alert_threshold}%</p>
+                    </div>
                 </div>
-              ))}
-            </dl>
-          </div>
+            </div>
         </div>
       )}
     </div>

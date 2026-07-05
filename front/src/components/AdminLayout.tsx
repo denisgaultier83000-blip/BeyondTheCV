@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { Users, CreditCard, Bot, MessageSquare, Settings } from 'lucide-react';
+import './Admin.css';
 
 const AdminLayout: React.FC = () => {
   const navItems = [
@@ -12,20 +13,18 @@ const AdminLayout: React.FC = () => {
   ];
 
   return (
-    <div className="flex min-h-screen bg-gray-100 font-sans">
-      <aside className="w-64 bg-gray-800 text-white p-4 flex flex-col">
-        <h1 className="text-2xl font-bold mb-8">Admin</h1>
-        <nav className="flex flex-col space-y-2">
+    <div className="admin-layout">
+      <aside className="admin-sidebar">
+        <div className="admin-sidebar-header">
+          <span>Command Center</span>
+        </div>
+        <nav className="admin-nav">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex items-center space-x-3 p-2 rounded-md transition-colors ${
-                  isActive
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-400 hover:bg-gray-700 hover:text-white'
-                }`
+                `admin-nav-link ${isActive ? 'active' : ''}`
               }
             >
               {item.icon}
@@ -34,11 +33,8 @@ const AdminLayout: React.FC = () => {
           ))}
         </nav>
       </aside>
-      <main className="flex-1 p-8">
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          {/* Outlet va rendre le composant de la route enfant correspondante */}
-          <Outlet />
-        </div>
+      <main className="admin-main-content">
+        <Outlet />
       </main>
     </div>
   );

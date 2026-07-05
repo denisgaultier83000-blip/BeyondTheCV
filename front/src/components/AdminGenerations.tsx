@@ -12,6 +12,16 @@ interface Generation {
   created_at: string;
   completed_at: string | null;
   result: string | null;
+  ai_model: string;
+  prompt_version: string;
+  estimated_cost: number;
+  input_tokens: number;
+  output_tokens: number;
+  duration: number; // in seconds
+  related_folder_id: string;
+  error_message: string | null;
+  retry_count: number;
+  trigger_source: 'user' | 'admin' | 'auto_retry';
 }
 
 const AdminGenerations: React.FC = () => {
@@ -85,6 +95,8 @@ const AdminGenerations: React.FC = () => {
                   <th style={styles.th}>Utilisateur</th>
                   <th style={styles.th}>Type</th>
                   <th style={styles.th}>Statut</th>
+                  <th style={styles.th}>Coût</th>
+                  <th style={styles.th}>Durée</th>
                   <th style={styles.th}>Créé le</th>
                   <th style={styles.th}>Actions</th>
                 </tr>
@@ -96,6 +108,8 @@ const AdminGenerations: React.FC = () => {
                     <td style={styles.td}>{gen.user_email}</td>
                     <td style={styles.td}>{gen.task_type}</td>
                     <td style={styles.td}><span style={{...styles.badge, ...styles.badgeColors[gen.status]}}>{gen.status}</span></td>
+                    <td style={styles.td}>{gen.estimated_cost?.toFixed(4)} €</td>
+                    <td style={styles.td}>{gen.duration?.toFixed(2)} s</td>
                     <td style={styles.td}>{new Date(gen.created_at).toLocaleString()}</td>
                     <td style={styles.td}>
                       <button onClick={() => setSelectedGeneration(gen)} style={styles.actionButton}><Eye size={14} /> Détails</button>
@@ -118,6 +132,27 @@ const AdminGenerations: React.FC = () => {
         <div style={styles.modalBackdrop} onClick={() => setSelectedGeneration(null)}>
           <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
             <h3>Détails de la Génération</h3>
+            <div style={styles.detailsGrid}>
+              <DetailItem label="ID Tâche" value={selectedGeneration.id} />
+              <DetailItem label="Utilisateur" value={selectedGeneration.user_email} />
+              <DetailItem label="Dossier Lié" value={selectedGeneration.related_folder_id} />
+              <DetailItem label="Type de tâche" value={selectedGeneration.task_type} />
+              <DetailItem label="Modèle IA" value={selectedGeneration.ai_model} />
+              <DetailItem label="Version Prompt" value={selectedGeneration.prompt_version} />
+              <DetailItem label="Source" value={selectedGeneration.trigger_source} />
+              <DetailItem label="Tentatives" value={selectedGeneration.retry_count} />
+              <DetailItem label="Statut" value={<span style={{...styles.badge, ...styles.badgeColors[selectedGeneration.status]}}>{selectedGeneration.status}</span>} />
+              <DetailItem label="Coût Estimé" value={`${selectedGeneration.estimated_cost?.toFixed(4)} €`} />
+              <DetailItem label="Durée" value={`${selectedGeneration.duration?.toFixed(2)} s`} />
+              <DetailItem label="Tokens Input/Output" value={`${selectedGeneration.input_tokens} / ${selectedGeneration.output_tokens}`} />
+            </div>
+            {selectedGeneration.error_message && (
+              <div style={styles.errorBox}>
+                  <h4>Message d'erreur</h4>
+                  <pre style={styles.pre}>{selectedGeneration.error_message}</pre>
+              </div>
+            )}
+            <h4>Résultat brut (JSON)</h4>
             <pre style={styles.pre}>{JSON.stringify(JSON.parse(selectedGeneration.result || '{}'), null, 2)}</pre>
             <button onClick={() => setSelectedGeneration(null)} style={{marginTop: '1rem'}}>Fermer</button>
           </div>
@@ -126,6 +161,13 @@ const AdminGenerations: React.FC = () => {
     </div>
   );
 };
+
+const DetailItem = ({ label, value }: { label: string, value: React.ReactNode }) => (
+  <div style={styles.detailItem}>
+    <strong style={styles.detailLabel}>{label}</strong>
+    <div>{value}</div>
+  </div>
+);
 
 const styles: { [key: string]: React.CSSProperties } = {
   container: { padding: '2rem', fontFamily: 'sans-serif' },
@@ -210,7 +252,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderRadius: '0.5rem',
     width: '80%',
     maxWidth: '800px',
-  }
+  },
+  detailsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' },
+  detailItem: { background: '#f8fafc', padding: '0.75rem', borderRadius: '0.25rem' },
+  detailLabel: { display: 'block', fontSize: '0.8rem', color: '#64748b', marginBottom: '0.25rem' },
+  errorBox: { background: '#fff1f2', color: '#be123c', padding: '1rem', borderRadius: '0.25rem', margin: '1.5rem 0' },
 };
 
 export default AdminGenerations;
