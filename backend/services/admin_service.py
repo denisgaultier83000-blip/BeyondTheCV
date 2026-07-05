@@ -158,8 +158,8 @@ async def admin_list_users(
         count_query = f"SELECT COUNT(*) FROM users {where_sql}"
         total_cursor = await db.execute(conn, count_query, where_params)
         total_row = await total_cursor.fetchone()
-        # [FIX] Gestion du cas où fetchone() ne renvoie rien (ex: table vide) pour éviter le crash.
-        total_users = total_row[0] if total_row else 0
+        # [FIX] Le driver DB retourne un dictionnaire. On accède à la valeur par `list(row.values())[0]` pour être robuste.
+        total_users = list(total_row.values())[0] if total_row else 0
         
     users_list = []
     for r in rows:
@@ -201,7 +201,8 @@ async def admin_get_billing_history(limit: int = 50, offset: int = 0):
             rows = await cursor.fetchall()
             
             total_cursor = await db.execute(conn, count_query)
-            total_payments = (await total_cursor.fetchone())[0]
+            total_row = await total_cursor.fetchone()
+            total_payments = list(total_row.values())[0] if total_row else 0
 
         payments = [dict(row) for row in rows]
         return {"payments": payments, "total": total_payments}
@@ -228,7 +229,8 @@ async def admin_get_generations_history(limit: int = 50, offset: int = 0):
             rows = await cursor.fetchall()
             
             total_cursor = await db.execute(conn, count_query)
-            total_generations = (await total_cursor.fetchone())[0]
+            total_row = await total_cursor.fetchone()
+            total_generations = list(total_row.values())[0] if total_row else 0
 
         generations = [dict(row) for row in rows]
         return {"generations": generations, "total": total_generations}
@@ -305,28 +307,24 @@ async def admin_get_stats():
     """[MODIFIÉ] 2. Analytics : Statistiques globales pour le dashboard."""
     async with db.get_connection() as conn:
         c1 = await db.execute(conn, "SELECT COUNT(*) FROM users")
-        # [FIX] Vérification robuste pour éviter un crash si la requête ne renvoie rien.
         total_users_row = await c1.fetchone()
-        total_users = total_users_row[0] if total_users_row else 0
+        total_users = list(total_users_row.values())[0] if total_users_row and total_users_row.values() else 0
         
-        # [AJOUT] Nombre d'analyses complètes lancées (basé sur la création de dossiers)
         c2 = await db.execute(conn, "SELECT COUNT(*) FROM job_applications")
         analyses_launched_row = await c2.fetchone()
-        analyses_launched = analyses_launched_row[0] if analyses_launched_row else 0
+        analyses_launched = list(analyses_launched_row.values())[0] if analyses_launched_row and analyses_launched_row.values() else 0
 
-        # [AJOUT] Nombre de retours utilisateurs
         c3 = await db.execute(conn, "SELECT COUNT(*) FROM feedbacks")
         feedbacks_count_row = await c3.fetchone()
-        feedbacks_count = feedbacks_count_row[0] if feedbacks_count_row else 0
+        feedbacks_count = list(feedbacks_count_row.values())[0] if feedbacks_count_row and feedbacks_count_row.values() else 0
         
-        # [AJOUT] Statistiques du cache d'articles
         c4 = await db.execute(conn, "SELECT value FROM system_stats WHERE key = 'article_cache_hits' AND date = CURRENT_DATE")
         cache_hits_row = await c4.fetchone()
-        cache_hits = cache_hits_row[0] if cache_hits_row else 0
+        cache_hits = list(cache_hits_row.values())[0] if cache_hits_row and cache_hits_row.values() else 0
 
         c5 = await db.execute(conn, "SELECT value FROM system_stats WHERE key = 'article_cache_misses' AND date = CURRENT_DATE")
         cache_misses_row = await c5.fetchone()
-        cache_misses = cache_misses_row[0] if cache_misses_row else 0
+        cache_misses = list(cache_misses_row.values())[0] if cache_misses_row and cache_misses_row.values() else 0
 
         # [AJOUT] Calcul du Hit Ratio du cache
         total_cache_requests = cache_hits + cache_misses
@@ -336,9 +334,15 @@ async def admin_get_stats():
         # si les tables/colonnes ne sont pas encore migrées.
         try:
             c6 = await db.execute(conn, "SELECT SUM(amount_paid) FROM payments WHERE purchase_date >= date_trunc('month', CURRENT_DATE) AND status = 'succeeded'")
-            revenue_month = (await c6.fetchone())[0] or 0
+            revenue_row = await c6.fetchone()
+            revenue_month = list(revenue_row.values())[0] if revenue_row and revenue_row.values() else 0
+            revenue_month = revenue_month or 0
+
             c7 = await db.execute(conn, "SELECT SUM(total_ia_cost) FROM users") # Supposant une colonne 'total_ia_cost'
-            ai_cost_total = (await c7.fetchone())[0] or 0
+            ai_cost_row = await c7.fetchone()
+            ai_cost_total = list(ai_cost_row.values())[0] if ai_cost_row and ai_cost_row.values() else 0
+            ai_cost_total = ai_cost_total or 0
+            
             avg_ai_cost_per_user = (ai_cost_total / total_users) if total_users > 0 else 0
         except Exception:
             revenue_month = 0
