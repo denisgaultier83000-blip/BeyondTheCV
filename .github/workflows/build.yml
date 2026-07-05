@@ -18,6 +18,9 @@ env:
 permissions:
   contents: read
   packages: write
+  # [CORRECTION] Ajout de la permission 'actions: write' qui est INDISPENSABLE
+  # pour que l'action puisse écrire dans le cache de GitHub Actions (cache-to: type=gha).
+  actions: write
 
 jobs:
   build:
