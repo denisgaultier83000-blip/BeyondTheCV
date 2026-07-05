@@ -244,6 +244,21 @@ def main():
         """)
         print("✅ Table 'tasks' created")
 
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS admin_audit_logs (
+                id SERIAL PRIMARY KEY,
+                timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                admin_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+                admin_user_email TEXT,
+                action TEXT NOT NULL,
+                target_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+                target_user_email TEXT,
+                details JSONB,
+                ip_address TEXT
+            );
+        """)
+        print("✅ Table 'admin_audit_logs' created")
+
         # Commit tables creation before creating indexes
         conn.commit()
 
@@ -256,6 +271,10 @@ def main():
         cur.execute("CREATE INDEX IF NOT EXISTS idx_tasks_application_id ON tasks(application_id)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_job_applications_user_session ON job_applications(user_id, session_hash)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_generation_cache_user_type ON generation_cache(user_id, content_type)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_audit_logs_admin_user_id ON admin_audit_logs(admin_user_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_audit_logs_target_user_id ON admin_audit_logs(target_user_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON admin_audit_logs(action)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON admin_audit_logs(timestamp)")
         print("✅ Indexes created")
 
         # Insert default subscription plans

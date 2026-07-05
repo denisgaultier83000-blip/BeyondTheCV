@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Body, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Body, BackgroundTasks, Request
 from pydantic import BaseModel, EmailStr
 from typing import Literal, Optional, List
 import smtplib
@@ -9,9 +9,10 @@ from datetime import datetime
 import stripe, json
 import httpx
 
-from security import require_admin_user
+from security import require_admin_user, get_current_user
 from database import db
 from .ai_generator import ai_service
+from .audit_service import audit_service
 
 router = APIRouter(
     prefix="/api/admin",
@@ -79,37 +80,51 @@ def send_quota_recharge_email(to_email: str, amount: int, quota_type: str):
         print(f"[EMAIL ERROR] Échec de l'envoi à {to_email}: {e}")
 
 @router.post("/credit-quotas")
-async def credit_user_quotas(request: CreditQuotaRequest, background_tasks: BackgroundTasks):
+async def credit_user_quotas(
+    credit_request: CreditQuotaRequest,
+    background_tasks: BackgroundTasks,
+    request: Request,
+    admin_user: dict = Depends(get_current_user)
+):
     """
     Crédite manuellement des quotas à un utilisateur.
     'amount' peut être positif pour ajouter, ou négatif pour retirer.
     """
-    column_name = f"quota_{request.quota_type}"
+    column_name = f"quota_{credit_request.quota_type}"
     
     async with db.get_connection() as conn:
-        user_cursor = await db.execute(conn, "SELECT id FROM users WHERE email = ?", (request.email,))
+        user_cursor = await db.execute(conn, "SELECT id FROM users WHERE email = ?", (credit_request.email,))
         user_row = await user_cursor.fetchone()
         if not user_row:
-            raise HTTPException(status_code=404, detail=f"Utilisateur avec l'email '{request.email}' introuvable.")
+            raise HTTPException(status_code=404, detail=f"Utilisateur avec l'email '{credit_request.email}' introuvable.")
             
         user_id = user_row.get("id") if isinstance(user_row, dict) else user_row[0]
         
         try:
-            # [FIX] Standardisation du placeholder SQL. Le code utilisait '%s' (psycopg2)
-            # alors que le reste du projet utilise '?' (sqlite/asyncpg).
             update_query = f"UPDATE users SET {column_name} = COALESCE({column_name}, 0) + ? WHERE id = ? RETURNING {column_name}"
-            result_cursor = await db.execute(conn, update_query, (request.amount, user_id))
+            result_cursor = await db.execute(conn, update_query, (credit_request.amount, user_id))
             new_balance_row = await result_cursor.fetchone()
             new_balance = new_balance_row.get(column_name) if new_balance_row else "inconnu"
+
+            # Log audit
+            await audit_service.log_admin_action(
+                request=request,
+                admin_user=admin_user,
+                action="CREDIT_QUOTAS",
+                target_user_id=user_id,
+                target_user_email=credit_request.email,
+                details={"quota_type": credit_request.quota_type, "amount": credit_request.amount, "new_balance": new_balance}
+            )
+
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Erreur base de données : {e}")
 
-    if request.amount > 0:
-        background_tasks.add_task(send_quota_recharge_email, request.email, request.amount, request.quota_type)
+    if credit_request.amount > 0:
+        background_tasks.add_task(send_quota_recharge_email, credit_request.email, credit_request.amount, credit_request.quota_type)
 
     return {
         "status": "success",
-        "message": f"{request.amount} crédits '{request.quota_type}' ont été traités pour {request.email}.",
+        "message": f"{credit_request.amount} crédits '{credit_request.quota_type}' ont été traités pour {credit_request.email}.",
         "new_balance": new_balance
     }
 
@@ -287,18 +302,29 @@ async def admin_get_user_generations(user_id: str, limit: int = 5):
 
 
 @router.post("/users/{user_id}/toggle-active")
-async def admin_toggle_user_active(user_id: str):
+async def admin_toggle_user_active(user_id: str, request: Request, admin_user: dict = Depends(get_current_user)):
     """1. Gestion : Activer/Désactiver (Bannir) un utilisateur."""
     async with db.get_connection() as conn:
-        cursor = await db.execute(conn, "SELECT is_active FROM users WHERE id = ?", (user_id,))
+        cursor = await db.execute(conn, "SELECT email, is_active FROM users WHERE id = ?", (user_id,))
         row = await cursor.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Utilisateur introuvable.")
         
-        current_status = row[0] if isinstance(row, tuple) else row.get("is_active", True)
+        user_email = row['email']
+        current_status = row['is_active']
         new_status = not bool(current_status)
         
         await db.execute(conn, "UPDATE users SET is_active = ? WHERE id = ?", (new_status, user_id))
+
+        # Log audit
+        await audit_service.log_admin_action(
+            request=request,
+            admin_user=admin_user,
+            action="TOGGLE_USER_ACTIVE",
+            target_user_id=user_id,
+            target_user_email=user_email,
+            details={"is_active": new_status}
+        )
         
     return {"status": "success", "user_id": user_id, "is_active": new_status}
 
@@ -408,9 +434,15 @@ async def get_recent_users(limit: int = 5):
     return users
 
 @router.post("/users/{user_id}/subscription")
-async def admin_manage_subscription(user_id: str, req: AdminSubscriptionRequest):
+async def admin_manage_subscription(user_id: str, req: AdminSubscriptionRequest, request: Request, admin_user: dict = Depends(get_current_user)):
     """3. Abonnements : Prolonger ou annuler manuellement un abonnement (SAV)."""
     async with db.get_connection() as conn:
+        user_cursor = await db.execute(conn, "SELECT email FROM users WHERE id = ?", (user_id,))
+        user_row = await user_cursor.fetchone()
+        if not user_row:
+            raise HTTPException(status_code=404, detail="Utilisateur introuvable.")
+        user_email = user_row['email']
+
         if req.action == "extend":
             days = req.days or 30
             await db.execute(conn, f"""
@@ -421,6 +453,8 @@ async def admin_manage_subscription(user_id: str, req: AdminSubscriptionRequest)
                 WHERE id = ?
             """, (user_id,))
             msg = f"Abonnement prolongé de {days} jours."
+            action = "EXTEND_SUBSCRIPTION"
+            details = {"days": days}
         elif req.action == "cancel":
             await db.execute(conn, """
                 UPDATE users 
@@ -430,14 +464,43 @@ async def admin_manage_subscription(user_id: str, req: AdminSubscriptionRequest)
                 WHERE id = ?
             """, (user_id,))
             msg = "Abonnement annulé manuellement."
-            
+            action = "CANCEL_SUBSCRIPTION"
+            details = {}
+        
+        # Log audit
+        await audit_service.log_admin_action(
+            request=request,
+            admin_user=admin_user,
+            action=action,
+            target_user_id=user_id,
+            target_user_email=user_email,
+            details=details
+        )
+
     return {"status": "success", "message": msg}
 
 @router.delete("/users/{user_id}/cache")
-async def admin_purge_user_cache(user_id: str):
+async def admin_purge_user_cache(user_id: str, request: Request, admin_user: dict = Depends(get_current_user)):
     """4. Debug : Purger le cache IA d'un utilisateur en cas de bug de génération."""
     async with db.get_connection() as conn:
+        user_cursor = await db.execute(conn, "SELECT email FROM users WHERE id = ?", (user_id,))
+        user_row = await user_cursor.fetchone()
+        if not user_row:
+            raise HTTPException(status_code=404, detail="Utilisateur introuvable.")
+        user_email = user_row['email']
+
         await db.execute(conn, "DELETE FROM generation_cache WHERE user_id = ?", (user_id,))
+
+        # Log audit
+        await audit_service.log_admin_action(
+            request=request,
+            admin_user=admin_user,
+            action="PURGE_USER_CACHE",
+            target_user_id=user_id,
+            target_user_email=user_email,
+            details={}
+        )
+
     return {"status": "success", "message": f"Cache purgé pour l'utilisateur."}
 
 @router.get("/health-check")

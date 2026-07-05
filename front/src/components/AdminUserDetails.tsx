@@ -61,6 +61,9 @@ const AdminUserDetails: React.FC = () => {
   const [isCrediting, setIsCrediting] = useState(false);
   const [creditAmount, setCreditAmount] = useState(10);
   const [creditType, setCreditType] = useState('qa');
+  const [isPurgingCache, setIsPurgingCache] = useState(false);
+  const [isExtending, setIsExtending] = useState(false);
+  const [isAnonymizing, setIsAnonymizing] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!userId) return;
@@ -122,10 +125,63 @@ const AdminUserDetails: React.FC = () => {
         throw new Error(errData.detail || 'Échec de l\'ajout de crédits.');
       }
       alert('Crédits ajoutés avec succès !');
+      // Re-fetch user data to show updated credit balance, if that data is available
+      fetchData();
     } catch (err: any) {
       alert(`Erreur: ${err.message}`);
     } finally {
       setIsCrediting(false);
+    }
+  };
+
+  const handlePurgeCache = async () => {
+    if (!user || !window.confirm("Êtes-vous sûr de vouloir purger le cache de cet utilisateur ? Cette action est irréversible.")) return;
+    setIsPurgingCache(true);
+    try {
+      const response = await authenticatedFetch(`${API_URL}/api/admin/users/${user.id}/cache`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Échec de la purge du cache.');
+      alert('Cache utilisateur purgé avec succès.');
+    } catch (err: any) {
+      alert(`Erreur: ${err.message}`);
+    } finally {
+      setIsPurgingCache(false);
+    }
+  };
+
+  const handleExtendSubscription = async (days: number) => {
+    if (!user || !window.confirm(`Êtes-vous sûr de vouloir prolonger l'abonnement de ${days} jours ?`)) return;
+    setIsExtending(true);
+    try {
+      const response = await authenticatedFetch(`${API_URL}/api/admin/users/${user.id}/subscription`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'extend', days })
+      });
+      if (!response.ok) throw new Error('Échec de la prolongation de l\'abonnement.');
+      alert(`Abonnement prolongé de ${days} jours.`);
+      fetchData(); // Refresh user data
+    } catch (err: any) {
+      alert(`Erreur: ${err.message}`);
+    } finally {
+      setIsExtending(false);
+    }
+  };
+
+  const handleAnonymize = async () => {
+    if (!user || !window.confirm(`ATTENTION : Vous êtes sur le point d'anonymiser cet utilisateur. Toutes ses données personnelles (CV, documents, générations) seront DÉFINITIVEMENT supprimées. Cette action est IRREVERSIBLE. Confirmez-vous ?`)) return;
+    setIsAnonymizing(true);
+    try {
+      const response = await authenticatedFetch(`${API_URL}/api/admin/users/${user.id}/anonymize`, { method: 'POST' });
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.detail || 'Échec de l\'anonymisation.');
+      }
+      alert('Utilisateur anonymisé avec succès. La page va être rechargée.');
+      navigate('/admin/users');
+    } catch (err: any) {
+      alert(`Erreur: ${err.message}`);
+    } finally {
+      setIsAnonymizing(false);
     }
   };
 
@@ -155,6 +211,7 @@ const AdminUserDetails: React.FC = () => {
           <InfoRow label="Statut abonnement" value={user.status || 'N/A'} badge={user.status || 'inactive'} />
           <InfoRow label="Expiration" value={user.expiration_date ? new Date(user.expiration_date).toLocaleDateString() : 'N/A'} />
           <InfoRow label="Coût IA total" value={`${user.total_ia_cost.toFixed(2)} €`} />
+          <InfoRow label="Séances restantes" value={`${user.sessions_remaining}`} />
         </div>
 
         {/* Carte d'actions */}
@@ -164,8 +221,8 @@ const AdminUserDetails: React.FC = () => {
             {user.is_active ? <LucidePowerOff size={16}/> : <LucidePower size={16}/>}
             {isToggling ? '...' : (user.is_active ? 'Désactiver le compte' : 'Activer le compte')}
           </button>
-          <button onClick={() => alert('Purge du cache...')} style={{...styles.actionButton, background: '#fef2f2', color: '#b91c1c'}}>
-            <LucideTrash2 size={16}/> Purger le cache IA
+          <button onClick={handlePurgeCache} disabled={isPurgingCache} style={{...styles.actionButton, background: '#fef2f2', color: '#b91c1c'}}>
+            <LucideTrash2 size={16}/> {isPurgingCache ? 'Purge en cours...' : 'Purger le cache IA'}
           </button>
         </div>
 
@@ -179,11 +236,36 @@ const AdminUserDetails: React.FC = () => {
               <option value="mes">Mises en Situation</option>
               <option value="pitch">Pitch</option>
               <option value="negotiation">Négociation</option>
+              <option value="regeneration">Régénérations</option>
+              <option value="update">Mises à jour Marché</option>
             </select>
             <button onClick={handleCredit} disabled={isCrediting} style={styles.creditButton}>
               <LucidePlusCircle size={16}/> {isCrediting ? '...' : 'Créditer'}
             </button>
           </div>
+        </div>
+        
+        {/* Carte d'abonnement */}
+        <div style={styles.card}>
+            <h3 style={styles.cardTitle}>Abonnement</h3>
+            <p>Actions rapides pour gérer l'accès de l'utilisateur.</p>
+            <button onClick={() => handleExtendSubscription(30)} disabled={isExtending} style={{...styles.actionButton, background: '#eff6ff', color: '#2563eb'}}>
+                <LucidePlusCircle size={16}/> {isExtending ? '...' : 'Prolonger de 30 jours'}
+            </button>
+        </div>
+
+        {/* Zone de Danger */}
+        <div style={{...styles.card, gridColumn: '1 / -1', background: '#fff1f2', borderColor: '#fecaca'}}>
+            <h3 style={{...styles.cardTitle, color: '#be123c'}}>Zone de Danger</h3>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <div>
+                    <p style={{margin: 0, fontWeight: 600, color: '#881337'}}>Anonymiser l'utilisateur (RGPD)</p>
+                    <p style={{margin: '0.25rem 0 0 0', fontSize: '0.9rem', color: '#9f1239'}}>Supprime toutes les données personnelles de l'utilisateur. Irréversible.</p>
+                </div>
+                <button onClick={handleAnonymize} disabled={isAnonymizing} style={{...styles.actionButton, width: 'auto', background: '#dc2626', color: 'white'}}>
+                    <LucideShieldCheck size={16}/> {isAnonymizing ? 'Anonymisation...' : 'Anonymiser'}
+                </button>
+            </div>
         </div>
 
         {/* Carte des générations */}
@@ -209,7 +291,7 @@ const AdminUserDetails: React.FC = () => {
   );
 };
 
-const InfoRow = ({ label, value, badge }: { label: string, value: string, badge?: string }) => (
+const InfoRow = ({ label, value, badge }: { label: string, value: string | number, badge?: string }) => (
   <div style={styles.infoRow}>
     <span style={styles.infoLabel}>{label}</span>
     {badge ? <span style={{...styles.badge, ...styles.badgeColors[badge]}}>{value}</span> : <span style={styles.infoValue}>{value}</span>}

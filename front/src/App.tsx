@@ -15,6 +15,7 @@ import AdminFeedbacks from './components/AdminFeedbacks';
 import AdminUsers from './components/AdminUsers';
 import AdminBilling from './components/AdminBilling';
 import AdminGenerations from './components/AdminGenerations';
+import AdminAuditLogs from './components/AdminAuditLogs';
 import { AdminDashboard } from './components/AdminDashboard';
 import { LandingPage } from './components/LandingPage';
 import { CGU } from './components/CGU';
@@ -561,6 +562,7 @@ function AppContent() {
             <button onClick={() => navigate('/admin/billing')} className="btn-ghost">Facturation</button>
             <button onClick={() => navigate('/admin/generations')} className="btn-ghost">Générations IA</button>
             <button onClick={() => navigate('/admin/feedbacks')} className="btn-ghost">Feedbacks</button>
+            <button onClick={() => navigate('/admin/audit-logs')} className="btn-ghost">Audit Logs</button>
           </div>
 
           <button onClick={() => navigate('/candidate')} className="btn-outline" style={{ marginBottom: '2rem' }}>← Retour à l'application</button>
@@ -581,6 +583,7 @@ function AppContent() {
     else if (location.pathname === '/admin/billing') AdminComponent = AdminBilling;
     else if (location.pathname === '/admin/generations') AdminComponent = AdminGenerations;
     else if (location.pathname === '/admin/feedbacks') AdminComponent = AdminFeedbacks;
+    else if (location.pathname === '/admin/audit-logs') AdminComponent = AdminAuditLogs;
     else AdminComponent = AdminDashboard;
 
     return (
@@ -592,6 +595,7 @@ function AppContent() {
             <button onClick={() => navigate('/admin/billing')} className="btn-ghost">Facturation</button>
             <button onClick={() => navigate('/admin/generations')} className="btn-ghost">Générations IA</button>
             <button onClick={() => navigate('/admin/feedbacks')} className="btn-ghost">Feedbacks</button>
+            <button onClick={() => navigate('/admin/audit-logs')} className="btn-ghost">Audit Logs</button>
           </div>
           <AdminComponent />
         </main>
@@ -610,6 +614,7 @@ function AppContent() {
     else if (location.pathname === '/admin/billing') AdminComponent = AdminBilling;
     else if (location.pathname === '/admin/generations') AdminComponent = AdminGenerations;
     else if (location.pathname === '/admin/feedbacks') AdminComponent = AdminFeedbacks;
+    else if (location.pathname === '/admin/audit-logs') AdminComponent = AdminAuditLogs;
     else AdminComponent = AdminDashboard;
 
     return (
@@ -621,6 +626,7 @@ function AppContent() {
             <button onClick={() => navigate('/admin/billing')} className="btn-ghost">Facturation</button>
             <button onClick={() => navigate('/admin/generations')} className="btn-ghost">Générations IA</button>
             <button onClick={() => navigate('/admin/feedbacks')} className="btn-ghost">Feedbacks</button>
+            <button onClick={() => navigate('/admin/audit-logs')} className="btn-ghost">Audit Logs</button>
           </div>
           <AdminComponent />
         </main>
