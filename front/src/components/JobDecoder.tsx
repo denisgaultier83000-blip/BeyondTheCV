@@ -129,7 +129,9 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
                       </div>
                       <div className="red-flag-body">
                         <div className="red-flag-risk"><strong>Risque :</strong> {item.risk}</div>
-                        <div className="red-flag-question"><strong>Question à poser :</strong> "{item.question_to_verify}"</div>
+                        {item.question_to_verify && item.question_to_verify !== "..." && (
+                          <div className="red-flag-question"><strong>Question à poser :</strong> "{item.question_to_verify}"</div>
+                        )}
                       </div>                    </div>
                   ))}
                </Section>
@@ -175,7 +177,9 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
                         <ArrowRight size={14} />
                         <span>{item.translation}</span>
                       </div>
-                      <div className="action"><strong>Action :</strong> {item.candidate_action}</div>
+                      {item.candidate_action && (
+                        <div className="action"><strong>Action :</strong> {item.candidate_action}</div>
+                      )}
                     </div>
                   ))}
                 </Section>
