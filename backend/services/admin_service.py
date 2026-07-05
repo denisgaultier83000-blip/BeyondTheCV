@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Body, BackgroundTasks
 from pydantic import BaseModel, EmailStr
-from typing import Literal, Optional
+from typing import Literal, Optional, List
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -114,15 +114,38 @@ async def credit_user_quotas(request: CreditQuotaRequest, background_tasks: Back
     }
 
 @router.get("/users")
-async def admin_list_users(limit: int = 50, offset: int = 0):
+async def admin_list_users(
+    limit: int = 50, 
+    offset: int = 0,
+    search: Optional[str] = None,
+    status: Optional[str] = None
+):
     """[MODIFIÉ] 1. Gestion : Liste complète des utilisateurs avec pagination."""
-    async with db.get_connection() as conn:
-        cursor = await db.execute(conn, """
+    params = []
+    where_clauses = []
+
+    if search:
+        where_clauses.append("(email ILIKE ? OR first_name ILIKE ? OR last_name ILIKE ?)")
+        search_term = f"%{search}%"
+        params.extend([search_term, search_term, search_term])
+
+    if status:
+        where_clauses.append("subscription_status = ?")
+        params.append(status)
+
+    where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+    
+    query = f"""
             SELECT id, email, first_name, last_name, created_at, is_premium, is_active, 
-                   subscription_expiration_date, credits, quota_pitch, quota_qa, quota_mes
+                   subscription_expiration_date, credits, quota_pitch, quota_qa, quota_mes, last_login, total_ia_cost
             FROM users 
+            {where_sql}
             ORDER BY created_at DESC LIMIT ? OFFSET ?
-        """, (limit, offset))
+        """
+    params.extend([limit, offset])
+
+    async with db.get_connection() as conn:
+        cursor = await db.execute(conn, query, tuple(params))
         rows = await cursor.fetchall()
         
         # Compte total pour la pagination côté client
@@ -144,10 +167,66 @@ async def admin_list_users(limit: int = 50, offset: int = 0):
         user_dict.setdefault("is_active", True)
         user_dict.setdefault("credits", 0)
         user_dict.setdefault("subscription_expiration_date", None)
+        user_dict.setdefault("last_login", None)
+        user_dict.setdefault("total_ia_cost", 0)
 
         users_list.append(user_dict)
-    return {"users": users_list}
+    return {"users": users_list, "total": total_users}
 
+@router.get("/billing")
+async def admin_get_billing_history(limit: int = 50, offset: int = 0):
+    """[NOUVEAU] Récupère l'historique des paiements."""
+    # Cette route suppose une table `payments` qui est créée par le service de paiement (Stripe Webhook)
+    query = """
+        SELECT p.id, p.user_id, u.email, p.amount_paid, p.currency, p.status, p.offer_name, p.purchase_date, p.stripe_charge_id
+        FROM payments p
+        JOIN users u ON p.user_id = u.id
+        ORDER BY p.purchase_date DESC
+        LIMIT ? OFFSET ?
+    """
+    count_query = "SELECT COUNT(*) FROM payments"
+    
+    try:
+        async with db.get_connection() as conn:
+            cursor = await db.execute(conn, query, (limit, offset))
+            rows = await cursor.fetchall()
+            
+            total_cursor = await db.execute(conn, count_query)
+            total_payments = (await total_cursor.fetchone())[0]
+
+        payments = [dict(row) for row in rows]
+        return {"payments": payments, "total": total_payments}
+    except Exception as e:
+        # Si la table n'existe pas, on renvoie une liste vide au lieu de crasher.
+        print(f"Could not query payments table: {e}")
+        return {"payments": [], "total": 0}
+
+@router.get("/generations")
+async def admin_get_generations_history(limit: int = 50, offset: int = 0):
+    """[NOUVEAU] Récupère l'historique de toutes les générations IA."""
+    query = """
+        SELECT t.id, t.user_id, u.email, t.module, t.status, t.created_at, t.duration_ms, t.estimated_cost
+        FROM tasks t
+        LEFT JOIN users u ON t.user_id = u.id
+        ORDER BY t.created_at DESC
+        LIMIT ? OFFSET ?
+    """
+    count_query = "SELECT COUNT(*) FROM tasks"
+    
+    try:
+        async with db.get_connection() as conn:
+            cursor = await db.execute(conn, query, (limit, offset))
+            rows = await cursor.fetchall()
+            
+            total_cursor = await db.execute(conn, count_query)
+            total_generations = (await total_cursor.fetchone())[0]
+
+        generations = [dict(row) for row in rows]
+        return {"generations": generations, "total": total_generations}
+    except Exception as e:
+        print(f"Could not query tasks table: {e}")
+        return {"generations": [], "total": 0}
+        
 @router.get("/users/{user_id}")
 async def admin_get_user_details(user_id: str):
     """[NOUVEAU] Récupère les détails complets d'un utilisateur."""

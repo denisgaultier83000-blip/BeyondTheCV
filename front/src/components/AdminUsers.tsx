@@ -97,7 +97,7 @@ const AdminUsers: React.FC = () => {
         </div>
       </div>
 
-      {/* Tableau des utilisateurs */}
+      {/* Tableau des zutilisateurs */}
       <div className="admin-card overflow-x-auto">
         <table className="admin-table w-full min-w-[1000px]">
           <thead>

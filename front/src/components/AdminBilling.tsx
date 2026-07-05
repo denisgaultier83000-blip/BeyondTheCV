@@ -7,26 +7,18 @@ import { DollarSign, CheckCircle, XCircle, RefreshCcw, Filter, Calendar, Tag, Ex
 // --- Types ---
 interface Payment {
   id: string;
-  user_email: string;
+  user_id: string;
+  email: string;
   status: 'succeeded' | 'failed' | 'refunded';
   offer_name: string;
   amount_paid: number;
   currency: string;
   purchase_date: string;
-  stripe_invoice_url?: string;
-  promo_code?: string;
-}
-
-interface BillingStats {
-  total_revenue: number;
-  revenue_last_30d: number;
-  total_refunds: number;
-  arpu: number; // Average Revenue Per User
+  stripe_charge_id?: string;
 }
 
 const AdminBilling: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [stats, setStats] = useState<BillingStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState('all');
@@ -38,7 +30,6 @@ const AdminBilling: React.FC = () => {
         if (!response.ok) throw new Error("Impossible de charger les données de facturation.");
         const data = await response.json();
         setPayments(data.payments || []);
-        setStats(data.stats || null);
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -52,6 +43,12 @@ const AdminBilling: React.FC = () => {
     if (filterStatus === 'all') return payments;
     return payments.filter(p => p.status === filterStatus);
   }, [payments, filterStatus]);
+
+  const stats = useMemo(() => {
+    const totalRevenue = payments.filter(p => p.status === 'succeeded').reduce((acc, p) => acc + p.amount_paid, 0);
+    const totalRefunds = payments.filter(p => p.status === 'refunded').reduce((acc, p) => acc + p.amount_paid, 0);
+    return { totalRevenue, totalRefunds };
+  }, [payments]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -69,15 +66,12 @@ const AdminBilling: React.FC = () => {
         <p>Consultez l'historique des paiements, les statuts et les indicateurs de revenus.</p>
       </div>
 
+
       {/* Indicateurs Clés */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="admin-card"><h3 className="text-sm font-semibold text-gray-500">Revenus Totaux</h3><p className="text-3xl font-bold mt-2">{stats.total_revenue.toFixed(2)} €</p></div>
-          <div className="admin-card"><h3 className="text-sm font-semibold text-gray-500">Revenus (30j)</h3><p className="text-3xl font-bold mt-2">{stats.revenue_last_30d.toFixed(2)} €</p></div>
-          <div className="admin-card"><h3 className="text-sm font-semibold text-gray-500">Total Remboursé</h3><p className="text-3xl font-bold text-yellow-600 mt-2">{stats.total_refunds.toFixed(2)} €</p></div>
-          <div className="admin-card"><h3 className="text-sm font-semibold text-gray-500">ARPU</h3><p className="text-3xl font-bold mt-2">{stats.arpu.toFixed(2)} €</p></div>
-        </div>
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="admin-card"><h3 className="text-sm font-semibold text-gray-500">Revenus Totaux</h3><p className="text-3xl font-bold mt-2">{(stats.totalRevenue / 100).toFixed(2)} €</p></div>
+        <div className="admin-card"><h3 className="text-sm font-semibold text-gray-500">Total Remboursé</h3><p className="text-3xl font-bold text-yellow-600 mt-2">{(stats.totalRefunds / 100).toFixed(2)} €</p></div>
+      </div>
 
       {/* Filtres */}
       <div className="admin-card mb-6">
@@ -108,13 +102,13 @@ const AdminBilling: React.FC = () => {
           <tbody>
             {filteredPayments.map(p => (
               <tr key={p.id}>
-                <td>{p.user_email}</td>
+                <td>{p.email}</td>
                 <td><span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">{p.offer_name}</span></td>
-                <td className="text-right font-mono font-bold">{p.amount_paid.toFixed(2)} {p.currency.toUpperCase()}</td>
+                <td className="text-right font-mono font-bold">{(p.amount_paid / 100).toFixed(2)} {p.currency.toUpperCase()}</td>
                 <td>{getStatusBadge(p.status)}</td>
                 <td>{new Date(p.purchase_date).toLocaleString('fr-FR')}</td>
                 <td className="text-right">
-                  {p.stripe_invoice_url && <a href={p.stripe_invoice_url} target="_blank" rel="noopener noreferrer" className="p-2 text-gray-500 hover:bg-gray-100 rounded-md inline-block" title="Voir la facture Stripe"><ExternalLink size={16} /></a>}
+                  {p.stripe_charge_id && <a href={`https://dashboard.stripe.com/payments/${p.stripe_charge_id}`} target="_blank" rel="noopener noreferrer" className="p-2 text-gray-500 hover:bg-gray-100 rounded-md inline-block" title="Voir sur Stripe"><ExternalLink size={16} /></a>}
                 </td>
               </tr>
             ))}

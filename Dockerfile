@@ -23,6 +23,10 @@ RUN npm run build --prefix front
 # ==============================================================================
 FROM python:3.11-slim
 
+# [FIX] Définition du PATH pour inclure le venv
+ENV VENV_PATH=/opt/venv
+ENV PATH="$VENV_PATH/bin:$PATH"
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
@@ -41,7 +45,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Installation des dépendances Python
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
+RUN python -m venv $VENV_PATH && \
+    pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copie du code du backend
