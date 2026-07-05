@@ -599,6 +599,35 @@ function AppContent() {
     );
   }
 
+  // [NOUVEAU] Routes admin spécifiques
+  if (location.pathname.startsWith('/admin/')) {
+    if (!isAuthenticated || !isAdmin) {
+      return <div className="app-container"><main className="main-content" style={{ paddingTop: '4rem', textAlign: 'center', color: 'var(--danger-text)', fontWeight: 'bold' }}>🚨 Accès refusé.</main></div>;
+    }
+    
+    let AdminComponent;
+    if (location.pathname === '/admin/users') AdminComponent = AdminUsers;
+    else if (location.pathname === '/admin/billing') AdminComponent = AdminBilling;
+    else if (location.pathname === '/admin/generations') AdminComponent = AdminGenerations;
+    else if (location.pathname === '/admin/feedbacks') AdminComponent = AdminFeedbacks;
+    else AdminComponent = AdminDashboard;
+
+    return (
+      <div className="app-container">
+        <main className="main-content" style={{ paddingTop: '2rem' }}>
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
+            <button onClick={() => navigate('/admin')} className="btn-ghost">Dashboard</button>
+            <button onClick={() => navigate('/admin/users')} className="btn-ghost">Utilisateurs</button>
+            <button onClick={() => navigate('/admin/billing')} className="btn-ghost">Facturation</button>
+            <button onClick={() => navigate('/admin/generations')} className="btn-ghost">Générations IA</button>
+            <button onClick={() => navigate('/admin/feedbacks')} className="btn-ghost">Feedbacks</button>
+          </div>
+          <AdminComponent />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="app-container">
       <Header 

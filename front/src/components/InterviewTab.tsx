@@ -406,9 +406,6 @@ export const InterviewTab = () => {
           >
             {customScenariosResult && (
               <>
-                <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "1.5rem", fontStyle: "italic", background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
-                  * Légende : <span style={{color: '#f59e0b', fontWeight: 'bold'}}>★</span> (1-Facile) à <span style={{color: '#f59e0b', fontWeight: 'bold'}}>★★★★★</span> (5-Très Difficile)
-                </div>
                 {scenariosArray.length > 0 ? (
                   <Questionnaire questions={scenariosArray} hideHeader={true} />
                 ) : (

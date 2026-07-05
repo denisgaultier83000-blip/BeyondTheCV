@@ -1,139 +1,97 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Eye, Search, Filter, User, Package, Shield, Calendar, Clock, Cpu, BarChart3 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { authenticatedFetch } from '../utils/auth';
 import { API_BASE_URL } from '../config';
-import { AsyncBoundary } from './AsyncBoundary';
+import { Loader2, Search, User, AlertTriangle } from 'lucide-react';
 
-// --- Types ---
-interface User {
-  id: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-  offer_name: 'Express' | 'Stratégique' | 'Intensive' | 'N/A';
-  status: 'actif' | 'expiré' | 'bloqué' | 'remboursé';
-  created_at: string;
-  last_login: string;
-  sessions_remaining: number;
-  total_ia_cost: number;
-}
-
-const AdminUsers: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([]);
+const AdminUsers = () => {
+  const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState({ offer: 'all', status: 'all' });
-  const navigate = useNavigate();
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
+  const limit = 50;
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/users`);
-        if (!response.ok) throw new Error("Impossible de charger la liste des utilisateurs.");
-        const data = await response.json();
-        setUsers(data.users || []);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUsers();
+  const fetchUsers = useCallback(async (currentPage: number, search: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams({
+        limit: String(limit),
+        offset: String(currentPage * limit),
+      });
+      if (search) params.append('search', search);
+
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/users?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch users');
+      const data = await response.json();
+      setUsers(data.users);
+      setTotal(data.total);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const filteredUsers = useMemo(() => {
-    return users.filter(user => {
-      const searchMatch = searchTerm.trim() === '' ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        `${user.first_name} ${user.last_name}`.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const offerMatch = filters.offer === 'all' || user.offer_name === filters.offer;
-      const statusMatch = filters.status === 'all' || user.status === filters.status;
-
-      return searchMatch && offerMatch && statusMatch;
-    });
-  }, [users, searchTerm, filters]);
-
-  const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFilters(prev => ({ ...prev, [name]: value }));
-  };
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      fetchUsers(page, searchTerm);
+    }, 500); // Debounce search
+    return () => clearTimeout(handler);
+  }, [page, searchTerm, fetchUsers]);
 
   return (
-    <AsyncBoundary loading={loading} error={error || undefined} loadingText="Chargement de la liste des utilisateurs...">
-      <div className="admin-page-header">
-        <h1>Gestion des Utilisateurs</h1>
-        <p>Pilotez, recherchez et assistez vos clients depuis un seul endroit.</p>
+    <div>
+      <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><User /> Gestion des Utilisateurs</h2>
+      <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <Search size={18} />
+        <input
+          type="text"
+          placeholder="Rechercher par email ou nom..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{ padding: '0.5rem', width: '300px' }}
+        />
       </div>
 
-      {/* Barre de filtres */}
-      <div className="admin-card mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input
-              type="text"
-              placeholder="Rechercher par nom ou email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 p-2 border border-gray-300 rounded-md bg-gray-50"
-            />
-          </div>
-          <select name="offer" value={filters.offer} onChange={handleFilterChange} className="p-2 border border-gray-300 rounded-md bg-gray-50">
-            <option value="all">Toutes les offres</option>
-            <option value="Express">Express</option>
-            <option value="Stratégique">Stratégique</option>
-            <option value="Intensive">Intensive</option>
-          </select>
-          <select name="status" value={filters.status} onChange={handleFilterChange} className="p-2 border border-gray-300 rounded-md bg-gray-50">
-            <option value="all">Tous les statuts</option>
-            <option value="actif">Actif</option>
-            <option value="expiré">Expiré</option>
-            <option value="bloqué">Bloqué</option>
-            <option value="remboursé">Remboursé</option>
-          </select>
-        </div>
-      </div>
+      {loading && <Loader2 className="spin" />}
+      {error && <div style={{ color: 'red' }}><AlertTriangle /> {error}</div>}
 
-      {/* Tableau des zutilisateurs */}
-      <div className="admin-card overflow-x-auto">
-        <table className="admin-table w-full min-w-[1000px]">
-          <thead>
-            <tr>
-              <th>Utilisateur</th>
-              <th>Offre</th>
-              <th>Statut</th>
-              <th>Inscription</th>
-              <th>Dernière Conn.</th>
-              <th className="text-right">Séances</th>
-              <th className="text-right">Coût IA</th>
-              <th className="text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredUsers.map(user => (
-              <tr key={user.id}>
-                <td>
-                  <div className="font-bold">{user.first_name} {user.last_name}</div>
-                  <div className="text-xs text-gray-500">{user.email}</div>
-                </td>
-                <td><span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">{user.offer_name}</span></td>
-                <td><span className={`px-2 py-1 text-xs font-semibold rounded-full ${user.status === 'actif' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{user.status}</span></td>
-                <td>{new Date(user.created_at).toLocaleDateString('fr-FR')}</td>
-                <td>{new Date(user.last_login).toLocaleDateString('fr-FR')}</td>
-                <td className="text-right font-mono">{user.sessions_remaining}</td>
-                <td className="text-right font-mono font-bold text-red-600">{user.total_ia_cost.toFixed(2)} €</td>
-                <td className="text-right">
-                  <button onClick={() => navigate(`/admin/user/${user.id}`)} className="p-2 text-gray-500 hover:bg-gray-100 rounded-md"><Eye size={16} /></button>
-                </td>
+      {!loading && !error && (
+        <>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Nom</th>
+                <th>Inscrit le</th>
+                <th>Dernier login</th>
+                <th>Statut</th>
+                <th>Coût IA</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </AsyncBoundary>
+            </thead>
+            <tbody>
+              {users.map(user => (
+                <tr key={user.id}>
+                  <td>{user.email}</td>
+                  <td>{user.first_name} {user.last_name}</td>
+                  <td>{new Date(user.created_at).toLocaleDateString()}</td>
+                  <td>{user.last_login ? new Date(user.last_login).toLocaleDateString() : 'N/A'}</td>
+                  <td>{user.is_active ? 'Actif' : 'Inactif'}</td>
+                  <td>{user.total_ia_cost?.toFixed(2) || 0} €</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>Précédent</button>
+            <span>Page {page + 1} sur {Math.ceil(total / limit)}</span>
+            <button onClick={() => setPage(p => (p + 1) * limit < total ? p + 1 : p)} disabled={(page + 1) * limit >= total}>Suivant</button>
+          </div>
+        </>
+      )}
+    </div>
   );
 };
 

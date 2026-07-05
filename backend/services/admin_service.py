@@ -136,11 +136,8 @@ async def admin_list_users(
     where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
     
     query = f"""
-            SELECT id, email, first_name, last_name, created_at, is_premium, is_active,
-                   subscription_expiration_date, last_login
-                   -- [FIX] Les colonnes 'credits', 'total_ia_cost' et les quotas spécifiques
-                   -- ne sont pas dans le schéma de base de la table 'users'.
-                   -- On les retire pour éviter une erreur SQL.
+            SELECT id, email, first_name, last_name, created_at, is_premium, is_active, 
+                   subscription_expiration_date, last_login, total_ia_cost
             FROM users 
             {where_sql}
             ORDER BY created_at DESC LIMIT ? OFFSET ?
@@ -180,7 +177,6 @@ async def admin_list_users(
 async def admin_get_billing_history(limit: int = 50, offset: int = 0):
     """[NOUVEAU] Récupère l'historique des paiements."""
     # Cette route suppose une table `payments` qui est créée par le service de paiement (Stripe Webhook)
-    # [FIX] La table `payments` n'a pas de colonne `user_email`, il faut faire une jointure.
     query = """
         SELECT p.id, p.user_id, u.email, p.amount_paid, p.currency, p.status, p.offer_name, p.purchase_date, p.stripe_charge_id
         FROM payments p
@@ -208,8 +204,6 @@ async def admin_get_billing_history(limit: int = 50, offset: int = 0):
 @router.get("/generations")
 async def admin_get_generations_history(limit: int = 50, offset: int = 0):
     """[NOUVEAU] Récupère l'historique de toutes les générations IA."""
-    # [FIX] La requête ne sélectionnait pas toutes les colonnes nécessaires
-    # et ne faisait pas la jointure pour récupérer l'email de l'utilisateur.
     query = """
         SELECT t.id, t.user_id, u.email as user_email, t.module, t.status, t.created_at, t.duration_ms, t.estimated_cost, t.metadata
         FROM tasks t
@@ -227,15 +221,7 @@ async def admin_get_generations_history(limit: int = 50, offset: int = 0):
             total_cursor = await db.execute(conn, count_query)
             total_generations = (await total_cursor.fetchone())[0]
 
-        generations = []
-        for row in rows:
-            gen_dict = dict(row)
-            metadata = json.loads(gen_dict.get('metadata') or '{}')
-            # [FIX] Ajout des champs attendus par le frontend depuis les métadonnées
-            gen_dict['model_used'] = metadata.get('provider', 'N/A')
-            gen_dict['prompt_version'] = metadata.get('prompt_version', 'v1')
-            gen_dict['error_message'] = gen_dict.get('error_message') # Assurer la présence de la clé
-            generations.append(gen_dict)
+        generations = [dict(row) for row in rows]
         return {"generations": generations, "total": total_generations}
     except Exception as e:
         print(f"Could not query tasks table: {e}")
