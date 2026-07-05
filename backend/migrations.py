@@ -58,6 +58,9 @@ def create_tables():
                 is_admin BOOLEAN DEFAULT FALSE
             )
         """)
+        # [NEW] Add the new column safely. "IF NOT EXISTS" prevents errors on subsequent runs.
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMP;")
+
         print("✅ Table 'users' created")
 
         cur.execute("""

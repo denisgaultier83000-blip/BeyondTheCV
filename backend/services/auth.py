@@ -149,6 +149,13 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             print(f"[AUTH ERROR] Échec : Mot de passe incorrect pour ({form_data.username})", flush=True)
             raise HTTPException(status_code=401, detail="Identifiants incorrects.")
 
+        # [NEW] Update last_login timestamp upon successful login
+        try:
+            async with db.get_connection() as conn:
+                await db.execute(conn, "UPDATE users SET last_login = ? WHERE id = ?", (datetime.now(timezone.utc), user_dict.get("id")))
+        except Exception as e:
+            print(f"[DB WARNING] Failed to update last_login: {e}", flush=True)
+
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
             data={"sub": str(user_dict.get("id", ""))},
