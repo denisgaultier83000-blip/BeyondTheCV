@@ -1,5 +1,6 @@
 from typing import List, Optional, Union, Dict, Any
 from pydantic import BaseModel, Field, field_validator, model_validator
+from datetime import date
 import uuid
 
 class Experience(BaseModel):
@@ -119,6 +120,25 @@ class FullCVData(BaseModel):
     design_variant: Optional[str] = Field("1", description="Variante de design du CV (1, 2, 3)")
     preview: bool = Field(False, description="Mode prévisualisation")
     renderer: Optional[str] = Field("pdf", description="Format de sortie: 'pdf' ou 'json'")
+
+# --- [NOUVEAU] Modèle pour le débrief d'entretien ---
+class InterviewDebriefRequest(BaseModel):
+    """Modèle pour la création d'un nouveau compte rendu d'entretien."""
+    company_name: Optional[str] = ""
+    job_title: Optional[str] = ""
+    interview_date: date
+    interview_format: Optional[str] = "visio"
+    interlocutor_type: Optional[str] = "rh"
+    interlocutor_name: Optional[str] = ""
+    interlocutor_role: Optional[str] = ""
+    ambiance: List[str] = Field(default_factory=list)
+    positive_signals: List[str] = Field(default_factory=list)
+    red_flags: List[str] = Field(default_factory=list)
+    questions_asked: Optional[str] = ""
+    difficult_questions: Optional[str] = ""
+    learnings: Optional[str] = ""
+    preparation_points: Optional[str] = ""
+    interest_level: int = 3
 
 # --- Request Models ---
 class GenerateRequest(BaseModel):

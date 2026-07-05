@@ -3,7 +3,7 @@ import { Mic, Square, Play, RotateCcw, Loader2, Activity, MessageSquare, AlertTr
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { useTranslation } from 'react-i18next';
-import { useDashboard } from './DashboardContext';
+import { useDashboard } from '../hooks/DashboardContext';
 import { RechargeModal } from './RechargeModal';
 import { AsyncBoundary } from './AsyncBoundary';
 

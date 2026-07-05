@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Header from './Header';
-import { useDashboard } from './DashboardContext';
+import { useDashboard } from '../hooks/DashboardContext';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 

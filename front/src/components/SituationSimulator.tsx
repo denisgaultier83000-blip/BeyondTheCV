@@ -3,7 +3,7 @@ import { BrainCircuit, Eye, Edit3, CheckCircle2, AlertTriangle, Lightbulb, Messa
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
-import { useDashboard } from './DashboardContext'; // [NEW] Importer le hook
+import { useDashboard } from '../hooks/DashboardContext'; // [NEW] Importer le hook
 import { useTranslation } from 'react-i18next';
 import scenariosData from './scenarios.json';
 import { RechargeModal } from './RechargeModal';

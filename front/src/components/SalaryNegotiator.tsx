@@ -3,7 +3,7 @@ import { DollarSign, MessageSquare, Send, Loader2, AlertTriangle, CheckCircle2, 
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
-import { useDashboard } from './DashboardContext';
+import { useDashboard } from '../hooks/DashboardContext';
 import { useTranslation } from 'react-i18next';
 import { RechargeModal } from './RechargeModal';
 import { AsyncBoundary } from './AsyncBoundary';

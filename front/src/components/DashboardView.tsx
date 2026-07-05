@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, lazy, Suspense, useMemo, FC } from 'react';
-import { useDashboard } from './DashboardContext';
+import { useDashboard } from '../hooks/DashboardContext';
 import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass, Mic, Search, Eye, Navigation, Network, Loader2, RotateCcw, CheckSquare, Dumbbell, ArrowUp, Printer, Building, ShieldAlert, Calendar, UserCheck, Monitor, HeartPulse, Zap, Award, ClipboardList } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PilotBento } from './PilotBento';
@@ -354,7 +354,7 @@ export const DashboardView: FC = () => {
       <div style={{ display: 'flex', flexDirection: 'column' }}>
       <div className={`tabs-navigation ${subMenus[activeTab] ? 'has-sub' : ''}`}>
         <button className={`tab-btn ${activeTab === 'cockpit' ? 'active' : ''}`} onClick={() => handleTabChange('cockpit')} style={{ position: 'relative' }}>
-          <Target size={18} /> {t('cockpit_title', "Cockpit Stratégique")} {cockpitUnseen && <span className="notification-dot"></span>}
+          <Target size={18} /> {t('cockpit_title', "Stratégie d'entretien")} {cockpitUnseen && <span className="notification-dot"></span>}
         </button>
         <button className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => handleTabChange('overview')}>
           <Activity size={18} /> {t('tab_overview', "Vue d'ensemble")}
@@ -371,7 +371,7 @@ export const DashboardView: FC = () => {
         <button className={`tab-btn ${activeTab === 'posture' ? 'active' : ''}`} onClick={() => handleTabChange('posture')}>
           <Award size={18} /> {t('tab_posture', "Réussir l'entretien")}
         </button>
-        <button className={`tab-btn ${activeTab === 'debrief' ? 'active' : ''}`} onClick={() => handleTabChange('debrief')}>
+        <button className={`tab-btn ${activeTab === 'debrief' ? 'active' : ''}`} onClick={() => handleTabChange('debrief')} style={{ position: 'relative' }}>
           <ClipboardList size={18} /> {t('tab_debrief', "Débrief & Suivi")}
         </button>
       </div>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Loader2, AlertTriangle, ArrowLeft, Briefcase, Calendar } from 'lucide-react';
-import { DebriefDetail } from './DebriefDetail'; // Assurez-vous que ce composant existe
+import { DebriefDetail } from './DebriefDetail';
+import { authenticatedFetch } from '../utils/auth';
+import { API_BASE_URL } from '../config';
 
 interface DebriefHistoryModalProps {
   onClose: () => void;
@@ -25,20 +27,10 @@ export function DebriefHistoryModal({ onClose }: DebriefHistoryModalProps) {
       setLoading(true);
       setError(null);
       try {
-        // NOTE: Cet endpoint est à créer côté backend: GET /api/debriefs
-        // const response = await authenticatedFetch(`${API_BASE_URL}/api/debriefs`);
-        // if (!response.ok) throw new Error("Impossible de charger l'historique.");
-        // const data = await response.json();
-        
-        // --- Données de simulation en attendant le backend ---
-        await new Promise(resolve => setTimeout(resolve, 800));
-        const mockData: DebriefSummary[] = [
-          { id: '1', company_name: 'Google', job_title: 'Software Engineer', interview_date: '2026-06-15', interlocutor_type: 'tech' },
-          { id: '2', company_name: 'Meta', job_title: 'Product Manager', interview_date: '2026-05-28', interlocutor_type: 'manager' },
-          { id: '3', company_name: 'LVMH', job_title: 'Data Analyst', interview_date: '2026-05-10', interlocutor_type: 'rh' },
-        ];
-        setHistory(mockData);
-        // --- Fin des données de simulation ---
+        const response = await authenticatedFetch(`${API_BASE_URL}/api/debriefs`);
+        if (!response.ok) throw new Error("Impossible de charger l'historique.");
+        const data = await response.json();
+        setHistory(data.debriefs || []);
 
       } catch (err: any) {
         setError(err.message);
@@ -50,13 +42,17 @@ export function DebriefHistoryModal({ onClose }: DebriefHistoryModalProps) {
   }, []);
 
   if (selectedDebriefId) {
-    return <DebriefDetail debriefId={selectedDebriefId} onBack={() => setSelectedDebriefId(null)} />;
+    // [FIX] On passe autoAnalyze à false par défaut quand on consulte depuis l'historique simple
+    return <DebriefDetail 
+      debriefId={selectedDebriefId} 
+      onBack={() => setSelectedDebriefId(null)} 
+    />;
   }
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.7)', zIndex: 2001, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(4px)' }}>
       <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '1.25rem', width: '90%', maxWidth: '700px', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
-        <button onClick={onClose} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'var(--bg-secondary)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <button onClick={onClose} aria-label="Fermer l'historique" style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'var(--bg-secondary)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <X size={20} />
         </button>
 

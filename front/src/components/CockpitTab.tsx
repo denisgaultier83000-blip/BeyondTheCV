@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ShieldAlert, Clock, Zap, Target, CheckCircle2, Circle, Mic, CalendarDays, Timer, Lock, RefreshCw, Loader2, AlertTriangle, Flame, Activity } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
-import { useDashboard } from './DashboardContext';
+import { useDashboard } from '../hooks/DashboardContext';
 import OralSimulatorModal from './OralSimulatorModal';
 
 interface TrainingModule {
@@ -326,11 +326,21 @@ export const CockpitTab: React.FC<CockpitProps> = ({
                 const isUpcoming = planItem.stage === 'upcoming';
                 const accentColor = isUpcoming ? '#94a3b8' : '#8b5cf6'; // Gris ardoise si futur, sinon Violet
                 
-                return (
-                   <div key={idx} style={{ background: isUpcoming ? 'transparent' : 'var(--bg-card)', border: `1px solid ${isUpcoming ? 'transparent' : 'var(--border-color)'}`, borderRadius: '0.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'hidden', minWidth: '55px', flexShrink: 0 }}>
-                    {/* Icon Calendrier stylisé */}
-                    <div style={{ background: isUpcoming ? 'transparent' : '#f8fafc', border: `1px solid ${isUpcoming ? 'transparent' : '#e2e8f0'}`, borderRadius: '0.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'hidden', minWidth: '55px', flexShrink: 0 }}>
-                      <div style={{ background: accentColor, color: 'white', width: '100%', fontSize: '0.65rem', fontWeight: 800, textAlign: 'center', padding: '0.2rem 0', textTransform: 'uppercase' }}>
+                return ( // [FIX] Remplacement de la div principale par une structure plus simple et robuste
+                  <div key={idx} style={{ 
+                    display: 'flex', 
+                    gap: '1rem', 
+                    padding: '1rem', 
+                    background: 'var(--bg-secondary)', 
+                    borderRadius: '0.75rem', 
+                    border: `1px solid ${isUpcoming ? 'var(--border-color)' : accentColor}`,
+                    opacity: isUpcoming ? 0.7 : 1
+                  }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <div style={{ 
+                        background: accentColor, color: 'white', width: '100%', 
+                        fontSize: '0.65rem', fontWeight: 800, textAlign: 'center', padding: '0.2rem 0.5rem', 
+                        borderTopLeftRadius: '0.5rem', borderTopRightRadius: '0.5rem', textTransform: 'uppercase' }}>
                         {isUpcoming ? <Lock size={12} style={{ margin: '0 auto' }} /> : "JOUR"}
                       </div>
                       <div style={{ padding: '0.4rem 0', fontWeight: 800, color: isUpcoming ? 'var(--text-muted)' : 'var(--text-main)', fontSize: '0.9rem' }}>{planItem.day.replace('J-', '-')}</div>

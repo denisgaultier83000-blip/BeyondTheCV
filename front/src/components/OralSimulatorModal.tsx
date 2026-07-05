@@ -5,7 +5,7 @@ import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
 import { RechargeModal } from './RechargeModal';
-import { useDashboard } from './DashboardContext';
+import { useDashboard } from '../hooks/DashboardContext';
 import { AsyncBoundary } from './AsyncBoundary';
 
 interface OralSimulatorModalProps {

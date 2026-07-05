@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { ResearchReport } from '../ResearchReport';
+import { ResearchReport } from '../ResearchReport.tsx';
 import { describe, it, expect } from 'vitest';
 
 const mockData = {

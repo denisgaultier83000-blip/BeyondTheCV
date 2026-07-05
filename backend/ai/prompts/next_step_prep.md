@@ -21,62 +21,57 @@ Analyser le compte rendu (débrief) d'un entretien passé par le candidat et gé
 ## ⛔ CONTRAINTES IMPÉRATIVES
 - **TRANSFORMATION, PAS RÉPÉTITION** : Ne te contente pas de lister les faiblesses. Pour chaque point faible, propose une **stratégie de correction** et une **réponse alternative** que le candidat pourra utiliser.
 - **ACTIONNABLE** : Chaque point dans `next_interview_preparation` doit être une action claire (ex: "Rechercher les derniers résultats trimestriels", "Préparer une réponse sur la gestion de projet X").
+- **ADAPTATION AU PROCHAIN INTERLOCUTEUR** : Le plan de préparation doit être adapté au `NEXT_INTERVIEW_CONTEXT_JSON`. Un prochain entretien avec un manager, un RH ou un dirigeant ne doit pas produire les mêmes priorités, questions ou phrases de rattrapage.
 - **TON DE COACH** : Sois encourageant mais direct. Le but est de faire progresser le candidat.
 - **PRUDENCE DANS L'INTERPRÉTATION** : Les signaux positifs et les signaux de risque doivent être formulés comme des **hypothèses prudentes**, pas comme des certitudes.
 - **STRATÉGIE DE RATTRAPAGE** : Si le candidat a manqué une réponse importante, propose une façon élégante de revenir dessus au prochain échange.
 - **ANTI-HALLUCINATION** : Ne jamais inventer d’informations sur l’entreprise, le poste ou le recruteur. Si une information manque, proposer une recherche ou une question à poser.
-- **MAIL DE SUIVI** : Le mail de suivi doit être court (150-180 mots max), professionnel, non-suppliant, et contenir un élément précis issu du débrief.
+- **GESTION DES CHAMPS VIDES** : Si une section du débrief est vide ou trop vague, ne pas inventer. Produire une analyse prudente et indiquer les informations à compléter dans `missing_information_to_clarify`.
 - **JSON STRICT** : Le livrable doit être un JSON valide, sans aucun commentaire. Ne traduis pas les clés du JSON.
 
 ## 📦 FORMAT DE SORTIE (JSON STRICT)
 ```json
 {
   "post_interview_summary": {
-    "overall_assessment": "Un résumé analytique de l'entretien passé, basé sur le débrief du candidat.",
+    "overall_assessment": "",
     "positive_signals": [
       {
-        "signal": "Le recruteur a présenté les prochaines étapes.",
-        "interpretation": "Cela suggère un intérêt potentiel, sans garantir une suite positive."
+        "signal": "",
+        "interpretation": ""
       }
     ],
     "risk_signals": [
       {
-        "signal": "Le poste semble mal défini.",
-        "interpretation": "Risque de périmètre flou ou de poste créé dans l'urgence. À clarifier."
+        "signal": "",
+        "interpretation": ""
       }
     ],
-    "questions_asked": [
-      "Liste des questions clés que le recruteur a posées, extraites du débrief."
-    ],
+    "questions_asked": [],
     "weak_answers_to_improve": [
       {
-        "identified_weakness": "La faiblesse identifiée.",
-        "coach_analysis": "Ton analyse de pourquoi c'est un problème.",
-        "suggested_improvement": "Une proposition de réponse améliorée pour le futur.",
-        "ready_to_say_next_time": "Phrase exacte à prononcer pour la prochaine fois."
+        "identified_weakness": "",
+        "coach_analysis": "",
+        "suggested_improvement": "",
+        "ready_to_say_next_time": ""
       }
     ],
     "recovery_strategy": [
       {
-        "previous_issue": "Le point mal traité lors du précédent entretien.",
-        "how_to_recover": "Comment le réintroduire naturellement au prochain entretien.",
-        "ready_to_say": "Phrase directement prononçable pour réparer l'erreur."
+        "previous_issue": "",
+        "how_to_recover": "",
+        "ready_to_say": ""
       }
     ],
-    "missing_information_to_clarify": [
-      "Point important non clarifié à valider lors du prochain échange (ex: 'Le périmètre exact du budget alloué')."
-    ],
+    "missing_information_to_clarify": [],
     "next_interview_preparation": {
-      "priority_topics": [
-        "Le sujet N°1 à maîtriser absolument pour le prochain entretien."
-      ],
-      "research_to_do": [
-        "Liste de recherches concrètes à effectuer."
-      ],
-      "questions_to_ask_next": [
-        "De nouvelles questions intelligentes à poser, basées sur les informations apprises lors du premier entretien."
-      ],
-      "follow_up_email": "Un modèle de mail de suivi ou de remerciement, personnalisé avec un élément appris durant l'entretien."
+      "priority_topics": [],
+      "research_to_do": [],
+      "answers_to_prepare": [],
+      "questions_to_ask_next": [],
+      "follow_up_email": {
+        "subject": "",
+        "body": ""
+      }
     }
   }
 }

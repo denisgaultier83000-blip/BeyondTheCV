@@ -6,10 +6,8 @@ import {
   HelpCircle, Mail, Eye,
   WifiOff, PhoneMissed, VolumeX, BrainCircuit, DollarSign, HelpCircle, Send
 } from 'lucide-react';
-import { useDashboard } from './DashboardContext';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
-import { DebriefModal } from './DebriefModal';
 
 // --- [NOUVEAU] La modale est maintenant intégrée dans ce fichier ---
 
@@ -18,17 +16,16 @@ interface RoadmapGeneratorModalProps {
 }
 
 function RoadmapGeneratorModal({ onClose }: RoadmapGeneratorModalProps) {
-  const { t } = useTranslation();
-  const { cvData } = useDashboard();
+  const { t } = useTranslation(); // [FIX] cvData n'est pas disponible ici, on retire la dépendance
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
 
   const [selections, setSelections] = useState({
-    type: cvData?.interview_format || 'visio',
-    interlocutor: cvData?.interview_type || 'manager',
-    level: cvData?.seniority_level || 'mid',
-    context: 'first_interview',
+    type: 'visio', // Valeur par défaut
+    interlocutor: 'manager', // Valeur par défaut
+    level: 'mid', // Valeur par défaut
+    context: 'first_interview', // Valeur par défaut
   });
 
   const handleChange = (field: keyof typeof selections, value: string) => {
@@ -46,7 +43,7 @@ function RoadmapGeneratorModal({ onClose }: RoadmapGeneratorModalProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           context: selections,
-          profile: cvData,
+          profile: {}, // On envoie un profil vide, l'IA s'adaptera au contexte
         }),
       });
 
@@ -179,13 +176,12 @@ import { DashboardCard } from './DashboardCard';
 
 export default function PostureTab() {
   const { t } = useTranslation();
-  const [isRoadmapModalOpen, setIsRoadmapModalOpen] = useState(false);
-  const [isDebriefModalOpen, setIsDebriefModalOpen] = useState(false);
+  const [isRoadmapModalOpen, setIsRoadmapModalOpen] = useState(false); // Seul l'état de la modale de roadmap est conservé
   
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', animation: 'fadeIn 0.3s ease-out' }}>
       <DashboardCard
-        title="Feuille de Route Personnalisée"
+        title={t('posture_generator_title', "Feuille de Route Personnalisée")}
         icon={<MapIcon size={24} />}
         id="roadmap_section"
       >
@@ -312,21 +308,6 @@ export default function PostureTab() {
         </div>
       </DashboardCard>
 
-      {/* NOUVEAU : Débrief Post-Entretien (Statique pour l'instant) */}
-      <DashboardCard
-        title="Débrief d'Entretien"
-        icon={<Edit size={24} />}
-        id="debrief_section" // ID pour l'ancrage
-      >
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
-          Capitalisez sur chaque échange. Enregistrez vos impressions à chaud pour transformer chaque entretien en une leçon stratégique pour le suivant.
-        </p>
-        <button onClick={() => setIsDebriefModalOpen(true)} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Edit size={20} />
-          Enregistrer un nouveau débrief
-        </button>
-      </DashboardCard>
-
       {/* NOUVEAU : Section Gérer les Imprévus */}
       <DashboardCard
         title="Gérer les Imprévus (Plan de Secours)"
@@ -371,7 +352,6 @@ export default function PostureTab() {
       </DashboardCard>
 
       {isRoadmapModalOpen && <RoadmapGeneratorModal onClose={() => setIsRoadmapModalOpen(false)} />}
-      {isDebriefModalOpen && <DebriefModal onClose={() => setIsDebriefModalOpen(false)} cvData={useDashboard().cvData} />}
     </div>
   );
 }

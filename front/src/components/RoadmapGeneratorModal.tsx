@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Map, Zap, Loader2, AlertTriangle, Target, MessageCircle, Shield, Star, CheckSquare, Clock, ChevronsRight, ChevronsLeft, UserCheck, LifeBuoy } from 'lucide-react';
-import { useDashboard } from './DashboardContext';
+import { useDashboard } from '../hooks/DashboardContext';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { BulletList } from './BulletList';
