@@ -1,6 +1,8 @@
 import React from 'react';
 import { Search, MessageSquare, Target, ShieldAlert, Building, ArrowRight, User, HelpCircle, Key, List, Lightbulb } from 'lucide-react';
 import { formatMarkdown } from '../utils/markdown';
+import { authenticatedFetch } from '../utils/auth';
+import { API_BASE_URL } from '../config';
 import DOMPurify from 'dompurify';
 import { DashboardCard } from './DashboardCard';
 import { BulletList } from './BulletList';
@@ -43,24 +45,31 @@ const extractDecoderData = (data: any) => {
 
   if (!payload) return null;
 
-  // [FIX] Normalisation des données pour gérer les anciens formats en cache.
-  // Si `red_flags` est un tableau de strings, on le transforme en tableau d'objets.
+  // [FIX] Normalisation des données pour gérer les anciens formats en cache. Si `red_flags` est un tableau de strings, on le transforme en tableau d'objets.
   if (payload.red_flags && Array.isArray(payload.red_flags) && payload.red_flags.length > 0 && typeof payload.red_flags[0] === 'string') {
-    payload.red_flags = payload.red_flags.map((flag: string) => ({
-      signal: flag,
-      risk: "Analyse détaillée non disponible pour cette version.",
-      question_to_verify: "Quelle question pourrais-je poser pour clarifier ce point ?",
-      confidence: 'low'
-    }));
+    // On ne modifie pas le payload directement, on retourne une promesse qui se résoudra avec les données enrichies.
+    // Pour l'instant, on affiche un placeholder en attendant la logique d'enrichissement.
+    payload.red_flags = payload.red_flags.map((flag: string) => {
+      const parts = flag.split('=');
+      return {
+        signal: parts[0]?.trim() || flag,
+        risk: parts[1]?.trim() || "Analyse en cours...",
+        question_to_verify: "...",
+        confidence: 'low'
+      };
+    });
   }
 
-  // Idem pour reality_check
+  // Idem pour reality_check. On gère le format "Jargon: Traduction"
   if (payload.reality_check && Array.isArray(payload.reality_check) && payload.reality_check.length > 0 && typeof payload.reality_check[0] === 'string') {
-     payload.reality_check = payload.reality_check.map((item: string) => ({
-      jargon: item.split(':')[0] || "Jargon non spécifié",
-      translation: item.split(':')[1] || "Analyse non disponible.",
-      candidate_action: "Vérifier ce point en entretien."
-    }));
+     payload.reality_check = payload.reality_check.map((item: string) => {
+        const parts = item.split(/:(.*)/s); // Sépare au premier ":"
+        return {
+          jargon: parts[0]?.trim() || "Jargon non spécifié",
+          translation: parts[1]?.trim() || "Analyse non disponible.",
+          candidate_action: "Vérifier ce point en entretien." // Placeholder
+        };
+    });
   }
 
   return payload;
