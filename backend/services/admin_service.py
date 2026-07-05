@@ -142,15 +142,24 @@ async def admin_list_users(
             {where_sql}
             ORDER BY created_at DESC LIMIT ? OFFSET ?
         """
-    params.extend([limit, offset])
+    
+    # [FIX] Séparation des paramètres pour la recherche et la pagination.
+    # Le comptage total doit utiliser les mêmes filtres que la recherche.
+    where_params = tuple(params)
+    
+    pagination_params = list(where_params)
+    pagination_params.extend([limit, offset])
 
     async with db.get_connection() as conn:
-        cursor = await db.execute(conn, query, tuple(params))
+        cursor = await db.execute(conn, query, tuple(pagination_params))
         rows = await cursor.fetchall()
         
-        # Compte total pour la pagination côté client
-        total_cursor = await db.execute(conn, "SELECT COUNT(*) FROM users")
-        total_users = (await total_cursor.fetchone())[0]
+        # Compte total pour la pagination côté client, en appliquant les filtres.
+        count_query = f"SELECT COUNT(*) FROM users {where_sql}"
+        total_cursor = await db.execute(conn, count_query, where_params)
+        total_row = await total_cursor.fetchone()
+        # [FIX] Gestion du cas où fetchone() ne renvoie rien (ex: table vide) pour éviter le crash.
+        total_users = total_row[0] if total_row else 0
         
     users_list = []
     for r in rows:
