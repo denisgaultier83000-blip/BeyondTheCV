@@ -116,6 +116,10 @@ jobs:
             echo "Vérification du fichier .env sur le serveur :"
             grep -v 'PASSWORD\|KEY\|SECRET' "$ENV_FILE" || echo "Le fichier .env semble vide ou illisible."
 
+            # [FIX] Exécution automatique des migrations de base de données à chaque déploiement
+            echo "🚀 Running database migrations..."
+            docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" run --rm backend python migrations.py
+
             # [FIX RESEAU] Reconnexion au réseau global 'web' utilisé par Traefik
             WEB_NETWORK="web"
             docker network inspect "$WEB_NETWORK" >/dev/null 2>&1 || docker network create "$WEB_NETWORK"
