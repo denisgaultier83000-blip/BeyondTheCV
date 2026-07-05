@@ -31,11 +31,16 @@ router = APIRouter(
 )
 
 @router.get("/users", response_model=PaginatedUsersResponse)
-async def list_users(limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0)):
+async def list_users(
+    limit: int = Query(50, ge=1, le=200), 
+    offset: int = Query(0, ge=0),
+    search: str = Query(None, description="Recherche par email, nom ou prénom"),
+    status: str = Query(None, description="Filtre par statut d'abonnement")
+):
     """
     Récupère une liste paginée des utilisateurs pour le panneau d'administration.
     Accessible uniquement par les administrateurs.
     """
     # Délègue la logique de récupération et de comptage au service dédié.
-    user_data = await admin_list_users(limit=limit, offset=offset)
+    user_data = await admin_list_users(limit=limit, offset=offset, search=search, status=status)
     return user_data
