@@ -152,9 +152,20 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         # [NEW] Update last_login timestamp upon successful login
         try:
             async with db.get_connection() as conn:
-                await db.execute(conn, "UPDATE users SET last_login = ? WHERE id = ?", (datetime.now(timezone.utc), user_dict.get("id")))
+                # [FIX] Use RETURNING id to ensure the update is processed correctly by the db wrapper
+                # and to verify that a row was actually updated.
+                update_cursor = await db.execute(
+                    conn, 
+                    "UPDATE users SET last_login = ? WHERE id = ? RETURNING id", 
+                    (datetime.now(timezone.utc), user_dict.get("id"))
+                )
+                updated_row = await update_cursor.fetchone()
+                if not updated_row:
+                    # This log is critical for debugging if the issue persists.
+                    print(f"[DB WARNING] last_login was NOT updated for user {user_dict.get('id')}. The user might not exist or the query failed silently.", flush=True)
         except Exception as e:
-            print(f"[DB WARNING] Failed to update last_login: {e}", flush=True)
+            # More critical logging
+            print(f"[DB CRITICAL] Failed to update last_login due to an exception: {e}", flush=True)
 
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(

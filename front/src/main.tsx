@@ -12,6 +12,7 @@ import AdminUsers from "./components/AdminUsers"; // Nouvelle page Admin
 import AdminBilling from "./components/AdminBilling"; // Nouvelle page Admin
 import AdminUserDetails from "./components/AdminUserDetails"; // Nouvelle page de détail
 import AdminGenerations from "./components/AdminGenerations"; // Nouvelle page Admin
+import AdminSettings from "./components/AdminSettings"; // Nouvelle page Admin
 import ErrorBoundary from "./components/ErrorBoundary";
 import "./index.css";
 import "./theme.css";
@@ -57,6 +58,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Route path="billing" element={<AdminBilling />} />
             <Route path="generations" element={<AdminGenerations />} />
             <Route path="feedbacks" element={<AdminFeedbacks />} />
+            <Route path="settings" element={<AdminSettings />} />
           </Route>
 
           {/* Redirection par défaut vers la racine */}
