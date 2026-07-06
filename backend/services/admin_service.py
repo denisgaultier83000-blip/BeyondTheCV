@@ -1,13 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, Body, BackgroundTasks, Request
+from fastapi import APIRouter, Depends, HTTPException, Body, BackgroundTasks, Request, Query
 from pydantic import BaseModel, EmailStr
 from typing import Literal, Optional, List
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import stripe, json
 import httpx
+from schemas.admin import PaginatedUsersResponse
 
 from security import require_admin_user, get_current_user
 from database import db
@@ -127,75 +128,6 @@ async def credit_user_quotas(
         "message": f"{credit_request.amount} crédits '{credit_request.quota_type}' ont été traités pour {credit_request.email}.",
         "new_balance": new_balance
     }
-
-@router.get("/users")
-async def admin_list_users(
-    limit: int = 50, 
-    offset: int = 0,
-    search: Optional[str] = None,
-    status: Optional[str] = None
-):
-    """[MODIFIÉ] 1. Gestion : Liste complète des utilisateurs avec pagination."""
-    params = []
-    where_clauses = []
-
-    if search:
-        where_clauses.append("(email ILIKE ? OR first_name ILIKE ? OR last_name ILIKE ?)")
-        search_term = f"%{search}%"
-        params.extend([search_term, search_term, search_term])
-
-    if status:
-        where_clauses.append("subscription_status = ?")
-        params.append(status)
-
-    where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
-    
-    query = f"""
-            SELECT id, email, first_name, last_name, created_at, is_premium, is_active, 
-                   subscription_expiration_date, last_login, total_ia_cost
-            FROM users 
-            {where_sql}
-            ORDER BY created_at DESC LIMIT ? OFFSET ?
-        """
-    
-    # [FIX] Séparation des paramètres pour la recherche et la pagination.
-    # Le comptage total doit utiliser les mêmes filtres que la recherche.
-    where_params = tuple(params)
-    
-    pagination_params = list(where_params)
-    pagination_params.extend([limit, offset])
-
-    async with db.get_connection() as conn:
-        cursor = await db.execute(conn, query, tuple(pagination_params))
-        rows = await cursor.fetchall()
-        
-        # Compte total pour la pagination côté client, en appliquant les filtres.
-        count_query = f"SELECT COUNT(*) FROM users {where_sql}"
-        total_cursor = await db.execute(conn, count_query, where_params)
-        total_row = await total_cursor.fetchone()
-        # [FIX] Le driver DB retourne un dictionnaire. On accède à la valeur par `list(row.values())[0]` pour être robuste.
-        total_users = list(total_row.values())[0] if total_row else 0
-        
-    users_list = []
-    for r in rows:
-        # [FIX] Accès sécurisé aux données pour éviter les erreurs d'index si le schéma change.
-        # Le code précédent était fragile car il dépendait de l'ordre des colonnes.
-        if isinstance(r, tuple):
-            keys = [desc[0] for desc in cursor.description]
-            user_dict = dict(zip(keys, r))
-        else:
-            user_dict = dict(r)
-
-        # On s'assure que les champs essentiels ont une valeur par défaut
-        user_dict.setdefault("is_premium", False)
-        user_dict.setdefault("is_active", True)
-        user_dict.setdefault("credits", 0)
-        user_dict.setdefault("subscription_expiration_date", None)
-        user_dict.setdefault("last_login", None)
-        user_dict.setdefault("total_ia_cost", 0)
-
-        users_list.append(user_dict)
-    return {"users": users_list, "total": total_users}
 
 @router.get("/billing")
 async def admin_get_billing_history(limit: int = 50, offset: int = 0):
@@ -590,3 +522,68 @@ async def get_cache_stats():
             }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur base de données: {str(e)}")
+
+
+async def admin_list_users(
+    limit: int = 50,
+    offset: int = 0,
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    offer: Optional[str] = None
+):
+    """Service pour lister les utilisateurs avec filtres et pagination."""
+    params = []
+    where_clauses = []
+
+    if search:
+        where_clauses.append("(email ILIKE ? OR first_name ILIKE ? OR last_name ILIKE ?)")
+        search_term = f"%{search}%"
+        params.extend([search_term, search_term, search_term])
+
+    if status:
+        where_clauses.append("subscription_status = ?")
+        params.append(status)
+
+    # Le filtre 'offer' sera ajouté ici si la colonne existe dans la table 'users'
+
+    where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+
+    query = f"""
+        SELECT id, email, first_name, last_name, created_at, is_premium, is_active,
+               subscription_expiration_date, last_login, total_ia_cost
+        FROM users
+        {where_sql}
+        ORDER BY created_at DESC LIMIT ? OFFSET ?
+    """
+
+    where_params = tuple(params)
+    pagination_params = list(where_params)
+    pagination_params.extend([limit, offset])
+
+    async with db.get_connection() as conn:
+        cursor = await db.execute(conn, query, tuple(pagination_params))
+        rows = await cursor.fetchall()
+
+        count_query = f"SELECT COUNT(*) FROM users {where_sql}"
+        total_cursor = await db.execute(conn, count_query, where_params)
+        total_row = await total_cursor.fetchone()
+        total_users = list(total_row.values())[0] if total_row else 0
+
+    users_list = [dict(r) for r in rows]
+    return {"users": users_list, "total": total_users}
+
+
+@router.get("/users", response_model=PaginatedUsersResponse)
+async def list_users_endpoint(
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    search: str | None = Query(None, description="Recherche par email, nom ou prénom"),
+    status: str | None = Query(None, description="Filtre par statut d'abonnement (active, expired, etc.)"),
+    offer: str | None = Query(None, description="Filtre par type d'offre (plan_id)")
+):
+    """
+    Récupère une liste paginée des utilisateurs pour le panneau d'administration.
+    Accessible uniquement par les administrateurs.
+    """
+    user_data = await admin_list_users(limit=limit, offset=offset, search=search, status=status, offer=offer)
+    return user_data
