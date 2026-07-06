@@ -1,5 +1,11 @@
 from dotenv import load_dotenv
 import os
+import sys
+
+# [FIX] Add project root to Python's path to resolve module import errors.
+# This makes imports absolute from the 'backend' directory (e.g., 'from schemas.admin import ...').
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, current_dir)
 
 # Chargement robuste du .env (Docker vs Local)
 current_dir = os.path.dirname(__file__)
