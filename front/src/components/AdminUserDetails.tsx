@@ -47,7 +47,11 @@ interface Generation {
   id: string;
   status: string;
   created_at: string;
-  result: string;
+  module: string;
+  estimated_cost: number | null;
+  duration_ms: number | null;
+  model_used: string | null;
+  error_message: string | null;
 }
 
 const AdminUserDetails: React.FC = () => {
@@ -410,8 +414,13 @@ const AdminUserDetails: React.FC = () => {
               <li key={gen.id} style={styles.generationItem}>
                 <LucideGanttChartSquare size={18} style={{color: '#64748b'}}/>
                 <div>
-                  <span style={{fontWeight: 600}}>ID: {gen.id.substring(0, 8)}...</span>
+                  <span style={{fontWeight: 600}}>{gen.module}</span>
                   <span style={{fontSize: '0.8rem', color: '#64748b', marginLeft: '1rem'}}>Statut: {gen.status}</span>
+                   {gen.estimated_cost ? (
+                    <span style={{fontSize: '0.8rem', color: '#4ade80', marginLeft: '1rem', fontWeight: 600}}>
+                      Coût: {gen.estimated_cost.toFixed(5)} €
+                    </span>
+                  ) : null}
                 </div>
                 <span style={{marginLeft: 'auto', fontSize: '0.8rem', color: '#64748b'}}>{new Date(gen.created_at).toLocaleString()}</span>
               </li>

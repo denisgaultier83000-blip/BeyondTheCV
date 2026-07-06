@@ -7,21 +7,20 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 interface Generation {
   id: string;
   user_email: string;
-  task_type: string;
+  module: string;
   status: string;
   created_at: string;
-  completed_at: string | null;
   result: string | null;
-  ai_model: string;
-  prompt_version: string;
-  estimated_cost: number;
-  input_tokens: number;
-  output_tokens: number;
-  duration: number; // in seconds
-  related_folder_id: string;
+  model_used: string | null;
+  prompt_version: string | null;
+  estimated_cost: number | null;
+  duration_ms: number | null;
   error_message: string | null;
-  retry_count: number;
-  trigger_source: 'user' | 'admin' | 'auto_retry';
+  metadata: { 
+    input_tokens?: number;
+    output_tokens?: number;
+    [key: string]: any 
+  } | null;
 }
 
 const AdminGenerations: React.FC = () => {
@@ -106,10 +105,10 @@ const AdminGenerations: React.FC = () => {
                   <tr key={gen.id}>
                     <td style={styles.td}>{gen.id.substring(0, 8)}...</td>
                     <td style={styles.td}>{gen.user_email}</td>
-                    <td style={styles.td}>{gen.task_type}</td>
+                    <td style={styles.td}>{gen.module}</td>
                     <td style={styles.td}><span style={{...styles.badge, ...styles.badgeColors[gen.status]}}>{gen.status}</span></td>
                     <td style={styles.td}>{gen.estimated_cost?.toFixed(4)} €</td>
-                    <td style={styles.td}>{gen.duration?.toFixed(2)} s</td>
+                    <td style={styles.td}>{gen.duration_ms ? (gen.duration_ms / 1000).toFixed(2) : '-'} s</td>
                     <td style={styles.td}>{new Date(gen.created_at).toLocaleString()}</td>
                     <td style={styles.td}>
                       <button onClick={() => setSelectedGeneration(gen)} style={styles.actionButton}><Eye size={14} /> Détails</button>
@@ -135,16 +134,13 @@ const AdminGenerations: React.FC = () => {
             <div style={styles.detailsGrid}>
               <DetailItem label="ID Tâche" value={selectedGeneration.id} />
               <DetailItem label="Utilisateur" value={selectedGeneration.user_email} />
-              <DetailItem label="Dossier Lié" value={selectedGeneration.related_folder_id} />
-              <DetailItem label="Type de tâche" value={selectedGeneration.task_type} />
-              <DetailItem label="Modèle IA" value={selectedGeneration.ai_model} />
+              <DetailItem label="Type de tâche" value={selectedGeneration.module} />
+              <DetailItem label="Modèle IA" value={selectedGeneration.model_used} />
               <DetailItem label="Version Prompt" value={selectedGeneration.prompt_version} />
-              <DetailItem label="Source" value={selectedGeneration.trigger_source} />
-              <DetailItem label="Tentatives" value={selectedGeneration.retry_count} />
               <DetailItem label="Statut" value={<span style={{...styles.badge, ...styles.badgeColors[selectedGeneration.status]}}>{selectedGeneration.status}</span>} />
               <DetailItem label="Coût Estimé" value={`${selectedGeneration.estimated_cost?.toFixed(4)} €`} />
-              <DetailItem label="Durée" value={`${selectedGeneration.duration?.toFixed(2)} s`} />
-              <DetailItem label="Tokens Input/Output" value={`${selectedGeneration.input_tokens} / ${selectedGeneration.output_tokens}`} />
+              <DetailItem label="Durée" value={`${selectedGeneration.duration_ms ? (selectedGeneration.duration_ms / 1000).toFixed(2) : '-'} s`} />
+              <DetailItem label="Tokens Input/Output" value={`${selectedGeneration.metadata?.input_tokens || '-'} / ${selectedGeneration.metadata?.output_tokens || '-'}`} />
             </div>
             {selectedGeneration.error_message && (
               <div style={styles.errorBox}>

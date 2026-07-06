@@ -423,20 +423,3 @@ async def get_billing_data(current_user: dict = Depends(get_current_user)):
 
     stats = {"total_revenue": total_revenue, "revenue_last_30d": stats_data.get('revenue_last_30d', 0) or 0, "total_refunds": 0.0, "arpu": total_revenue / total_users}
     return {"payments": payments, "stats": stats}
-
-@router.get("/api/admin/generations", response_model=dict)
-async def get_generations_history(current_user: dict = Depends(get_current_user)):
-    if not current_user.get("is_admin"):
-        raise HTTPException(status_code=403, detail="Accès refusé.")
-
-    async with db.get_connection() as conn:
-        cursor = await db.execute(conn, """
-            SELECT t.id, u.email as user_email, t.module, t.status, t.created_at, 
-                   t.estimated_cost, t.duration_ms, t.model_used, t.prompt_version, t.error_message
-            FROM tasks t
-            JOIN users u ON t.user_id = u.id
-            ORDER BY t.created_at DESC LIMIT 100
-        """)
-        rows = await cursor.fetchall()
-
-    return {"generations": [dict(row) for row in rows]}

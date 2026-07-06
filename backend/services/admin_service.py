@@ -227,10 +227,23 @@ async def admin_get_billing_history(limit: int = 50, offset: int = 0):
         return {"payments": [], "total": 0}
 
 @router.get("/generations")
-async def admin_get_generations_history(limit: int = 50, offset: int = 0):
-    """[NOUVEAU] Récupère l'historique de toutes les générations IA."""
+async def admin_get_generations_history(limit: int = 20, offset: int = 0):
+    """[MODIFIÉ] Récupère l'historique de toutes les générations IA avec plus de détails."""
     query = """
-        SELECT t.id, t.user_id, u.email as user_email, t.module, t.status, t.created_at, t.duration_ms, t.estimated_cost, t.metadata
+        SELECT 
+            t.id, 
+            t.user_id, 
+            u.email as user_email, 
+            t.task_type as module, 
+            t.status, 
+            t.created_at, 
+            t.duration_ms, 
+            t.estimated_cost,
+            t.model_used,
+            t.prompt_version,
+            t.error_message,
+            t.result,
+            t.metadata
         FROM tasks t
         LEFT JOIN users u ON t.user_id = u.id
         ORDER BY t.created_at DESC
@@ -281,12 +294,11 @@ async def admin_get_user_details(user_id: str):
 
 @router.get("/users/{user_id}/generations")
 async def admin_get_user_generations(user_id: str, limit: int = 5):
-    """[NOUVEAU] Récupère les dernières générations pour un utilisateur spécifique."""
-    # [FIX] La table 'tasks' ne contient pas les colonnes 'module' ou 'estimated_cost'.
-    # La requête a été corrigée pour sélectionner les colonnes existantes.
+    """[MODIFIÉ] Récupère les dernières générations pour un utilisateur avec plus de détails."""
     async with db.get_connection() as conn:
         cursor = await db.execute(conn, """
-            SELECT id, status, created_at, result FROM tasks
+            SELECT id, status, created_at, task_type as module, estimated_cost, duration_ms, model_used, error_message 
+            FROM tasks
             WHERE user_id = ? ORDER BY created_at DESC LIMIT ?
         """, (user_id, limit))
         generations = await cursor.fetchall()
