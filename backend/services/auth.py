@@ -63,11 +63,11 @@ async def _insert_user(uid, email, hashed_pw, first, last, created):
             await db.execute(conn, """
                 INSERT INTO users (id, email, hashed_password, first_name, last_name, created_at, is_premium, credits, is_tester)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (uid, email, hashed_pw, first, last, created, False, 100, True))
+            """, (uid, email, hashed_pw, first, last, created, False, 60, True))
             
             # [FIX] Initialisation des compteurs dans les nouvelles colonnes de la table users
             try:
-                await db.execute(conn, "UPDATE users SET quota_pitch = 10, quota_qa = 25, quota_mes = 6, quota_negotiation = 4, quota_regeneration = 3, quota_update = 1 WHERE id = ?", (uid,))
+                await db.execute(conn, "UPDATE users SET quota_pitch = 60, quota_qa = 60, quota_mes = 60, quota_negotiation = 60, quota_regeneration = 60, quota_update = 60 WHERE id = ?", (uid,))
             except Exception as q_err:
                 print(f"[DB WARNING] Impossible d'initialiser les quotas : {q_err}", flush=True)
     except Exception as e:
@@ -176,8 +176,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         # --- [MODIFICATION] GESTION DES CRÉDITS & RELANCE TESTEURS ---
         # Recharge automatique de 60 crédits si le solde est bas.
         # [MODIFICATION] Si le solde est à 0 ou moins, on le réinitialise à 60.
-        user_credits = user_dict.get("credits")
-        if user_credits is not None and user_credits <= 0:
+        user_credits = user_dict.get("credits", 0) or 0
+        if user_credits <= 5:
             new_balance = 60
             user_credits = new_balance # Mise à jour pour le token
             async with db.get_connection() as conn:
