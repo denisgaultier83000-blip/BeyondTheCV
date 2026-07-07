@@ -89,7 +89,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
                 pass
             # Requête propre et directe
             # [CORRECTIF] Ajout de is_admin dans le SELECT pour qu'il soit bien récupéré.
-            cursor = await db.execute(conn, "SELECT id, email, hashed_password, first_name, last_name, created_at, is_premium, credits, is_admin, is_active, is_tester FROM users WHERE email = ?", (email,))
+            cursor = await db.execute(conn, "SELECT id, email, hashed_password, first_name, last_name, created_at, is_premium, credits, is_admin, is_active, is_tester, quota_pitch, quota_qa, quota_mes, quota_negotiation, quota_regeneration, quota_update FROM users WHERE email = ?", (email,))
             user_row = await cursor.fetchone()
 
         # Simple admin authentication
@@ -128,7 +128,13 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
                 "credits": user_row[7] if len(user_row) > 7 else 100,
                 "is_admin": user_row[8] if len(user_row) > 8 else False,
                 "is_active": user_row[9] if len(user_row) > 9 else True,
-                "is_tester": user_row[10] if len(user_row) > 10 else False
+                "is_tester": user_row[10] if len(user_row) > 10 else False,
+                "quota_pitch": user_row[11] if len(user_row) > 11 else 0,
+                "quota_qa": user_row[12] if len(user_row) > 12 else 0,
+                "quota_mes": user_row[13] if len(user_row) > 13 else 0,
+                "quota_negotiation": user_row[14] if len(user_row) > 14 else 0,
+                "quota_regeneration": user_row[15] if len(user_row) > 15 else 0,
+                "quota_update": user_row[16] if len(user_row) > 16 else 0,
             }
         else:
             user_dict = dict(user_row)
@@ -175,11 +181,10 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
         # --- [MODIFICATION] GESTION DES CRÉDITS & RELANCE TESTEURS ---
         # Recharge automatique de 60 crédits si le solde est bas.
-        # [MODIFICATION] Si le solde est à 0 ou moins, on le réinitialise à 60.
-        user_credits = user_dict.get("credits", 0) or 0
-        if user_credits <= 5:
+        user_qa_quota = user_dict.get("quota_qa", 0) or 0
+        if user_qa_quota <= 0:
             new_balance = 60
-            user_credits = new_balance # Mise à jour pour le token
+            user_dict["credits"] = new_balance # Mise à jour pour le token
             async with db.get_connection() as conn:
                 try:
                     # On réinitialise tous les quotas à 60 pour une expérience de test fluide.
@@ -207,7 +212,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
                 "name": f"{user_dict.get('first_name', '')} {user_dict.get('last_name', '')}".strip(),
                 "email": user_dict.get("email", ""),
                 "is_premium": bool(user_dict.get("is_premium", False)),
-                "credits": user_credits,
+                "credits": user_dict.get("credits", 0),
                 "is_admin": is_admin_flag,
                 "is_tester": is_tester_flag
             }
