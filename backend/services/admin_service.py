@@ -9,7 +9,8 @@ from datetime import datetime, timedelta
 import stripe, json
 import httpx
 from schemas.admin import PaginatedUsersResponse
-
+from db_schemas import PaginatedUsersResponse
+ 
 from security import require_admin_user, get_current_user
 from database import db
 from .ai_generator import ai_service
