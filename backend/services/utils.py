@@ -22,49 +22,49 @@ def load_prompt(filename: str) -> str:
         print(f"[TASK ERROR] Could not load prompt {filename}: {e}")
         return ""
 
-async def consume_quota(user_id: str, quota_type: str, cost: int = 1):
-    """Vérifie le solde d'un quota spécifique et le décrémente si suffisant."""
-    
-    # [SÉCURITÉ] Whitelist des noms de colonnes pour éviter l'injection SQL
-    valid_quotas = ["pitch", "qa", "mes", "negotiation", "regeneration", "update"]
-    if quota_type not in valid_quotas:
-        raise HTTPException(status_code=400, detail=f"Type de quota invalide : {quota_type}")
-    
-    column_name = f"quota_{quota_type}"
-    
+async def consume_credit(user_id: str, cost: int = 1):
+    """
+    Vérifie le solde de crédits, le recharge si nécessaire, puis le décrémente.
+    Lève une HTTPException si le solde après recharge est toujours insuffisant.
+    """
     async with db.get_connection() as conn:
-        # On utilise un lock pour éviter les race conditions si l'utilisateur clique très vite
-        user_lock_key = f"quota_{user_id}"
+        # Utilisation d'un verrou pour cet utilisateur afin d'éviter les race conditions
+        user_lock_key = f"credit_{user_id}"
         if user_lock_key not in _CACHE_LOCKS:
             _CACHE_LOCKS[user_lock_key] = asyncio.Lock()
         
         async with _CACHE_LOCKS[user_lock_key]:
-            cursor = await db.execute(conn, f"SELECT {column_name} FROM users WHERE id = ?", (user_id,))
-            row = await cursor.fetchone()
-            
-            if not row:
-                raise HTTPException(status_code=404, detail="Utilisateur introuvable pour la gestion des quotas.")
-            
-            balance = row[0] if isinstance(row, tuple) else row.get(column_name)
-            
-            if balance is None or balance < cost:
-                raise HTTPException(status_code=402, detail=f"Crédits '{quota_type}' insuffisants (Solde: {balance or 0}, Requis: {cost}).")
-            
-            await db.execute(conn, f"UPDATE users SET {column_name} = {column_name} - ? WHERE id = ?", (cost, user_id))
+            cursor = await db.execute(conn, "SELECT credits FROM users WHERE id = ?", (user_id,))
+            user_data = await cursor.fetchone()
+
+            if not user_data:
+                raise HTTPException(status_code=404, detail="Utilisateur introuvable pour la gestion des crédits.")
+
+            current_credits = user_data[0] if isinstance(user_data, tuple) else user_data.get('credits')
+            if current_credits is None:
+                current_credits = 0
+
+            # Si le solde est insuffisant, on recharge
+            if current_credits < cost:
+                await db.execute(conn, "UPDATE users SET credits = credits + 60, updated_at = ? WHERE id = ?", (datetime.now(), user_id))
+                current_credits += 60 # Mettre à jour le solde local pour la vérification finale
+
+            # Vérification finale après une éventuelle recharge
+            if current_credits < cost:
+                 # Ce cas ne devrait pas arriver si la recharge est suffisante
+                raise HTTPException(status_code=402, detail=f"Crédits insuffisants même après recharge. (Solde: {current_credits}, Requis: {cost}).")
+
+            # Décrémenter le coût de l'action
+            await db.execute(conn, "UPDATE users SET credits = credits - ?, updated_at = ? WHERE id = ?", (cost, datetime.now(), user_id))
     return True
 
-async def refund_quota(user_id: str, quota_type: str, cost: int = 1):
-    """Rembourse un quota en cas d'erreur de l'API IA."""
-    valid_quotas = ["pitch", "qa", "mes", "negotiation", "regeneration", "update"]
-    if quota_type not in valid_quotas:
-        return
-    
-    column_name = f"quota_{quota_type}"
+async def refund_credit(user_id: str, cost: int = 1):
+    """Rembourse des crédits à un utilisateur."""
     try:
         async with db.get_connection() as conn:
-            await db.execute(conn, f"UPDATE users SET {column_name} = {column_name} + ? WHERE id = ?", (cost, user_id))
+            await db.execute(conn, "UPDATE users SET credits = credits + ? WHERE id = ?", (cost, user_id))
     except Exception as e:
-        print(f"[DB WARNING] Refund quota failed for {user_id} on {quota_type}: {e}")
+        print(f"[DB WARNING] Refund credit failed for {user_id}: {e}")
 
 def clean_ai_json_response(response_text: str):
     """Cleans and parses JSON from AI, removing markdown code blocks."""

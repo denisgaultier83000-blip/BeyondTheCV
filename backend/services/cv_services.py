@@ -40,7 +40,7 @@ from .tasks import (
 from .utils import (
     clean_ai_json_response, normalize_language, load_prompt, _get_sortable_date_tuple,
     _sanitize_data_for_ai, _generate_cache_key, get_cached_content, set_cached_content, 
-    consume_quota, refund_quota,
+    consume_credit, refund_credit,
     _CACHE_LOCKS
 )
 from .tasks import get_prompt_path
@@ -524,10 +524,8 @@ async def evaluate_vocal_pitch(request: VocalPitchRequest, current_user: dict = 
     LANGUAGE: {target_lang}
     """
     
-    action_cost = QUOTA_COSTS["evaluate_vocal_pitch"]
     if not current_user.get("is_admin"):
-        await consume_quota(current_user["id"], "pitch", cost=2)
-        await consume_quota(current_user["id"], action_cost["quota"], cost=action_cost["cost"])
+        await consume_credit(current_user["id"], cost=4)
     try:
         result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are an elite Public Speaking Coach. Output STRICT JSON.")
         
@@ -564,23 +562,19 @@ async def evaluate_vocal_pitch(request: VocalPitchRequest, current_user: dict = 
         return result
     except HTTPException:
         if not current_user.get("is_admin"):
-            await refund_quota(current_user["id"], "pitch", cost=2)
-            await refund_quota(current_user["id"], action_cost["quota"], cost=action_cost["cost"])
+            await refund_credit(current_user["id"], cost=4)
         raise
     except Exception as e:
         if not current_user.get("is_admin"):
-            await refund_quota(current_user["id"], "pitch", cost=2)
-            await refund_quota(current_user["id"], action_cost["quota"], cost=action_cost["cost"])
+            await refund_credit(current_user["id"], cost=4)
         raise HTTPException(status_code=500, detail=f"Erreur d'évaluation vocale : {str(e)}")
 
 @router.post("/evaluate-oral-pitch")
 async def evaluate_oral_pitch(request: OralPitchRequest, current_user: dict = Depends(require_active_subscription)):
     """Évalue un pitch dicté oralement par le candidat et sauvegarde l'historique."""
     
-    action_cost = QUOTA_COSTS["evaluate_oral_pitch"]
     if not current_user.get("is_admin"):
-        await consume_quota(current_user["id"], "pitch", cost=1)
-        await consume_quota(current_user["id"], action_cost["quota"], cost=action_cost["cost"])
+        await consume_credit(current_user["id"], cost=2)
         
     try:
         prompt_template = load_prompt("evaluate_pitch.md")
@@ -612,13 +606,11 @@ async def evaluate_oral_pitch(request: OralPitchRequest, current_user: dict = De
         
     except HTTPException:
         if not current_user.get("is_admin"):
-            await refund_quota(current_user["id"], "pitch", cost=1)
-            await refund_quota(current_user["id"], action_cost["quota"], cost=action_cost["cost"])
+            await refund_credit(current_user["id"], cost=2)
         raise
     except Exception as e:
         if not current_user.get("is_admin"):
-            await refund_quota(current_user["id"], "pitch", cost=1)
-            await refund_quota(current_user["id"], action_cost["quota"], cost=action_cost["cost"])
+            await refund_credit(current_user["id"], cost=2)
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'analyse IA de votre pitch : {str(e)}")
 
 @router.post("/evaluate-pitch")
@@ -703,74 +695,28 @@ async def generate_training_question(request: CustomQuestionRequest, current_use
                                   
     final_prompt += f"\n\nOUTPUT LANGUAGE: {normalize_language(request.target_language)}"
                                   
-    quota_to_consume = "mes" if request.question_type == "MES" else "qa"
-
-    action_cost = QUOTA_COSTS["generate_scenario"] if request.question_type == "MES" else QUOTA_COSTS["generate_question"]
+    cost = 3 if request.question_type == "MES" else 2
     if not current_user.get("is_admin"):
-        await consume_quota(current_user["id"], quota_to_consume, cost=1)
-        await consume_quota(current_user["id"], action_cost["quota"], cost=action_cost["cost"])
+        await consume_credit(current_user["id"], cost=cost)
     try:
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="Tu es un Coach de Carrière expert.")
         await set_cached_content(cache_key, current_user["id"], "training_question", result)
         return result
     except HTTPException:
         if not current_user.get("is_admin"):
-            await refund_quota(current_user["id"], quota_to_consume, cost=1)
-            await refund_quota(current_user["id"], action_cost["quota"], cost=action_cost["cost"])
+            await refund_credit(current_user["id"], cost=cost)
         raise
     except Exception as e:
         if not current_user.get("is_admin"):
-            await refund_quota(current_user["id"], quota_to_consume, cost=1)
-            await refund_quota(current_user["id"], action_cost["quota"], cost=action_cost["cost"])
+            await refund_credit(current_user["id"], cost=cost)
         raise HTTPException(status_code=500, detail=f"Erreur de génération : {str(e)}")
 
 @router.post("/training/evaluate")
 async def evaluate_training_answer(request: TrainingEvaluateRequest, current_user: dict = Depends(require_active_subscription)):
     """Évalue la réponse à l'entraînement, renvoie le feedback et le sauvegarde en DB."""
+    cost = 2
     if not current_user.get("is_admin"):
-        try:
-            async with db.get_connection() as conn:
-                cursor = await db.execute(conn, "SELECT credits FROM users WHERE id = ?", (current_user["id"],))
-                user_data = await cursor.fetchone()
-                
-                current_credits = user_data['credits'] if user_data and user_data.get('credits') and user_data.get('credits') > 0 else 0
-                
-                if current_credits <= 0:
-                    await db.execute(conn, "UPDATE users SET credits = 60, updated_at = ? WHERE id = ?", (datetime.now(), current_user["id"]))
-                else:
-                    await db.execute(conn, "UPDATE users SET credits = credits - 1, updated_at = ? WHERE id = ?", (datetime.now(), current_user["id"]))
-        except Exception as e:
-            print(f"[CREDIT_ERROR] Failed to update user credits for {current_user.get('email')}: {e}")
-
-    prompt_template = load_prompt(get_prompt_path("evaluate_interview_answer.md"))
-    
-    # [FIX EXPERT] Sécurisation de l'input utilisateur pour empêcher la cassure du prompt
-    safe_user_answer = request.user_answer.replace('"', '\\"')
-
-    final_prompt = f"""
-    {prompt_template}
-    
-    QUESTION POSÉE : "{request.question_text}"
-    CATÉGORIE / ATTENTE : "{request.theme} - {request.question_type}"
-    FORMAT DE L'ENTRETIEN : "{request.interview_format}"
-    NIVEAU DE STRESS DU CANDIDAT : "{request.stress_level}"
-    RÉPONSE DU CANDIDAT :
-    <candidate_answer>
-    {safe_user_answer}
-    </candidate_answer>
-    
-    INSTRUCTION DE COACHING EXPERT :
-    - Si le stress est élevé ("high"), sois particulièrement rassurant et valorise les forces (strengths) avant d'aborder les faiblesses.
-    - Si le format est "visio" ou "phone", ajoute un micro-conseil logistique ou vocal dans l'improved_answer (ex: regard caméra, sourire audible).
-    
-    OUTPUT LANGUAGE: {normalize_language(request.target_language)}
-    """
-    
-    quota_to_consume = "mes" if request.question_type == "MES" else "qa"
-    action_cost = QUOTA_COSTS["evaluate_scenario"] if request.question_type == "MES" else QUOTA_COSTS["evaluate_answer"]
-    if not current_user.get("is_admin"):
-        await consume_quota(current_user["id"], quota_to_consume, cost=1)
-        await consume_quota(current_user["id"], action_cost["quota"], cost=action_cost["cost"])
+        await consume_credit(current_user["id"], cost=cost)
     try:
         feedback = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an Expert Interview Coach. Output STRICT JSON.")
         
@@ -797,13 +743,11 @@ async def evaluate_training_answer(request: TrainingEvaluateRequest, current_use
         return {"feedback": feedback}
     except HTTPException:
         if not current_user.get("is_admin"):
-            await refund_quota(current_user["id"], quota_to_consume, cost=1)
-            await refund_quota(current_user["id"], action_cost["quota"], cost=action_cost["cost"])
+            await refund_credit(current_user["id"], cost=cost)
         raise
     except Exception as e:
         if not current_user.get("is_admin"):
-            await refund_quota(current_user["id"], quota_to_consume, cost=1)
-            await refund_quota(current_user["id"], action_cost["quota"], cost=action_cost["cost"])
+            await refund_credit(current_user["id"], cost=cost)
         raise HTTPException(status_code=500, detail=f"Erreur d'évaluation : {str(e)}")
 
 @router.post("/generate-extra-scenarios")
@@ -849,48 +793,36 @@ async def generate_extra_scenarios(data: dict = Body(...), current_user: dict = 
         LANGUAGE: {target_lang}
         """
         
-        action_cost = QUOTA_COSTS["generate_scenario"]
+        cost = 4
         if not current_user.get("is_admin"):
-            await consume_quota(current_user["id"], "mes", cost=2)
-            await consume_quota(current_user["id"], action_cost["quota"], cost=action_cost["cost"])
+            await consume_credit(current_user["id"], cost=cost)
         try:
             result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an Expert HR Assessor. Output STRICT JSON.")
             await set_cached_content(cache_key, current_user["id"], "extra_scenarios", result)
             return result
         except HTTPException:
             if not current_user.get("is_admin"):
-                await refund_quota(current_user["id"], "mes", cost=2)
-                await refund_quota(current_user["id"], action_cost["quota"], cost=action_cost["cost"])
+                await refund_credit(current_user["id"], cost=cost)
             raise
         except Exception as e:
             if not current_user.get("is_admin"):
-                await refund_quota(current_user["id"], "mes", cost=2)
-                await refund_quota(current_user["id"], action_cost["quota"], cost=action_cost["cost"])
+                await refund_credit(current_user["id"], cost=cost)
             raise HTTPException(status_code=500, detail=f"Erreur de génération des scénarios : {str(e)}")
 
 @router.get("/training/balance")
 async def get_training_balance(current_user: dict = Depends(require_active_subscription)):
-    """Retourne les quotas restants de l'utilisateur pour chaque module d'entraînement."""
+    """Retourne les crédits restants de l'utilisateur."""
     async with db.get_connection() as conn:
         try:
-            # [NOUVEAU] Sélectionne toutes les colonnes de quotas
-            cursor = await db.execute(conn, 
-                "SELECT quota_pitch, quota_qa, quota_mes, quota_negotiation, quota_regeneration, quota_update FROM users WHERE id = ?", 
-                (current_user["id"],)
-            )
+            cursor = await db.execute(conn, "SELECT credits FROM users WHERE id = ?", (current_user["id"],))
             row = await cursor.fetchone()
             if row:
-                # [FIX EXPERT] Utilisation de .keys() pour mapper dynamiquement les colonnes aux clés JSON
-                keys = [desc[0] for desc in cursor.description]
-                quotas = dict(zip(keys, row))
-                # Le frontend attend des clés courtes (pitch, qa, etc.)
-                return { "pitch": quotas.get("quota_pitch", 0), "qa": quotas.get("quota_qa", 0), "mes": quotas.get("quota_mes", 0), "negotiation": quotas.get("quota_negotiation", 0), "regeneration": quotas.get("quota_regeneration", 0), "update": quotas.get("quota_update", 0), }
+                credits = row[0] if isinstance(row, tuple) else row.get("credits")
+                return {"credits": credits or 0}
         except Exception as e:
-            print(f"[DB WARNING] Failed to fetch quotas, returning defaults: {e}")
-            # Fallback en cas d'erreur (ex: colonnes pas encore migrées)
-            return { "pitch": 10, "qa": 25, "mes": 6, "negotiation": 4, "regeneration": 3, "update": 1 }
-    # Si l'utilisateur n'est pas trouvé, on renvoie des valeurs par défaut pour éviter un crash frontend
-    return { "pitch": 0, "qa": 0, "mes": 0, "negotiation": 0, "regeneration": 0, "update": 0 }
+            print(f"[DB WARNING] Failed to fetch credits, returning defaults: {e}")
+            return {"credits": 60} # Fallback
+    return {"credits": 0}
 
 @router.get("/training/stats")
 async def get_training_stats(current_user: dict = Depends(require_active_subscription)):
