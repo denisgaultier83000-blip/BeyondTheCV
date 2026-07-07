@@ -210,6 +210,12 @@ def create_tables():
         # Ajout de la colonne application_id de manière sécurisée
         cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS application_id TEXT REFERENCES job_applications(id) ON DELETE CASCADE;")
         print("✅ Column 'application_id' added to tasks")
+        
+        # [FIX] Ajout des colonnes de monitoring IA manquantes pour le dashboard admin
+        cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS duration_ms INTEGER;")
+        cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS estimated_cost REAL;")
+        cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS model_used TEXT;")
+        cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS prompt_version TEXT;")
 
         # Create indexes for performance
         cur.execute("CREATE INDEX IF NOT EXISTS idx_products_user_id ON products(user_id)")
