@@ -232,7 +232,15 @@ class Database:
                 safe_query = parts[0]
                 for i in range(1, len(parts)): safe_query += f"${i}" + parts[i]
             
-            rows = await conn.fetch(safe_query, *params)
+            is_write = safe_query.strip().upper().startswith(("INSERT", "UPDATE", "DELETE"))
+
+            async with conn.transaction():
+                if is_write and 'RETURNING' not in safe_query.upper():
+                    await conn.execute(safe_query, *params)
+                    rows = []
+                else:
+                    rows = await conn.fetch(safe_query, *params)
+
             class AsyncpgCursor:
                 def __init__(self, r): self.r = r; self.i = 0
                 async def fetchone(self):

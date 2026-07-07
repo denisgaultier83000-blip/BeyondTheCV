@@ -187,7 +187,6 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
                         UPDATE users SET credits = ?, quota_pitch = ?, quota_qa = ?, quota_mes = ?, quota_negotiation = ?, quota_regeneration = ?, quota_update = ? 
                         WHERE id = ?
                     """, (new_balance, new_balance, new_balance, new_balance, new_balance, new_balance, new_balance, user_dict.get("id")))
-                    await conn.commit()
                     print(f"[AUTH] 🎁 Compte recrédité à {new_balance} séances pour : {email}", flush=True)
                 except Exception as e:
                     print(f"[AUTH WARNING] Échec de la recharge automatique des crédits : {e}", flush=True)

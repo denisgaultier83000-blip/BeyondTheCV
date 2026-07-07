@@ -739,7 +739,6 @@ async def evaluate_training_answer(request: TrainingEvaluateRequest, current_use
                     await db.execute(conn, "UPDATE users SET credits = 60, updated_at = ? WHERE id = ?", (datetime.now(), current_user["id"]))
                 else:
                     await db.execute(conn, "UPDATE users SET credits = credits - 1, updated_at = ? WHERE id = ?", (datetime.now(), current_user["id"]))
-                await conn.commit()
         except Exception as e:
             print(f"[CREDIT_ERROR] Failed to update user credits for {current_user.get('email')}: {e}")
 
