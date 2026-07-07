@@ -7,8 +7,8 @@ from email.mime.multipart import MIMEMultipart
 import os
 from datetime import datetime, timedelta
 import stripe, json
-import httpx
-from db_schemas import PaginatedUsersResponse
+import httpx, asyncio
+from db_schemas import PaginatedUsersResponse, AiCostHistoryResponse, DailyCost
  
 from security import require_admin_user, get_current_user
 from database import db
@@ -357,6 +357,37 @@ async def admin_get_cache_history(days: int = 7):
         history.append({"date": row[0].isoformat(), "hits": hits, "misses": misses, "hit_ratio": round(hit_ratio, 2)})
 
     return {"cache_history": history}
+
+@router.get("/stats/ai-cost-history", response_model=AiCostHistoryResponse)
+async def get_ai_cost_history(days: int = Query(30, ge=1, le=365)):
+    """
+    [NOUVEAU] Récupère l'historique des coûts IA agrégés par jour pour le graphique du dashboard.
+    """
+    # Sécurité : Limite le nombre de jours pour éviter les requêtes trop lourdes.
+    if days > 365:
+        days = 365
+
+    start_date = datetime.now() - timedelta(days=days)
+
+    # La fonction DATE() est compatible avec PostgreSQL et SQLite.
+    query = """
+        SELECT
+            DATE(created_at) as day,
+            SUM(estimated_cost) as daily_total
+        FROM tasks
+        WHERE created_at >= ?
+          AND estimated_cost IS NOT NULL AND estimated_cost > 0
+        GROUP BY day
+        ORDER BY day ASC;
+    """
+    try:
+        async with db.get_connection() as conn:
+            rows = await db.execute(conn, query, (start_date,))
+            # La méthode `fetchall` est nécessaire pour récupérer toutes les lignes du curseur
+            history_rows = await rows.fetchall()
+        return {"costs": [DailyCost(date=row['day'], total_cost=row['daily_total']) for row in history_rows]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur base de données: {e}")
 
 @router.get("/recent-users")
 async def get_recent_users(limit: int = 5):

@@ -56,6 +56,14 @@ class PaginatedUsersResponse(BaseModel):
     total: int
     page: int
     size: int
+
+# [NOUVEAU] Schémas pour les statistiques de coûts IA
+class DailyCost(BaseModel):
+    date: str
+    total_cost: float
+
+class AiCostHistoryResponse(BaseModel):
+    costs: List[DailyCost]
 # --- Product Models ---
 class ProductBase(BaseModel):
     product_type: ProductTypeEnum
