@@ -549,8 +549,9 @@ async def admin_list_users(
     where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
 
     query = f"""
-        SELECT id, email, first_name, last_name, created_at, is_premium, is_active,
-               subscription_expiration_date, last_login, total_ia_cost
+        SELECT id, email, first_name, last_name, created_at, updated_at, is_premium, is_active,
+               subscription_status, subscription_expiration_date, subscription_extension_count,
+               last_login, total_ia_cost
         FROM users
         {where_sql}
         ORDER BY created_at DESC LIMIT ? OFFSET ?
@@ -570,7 +571,12 @@ async def admin_list_users(
         total_users = list(total_row.values())[0] if total_row else 0
 
     users_list = [dict(r) for r in rows]
-    return {"users": users_list, "total": total_users}
+    return {
+        "users": users_list,
+        "total": total_users,
+        "page": (offset // limit) + 1,
+        "size": limit
+    }
 
 
 @router.get("/users", response_model=PaginatedUsersResponse)
