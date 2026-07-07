@@ -62,6 +62,8 @@ def create_tables():
         cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMP;")
         # [FIX] Add the missing total_ia_cost column to track AI expenses per user.
         cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS total_ia_cost REAL DEFAULT 0.0;")
+        # Add a 'credits' column to manage user sessions, defaulting to 60.
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT 60;")
 
         print("✅ Table 'users' created")
 

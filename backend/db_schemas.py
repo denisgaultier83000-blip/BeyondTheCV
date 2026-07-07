@@ -43,6 +43,7 @@ class UserResponse(UserBase):
     id: str
     created_at: datetime
     updated_at: datetime
+    credits: int = 60
     subscription_status: SubscriptionStatusEnum
     subscription_expiration_date: Optional[datetime] = None
     subscription_extension_count: int = 0

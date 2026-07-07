@@ -727,6 +727,21 @@ async def generate_training_question(request: CustomQuestionRequest, current_use
 @router.post("/training/evaluate")
 async def evaluate_training_answer(request: TrainingEvaluateRequest, current_user: dict = Depends(require_active_subscription)):
     """Évalue la réponse à l'entraînement, renvoie le feedback et le sauvegarde en DB."""
+    if not current_user.get("is_admin"):
+        try:
+            async with db.get_connection() as conn:
+                cursor = await db.execute(conn, "SELECT credits FROM users WHERE id = ?", (current_user["id"],))
+                user_data = await cursor.fetchone()
+                
+                current_credits = user_data['credits'] if user_data and user_data.get('credits') and user_data.get('credits') > 0 else 0
+                
+                if current_credits <= 0:
+                    await db.execute(conn, "UPDATE users SET credits = 60, updated_at = ? WHERE id = ?", (datetime.now(), current_user["id"]))
+                else:
+                    await db.execute(conn, "UPDATE users SET credits = credits - 1, updated_at = ? WHERE id = ?", (datetime.now(), current_user["id"]))
+        except Exception as e:
+            print(f"[CREDIT_ERROR] Failed to update user credits for {current_user.get('email')}: {e}")
+
     prompt_template = load_prompt(get_prompt_path("evaluate_interview_answer.md"))
     
     # [FIX EXPERT] Sécurisation de l'input utilisateur pour empêcher la cassure du prompt
