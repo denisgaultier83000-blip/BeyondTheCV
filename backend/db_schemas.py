@@ -50,6 +50,12 @@ class UserResponse(UserBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+# [FIX] Ajout du schéma manquant pour l'API d'administration
+class PaginatedUsersResponse(BaseModel):
+    users: List[UserResponse]
+    total: int
+    page: int
+    size: int
 # --- Product Models ---
 class ProductBase(BaseModel):
     product_type: ProductTypeEnum
