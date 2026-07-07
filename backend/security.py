@@ -73,7 +73,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         try:
             async with db.get_connection() as conn: # Cette ligne plantait car 'db' n'était pas importé
                 # [FIX] Le token peut contenir l'ID ou l'Email. On vérifie les deux pour une compatibilité absolue avec les anciennes versions du token.
-                cursor = await db.execute(conn, "SELECT id, email, first_name, last_name, is_premium, is_admin, is_tester FROM users WHERE id = ? OR email = ?", (user_id, user_id))
+                cursor = await db.execute(conn, "SELECT id, email, first_name, last_name, is_premium, is_admin, is_tester, credits FROM users WHERE id = ? OR email = ?", (user_id, user_id))
                 user_row = await cursor.fetchone()
             
             if user_row:
@@ -96,7 +96,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
                     "last_name": user_row["last_name"],
                     "is_premium": bool(user_row["is_premium"]),
                     "is_admin": is_admin_db or is_admin_env,
-                    "is_tester": bool(user_row.get("is_tester", False)) or is_tester_env
+                    "is_tester": bool(user_row.get("is_tester", False)) or is_tester_env,
+                    "credits": user_row.get("credits") if user_row.get("credits") is not None else 60
                 }
             else:
                 raise HTTPException(status_code=401, detail="User not found")
