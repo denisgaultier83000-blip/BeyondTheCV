@@ -48,7 +48,7 @@ from .websocket_manager import manager
 
 router = APIRouter(prefix="/api/cv", tags=["CV Generator"])
 
-from .costs import QUOTA_COSTS
+from .costs import CREDIT_COSTS
 
 # [FIX EXPERT - POINT 3] Redéfinition robuste du payload de Feedback pour éviter les erreurs 422 Unprocessable Entity
 class FeedbackPayload(BaseModel):

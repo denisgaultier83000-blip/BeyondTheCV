@@ -91,14 +91,9 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                     SET is_premium = TRUE, 
                         subscription_status = 'active',
                         subscription_expiration_date = GREATEST(COALESCE(subscription_expiration_date, CURRENT_TIMESTAMP), CURRENT_TIMESTAMP) + INTERVAL '120 days',
-                        quota_pitch = COALESCE(quota_pitch, 0) + ?,
-                        quota_qa = COALESCE(quota_qa, 0) + ?,
-                        quota_mes = COALESCE(quota_mes, 0) + ?,
-                        quota_negotiation = COALESCE(quota_negotiation, 0) + ?,
-                        quota_regeneration = COALESCE(quota_regeneration, 0) + ?,
-                        quota_update = COALESCE(quota_update, 0) + ?
+                        credits = COALESCE(credits, 0) + ?
                     WHERE id = ?
-                """, (sessions_to_add, sessions_to_add * 2, sessions_to_add, sessions_to_add, sessions_to_add, sessions_to_add, user_id))
+                """, (sessions_to_add, user_id))
 
                 # 3. Mémoriser la transaction pour bloquer un éventuel rejeu
                 import uuid

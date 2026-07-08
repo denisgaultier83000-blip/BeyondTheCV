@@ -10,7 +10,7 @@ import stripe, json
 import httpx, asyncio
 from db_schemas import PaginatedUsersResponse, AiCostHistoryResponse, DailyCost
  
-from security import require_admin_user, get_current_user
+from security import require_admin_user
 from database import db
 from .ai_generator import ai_service
 from .audit_service import audit_service
@@ -21,17 +21,16 @@ router = APIRouter(
     dependencies=[Depends(require_admin_user)] # [FIX] Protège toutes les routes de ce routeur
 )
 
-class CreditQuotaRequest(BaseModel):
+class CreditUserRequest(BaseModel):
     email: EmailStr
-    quota_type: Literal["pitch", "qa", "mes", "negotiation", "regeneration", "update"]
     amount: int
 
 class AdminSubscriptionRequest(BaseModel):
     action: Literal["extend", "cancel"]
     days: Optional[int] = 30
 
-def send_quota_recharge_email(to_email: str, amount: int, quota_type: str):
-    """Envoie un email de notification en tâche de fond via SMTP."""
+def send_credit_recharge_email(to_email: str, amount: int):
+    """Envoie un email de notification pour un rechargement de crédits."""
     smtp_host = os.getenv("SMTP_HOST")
     smtp_port = int(os.getenv("SMTP_PORT", 587))
     smtp_user = os.getenv("SMTP_USER")
@@ -40,16 +39,6 @@ def send_quota_recharge_email(to_email: str, amount: int, quota_type: str):
     if not all([smtp_host, smtp_user, smtp_pass]):
         print("[EMAIL WARNING] Configuration SMTP manquante, email de recharge non envoyé.")
         return
-
-    module_names = {
-        "qa": "Questions Classiques",
-        "mes": "Mises en Situation",
-        "pitch": "Pitch Vocal",
-        "negotiation": "Négociation Salariale",
-        "regeneration": "Régénérations IA",
-        "update": "Mises à jour Marché"
-    }
-    module_label = module_names.get(quota_type, quota_type)
     
     msg = MIMEMultipart("alternative")
     msg["From"] = f"Support BeyondTheCV <{smtp_user}>"
@@ -61,11 +50,21 @@ def send_quota_recharge_email(to_email: str, amount: int, quota_type: str):
     current_year = datetime.now().year
 
     # Version texte simple pour les anciens clients mail
-    plain_body = f"""Bonjour,\n\nBonne nouvelle ! Le support de BeyondTheCV vient de créditer votre compte.\n\nVous avez reçu : +{amount} session(s) pour le module '{module_label}'.\n\nVous pouvez dès à présent reprendre votre entraînement sur la plateforme :\n{frontend_url}/candidate\n\nBons entretiens et à bientôt,\nL'équipe BeyondTheCV"""
+    plain_body = f"""Bonjour,
+
+Bonne nouvelle ! Le support de BeyondTheCV vient de créditer votre compte.
+
+Vous avez reçu : +{amount} crédits de simulation.
+
+Vous pouvez dès à présent reprendre votre entraînement sur la plateforme :
+{frontend_url}/candidate
+
+Bons entretiens et à bientôt,
+L'équipe BeyondTheCV"""
     
     # Version HTML avec le logo et les couleurs de la marque
     html_body = f"""
-    <!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Votre compte a été rechargé !</title></head><body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; background-color: #f8fafc;"><table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc;"><tr><td align="center" style="padding: 40px 20px;"><table width="600" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;"><tr><td align="center" style="padding: 30px 20px; border-bottom: 1px solid #e2e8f0;"><img src="{logo_url}" alt="BeyondTheCV Logo" style="height: 40px; width: auto;"></td></tr><tr><td style="padding: 40px 30px; color: #446285; font-size: 16px; line-height: 1.6;"><h1 style="color: #0F2650; font-size: 24px; margin: 0 0 20px 0;">Bonne nouvelle !</h1><p style="margin: 0 0 20px 0;">Le support de BeyondTheCV vient de créditer votre compte.</p><div style="background-color: #f1f5f9; padding: 20px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;"><p style="margin: 0; font-size: 14px; color: #446285;">Vous avez reçu :</p><p style="margin: 10px 0 0 0; font-size: 28px; font-weight: bold; color: #0F2650;">+{amount} simulation(s)</p><p style="margin: 5px 0 0 0; font-size: 16px; color: #6DBEF7; font-weight: 600;">pour le module "{module_label}"</p></div><p style="margin: 30px 0;">Vous pouvez dès à présent reprendre votre entraînement sur la plateforme et continuer à vous préparer pour vos entretiens.</p><div style="text-align: center;"><a href="{frontend_url}/candidate" target="_blank" style="background-color: #0F2650; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block; transition: background-color 0.2s;">Reprendre l'entraînement</a></div></td></tr><tr><td style="padding: 30px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0;"><p style="margin: 0;">© {current_year} BeyondTheCV. Tous droits réservés.</p></td></tr></table></td></tr></table></body></html>
+    <!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Votre compte a été rechargé !</title></head><body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; background-color: #f8fafc;"><table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc;"><tr><td align="center" style="padding: 40px 20px;"><table width="600" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;"><tr><td align="center" style="padding: 30px 20px; border-bottom: 1px solid #e2e8f0;"><img src="{logo_url}" alt="BeyondTheCV Logo" style="height: 40px; width: auto;"></td></tr><tr><td style="padding: 40px 30px; color: #446285; font-size: 16px; line-height: 1.6;"><h1 style="color: #0F2650; font-size: 24px; margin: 0 0 20px 0;">Bonne nouvelle !</h1><p style="margin: 0 0 20px 0;">Le support de BeyondTheCV vient de créditer votre compte.</p><div style="background-color: #f1f5f9; padding: 20px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;"><p style="margin: 0; font-size: 14px; color: #446285;">Vous avez reçu :</p><p style="margin: 10px 0 0 0; font-size: 28px; font-weight: bold; color: #0F2650;">+{amount} crédits de simulation</p></div><p style="margin: 30px 0;">Vous pouvez dès à présent reprendre votre entraînement sur la plateforme et continuer à vous préparer pour vos entretiens.</p><div style="text-align: center;"><a href="{frontend_url}/candidate" target="_blank" style="background-color: #0F2650; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">Reprendre l'entraînement</a></div><p style="margin: 30px 0 10px 0;">À bientôt,<br>L’équipe BeyondTheCV</p></td></tr><tr><td align="center" style="padding: 20px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8;"><p style="margin: 0;">© {current_year} BeyondTheCV. Tous droits réservés.</p></td></tr></table></td></tr></table></body></html>
     """
     
     msg.attach(MIMEText(plain_body, "plain", "utf-8"))
@@ -80,19 +79,17 @@ def send_quota_recharge_email(to_email: str, amount: int, quota_type: str):
     except Exception as e:
         print(f"[EMAIL ERROR] Échec de l'envoi à {to_email}: {e}")
 
-@router.post("/credit-quotas")
-async def credit_user_quotas(
-    credit_request: CreditQuotaRequest,
+@router.post("/credit-user")
+async def credit_user(
+    credit_request: CreditUserRequest,
     background_tasks: BackgroundTasks,
     request: Request,
-    admin_user: dict = Depends(get_current_user)
+    admin_user: dict = Depends(require_admin_user)
 ):
     """
-    Crédite manuellement des quotas à un utilisateur.
+    Crédite manuellement des crédits à un utilisateur.
     'amount' peut être positif pour ajouter, ou négatif pour retirer.
     """
-    column_name = f"quota_{credit_request.quota_type}"
-    
     async with db.get_connection() as conn:
         user_cursor = await db.execute(conn, "SELECT id FROM users WHERE email = ?", (credit_request.email,))
         user_row = await user_cursor.fetchone()
@@ -102,30 +99,30 @@ async def credit_user_quotas(
         user_id = user_row.get("id") if isinstance(user_row, dict) else user_row[0]
         
         try:
-            update_query = f"UPDATE users SET {column_name} = COALESCE({column_name}, 0) + ? WHERE id = ? RETURNING {column_name}"
+            update_query = "UPDATE users SET credits = COALESCE(credits, 0) + ? WHERE id = ? RETURNING credits"
             result_cursor = await db.execute(conn, update_query, (credit_request.amount, user_id))
             new_balance_row = await result_cursor.fetchone()
-            new_balance = new_balance_row.get(column_name) if new_balance_row else "inconnu"
+            new_balance = new_balance_row.get('credits') if new_balance_row else "inconnu"
 
             # Log audit
             await audit_service.log_admin_action(
                 request=request,
                 admin_user=admin_user,
-                action="CREDIT_QUOTAS",
+                action="CREDIT_USER",
                 target_user_id=user_id,
                 target_user_email=credit_request.email,
-                details={"quota_type": credit_request.quota_type, "amount": credit_request.amount, "new_balance": new_balance}
+                details={"amount": credit_request.amount, "new_balance": new_balance}
             )
 
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Erreur base de données : {e}")
 
     if credit_request.amount > 0:
-        background_tasks.add_task(send_quota_recharge_email, credit_request.email, credit_request.amount, credit_request.quota_type)
+        background_tasks.add_task(send_credit_recharge_email, credit_request.email, credit_request.amount)
 
     return {
         "status": "success",
-        "message": f"{credit_request.amount} crédits '{credit_request.quota_type}' ont été traités pour {credit_request.email}.",
+        "message": f"{credit_request.amount} crédits ont été traités pour {credit_request.email}.",
         "new_balance": new_balance
     }
 
@@ -206,7 +203,7 @@ async def admin_get_user_details(user_id: str):
         # On la retire de la requête principale pour la rendre plus robuste.
         cursor = await db.execute(conn, """
             SELECT id, email, first_name, last_name, created_at, last_login, subscription_status as status,
-                   subscription_expiration_date as expiration_date, total_ia_cost, quota_qa as sessions_remaining
+                   subscription_expiration_date as expiration_date, total_ia_cost, credits as sessions_remaining
             FROM users WHERE id = ?
         """, (user_id,))
         user = await cursor.fetchone()
@@ -246,7 +243,7 @@ async def admin_get_user_generations(user_id: str, limit: int = 5):
 
 
 @router.post("/users/{user_id}/toggle-active")
-async def admin_toggle_user_active(user_id: str, request: Request, admin_user: dict = Depends(get_current_user)):
+async def admin_toggle_user_active(user_id: str, request: Request, admin_user: dict = Depends(require_admin_user)):
     """1. Gestion : Activer/Désactiver (Bannir) un utilisateur."""
     async with db.get_connection() as conn:
         cursor = await db.execute(conn, "SELECT email, is_active FROM users WHERE id = ?", (user_id,))
@@ -409,7 +406,7 @@ async def get_recent_users(limit: int = 5):
     return users
 
 @router.post("/users/{user_id}/subscription")
-async def admin_manage_subscription(user_id: str, req: AdminSubscriptionRequest, request: Request, admin_user: dict = Depends(get_current_user)):
+async def admin_manage_subscription(user_id: str, req: AdminSubscriptionRequest, request: Request, admin_user: dict = Depends(require_admin_user)):
     """3. Abonnements : Prolonger ou annuler manuellement un abonnement (SAV)."""
     async with db.get_connection() as conn:
         user_cursor = await db.execute(conn, "SELECT email FROM users WHERE id = ?", (user_id,))
@@ -455,7 +452,7 @@ async def admin_manage_subscription(user_id: str, req: AdminSubscriptionRequest,
     return {"status": "success", "message": msg}
 
 @router.delete("/users/{user_id}/cache")
-async def admin_purge_user_cache(user_id: str, request: Request, admin_user: dict = Depends(get_current_user)):
+async def admin_purge_user_cache(user_id: str, request: Request, admin_user: dict = Depends(require_admin_user)):
     """4. Debug : Purger le cache IA d'un utilisateur en cas de bug de génération."""
     async with db.get_connection() as conn:
         user_cursor = await db.execute(conn, "SELECT email FROM users WHERE id = ?", (user_id,))

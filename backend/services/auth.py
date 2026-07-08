@@ -64,12 +64,6 @@ async def _insert_user(uid, email, hashed_pw, first, last, created):
                 INSERT INTO users (id, email, hashed_password, first_name, last_name, created_at, is_premium, credits, is_tester)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (uid, email, hashed_pw, first, last, created, False, 60, True))
-            
-            # [FIX] Initialisation des compteurs dans les nouvelles colonnes de la table users
-            try:
-                await db.execute(conn, "UPDATE users SET quota_pitch = 60, quota_qa = 60, quota_mes = 60, quota_negotiation = 60, quota_regeneration = 60, quota_update = 60 WHERE id = ?", (uid,))
-            except Exception as q_err:
-                print(f"[DB WARNING] Impossible d'initialiser les quotas : {q_err}", flush=True)
     except Exception as e:
         print(f"[DB ERROR] _insert_user: {e}", flush=True)
         raise e
@@ -89,7 +83,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
                 pass
             # Requête propre et directe
             # [CORRECTIF] Ajout de is_admin dans le SELECT pour qu'il soit bien récupéré.
-            cursor = await db.execute(conn, "SELECT id, email, hashed_password, first_name, last_name, created_at, is_premium, credits, is_admin, is_active, is_tester, quota_pitch, quota_qa, quota_mes, quota_negotiation, quota_regeneration, quota_update FROM users WHERE email = ?", (email,))
+            cursor = await db.execute(conn, "SELECT id, email, hashed_password, first_name, last_name, created_at, is_premium, credits, is_admin, is_active, is_tester FROM users WHERE email = ?", (email,))
             user_row = await cursor.fetchone()
 
         # Simple admin authentication
@@ -129,12 +123,6 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
                 "is_admin": user_row[8] if len(user_row) > 8 else False,
                 "is_active": user_row[9] if len(user_row) > 9 else True,
                 "is_tester": user_row[10] if len(user_row) > 10 else False,
-                "quota_pitch": user_row[11] if len(user_row) > 11 else 0,
-                "quota_qa": user_row[12] if len(user_row) > 12 else 0,
-                "quota_mes": user_row[13] if len(user_row) > 13 else 0,
-                "quota_negotiation": user_row[14] if len(user_row) > 14 else 0,
-                "quota_regeneration": user_row[15] if len(user_row) > 15 else 0,
-                "quota_update": user_row[16] if len(user_row) > 16 else 0,
             }
         else:
             user_dict = dict(user_row)
@@ -181,18 +169,15 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
         # --- [MODIFICATION] GESTION DES CRÉDITS & RELANCE TESTEURS ---
         # Recharge automatique de 60 crédits si le solde est bas.
-        user_qa_quota = user_dict.get("quota_qa", 0) or 0
-        if user_qa_quota <= 0:
+        # Tous les utilisateurs sont des testeurs en phase de test.
+        user_credits = user_dict.get("credits", 0) or 0
+        if user_credits <= 0:
             new_balance = 60
             user_dict["credits"] = new_balance # Mise à jour pour le token
             async with db.get_connection() as conn:
                 try:
-                    # On réinitialise tous les quotas à 60 pour une expérience de test fluide.
-                    await db.execute(conn, """
-                        UPDATE users SET credits = ?, quota_pitch = ?, quota_qa = ?, quota_mes = ?, quota_negotiation = ?, quota_regeneration = ?, quota_update = ? 
-                        WHERE id = ?
-                    """, (new_balance, new_balance, new_balance, new_balance, new_balance, new_balance, new_balance, user_dict.get("id")))
-                    print(f"[AUTH] 🎁 Compte recrédité à {new_balance} séances pour : {email}", flush=True)
+                    await db.execute(conn, "UPDATE users SET credits = ? WHERE id = ?", (new_balance, user_dict.get("id")))
+                    print(f"[AUTH] 🎁 Compte recrédité à {new_balance} crédits pour : {email}", flush=True)
                 except Exception as e:
                     print(f"[AUTH WARNING] Échec de la recharge automatique des crédits : {e}", flush=True)
 
@@ -382,7 +367,7 @@ async def get_all_users(current_user: dict = Depends(get_current_user)):
 
         cursor = await db.execute(conn, """
             SELECT id, email, first_name, last_name, subscription_status as status, 
-                   created_at, last_login, quota_qa as sessions_remaining, total_ia_cost
+                   created_at, last_login, credits as sessions_remaining, total_ia_cost
             FROM users ORDER BY created_at DESC
         """)
         rows = await cursor.fetchall()
