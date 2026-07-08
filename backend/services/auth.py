@@ -171,7 +171,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         # Recharge automatique de 60 crédits si le solde est bas.
         # Tous les utilisateurs sont des testeurs en phase de test.
         user_credits = user_dict.get("credits", 0) or 0
-        if user_credits <= 0:
+        if user_credits < 10:
             new_balance = 60
             user_dict["credits"] = new_balance # Mise à jour pour le token
             async with db.get_connection() as conn:

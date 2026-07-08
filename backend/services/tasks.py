@@ -11,6 +11,7 @@ from .market_research import perform_market_research
 from .utils import (
     load_prompt, clean_ai_json_response, normalize_language, 
     _generate_cache_key, get_cached_content, set_cached_content,
+    update_user_total_cost, # [NOUVEAU] Import de la fonction de mise à jour du coût
     _CACHE_LOCKS,
     _sanitize_data_for_ai
 )
@@ -24,14 +25,18 @@ def get_prompt_path(filename: str) -> str:
     """Retourne le chemin absolu vers un fichier prompt."""
     return str(PROMPTS_DIR / filename)
 
-def update_task_status_sync(task_id: str, status: str, result: dict = None):
+def update_task_status_sync(task_id: str, status: str, result: dict = None, cost: float = None):
     """Mise à jour synchrone de la DB (pour exécution dans un thread)."""
     result_json = json.dumps(result, default=str) if result is not None else None
     try:
         import os
         with db.get_sync_connection() as conn:
             cur = conn.cursor()
-            cur.execute("UPDATE tasks SET status = %s, result = %s WHERE id = %s", (status, result_json, task_id))
+            if cost is not None:
+                cur.execute("UPDATE tasks SET status = %s, result = %s, estimated_cost = %s, duration_ms = %s WHERE id = %s", 
+                            (status, result_json, cost, 0, task_id))
+            else:
+                cur.execute("UPDATE tasks SET status = %s, result = %s WHERE id = %s", (status, result_json, task_id))
             conn.commit()
             cur.close()
     except Exception as e:
@@ -185,13 +190,20 @@ async def _run_cv_draft_logic(task_id: str, source_data: dict):
         prompt_template = load_prompt(get_prompt_path("master_prompt.md"))
         context_str = json.dumps(_sanitize_data_for_ai(source_data, strict=True), indent=2, ensure_ascii=False, default=str)
         final_prompt = f"{prompt_template}\n\nINPUT DATA:\n{context_str}"
+        
+        # [MODIFIÉ] Appel à l'IA qui retourne maintenant le résultat ET le coût
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are the AI for BeyondTheCV. Output STRICT JSON.")
+        
+        # [NOUVEAU] Extraction du coût et mise à jour des tables
+        cost = result.pop('cost', 0.0)
+        await update_user_total_cost(user_id, cost)
+
         if "error" not in result:
             await set_cached_content(cache_key, user_id, "cv_draft", result)
-        await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+        await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result, cost)
         await manager.broadcast(task_id, "Brouillon généré", status="COMPLETED", data=result)
     except Exception as e:
-        await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", {"error": str(e)})
+        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
         err = {"error": str(e)}
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", err)
         await manager.broadcast(task_id, "Erreur", status="FAILED", data=err)

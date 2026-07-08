@@ -66,6 +66,23 @@ async def refund_credit(user_id: str, cost: int = 1):
     except Exception as e:
         print(f"[DB WARNING] Refund credit failed for {user_id}: {e}")
 
+async def update_user_total_cost(user_id: str, cost: float):
+    """
+    [NOUVEAU] Ajoute le coût d'une génération au coût total de l'utilisateur.
+    """
+    if not user_id or cost is None or cost <= 0:
+        return
+    try:
+        async with db.get_connection() as conn:
+            # Utilise COALESCE pour se protéger d'une valeur NULL initiale dans la colonne total_ia_cost
+            await db.execute(
+                conn,
+                "UPDATE users SET total_ia_cost = COALESCE(total_ia_cost, 0.0) + ? WHERE id = ?",
+                (cost, user_id)
+            )
+    except Exception as e:
+        print(f"[DB WARNING] Failed to update total_ia_cost for user {user_id}: {e}")
+
 def clean_ai_json_response(response_text: str):
     """Cleans and parses JSON from AI, removing markdown code blocks."""
     try:

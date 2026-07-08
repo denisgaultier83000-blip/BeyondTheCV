@@ -2,6 +2,7 @@ import os
 import asyncio
 import time
 import random
+from typing import Tuple, Dict, Any
 from dotenv import load_dotenv
 import json
 
@@ -10,6 +11,14 @@ try:
 except ImportError:
     AsyncRetrying = None
     print("[AI WARNING] 'tenacity' library not found. Auto-retry for JSON is disabled.", flush=True)
+
+# --- [NOUVEAU] Grille tarifaire centralisée (en USD par million de tokens) ---
+AI_PRICING = {
+    "gpt-4o-mini": {"input": 0.15, "output": 0.60},
+    "gemini-2.5-flash": {"input": 0.35, "output": 0.70}, # Exemple, à ajuster
+    "gemini-2.0-flash": {"input": 0.35, "output": 0.70}, # Exemple, à ajuster
+    "default": {"input": 0.20, "output": 0.80}
+}
 
 # Chargement des variables d'environnement
 load_dotenv()
@@ -101,7 +110,7 @@ class AIGenerator:
         """
         # Logique simplifiée et robuste : on utilise le modèle résolu au démarrage
         target_provider = provider or self.default_provider
-        
+
         # [CIRCUIT BREAKER] Auto-switch si le provider par défaut est hors-service
         if not provider and self.provider_failures.get(target_provider, 0) >= self.circuit_breaker_threshold:
             # Vérification du temps de pénalité (état Half-Open)
@@ -112,7 +121,7 @@ class AIGenerator:
                 fallback = "openai" if target_provider == "gemini" else "gemini"
                 print(f"[AI CIRCUIT BREAKER] 🛑 {target_provider} est ignoré (hors-service). Routage direct vers {fallback}.", flush=True)
                 target_provider = fallback
-            
+
         fallback_provider = "openai" if target_provider == "gemini" else "gemini"
 
         # Initialisation Lazy du Sémaphore (Garanti dans l'Event Loop)
@@ -123,7 +132,7 @@ class AIGenerator:
             try:
                 res = await self._execute_provider(target_provider, prompt, system_instruction, json_mode=json_mode, bypass_queue=bypass_queue)
                 self.provider_failures[target_provider] = max(0, self.provider_failures[target_provider] - 1)
-                return res
+                return res[0] # Retourne uniquement le contenu textuel pour la compatibilité ascendante
                     
             except Exception as e:
                 
@@ -134,7 +143,7 @@ class AIGenerator:
                 try:
                     res = await self._execute_provider(fallback_provider, prompt, system_instruction, json_mode=json_mode, bypass_queue=bypass_queue)
                     self.provider_failures[fallback_provider] = max(0, self.provider_failures[fallback_provider] - 1)
-                    return res
+                    return res[0] # Retourne uniquement le contenu textuel
                 except Exception as fallback_e:
                     self.provider_failures[fallback_provider] += 1
                     self.provider_last_failure[fallback_provider] = time.time()
@@ -146,14 +155,14 @@ class AIGenerator:
         # pour éviter les deadlocks (starvation) pendant les retry/sleeps.
         return await _run()
 
-    async def generate_valid_json(self, prompt: str, provider: str = None, system_instruction: str = None, bypass_queue: bool = False) -> dict:
+    async def generate_valid_json(self, prompt: str, provider: str = None, system_instruction: str = None, bypass_queue: bool = False) -> Dict[str, Any]:
         """
         Appelle l'IA et garantit une sortie JSON valide. 
         En cas d'erreur de parsing, relance l'IA avec un message de correction via Tenacity.
+        Retourne un dictionnaire avec le JSON parsé et le coût.
         """
         # [FIX] Force l'IA à ne pas utiliser de Markdown dans les réponses JSON pour éviter les **xxxx** à l'affichage
         prompt = prompt + "\n\n⚠️ CRITICAL INSTRUCTION: DO NOT use any markdown formatting (like **bold** or *italic*) inside the JSON values. Return raw, unformatted plain text only."
-        
         if not AsyncRetrying:
             try:
                 res_str = await self.generate(prompt, provider, system_instruction, bypass_queue, json_mode=True)
@@ -169,18 +178,20 @@ class AIGenerator:
         ):
             with attempt:
                 try:
-                    res_str = await self.generate(current_prompt, provider, system_instruction, bypass_queue, json_mode=True)
+                    res_str, cost = await self._generate_with_cost(current_prompt, provider, system_instruction, bypass_queue, json_mode=True)
                     parsed = clean_ai_json_response(res_str)
                     if "error" in parsed:
                         current_prompt = prompt + f"\n\n⚠️ ATTENTION : Ta réponse précédente n'était pas un JSON valide.\nErreur retournée : {parsed['error']}\nExtrait de ce que tu as envoyé : {res_str[:150]}...\nMerci de CORRIGER ce format et de retourner STRICTEMENT un JSON valide."
                         print(f"[AI RETRY] JSON invalide détecté. Tentative de correction en cours...", flush=True)
                         raise ValueError(f"Invalid JSON from AI: {parsed['error']}")
+                    # [MODIFIÉ] On retourne le JSON et le coût
+                    parsed['cost'] = cost
                     return parsed
                 except Exception as e:
                     # Erreur d'API (Timeout, Quota, etc.), on renvoie l'erreur pour que le frontend gère
-                    return {"error": str(e), "type": "api_error"}
+                    return {"error": str(e), "type": "api_error", "cost": 0}
 
-    async def _execute_provider(self, target_provider: str, prompt: str, system_instruction: str, json_mode: bool = False, bypass_queue: bool = False) -> str:
+    async def _execute_provider(self, target_provider: str, prompt: str, system_instruction: str, json_mode: bool = False, bypass_queue: bool = False) -> Tuple[str, float]:
         """Exécute l'appel vers le provider spécifique de manière isolée."""
         if target_provider == "openai":
             if not self.openai_client:
@@ -198,7 +209,7 @@ class AIGenerator:
             
         raise ValueError(f"Provider '{target_provider}' is unknown or not supported.")
 
-    async def _attempt_call(self, func, model_name, bypass_queue, *args, **kwargs):
+    async def _attempt_call(self, func, model_name, bypass_queue, *args, **kwargs) -> Tuple[str, float]:
         """Exécute une fonction d'appel IA avec retries pour les erreurs transitoires."""
         max_retries = 2 # [OPTIMISATION] 3 essais totaux par provider (0, 1, 2) avant de basculer (fallback)
         base_delay = 0.5 # [OPTIMISATION] Délai de base ultra-court pour absorber les micro-pannes 502/503
@@ -241,7 +252,7 @@ class AIGenerator:
                 else:
                     raise e # Épuisement des retries
 
-    async def _call_openai(self, prompt, system_instruction, model="gpt-4-turbo", json_mode=False):
+    async def _call_openai(self, prompt: str, system_instruction: str, model: str = "gpt-4-turbo", json_mode: bool = False) -> Tuple[str, float]:
         if not self.openai_client:
             raise ValueError("Clé OpenAI non configurée.")
         
@@ -259,9 +270,30 @@ class AIGenerator:
             kwargs["response_format"] = {"type": "json_object"}
 
         response = await self.openai_client.chat.completions.create(**kwargs)
-        return response.choices[0].message.content
+        
+        content = response.choices[0].message.content
+        cost = 0.0
+        if response.usage:
+            pricing = AI_PRICING.get(model, AI_PRICING["default"])
+            input_cost = (response.usage.prompt_tokens / 1_000_000) * pricing["input"]
+            output_cost = (response.usage.completion_tokens / 1_000_000) * pricing["output"]
+            cost = input_cost + output_cost
 
-    async def _call_gemini(self, prompt, system_instruction, model="gemini-2.0-flash", json_mode=False):
+        return content, cost
+
+    async def _generate_with_cost(self, prompt: str, provider: str = None, system_instruction: str = None, bypass_queue: bool = False, json_mode: bool = False) -> Tuple[str, float]:
+        """Méthode interne qui retourne le contenu et le coût."""
+        # Cette méthode est similaire à `generate` mais retourne le tuple complet.
+        # La logique de fallback est simplifiée pour ce cas d'usage interne.
+        target_provider = provider or self.default_provider
+        try:
+            return await self._execute_provider(target_provider, prompt, system_instruction, json_mode=json_mode, bypass_queue=bypass_queue)
+        except Exception as e:
+            fallback_provider = "openai" if target_provider == "gemini" else "gemini"
+            print(f"[AI] ⚠️ Fallback vers {fallback_provider} après échec sur {target_provider}.", flush=True)
+            return await self._execute_provider(fallback_provider, prompt, system_instruction, json_mode=json_mode, bypass_queue=bypass_queue)
+
+    async def _call_gemini(self, prompt: str, system_instruction: str, model: str = "gemini-2.0-flash", json_mode: bool = False) -> Tuple[str, float]:
         if not self.gemini_client:
             raise ValueError("Clé Gemini non configurée.")
         
@@ -285,7 +317,14 @@ class AIGenerator:
             config=config
         )
         try:
-            return response.text
+            content = response.text
+            cost = 0.0
+            if response.usage_metadata:
+                pricing = AI_PRICING.get(model, AI_PRICING["default"])
+                input_cost = (response.usage_metadata.prompt_token_count / 1_000_000) * pricing["input"]
+                output_cost = (response.usage_metadata.candidates_token_count / 1_000_000) * pricing["output"]
+                cost = input_cost + output_cost
+            return content, cost
         except ValueError as e:
             # [FIX] Gère les blocages dus aux Safety Filters de Google (renvoie un bloc vide)
             raise RuntimeError(f"Gemini Safety Filter Blocked Content: {e}")

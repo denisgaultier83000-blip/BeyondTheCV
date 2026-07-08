@@ -241,6 +241,36 @@ async def admin_get_user_generations(user_id: str, limit: int = 5):
             result_list.append(dict(g))
     return {"generations": result_list}
 
+@router.get("/users/{user_id}/cost-history")
+async def admin_get_user_cost_history(user_id: str, limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0)):
+    """[NOUVEAU] Récupère l'historique paginé des coûts IA pour un utilisateur spécifique."""
+    # Cette requête cible la table 'tasks' qui enregistre chaque génération IA.
+    query = """
+        SELECT 
+            id, 
+            created_at, 
+            task_type, 
+            status, 
+            estimated_cost,
+            model_used,
+            duration_ms
+        FROM tasks
+        WHERE user_id = ? AND estimated_cost IS NOT NULL AND estimated_cost > 0
+        ORDER BY created_at DESC
+        LIMIT ? OFFSET ?
+    """
+    count_query = "SELECT COUNT(*) FROM tasks WHERE user_id = ? AND estimated_cost IS NOT NULL AND estimated_cost > 0"
+    
+    async with db.get_connection() as conn:
+        cursor = await db.execute(conn, query, (user_id, limit, offset))
+        rows = await cursor.fetchall()
+        
+        total_cursor = await db.execute(conn, count_query, (user_id,))
+        total_row = await total_cursor.fetchone()
+        total_records = list(total_row.values())[0] if total_row else 0
+
+    costs = [dict(row) for row in rows]
+    return {"costs": costs, "total": total_records}
 
 @router.post("/users/{user_id}/toggle-active")
 async def admin_toggle_user_active(user_id: str, request: Request, admin_user: dict = Depends(require_admin_user)):
