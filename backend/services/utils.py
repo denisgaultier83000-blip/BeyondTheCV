@@ -24,38 +24,31 @@ def load_prompt(filename: str) -> str:
 
 async def consume_credit(user_id: str, cost: int = 1):
     """
-    Vérifie le solde de crédits, le recharge si nécessaire, puis le décrémente.
+    Vérifie le solde de crédits et le décrémente.
     Lève une HTTPException si le solde après recharge est toujours insuffisant.
+    La recharge se fait désormais uniquement à la connexion pour plus de clarté.
     """
     async with db.get_connection() as conn:
         # Utilisation d'un verrou pour cet utilisateur afin d'éviter les race conditions
         user_lock_key = f"credit_{user_id}"
         if user_lock_key not in _CACHE_LOCKS:
             _CACHE_LOCKS[user_lock_key] = asyncio.Lock()
-        
+
         async with _CACHE_LOCKS[user_lock_key]:
             cursor = await db.execute(conn, "SELECT credits FROM users WHERE id = ?", (user_id,))
             user_data = await cursor.fetchone()
 
             if not user_data:
                 raise HTTPException(status_code=404, detail="Utilisateur introuvable pour la gestion des crédits.")
-
-            current_credits = user_data[0] if isinstance(user_data, tuple) else user_data.get('credits')
-            if current_credits is None:
-                current_credits = 0
-
-            # Si le solde est insuffisant, on recharge
+            
+            current_credits = (user_data[0] if isinstance(user_data, tuple) else user_data.get('credits')) or 0
+            
             if current_credits < cost:
-                await db.execute(conn, "UPDATE users SET credits = credits + 60, updated_at = ? WHERE id = ?", (datetime.now(), user_id))
-                current_credits += 60 # Mettre à jour le solde local pour la vérification finale
-
-            # Vérification finale après une éventuelle recharge
-            if current_credits < cost:
-                 # Ce cas ne devrait pas arriver si la recharge est suffisante
-                raise HTTPException(status_code=402, detail=f"Crédits insuffisants même après recharge. (Solde: {current_credits}, Requis: {cost}).")
+                raise HTTPException(status_code=402, detail=f"Crédits insuffisants. (Solde: {current_credits}, Requis: {cost}). Veuillez vous reconnecter pour recharger votre compte.")
 
             # Décrémenter le coût de l'action
-            await db.execute(conn, "UPDATE users SET credits = credits - ?, updated_at = ? WHERE id = ?", (cost, datetime.now(), user_id))
+            # [CORRECTIF] On s'assure que le solde ne peut jamais tomber en dessous de 0.
+            await db.execute(conn, "UPDATE users SET credits = MAX(0, credits - ?) WHERE id = ?", (cost, user_id))
     return True
 
 async def refund_credit(user_id: str, cost: int = 1):

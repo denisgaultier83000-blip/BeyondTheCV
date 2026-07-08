@@ -162,13 +162,18 @@ async def _run_salary_logic(task_id: str, candidate_data: dict):
 
         prompt = f"Estimate a realistic salary range (low, mid, high) for this profile {geo_context}.\n\nSPECIAL INSTRUCTION: If location is Remote/International, use USD or EUR and explain in 'commentary' that salary depends on Company HQ location. Write the 'commentary' in {target_lang}.\n\nPROFILE:\n{json.dumps(_sanitize_data_for_ai(candidate_data, strict=True), indent=2, ensure_ascii=False, default=str)}\n\n⚠️ INSTRUCTION CRITIQUE : Ne recopie JAMAIS les valeurs d'exemple du JSON. Tu DOIS calculer de vrais montants basés sur le marché actuel pour ce profil précis.\nRespond in STRICT JSON: {{\"salary_range\": {{\"low\": 0, \"mid\": 0, \"high\": 0}}, \"currency\": \"EUR\", \"confidence\": \"Haute | Moyenne | Faible\", \"commentary\": \"...\"}}\nIMPORTANT: 'low', 'mid', 'high' MUST be integers."
         
+        # [MODIFIÉ] Capture du coût
         result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are a compensation expert. You must output STRICT JSON.")
+        cost = result.pop('cost', 0.0)
+        await update_user_total_cost(user_id, cost)
+
         if "error" in result:
             result = {"salary_range": {"low": 0, "mid": 0, "high": 0}, "currency": "EUR", "commentary": "Estimation indisponible."}
         else:
             await set_cached_content(cache_key, user_id, "salary", result)
             
-        await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+        # [MODIFIÉ] Sauvegarde du coût
+        await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result, cost)
         await manager.broadcast(task_id, "Estimation terminée.", status="COMPLETED", data=result)
     except Exception as e:
         print(f"[Task {task_id}] ❌ Salary failed: {e}")
@@ -234,10 +239,16 @@ async def _run_completeness_logic(task_id: str, payload: dict):
         CONTENT:
         {text_content[:15000]}
         """
+        # [MODIFIÉ] Capture du coût
         result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a Data Quality Analyst. Output STRICT JSON. Language: {target_lang}.")
+        cost = result.pop('cost', 0.0)
+        await update_user_total_cost(user_id, cost)
+
         if "error" not in result:
             await set_cached_content(cache_key, user_id, "completeness", result)
-        await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+
+        # [MODIFIÉ] Sauvegarde du coût
+        await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result, cost)
         await manager.broadcast(task_id, "Analyse terminée", status="COMPLETED", data=result)
     except Exception as e:
         fallback = {"score": 50, "quality": "Moyen", "missing_info": [], "suggestions": [], "clarifications": []}
@@ -258,11 +269,17 @@ async def _run_pitch_logic(task_id: str, candidate_data: dict):
         is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "pitch", candidate_data, "Pitch récupéré en cache")
         if is_cached: return
 
+        # [MODIFIÉ] Capture du coût
         result = await generate_pitch(candidate_data, quality='smart')
+        cost = result.pop('cost', 0.0)
+        await update_user_total_cost(user_id, cost)
+
         target_lang = normalize_language(candidate_data.get('target_language', 'French'))
         if "error" not in result:
             await set_cached_content(cache_key, user_id, "pitch", result)
-        await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+
+        # [MODIFIÉ] Sauvegarde du coût
+        await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result, cost)
         await manager.broadcast(task_id, "Pitch généré", status="COMPLETED", data=result)
     except Exception as e:
         fallback = {"accroche": "Erreur", "preuve": "", "valeur": "", "projection": ""}
@@ -322,13 +339,18 @@ async def _run_questions_logic(task_id: str, candidate_data: dict):
             OUTPUT LANGUAGE: {target_lang}
             """
             
+            # [MODIFIÉ] Capture du coût
             result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction=f"You are an expert interviewer. Output ONLY JSON. Language: {target_lang}.")
+            cost = result.pop('cost', 0.0)
+            await update_user_total_cost(user_id, cost)
+
             if "error" in result:
                 await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
                 await manager.broadcast(task_id, "Erreur lors de la génération", status="FAILED", data=result)
             else:
                 await set_cached_content(cache_key, user_id, "interview_questions", result)
-                await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+                # [MODIFIÉ] Sauvegarde du coût
+                await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result, cost)
                 await manager.broadcast(task_id, "Questions générées avec succès", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -383,13 +405,18 @@ async def _run_gap_analysis_logic(task_id: str, data: dict):
         OUTPUT LANGUAGE: {target_lang}
         """
         
+        # [MODIFIÉ] Capture du coût
         result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a Career Coach. Output STRICT JSON in {target_lang}.")
+        cost = result.pop('cost', 0.0)
+        await update_user_total_cost(user_id, cost)
+
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur d'analyse", status="FAILED", data=result)
         else:
             await set_cached_content(cache_key, user_id, "gap_analysis", result)
-            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            # [MODIFIÉ] Sauvegarde du coût
+            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result, cost)
             await manager.broadcast(task_id, "Analyse terminée", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -482,14 +509,19 @@ async def _run_career_radar_logic(task_id: str, data: dict):
         OUTPUT LANGUAGE: {target_lang}
         """
         
+        # [MODIFIÉ] Capture du coût
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are a Career Strategist. Output STRICT JSON.")
+        cost = result.pop('cost', 0.0)
+        await update_user_total_cost(user_id, cost)
         
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
             await set_cached_content(cache_key, user_id, "career_radar", result)
-            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            
+            # [MODIFIÉ] Sauvegarde du coût
+            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result, cost)
             await manager.broadcast(task_id, "Radar généré", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -520,14 +552,19 @@ async def _run_recruiter_view_logic(task_id: str, data: dict):
         OUTPUT LANGUAGE: {target_lang}
         """
         
+        # [MODIFIÉ] Capture du coût
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an empathetic, strategic Career Coach. Help the candidate succeed. Output STRICT JSON.")
+        cost = result.pop('cost', 0.0)
+        await update_user_total_cost(user_id, cost)
         
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
             await set_cached_content(cache_key, user_id, "recruiter_view", result)
-            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            
+            # [MODIFIÉ] Sauvegarde du coût
+            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result, cost)
             await manager.broadcast(task_id, "Vue recruteur générée", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -562,14 +599,19 @@ async def _run_oneliner_logic(task_id: str, data: dict):
         LANGUAGE: {target_lang}
         """
         
+        # [MODIFIÉ] Capture du coût
         result = await ai_service.generate_valid_json(prompt, provider="gemini", system_instruction="You are a Personal Branding Expert. Output STRICT JSON.")
+        cost = result.pop('cost', 0.0)
+        await update_user_total_cost(user_id, cost)
         
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
             await set_cached_content(cache_key, user_id, "oneliner", result)
-            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            
+            # [MODIFIÉ] Sauvegarde du coût
+            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result, cost)
             await manager.broadcast(task_id, "One-liner générée", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -615,14 +657,19 @@ async def _run_risk_analysis_logic(task_id: str, data: dict):
         LANGUAGE: {target_lang}
         """
         
+        # [MODIFIÉ] Capture du coût
         result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are a Career Risk Analyst.")
+        cost = result.pop('cost', 0.0)
+        await update_user_total_cost(user_id, cost)
         
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
             await set_cached_content(cache_key, user_id, "risk_analysis", result)
-            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            
+            # [MODIFIÉ] Sauvegarde du coût
+            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result, cost)
             await manager.broadcast(task_id, "Analyse des risques terminée", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -655,14 +702,19 @@ async def _run_job_decoder_logic(task_id: str, data: dict):
         OUTPUT LANGUAGE: {target_lang}
         """
         
+        # [MODIFIÉ] Capture du coût
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are a Job Market Analyst. Output STRICT JSON.")
+        cost = result.pop('cost', 0.0)
+        await update_user_total_cost(user_id, cost)
         
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
             await set_cached_content(cache_key, user_id, "job_decoder", result)
-            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            
+            # [MODIFIÉ] Sauvegarde du coût
+            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result, cost)
             await manager.broadcast(task_id, "Décodeur d'offre généré", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -698,14 +750,19 @@ async def _run_hidden_market_logic(task_id: str, data: dict):
         OUTPUT LANGUAGE: {target_lang}
         """
         
+        # [MODIFIÉ] Capture du coût
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are a Networking Strategist. Output STRICT JSON.")
+        cost = result.pop('cost', 0.0)
+        await update_user_total_cost(user_id, cost)
         
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
             await set_cached_content(cache_key, user_id, "hidden_market", result)
-            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            
+            # [MODIFIÉ] Sauvegarde du coût
+            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result, cost)
             await manager.broadcast(task_id, "Stratégie marché caché générée", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -746,14 +803,19 @@ async def _run_career_gps_logic(task_id: str, data: dict):
         OUTPUT LANGUAGE: {target_lang}
         """
         
+        # [MODIFIÉ] Capture du coût
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are a Career Navigation System. Output STRICT JSON.")
+        cost = result.pop('cost', 0.0)
+        await update_user_total_cost(user_id, cost)
         
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
             await set_cached_content(cache_key, user_id, "career_gps", result)
-            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            
+            # [MODIFIÉ] Sauvegarde du coût
+            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result, cost)
             await manager.broadcast(task_id, "GPS Carrière généré", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -784,14 +846,19 @@ async def _run_reality_check_logic(task_id: str, data: dict):
         OUTPUT LANGUAGE: {target_lang}
         """
         
+        # [MODIFIÉ] Capture du coût
         result = await ai_service.generate_valid_json(final_prompt, provider="gemini", system_instruction="You are a Personal Branding Expert. Output STRICT JSON.")
+        cost = result.pop('cost', 0.0)
+        await update_user_total_cost(user_id, cost)
         
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
             await set_cached_content(cache_key, user_id, "reality_check", result)
-            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            
+            # [MODIFIÉ] Sauvegarde du coût
+            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result, cost)
             await manager.broadcast(task_id, "Reality check généré", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -840,13 +907,18 @@ async def _run_profile_validation_logic(task_id: str, data: dict):
         LANGUAGE: {target_lang}
         """
         
+        # [MODIFIÉ] Capture du coût
         result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are a strict HR reviewer and career coach.")
+        cost = result.pop('cost', 0.0)
+        await update_user_total_cost(user_id, cost)
+
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
             await set_cached_content(cache_key, user_id, "profile_validation", result)
-            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            # [MODIFIÉ] Sauvegarde du coût
+            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result, cost)
             await manager.broadcast(task_id, "Validation de profil terminée", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -880,13 +952,18 @@ async def process_flaw_coaching_in_background(task_id: str, data: dict):
         Adapte le ton et les exemples au niveau de séniorité du poste visé.
         OUTPUT LANGUAGE: {target_lang}
         """
+        # [MODIFIÉ] Capture du coût
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an Interview Coach. Output STRICT JSON.")
+        cost = result.pop('cost', 0.0)
+        await update_user_total_cost(user_id, cost)
+
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
             await set_cached_content(cache_key, user_id, "flaw_coaching", result)
-            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            # [MODIFIÉ] Sauvegarde du coût
+            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result, cost)
             await manager.broadcast(task_id, "Coaching défauts généré", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -914,13 +991,18 @@ async def process_action_plan_in_background(task_id: str, cv_dict: dict):
             
         prompt = f"{prompt_template}\n\nPROFIL:\n{json.dumps(safe_data, ensure_ascii=False, default=str)}\n\nOUTPUT LANGUAGE: {target_lang}"
         
+        # [MODIFIÉ] Capture du coût
         result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are a Career Coach.")
+        cost = result.pop('cost', 0.0)
+        await update_user_total_cost(user_id, cost)
+
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
             await set_cached_content(cache_key, user_id, "action_plan", result)
-            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            # [MODIFIÉ] Sauvegarde du coût
+            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result, cost)
             await manager.broadcast(task_id, "Plan d'action généré", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
@@ -966,13 +1048,18 @@ async def process_custom_scenarios_in_background(task_id: str, data: dict):
         OUTPUT LANGUAGE: {target_lang}
         """
         
+        # [MODIFIÉ] Capture du coût
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an Expert HR Scenario Designer.")
+        cost = result.pop('cost', 0.0)
+        await update_user_total_cost(user_id, cost)
+
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur de génération des scénarios", status="FAILED", data=result)
         else:
             await set_cached_content(cache_key, user_id, "extra_scenarios", result)
-            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+            # [MODIFIÉ] Sauvegarde du coût
+            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result, cost)
             await manager.broadcast(task_id, "Scénarios générés avec succès", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})

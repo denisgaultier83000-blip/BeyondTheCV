@@ -155,6 +155,28 @@ async def admin_get_billing_history(limit: int = 50, offset: int = 0):
         print(f"Could not query payments table: {e}")
         return {"payments": [], "total": 0}
 
+@router.get("/billing/webhook-status")
+async def get_webhook_status():
+    """
+    [NOUVEAU] Vérifie l'état du webhook Stripe en regardant le dernier paiement enregistré.
+    """
+    try:
+        async with db.get_connection() as conn:
+            # On cherche le paiement le plus récent
+            cursor = await db.execute(conn, "SELECT purchase_date FROM payments ORDER BY purchase_date DESC LIMIT 1")
+            last_payment = await cursor.fetchone()
+
+        if last_payment:
+            last_payment_date = last_payment[0] if isinstance(last_payment, tuple) else last_payment.get("purchase_date")
+            # Si le dernier paiement date de moins de 3 jours, on considère que c'est OK.
+            if (datetime.now() - last_payment_date) < timedelta(days=3):
+                return {"status": "ok", "last_event": last_payment_date.isoformat()}
+            else:
+                return {"status": "inactive", "last_event": last_payment_date.isoformat()}
+        return {"status": "inactive", "last_event": None}
+    except Exception:
+        return {"status": "error", "last_event": None}
+
 @router.get("/generations")
 async def admin_get_generations_history(limit: int = 20, offset: int = 0):
     """[MODIFIÉ] Récupère l'historique de toutes les générations IA avec plus de détails."""
