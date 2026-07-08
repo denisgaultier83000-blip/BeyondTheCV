@@ -43,12 +43,12 @@ async def consume_credit(user_id: str, cost: int = 1):
             
             current_credits = (user_data[0] if isinstance(user_data, tuple) else user_data.get('credits')) or 0
             
-            if current_credits < cost:
+            # [CORRECTIF] La vérification doit se faire ici, avant la déduction.
+            if current_credits < cost: 
                 raise HTTPException(status_code=402, detail=f"Crédits insuffisants. (Solde: {current_credits}, Requis: {cost}). Veuillez vous reconnecter pour recharger votre compte.")
 
-            # Décrémenter le coût de l'action
-            # [CORRECTIF] On s'assure que le solde ne peut jamais tomber en dessous de 0.
-            await db.execute(conn, "UPDATE users SET credits = MAX(0, credits - ?) WHERE id = ?", (cost, user_id))
+            # [CORRECTIF] La déduction se fait maintenant de manière simple et directe.
+            await db.execute(conn, "UPDATE users SET credits = credits - ? WHERE id = ?", (cost, user_id))
     return True
 
 async def refund_credit(user_id: str, cost: int = 1):
