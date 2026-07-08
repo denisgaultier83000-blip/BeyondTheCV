@@ -99,9 +99,14 @@ async def credit_user(
         user_id = user_row.get("id") if isinstance(user_row, dict) else user_row[0]
         
         try:
-            update_query = "UPDATE users SET credits = COALESCE(credits, 0) + ? WHERE id = ? RETURNING credits"
-            result_cursor = await db.execute(conn, update_query, (credit_request.amount, user_id))
-            new_balance_row = await result_cursor.fetchone()
+            # [CORRECTIF] Séparation de la mise à jour et de la lecture pour une meilleure compatibilité (SQLite ne supporte pas RETURNING).
+            # 1. Mettre à jour le solde
+            update_query = "UPDATE users SET credits = COALESCE(credits, 0) + ? WHERE id = ?"
+            await db.execute(conn, update_query, (credit_request.amount, user_id))
+            
+            # 2. Récupérer le nouveau solde
+            balance_cursor = await db.execute(conn, "SELECT credits FROM users WHERE id = ?", (user_id,))
+            new_balance_row = await balance_cursor.fetchone()
             new_balance = new_balance_row.get('credits') if new_balance_row else "inconnu"
 
             # Log audit
