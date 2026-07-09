@@ -1626,6 +1626,11 @@ async def start_analysis(background_tasks: BackgroundTasks, data: dict = Body(..
 @router.post("/analyze-completeness")
 async def analyze_completeness(background_tasks: BackgroundTasks, payload: dict = Body(...), current_user: dict = Depends(require_active_subscription)):
     task_id = str(uuid.uuid4())
+
+    # [CORRECTIF] Si le payload est vide, on ne lance pas de tâche IA et on retourne une réponse vide pour éviter un crash.
+    if not payload or (isinstance(payload, dict) and not payload.get("data")):
+        return {"task_id": task_id, "status": "SKIPPED", "message": "Payload vide, analyse ignorée."}
+
     now = datetime.now(timezone.utc)
     # [FIX EXPERT] Injection du user_id dans le payload pour activer le cache
     payload["user_id"] = current_user["id"]
