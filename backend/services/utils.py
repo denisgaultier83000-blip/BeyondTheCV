@@ -23,6 +23,9 @@ def load_prompt(filename: str) -> str:
         return ""
 
 async def consume_credit(user_id: str, cost: int = 1):
+    if cost == 0:
+        return True # Ne fait rien si le coût est de zéro
+
     """
     Vérifie le solde de crédits et le décrémente.
     Lève une HTTPException si le solde après recharge est toujours insuffisant.
@@ -50,6 +53,26 @@ async def consume_credit(user_id: str, cost: int = 1):
             # [CORRECTIF] La déduction se fait maintenant de manière simple et directe.
             await db.execute(conn, "UPDATE users SET credits = credits - ? WHERE id = ?", (cost, user_id))
     return True
+
+async def check_and_increment_generation_limit(user_id: str, limit: int = 50):
+    """
+    Vérifie si l'utilisateur a atteint sa limite de générations quotidiennes et l'incrémente.
+    Lève une HTTPException si la limite est atteinte.
+    """
+    async with db.get_connection() as conn:
+        user_lock_key = f"gen_limit_{user_id}"
+        if user_lock_key not in _CACHE_LOCKS:
+            _CACHE_LOCKS[user_lock_key] = asyncio.Lock()
+
+        async with _CACHE_LOCKS[user_lock_key]:
+            cursor = await db.execute(conn, "SELECT daily_generations_count FROM users WHERE id = ?", (user_id,))
+            user_data = await cursor.fetchone()
+            
+            current_count = (user_data[0] if isinstance(user_data, tuple) else user_data.get('daily_generations_count')) or 0
+            if current_count >= limit:
+                raise HTTPException(status_code=429, detail="Limite de générations quotidiennes gratuites atteinte.")
+            
+            await db.execute(conn, "UPDATE users SET daily_generations_count = daily_generations_count + 1 WHERE id = ?", (user_id,))
 
 async def refund_credit(user_id: str, cost: int = 1):
     """Rembourse des crédits à un utilisateur."""

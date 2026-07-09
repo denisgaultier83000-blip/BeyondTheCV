@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Header
 from database import db
 from models import PaymentIntentRequest
 from security import get_current_user
+from .plans import PLANS # Import de la nouvelle matrice des offres
 
 router = APIRouter(tags=["Payment"])
 
@@ -64,21 +65,14 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
         payment_intent = event["data"]["object"]
         user_id = payment_intent.get("metadata", {}).get("user_id")
         plan_name = payment_intent.get("metadata", {}).get("plan_name", "strategic")
-        
-        # Mapping des séances selon l'offre commerciale
-        sessions_to_add = 0
-        if plan_name == "express": sessions_to_add = 3
-        elif plan_name == "strategic": sessions_to_add = 15
-        elif plan_name == "intensive": sessions_to_add = 30
-        elif plan_name == "renewal": sessions_to_add = 15
-        # Nouveaux plans de recharge de séances
-        elif plan_name == "recharge_5": sessions_to_add = 5
-        elif plan_name == "recharge_10": sessions_to_add = 10
-        elif plan_name == "recharge_20": sessions_to_add = 20
-        elif plan_name == "recharge_30": sessions_to_add = 30
-        elif plan_name == "recharge_60": sessions_to_add = 60
 
-        if user_id and sessions_to_add > 0:
+        # Récupération des détails du plan depuis la matrice centralisée
+        plan_details = PLANS.get(plan_name)
+        if not plan_details:
+            print(f"[STRIPE WEBHOOK] Plan '{plan_name}' inconnu. Paiement ignoré.")
+            return {"status": "error", "message": "Unknown plan"}
+
+        if user_id:
             async with db.get_connection() as conn:
                 # 1. Protection contre les appels doublons de Stripe (Idempotence)
                 cursor = await db.execute(conn, "SELECT 1 FROM subscription_extensions WHERE transaction_id = ?", (payment_intent.id,))
@@ -86,11 +80,15 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                     return {"status": "success", "message": "Already processed"}
 
                 # 2. Mise à jour réelle incluant le temps d'expiration (120 jours) et le crédit de séances
+                # [MODIFIÉ] Utilisation des valeurs de la matrice des plans
+                access_days = plan_details["access_days"]
+                sessions_to_add = plan_details["initial_credits"]
+
                 await db.execute(conn, """
                     UPDATE users 
                     SET is_premium = TRUE, 
                         subscription_status = 'active',
-                        subscription_expiration_date = GREATEST(COALESCE(subscription_expiration_date, CURRENT_TIMESTAMP), CURRENT_TIMESTAMP) + INTERVAL '120 days',
+                        subscription_expiration_date = GREATEST(COALESCE(subscription_expiration_date, CURRENT_TIMESTAMP), CURRENT_TIMESTAMP) + INTERVAL '{access_days} days',
                         credits = COALESCE(credits, 0) + ?
                     WHERE id = ?
                 """, (sessions_to_add, user_id))

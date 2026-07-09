@@ -10,7 +10,7 @@ from models import (
 from security import get_current_user
 from database import db
 from .ai_generator import ai_service
-from .utils import load_prompt, clean_ai_json_response, normalize_language, consume_credit, refund_credit
+from .utils import load_prompt, clean_ai_json_response, normalize_language, consume_credit, refund_credit, check_and_increment_generation_limit
 from .cv_services import require_active_subscription
 
 router = APIRouter(
@@ -18,6 +18,7 @@ router = APIRouter(
     tags=["Simulations & Coaching"]
 )
 
+from .costs import CREDIT_COSTS
 def _sanitize_for_prompt(data: dict) -> dict:
     """Retire les données binaires et non-essentielles avant l'injection dans les prompts."""
     safe_data = data.copy() if isinstance(data, dict) else {}
@@ -180,7 +181,8 @@ async def simulate_situation(request: SituationSimulationRequest, current_user: 
 async def simulate_negotiation(request: NegotiationSimulationRequest, current_user: dict = Depends(require_active_subscription)):
     """Analyse la façon dont le candidat négocie ou défend son salaire face à une objection du recruteur."""
     
-    await consume_credit(current_user["id"], cost=1)
+    cost = CREDIT_COSTS.get("evaluate_answer", 1)
+    await consume_credit(current_user["id"], cost=cost)
     
     target_lang = normalize_language(request.candidate_profile.get('target_language', 'French'))
     salary_expectations = request.candidate_profile.get('salary_expectations', 'Non spécifié')
@@ -225,8 +227,8 @@ async def simulate_negotiation(request: NegotiationSimulationRequest, current_us
             
         return {"feedback": feedback}
     except HTTPException:
-        await refund_credit(current_user["id"], cost=1)
+        await refund_credit(current_user["id"], cost=cost)
         raise
     except Exception as e:
-        await refund_credit(current_user["id"], cost=1)
+        await refund_credit(current_user["id"], cost=cost)
         raise HTTPException(status_code=500, detail=f"Negotiation simulation failed: {str(e)}")

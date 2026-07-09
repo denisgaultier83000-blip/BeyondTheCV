@@ -4,23 +4,20 @@ import json
 import io
 import io
 import asyncio
-import re
-import shutil
+import re, shutil
 from datetime import datetime, timezone
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks, Body, Depends, Query
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse
 from starlette.background import BackgroundTask
 from pypdf import PdfReader
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 
 from database import db
-from models import GenerateRequest, CVFinal, FeedbackRequest, ExperienceRequest, SkillExtractionRequest, FullCVData
+from models import FeedbackRequest, ExperienceRequest, SkillExtractionRequest, FullCVData
 from security import get_current_user, require_admin_user
 # [FIX] Utilisation du service unifié au lieu d'imports inexistants
 from .ai_generator import ai_service
-from .latex import generate_pdf_from_latex
-from .docx_generator import generate_cv_docx
 from .tasks import (
     process_cv_draft_in_background,
     process_research_in_background,
@@ -39,7 +36,7 @@ from .tasks import (
 )
 from .utils import (
     clean_ai_json_response, normalize_language, load_prompt, _get_sortable_date_tuple,
-    _sanitize_data_for_ai, _generate_cache_key, get_cached_content, set_cached_content, 
+    _sanitize_data_for_ai, _generate_cache_key, get_cached_content, set_cached_content, check_and_increment_generation_limit,
     consume_credit, refund_credit,
     _CACHE_LOCKS
 )
@@ -182,27 +179,6 @@ async def require_active_subscription(current_user: dict = Depends(get_current_u
         raise HTTPException(status_code=402, detail="Abonnement expiré. L'accès aux modèles d'Intelligence Artificielle est verrouillé.")
     return current_user
 
-def _generate_smart_filename(data: dict, doc_type: str = "CV", ext: str = "pdf") -> str:
-    """Génère un nom de fichier propre et explicite: Type_Nom_Poste_Entreprise_Date.ext"""
-    # [FIX EXPERT] Sécurisation contre les valeurs "null" JSON qui font crasher le .strip() (AttributeError)
-    last_name = (data.get('last_name') or 'Candidat').strip()
-    target_job = (data.get('target_job') or data.get('target_role_primary') or '').strip()
-    target_company = (data.get('target_company') or '').strip()
-    
-    # Nettoyage strict (Alphanumérique + espaces transformés en tirets du bas)
-    last_name = re.sub(r'[^A-Za-z0-9 ]', '', last_name).replace(' ', '')
-    target_job = re.sub(r'[^A-Za-z0-9 ]', '', target_job).replace(' ', '_')
-    target_company = re.sub(r'[^A-Za-z0-9 ]', '', target_company).replace(' ', '_')
-    
-    parts = [doc_type]
-    if last_name: parts.append(last_name.capitalize())
-    if target_job: parts.append(target_job)
-    if target_company: parts.append(target_company)
-    parts.append(datetime.now().strftime('%Y%m%d'))
-    
-    base_name = re.sub(r'_+', '_', "_".join([p for p in parts if p])) # Évite les doubles underscores
-    return f"{base_name}.{ext}"
-
 async def analyze_free_text_content(text, quality='fast'):
     prompt = f"""
     Extract structured CV data from this text. Return JSON with fields: first_name, last_name, email, phone, skills (string), experiences (list), educations (list).
@@ -212,28 +188,6 @@ async def analyze_free_text_content(text, quality='fast'):
     {text[:3000]}
     </raw_text>"""
     return await ai_service.generate_valid_json(prompt, provider="gemini", system_instruction="You are a CV parser API. Output STRICT JSON.")
-
-async def optimize_cv_data(data, target_lang='French', quality='smart'):
-    # [FIX] Extraction des mots-clés et clarifications pour forcer l'IA à les utiliser
-    clarifications = data.get('clarifications', [])
-    
-    clarifications_str = "\n".join([f"- {c.get('question', '')} : {c.get('answer', '')}" for c in clarifications if isinstance(c, dict) and c.get('answer')])
-    
-    instructions_candidat = ""
-    if clarifications_str:
-        instructions_candidat = f"\n⚠️ INSTRUCTIONS SPÉCIFIQUES DU CANDIDAT (PRÉCISIONS À INTÉGRER IMPÉRATIVEMENT DANS LES EXPÉRIENCES OU COMPÉTENCES) :\n{clarifications_str}\nTu dois absolument tisser ces éléments dans le contenu du CV.\n"
-
-    prompt = f"""
-    Optimize this CV data for ATS in {target_lang}. Improve wording and keywords.
-    ⚠️ IMPÉRATIF DE CORRECTION : Le texte fourni est un brouillon brut. Tu DOIS corriger scrupuleusement toutes les fautes d'orthographe, de frappe, ajouter les accents manquants et corriger la typographie (mettre des majuscules aux noms, prénoms, noms d'entreprises et débuts de phrases). Le résultat doit avoir une rigueur typographique absolue.
-    ⚠️ INTERDICTION ABSOLUE : N'invente AUCUNE donnée personnelle (téléphone, email, ville, linkedin). Si une information est absente du JSON source, laisse la valeur VIDE ou null. N'écris JAMAIS de texte comme "Numéro formaté", "Ville, France" ou "URL propre".
-    ⚠️ TRI CHRONOLOGIQUE : Tu DOIS réorganiser les tableaux `experiences` et `educations` par ordre anti-chronologique (de la date la plus récente à la plus ancienne). Si une date est marquée comme 'Présent' ou 'En cours', place-la en premier.
-    {instructions_candidat}
-    
-    DATA:
-    {json.dumps(_sanitize_data_for_ai(data), default=str)}
-    """
-    return await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are an expert CV writer and rigorous copy-editor. Output in {target_lang}. Return JSON with keys: 'optimized_data' (dict) and 'analysis' (dict).")
 
 async def generate_interview_questions(data, quality='smart'):
     # [AMELIORATION] Prompt aligné avec tasks.py pour des réponses suggérées
@@ -524,8 +478,9 @@ async def evaluate_vocal_pitch(request: VocalPitchRequest, current_user: dict = 
     LANGUAGE: {target_lang}
     """
     
+    cost = CREDIT_COSTS.get("evaluate_vocal_pitch", 1)
     if not current_user.get("is_admin"):
-        await consume_credit(current_user["id"], cost=4)
+        await consume_credit(current_user["id"], cost=cost)
     try:
         result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are an elite Public Speaking Coach. Output STRICT JSON.")
         
@@ -561,12 +516,12 @@ async def evaluate_vocal_pitch(request: VocalPitchRequest, current_user: dict = 
             
         return result
     except HTTPException:
-        if not current_user.get("is_admin"):
-            await refund_credit(current_user["id"], cost=4)
+        if not current_user.get("is_admin") and cost > 0:
+            await refund_credit(current_user["id"], cost=cost)
         raise
     except Exception as e:
-        if not current_user.get("is_admin"):
-            await refund_credit(current_user["id"], cost=4)
+        if not current_user.get("is_admin") and cost > 0:
+            await refund_credit(current_user["id"], cost=cost)
         raise HTTPException(status_code=500, detail=f"Erreur d'évaluation vocale : {str(e)}")
 
 @router.post("/evaluate-oral-pitch")
@@ -694,27 +649,29 @@ async def generate_training_question(request: CustomQuestionRequest, current_use
                                   .replace("{{TARGET_COMPANY}}", request.target_company)
                                   
     final_prompt += f"\n\nOUTPUT LANGUAGE: {normalize_language(request.target_language)}"
-                                  
-    cost = 3 if request.question_type == "MES" else 2
+
+    cost = CREDIT_COSTS.get("generate_question", 0)
     if not current_user.get("is_admin"):
+        await check_and_increment_generation_limit(current_user["id"])
         await consume_credit(current_user["id"], cost=cost)
+
     try:
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="Tu es un Coach de Carrière expert.")
         await set_cached_content(cache_key, current_user["id"], "training_question", result)
         return result
     except HTTPException:
-        if not current_user.get("is_admin"):
+        if not current_user.get("is_admin") and cost > 0:
             await refund_credit(current_user["id"], cost=cost)
         raise
     except Exception as e:
-        if not current_user.get("is_admin"):
+        if not current_user.get("is_admin") and cost > 0:
             await refund_credit(current_user["id"], cost=cost)
         raise HTTPException(status_code=500, detail=f"Erreur de génération : {str(e)}")
 
 @router.post("/training/evaluate")
 async def evaluate_training_answer(request: TrainingEvaluateRequest, current_user: dict = Depends(require_active_subscription)):
     """Évalue la réponse à l'entraînement, renvoie le feedback et le sauvegarde en DB."""
-    cost = 2
+    cost = CREDIT_COSTS.get("evaluate_answer", 1)
     if not current_user.get("is_admin"):
         await consume_credit(current_user["id"], cost=cost)
     try:
@@ -742,11 +699,11 @@ async def evaluate_training_answer(request: TrainingEvaluateRequest, current_use
             
         return {"feedback": feedback}
     except HTTPException:
-        if not current_user.get("is_admin"):
+        if not current_user.get("is_admin") and cost > 0:
             await refund_credit(current_user["id"], cost=cost)
         raise
     except Exception as e:
-        if not current_user.get("is_admin"):
+        if not current_user.get("is_admin") and cost > 0:
             await refund_credit(current_user["id"], cost=cost)
         raise HTTPException(status_code=500, detail=f"Erreur d'évaluation : {str(e)}")
 
@@ -793,19 +750,20 @@ async def generate_extra_scenarios(data: dict = Body(...), current_user: dict = 
         LANGUAGE: {target_lang}
         """
         
-        cost = 4
+        cost = CREDIT_COSTS.get("generate_question", 0) # Considéré comme une génération
         if not current_user.get("is_admin"):
+            await check_and_increment_generation_limit(current_user["id"])
             await consume_credit(current_user["id"], cost=cost)
         try:
             result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an Expert HR Assessor. Output STRICT JSON.")
             await set_cached_content(cache_key, current_user["id"], "extra_scenarios", result)
             return result
         except HTTPException:
-            if not current_user.get("is_admin"):
+            if not current_user.get("is_admin") and cost > 0:
                 await refund_credit(current_user["id"], cost=cost)
             raise
         except Exception as e:
-            if not current_user.get("is_admin"):
+            if not current_user.get("is_admin") and cost > 0:
                 await refund_credit(current_user["id"], cost=cost)
             raise HTTPException(status_code=500, detail=f"Erreur de génération des scénarios : {str(e)}")
 
@@ -1101,344 +1059,6 @@ async def start_cv_generation(background_tasks: BackgroundTasks, data: dict = Bo
         await db.execute(conn, "INSERT INTO tasks (id, user_id, status, result, created_at) VALUES (?, ?, ?, ?, ?)", (task_id, current_user["id"], "PENDING", None, now))
     background_tasks.add_task(process_cv_draft_in_background, task_id, data)
     return {"task_id": task_id, "status": "PENDING"}
-
-@router.post("/generate")
-async def generate_document(request: GenerateRequest, current_user: dict = Depends(require_active_subscription)):
-    action = request.action
-    data = request.data
-    print(f"[API] Generate action requested: '{action}'", flush=True)
-    
-    try:
-        if "CV" in action:
-            # [FIX EXPERT] Tri automatique des expériences par date de fin (décroissant).
-            # Garantit que l'ajout d'une nouvelle expérience (ou l'import LinkedIn)
-            # place toujours les postes dans le bon ordre chronologique sur le CV final.
-            if 'experiences' in data and isinstance(data['experiences'], list):
-                data['experiences'].sort(
-                    key=lambda exp: _get_sortable_date_tuple(exp.get('end_date') or exp.get('endDate') or exp.get('date') or ''),
-                    reverse=True
-                )
-            
-            # [COHÉRENCE] Tri automatique des formations.
-            if 'educations' in data and isinstance(data['educations'], list):
-                data['educations'].sort(
-                    key=lambda edu: _get_sortable_date_tuple(edu.get('end_date') or edu.get('endDate') or edu.get('date') or ''),
-                    reverse=True
-                )
-
-            target_lang = normalize_language(data.get('target_language') or data.get('language', 'fr'))
-            
-            if not request.skip_ai:
-                ai_result = await optimize_cv_data(data, target_lang=target_lang, quality='smart')
-                optimized_data = ai_result.get("optimized_data", data)
-                analysis_data = ai_result.get("analysis")
-            else:
-                optimized_data = data
-                analysis_data = None
-
-            # [FIX CRITIQUE] Aplatissement des informations personnelles pour le LaTeX
-            # On force l'écrasement avec les VRAIES données utilisateur (data)
-            # et on SUPPRIME les champs vides pour tuer les hallucinations type "URL linkedin propre"
-            real_personal_info = data.get("personal_info", {})
-            if isinstance(real_personal_info, dict):
-                for k in ['first_name', 'last_name', 'email', 'phone', 'linkedin', 'city', 'country']:
-                    val = real_personal_info.get(k)
-                    if val and isinstance(val, str) and str(val).strip():
-                        val_lower = val.lower()
-                        # Filtre strict anti-hallucinations fréquentes de l'IA
-                        invalid_placeholders = ["ville", "ville, france", "city", "numéro formaté", "numéro de téléphone", "votre ville", "url linkedin", "url propre"]
-                        if any(p in val_lower for p in ["propre", "formaté"]) or val_lower in invalid_placeholders or ("url" in val_lower and k == "linkedin"):
-                            optimized_data.pop(k, None)
-                        else:
-                            optimized_data[k] = val.strip()
-                    else:
-                        optimized_data.pop(k, None)
-
-            # Normalisation des langues
-            langs = optimized_data.get('languages')
-            langs_str = ""
-            if langs and isinstance(langs, list):
-                formatted_langs = [f"{lang_item.get('language', lang_item.get('name'))} ({lang_item.get('level')})" if isinstance(lang_item, dict) and lang_item.get('level') else lang_item.get('language', lang_item.get('name')) if isinstance(lang_item, dict) else lang_item for lang_item in langs]
-                if formatted_langs:
-                    langs_str = ", ".join([item for item in formatted_langs if item])
-                    
-            # [FIX CRITIQUE] Formatage des skills sécurisé et sorti de la condition des langues
-            current_skills_data = optimized_data.get('skills', [])
-            if isinstance(current_skills_data, list):
-                skills_text = ", ".join([str(s) for s in current_skills_data])
-            else:
-                skills_text = str(current_skills_data)
-            
-            optimized_data['skills'] = {"technical": skills_text, "languages": langs_str}
-            
-            # [FIX EXPERT - POINT 10] Injection des traductions dynamiques pour le template LaTeX (Titres des sections)
-            # Détection robuste de la langue (gère 'fr', 'french', 'fr-FR', etc.)
-            target_lang_lower = str(target_lang).lower()
-            if target_lang_lower in ['fr', 'french', 'fr-fr']:
-                lang_code = 'fr'
-            elif target_lang_lower in ['es', 'spanish', 'es-es']:
-                lang_code = 'es'
-            elif target_lang_lower in ['de', 'german', 'de-de']:
-                lang_code = 'de'
-            elif target_lang_lower in ['it', 'italian', 'it-it']:
-                lang_code = 'it'
-            else:
-                lang_code = 'en'
-
-            translations_map = {
-                'fr': {
-                    'profile': 'Profil', 'experience': 'Expérience Professionnelle', 'education': 'Formation',
-                    'skills': 'Compétences', 'technical': 'Techniques', 'languages': 'Langues'
-                },
-                'es': {
-                    'profile': 'Perfil', 'experience': 'Experiencia Profesional', 'education': 'Educación',
-                    'skills': 'Habilidades', 'technical': 'Técnicas', 'languages': 'Idiomas'
-                },
-                'de': {
-                    'profile': 'Profil', 'experience': 'Berufserfahrung', 'education': 'Ausbildung',
-                    'skills': 'Fähigkeiten', 'technical': 'Technik', 'languages': 'Sprachen'
-                },
-                'it': {
-                    'profile': 'Profilo', 'experience': 'Esperienza Professionale', 'education': 'Formazione',
-                    'skills': 'Competenze', 'technical': 'Tecniche', 'languages': 'Lingue'
-                },
-                'en': {
-                    'profile': 'Profile', 'experience': 'Professional Experience', 'education': 'Education',
-                    'skills': 'Skills', 'technical': 'Technical', 'languages': 'Languages'
-                }
-            }
-            optimized_data['translations'] = translations_map[lang_code]
-
-            if request.preview and request.renderer == "json":
-                return JSONResponse(content=optimized_data)
-
-            if "Word" in action or ".doc" in action:
-                docx_path = generate_cv_docx(optimized_data)
-                filename = _generate_smart_filename(data, "CV", "docx")
-                if not request.preview:
-                    doc_id = str(uuid.uuid4())
-                    application_id = data.get("application_id")
-                    async with db.get_connection() as conn:
-                        await db.execute(conn,
-                            "INSERT INTO documents (id, user_id, filename, path, type, created_at, media_type, application_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                            (doc_id, current_user["id"], filename, docx_path, "CV_WORD", datetime.now(), 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', application_id))
-                    return FileResponse(path=docx_path, filename=filename, media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-                else:
-                    # [ROBUSTESSE] On programme la suppression du fichier temporaire après l'envoi au client
-                    return FileResponse(path=docx_path, filename=filename, media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document', background=BackgroundTask(_remove_file_safe, docx_path))
-            else:
-                template_name = "cv_ats.tex"
-
-                # Vérification existence template (Fallback sur ATS si manquant)
-                # Note: generate_pdf_from_latex gère déjà une partie des erreurs, mais on assure ici le nom
-                generated_path = generate_pdf_from_latex(optimized_data, template_name)
-                filename = _generate_smart_filename(data, "CV", "pdf")
-                
-                headers = {"X-CV-Analysis": json.dumps(analysis_data)} if analysis_data else {}
-                
-                if not request.preview:
-                    doc_id = str(uuid.uuid4())
-                    application_id = data.get("application_id")
-                    async with db.get_connection() as conn:
-                        await db.execute(conn,
-                            "INSERT INTO documents (id, user_id, filename, path, type, created_at, media_type, application_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                            (doc_id, current_user["id"], filename, generated_path, "CV_ATS", datetime.now(), 'application/pdf', application_id))
-                    return FileResponse(path=generated_path, filename=filename, media_type='application/pdf', headers=headers)
-                else:
-                    # Mode prévisualisation : suppression propre post-réponse
-                    return FileResponse(path=generated_path, filename=filename, media_type='application/pdf', headers=headers, background=BackgroundTask(_remove_file_safe, generated_path))
-
-        elif "Questionnaire" in action or "Print Questionnaire" in action:
-            # [OPTIMISATION] Parallélisation des appels IA pour réduire de moitié le temps d'attente
-            async def get_qs():
-                q = data.get('questions') or data.get('questions_list')
-                
-                cache_key = _generate_cache_key(current_user["id"], "interview_questions", data)
-                
-                from .utils import _CACHE_LOCKS
-                import asyncio
-                if cache_key not in _CACHE_LOCKS:
-                    _CACHE_LOCKS[cache_key] = asyncio.Lock()
-                    
-                async with _CACHE_LOCKS[cache_key]:
-                    cached = await get_cached_content(cache_key)
-                    
-                    if q and isinstance(q, list) and len(q) > 0:
-                        if cached:
-                            def extract_deep_questions(obj):
-                                found = []
-                                if isinstance(obj, dict):
-                                    if any(k in obj for k in ["question", "scenario", "situation", "text", "contexte", "description", "defi"]):
-                                        found.append(obj)
-                                    for v in obj.values():
-                                        found.extend(extract_deep_questions(v))
-                                elif isinstance(obj, list):
-                                    for item in obj:
-                                        found.extend(extract_deep_questions(item))
-                                return found
-                                
-                            cached_list = extract_deep_questions(cached)
-                            cached_answers = {
-                                re.sub(r'\W+', '', str(cq.get("question") or cq.get("scenario") or cq.get("situation") or cq.get("text") or cq.get("contexte") or cq.get("description") or cq.get("defi") or "")).lower(): cq 
-                                for cq in cached_list if isinstance(cq, dict) and "user_answer" in cq
-                            }
-                            for q_item in q:
-                                if isinstance(q_item, dict):
-                                    q_text = q_item.get("question") or q_item.get("scenario") or q_item.get("situation") or q_item.get("text") or q_item.get("contexte") or q_item.get("description") or q_item.get("defi") or ""
-                                    q_norm = re.sub(r'\W+', '', str(q_text)).lower()
-                                    if q_norm in cached_answers:
-                                        cq = cached_answers[q_norm]
-                                        q_item["user_answer"] = cq.get("user_answer")
-                                        if "evaluation" in cq:
-                                            q_item["evaluation"] = cq.get("evaluation")
-                        return q
-                        
-                    if cached: return cached
-                    
-                    res = await generate_interview_questions(data, quality='smart')
-                    if res: await set_cached_content(cache_key, current_user["id"], "interview_questions", res)
-                    return res
-                
-            async def get_smart_qs():
-                sq = data.get('questions_to_ask')
-                if sq: return sq
-                
-                cache_key = _generate_cache_key(current_user["id"], "smart_questions", data)
-                cached = await get_cached_content(cache_key)
-                if cached: return cached
-                
-                res = await generate_smart_questions(data, quality='smart')
-                if res: await set_cached_content(cache_key, current_user["id"], "smart_questions", res)
-                return res
-
-            questions, smart_qs = await asyncio.gather(get_qs(), get_smart_qs())
-            
-            target_lang = normalize_language(data.get('target_language') or data.get('language', 'fr'))
-            
-            # Détection de la langue pour les labels UI
-            is_french = target_lang == 'French'
-            cat_label = "Questions à poser au recruteur" if is_french else "Questions to Ask Recruiter"
-            
-            for q in smart_qs:
-                # q est maintenant un dict {question, strategy}
-                if isinstance(q, dict):
-                    questions.append({
-                        "category": cat_label, 
-                        "axis": q.get("axis", cat_label),
-                        "question": q.get("question", ""), 
-                        "suggested_answer": q.get("intention", q.get("strategy", "Stratégie")), 
-                        "intention": q.get("intention", q.get("strategy", "")),
-                        "score": 100,
-                        "advice": "Posez cette question pour montrer votre vision stratégique." if is_french else "Ask this to demonstrate strategic vision."
-                    })
-                elif isinstance(q, str):
-                    questions.append({"category": cat_label, "question": q, "suggested_answer": "Stratégie", "score": 100})
-            
-            if "Print" in action:
-                compliance = run_compliance_check({"questions": questions}, target_lang, quality='smart')
-                questions = compliance.get("corrected_content", {}).get("questions", questions)
-                return JSONResponse(content={"title": "Interview Prep", "questions": questions, "type": "questions"})
-            
-            return JSONResponse(content={"questions": questions})
-
-        elif "Pitch" in action:
-            # [OPTIMISATION] Si le pitch est déjà calculé (via polling), on l'utilise
-            pitch = data.get('pitch')
-            if not pitch:
-                pitch = await generate_pitch(data, quality='smart')
-
-            if pitch.get("status") == "success":
-                compliance = run_compliance_check(pitch, normalize_language(data.get("language", "en")), quality='smart')
-                pitch = compliance.get("corrected_content", pitch)
-            return JSONResponse(content={"pitch": pitch})
-
-        elif "Gap Analysis" in action:
-            # [OPTIMISATION] Utilisation des données pré-calculées
-            gap = data.get('gap_analysis')
-            # Vérification que les clés essentielles sont présentes pour éviter un faux positif vide
-            if not gap or not gap.get('match_score'):
-                gap = await generate_gap_analysis(data, {"job_description": data.get("job_description", "")}, quality='smart')
-            
-            # [FIX] Retourner l'objet à plat pour correspondre à GapAnalysisModal
-            return JSONResponse(content=gap)
-
-        elif "Salary" in action:
-            # Gestion de l'action 'Salary Estimate' manquante
-            prompt = f"Estimate a realistic salary range (low, mid, high) for this profile:\n{json.dumps(data, indent=2)}\n\n⚠️ INSTRUCTION CRITIQUE : Ne renvoie JAMAIS les valeurs 0 de l'exemple JSON. Tu DOIS estimer de VRAIS salaires de marché selon l'expérience du candidat.\nRespond in STRICT JSON: {{\"salary_range\": {{\"low\": 0, \"mid\": 0, \"high\": 0}}, \"currency\": \"EUR\", \"confidence\": \"Haute | Moyenne | Faible\", \"commentary\": \"...\"}}"
-            res_str = await ai_service.generate(prompt, provider="openai", system_instruction="You are a compensation expert. You must output STRICT JSON.")
-            salary_data = clean_ai_json_response(res_str)
-            return JSONResponse(content=salary_data)
-
-        else:
-            print(f"[API] Error: Unknown action '{action}'")
-            raise HTTPException(status_code=400, detail="Unknown action")
-
-    except HTTPException as e:
-        raise e
-    except Exception as e:
-        print(f"Generate error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/render")
-# [FIX SECURITE] On bloque le rendu PDF si l'abonnement est expiré pour éviter les abus CPU
-async def render_final_cv(cv_final_data: CVFinal, preview: bool = Query(False), current_user: dict = Depends(require_active_subscription)):
-    try:
-        # Transformation simplifiée pour LaTeX (logique extraite de main.py)
-        latex_data = cv_final_data.dict(include={'first_name', 'last_name', 'email', 'phone', 'linkedin', 'city', 'country', 'current_role'})
-        for section in cv_final_data.sections:
-            if not section.enabled:
-                continue
-            items = [i.fields for i in section.items if i.enabled]
-            if not items:
-                continue
-            
-            if section.type == "summary":
-                latex_data["summary"] = items[0].get("text", "")
-            elif section.type in ["experience", "education", "projects"]:
-                key = section.type + "s" if section.type != "projects" else "projects"
-                for item in items:
-                    if "bullets" in item and "achievements" not in item:
-                        item["achievements"] = item["bullets"]
-                        
-                # [FIX EXPERT] Tri chronologique final JUSTE AVANT la génération du PDF
-                if section.type in ["experience", "education"]:
-                    items.sort(key=lambda x: _get_sortable_date_tuple(x.get('end_date') or x.get('endDate') or x.get('date') or ''), reverse=True)
-                    
-                latex_data[key] = items
-            elif section.type == "skills":
-                if not isinstance(latex_data.get("skills"), dict):
-                    latex_data["skills"] = {}
-                if len(items) == 1 and any(k in items[0] for k in ["technical", "languages"]):
-                    latex_data["skills"].update(items[0])
-                else:
-                    latex_data["skills"]["text"] = ", ".join([str(list(i.values())[0]) for i in items])
-        
-        # [FIX EXPERT] Sécurisation contre la valeur 'None' si le nom de famille n'est pas fourni (évite le crash TypeError)
-        safe_last = "".join(c for c in (cv_final_data.last_name or "") if c.isalnum()) or "Candidat"
-        filename = f"CV_{safe_last.capitalize()}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
-        generated_path = generate_pdf_from_latex(latex_data, "cv_ats.tex")
-        
-        if not preview:
-            doc_id = str(uuid.uuid4())
-            application_id = getattr(cv_final_data, "application_id", None)
-            
-            persistent_dir = "/app/documents"
-            os.makedirs(persistent_dir, exist_ok=True)
-            persistent_path = os.path.join(persistent_dir, f"{doc_id}_{filename}")
-            shutil.copy2(generated_path, persistent_path)
-            
-            async with db.get_connection() as conn:
-                await db.execute(conn,
-                    "INSERT INTO documents (id, user_id, filename, path, type, created_at, media_type, application_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                    (doc_id, current_user["id"], filename, persistent_path, "CV_ATS", datetime.now(), 'application/pdf', application_id))
-            
-            _remove_file_safe(generated_path)
-            return FileResponse(path=persistent_path, filename=filename, media_type='application/pdf')
-        else:
-            return FileResponse(path=generated_path, filename=filename, media_type='application/pdf', background=BackgroundTask(_remove_file_safe, generated_path))
-            
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Render error: {e}")
 
 @router.post("/start-analysis")
 async def start_analysis(background_tasks: BackgroundTasks, data: dict = Body(...), current_user: dict = Depends(require_active_subscription)):

@@ -475,60 +475,6 @@ async def run_gap_analysis_and_get_result(data: dict):
 
 # --- NOUVELLES TÂCHES PREMIUM ---
 
-async def process_career_radar_in_background(task_id: str, data: dict):
-    print(f"[Task {task_id}] 📡 Starting Career Radar (Async)...")
-    await _run_career_radar_logic(task_id, data)
-
-async def _run_career_radar_logic(task_id: str, data: dict):
-    await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
-    try:
-        user_id = data.get("user_id", "unknown_user")
-        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "career_radar", data, "Radar récupéré en cache")
-        if is_cached: return
-
-        target_lang = normalize_language(data.get('target_language', 'French'))
-        prompt_template = load_prompt(get_prompt_path("career_radar.md"))
-        
-        target_role = data.get('target_role_primary') or data.get('target_job') or 'Non défini'
-        target_industry = data.get('target_industry') or 'Non défini'
-        job_desc = data.get('job_description', '')
-        
-        target_context = f"Poste visé : {target_role}\nSecteur visé : {target_industry}"
-        if job_desc and len(job_desc) > 50:
-            target_context += f"\nDescription de l'offre :\n{job_desc}"
-
-        final_prompt = f"""
-        {prompt_template}
-        
-        PROFIL CANDIDAT :
-        {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
-        
-        CIBLE ACTUELLE DU CANDIDAT (POUR ANCRER LES TRAJECTOIRES) :
-        {target_context}
-        
-        OUTPUT LANGUAGE: {target_lang}
-        """
-        
-        # [MODIFIÉ] Capture du coût
-        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are a Career Strategist. Output STRICT JSON.")
-        cost = result.pop('cost', 0.0)
-        await update_user_total_cost(user_id, cost)
-        
-        if "error" in result:
-            await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
-            await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
-        else:
-            await set_cached_content(cache_key, user_id, "career_radar", result)
-            
-            # [MODIFIÉ] Sauvegarde du coût
-            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result, cost)
-            await manager.broadcast(task_id, "Radar généré", status="COMPLETED", data=result)
-    except Exception as e:
-        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
-        err = {"error": str(e)}
-        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", err)
-        await manager.broadcast(task_id, "Erreur", status="FAILED", data=err)
-
 async def process_recruiter_view_in_background(task_id: str, data: dict):
     print(f"[Task {task_id}] 🕶️ Starting Recruiter View (Async)...")
     await _run_recruiter_view_logic(task_id, data)
@@ -764,59 +710,6 @@ async def _run_hidden_market_logic(task_id: str, data: dict):
             # [MODIFIÉ] Sauvegarde du coût
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result, cost)
             await manager.broadcast(task_id, "Stratégie marché caché générée", status="COMPLETED", data=result)
-    except Exception as e:
-        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
-        err = {"error": str(e)}
-        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", err)
-        await manager.broadcast(task_id, "Erreur", status="FAILED", data=err)
-
-async def process_career_gps_in_background(task_id: str, data: dict):
-    print(f"[Task {task_id}] 🧭 Starting Career GPS (Async)...")
-    await _run_career_gps_logic(task_id, data)
-
-async def _run_career_gps_logic(task_id: str, data: dict):
-    await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
-    try:
-        user_id = data.get("user_id", "unknown_user")
-        is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "career_gps", data, "GPS Carrière récupéré en cache")
-        if is_cached: return
-
-        target_lang = normalize_language(data.get('target_language', 'French'))
-        prompt_template = load_prompt(get_prompt_path("career_gps.md"))
-        
-        target_role = data.get('target_role_primary') or data.get('target_job') or 'Non défini'
-        job_desc = data.get('job_description', '')
-        
-        destination_context = target_role
-        if job_desc and len(job_desc) > 50:
-            destination_context += f"\n\nDESCRIPTION DE L'OFFRE (Détails de la destination) :\n{job_desc}"
-
-        final_prompt = f"""
-        {prompt_template}
-        
-        PROFIL DU VOYAGEUR (CANDIDAT) :
-        {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
-        
-        DESTINATION SOUHAITÉE :
-        {destination_context}
-        
-        OUTPUT LANGUAGE: {target_lang}
-        """
-        
-        # [MODIFIÉ] Capture du coût
-        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are a Career Navigation System. Output STRICT JSON.")
-        cost = result.pop('cost', 0.0)
-        await update_user_total_cost(user_id, cost)
-        
-        if "error" in result:
-            await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
-            await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
-        else:
-            await set_cached_content(cache_key, user_id, "career_gps", result)
-            
-            # [MODIFIÉ] Sauvegarde du coût
-            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result, cost)
-            await manager.broadcast(task_id, "GPS Carrière généré", status="COMPLETED", data=result)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
         err = {"error": str(e)}

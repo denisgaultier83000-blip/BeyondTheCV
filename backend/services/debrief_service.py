@@ -156,19 +156,3 @@ async def analyze_debrief(debrief_id: str, request: AnalyzeDebriefRequest, curre
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI analysis failed: {str(e)}")
     
-    # On récupère le profil complet du candidat pour donner plus de contexte à l'IA
-    async with db.get_connection() as conn:
-        cursor = await db.execute(conn, "SELECT profile_data FROM user_profiles WHERE user_id = ?", (current_user["id"],))
-        profile_row = await cursor.fetchone()
-    
-    candidate_profile = json.loads(profile_row[0]) if profile_row and profile_row[0] else {}
-
-    analysis_result = await ai_service.generate_from_prompt(
-        "next_step_prep.md",
-        CANDIDATE_PROFILE_JSON=json.dumps(candidate_profile, indent=2),
-        DEBRIEF_JSON=json.dumps(debrief_details, indent=2, default=str),
-        NEXT_INTERVIEW_CONTEXT_JSON=json.dumps({"interlocutor": "Inconnu", "format": "Inconnu"}), # Placeholder pour le futur
-        TARGET_LANGUAGE="fr"
-    )
-
-    return {"analysis": analysis_result}
