@@ -3,16 +3,40 @@ import os
 import psycopg2
 import database # [FIX EXPERT] On importe le module entier, pas la variable isolée.
 
-def get_postgres_connection():
+def get_postgres_connection(dbname=None):
     """Creates a direct synchronous connection to PostgreSQL using the correct URL."""
     # [FIX EXPERT] Lecture dynamique de la variable depuis le module.
     # Cela garantit qu'on lit bien l'URL générée dans le lifespan, et non le 'None' initial.
     if not database.DATABASE_URL:
         # This provides a clearer error if the URL is missing for any reason.
         raise ConnectionError("[DB MIGRATION] DATABASE_URL is not set. Cannot connect.")
-    if "sqlite" in database.DATABASE_URL:
-        raise ConnectionError(f"[DB MIGRATION] SQLite n'est plus supporté. Veuillez configurer une DATABASE_URL PostgreSQL dans votre .env. Actuel: {database.DATABASE_URL}")
-    return psycopg2.connect(database.DATABASE_URL)
+    
+    db_url = database.DATABASE_URL
+    
+    if dbname:
+        # Remplace la base de données dans l'URL de connexion
+        from urllib.parse import urlparse, urlunparse
+        parsed_url = urlparse(db_url)
+        # Le path contient le nom de la DB, ex: /beyondthecv
+        new_path = f'/{dbname}'
+        # Reconstruit l'URL avec la nouvelle base de données
+        db_url = urlunparse(parsed_url._replace(path=new_path))
+
+    return psycopg2.connect(db_url)
+
+def ensure_database_exists():
+    """Connects to the default 'postgres' db to create the application db if it doesn't exist."""
+    try:
+        conn = get_postgres_connection(dbname='postgres')
+        conn.autocommit = True
+        cur = conn.cursor()
+        cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (os.getenv('POSTGRES_DB', 'beyondthecv'),))
+        if not cur.fetchone():
+            cur.execute(f"CREATE DATABASE {os.getenv('POSTGRES_DB', 'beyondthecv')}")
+            print(f"✅ Database '{os.getenv('POSTGRES_DB', 'beyondthecv')}' created.")
+    finally:
+        if 'cur' in locals(): cur.close()
+        if 'conn' in locals(): conn.close()
 
 def create_tables():
     """Create all required tables in PostgreSQL."""
@@ -20,6 +44,9 @@ def create_tables():
     cur = None
     
     try:
+        # [FIX] S'assurer que la base de données existe AVANT de tenter de s'y connecter
+        ensure_database_exists()
+
         # This now calls the corrected function within this file.
         conn = get_postgres_connection()
         cur = conn.cursor()
