@@ -2,7 +2,7 @@ import os
 import json
 import asyncio
 import aiohttp
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse
 
 # [AJOUT] Import de la bibliothèque d'extraction de contenu.
@@ -170,7 +170,7 @@ class OSINTPipeline:
                 # 3. Mettre en cache le nouveau contenu
                 if db:
                     async with db.get_connection() as conn:
-                        await db.execute(conn, "INSERT OR REPLACE INTO article_cache (url, content, cached_at) VALUES (?, ?, ?)", (url, content, datetime.now())) # [MODIFIÉ]
+                        await db.execute(conn, "INSERT OR REPLACE INTO article_cache (url, content, cached_at) VALUES (?, ?, ?)", (url, content, datetime.now(timezone.utc))) # [MODIFIÉ]
                         # [MODIFIÉ] Incrémente le compteur de "misses" pour le jour actuel
                         await db.execute(conn, "INSERT INTO system_stats (key, value, date) VALUES (?, 1, CURRENT_DATE) ON CONFLICT(key, date) DO UPDATE SET value = system_stats.value + 1", ('article_cache_misses',))
 
