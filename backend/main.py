@@ -410,6 +410,7 @@ include_safe_router("debrief_service")
 include_safe_router("user_management_service")
 include_safe_router("audit_log_service")
 include_safe_router("generation_service")
+include_safe_router("negotiation_service")
 
 # [HEALTH] Endpoint racine pour vérifier la connectivité facilement depuis le navigateur
 @app.get("/")

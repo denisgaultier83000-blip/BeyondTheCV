@@ -9,7 +9,7 @@ import Flashcards from './Flashcards';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
-import SalaryNegotiator from './SalaryNegotiator';
+import SalaryNegotiatorV2 from './SalaryNegotiatorV2';
 import PitchOralTrainer from './PitchOralTrainer';
 
 // --- LOGIQUE TÉLÉPROMPTEUR DÉPLACÉE ICI (À LA RACINE) ---
@@ -419,7 +419,7 @@ export const InterviewTab = () => {
         </div>
 
         <div id="negotiation_section">
-          <SalaryNegotiator />
+          <SalaryNegotiatorV2 />
         </div>
 
       </div>
