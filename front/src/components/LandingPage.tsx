@@ -1,5 +1,6 @@
 import React from 'react';
 import { Target, FileText, ArrowRight, CheckCircle2, Compass, Search, Mic, FolderOpen, Award, ShieldQuestion, BarChart3, Users, BatteryCharging, Package, Box, Archive, ShoppingCart } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface LandingPageProps {
   onStart: () => void;
@@ -11,6 +12,8 @@ interface LandingPageProps {
 }
 
 export function LandingPage({ onStart, onLoginRedirect, onShowCGU, onShowPrivacy, onShowLegal, darkMode }: LandingPageProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="lp-container">
       {/* Styles encapsulés pour un rendu "Plug & Play" */}
@@ -220,13 +223,13 @@ export function LandingPage({ onStart, onLoginRedirect, onShowCGU, onShowPrivacy
       {/* HERO SECTION */}
       <section className="lp-hero">
         <h1 className="lp-hero-title">
-          Ne subissez plus l'entretien.<br/>Pilotez la conversation.
+          {t('hero_title').split('<br/>').map((line, i) => <React.Fragment key={i}>{line}{i < t('hero_title').split('<br/>').length - 1 && <br/>}</React.Fragment>)}
         </h1>
         <p className="lp-hero-subtitle">
-          Le CV n'est qu'un ticket d'entrée. <strong>Beyond The CV</strong> est votre plateforme d'Intelligence Stratégique pour décoder votre cible, anticiper ses failles et structurer un discours exécutif implacable. Pensé pour les cadres et dirigeants.
+          {t('hero_sub')}
         </p>
         <button onClick={onLoginRedirect} className="lp-cta-main">
-          Démarrer l'audit de mon profil <ArrowRight size={18} />
+          {t('cta_main')} <ArrowRight size={18} />
         </button>
         
         <div style={{ marginTop: '4rem', padding: '0 1rem' }}>
@@ -243,11 +246,9 @@ export function LandingPage({ onStart, onLoginRedirect, onShowCGU, onShowPrivacy
       {/* PROBLEM (AGITATION) SECTION */}
       <section className="lp-section dark">
         <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-          <h2 className="lp-section-title">L'improvisation n'a pas sa place à ce niveau de responsabilité.</h2>
+          <h2 className="lp-section-title">{t('problem_title')}</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginTop: '1.5rem', lineHeight: 1.7 }}>
-            La majorité des candidats se contentent de réciter la chronologie de leur CV. Ils subissent l'entretien et manquent de vision sur les véritables enjeux du recrutement.
-            <br/><br/>
-            Votre parcours a de la valeur. <strong>Notre rôle est d'en faire un avantage concurrentiel décisif</strong> grâce à la méthode STAR et à une analyse des signaux faibles du marché.
+            {t('problem_text')}
           </p>
         </div>
       </section>
@@ -255,32 +256,32 @@ export function LandingPage({ onStart, onLoginRedirect, onShowCGU, onShowPrivacy
       {/* BENEFITS SECTION */}
       <section className="lp-section">
         <div style={{ textAlign: 'center' }}>
-          <h2 className="lp-section-title">L'arsenal complet du candidat exigeant</h2>
+          <h2 className="lp-section-title">{t('method_title')}</h2>
         </div>
 
         <div className="lp-grid-4">
           <div className="lp-card">
             <div className="lp-icon-wrapper"><Search size={24} strokeWidth={2} /></div>
-            <h3 className="lp-card-title">Intelligence Économique (OSINT)</h3>
-            <p className="lp-card-desc">Notre algorithme scanne le web pour décoder la santé financière, l'ADN, la culture et les derniers défis stratégiques de votre entreprise cible.</p>
+            <h3 className="lp-card-title">{t('method_2_title')}</h3>
+            <p className="lp-card-desc">{t('method_2_desc')}</p>
           </div>
           
           <div className="lp-card">
             <div className="lp-icon-wrapper"><Mic size={24} strokeWidth={2} /></div>
-            <h3 className="lp-card-title">Simulateur Vocal d'Impact</h3>
-            <p className="lp-card-desc">Testez votre discours d'introduction en conditions réelles. L'IA évalue votre débit (mots/minute), vos tics de langage et la force de vos exemples.</p>
+            <h3 className="lp-card-title">{t('method_3_title')}</h3>
+            <p className="lp-card-desc">{t('method_3_desc')}</p>
           </div>
 
           <div className="lp-card">
             <div className="lp-icon-wrapper"><ShieldQuestion size={24} strokeWidth={2} /></div>
-            <h3 className="lp-card-title">Anticipation des Failles</h3>
-            <p className="lp-card-desc">Cartographie de vos écarts face à l'offre d'emploi (Gap Analysis) et génération d'arguments défensifs pour contrer chaque objection du recruteur.</p>
+            <h3 className="lp-card-title">{t('method_1_title')}</h3>
+            <p className="lp-card-desc">{t('method_1_desc')}</p>
           </div>
 
           <div className="lp-card">
             <div className="lp-icon-wrapper"><FileText size={24} strokeWidth={2} /></div>
-            <h3 className="lp-card-title">Méthode STAR & Scénarios</h3>
-            <p className="lp-card-desc">Finies les réponses évasives. Structurez vos réussites en situations concrètes et testez votre sang-froid avec nos scénarios de gestion de crise sur mesure.</p>
+            <h3 className="lp-card-title">{t('method_4_title')}</h3>
+            <p className="lp-card-desc">{t('method_4_desc')}</p>
           </div>
         </div>
       </section>
@@ -322,66 +323,59 @@ export function LandingPage({ onStart, onLoginRedirect, onShowCGU, onShowPrivacy
       {/* PRICING / FINAL CTA SECTION */}
       <section className="lp-section dark">
         <div style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-main)' }}>Choisissez votre préparation.</h2>
+          <h2 style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-main)' }}>{t('pricing_title')}</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', marginTop: '0.5rem' }}>
-            Pas d'abonnement toxique. Des séances d'entraînement plafonnées pour maîtriser des modèles IA de pointe.
+            {t('pricing_footer')}
           </p>
         </div>
         
         <div className="lp-pricing-grid">
           {/* Offre Express */}
           <div className="lp-pricing-card">
-            <h3 style={{ fontSize: '1.25rem', color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>Offre Express</h3>
-            <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.95rem' }}>Pour un entretien imminent.</p>
-            <div style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--text-main)', margin: '1.5rem 0 0.5rem 0' }}>39 €</div>
-            <p style={{ fontWeight: 600, color: 'var(--text-muted)', marginBottom: '2rem' }}>Accès 14 jours</p>
+            <h3 style={{ fontSize: '1.25rem', color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>{t('pricing_offer_express_title')}</h3>
+            <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.95rem' }}>{t('pricing_offer_express_slogan')}</p>
+            <div style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--text-main)', margin: '1.5rem 0 0.5rem 0' }}>{t('pricing_offer_express_price')}</div>
             <div style={{ textAlign: 'left', flexGrow: 1, marginBottom: '2rem' }}>
-              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> 1 candidature</div>
-              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Analyse profil & offre rapide</div>
-              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Pitch & 8 questions probables</div>
-              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> <strong>3 séances d'entraînement IA</strong></div>
+              {t('pricing_offer_express_features', { returnObjects: true }).map((feature: string, index: number) => (
+                <div className="lp-check-item" key={index}><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> {feature}</div>
+              ))}
             </div>
-            <button onClick={onLoginRedirect} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>Sélectionner</button>
+            <button onClick={onLoginRedirect} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>{t('pricing_offer_express_cta')}</button>
           </div>
 
           {/* Offre Stratégique */}
           <div className="lp-pricing-card popular">
             <div className="lp-popular-badge">Recommandé</div>
-            <h3 style={{ fontSize: '1.25rem', color: 'var(--primary)', margin: '0 0 0.5rem 0' }}>Offre Stratégique</h3>
-            <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.95rem' }}>La préparation intégrale.</p>
-            <div style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--primary)', margin: '1.5rem 0 0.5rem 0' }}>119 €</div>
-            <p style={{ fontWeight: 600, color: 'var(--text-muted)', marginBottom: '2rem' }}>Accès 4 mois</p>
+            <h3 style={{ fontSize: '1.25rem', color: 'var(--primary)', margin: '0 0 0.5rem 0' }}>{t('pricing_offer_strategic_title')}</h3>
+            <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.95rem' }}>{t('pricing_offer_strategic_slogan')}</p>
+            <div style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--primary)', margin: '1.5rem 0 0.5rem 0' }}>{t('pricing_offer_strategic_price')}</div>
             <div style={{ textAlign: 'left', flexGrow: 1, marginBottom: '2rem' }}>
-              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> 1 candidature complète</div>
-              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Dossier Renseignement (OSINT)</div>
-              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Décodeur d'annonce & Gap Analysis</div>
-              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> <strong>15 séances d'entraînement IA</strong></div>
-              {/* Recharges sont maintenant dans une section dédiée */}
+              {t('pricing_offer_strategic_features', { returnObjects: true }).map((feature: string, index: number) => (
+                <div className="lp-check-item" key={index}><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> {feature}</div>
+              ))}
             </div>
-            <button onClick={onLoginRedirect} className="lp-cta-main" style={{ width: '100%', justifyContent: 'center' }}>Créer mon profil</button>
+            <button onClick={onLoginRedirect} className="lp-cta-main" style={{ width: '100%', justifyContent: 'center' }}>{t('pricing_offer_strategic_cta')}</button>
           </div>
 
           {/* Offre Intensive */}
           <div className="lp-pricing-card">
-            <h3 style={{ fontSize: '1.25rem', color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>Offre Intensive</h3>
-            <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.95rem' }}>Pour les très gros enjeux.</p>
-            <div style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--text-main)', margin: '1.5rem 0 0.5rem 0' }}>219 €</div>
-            <p style={{ fontWeight: 600, color: 'var(--text-muted)', marginBottom: '2rem' }}>Accès 4 mois</p>
+            <h3 style={{ fontSize: '1.25rem', color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>{t('pricing_offer_intensive_title')}</h3>
+            <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.95rem' }}>{t('pricing_offer_intensive_slogan')}</p>
+            <div style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--text-main)', margin: '1.5rem 0 0.5rem 0' }}>{t('pricing_offer_intensive_price')}</div>
             <div style={{ textAlign: 'left', flexGrow: 1, marginBottom: '2rem' }}>
-              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Tout le pack Stratégique</div>
-              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> OSINT Entreprise actualisable</div>
-              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Stress Test & Négociation salaire</div>
-              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> <strong>30 séances d'entraînement IA</strong></div>
+              {t('pricing_offer_intensive_features', { returnObjects: true }).map((feature: string, index: number) => (
+                <div className="lp-check-item" key={index}><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> {feature}</div>
+              ))}
             </div>
-            <button onClick={onLoginRedirect} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>Sélectionner</button>
+            <button onClick={onLoginRedirect} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>{t('pricing_offer_intensive_cta')}</button>
           </div>
         </div>
 
         {/* SECTION RECHARGES */}
         <div style={{ textAlign: 'center', maxWidth: '800px', margin: '4rem auto 2rem auto' }}>
-          <h3 style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-main)' }}>Besoin de recharges IA ?</h3>
+          <h3 style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-main)' }}>{t('pricing_recharge_title')}</h3>
           <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', marginTop: '0.5rem' }}>
-            Une fois votre pack principal sélectionné, vous pouvez recharger vos séances d'entraînement à la carte.
+            {t('pricing_recharge_text')}
           </p>
         </div>
         
@@ -412,13 +406,13 @@ export function LandingPage({ onStart, onLoginRedirect, onShowCGU, onShowPrivacy
       
       {/* FOOTER */}
       <footer style={{ textAlign: 'center', padding: '3rem 2rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)' }}>
-        <p>© 2026 BeyondTheCV. Tous droits réservés.</p>
+        <p>{t('footer_rights')}</p>
         <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', marginTop: '1rem', fontSize: '0.85rem' }}>
           <button onClick={onShowLegal} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, font: 'inherit' }}>
             Mentions Légales
           </button>
           <button onClick={onShowCGU} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, font: 'inherit' }}>
-            CGU
+            {t('footer_legal').split(' - ')[1]}
           </button>
           <button onClick={onShowPrivacy} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, font: 'inherit' }}>
             Politique de Confidentialité
