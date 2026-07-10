@@ -8,6 +8,7 @@ import path from "path";
 import os from "os";
 import { exec } from "child_process";
 import { promisify } from "util";
+import cors from "cors"; // [FIX] Import du package CORS
 import jwt from "jsonwebtoken";
 import { z } from "zod";
 import PDFDocument from "pdfkit";
@@ -501,18 +502,26 @@ export function createApp(opts = {}) {
   app.use(express.json({ limit: "10mb" }));
   app.use(morgan("dev"));
 
-  // -----------------------------
-  // CORS (dev)
-  // -----------------------------
-  // Autorise les requêtes de l'URL du frontend définie dans l'environnement, ou localhost:5173 par défaut
-  const allowedOrigin = process.env.FRONTEND_URL || "http://localhost:5173";
-  app.use((req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-    if (req.method === "OPTIONS") return res.sendStatus(204);
-    next();
-  });
+  // --- [FIX] Configuration CORS robuste ---
+  // On définit une liste d'origines autorisées pour la production, le staging et le développement local.
+  const allowedOrigins = [
+    process.env.FRONTEND_URL, // URL principale (ex: https://beyondthecv.app)
+    'https://staging.beyondthecv.app', // URL de staging
+    'http://localhost:5173', // Développement local
+    'http://127.0.0.1:5173'
+  ].filter(Boolean); // filter(Boolean) retire les entrées vides ou nulles
+
+  app.use(cors({
+    origin: function (origin, callback) {
+      // Autorise les requêtes sans origine (ex: Postman, cURL) ou si l'origine est dans notre liste blanche.
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true // Important si vous utilisez des cookies ou des sessions
+  }));
 
   // -----------------------------
   // JWT Auth (MVP)

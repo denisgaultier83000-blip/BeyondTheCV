@@ -313,7 +313,7 @@ export const DashboardView: FC = () => {
         tab: "market", 
         anchor: "decoder_section", 
         data: jobDecoderResult, 
-        icon: <Search size={18}/>,
+        icon: <Search size={18} />,
         disabled: !hasJobDesc || (isCommando && !jobDecoderResult),
         disabledReason: !hasJobDesc ? t('card_decoder_disabled', "Annonce non renseignée. Ajoutez l'annonce dans votre profil pour l'analyser.") : (isCommando ? commandoReason : undefined)
       },
