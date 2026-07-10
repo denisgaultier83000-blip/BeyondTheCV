@@ -108,7 +108,8 @@ def create_tables():
                 user_id TEXT,
                 target_company VARCHAR(255) NOT NULL,
                 target_job VARCHAR(255) NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                session_hash TEXT
             )
         """)
         print("✅ Table 'job_applications' created")
