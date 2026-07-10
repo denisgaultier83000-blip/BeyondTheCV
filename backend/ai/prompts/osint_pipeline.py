@@ -146,7 +146,7 @@ class OSINTPipeline:
                     if row:
                         cached_content, cached_at = row[0], row[1]
                         # On utilise le cache s'il date de moins de 7 jours
-                        if datetime.now() - cached_at < timedelta(days=7):
+                        if datetime.now(timezone.utc) - cached_at < timedelta(days=7):
                             # print(f"[CACHE HIT] {url}")
                             # [MODIFIÉ] Incrémente le compteur de "hits" pour le jour actuel
                             await db.execute(conn, "INSERT INTO system_stats (key, value, date) VALUES (?, 1, CURRENT_DATE) ON CONFLICT(key, date) DO UPDATE SET value = system_stats.value + 1", ('article_cache_hits',))
