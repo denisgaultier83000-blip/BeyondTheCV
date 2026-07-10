@@ -124,7 +124,7 @@ class OSINTPipeline:
                     CREATE TABLE IF NOT EXISTS article_cache (
                         url TEXT PRIMARY KEY,
                         content TEXT,
-                        cached_at TIMESTAMP
+                        cached_at TIMESTAMPTZ
                     )
                 """)
             self.cache_initialized = True
@@ -149,7 +149,7 @@ class OSINTPipeline:
                         if datetime.now(timezone.utc) - cached_at < timedelta(days=7):
                             # print(f"[CACHE HIT] {url}")
                             # [MODIFIÉ] Incrémente le compteur de "hits" pour le jour actuel
-                            await db.execute(conn, "INSERT INTO system_stats (key, value, date) VALUES (?, 1, CURRENT_DATE) ON CONFLICT(key, date) DO UPDATE SET value = system_stats.value + 1", ('article_cache_hits',))
+                            await db.execute(conn, "INSERT INTO system_stats (key, value, date) VALUES (?, 1, ?) ON CONFLICT(key, date) DO UPDATE SET value = system_stats.value + 1", ('article_cache_hits', datetime.now(timezone.utc).date()))
                             return cached_content
             except Exception as e:
                 print(f"[CACHE READ ERROR] {e}")
@@ -172,7 +172,7 @@ class OSINTPipeline:
                     async with db.get_connection() as conn:
                         await db.execute(conn, "INSERT OR REPLACE INTO article_cache (url, content, cached_at) VALUES (?, ?, ?)", (url, content, datetime.now(timezone.utc))) # [MODIFIÉ]
                         # [MODIFIÉ] Incrémente le compteur de "misses" pour le jour actuel
-                        await db.execute(conn, "INSERT INTO system_stats (key, value, date) VALUES (?, 1, CURRENT_DATE) ON CONFLICT(key, date) DO UPDATE SET value = system_stats.value + 1", ('article_cache_misses',))
+                        await db.execute(conn, "INSERT INTO system_stats (key, value, date) VALUES (?, 1, ?) ON CONFLICT(key, date) DO UPDATE SET value = system_stats.value + 1", ('article_cache_misses', datetime.now(timezone.utc).date()))
 
                 return content
         except Exception as e:
