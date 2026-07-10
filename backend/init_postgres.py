@@ -51,15 +51,15 @@ def main():
                 hashed_password TEXT NOT NULL,
                 first_name TEXT,
                 last_name TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 is_premium BOOLEAN DEFAULT FALSE,
                 subscription_status subscription_status DEFAULT 'active',
-                subscription_start_date TIMESTAMP,
-                subscription_expiration_date TIMESTAMP,
+                subscription_start_date TIMESTAMPTZ,
+                subscription_expiration_date TIMESTAMPTZ,
                 subscription_extension_count INTEGER DEFAULT 0,
-                last_extension_date TIMESTAMP,
-                deleted_at TIMESTAMP,
+                last_extension_date TIMESTAMPTZ,
+                deleted_at TIMESTAMPTZ,
                 is_active BOOLEAN DEFAULT TRUE
             )
         """)
@@ -79,7 +79,7 @@ def main():
                 user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
                 target_company TEXT,
                 target_job TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 session_hash TEXT,
                 tasks_map JSONB
             )
@@ -102,14 +102,14 @@ def main():
                 title TEXT,
                 description TEXT,
                 metadata JSONB,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 downloaded_count INTEGER DEFAULT 0,
                 printed_count INTEGER DEFAULT 0,
-                last_downloaded_at TIMESTAMP,
-                last_printed_at TIMESTAMP,
+                last_downloaded_at TIMESTAMPTZ,
+                last_printed_at TIMESTAMPTZ,
                 is_archived BOOLEAN DEFAULT FALSE,
-                deleted_at TIMESTAMP
+                deleted_at TIMESTAMPTZ
             )
         """)
         print("✅ Table 'products' created")
@@ -126,7 +126,7 @@ def main():
                 path TEXT,
                 type TEXT,
                 media_type TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 application_id TEXT REFERENCES job_applications(id) ON DELETE CASCADE
             )
         """)
@@ -142,8 +142,8 @@ def main():
                 description TEXT,
                 features JSONB,
                 is_active BOOLEAN DEFAULT TRUE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         """)
         print("✅ Table 'subscription_plans' created")
@@ -153,13 +153,13 @@ def main():
                 id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 plan_id TEXT NOT NULL REFERENCES subscription_plans(id),
-                extension_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                new_expiration_date TIMESTAMP NOT NULL,
+                extension_date TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                new_expiration_date TIMESTAMPTZ NOT NULL,
                 price_paid_cents INTEGER,
                 payment_status TEXT,
                 transaction_id TEXT,
                 notes TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         """)
         print("✅ Table 'subscription_extensions' created")
@@ -174,7 +174,7 @@ def main():
                 job_type TEXT,
                 is_positive BOOLEAN,
                 sentiment TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         """)
         print("✅ Table 'feedbacks' created")
@@ -188,7 +188,7 @@ def main():
                 user_answer TEXT,
                 score INTEGER,
                 feedback JSONB,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         """)
         print("✅ Table 'interview_sessions' created")
@@ -206,7 +206,7 @@ def main():
                 weaknesses TEXT,
                 improved_answer TEXT,
                 application_id TEXT REFERENCES job_applications(id) ON DELETE SET NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         """)
         print("✅ Table 'training_sessions' created")
@@ -217,7 +217,7 @@ def main():
                 user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
                 content_type TEXT,
                 result JSONB,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         """)
         print("✅ Table 'generation_cache' created")
@@ -235,9 +235,9 @@ def main():
                 result TEXT,
                 error_message TEXT,
                 progress_percent INTEGER DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                started_at TIMESTAMP,
-                completed_at TIMESTAMP,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                started_at TIMESTAMPTZ,
+                completed_at TIMESTAMPTZ,
                 metadata JSONB,
                 application_id TEXT REFERENCES job_applications(id) ON DELETE CASCADE
             )
@@ -247,7 +247,7 @@ def main():
         cur.execute("""
             CREATE TABLE IF NOT EXISTS admin_audit_logs (
                 id SERIAL PRIMARY KEY,
-                timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 admin_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
                 admin_user_email TEXT,
                 action TEXT NOT NULL,

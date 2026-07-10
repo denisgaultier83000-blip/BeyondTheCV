@@ -17,15 +17,15 @@ CREATE TABLE users (
     hashed_password TEXT NOT NULL,
     first_name TEXT,
     last_name TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     is_premium BOOLEAN DEFAULT FALSE,
     subscription_status ENUM ('active', 'expired', 'extended') DEFAULT 'active',
-    subscription_start_date TIMESTAMP,
-    subscription_expiration_date TIMESTAMP,
+    subscription_start_date TIMESTAMPTZ,
+    subscription_expiration_date TIMESTAMPTZ,
     subscription_extension_count INTEGER DEFAULT 0,
-    last_extension_date TIMESTAMP,
-    deleted_at TIMESTAMP,
+    last_extension_date TIMESTAMPTZ,
+    deleted_at TIMESTAMPTZ,
     is_active BOOLEAN DEFAULT TRUE
 )
 ```
@@ -54,14 +54,14 @@ CREATE TABLE products (
     title TEXT,
     description TEXT,
     metadata JSONB,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     downloaded_count INTEGER DEFAULT 0,
     printed_count INTEGER DEFAULT 0,
-    last_downloaded_at TIMESTAMP,
-    last_printed_at TIMESTAMP,
+    last_downloaded_at TIMESTAMPTZ,
+    last_printed_at TIMESTAMPTZ,
     is_archived BOOLEAN DEFAULT FALSE,
-    deleted_at TIMESTAMP
+    deleted_at TIMESTAMPTZ
 )
 ```
 
@@ -87,7 +87,7 @@ CREATE TABLE admin_evaluations (
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     product_id TEXT REFERENCES products(id) ON DELETE SET NULL,
     evaluator_name TEXT,
-    evaluation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    evaluation_date TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     rating ENUM ('1_poor', '2_fair', '3_good', '4_very_good', '5_excellent'),
     overall_satisfaction_score INTEGER (1-5),
     quality_score INTEGER (1-5),
@@ -98,8 +98,8 @@ CREATE TABLE admin_evaluations (
     would_recommend BOOLEAN,
     tags TEXT[],
     internal_notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 )
 ```
 
@@ -125,8 +125,8 @@ CREATE TABLE subscription_plans (
     description TEXT,
     features JSONB,
     is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 )
 ```
 
@@ -147,13 +147,13 @@ CREATE TABLE subscription_extensions (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     plan_id TEXT NOT NULL REFERENCES subscription_plans(id),
-    extension_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    new_expiration_date TIMESTAMP NOT NULL,
+    extension_date TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    new_expiration_date TIMESTAMPTZ NOT NULL,
     price_paid_cents INTEGER,
     payment_status TEXT,
     transaction_id TEXT,
     notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 )
 ```
 
@@ -173,7 +173,7 @@ CREATE TABLE feedbacks (
     job_type TEXT,
     is_positive BOOLEAN,
     sentiment TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 )
 ```
 
@@ -192,9 +192,9 @@ CREATE TABLE tasks (
     result TEXT,
     error_message TEXT,
     progress_percent INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    started_at TIMESTAMP,
-    completed_at TIMESTAMP,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
     metadata JSONB
 )
 ```
