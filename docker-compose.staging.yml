@@ -7,16 +7,13 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}_staging
-
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - btcv_postgres_data_staging:/var/lib/postgresql/data
-
     networks:
       - btcv-staging-internal
-
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}_staging"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -25,38 +22,34 @@ services:
     image: ghcr.io/denisgaultier83000-blip/beyondthecv-backend:${VERSION}
     container_name: btcv-backend-staging
     restart: unless-stopped
-
     env_file:
       - .env
-
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}_staging
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       SERPER_API_KEY: ${SERPER_API_KEY}
       JWT_SECRET: ${JWT_SECRET}
       ENVIRONMENT: staging
-      # Secrets pour l'API Admin, chargés depuis le fichier .env
+      FRONTEND_URL: ${FRONTEND_URL}
       ADMIN_EMAIL: ${ADMIN_EMAIL}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
-      # Injection dynamique pour les CORS
-      FRONTEND_URL: "https://staging.beyondthecv.app"
 
+    volumes:
+      - btcv_documents_staging:/app/documents
+      - btcv_output_staging:/app/output
     depends_on:
       db:
         condition: service_healthy
-
     networks:
       - btcv-staging-internal
       - web
-
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/')\" || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5
       start_period: 30s
-
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=web"
@@ -65,30 +58,48 @@ services:
       - "traefik.http.routers.btcv-api-staging.entrypoints=websecure"
       - "traefik.http.routers.btcv-api-staging.tls.certresolver=le"
       - "traefik.http.routers.btcv-api-staging.service=btcv-api-staging"
-
       - "traefik.http.services.btcv-api-staging.loadbalancer.server.port=8080"
 
   frontend:
     image: ghcr.io/denisgaultier83000-blip/beyondthecv-frontend:${VERSION}
     container_name: btcv-frontend-staging
     restart: unless-stopped
-
     environment:
       ENVIRONMENT: staging
-
     networks:
       - web
-
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=web"
-
       - "traefik.http.routers.btcv-front-staging.rule=Host(`staging.beyondthecv.app`)"
       - "traefik.http.routers.btcv-front-staging.entrypoints=websecure"
       - "traefik.http.routers.btcv-front-staging.tls.certresolver=le"
       - "traefik.http.routers.btcv-front-staging.service=btcv-front-staging"
-
       - "traefik.http.services.btcv-front-staging.loadbalancer.server.port=8080"
+
+  # Ajout de Dozzle pour la supervision des logs de staging
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: btcv-dozzle-staging
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=web"
+      # Sous-domaine pour les logs de staging
+      - "traefik.http.routers.btcv-dozzle-staging.rule=Host(`logs-staging.beyondthecv.app`)"
+      - "traefik.http.routers.btcv-dozzle-staging.entrypoints=websecure"
+      - "traefik.http.routers.btcv-dozzle-staging.tls.certresolver=le"
+      - "traefik.http.routers.btcv-dozzle-staging.service=btcv-dozzle-staging"
+      # Authentification basique (réutilise les mêmes variables que la prod)
+      - "traefik.http.routers.btcv-dozzle-staging.middlewares=btcv-auth"
+      - "traefik.http.middlewares.btcv-auth.basicauth.users=${ADMIN_USER}:${ADMIN_PASS_HASHED}"
+      - "traefik.http.services.btcv-dozzle-staging.loadbalancer.server.port=8080"
 
 networks:
   btcv-staging-internal:
@@ -98,3 +109,5 @@ networks:
 
 volumes:
   btcv_postgres_data_staging:
+  btcv_documents_staging:
+  btcv_output_staging:
