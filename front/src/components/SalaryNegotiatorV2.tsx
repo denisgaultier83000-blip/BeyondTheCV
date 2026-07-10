@@ -10,7 +10,7 @@ import NegotiationBriefing from './NegotiationBriefing';
 import StrategicView from './StrategicView';
 import NegotiationPreparation from './NegotiationPreparation';
 import TacticalCards from './TacticalCards';
-// import NegotiationSimulation from './NegotiationSimulation';
+import NegotiationSimulation from './NegotiationSimulation';
 
 const SalaryNegotiatorV2 = () => {
     const { cvData } = useDashboard();
@@ -87,7 +87,7 @@ const SalaryNegotiatorV2 = () => {
             <StrategicView preparationData={preparationData} expectations={cvData.salary_expectations} />
             <NegotiationPreparation data={preparationData} />
             <TacticalCards data={tacticalCards} />
-            {/* <NegotiationSimulation /> */}
+            <NegotiationSimulation preparationData={preparationData} />
             
         </div>
     );

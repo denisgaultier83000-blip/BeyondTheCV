@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import List, Dict, Any
 
-from security import require_active_subscription 
+from services.cv_services import require_active_subscription 
 
 # Placeholder for AI service
 class AIService:

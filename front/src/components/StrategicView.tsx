@@ -19,7 +19,7 @@ const StrategicView = ({ preparationData, expectations }) => {
         if (expectationAmount >= market_salary.min && expectationAmount <= market_salary.max) {
             return {
                 level: 'strong',
-                message: 'Très forte probabilité d'accord'
+                message: "Très forte probabilité d'accord"
             };
         }
         return {

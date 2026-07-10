@@ -10,7 +10,7 @@ import { RechargeModal } from './RechargeModal';
 import { AsyncBoundary } from './AsyncBoundary';
 
 const NegotiationSimulation = ({ preparationData }) => {
-  const { cvData, quotas, fetchQuotas } = useDashboard();
+  const { cvData, quotas, fetchQuotas, updateFormData } = useDashboard();
   const { t } = useTranslation();
 
   const [variation, setVariation] = useState('standard');
@@ -24,6 +24,8 @@ const NegotiationSimulation = ({ preparationData }) => {
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<any>(null);
   const [showRechargeModal, setShowRechargeModal] = useState(false);
+  
+  const [history, setHistory] = useState<any[]>(cvData?.negotiationHistory || []);
 
   // --- GESTION DU SPEECH-TO-TEXT ---
   useEffect(() => {
@@ -136,6 +138,13 @@ const NegotiationSimulation = ({ preparationData }) => {
 
       const data = await res.json();
       setFeedback(data.feedback);
+      
+      const newHistory = [{ date: new Date().toISOString(), userAnswer, feedback: data.feedback }, ...history];
+      setHistory(newHistory);
+      if (updateFormData) {
+        updateFormData('negotiationHistory', newHistory);
+      }
+
       if (fetchQuotas) fetchQuotas();
     } catch (err: any) {
       setError(err.message || "L'évaluation a échoué. Veuillez réessayer.");
