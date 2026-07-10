@@ -510,7 +510,7 @@ async def evaluate_vocal_pitch(request: VocalPitchRequest, current_user: dict = 
                 await db.execute(conn, """
                     INSERT INTO training_sessions (id, user_id, theme, question_type, question_text, user_answer, score, strengths, weaknesses, improved_answer, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (session_id, current_user["id"], "Pitch Vocal", "Vocal", "Entraînement au pitch vocal (spontané)", request.transcript, result.get("score", 0), json.dumps(result.get("metrics", {})), json.dumps(result.get("feedback", {})), json.dumps(result.get("micro_exercises", [])), datetime.now()))
+            """, (session_id, current_user["id"], "Pitch Vocal", "Vocal", "Entraînement au pitch vocal (spontané)", request.transcript, result.get("score", 0), json.dumps(result.get("metrics", {})), json.dumps(result.get("feedback", {})), json.dumps(result.get("micro_exercises", [])), datetime.now(timezone.utc)))
         except Exception as e:
             print(f"[DB WARNING] Failed to insert training_session: {e}")
             
@@ -552,7 +552,7 @@ async def evaluate_oral_pitch(request: OralPitchRequest, current_user: dict = De
                     session_id, current_user["id"], "Pitch Oral", "Vocal", 
                     "Parlez-moi de vous (Elevator Pitch)", request.transcript, 
                     result.get("score", 0), json.dumps(result.get("strengths", [])), 
-                    json.dumps(result.get("weaknesses", [])), result.get("improved_pitch", ""), datetime.now()
+                    json.dumps(result.get("weaknesses", [])), result.get("improved_pitch", ""), datetime.now(timezone.utc)
                 ))
         except Exception as e:
             print(f"[DB WARNING] Failed to insert training_session for oral pitch: {e}")
@@ -692,7 +692,7 @@ async def evaluate_training_answer(request: TrainingEvaluateRequest, current_use
                 await db.execute(conn,
                     """INSERT INTO training_sessions (id, user_id, theme, question_type, question_text, user_answer, score, strengths, weaknesses, improved_answer, created_at, application_id)
                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                    (session_id, current_user["id"], request.theme, request.question_type, request.question_text, request.user_answer, feedback.get("score", 0), json.dumps(feedback.get("strengths", [])), json.dumps(feedback.get("weaknesses", [])), feedback.get("improved_answer", ""), datetime.now(), request.application_id)
+                    (session_id, current_user["id"], request.theme, request.question_type, request.question_text, request.user_answer, feedback.get("score", 0), json.dumps(feedback.get("strengths", [])), json.dumps(feedback.get("weaknesses", [])), feedback.get("improved_answer", ""), datetime.now(timezone.utc), request.application_id)
                 )
         except Exception as e:
             print(f"[DB WARNING] Failed to insert training_session: {e}")
@@ -1415,7 +1415,7 @@ async def submit_feedback(request: FeedbackPayload, current_user: dict = Depends
     """
     actual_comments = request.comments or ""
     user_id = current_user.get("id")
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
 
     # [FIX] Utilisation de l'unique requête correspondant au schéma définitif de production
     try:

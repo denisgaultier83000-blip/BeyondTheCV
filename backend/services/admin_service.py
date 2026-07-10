@@ -5,7 +5,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import stripe, json
 import httpx, asyncio
 from db_schemas import PaginatedUsersResponse, AiCostHistoryResponse, DailyCost
@@ -47,7 +47,7 @@ def send_credit_recharge_email(to_email: str, amount: int):
 
     frontend_url = os.getenv("FRONTEND_URL", "https://beyondthecv.app")
     logo_url = f"{frontend_url}/logo.png"
-    current_year = datetime.now().year
+    current_year = datetime.now(timezone.utc).year
 
     # Version texte simple pour les anciens clients mail
     plain_body = f"""Bonjour,
@@ -174,7 +174,7 @@ async def get_webhook_status():
         if last_payment:
             last_payment_date = last_payment[0] if isinstance(last_payment, tuple) else last_payment.get("purchase_date")
             # Si le dernier paiement date de moins de 3 jours, on considère que c'est OK.
-            if (datetime.now() - last_payment_date) < timedelta(days=3):
+            if (datetime.now(timezone.utc) - last_payment_date) < timedelta(days=3):
                 return {"status": "ok", "last_event": last_payment_date.isoformat()}
             else:
                 return {"status": "inactive", "last_event": last_payment_date.isoformat()}
@@ -386,7 +386,7 @@ async def admin_get_stats():
 @router.get("/cache-history")
 async def admin_get_cache_history(days: int = 7):
     """[NOUVEAU] Récupère l'historique des hits/misses du cache sur les N derniers jours."""
-    start_date = datetime.now() - timedelta(days=days)
+    start_date = datetime.now(timezone.utc) - timedelta(days=days)
     async with db.get_connection() as conn:
         # Assurez-vous que la table system_stats a bien une colonne 'date'
         # et que 'key' et 'date' forment une clé primaire composite.
@@ -421,7 +421,7 @@ async def get_ai_cost_history(days: int = Query(30, ge=1, le=365)):
     if days > 365:
         days = 365
 
-    start_date = datetime.now() - timedelta(days=days)
+    start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
     # La fonction DATE() est compatible avec PostgreSQL et SQLite.
     query = """

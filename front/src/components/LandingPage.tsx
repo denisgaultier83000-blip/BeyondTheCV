@@ -1,6 +1,6 @@
 import React from 'react';
-import { Target, FileText, ArrowRight, CheckCircle2, Compass, Search, Mic, FolderOpen, Award, ShieldQuestion, BarChart3, Users, BatteryCharging, Package, Box, Archive, ShoppingCart } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { Target, FileText, ArrowRight, CheckCircle2, Compass, Search, Mic, FolderOpen, Award, ShieldQuestion, BarChart3, Users, BatteryCharging, Package, Box, Archive, ShoppingCart, HelpCircle } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 
 interface LandingPageProps {
   onStart: () => void;
@@ -13,6 +13,24 @@ interface LandingPageProps {
 
 export function LandingPage({ onStart, onLoginRedirect, onShowCGU, onShowPrivacy, onShowLegal, darkMode }: LandingPageProps) {
   const { t } = useTranslation();
+
+  // [NOUVEAU] Composant pour l'infobulle
+  const Tooltip = ({ text, children }: { text: string, children: React.ReactNode }) => (
+    <span className="lp-tooltip-container">
+      {children}
+      <span className="lp-tooltip-text">{text}</span>
+    </span>
+  );
+
+  // [NOUVEAU] Composant pour gérer l'affichage des features avec infobulles
+  const FeatureItem = ({ feature }: { feature: string }) => {
+    const parts = feature.split('<i:');
+    const mainText = parts[0];
+    const tooltipKey = parts[1]?.split('>')[0];
+    const tooltipText = tooltipKey ? t(tooltipKey) : '';
+
+    return <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> {mainText} {tooltipKey && <Tooltip text={tooltipText}><HelpCircle size={14} className="lp-tooltip-icon" /></Tooltip>}</div>;
+  };
 
   return (
     <div className="lp-container">
@@ -209,6 +227,60 @@ export function LandingPage({ onStart, onLoginRedirect, onShowCGU, onShowPrivacy
           font-size: 1.1rem;
           color: var(--text-main);
         }
+        .lp-tooltip-container {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          margin-left: 4px;
+        }
+        .lp-tooltip-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: help;
+          color: var(--text-muted);
+          transition: color 0.2s;
+        }
+        .lp-tooltip-icon:hover {
+          color: var(--primary);
+        }
+        .lp-tooltip-container .lp-tooltip-text {
+          visibility: hidden;
+          width: 220px;
+          background-color: var(--bg-card);
+          color: var(--text-muted);
+          text-align: left;
+          border-radius: 8px;
+          padding: 12px;
+          position: absolute;
+          z-index: 1;
+          bottom: 125%;
+          left: 50%;
+          margin-left: -110px;
+          opacity: 0;
+          transition: opacity 0.3s, transform 0.3s;
+          border: 1px solid var(--border-color);
+          box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+          font-size: 0.85rem;
+          line-height: 1.5;
+          font-weight: 400;
+          transform: translateY(10px);
+        }
+        .lp-tooltip-container .lp-tooltip-text::after {
+          content: "";
+          position: absolute;
+          top: 100%;
+          left: 50%;
+          margin-left: -5px;
+          border-width: 5px;
+          border-style: solid;
+          border-color: var(--bg-card) transparent transparent transparent;
+        }
+        .lp-tooltip-container:hover .lp-tooltip-text {
+          visibility: visible;
+          opacity: 1;
+          transform: translateY(0);
+        }
         .lp-faq-answer {
           color: var(--text-muted);
           margin-top: 0.75rem;
@@ -337,7 +409,7 @@ export function LandingPage({ onStart, onLoginRedirect, onShowCGU, onShowPrivacy
             <div style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--text-main)', margin: '1.5rem 0 0.5rem 0' }}>{t('pricing_offer_express_price')}</div>
             <div style={{ textAlign: 'left', flexGrow: 1, marginBottom: '2rem' }}>
               {t('pricing_offer_express_features', { returnObjects: true }).map((feature: string, index: number) => (
-                <div className="lp-check-item" key={index}><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> {feature}</div>
+                <FeatureItem key={index} feature={feature} />
               ))}
             </div>
             <button onClick={onLoginRedirect} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>{t('pricing_offer_express_cta')}</button>
@@ -351,7 +423,7 @@ export function LandingPage({ onStart, onLoginRedirect, onShowCGU, onShowPrivacy
             <div style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--primary)', margin: '1.5rem 0 0.5rem 0' }}>{t('pricing_offer_strategic_price')}</div>
             <div style={{ textAlign: 'left', flexGrow: 1, marginBottom: '2rem' }}>
               {t('pricing_offer_strategic_features', { returnObjects: true }).map((feature: string, index: number) => (
-                <div className="lp-check-item" key={index}><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> {feature}</div>
+                <FeatureItem key={index} feature={feature} />
               ))}
             </div>
             <button onClick={onLoginRedirect} className="lp-cta-main" style={{ width: '100%', justifyContent: 'center' }}>{t('pricing_offer_strategic_cta')}</button>
@@ -364,7 +436,7 @@ export function LandingPage({ onStart, onLoginRedirect, onShowCGU, onShowPrivacy
             <div style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--text-main)', margin: '1.5rem 0 0.5rem 0' }}>{t('pricing_offer_intensive_price')}</div>
             <div style={{ textAlign: 'left', flexGrow: 1, marginBottom: '2rem' }}>
               {t('pricing_offer_intensive_features', { returnObjects: true }).map((feature: string, index: number) => (
-                <div className="lp-check-item" key={index}><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> {feature}</div>
+                <FeatureItem key={index} feature={feature} />
               ))}
             </div>
             <button onClick={onLoginRedirect} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>{t('pricing_offer_intensive_cta')}</button>

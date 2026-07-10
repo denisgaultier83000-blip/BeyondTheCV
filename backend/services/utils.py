@@ -2,7 +2,7 @@ import os
 import json
 import re
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 import asyncio
 from fastapi import HTTPException
 from database import db
@@ -296,6 +296,6 @@ async def set_cached_content(cache_key: str, user_id: str, content_type: str, re
                 INSERT INTO generation_cache (cache_key, user_id, content_type, result, created_at)
                 VALUES (?, ?, ?, ?::jsonb, ?)
                 ON CONFLICT (cache_key) DO UPDATE SET result = EXCLUDED.result, created_at = EXCLUDED.created_at
-            """, (cache_key, user_id, content_type, result_str, datetime.now()))
+            """, (cache_key, user_id, content_type, result_str, datetime.now(timezone.utc)))
     except Exception as e:
         print(f"[CACHE ERROR] Impossible de sauvegarder dans le cache: {e}")

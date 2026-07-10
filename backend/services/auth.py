@@ -309,7 +309,7 @@ async def forgot_password(request: ForgotPasswordRequest, background_tasks: Back
             
             if user:
                 token = secrets.token_urlsafe(32)
-                expires = datetime.now() + timedelta(minutes=15)
+                expires = datetime.now(timezone.utc) + timedelta(minutes=15)
                 
                 await db.execute(conn, "UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE email = ?", (token, expires, email))
                 # Lancement de l'envoi de mail en arrière-plan pour ne pas bloquer l'UI
@@ -337,7 +337,7 @@ async def reset_password(request: ResetPasswordRequest):
             user_id = user[0] if isinstance(user, tuple) else user.get("id")
             expires = user[1] if isinstance(user, tuple) else user.get("reset_token_expires")
             
-            if expires and expires < datetime.now():
+            if expires and expires < datetime.now(timezone.utc):
                 raise HTTPException(status_code=400, detail="Ce lien a expiré (validité 15 minutes). Veuillez refaire une demande.")
                 
             hashed_pw = get_password_hash(request.new_password)

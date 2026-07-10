@@ -1,7 +1,7 @@
 import os
 import json
 import urllib.parse
-from contextlib import asynccontextmanager, contextmanager
+from contextlib import asynccontextmanager, contextmanager, suppress
 from dotenv import load_dotenv
 import asyncio
 import threading
@@ -20,10 +20,6 @@ def get_database_url():
     Utilise Secret Manager si DATABASE_SECRET_NAME est défini (Cloud Run).
     Sinon, se replie sur DATABASE_URL (Local).
     """
-    # [DEBUG EXPERT] Affichage brut et inconditionnel de la variable pour lever le doute
-    raw_secret = os.getenv("DATABASE_SECRET_NAME")
-    print(f"[DEBUG DB] os.getenv('DATABASE_SECRET_NAME') retourne : {repr(raw_secret)}", flush=True)
-
     secret_name = os.getenv("DATABASE_SECRET_NAME")
     
     # [FIX EXPERT] Sécurité : Empêcher le fallback local si on est déployé sur Cloud Run
@@ -34,8 +30,10 @@ def get_database_url():
         print(f"[DB] Configuration Cloud Run détectée. Récupération du secret: {secret_name}", flush=True)
         try:
             from google.cloud import secretmanager
-            import google.auth
             
+            # [FIX] Utilisation d'un contexte `suppress` pour gérer le cas où google.auth n'est pas disponible en local
+            with suppress(ImportError):
+                import google.auth
             # Initialisation du client Secret Manager
             client = secretmanager.SecretManagerServiceClient()
             _, project_id = google.auth.default()
