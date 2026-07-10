@@ -236,6 +236,17 @@ def create_tables():
             )
         """)
         print("✅ Table 'tasks' created")
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS generation_cache (
+                cache_key TEXT PRIMARY KEY,
+                user_id TEXT,
+                content_type TEXT,
+                result JSONB,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        print("✅ Table 'generation_cache' created")
         
         # Ajout de la colonne application_id de manière sécurisée
         cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS application_id TEXT REFERENCES job_applications(id) ON DELETE CASCADE;")
