@@ -1012,6 +1012,8 @@ async def parse_cv_upload(
     except HTTPException:
         raise
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         await refund_credit(current_user["id"], cost=2)
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'analyse du CV: {str(e)}")
 
