@@ -96,12 +96,12 @@ function AppContent() {
       first_name: source.first_name || '',
       last_name: source.last_name || '',
       email: source.email || '',
-      linkedin: source.linkedin || '',
-      bio: source.bio || '',
+      linkedin: source.linkedin_url || source.linkedin || '',
+      bio: source.summary || source.bio || '',
       experiences: (source.experiences || []).map((exp: any, i: number) => ({ ...exp, id: exp.id || `exp_${Date.now()}_${i}` })),
       educations: (source.educations || []).map((edu: any, i: number) => ({ ...edu, id: edu.id || `edu_${Date.now()}_${i}` })),
       pitch_result: source.pitch_result || null, // [FIX] Pré-remplissage des pitchs
-      skills: source.skills || []
+      skills: [...(source.skills?.technical || []), ...(source.skills?.soft || []), ...(source.skills?.languages || [])]
     };
 
     // Clean up to avoid redundant nested objects
