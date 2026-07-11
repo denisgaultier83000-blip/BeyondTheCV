@@ -164,10 +164,10 @@ class OSINTPipeline:
 
         # 2. Si pas de cache, extraire le contenu
         try:
-            # Timeout strict pour éviter de bloquer sur un site trop lent.
-            async with session.get(url, timeout=10, headers={'User-Agent': 'Mozilla/5.0'}) as response:
+            # [FIX] Timeout strict pour éviter de bloquer sur un site trop lent.
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=10), headers={'User-Agent': 'Mozilla/5.0'}) as response:
                 if response.status != 200:
-                    return f"[Erreur {response.status}]"
+                    return f"[Erreur HTTP {response.status}]"
                 html_content = await response.text()
                 main_text = extract(html_content, include_comments=False, include_tables=False, no_fallback=True)
                 content = main_text or "[Contenu non extractible]"
@@ -180,6 +180,8 @@ class OSINTPipeline:
                         await db.execute(conn, "INSERT INTO system_stats (key, value, date) VALUES (?, 1, ?) ON CONFLICT(key, date) DO UPDATE SET value = system_stats.value + 1", ('article_cache_misses', datetime.now(timezone.utc).date()))
 
                 return content
+        except asyncio.TimeoutError:
+            return "[Erreur: Timeout lors de l'extraction du contenu]"
         except Exception as e:
             return f"[Erreur lors de l'extraction : {type(e).__name__}]"
 
