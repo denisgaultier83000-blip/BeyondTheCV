@@ -9,7 +9,10 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks, Body, Depends, Query
 from fastapi.responses import JSONResponse
 from starlette.background import BackgroundTask
-from pypdf import PdfReader
+try:
+    import fitz  # PyMuPDF
+except ImportError:
+    fitz = None
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 
@@ -978,21 +981,24 @@ async def parse_cv_upload(
         filename = file.filename.lower()
         
         if filename.endswith(".pdf"):
+            if not fitz:
+                raise HTTPException(status_code=501, detail="La librairie de lecture PDF (PyMuPDF) n'est pas installée sur le serveur.")
             try:
-                pdf_reader = PdfReader(io.BytesIO(file_content))
+                pdf_doc = fitz.open(stream=io.BytesIO(file_content))
                 
-                # 🛡️ Protection 3 : PDF protégés par mot de passe
-                if pdf_reader.is_encrypted:
+                if pdf_doc.is_encrypted:
                     raise HTTPException(status_code=400, detail="Ce PDF est protégé par un mot de passe. Veuillez utiliser un document non verrouillé.")
                     
-                for page in pdf_reader.pages:
-                    extracted = page.extract_text()
+                for page in pdf_doc:
+                    extracted = page.get_text()
                     if extracted:
                         text_content += extracted + "\n"
             except HTTPException:
-                raise # Laisse passer nos propres erreurs HTTP
+                raise
             except Exception as e:
-                raise HTTPException(status_code=400, detail=f"Erreur de lecture du PDF : {e}")
+                # [FIX] Log de l'erreur réelle pour le débogage
+                print(f"[PDF_PARSING_ERROR] Erreur PyMuPDF: {e}")
+                raise HTTPException(status_code=400, detail=f"Ce fichier PDF est corrompu ou illisible.")
                 
         elif filename.endswith(".docx"):
             try:
