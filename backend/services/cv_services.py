@@ -982,6 +982,8 @@ async def parse_cv_upload(
             return JSONResponse(content=cached_data)
 
         print(f"[CV PARSE] Cache MISS for file {file.filename} (hash: {file_hash[:10]}). Calling AI.")
+        
+        prompt = load_prompt(get_prompt_path("cv_parser.md"))
 
         # Si pas de cache, on procède à l'appel IA
         try:
@@ -990,15 +992,7 @@ async def parse_cv_upload(
                 ai_service.generate_from_pdf_or_image(
                     file_content=cv_content,
                     file_type=file.content_type,
-                    prompt="""
-                    Extrais les informations de ce CV au format JSON. Sois extrêmement précis.
-                    Ne te contente pas de lister, essaie de structurer les expériences avec 'role', 'company', 'start_date', 'end_date', 'description'.
-                    Structure les formations avec 'degree', 'school', 'year'.
-                    Liste les compétences techniques dans 'skills' et les langues dans 'languages'.
-                    
-                    OUTPUT JSON:
-                    { "personal_info": {}, "experiences": [], "educations": [], "skills": [], "languages": [] }
-                    """,
+                    prompt=prompt,
                     provider="gemini" # Force Gemini-Vision
                 ),
                 timeout=45.0 # Timeout de 45 secondes
@@ -1012,6 +1006,7 @@ async def parse_cv_upload(
             
             return JSONResponse(content=result)
         except asyncio.TimeoutError:
+            await refund_credit(current_user["id"], cost=2)
             raise HTTPException(status_code=504, detail="L'analyse du CV a pris trop de temps. Veuillez réessayer avec un fichier plus léger ou un autre format.")
 
     except HTTPException:

@@ -191,6 +191,54 @@ class AIGenerator:
                     # Erreur d'API (Timeout, Quota, etc.), on renvoie l'erreur pour que le frontend gère
                     return {"error": str(e), "type": "api_error", "cost": 0}
 
+    async def generate_from_pdf_or_image(self, file_content: bytes, file_type: str, prompt: str, provider: str = "gemini") -> Dict[str, Any]:
+        """
+        [NOUVEAU] Génère du contenu structuré (JSON) à partir d'un fichier (PDF, image)
+        en utilisant un modèle multimodal. Supporte uniquement Gemini pour l'instant.
+        """
+        if provider != "gemini" or not self.gemini_client or not genai:
+            raise ValueError("Cette fonction supporte uniquement Gemini-Vision.")
+
+        model_name = await self._get_gemini_model()
+        if not model_name:
+            raise ValueError("Aucun modèle Gemini trouvé.")
+        
+        # Construction de la requête multimodale
+        content_parts = [
+            prompt,
+            types.Part.from_data(data=file_content, mime_type=file_type)
+        ]
+        
+        try:
+            response = await self.gemini_client.aio.models.generate_content(
+                model=model_name,
+                contents=content_parts,
+                config=types.GenerateContentConfig(response_mime_type="application/json")
+            )
+
+            # Traitement de la réponse et du coût
+            content = response.text
+            parsed_json = clean_ai_json_response(content)
+
+            cost = 0.0
+            if response.usage_metadata:
+                pricing = AI_PRICING.get(model_name, AI_PRICING["default"])
+                input_cost = (response.usage_metadata.prompt_token_count / 1_000_000) * pricing["input"]
+                output_cost = (response.usage_metadata.candidates_token_count / 1_000_000) * pricing["output"]
+                cost = input_cost + output_cost
+            
+            if 'error' not in parsed_json:
+                parsed_json['cost'] = cost
+            
+            return parsed_json
+
+        except ValueError as e:
+            # Gère les filtres de sécurité de Gemini
+            raise RuntimeError(f"Gemini Safety Filter Blocked Content or Invalid Response: {e}")
+        except Exception as e:
+            print(f"[AI VISION ERROR] Erreur lors de l'appel multimodal Gemini: {e}", flush=True)
+            raise RuntimeError(f"Multimodal generation failed: {e}")
+
     async def _execute_provider(self, target_provider: str, prompt: str, system_instruction: str, json_mode: bool = False, bypass_queue: bool = False) -> Tuple[str, float]:
         """Exécute l'appel vers le provider spécifique de manière isolée."""
         if target_provider == "openai":
