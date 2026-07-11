@@ -228,7 +228,8 @@ async def register(user: UserRegister):
             raise HTTPException(status_code=400, detail="Email already registered")
 
         user_id = str(uuid.uuid4())
-        now = datetime.now(timezone.utc) # Déjà correct, mais on vérifie
+        # [FIX] Fournir un datetime UTC naïf pour éviter les conflits de timezone avec le driver DB.
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         # Insertion du nouvel utilisateur
         await _insert_user(user_id, email, hashed_pw, user.first_name, user.last_name, now)
