@@ -145,8 +145,13 @@ class OSINTPipeline:
                     row = await db.fetchone(conn, "SELECT content, cached_at FROM article_cache WHERE url = ?", (url,))
                     if row:
                         cached_content, cached_at = row[0], row[1]
+                        
+                        # [FIX] Assurer que le datetime est timezone-aware pour éviter les erreurs de comparaison
+                        if cached_at and cached_at.tzinfo is None:
+                            cached_at = cached_at.replace(tzinfo=timezone.utc)
+
                         # On utilise le cache s'il date de moins de 7 jours
-                        if datetime.now(timezone.utc) - cached_at < timedelta(days=7):
+                        if cached_at and datetime.now(timezone.utc) - cached_at < timedelta(days=7):
                             # print(f"[CACHE HIT] {url}")
                             # [MODIFIÉ] Incrémente le compteur de "hits" pour le jour actuel
                             await db.execute(conn, "INSERT INTO system_stats (key, value, date) VALUES (?, 1, ?) ON CONFLICT(key, date) DO UPDATE SET value = system_stats.value + 1", ('article_cache_hits', datetime.now(timezone.utc).date()))
