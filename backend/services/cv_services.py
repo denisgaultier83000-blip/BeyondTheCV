@@ -979,12 +979,18 @@ async def parse_cv_upload(
         if cached_data:
             print(f"[CV PARSE] Cache HIT for file {file.filename} (hash: {file_hash[:10]})")
             await refund_credit(current_user["id"], cost=2)
+
             # [FIX EXPERT] Correction de la race condition lors du cache hit.
-            # Le frontend reçoit un task_id et commence à poller pour le statut.
-            # Si on ne met pas à jour la tâche en base de données, le frontend
-            # recevra une erreur 404 en boucle.
-            # Cette logique n'est pertinente que pour le parsing de CV, pas pour les autres caches.
-            return JSONResponse(content=cached_data)
+            # Le frontend attend un task_id pour suivre l'état. Si on ne crée pas de tâche
+            # et qu'on ne la met pas à jour, le polling échouera avec une erreur 404.
+            # On crée donc une tâche et on la passe directement en "SUCCESS".
+            task_id = str(uuid.uuid4())
+            async with db.get_connection() as conn:
+                await db.execute(conn, "INSERT INTO tasks (id, user_id, status, result, created_at, task_type) VALUES (?, ?, ?, ?, ?, ?)",
+                                 (task_id, current_user["id"], "SUCCESS", json.dumps(cached_data), datetime.now(timezone.utc), "cv_parsing"))
+
+            # On renvoie le task_id pour que le frontend puisse récupérer le résultat immédiatement.
+            return JSONResponse(content={"task_id": task_id})
 
         print(f"[CV PARSE] Cache MISS for file {file.filename} (hash: {file_hash[:10]}). Calling AI.")
         
@@ -1002,14 +1008,19 @@ async def parse_cv_upload(
                 ),
                 timeout=45.0 # Timeout de 45 secondes
             )
-            
+
             cost = result.pop('cost', 0.0)
             await update_user_total_cost(current_user["id"], cost)
 
             # [NOUVEAU] Mise en cache du nouveau résultat
             await set_cached_content(cache_key, current_user["id"], "cv_parsing", result)
-            
-            return JSONResponse(content=result)
+
+            # [FIX EXPERT] Cohérence : on renvoie un task_id, pas le résultat brut.
+            task_id = str(uuid.uuid4())
+            async with db.get_connection() as conn:
+                await db.execute(conn, "INSERT INTO tasks (id, user_id, status, result, created_at, task_type) VALUES (?, ?, ?, ?, ?, ?)",
+                                 (task_id, current_user["id"], "SUCCESS", json.dumps(result), datetime.now(timezone.utc), "cv_parsing"))
+            return JSONResponse(content={"task_id": task_id})
         except asyncio.TimeoutError:
             await refund_credit(current_user["id"], cost=2)
             raise HTTPException(status_code=504, detail="L'analyse du CV a pris trop de temps. Veuillez réessayer avec un fichier plus léger ou un autre format.")
