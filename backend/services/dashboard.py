@@ -86,42 +86,6 @@ async def start_research(request: ResearchRequest, background_tasks: BackgroundT
         "job_decoder_task_id": tasks_map.get("job_decoder") # [FIX] On renvoie l'ID spécifique
     }
 
-@router.post("/api/analyze-completeness")
-async def analyze_completeness(request: Request, current_user: dict = Depends(get_current_user)):
-    # [MODIF] Exécution SYNCHRONE demandée pour la Page 7
-    try:
-        body = await request.json()
-        data_to_analyze = body.get("data", body)
-        
-        cache_key = _generate_cache_key(current_user["id"], "completeness_sync", data_to_analyze)
-        cached = await get_cached_content(cache_key)
-        if cached:
-            return cached
-            
-        target_lang = normalize_language(data_to_analyze.get("target_language", "French"))
-        text_content = json.dumps(data_to_analyze, indent=2, default=str)
-        
-        prompt = f"""
-        Analyze the candidate's profile completeness with a specific focus on generating a strong Elevator Pitch (Who I am, What I've done, What I bring, Why this role).
-        
-        Return JSON with 'score', 'quality', 'missing_info', 'suggestions', 'clarifications'.
-        
-        For 'clarifications', you MUST provide EXACTLY 3 objects: { 'question': '...', 'suggested_answer': '...' }.
-        Even if the profile seems completely perfect, you MUST ask 3 strategic questions to extract quantifiable metrics (KPIs), specific challenges overcome, or unique value propositions that will make the oral pitch memorable.
-        The suggested answer should be a plausible draft based on the context, written in the first person.
-        
-        CONTENT:
-        {text_content[:15000]}
-        
-        OUTPUT LANGUAGE: {target_lang}
-        """
-        result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a Data Quality Analyst. Language: {target_lang}. Output STRICT JSON.", bypass_queue=True)
-        if "error" not in result:
-            await set_cached_content(cache_key, current_user["id"], "completeness_sync", result)
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 @router.post("/api/research/disambiguate")
 async def disambiguate_company_endpoint(request: DisambiguationRequest):
     try:

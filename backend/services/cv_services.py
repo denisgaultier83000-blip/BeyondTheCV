@@ -908,19 +908,29 @@ async def extract_skills(request: SkillExtractionRequest, current_user: dict = D
         raise HTTPException(status_code=500, detail=f"Simulation failed: {str(e)}")
 
 @router.post("/generate-clarifications")
-async def generate_clarifications(data: FullCVData, current_user: dict = Depends(require_active_subscription)):
-    cv_dict = data.model_dump() if hasattr(data, "model_dump") else data.dict()
-    cache_key = _generate_cache_key(current_user["id"], "clarifications", cv_dict)
-    cached = await get_cached_content(cache_key)
-    if cached:
-        return cached
-        
-    target_lang = normalize_language(data.target_language)
-    prompt = f"Analyze this candidate profile. Identify ambiguous/missing points CRITICAL for a CV. Generate up to 20 clarification questions (0-3 if well detailed).\nCRITICAL: If the user includes typos, self-sabotaging flaws (e.g., 'lazy', 'liar'), or unprofessional terms, your FIRST question MUST act as a coach: point out the error gently and propose a positive professional alternative to reframe it.\n\nDATA: {json.dumps(_sanitize_data_for_ai(data.model_dump(), strict=True), default=str)}\n\nOUTPUT STRICT JSON: {{ \"questions\": [\"Q1?\", \"Q2?\"] }}\nLANGUAGE: {target_lang}"
-    res = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are a Career Coach.")
-    if "error" not in res:
-        await set_cached_content(cache_key, current_user["id"], "clarifications", res)
-    return res
+async def generate_clarifications(background_tasks: BackgroundTasks, data: FullCVData, current_user: dict = Depends(require_active_subscription)):
+    """
+    [MODIFIÉ] Lance la génération des questions de clarification en tâche de fond
+    pour correspondre au comportement de polling du frontend.
+    """
+    task_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+
+    # Le payload pour la tâche de fond est le dictionnaire du modèle Pydantic.
+    payload = data.model_dump() if hasattr(data, "model_dump") else data.dict()
+    payload["user_id"] = current_user["id"] # Injection pour le cache
+
+    async with db.get_connection() as conn:
+        await db.execute(conn,
+            "INSERT INTO tasks (id, user_id, status, result, created_at, task_type) VALUES (?, ?, ?, ?, ?, ?)",
+            (task_id, current_user["id"], "PENDING", None, now, "completeness_analysis")
+        )
+
+    # La tâche `process_completeness_in_background` fait exactement ce que l'ancien endpoint faisait.
+    # On la réutilise pour générer les questions de clarification.
+    background_tasks.add_task(process_completeness_in_background, task_id, {"data": payload})
+
+    return {"task_id": task_id, "status": "PENDING"}
 
 @router.post("/parse-linkedin")
 async def parse_linkedin_pdf(file: UploadFile = File(...), current_user: dict = Depends(require_active_subscription)):
@@ -1237,7 +1247,11 @@ async def analyze_completeness(background_tasks: BackgroundTasks, payload: dict 
     # [CORRECTIF] Si le payload est vide, on ne lance pas de tâche IA et on retourne une réponse vide pour éviter un crash.
     if not payload or (isinstance(payload, dict) and not payload.get("data")):
         return {"task_id": task_id, "status": "SKIPPED", "message": "Payload vide, analyse ignorée."}
-
+    
+    # [MODIFIÉ] Cette route est maintenant asynchrone et retourne un task_id.
+    # Le traitement est fait par `process_completeness_in_background`.
+    # Le nom de la tâche est conservé pour la rétrocompatibilité.
+    
     now = datetime.now(timezone.utc)
     # [FIX EXPERT] Injection du user_id dans le payload pour activer le cache
     payload["user_id"] = current_user["id"]
@@ -1246,7 +1260,10 @@ async def analyze_completeness(background_tasks: BackgroundTasks, payload: dict 
         
     async with db.get_connection() as conn:
         # [FIX EXPERT] Enregistrement de la tâche avec le bon user_id pour la traçabilité
-        await db.execute(conn, "INSERT INTO tasks (id, user_id, status, result, created_at) VALUES (?, ?, ?, ?, ?)", (task_id, current_user["id"], "PENDING", None, now))
+        await db.execute(conn,
+            "INSERT INTO tasks (id, user_id, status, result, created_at, task_type) VALUES (?, ?, ?, ?, ?, ?)",
+            (task_id, current_user["id"], "PENDING", None, now, "completeness_analysis")
+        )
     
     background_tasks.add_task(process_completeness_in_background, task_id, payload)
     return {"task_id": task_id, "status": "PENDING"}
