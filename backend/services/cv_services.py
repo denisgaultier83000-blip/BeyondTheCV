@@ -42,7 +42,7 @@ from .utils import (
     clean_ai_json_response, normalize_language, load_prompt, _get_sortable_date_tuple,
     _sanitize_data_for_ai, _generate_cache_key, get_cached_content, set_cached_content, check_and_increment_generation_limit,
     consume_credit, refund_credit,
-    _CACHE_LOCKS
+    _CACHE_LOCKS, update_user_total_cost
 )
 from .tasks import get_prompt_path
 from .websocket_manager import manager

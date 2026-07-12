@@ -2,6 +2,7 @@ import pytest
 import asyncio
 from unittest.mock import patch, AsyncMock
 from security import get_current_user
+from services.utils import get_cached_content
 
 from fastapi.testclient import TestClient
 from main import app  # Assurez-vous que votre fichier principal s'appelle main.py et qu'il expose l'app FastAPI
@@ -145,7 +146,7 @@ def test_parse_cv_no_file():
 
 @patch("services.cv_services.consume_credit", new_callable=AsyncMock)
 @patch("services.cv_services.refund_credit", new_callable=AsyncMock)
-@patch("services.cv_services.get_cached_content") # Mock synchrone car appelé depuis une fonction asynchrone
+@patch("services.cv_services.get_cached_content", new_callable=AsyncMock)
 @patch("services.ai_generator.ai_service.generate_from_pdf_or_image", new_callable=AsyncMock)
 def test_parse_cv_cache_hit(mock_ai_call, mock_get_cache, mock_refund, mock_consume):
     """
@@ -157,13 +158,9 @@ def test_parse_cv_cache_hit(mock_ai_call, mock_get_cache, mock_refund, mock_cons
     - Le crédit est consommé puis immédiatement remboursé (car l'opération est gratuite grâce au cache).
     """
     print("--- Test du cas de succès avec Cache (Cache Hit) ---")
-    # On configure le mock du cache pour qu'il retourne des données
-    # Note: get_cached_content est une fonction `async`, donc son mock doit être un `AsyncMock`
-    # ou être configuré pour retourner un `Future`. Ici, on utilise `new_callable=AsyncMock`.
-    mock_get_cache_async = AsyncMock(return_value=MOCK_AI_SUCCESS_RESPONSE)
-    app.dependency_overrides[get_cached_content] = lambda: mock_get_cache_async
+    mock_get_cache.return_value = MOCK_AI_SUCCESS_RESPONSE
 
-    fake_pdf_content = b"un contenu déjà analysé"
+    fake_pdf_content = "un contenu déjà analysé".encode("utf-8")
     files = {"file": ("cached_cv.pdf", fake_pdf_content, "application/pdf")}
 
     response = client.post("/api/cv/parse-cv", files=files)
@@ -177,9 +174,6 @@ def test_parse_cv_cache_hit(mock_ai_call, mock_get_cache, mock_refund, mock_cons
     
     # L'IA ne doit pas avoir été appelée
     mock_ai_call.assert_not_awaited()
-
-    # Nettoyage pour ne pas affecter les autres tests
-    del app.dependency_overrides[get_cached_content]
 
 @patch("services.cv_services.consume_credit", new_callable=AsyncMock)
 @patch("services.cv_services.refund_credit", new_callable=AsyncMock)
