@@ -202,18 +202,19 @@ class AIGenerator:
         model_name = await self._get_gemini_model()
         if not model_name:
             raise ValueError("Aucun modèle Gemini trouvé.")
-        
+
         # Construction de la requête multimodale
         content_parts = [
             prompt,
-            {"mime_type": file_type, "data": file_content}
+            # [FIX] The part dictionary must have an 'inline_data' key.
+            {"inline_data": {"mime_type": file_type, "data": file_content}},
         ]
-        
+
         try:
             response = await self.gemini_client.aio.models.generate_content(
                 model=model_name,
                 contents=content_parts,
-                config=types.GenerateContentConfig(response_mime_type="application/json")
+                generation_config=types.GenerationConfig(response_mime_type="application/json")
             )
 
             # Traitement de la réponse et du coût
@@ -226,14 +227,17 @@ class AIGenerator:
                 input_cost = (response.usage_metadata.prompt_token_count / 1_000_000) * pricing["input"]
                 output_cost = (response.usage_metadata.candidates_token_count / 1_000_000) * pricing["output"]
                 cost = input_cost + output_cost
-            
+
             if 'error' not in parsed_json:
                 parsed_json['cost'] = cost
-            
+
             return parsed_json
 
         except ValueError as e:
-            # Gère les filtres de sécurité de Gemini
+            # Gère les filtres de sécurité de Gemini ou les erreurs de validation
+            # Note: pydantic.ValidationError hérite de ValueError
+            if "validation errors" in str(e): # Pydantic validation errors
+                 raise RuntimeError(f"Invalid request parameters for Gemini API: {e}")
             raise RuntimeError(f"Gemini Safety Filter Blocked Content or Invalid Response: {e}")
         except Exception as e:
             print(f"[AI VISION ERROR] Erreur lors de l'appel multimodal Gemini: {e}", flush=True)
