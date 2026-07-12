@@ -532,30 +532,6 @@ async def admin_purge_user_cache(user_id: str, request: Request, admin_user: dic
 
     return {"status": "success", "message": f"Cache purgé pour l'utilisateur."}
 
-@router.delete("/users/{user_id}/cache")
-async def admin_purge_user_cache(user_id: str, request: Request, admin_user: dict = Depends(require_admin_user)):
-    """4. Debug : Purger le cache IA d'un utilisateur en cas de bug de génération."""
-    async with db.get_connection() as conn:
-        user_cursor = await db.execute(conn, "SELECT email FROM users WHERE id = ?", (user_id,))
-        user_row = await user_cursor.fetchone()
-        if not user_row:
-            raise HTTPException(status_code=404, detail="Utilisateur introuvable.")
-        user_email = user_row['email']
-
-        await db.execute(conn, "DELETE FROM generation_cache WHERE user_id = ?", (user_id,))
-
-        # Log audit
-        await audit_service.log_admin_action(
-            request=request,
-            admin_user=admin_user,
-            action="PURGE_USER_CACHE",
-            target_user_id=user_id,
-            target_user_email=user_email,
-            details={}
-        )
-
-    return {"status": "success", "message": f"Cache purgé pour l'utilisateur."}
-
 @router.get("/health-check")
 async def admin_health_check():
     """4. Debug : Ping global des fournisseurs (Stripe, OpenAI, Gemini, Serper)."""
