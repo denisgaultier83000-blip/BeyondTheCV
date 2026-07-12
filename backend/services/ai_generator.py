@@ -206,7 +206,7 @@ class AIGenerator:
         # Construction de la requête multimodale
         content_parts = [
             prompt,
-            types.Part.from_data(data=file_content, mime_type=file_type)
+            {"mime_type": file_type, "data": file_content}
         ]
         
         try:

@@ -151,7 +151,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
                 update_cursor = await db.execute(
                     conn, 
                     "UPDATE users SET last_login = ? WHERE id = ? RETURNING id", 
-                    (datetime.now(timezone.utc), user_dict.get("id"))
+                    (datetime.now(timezone.utc).replace(tzinfo=None), user_dict.get("id"))
                 )
                 updated_row = await update_cursor.fetchone()
                 if not updated_row:
