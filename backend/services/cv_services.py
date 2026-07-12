@@ -1248,7 +1248,7 @@ async def analyze_completeness(background_tasks: BackgroundTasks, payload: dict 
     if not payload or (isinstance(payload, dict) and not payload.get("data")):
         return {"task_id": task_id, "status": "SKIPPED", "message": "Payload vide, analyse ignorée."}
     
-    # [MODIFIÉ] Cette route est maintenant asynchrone et retourne un task_id.
+    # [MODIFIÉ] Cette route est maintenant asynchrone et retourne un task_id
     # Le traitement est fait par `process_completeness_in_background`.
     # Le nom de la tâche est conservé pour la rétrocompatibilité.
     
