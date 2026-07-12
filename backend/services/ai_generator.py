@@ -214,7 +214,7 @@ class AIGenerator:
             response = await self.gemini_client.aio.models.generate_content(
                 model=model_name,
                 contents=content_parts,
-                config=types.GenerationConfig(response_mime_type="application/json")
+                config=types.GenerateContentConfig(response_mime_type="application/json")
             )
 
             # Traitement de la réponse et du coût
