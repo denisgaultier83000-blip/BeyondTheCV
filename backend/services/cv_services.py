@@ -979,6 +979,11 @@ async def parse_cv_upload(
         if cached_data:
             print(f"[CV PARSE] Cache HIT for file {file.filename} (hash: {file_hash[:10]})")
             await refund_credit(current_user["id"], cost=2)
+            # [FIX EXPERT] Correction de la race condition lors du cache hit.
+            # Le frontend reçoit un task_id et commence à poller pour le statut.
+            # Si on ne met pas à jour la tâche en base de données, le frontend
+            # recevra une erreur 404 en boucle.
+            # Cette logique n'est pertinente que pour le parsing de CV, pas pour les autres caches.
             return JSONResponse(content=cached_data)
 
         print(f"[CV PARSE] Cache MISS for file {file.filename} (hash: {file_hash[:10]}). Calling AI.")

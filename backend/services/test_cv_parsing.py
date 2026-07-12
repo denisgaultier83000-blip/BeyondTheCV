@@ -139,7 +139,11 @@ def test_parse_cv_no_file():
     - Le statut 400 Bad Request, car la requête est mal formée.
     """
     print("--- Test du cas d'erreur (Aucun fichier fourni) ---")
-    response = client.post("/api/cv/parse-cv", files={})
+    # [FIX EXPERT] Pour simuler correctement un formulaire multipart SANS fichier,
+    # il faut passer `files=None` et non un dictionnaire vide.
+    # Un dictionnaire vide envoie un content-type `application/x-www-form-urlencoded`
+    # qui n'est pas ce que l'endpoint attend, causant une erreur 422 au lieu de 400.
+    response = client.post("/api/cv/parse-cv", files=None)
 
     assert response.status_code == 400
     assert "Veuillez fournir un fichier" in response.json()["detail"]
