@@ -990,7 +990,7 @@ async def parse_cv_upload(
             print(f"[CV PARSE] Cache HIT for file {file.filename} (hash: {file_hash[:10]})")
             await refund_credit(current_user["id"], cost=2)
 
-            # [FIX EXPERT] Correction de la race condition lors du cache hit.
+            # [FIX EXPERT] Correction de la race condition lors du cache hit
             # Le frontend attend un task_id pour suivre l'état. Si on ne crée pas de tâche
             # et qu'on ne la met pas à jour, le polling échouera avec une erreur 404.
             # On crée donc une tâche et on la passe directement en "SUCCESS".
