@@ -971,6 +971,11 @@ async def orchestrate_dashboard_tasks(tasks_map: dict, cv_dict: dict):
     tout en garantissant que les infos les plus importantes chargent en premier.
     """
     print("\n[ORCHESTRATOR] 🌊 Dispatching tasks to Semaphore Queue...", flush=True)
+
+    # [FIX RACE CONDITION] Ajout d'un délai non bloquant de 100ms pour garantir que la transaction
+    # de la base de données qui crée les tâches est bien terminée avant que la première tâche
+    # (souvent très rapide comme gap_analysis) ne s'exécute et tente de mettre à jour son statut.
+    await asyncio.sleep(0.1)
     
     def fire(task_key, coro):
         async def safe_coro():
