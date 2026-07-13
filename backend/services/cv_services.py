@@ -1179,15 +1179,18 @@ async def start_analysis(background_tasks: BackgroundTasks, data: dict = Body(..
                     (application_id, current_user["id"], cv_dict.get('target_company') or "Général", cv_dict.get('target_job') or "Poste non spécifié", now)
                 )
             
-            # 2. Insertion des tâches liées
+            # 2. [CORRECTIF] Insertion synchrone des tâches liées pour éviter la race condition.
+            # On garantit que les tâches existent en base AVANT de renvoyer leurs IDs au frontend.
             for task_name, tid in tasks_map.items():
                 task_metadata = {
                     "task_name": task_name,
                     "candidate_data": cv_dict,
                 }
                 await db.execute(conn, 
-                    "INSERT INTO tasks (id, status, result, created_at, application_id, metadata, task_type) VALUES (?, ?, ?, ?, ?, ?, ?)", 
-                    (tid, "PENDING", None, now, application_id, json.dumps(task_metadata), task_name))
+                    """INSERT INTO tasks (id, user_id, status, result, created_at, application_id, metadata, task_type) 
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", 
+                    (tid, current_user["id"], "PENDING", None, now, application_id, json.dumps(task_metadata), task_name)
+                )
     except Exception as e:
         import traceback
         traceback.print_exc()
