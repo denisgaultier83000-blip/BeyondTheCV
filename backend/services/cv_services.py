@@ -1258,6 +1258,9 @@ async def analyze_completeness(background_tasks: BackgroundTasks, payload: dict 
     if "data" in payload and isinstance(payload["data"], dict):
         payload["data"]["user_id"] = current_user["id"]
         
+    # [CORRECTIF] L'insertion en base de données est maintenant effectuée de manière synchrone (await)
+    # dans le flux principal de la requête. Cela garantit que la tâche existe en base
+    # avec le statut "PENDING" AVANT que le frontend ne reçoive le task_id.
     async with db.get_connection() as conn:
         # [FIX EXPERT] Enregistrement de la tâche avec le bon user_id pour la traçabilité
         await db.execute(conn,
@@ -1265,6 +1268,7 @@ async def analyze_completeness(background_tasks: BackgroundTasks, payload: dict 
             (task_id, current_user["id"], "PENDING", None, now, "completeness_analysis")
         )
     
+    # Seul le traitement IA, qui est long, reste délégué à une tâche de fond.
     background_tasks.add_task(process_completeness_in_background, task_id, payload)
     return {"task_id": task_id, "status": "PENDING"}
 
