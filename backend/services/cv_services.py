@@ -919,17 +919,20 @@ async def generate_clarifications(background_tasks: BackgroundTasks, data: FullC
     # Le payload pour la tâche de fond est le dictionnaire du modèle Pydantic.
     payload = data.model_dump() if hasattr(data, "model_dump") else data.dict()
     payload["user_id"] = current_user["id"] # Injection pour le cache
-
+    
+    # [FIX] Création synchrone de la tâche en base de données AVANT de retourner le task_id.
+    # Cela élimine la race condition où le frontend pouvait poller un ID qui n'existait pas encore.
     async with db.get_connection() as conn:
         await db.execute(conn,
             "INSERT INTO tasks (id, user_id, status, result, created_at, task_type) VALUES (?, ?, ?, ?, ?, ?)",
             (task_id, current_user["id"], "PENDING", None, now, "completeness_analysis")
         )
-
+    
     # La tâche `process_completeness_in_background` fait exactement ce que l'ancien endpoint faisait.
     # On la réutilise pour générer les questions de clarification.
+    # Le traitement IA, qui est long, reste en arrière-plan.
     background_tasks.add_task(process_completeness_in_background, task_id, {"data": payload})
-
+    
     return {"task_id": task_id, "status": "PENDING"}
 
 @router.post("/parse-linkedin")
