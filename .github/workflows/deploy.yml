@@ -127,11 +127,13 @@ jobs:
             # [OPTIMISATION] Libérer de l'espace disque AVANT de télécharger de nouvelles images
             docker image prune -a -f
 
+            # [FIX 404] On passe explicitement API_HOST au backend pour que Traefik crée la route
             docker compose \
               -p "$PROJECT_NAME" \
               -f "$COMPOSE_FILE" \
               pull
 
+            # [FIX 404] On passe explicitement API_HOST au backend pour que Traefik crée la route
             docker compose \
               -p "$PROJECT_NAME" \
               -f "$COMPOSE_FILE" \

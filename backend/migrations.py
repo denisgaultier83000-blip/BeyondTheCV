@@ -22,7 +22,7 @@ def get_postgres_connection(dbname=None):
         # Reconstruit l'URL avec la nouvelle base de données
         db_url = urlunparse(parsed_url._replace(path=new_path))
 
-    return psycopg2.connect(db_url)
+    return psycopg2.connect(db_url, connect_timeout=30)
 
 def ensure_database_exists():
     """Connects to the default 'postgres' db to create the application db if it doesn't exist."""

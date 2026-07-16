@@ -86,6 +86,10 @@ def get_database_url():
 
     # Fallback pour le développement local
     fallback_url = os.getenv("DATABASE_URL", "")
+    # if "35.241.172.108" in fallback_url:
+    #     print("[DB WARNING] Detected hardcoded public IP. Replacing with 'localhost' for local development.")
+    #     fallback_url = fallback_url.replace("35.241.172.108", "localhost")
+
     if not fallback_url:
         print("[WARNING] Ni DATABASE_SECRET_NAME ni DATABASE_URL ne sont définis. Tentative de connexion par défaut (localhost).", flush=True)
     # [NOTE] Si vous utilisez une DATABASE_URL locale avec des caractères spéciaux dans le mot de passe,
@@ -157,7 +161,7 @@ class Database:
                 async with self._async_lock:
                     if not self._async_pool:
                         # [OPTIMISATION] Pool asynchrone pour encaisser un pic de trafic
-                        self._async_pool = await asyncpg.create_pool(self.database_url, min_size=5, max_size=50)
+                        self._async_pool = await asyncpg.create_pool(self.database_url, min_size=5, max_size=50, command_timeout=60, connection_timeout=30)
             async with self._async_pool.acquire() as conn:
                 yield conn
         else:
@@ -181,8 +185,13 @@ class Database:
                 if not self._sync_pool:
                     if not psycopg2_pool:
                         raise RuntimeError("psycopg2.pool n'est pas disponible.")
-                    # [OPTIMISATION] Pool synchrone (Threadé) pour les tâches de fond
-                    self._sync_pool = psycopg2_pool.ThreadedConnectionPool(5, 50, dsn=self.database_url)
+                    
+                    # [FIX] Ajout d'un timeout de connexion robuste pour psycopg2
+                    dsn = self.database_url
+                    if 'connect_timeout' not in dsn:
+                        dsn += "&connect_timeout=30" if '?' in dsn else "?connect_timeout=30"
+
+                    self._sync_pool = psycopg2_pool.ThreadedConnectionPool(5, 50, dsn=dsn)
         return self._sync_pool.getconn()
         
     def _release_sync_conn(self, conn):
