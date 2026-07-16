@@ -1311,6 +1311,64 @@ async def get_analysis_status(task_id: str):
             
     return response
 
+@router.post("/bulk-status")
+async def get_bulk_analysis_status(request: BulkStatusRequest):
+    """
+    [FIX] Endpoint pour récupérer le statut de plusieurs tâches en une seule requête,
+    ce qui est beaucoup plus efficace et réduit la charge sur le serveur.
+    """
+    if not request.task_ids:
+        return {}
+
+    async with db.get_connection() as conn:
+        # Utilisation de la syntaxe `IN` qui est standard et supportée par tous les drivers.
+        # On construit dynamiquement les placeholders pour éviter les injections SQL.
+        placeholders = ','.join(['?'] * len(request.task_ids))
+        query = f"SELECT id, status, result, task_type FROM tasks WHERE id IN ({placeholders})"
+        
+        cursor = await db.execute(conn, query, request.task_ids)
+        rows = await cursor.fetchall()
+
+    tasks_by_id = {str(row["id"]): {
+        "status": row["status"],
+        "result": row["result"],
+        "task_type": row.get("task_type", "unknown")
+    } for row in rows}
+
+    # Formatage de la réponse finale
+    final_response = {}
+    for task_id in request.task_ids:
+        task_info = tasks_by_id.get(task_id)
+        if not task_info:
+            final_response[task_id] = {"status": "NOT_FOUND"}
+            continue
+
+        response = {"status": task_info["status"]}
+        result_raw = task_info["result"]
+
+        if task_info["status"] in ["SUCCESS", "COMPLETED", "FAILED"] and result_raw:
+            try:
+                # [ROBUSTESSE] La logique de parsing JSON est ici centralisée.
+                parsed = json.loads(result_raw)
+                if isinstance(parsed, str):
+                    try: parsed = json.loads(parsed)
+                    except Exception: pass
+                
+                # Nettoyage récursif du JSON si nécessaire
+                if isinstance(parsed, dict):
+                    for k, v in parsed.items():
+                        if isinstance(v, str) and (v.strip().startswith("{") or v.strip().startswith("```")):
+                            try: parsed[k] = clean_ai_json_response(v)
+                            except Exception: pass
+                response["result"] = parsed
+            except (json.JSONDecodeError, TypeError):
+                response["result"] = result_raw
+        
+        final_response[task_id] = response
+            
+    return final_response
+
+
 @router.post("/dashboard/summary")
 async def get_dashboard_summary(data: FullCVData, current_user: dict = Depends(require_active_subscription)):
     # [FIX] Le bloc try...except doit englober toute la fonction pour intercepter les erreurs IA
@@ -1420,6 +1478,14 @@ async def get_dashboard_summary(data: FullCVData, current_user: dict = Depends(r
         if "timeout" in error_msg:
             raise HTTPException(status_code=504, detail="Le réseau est trop lent ou bloque l'accès aux intelligences artificielles (Timeout). Vérifiez votre connexion internet.")
         raise HTTPException(status_code=500, detail=f"Erreur lors du diagnostic IA : {str(e)}")
+
+@router.get("/all-tasks-debug")
+async def get_all_tasks_debug():
+    async with db.get_connection() as conn:
+        cursor = await db.execute(conn, "SELECT id, status, task_type, created_at FROM tasks ORDER BY created_at DESC LIMIT 100")
+        rows = await cursor.fetchall()
+    return {"tasks": rows}
+
 
 @router.post("/feedback")
 @router.post("/feedbacks")
