@@ -142,9 +142,10 @@ class OSINTPipeline:
         if db:
             try:
                 async with db.get_connection() as conn:
-                    row = await db.fetchone(conn, "SELECT content, cached_at FROM article_cache WHERE url = ?", (url,))
+                    cursor = await db.execute(conn, "SELECT content, cached_at FROM article_cache WHERE url = ?", (url,))
+                    row = await cursor.fetchone()
                     if row:
-                        cached_content, cached_at = row[0], row[1]
+                        cached_content, cached_at = row['content'], row['cached_at']
                         
                         # [FIX] Assurer que le datetime est timezone-aware pour éviter les erreurs de comparaison
                         if cached_at and cached_at.tzinfo is None:
