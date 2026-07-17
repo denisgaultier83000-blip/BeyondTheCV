@@ -17,17 +17,6 @@ import OpenAI from "openai";
 // Si tu l'utilises encore ailleurs, garde-le. Sinon tu peux enlever.
 import { orchestrateOrder } from "./orchestrator.js";
 
-// --- DÉBUT ZONE DE DEBUG ---
-require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') }); // Assure-toi que dotenv est chargé ici
-
-console.log("========================================");
-console.log("🔍 DIAGNOSTIC ENVIRONNEMENT (TacticEdge)");
-console.log("📂 Dossier d'exécution (CWD):", process.cwd());
-console.log("🔑 OpenAI Key détectée ?", !!process.env.OPENAI_API_KEY); 
-console.log("🔑 Gemini Key détectée ?", !!process.env.GEMINI_API_KEY);
-console.log("========================================");
-// --- FIN ZONE DE DEBUG ---
-
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-2024-08-06";
 const execAsync = promisify(exec);
 
@@ -554,16 +543,18 @@ export function createApp(opts = {}) {
   // -----------------------------
   app.get("/health", (req, res) => res.json({ ok: true }));
 
-  app.post("/auth/login", (req, res) => {
+  // [FIX] Correction de la route d'authentification pour correspondre à l'appel du frontend.
+  app.post("/api/auth/token", (req, res) => {
     const { email, password } = req.body || {};
     if (!email || !password) return res.status(400).json({ error: "missing_credentials" });
 
+    // Logique de vérification de l'utilisateur (MVP)
     const user = { id: "demo-user", email };
     const token = signToken(user);
     return res.json({ token });
   });
 
-  app.get("/me", requireAuth, (req, res) => res.json(req.user));
+  app.get("/api/me", requireAuth, (req, res) => res.json(req.user));
 
   // POST /orders/:orderId/generate
   app.post("/orders/:orderId/generate", async (req, res) => {
