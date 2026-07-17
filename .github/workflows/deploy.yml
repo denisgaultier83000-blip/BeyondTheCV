@@ -56,11 +56,13 @@ jobs:
             # [MAINTENABILITÉ] Logique de déploiement flexible basée sur le nom de la branche
             if [[ "$BRANCH" == "master" ]]; then
               COMPOSE_FILE="docker-compose.prod.yml"
+              DB_NAME_OVERRIDE="${DB_NAME}" # [SÉCURITÉ] Force l'utilisation de la BDD de prod
               PROJECT_NAME="btcv-prod"
               ENVIRONMENT="production"
               API_HOST="api.beyondthecv.app" # Utilisé pour Traefik
             elif [[ "$BRANCH" == "staging"* ]]; then
               COMPOSE_FILE="docker-compose.staging.yml"
+              DB_NAME_OVERRIDE="beyondthecv_staging" # [SÉCURITÉ] Force l'utilisation de la BDD de staging
               PROJECT_NAME="btcv-staging"
               ENVIRONMENT="staging"
               API_HOST="api-staging.beyondthecv.app" # Utilisé pour Traefik
