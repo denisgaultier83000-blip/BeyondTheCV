@@ -556,7 +556,7 @@ export function createApp(opts = {}) {
 
   app.get("/api/me", requireAuth, (req, res) => res.json(req.user));
 
-  // POST /orders/:orderId/generate
+  // POST /orders/:orderId/generate.
   app.post("/orders/:orderId/generate", async (req, res) => {
     try {
       const parsed = GenerateRequest.safeParse(req.body || {});
