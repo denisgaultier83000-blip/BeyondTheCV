@@ -124,10 +124,6 @@ class AIGenerator:
 
         fallback_provider = "openai" if target_provider == "gemini" else "gemini"
 
-        # Initialisation Lazy du Sémaphore (Garanti dans l'Event Loop)
-        if self._semaphore is None:
-            self._semaphore = asyncio.Semaphore(self.max_concurrent_requests)
-
         async def _run():
             try:
                 res = await self._execute_provider(target_provider, prompt, system_instruction, json_mode=json_mode, bypass_queue=bypass_queue)
@@ -263,6 +259,11 @@ class AIGenerator:
 
     async def _attempt_call(self, func, model_name, bypass_queue, *args, **kwargs) -> Tuple[str, float]:
         """Exécute une fonction d'appel IA avec retries pour les erreurs transitoires."""
+        # [FIX] Initialisation Lazy du Sémaphore pour garantir qu'il est créé dans un event loop
+        # et disponible pour toutes les méthodes d'appel.
+        if self._semaphore is None:
+            self._semaphore = asyncio.Semaphore(self.max_concurrent_requests)
+
         max_retries = 2 # [OPTIMISATION] 3 essais totaux par provider (0, 1, 2) avant de basculer (fallback)
         base_delay = 0.5 # [OPTIMISATION] Délai de base ultra-court pour absorber les micro-pannes 502/503
         
