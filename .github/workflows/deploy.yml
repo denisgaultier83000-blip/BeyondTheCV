@@ -51,6 +51,7 @@ jobs:
             set -e
 
             BRANCH="$TARGET_BRANCH"
+            DB_NAME_OVERRIDE="" # Initialisation
 
             # [MAINTENABILITÉ] Logique de déploiement flexible basée sur le nom de la branche
             if [[ "$BRANCH" == "master" ]]; then
@@ -58,6 +59,7 @@ jobs:
               PROJECT_NAME="btcv-prod"
               ENVIRONMENT="production"
               API_HOST="api.beyondthecv.app" # Utilisé pour Traefik
+              DB_NAME_OVERRIDE="beyondthecv_staging" # [FIX] Force l'utilisation de la BDD de staging en prod
             elif [[ "$BRANCH" == "staging"* ]]; then
               COMPOSE_FILE="docker-compose.staging.yml"
               PROJECT_NAME="btcv-staging"
@@ -102,7 +104,7 @@ jobs:
             FRONTEND_URL=${FRONTEND_URL_VAR}
             POSTGRES_USER=${DB_USER}
             POSTGRES_PASSWORD=${SAFE_DB_PASS}
-            POSTGRES_DB=${DB_NAME}
+            POSTGRES_DB=${DB_NAME_OVERRIDE:-${DB_NAME}}
             OPENAI_API_KEY=${SAFE_OAI_KEY}
             GEMINI_API_KEY=${SAFE_GEM_KEY}
             SERPER_API_KEY=${SAFE_SERPER_KEY}
