@@ -59,7 +59,6 @@ jobs:
               PROJECT_NAME="btcv-prod"
               ENVIRONMENT="production"
               API_HOST="api.beyondthecv.app" # Utilisé pour Traefik
-              DB_NAME_OVERRIDE="beyondthecv_staging" # [FIX] Force l'utilisation de la BDD de staging en prod
             elif [[ "$BRANCH" == "staging"* ]]; then
               COMPOSE_FILE="docker-compose.staging.yml"
               PROJECT_NAME="btcv-staging"
