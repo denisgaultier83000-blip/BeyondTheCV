@@ -144,11 +144,11 @@ def _get_days_until_interview(interview_date: str) -> int:
     
     match = re.search(r'(\d{4})[-/](\d{1,2})[-/](\d{1,2})', date_str)
     if match:
-        try: return (datetime(int(match.group(1)), int(match.group(2)), int(match.group(3))) - datetime.now()).days
+        try: return (datetime(int(match.group(1)), int(match.group(2)), int(match.group(3))) - datetime.now(timezone.utc)).days
         except: pass
     match2 = re.search(r'(\d{1,2})[-/](\d{1,2})[-/](\d{4})', date_str)
     if match2:
-        try: return (datetime(int(match2.group(3)), int(match2.group(2)), int(match2.group(1))) - datetime.now()).days
+        try: return (datetime(int(match2.group(3)), int(match2.group(2)), int(match2.group(1))) - datetime.now(timezone.utc)).days
         except: pass
     match3 = re.search(r'dans\s*(\d+)\s*(jour|day)', date_str)
     if match3: return int(match3.group(1))
@@ -176,7 +176,7 @@ async def require_active_subscription(current_user: dict = Depends(get_current_u
     exp_date = row[1] if isinstance(row, tuple) else row.get("subscription_expiration_date")
     
     is_expired = status == "expired"
-    if exp_date and isinstance(exp_date, datetime) and exp_date.replace(tzinfo=timezone.utc) < datetime.now():
+    if exp_date and isinstance(exp_date, datetime) and exp_date.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
         is_expired = True
                 
     if is_expired:
@@ -514,7 +514,7 @@ async def evaluate_vocal_pitch(request: VocalPitchRequest, current_user: dict = 
                 await db.execute(conn, """
                     INSERT INTO training_sessions (id, user_id, theme, question_type, question_text, user_answer, score, strengths, weaknesses, improved_answer, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (session_id, current_user["id"], "Pitch Vocal", "Vocal", "Entraînement au pitch vocal (spontané)", request.transcript, result.get("score", 0), json.dumps(result.get("metrics", {})), json.dumps(result.get("feedback", {})), json.dumps(result.get("micro_exercises", [])), datetime.now()))
+            """, (session_id, current_user["id"], "Pitch Vocal", "Vocal", "Entraînement au pitch vocal (spontané)", request.transcript, result.get("score", 0), json.dumps(result.get("metrics", {})), json.dumps(result.get("feedback", {})), json.dumps(result.get("micro_exercises", [])), datetime.now(timezone.utc)))
         except Exception as e:
             print(f"[DB WARNING] Failed to insert training_session: {e}")
             
@@ -556,7 +556,7 @@ async def evaluate_oral_pitch(request: OralPitchRequest, current_user: dict = De
                     session_id, current_user["id"], "Pitch Oral", "Vocal", 
                     "Parlez-moi de vous (Elevator Pitch)", request.transcript, 
                     result.get("score", 0), json.dumps(result.get("strengths", [])), 
-                    json.dumps(result.get("weaknesses", [])), result.get("improved_pitch", ""), datetime.now()
+                    json.dumps(result.get("weaknesses", [])), result.get("improved_pitch", ""), datetime.now(timezone.utc)
                 ))
         except Exception as e:
             print(f"[DB WARNING] Failed to insert training_session for oral pitch: {e}")
@@ -696,7 +696,7 @@ async def evaluate_training_answer(request: TrainingEvaluateRequest, current_use
                 await db.execute(conn,
                     """INSERT INTO training_sessions (id, user_id, theme, question_type, question_text, user_answer, score, strengths, weaknesses, improved_answer, created_at, application_id)
                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                    (session_id, current_user["id"], request.theme, request.question_type, request.question_text, request.user_answer, feedback.get("score", 0), json.dumps(feedback.get("strengths", [])), json.dumps(feedback.get("weaknesses", [])), feedback.get("improved_answer", ""), datetime.now(), request.application_id)
+                    (session_id, current_user["id"], request.theme, request.question_type, request.question_text, request.user_answer, feedback.get("score", 0), json.dumps(feedback.get("strengths", [])), json.dumps(feedback.get("weaknesses", [])), feedback.get("improved_answer", ""), datetime.now(timezone.utc), request.application_id)
                 )
         except Exception as e:
             print(f"[DB WARNING] Failed to insert training_session: {e}")
@@ -914,7 +914,7 @@ async def generate_clarifications(background_tasks: BackgroundTasks, data: FullC
     pour correspondre au comportement de polling du frontend.
     """
     task_id = str(uuid.uuid4())
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
 
     # Le payload pour la tâche de fond est le dictionnaire du modèle Pydantic.
     payload = data.model_dump() if hasattr(data, "model_dump") else data.dict()
@@ -1000,7 +1000,7 @@ async def parse_cv_upload(
             task_id = str(uuid.uuid4())
             async with db.get_connection() as conn:
                 await db.execute(conn, "INSERT INTO tasks (id, user_id, status, result, created_at, task_type) VALUES (?, ?, ?, ?, ?, ?)",
-                                 (task_id, current_user["id"], "SUCCESS", json.dumps(cached_data), datetime.now(), "cv_parsing"))
+                                 (task_id, current_user["id"], "SUCCESS", json.dumps(cached_data), datetime.now(timezone.utc), "cv_parsing"))
 
             # On renvoie le task_id pour que le frontend puisse récupérer le résultat immédiatement.
             return JSONResponse(content={"task_id": task_id})
@@ -1032,7 +1032,7 @@ async def parse_cv_upload(
             task_id = str(uuid.uuid4())
             async with db.get_connection() as conn:
                 await db.execute(conn, "INSERT INTO tasks (id, user_id, status, result, created_at, task_type) VALUES (?, ?, ?, ?, ?, ?)",
-                                 (task_id, current_user["id"], "SUCCESS", json.dumps(result), datetime.now(), "cv_parsing"))
+                                 (task_id, current_user["id"], "SUCCESS", json.dumps(result), datetime.now(timezone.utc), "cv_parsing"))
             return JSONResponse(content={"task_id": task_id})
         except asyncio.TimeoutError:
             await refund_credit(current_user["id"], cost=2)
@@ -1049,7 +1049,7 @@ async def parse_cv_upload(
 @router.post("/start")
 async def start_cv_generation(background_tasks: BackgroundTasks, data: dict = Body(...), current_user: dict = Depends(require_active_subscription)):
     task_id = str(uuid.uuid4())
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     
     # [FIX EXPERT] Injection du user_id dans le payload pour activer le cache
     data["user_id"] = current_user["id"]
@@ -1063,7 +1063,7 @@ async def start_cv_generation(background_tasks: BackgroundTasks, data: dict = Bo
 @router.post("/start-analysis")
 async def start_analysis(background_tasks: BackgroundTasks, data: dict = Body(...), current_user: dict = Depends(require_active_subscription)):
     tasks_map = {}
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     cv_dict = data.copy()
         
     # [FIX EXPERT] Tri chronologique absolu en entrée de pipeline. Force la réorganisation des 
@@ -1258,7 +1258,7 @@ async def analyze_completeness(background_tasks: BackgroundTasks, payload: dict 
     # Le traitement est fait par `process_completeness_in_background`.
     # Le nom de la tâche est conservé pour la rétrocompatibilité.
     
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     # [FIX EXPERT] Injection du user_id dans le payload pour activer le cache
     payload["user_id"] = current_user["id"]
     if "data" in payload and isinstance(payload["data"], dict):
@@ -1495,7 +1495,7 @@ async def submit_feedback(request: FeedbackPayload, current_user: dict = Depends
     """
     actual_comments = request.comments or ""
     user_id = current_user.get("id")
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
 
     # [FIX] Utilisation de l'unique requête correspondant au schéma définitif de production
     try:
