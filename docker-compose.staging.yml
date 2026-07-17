@@ -45,8 +45,10 @@ services:
       - btcv-staging-internal
       - web
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/')\" || exit 1"]
-      interval: 15s
+      # [ROBUSTESSE] Utilisation d'un endpoint /health dédié qui vérifie la connexion à la BDD.
+      # Cela garantit que le service est réellement prêt avant d'être déclaré sain.
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8080/health || exit 1"]
+      interval: 20s
       timeout: 5s
       retries: 5
       start_period: 30s
