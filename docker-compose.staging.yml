@@ -67,6 +67,8 @@ services:
     container_name: btcv-frontend-staging
     restart: unless-stopped
     environment:
+      # [FIX] Injection de l'URL de l'API pour que le frontend sache où se connecter.
+      VITE_API_URL: https://${API_HOST}
       ENVIRONMENT: staging
     networks:
       - web
