@@ -161,7 +161,7 @@ class Database:
                 async with self._async_lock:
                     if not self._async_pool:
                         # [OPTIMISATION] Pool asynchrone pour encaisser un pic de trafic
-                        self._async_pool = await asyncpg.create_pool(self.database_url, min_size=5, max_size=50, command_timeout=60, connection_timeout=30)
+                        self._async_pool = await asyncpg.create_pool(self.database_url, min_size=5, max_size=50, command_timeout=60, timeout=30)
             async with self._async_pool.acquire() as conn:
                 yield conn
         else:
