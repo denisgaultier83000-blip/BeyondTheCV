@@ -331,12 +331,21 @@ async def log_requests(request: Request, call_next):
 def include_safe_router(module_name, from_services=True):
     try:
         # Import dynamique
+        print(f"[ROUTER-DEBUG] Attempting to load module: {module_name}", flush=True)
         if from_services:
             mod = __import__(f"services.{module_name}", fromlist=["router"]) # was: from services import cv
         else:
             mod = __import__(module_name, fromlist=["router"])
-        app.include_router(mod.router)
-        print(f"[ROUTER] ✅ Loaded: {module_name}", flush=True)
+        
+        print(f"[ROUTER-DEBUG] Module '{module_name}' imported: {mod}", flush=True)
+        
+        if hasattr(mod, 'router'):
+            print(f"[ROUTER-DEBUG] Found 'router' in '{module_name}': {mod.router}", flush=True)
+            app.include_router(mod.router)
+            print(f"[ROUTER] ✅ Loaded: {module_name}", flush=True)
+        else:
+            print(f"[ROUTER-DEBUG] ❌ 'router' not found in '{module_name}'!", flush=True)
+
     except Exception as e:
         # [FIABILITÉ] Ne JAMAIS démarrer silencieusement si un routeur est cassé.
         # Une erreur de syntaxe doit crasher l'appli pour empêcher un déploiement corrompu (Fail-Closed).
