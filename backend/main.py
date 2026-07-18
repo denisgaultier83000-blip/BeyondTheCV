@@ -151,7 +151,8 @@ async def lifespan(app: FastAPI):
             db.database_url = db_url
             
             # [DEBUG DB] Log ajouté pour confirmer l'URL injectée juste avant la connexion
-            print(f"[DEBUG DB] DATABASE_URL utilisée pour la connexion: {db.database_url}", flush=True)
+            redacted_url = re.sub(r':([^/]+)@', r':<REDACTED>@', db.database_url or "")
+            print(f"[DEBUG DB] DATABASE_URL utilisée pour la connexion: {redacted_url}", flush=True)
             
             # 3. Lancer les migrations maintenant que la connexion est possible.
             init_db()

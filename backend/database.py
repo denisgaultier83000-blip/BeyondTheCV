@@ -20,47 +20,55 @@ def get_database_url():
     Utilise Secret Manager si DATABASE_SECRET_NAME est défini (Cloud Run).
     Sinon, se replie sur DATABASE_URL (Local).
     """
+    print("[DB-DEBUG] Entrée dans get_database_url.", flush=True)
     secret_name = os.getenv("DATABASE_SECRET_NAME")
-    
+    is_cloud_run = os.getenv("K_SERVICE")
+
+    print(f"[DB-DEBUG] Is Cloud Run (K_SERVICE is set): {is_cloud_run is not None}", flush=True)
+    print(f"[DB-DEBUG] DATABASE_SECRET_NAME: {secret_name}", flush=True)
+
     # [FIX EXPERT] Sécurité : Empêcher le fallback local si on est déployé sur Cloud Run
-    if os.getenv("K_SERVICE") and not secret_name:
+    if is_cloud_run and not secret_name:
         raise RuntimeError("CRITICAL: Déploiement Cloud Run détecté, mais 'DATABASE_SECRET_NAME' est manquant. Ajoutez la variable d'environnement.")
 
     if secret_name:
-        print(f"[DB] Configuration Cloud Run détectée. Récupération du secret: {secret_name}", flush=True)
+        print(f"[DB] Configuration Cloud Run détectée. Tentative de récupération du secret: {secret_name}", flush=True)
         try:
             from google.cloud import secretmanager
             
-            # [FIX] Utilisation d'un contexte `suppress` pour gérer le cas où google.auth n'est pas disponible en local
             with suppress(ImportError):
                 import google.auth
-            # Initialisation du client Secret Manager
+            
             client = secretmanager.SecretManagerServiceClient()
-            _, project_id = google.auth.default()
+            
+            # Tenter de récupérer le project_id
+            try:
+                _, project_id = google.auth.default()
+            except (google.auth.exceptions.DefaultCredentialsError, AttributeError):
+                project_id = None # Gérer le cas où les credentials ne sont pas trouvés
+
             project_id = project_id or os.getenv("GOOGLE_CLOUD_PROJECT")
+            print(f"[DB-DEBUG] Project ID déterminé: {project_id}", flush=True)
             
             if not project_id and "/" not in secret_name:
-                raise ValueError("Impossible de déterminer le 'project_id' Google Cloud. Veuillez définir GOOGLE_CLOUD_PROJECT.")
+                raise ValueError("Impossible de déterminer le 'project_id' Google Cloud. Veuillez définir GOOGLE_CLOUD_PROJECT ou fournir le chemin complet du secret.")
             
-            # Construction du chemin du secret (si le nom court est fourni)
             if "/" not in secret_name:
                 name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
             else:
                 name = secret_name
-                
+            
+            print(f"[DB-DEBUG] Accès au nom complet du secret: {name}", flush=True)
             response = client.access_secret_version(request={"name": name})
             secret_payload = response.payload.data.decode("UTF-8")
             
-            # Analyse du JSON contenant les credentials
             credentials = json.loads(secret_payload)
-            
-            # [FIX SÉCURITÉ] Conversion explicite en String pour éviter un TypeError
-            # si le JSON contient des valeurs 'null' ou des entiers sans guillemets.
+            print(f"[DB-DEBUG] Clés trouvées dans le secret JSON: {list(credentials.keys())}", flush=True)
+
             raw_user = credentials.get("username") or credentials.get("user") or ""
             raw_password = credentials.get("password") or ""
             raw_dbname = credentials.get("dbname") or credentials.get("database") or "beyondthecv"
             
-            # [FIX EXPERT] Encodage URL des caractères spéciaux (@, ?, /, #, %, etc.)
             user = urllib.parse.quote(str(raw_user), safe="")
             password = urllib.parse.quote(str(raw_password), safe="")
             dbname = urllib.parse.quote(str(raw_dbname), safe="")
@@ -70,30 +78,27 @@ def get_database_url():
             instance = credentials.get("instance_connection_name")
             
             if instance:
-                # [OPTIMISATION] Encodage du query parameter 'host' car l'instance contient des ":" (ex: project:region:db)
+                print(f"[DB-DEBUG] Méthode de connexion: Cloud SQL Instance ({instance})", flush=True)
                 encoded_host = urllib.parse.quote(f"/cloudsql/{instance}", safe="")
                 return f"postgresql://{user}:{password}@/{dbname}?host={encoded_host}"
             elif db_host:
+                print(f"[DB-DEBUG] Méthode de connexion: TCP ({db_host}:{db_port})", flush=True)
                 return f"postgresql://{user}:{password}@{db_host}:{db_port}/{dbname}"
             else:
                 raise ValueError("Le secret JSON doit contenir soit 'instance_connection_name' (Cloud SQL) soit 'host' (TCP).")
         except Exception as e:
-            print(f"[CRITICAL] Erreur lors de la récupération des secrets : {e}", flush=True)
-            # [FIX EXPERT] Forcer un crash explicite au lieu d'un échec silencieux.
-            # Si la récupération du secret échoue, l'application ne doit PAS continuer avec une URL vide.
-            # En levant l'exception, le log Cloud Run montrera la VRAIE cause de l'échec (permission, secret introuvable, etc.).
-            raise RuntimeError("CRITICAL: Failed to configure database from Secret Manager. Check logs above for the root cause.") from e
+            import traceback
+            print(f"[CRITICAL] Erreur détaillée lors de la récupération des secrets : {e}", flush=True)
+            traceback.print_exc()
+            raise RuntimeError(f"CRITICAL: Failed to configure database from Secret Manager. Root cause: {type(e).__name__}. Check logs above.") from e
 
     # Fallback pour le développement local
     fallback_url = os.getenv("DATABASE_URL", "")
-    # if "35.241.172.108" in fallback_url:
-    #     print("[DB WARNING] Detected hardcoded public IP. Replacing with 'localhost' for local development.")
-    #     fallback_url = fallback_url.replace("35.241.172.108", "localhost")
-
-    if not fallback_url:
-        print("[WARNING] Ni DATABASE_SECRET_NAME ni DATABASE_URL ne sont définis. Tentative de connexion par défaut (localhost).", flush=True)
-    # [NOTE] Si vous utilisez une DATABASE_URL locale avec des caractères spéciaux dans le mot de passe,
-    # vous devez les encoder vous-même au format URL (ex: le '@' devient '%40', le '#' devient '%23').
+    if fallback_url:
+        print("[DB-DEBUG] Utilisation du fallback DATABASE_URL (développement local).", flush=True)
+    else:
+        print("[WARNING] Ni DATABASE_SECRET_NAME ni DATABASE_URL ne sont définis. Tentative de connexion par défaut (chaîne vide).", flush=True)
+        
     return fallback_url
 
 DATABASE_URL = None # [FIX LIFECYCLE] L'URL est maintenant calculée et assignée dans le lifespan de main.py pour éviter les I/O à l'import.
