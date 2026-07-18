@@ -20,7 +20,6 @@ print(f"OPENAI_API_KEY loaded: {os.getenv('OPENAI_API_KEY') is not None}")
 print(f"GEMINI_API_KEY loaded: {os.getenv('GEMINI_API_KEY') is not None}")
 print(f"SERPER_API_KEY loaded: {os.getenv('SERPER_API_KEY') is not None}")
 print("--------------------------")
-
 import time
 import socket
 import random
@@ -28,7 +27,6 @@ import os
 import subprocess
 import json
 import re
-import jwt
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 from fastapi import Depends, status
@@ -276,12 +274,6 @@ async def rate_limiter(request: Request):
 from fastapi import Depends
 app = FastAPI(title="BeyondTheCV API", lifespan=lifespan, dependencies=[Depends(rate_limiter)])
  
-# [FIX] Le modèle de requête de token est déplacé ici pour être utilisé par le routeur d'authentification.
-# Il est aligné sur OAuth2PasswordRequestForm qui utilise 'username'.
-class TokenRequest(BaseModel):
-    username: str # Le champ doit être 'username' pour être compatible avec OAuth2PasswordRequestForm.
-    password: str
-
 # --- CORS CONFIGURATION ---
 cors_origins = [
     "http://localhost:3000",  # Frontend URL (React/Next.js)
@@ -331,21 +323,12 @@ async def log_requests(request: Request, call_next):
 def include_safe_router(module_name, from_services=True):
     try:
         # Import dynamique
-        print(f"[ROUTER-DEBUG] Attempting to load module: {module_name}", flush=True)
         if from_services:
             mod = __import__(f"services.{module_name}", fromlist=["router"]) # was: from services import cv
         else:
             mod = __import__(module_name, fromlist=["router"])
-        
-        print(f"[ROUTER-DEBUG] Module '{module_name}' imported: {mod}", flush=True)
-        
-        if hasattr(mod, 'router'):
-            print(f"[ROUTER-DEBUG] Found 'router' in '{module_name}': {mod.router}", flush=True)
-            app.include_router(mod.router)
-            print(f"[ROUTER] ✅ Loaded: {module_name}", flush=True)
-        else:
-            print(f"[ROUTER-DEBUG] ❌ 'router' not found in '{module_name}'!", flush=True)
-
+        app.include_router(mod.router)
+        print(f"[ROUTER] ✅ Loaded: {module_name}", flush=True)
     except Exception as e:
         # [FIABILITÉ] Ne JAMAIS démarrer silencieusement si un routeur est cassé.
         # Une erreur de syntaxe doit crasher l'appli pour empêcher un déploiement corrompu (Fail-Closed).

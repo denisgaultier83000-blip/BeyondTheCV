@@ -349,10 +349,6 @@ async def reset_password(request: ResetPasswordRequest):
         raise HTTPException(status_code=500, detail="Erreur interne lors de la réinitialisation.")
 
 
-@router.get("/test")
-async def test_route():
-    return {"message": "test route works"}
-
 # --- [NOUVEAU] Endpoints pour le Dashboard Admin ---
 
 @router.get("/admin/users", response_model=dict)
