@@ -28,6 +28,10 @@ import os
 import subprocess
 import json
 import re
+import jwt
+from pydantic import BaseModel
+from datetime import datetime, timedelta
+from fastapi import Depends, status
 
 # [FIX] Forcer l'IPv4 pour résoudre les timeouts (60s) de l'API Google Gemini sous Docker
 old_getaddrinfo = socket.getaddrinfo
@@ -334,6 +338,12 @@ async def rate_limiter(request: Request):
 # [FIX SECURITE] Activation du Rate Limiter sur toutes les routes de l'API
 from fastapi import Depends
 app = FastAPI(title="BeyondTheCV API", lifespan=lifespan, dependencies=[Depends(rate_limiter)])
+ 
+# [FIX] Le modèle de requête de token est déplacé ici pour être utilisé par le routeur d'authentification.
+# Il est aligné sur OAuth2PasswordRequestForm qui utilise 'username'.
+class TokenRequest(BaseModel):
+    username: str # Le champ doit être 'username' pour être compatible avec OAuth2PasswordRequestForm.
+    password: str
 
 # --- CORS CONFIGURATION ---
 cors_origins = [
