@@ -1,4 +1,5 @@
-export const isAuthenticated = (): boolean => {
+import { API_BASE_URL } from "../config";
+ export const isAuthenticated = (): boolean => {
   return !!localStorage.getItem("token");
 };
 
@@ -24,7 +25,11 @@ export const authenticatedFetch = async (url: string, options: RequestInit = {})
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(url, { ...options, headers });
+  // [FIX] Construit l'URL complète en s'assurant qu'elle est correcte.
+  // Si l'URL passée est relative (ex: '/auth/token'), on la préfixe avec l'URL de base de l'API.
+  const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+
+  const response = await fetch(fullUrl, { ...options, headers });
 
   return response;
 };

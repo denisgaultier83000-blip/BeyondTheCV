@@ -491,19 +491,20 @@ export function createApp(opts = {}) {
   app.use(express.json({ limit: "10mb" }));
   app.use(morgan("dev"));
 
-  // --- [FIX] Configuration CORS robuste ---
-  // On définit une liste d'origines autorisées pour la production, le staging et le développement local.
+  // --- Configuration CORS robuste et flexible ---
   const allowedOrigins = [
-    process.env.FRONTEND_URL, // URL principale (ex: https://beyondthecv.app)
-    'https://staging.beyondthecv.app', // URL de staging
-    'http://localhost:5173', // Développement local
-    'http://127.0.0.1:5173'
-  ].filter(Boolean); // filter(Boolean) retire les entrées vides ou nulles
+    // Regex qui autorise le domaine principal et tous ses sous-domaines (y compris staging, www, et les URL de preview Vercel/Netlify)
+    /^https?:\/\/([a-z0-9-]+\.)*beyondthecv\.app$/,
+    // Regex pour le développement local sur différents ports
+    /^http:\/\/localhost(:\d+)?$/,
+    /^http:\/\/127\.0\.0\.1(:\d+)?$/,
+  ];
 
   app.use(cors({
     origin: function (origin, callback) {
-      // Autorise les requêtes sans origine (ex: Postman, cURL) ou si l'origine est dans notre liste blanche.
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Autorise les requêtes sans origine (ex: Postman, cURL)
+      // ou si l'origine correspond à l'une de nos expressions régulières.
+      if (!origin || allowedOrigins.some(regex => regex.test(origin))) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
@@ -511,6 +512,7 @@ export function createApp(opts = {}) {
     },
     credentials: true // Important si vous utilisez des cookies ou des sessions
   }));
+
 
   // -----------------------------
   // JWT Auth (MVP)
@@ -541,23 +543,27 @@ export function createApp(opts = {}) {
   // -----------------------------
   // Routes
   // -----------------------------
-  app.get("/health", (req, res) => res.json({ ok: true }));
+  const apiRouter = express.Router();
+
+  apiRouter.get("/health", (req, res) => res.json({ ok: true }));
 
   // [FIX] Correction de la route d'authentification pour correspondre à l'appel du frontend.
-  app.post("/api/auth/token", (req, res) => {
+  apiRouter.post("/auth/token", (req, res) => {
     const { email, password } = req.body || {};
     if (!email || !password) return res.status(400).json({ error: "missing_credentials" });
 
     // Logique de vérification de l'utilisateur (MVP)
-    const user = { id: "demo-user", email };
+    // [SÉCURITÉ] Dans une vraie application, vérifiez l'utilisateur dans la base de données.
+    const user = { id: "demo-user", email: email };
     const token = signToken(user);
     return res.json({ token });
   });
 
-  app.get("/api/me", requireAuth, (req, res) => res.json(req.user));
+  apiRouter.get("/me", requireAuth, (req, res) => res.json(req.user));
 
   // POST /orders/:orderId/generate.
-  app.post("/orders/:orderId/generate", async (req, res) => {
+  // Note: Cette route semble obsolète par rapport aux autres routes /cv/...
+  apiRouter.post("/orders/:orderId/generate", async (req, res) => {
     try {
       const parsed = GenerateRequest.safeParse(req.body || {});
       if (!parsed.success) return res.status(400).json({ error: "invalid_request" });
@@ -583,7 +589,7 @@ export function createApp(opts = {}) {
   });
 
   // ✅ QUESTIONS IA (après génération CV)
-  app.post("/cv/questions", requireAuth, async (req, res) => {
+  apiRouter.post("/cv/questions", requireAuth, async (req, res) => {
     try {
       const outputLanguage =
         safeStr(req.body?.output_language) || safeStr(req.body?.languages?.[0]) || "en";
@@ -649,7 +655,7 @@ export function createApp(opts = {}) {
   });
 
   // ✅ PREP GENERATION (JSON)
-  app.post("/cv/prep", requireAuth, async (req, res) => {
+  apiRouter.post("/cv/prep", requireAuth, async (req, res) => {
     try {
       const form = req.body?.form || {};
       const meta = req.body?.meta || {};
@@ -694,7 +700,7 @@ Output JSON.`;
   });
 
   // ✅ PREP PDF (LaTeX)
-  app.post("/cv/prep/pdf", requireAuth, async (req, res) => {
+  apiRouter.post("/cv/prep/pdf", requireAuth, async (req, res) => {
     let tempDir = null;
     try {
       const prep = req.body?.prep || {};
@@ -732,7 +738,7 @@ Output JSON.`;
   });
 
   // ✅ PDF via LaTeX (protégé)
-  app.post("/cv/pdf", requireAuth, async (req, res) => {
+  apiRouter.post("/cv/pdf", requireAuth, async (req, res) => {
     let tempDir = null;
     try {
       const form = req.body?.form || {};
@@ -772,7 +778,7 @@ Output JSON.`;
   });
 
   // [NOUVEAU] Analyse d'un débrief pour préparer l'étape suivante
-  app.post("/api/debriefs/:id/analyze", requireAuth, async (req, res) => {
+  apiRouter.post("/debriefs/:id/analyze", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const { cvData, nextInterviewContext } = req.body; // Le front devra envoyer ces données
@@ -820,7 +826,7 @@ Output JSON.`;
   });
 
   // ✅ TeX export (simple .tex generator)
-  app.post("/cv/tex", requireAuth, async (req, res) => {
+  apiRouter.post("/cv/tex", requireAuth, async (req, res) => {
     try {
       const form = req.body?.form || {};
       const variant = req.body?.meta?.variant || "human";
@@ -834,6 +840,9 @@ Output JSON.`;
       return res.status(500).json({ error: "tex_failed" });
     }
   });
+
+  // On monte toutes nos routes sur le préfixe /api
+  app.use("/api", apiRouter);
 
   return app;
 }
