@@ -162,70 +162,7 @@ async def lifespan(app: FastAPI):
             try:
                 with db.get_sync_connection() as conn:
                     with conn.cursor() as cur:
-                        cur.execute("""
-                            CREATE TABLE IF NOT EXISTS generation_cache (
-                                cache_key TEXT PRIMARY KEY,
-                                user_id TEXT NOT NULL,
-                                content_type TEXT NOT NULL,
-                                result JSONB,
-                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                            )
-                        """)
-                        cur.execute("""
-                            CREATE TABLE IF NOT EXISTS training_sessions (
-                                id TEXT PRIMARY KEY,
-                                user_id TEXT NOT NULL,
-                                theme TEXT,
-                                question_type TEXT,
-                                question_text TEXT,
-                                user_answer TEXT,
-                                score INTEGER,
-                                strengths JSONB,
-                                weaknesses JSONB,
-                                improved_answer TEXT,
-                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                            )
-                        """)
-                        cur.execute("""
-                            CREATE TABLE IF NOT EXISTS interview_sessions (
-                                id TEXT PRIMARY KEY,
-                                user_id TEXT NOT NULL,
-                                application_id TEXT,
-                                question_text TEXT,
-                                user_answer TEXT,
-                                score INTEGER,
-                                feedback JSONB,
-                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                            )
-                        """)
-                        cur.execute("""
-                            CREATE TABLE IF NOT EXISTS interview_debriefs (
-                                id TEXT PRIMARY KEY,
-                                user_id TEXT NOT NULL,
-                                application_id TEXT,
-                                company_name TEXT,
-                                job_title TEXT,
-                                interview_date TIMESTAMP,
-                                interview_format TEXT,
-                                interlocutor_type TEXT,
-                                interlocutor_name TEXT,
-                                interlocutor_role TEXT,
-                                next_step_known BOOLEAN,
-                                next_step_details TEXT,
-                                ambiance JSONB,
-                                positive_signals JSONB,
-                                red_flags JSONB,
-                                questions_asked TEXT,
-                                difficult_questions TEXT,
-                                learnings TEXT,
-                                preparation_points TEXT,
-                                interest_level INTEGER,
-                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
-                                FOREIGN KEY(application_id) REFERENCES job_applications(id) ON DELETE SET NULL
-                            )
-                        """)
-                    conn.commit()
+                        pass # All table creations are now in migrations.py
             except Exception as e:
                 print(f"[DB WARNING] Failed to create tables: {e}", flush=True)
 
@@ -251,7 +188,7 @@ async def lifespan(app: FastAPI):
             print(f"   Host Access:  http://localhost:{port} (If ports are mapped)", flush=True)
         else:
             print(f"📡 Network Access: http://{current_ip}:{port}", flush=True)
-            print(f"🏠 Local Access:   http://127.0.0.1:{port}", flush=True)
+            print(f"🏠 Local Access:   http://localhost:{port}", flush=True)
         print("----------------------------------------------------------------", flush=True)
         
         # Lancement du nettoyage au démarrage
@@ -292,7 +229,7 @@ def get_local_ip():
             # Fallback pour les réseaux locaux sans internet
             return socket.gethostbyname(socket.gethostname())
         except Exception:
-            return "127.0.0.1"
+            return "localhost"
 
 async def rate_limiter(request: Request):
     """
@@ -349,7 +286,6 @@ class TokenRequest(BaseModel):
 cors_origins = [
     "http://localhost:3000",  # Frontend URL (React/Next.js)
     "http://localhost:5173",  # Frontend URL (Vite)
-    "http://127.0.0.1:3000",
     "https://www.beyondthecv.app", # Allow production domain (www)
     "https://beyondthecv.app",     # Allow production domain (apex)
     "https://staging.beyondthecv.app", # [FIX EXPERT] Autoriser le domaine de staging
@@ -434,5 +370,5 @@ if __name__ == "__main__":
     current_ip = get_local_ip()
     print("🚀 BACKEND IS STARTING...", flush=True)
     print(f"📡 Network Access: http://{current_ip}:{port}", flush=True)
-    print(f"🏠 Local Access:   http://127.0.0.1:{port}", flush=True)
+    print(f"🏠 Local Access:   http://localhost:{port}", flush=True)
     uvicorn.run(app, host="0.0.0.0", port=port)

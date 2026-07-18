@@ -52,7 +52,7 @@ async def _insert_user(uid, email, hashed_pw, first, last, created):
         async with db.get_connection() as conn:
             # Fail-safe : Création de la colonne credits si elle n'existe pas
             try:
-                await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT 100")
+                pass
             except Exception:
                 pass
             # [FIX] Ajout de la colonne is_tester si elle n'existe pas
@@ -76,11 +76,6 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         # [FIX] On gère la casse de l'email pour garantir un login fiable
         email = form_data.username.lower().strip()
         async with db.get_connection() as conn:
-            # Fail-safe : Création de la colonne credits avant le SELECT
-            try:
-                await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT 100")
-            except Exception:
-                pass
             # Requête propre et directe
             # [CORRECTIF] Ajout de is_admin dans le SELECT pour qu'il soit bien récupéré.
             cursor = await db.execute(conn, "SELECT id, email, hashed_password, first_name, last_name, created_at, is_premium, credits, is_admin, is_active, is_tester FROM users WHERE email = ?", (email,))
@@ -241,7 +236,7 @@ async def register(user: UserRegister):
         print(f"[AUTH] CRITICAL ERROR during register: {e}", flush=True)
         raise HTTPException(status_code=500, detail=f"Database Error: [{type(e).__name__}] {str(e)}")
 
-@router.get("/api/user/status")
+@router.get("/user/status")
 async def get_user_status(current_user: dict = Depends(get_current_user)):
     """Vérifie le statut Premium de l'utilisateur."""
 
@@ -355,7 +350,7 @@ async def reset_password(request: ResetPasswordRequest):
 
 # --- [NOUVEAU] Endpoints pour le Dashboard Admin ---
 
-@router.get("/api/admin/users", response_model=dict)
+@router.get("/admin/users", response_model=dict)
 async def get_all_users(current_user: dict = Depends(get_current_user)):
     if not current_user.get("is_admin"):
         raise HTTPException(status_code=403, detail="Accès refusé.")
@@ -382,20 +377,12 @@ async def get_all_users(current_user: dict = Depends(get_current_user)):
 
     return {"users": users_list}
 
-@router.get("/api/admin/billing", response_model=dict)
+@router.get("/admin/billing", response_model=dict)
 async def get_billing_data(current_user: dict = Depends(get_current_user)):
     if not current_user.get("is_admin"):
         raise HTTPException(status_code=403, detail="Accès refusé.")
 
     async with db.get_connection() as conn:
-        # [FIX] Création de la table payments si elle n'existe pas
-        await db.execute(conn, """
-            CREATE TABLE IF NOT EXISTS payments (
-                id TEXT PRIMARY KEY, user_id TEXT, user_email TEXT, status TEXT, offer_name TEXT, 
-                amount_paid REAL, currency TEXT, purchase_date TIMESTAMP, stripe_invoice_url TEXT
-            )
-        """)
-        
         p_cursor = await db.execute(conn, "SELECT * FROM payments ORDER BY purchase_date DESC")
         payments = [AdminPayment(**dict(row)) for row in await p_cursor.fetchall()]
 

@@ -203,6 +203,21 @@ def create_tables():
         print("✅ Table 'feedbacks' created")
 
         cur.execute("""
+            CREATE TABLE IF NOT EXISTS payments (
+                id TEXT PRIMARY KEY, 
+                user_id TEXT, 
+                user_email TEXT, 
+                status TEXT, 
+                offer_name TEXT, 
+                amount_paid REAL, 
+                currency TEXT, 
+                purchase_date TIMESTAMP, 
+                stripe_invoice_url TEXT
+            )
+        """)
+        print("✅ Table 'payments' created")
+
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS training_sessions (
                 id TEXT PRIMARY KEY,
                 user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
@@ -247,6 +262,49 @@ def create_tables():
             )
         """)
         print("✅ Table 'generation_cache' created")
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS interview_sessions (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                application_id TEXT,
+                question_text TEXT,
+                user_answer TEXT,
+                score INTEGER,
+                feedback JSONB,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        print("✅ Table 'interview_sessions' created")
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS interview_debriefs (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                application_id TEXT,
+                company_name TEXT,
+                job_title TEXT,
+                interview_date TIMESTAMP,
+                interview_format TEXT,
+                interlocutor_type TEXT,
+                interlocutor_name TEXT,
+                interlocutor_role TEXT,
+                next_step_known BOOLEAN,
+                next_step_details TEXT,
+                ambiance JSONB,
+                positive_signals JSONB,
+                red_flags JSONB,
+                questions_asked TEXT,
+                difficult_questions TEXT,
+                learnings TEXT,
+                preparation_points TEXT,
+                interest_level INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY(application_id) REFERENCES job_applications(id) ON DELETE SET NULL
+            )
+        """)
+        print("✅ Table 'interview_debriefs' created")
         
         # Ajout de la colonne application_id de manière sécurisée
         cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS application_id TEXT REFERENCES job_applications(id) ON DELETE CASCADE;")
