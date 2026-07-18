@@ -6,7 +6,6 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr
 from models import UserLogin, UserRegister
 from security import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user, verify_password, get_password_hash
@@ -15,6 +14,10 @@ router = APIRouter(
     prefix="/api/auth",
     tags=["Authentication"]
 )
+
+class TokenRequest(BaseModel):
+    username: str
+    password: str
 
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
@@ -71,10 +74,10 @@ async def _insert_user(uid, email, hashed_pw, first, last, created):
 # --- Routes ---
 
 @router.post("/token")
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login_for_access_token(token_request: TokenRequest):
     try:
         # [FIX] On gère la casse de l'email pour garantir un login fiable
-        email = form_data.username.lower().strip()
+        email = token_request.username.lower().strip()
         async with db.get_connection() as conn:
             # Requête propre et directe
             # [CORRECTIF] Ajout de is_admin dans le SELECT pour qu'il soit bien récupéré.
@@ -85,7 +88,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         admin_email = os.getenv("ADMIN_EMAIL", "").lower()
         admin_password = os.getenv("ADMIN_PASSWORD")
 
-        if admin_email and admin_password and email == admin_email and form_data.password == admin_password:
+        if admin_email and admin_password and email == admin_email and token_request.password == admin_password:
             print(f"[AUTH] ✅ Admin login successful for: {email}", flush=True)
             access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
             # [FIX] Le token contient maintenant le rôle pour la protection des endpoints
@@ -129,13 +132,13 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             raise HTTPException(status_code=403, detail="Votre compte a été désactivé par l'administration. Veuillez contacter le support.")
 
         try:
-            is_valid = verify_password(form_data.password, user_dict.get("hashed_password", ""))
+            is_valid = verify_password(token_request.password, user_dict.get("hashed_password", ""))
         except Exception as hash_err:
             print(f"[AUTH ERROR] Erreur de vérification du hash: {hash_err}", flush=True)
             is_valid = False
             
         if not is_valid:
-            print(f"[AUTH ERROR] Échec : Mot de passe incorrect pour ({form_data.username})", flush=True)
+            print(f"[AUTH ERROR] Échec : Mot de passe incorrect pour ({token_request.username})", flush=True)
             raise HTTPException(status_code=401, detail="Identifiants incorrects.")
 
         # [NEW] Update last_login timestamp upon successful login
@@ -259,7 +262,16 @@ def send_reset_email(to_email: str, reset_token: str):
     msg["To"] = to_email
     msg["Subject"] = "Réinitialisation de votre mot de passe - BeyondTheCV"
 
-    plain_body = f"""Bonjour,\n\nVous avez demandé à réinitialiser le mot de passe de votre compte BeyondTheCV.\n\nCliquez sur le lien suivant pour créer un nouveau mot de passe (ce lien expire dans 15 minutes) :\n{reset_link}\n\nSi vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email.\n\nL'équipe BeyondTheCV"""
+    plain_body = f"""Bonjour,
+
+Vous avez demandé à réinitialiser le mot de passe de votre compte BeyondTheCV.
+
+Cliquez sur le lien suivant pour créer un nouveau mot de passe (ce lien expire dans 15 minutes) :
+{reset_link}
+
+Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email.
+
+L'équipe BeyondTheCV"""
 
     html_body = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
