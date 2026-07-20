@@ -297,6 +297,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# [DEBUG] Middleware pour forcer les en-têtes CORS
+@app.middleware("http")
+async def force_cors_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    return response
+
 # [DEBUG] Middleware pour tracer les requêtes entrantes (Confirme la connexion réseau)
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
