@@ -5,7 +5,7 @@ from schemas.admin import PaginatedUsersResponse
 from services.admin_service import admin_list_users
 from security import get_current_active_admin_user
 
-# --- ANALYSE DE L'EXPERT ---
+# --- ANALYSE DE L'EXPERT --
 # Ce routeur est le cœur de la fonctionnalité d'administration.
 #
 # 1.  **Sécurité d'Abord :** La dépendance `get_current_active_admin_user` est appliquée
