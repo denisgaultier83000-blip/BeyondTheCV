@@ -8,6 +8,8 @@ on:
       - staging1
       - staging2
       - staging4
+      - staging5
+      - staging6
   workflow_dispatch:
 
 env:
