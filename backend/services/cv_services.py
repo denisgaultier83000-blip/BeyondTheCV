@@ -1850,7 +1850,8 @@ async def submit_feedback(request: FeedbackPayload, current_user: dict = Depends
     # [FIX] Utilisation de l'unique requête correspondant au schéma définitif de production
     try:
         async with db.get_connection() as conn:
-            await db.execute(conn, 
+            # [FIX EXPERT] Requête alignée sur le schéma DB unifié (is_positive, comments)
+            await db.execute(conn,
                 "INSERT INTO feedbacks (user_id, feature, is_positive, comments, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)",
                 (user_id, request.feature, request.is_positive, actual_comments, request.job_type, now))
         return {"status": "success", "message": "Feedback enregistré"}
@@ -1863,96 +1864,20 @@ async def get_feedbacks(current_user: dict = Depends(require_admin_user)):
     """
     Récupère tous les feedbacks pour l'interface Admin.
     """
+    # [FIX EXPERT] Simplification radicale. On ne supporte plus que le schéma propre et unifié.
+    # Fini les multiples try/except qui masquaient les problèmes de DB.
     try:
-        schema_type = "new"
-        try:
-            # Schéma Ultra-Complet (Si la DB est un mélange corrompu)
-            async with db.get_connection() as conn:
-                cursor = await db.execute(conn, """
-                    SELECT f.id, f.feature, f.is_positive, f.comments, f.feedback, f.reason, f.created_at, u.email as user_email 
-                    FROM feedbacks f 
-                    LEFT JOIN users u ON f.user_id = u.id 
-                    ORDER BY f.created_at DESC
-                """)
-                rows = await cursor.fetchall()
-                schema_type = "full"
-        except Exception:
-            try:
-                # Nouveau schéma préféré
-                async with db.get_connection() as conn:
-                    cursor = await db.execute(conn, """
-                        SELECT f.id, f.feature, f.is_positive, f.comments, f.created_at, u.email as user_email 
-                        FROM feedbacks f 
-                        LEFT JOIN users u ON f.user_id = u.id 
-                        ORDER BY f.created_at DESC
-                    """)
-                    rows = await cursor.fetchall()
-            except Exception:
-                try:
-                    # Hybride
-                    async with db.get_connection() as conn:
-                        cursor = await db.execute(conn, """
-                            SELECT f.id, f.feature, f.is_positive, f.reason as comments, f.created_at, u.email as user_email 
-                            FROM feedbacks f 
-                            LEFT JOIN users u ON f.user_id = u.id 
-                            ORDER BY f.created_at DESC
-                        """)
-                        rows = await cursor.fetchall()
-                except Exception:
-                    # Ancien schéma de secours
-                    async with db.get_connection() as conn:
-                        cursor = await db.execute(conn, """
-                            SELECT f.id, f.feature, f.feedback as is_positive, f.reason as comments, f.created_at, u.email as user_email 
-                            FROM feedbacks f 
-                            LEFT JOIN users u ON f.user_id = u.id 
-                            ORDER BY f.created_at DESC
-                        """)
-                        rows = await cursor.fetchall()
+        async with db.get_connection() as conn:
+            cursor = await db.execute(conn, """
+                SELECT f.id, f.feature, f.is_positive, f.comments, f.created_at, u.email as user_email 
+                FROM feedbacks f 
+                LEFT JOIN users u ON f.user_id = u.id 
+                ORDER BY f.created_at DESC
+            """)
+            rows = await cursor.fetchall()
             
-        feedbacks_list = []
-        for row in rows:
-            if isinstance(row, tuple):
-                row_id = row[0]
-                feature = row[1]
-                if schema_type == "full":
-                    is_pos_val = row[2] if row[2] is not None else row[4]
-                    comments_val = row[3] if row[3] is not None else row[5]
-                    created_at = row[6]
-                    user_email = row[7]
-                else:
-                    is_pos_val = row[2]
-                    comments_val = row[3]
-                    created_at = row[4]
-                    user_email = row[5]
-            else:
-                row_dict = dict(row)
-                row_id = row_dict.get("id")
-                feature = row_dict.get("feature", "unknown")
-                is_pos_val = row_dict.get("is_positive")
-                if is_pos_val is None:
-                    is_pos_val = row_dict.get("feedback")
-                comments_val = row_dict.get("comments")
-                if comments_val is None:
-                    comments_val = row_dict.get("reason")
-                created_at = row_dict.get("created_at")
-                user_email = row_dict.get("user_email")
-                
-            if is_pos_val is None:
-                is_pos = True
-            elif isinstance(is_pos_val, str):
-                is_pos = is_pos_val.lower() in ['true', 't', '1']
-            else:
-                is_pos = bool(is_pos_val)
-
-            feedbacks_list.append({
-                "id": row_id,
-                "feature": feature,
-                "is_positive": is_pos,
-                "comments": comments_val,
-                "created_at": created_at.isoformat() if hasattr(created_at, 'isoformat') else str(created_at),
-                "user_email": user_email
-            })
-
+        # Conversion directe en liste de dictionnaires, beaucoup plus propre.
+        feedbacks_list = [dict(row) for row in rows]
         return {"feedbacks": feedbacks_list}
     except Exception as e:
         print(f"[GET FEEDBACKS ERROR] {e}", flush=True)

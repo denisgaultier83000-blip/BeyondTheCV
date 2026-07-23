@@ -190,17 +190,14 @@ def insert_test_users():
             if user["id"] in ["pm_tech_001", "pm_growth_002", "pm_ux_003"]:
                 evaluation_date = created_at + timedelta(days=15)
                 cur.execute("""
-                    INSERT INTO feedbacks (
-                        user_id, feature, feedback, reason, job_type, is_positive, sentiment, created_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    INSERT INTO feedbacks (user_id, feature, is_positive, comments, job_type, created_at)
+                    VALUES (%s, %s, %s, %s, %s, %s)
                 """, (
                     user["id"],
                     "cv_generation",
-                    f"Excellent profil {user['sector']}. Profil très complet avec de belles réussites.",
-                    "Mettre plus en avant les certifications et ajouter des métriques.",
-                    user["job_title"],
                     True,  # is_positive
-                    "positive", # sentiment
+                    f"Excellent profil {user['sector']}. Profil très complet avec de belles réussites. Suggestion: Mettre plus en avant les certifications.",
+                    user["job_title"],
                     evaluation_date
                 ))
 
