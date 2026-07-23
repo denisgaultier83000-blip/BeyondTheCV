@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { ThumbsUp, ThumbsDown, MessageSquare, Activity, BarChart3, Archive, Loader2, Filter } from 'lucide-react';
 import { authenticatedFetch } from '../utils/auth';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { API_BASE_URL } from '../config';
 import { AsyncBoundary } from './AsyncBoundary';
 
@@ -11,7 +12,7 @@ interface Feedback {
   comments: string | null;
   created_at: string;
   user_email?: string | null;
-  status: 'new' | 'read' | 'processing' | 'resolved' | 'archived';
+  status?: 'new' | 'read' | 'processing' | 'resolved' | 'archived';
 }
 
 export default function AdminFeedbacks() {
@@ -53,7 +54,7 @@ export default function AdminFeedbacks() {
       if (!response.ok) {
         throw new Error("Erreur lors de l'archivage");
       }
-      setFeedbacks(prev => prev.map(f => f.id === id ? { ...f, status: 'archived' } : f));
+      setFeedbacks(prev => prev.filter(f => f.id !== id));
     } catch (err: any) {
       setError(err.message || "Erreur lors de l'archivage");
     } finally {
@@ -65,7 +66,7 @@ export default function AdminFeedbacks() {
 
   const filteredFeedbacks = useMemo(() => {
     return feedbacks.filter(f => {
-        const featureMatch = filterFeature === 'all' || f.feature === filterFeature;
+        const featureMatch = filterFeature === 'all' || f.feature.toLowerCase() === filterFeature.toLowerCase();
         const statusMatch = filterStatus === 'all' || f.status === filterStatus;
         return featureMatch && statusMatch;
     });
@@ -79,7 +80,27 @@ export default function AdminFeedbacks() {
     return { totalVotes, approvalRate, withComments };
   }, [filteredFeedbacks]);
 
-  const getStatusBadge = (status: Feedback['status']) => {
+  const featureStats = useMemo(() => {
+    const statsByFeature: { [key: string]: { total: number; positive: number } } = {};
+
+    feedbacks.forEach(f => {
+        if (!statsByFeature[f.feature]) {
+            statsByFeature[f.feature] = { total: 0, positive: 0 };
+        }
+        statsByFeature[f.feature].total++;
+        if (f.is_positive) {
+            statsByFeature[f.feature].positive++;
+        }
+    });
+
+    return Object.entries(statsByFeature).map(([feature, stats]) => ({
+        name: feature,
+        satisfaction: stats.total > 0 ? Math.round((stats.positive / stats.total) * 100) : 0,
+        votes: stats.total,
+    })).sort((a, b) => b.satisfaction - a.satisfaction);
+  }, [feedbacks]);
+
+  const getStatusBadge = (status: Feedback['status'] = 'new') => {
     const styles = {
         new: "bg-blue-100 text-blue-800",
         read: "bg-gray-100 text-gray-800",
@@ -120,6 +141,27 @@ export default function AdminFeedbacks() {
         <div className="admin-card items-center"><Activity className="text-blue-500"/><div><p>Total des Votes</p><p className="stat-value">{stats.totalVotes}</p></div></div>
         <div className="admin-card items-center"><ThumbsUp className="text-green-500"/><div><p>Taux de satisfaction</p><p className="stat-value text-green-600">{stats.approvalRate}%</p></div></div>
         <div className="admin-card items-center"><MessageSquare className="text-yellow-500"/><div><p>Commentaires laissés</p><p className="stat-value text-yellow-600">{stats.withComments}</p></div></div>
+      </div>
+
+      <div className="admin-card mb-8">
+        <h3 className="text-lg font-bold text-slate-800 mb-4">Taux de Satisfaction par Fonctionnalité</h3>
+        <div style={{ height: '300px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={featureStats} margin={{ top: 5, right: 20, left: -10, bottom: 60 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="name" stroke="#64748b" fontSize={12} tick={{ angle: -45, textAnchor: 'end' }} interval={0} />
+                    <YAxis stroke="#64748b" fontSize={12} unit="%" domain={[0, 100]} />
+                    <Tooltip
+                        contentStyle={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}
+                        labelStyle={{ fontWeight: 'bold' }}
+                        formatter={(value: number, name, props) => [`${value}% (${props.payload.votes} votes)`, 'Satisfaction']}
+                    />
+                    <Bar dataKey="satisfaction" name="Satisfaction">
+                        {featureStats.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.satisfaction >= 75 ? '#10b981' : entry.satisfaction >= 50 ? '#f59e0b' : '#ef4444'} />))}
+                    </Bar>
+                </BarChart>
+            </ResponsiveContainer>
+        </div>
       </div>
 
       <div className="admin-card mb-6 flex items-center gap-4">
@@ -167,7 +209,7 @@ export default function AdminFeedbacks() {
                     }
                   </td>
                   <td className="max-w-xs truncate">{f.comments || <span className="italic opacity-50">Aucun</span>}</td>
-                  <td>{getStatusBadge(f.status)}</td>
+                  <td>{f.status ? getStatusBadge(f.status) : getStatusBadge('new')}</td>
                   <td className="text-right">
                     <button onClick={() => handleArchive(f.id)} disabled={archivingId === f.id} className="admin-action-button" title="Archiver ce retour">
                       {archivingId === f.id ? <Loader2 size={16} className="animate-spin" /> : <Archive size={16} />}

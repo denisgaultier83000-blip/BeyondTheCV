@@ -1851,8 +1851,9 @@ async def submit_feedback(request: FeedbackPayload, current_user: dict = Depends
     try:
         async with db.get_connection() as conn:
             # [FIX EXPERT] Requête alignée sur le schéma DB unifié (is_positive, comments)
+            # Ajout du statut 'new' par défaut pour chaque nouveau retour.
             await db.execute(conn,
-                "INSERT INTO feedbacks (user_id, feature, is_positive, comments, job_type, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                "INSERT INTO feedbacks (user_id, feature, is_positive, comments, job_type, created_at, status) VALUES (?, ?, ?, ?, ?, ?, 'new')",
                 (user_id, request.feature, request.is_positive, actual_comments, request.job_type, now))
         return {"status": "success", "message": "Feedback enregistré"}
     except Exception as e:
@@ -1869,7 +1870,7 @@ async def get_feedbacks(current_user: dict = Depends(require_admin_user)):
     try:
         async with db.get_connection() as conn:
             cursor = await db.execute(conn, """
-                SELECT f.id, f.feature, f.is_positive, f.comments, f.created_at, u.email as user_email 
+                SELECT f.id, f.feature, f.is_positive, f.comments, f.created_at, u.email as user_email, f.status
                 FROM feedbacks f 
                 LEFT JOIN users u ON f.user_id = u.id 
                 ORDER BY f.created_at DESC
@@ -1882,6 +1883,20 @@ async def get_feedbacks(current_user: dict = Depends(require_admin_user)):
     except Exception as e:
         print(f"[GET FEEDBACKS ERROR] {e}", flush=True)
         raise HTTPException(status_code=500, detail="Erreur lors de la récupération des feedbacks")
+
+@router.post("/feedbacks/{feedback_id}/archive", status_code=200)
+async def archive_feedback(feedback_id: int, admin_user: dict = Depends(require_admin_user)):
+    """
+    [NOUVEAU] Permet à un administrateur d'archiver un feedback.
+    """
+    try:
+        async with db.get_connection() as conn:
+            await db.execute(conn, "UPDATE feedbacks SET status = 'archived' WHERE id = ?", (feedback_id,))
+        return {"status": "success", "message": "Feedback archivé."}
+    except Exception as e:
+        print(f"[ARCHIVE FEEDBACK ERROR] {e}", flush=True)
+        raise HTTPException(status_code=500, detail="Erreur lors de l'archivage du feedback.")
+
 
 @router.delete("/cache")
 async def purge_cache(content_type: Optional[str] = Query(None), current_user: dict = Depends(require_active_subscription)):

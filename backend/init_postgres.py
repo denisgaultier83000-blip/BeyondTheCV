@@ -167,17 +167,18 @@ def main():
         cur.execute("""
             CREATE TABLE IF NOT EXISTS feedbacks (
                 id SERIAL PRIMARY KEY,
-                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                feature TEXT,
-                feedback TEXT NOT NULL,
-                reason TEXT,
-                job_type TEXT,
-                is_positive BOOLEAN,
-                sentiment TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                user_id TEXT, -- Peut être NULL si l'utilisateur est supprimé
+                feature TEXT NOT NULL, -- Le module concerné (ex: 'pitch', 'gap_analysis')
+                is_positive BOOLEAN NOT NULL, -- true pour 👍, false pour 👎
+                comments TEXT, -- Le commentaire textuel de l'utilisateur
+                job_type TEXT, -- Le contexte du poste (ex: 'Product Manager')
+                status TEXT DEFAULT 'new', -- Statut du feedback (new, read, processing, resolved, archived)
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
             )
         """)
         print("✅ Table 'feedbacks' created")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_feedbacks_status ON feedbacks(status);")
 
         cur.execute("""
             CREATE TABLE IF NOT EXISTS interview_sessions (
