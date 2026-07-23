@@ -215,6 +215,9 @@ async def lifespan(app: FastAPI):
                                 FOREIGN KEY(application_id) REFERENCES job_applications(id) ON DELETE SET NULL
                             )
                         """)
+                        # [FIX EXPERT] Suppression de la création redondante et incohérente de la table 'feedbacks'.
+                        # Le script `init_postgres.py` est désormais la seule source de vérité pour le schéma,
+                        # ce qui élimine les conflits de colonnes (ex: colonne 'status' manquante).
                     conn.commit()
             except Exception as e:
                 print(f"[DB WARNING] Failed to create tables: {e}", flush=True)
@@ -350,94 +353,3 @@ from fastapi import Depends
 app = FastAPI(title="BeyondTheCV API", lifespan=lifespan, dependencies=[Depends(rate_limiter)])
 
 # --- CORS CONFIGURATION ---
-cors_origins = [
-    "http://localhost:3000",  # Frontend URL (React/Next.js)
-    "http://localhost:5173",  # Frontend URL (Vite)
-    "http://127.0.0.1:3000",
-    "https://www.beyondthecv.app", # Allow production domain (www)
-    "https://beyondthecv.app",     # Allow production domain (apex)
-    "https://staging.beyondthecv.app", # [FIX EXPERT] Autoriser le domaine de staging
-]
-
-# Ajout dynamique via variable d’environnement
-frontend_env = os.getenv("FRONTEND_URL")
-if frontend_env and frontend_env not in cors_origins:
-    cors_origins.append(frontend_env)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# [DEBUG] Middleware pour tracer les requêtes entrantes (Confirme la connexion réseau)
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    start_time = time.time()
-    
-    # [ROBUSTESSE] Catch-all pour éviter le crash "Exception in ASGI application"
-    try:
-        response = await call_next(request)
-    except Exception as e:
-        print(f"[CRITICAL] Uncaught Exception in {request.url.path}: {e}", flush=True)
-        import traceback
-        traceback.print_exc()
-        response = JSONResponse(status_code=500, content={"detail": "Internal Server Error", "error": "Une erreur interne critique est survenue."})
-
-    process_time = (time.time() - start_time) * 1000
-    try:
-        client_ip = request.client.host if request.client else "unknown"
-        print(f"[NET] {request.method} {request.url.path} - {response.status_code} ({process_time:.2f}ms) - IP: {client_ip}", flush=True)
-    except Exception as e:
-        print(f"[NET LOG ERROR] Could not log request: {e}", flush=True)
-    return response
-
-# [ROBUSTESSE] Chargement défensif des routeurs
-# Si un fichier plante (ex: erreur de syntaxe ou d'import), l'API démarre quand même.
-def include_safe_router(module_name, from_services=True):
-    try:
-        # Import dynamique
-        if from_services:
-            mod = __import__(f"services.{module_name}", fromlist=["router"]) # was: from services import cv
-        else:
-            mod = __import__(module_name, fromlist=["router"])
-        app.include_router(mod.router)
-        print(f"[ROUTER] ✅ Loaded: {module_name}", flush=True)
-    except Exception as e:
-        # [FIABILITÉ] Ne JAMAIS démarrer silencieusement si un routeur est cassé.
-        # Une erreur de syntaxe doit crasher l'appli pour empêcher un déploiement corrompu (Fail-Closed).
-        print(f"[ROUTER] ❌ FATAL ERROR loading {module_name}: {e}", flush=True)
-        raise RuntimeError(f"Failed to load vital router: {module_name}") from e
-
-include_safe_router("auth")
-include_safe_router("cv_services")
-include_safe_router("dashboard")
-include_safe_router("profile")
-include_safe_router("simulation_service")
-include_safe_router("documents")
-include_safe_router("payment")
-include_safe_router("admin_service")
-include_safe_router("admin_settings_service")
-include_safe_router("debrief_service")
-include_safe_router("user_management_service")
-include_safe_router("audit_log_service")
-include_safe_router("generation_service")
-# New routes for products, evaluations, and subscriptions
-include_safe_router("routes_products", from_services=False)
-
-# [HEALTH] Endpoint racine pour vérifier la connectivité facilement depuis le navigateur
-@app.get("/")
-def health_check():
-    return {"status": "online", "ip": get_local_ip(), "message": "Backend is reachable"}
-
-if __name__ == "__main__":
-    import uvicorn
-    import os
-    port = int(os.environ.get("PORT", 8080))
-    current_ip = get_local_ip()
-    print("🚀 BACKEND IS STARTING...", flush=True)
-    print(f"📡 Network Access: http://{current_ip}:{port}", flush=True)
-    print(f"🏠 Local Access:   http://127.0.0.1:{port}", flush=True)
-    uvicorn.run(app, host="0.0.0.0", port=port)
