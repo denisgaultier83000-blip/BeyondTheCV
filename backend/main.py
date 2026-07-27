@@ -367,9 +367,8 @@ from services.profile import router as profile_router # [FIX] Import du nouveau 
 # Cela garantit que toutes les URLs sont cohérentes et résout les erreurs 404.
 # Exemple: /api + /auth/token = /api/auth/token
 app.include_router(auth_router, prefix="/api") # prefix interne: /auth
-app.include_router(cv_router, prefix="/api")   # prefix interne: /cv
-# [FIX EXPERT] Ajout du routeur de profil sous /api/cv
-app.include_router(profile_router, prefix="/api") # prefix interne: /cv
+app.include_router(cv_router, prefix="/api")      # prefix interne: /cv
+app.include_router(profile_router, prefix="/api") # prefix interne: /user
 app.include_router(products_router, prefix="/api") # prefix interne: (vide)
 app.include_router(admin_router, prefix="/api")   # prefix interne: /admin
 

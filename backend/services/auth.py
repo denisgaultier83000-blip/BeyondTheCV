@@ -222,16 +222,6 @@ async def register(user: UserRegister):
         print(f"[AUTH] CRITICAL ERROR during register: {e}", flush=True)
         raise HTTPException(status_code=500, detail=f"Database Error: [{type(e).__name__}] {str(e)}")
 
-class ForgotPasswordRequest(BaseModel):
-    email: EmailStr
-
-class ResetPasswordRequest(BaseModel):
-    token: str
-    new_password: str
-
-async def get_user_status(current_user: dict = Depends(get_current_user)):
-    """Vérifie le statut Premium de l'utilisateur."""
-
 def send_reset_email(to_email: str, reset_token: str):
     """Envoie l'email de réinitialisation de mot de passe via SMTP, de manière synchrone."""
     smtp_host = os.getenv("SMTP_HOST")
@@ -278,6 +268,14 @@ def send_reset_email(to_email: str, reset_token: str):
             print(f"[AUTH] 📧 Email de récupération envoyé à {to_email}", flush=True)
     except Exception as e:
         print(f"[SMTP ERROR] Échec de l'envoi : {e}", flush=True)
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
 
 @router.post("/forgot-password")
 async def forgot_password(request: ForgotPasswordRequest, background_tasks: BackgroundTasks):
