@@ -353,3 +353,23 @@ from fastapi import Depends
 app = FastAPI(title="BeyondTheCV API", lifespan=lifespan, dependencies=[Depends(rate_limiter)])
 
 # --- CORS CONFIGURATION ---
+
+# [FIX EXPERT] Configuration CORS robuste pour gérer les environnements multiples.
+# Cela résout le problème "No 'Access-Control-Allow-Origin' header is present".
+
+# 1. On lit la variable d'environnement qui contient les URLs du frontend, séparées par des virgules.
+#    Exemple: "http://localhost:5173,https://staging.beyondthecv.app,https://beyondthecv.app"
+allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173")
+
+# 2. On transforme la chaîne en une liste propre.
+origins = [origin.strip() for origin in allowed_origins_str.split(',')]
+
+print(f"CORS: Allowing origins: {origins}")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,  # Permet aux cookies d'être inclus dans les requêtes
+    allow_methods=["*"],     # Autorise toutes les méthodes (GET, POST, etc.)
+    allow_headers=["*"],     # Autorise tous les en-têtes
+)
