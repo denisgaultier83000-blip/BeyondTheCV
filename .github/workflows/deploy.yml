@@ -139,6 +139,17 @@ jobs:
               -f "$COMPOSE_FILE" \
               up -d --force-recreate --remove-orphans
 
+            echo "--- VERIFYING ENV VARS ---"
+            # On cherche le nom réel du container backend pour ce projet
+            BACKEND_CONTAINER_ID=$(docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" ps -q backend)
+            if [ -n "$BACKEND_CONTAINER_ID" ]; then
+              echo "Verifying environment variables in container: $BACKEND_CONTAINER_ID"
+              docker exec "$BACKEND_CONTAINER_ID" printenv | grep "ALLOWED_ORIGINS" || echo "ALLOWED_ORIGINS not found in environment."
+            else
+              echo "Backend container not found!"
+            fi
+            echo "--------------------------"
+
             # [SÉCURITÉ] Sécurise le fichier pour qu'il reste disponible pour les redémarrages Docker
             chmod 600 "$ENV_FILE"
 
