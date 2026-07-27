@@ -352,6 +352,21 @@ async def rate_limiter(request: Request):
 from fastapi import Depends
 app = FastAPI(title="BeyondTheCV API", lifespan=lifespan, dependencies=[Depends(rate_limiter)])
 
+# --- [FIX EXPERT] INCLUSION DES ROUTEURS ---
+# C'est l'étape critique qui rend les endpoints (ex: /api/auth/token) accessibles.
+# Sans cela, l'application ne connaît pas les routes et renvoie des erreurs 404.
+
+from routes_auth import router as auth_router
+from services.cv_services import router as cv_router
+from routes_products import router as products_router
+from services.admin_service import router as admin_router
+
+app.include_router(auth_router)
+app.include_router(cv_router)
+app.include_router(products_router)
+app.include_router(admin_router)
+
+
 # --- CORS CONFIGURATION ---
 
 # [FIX EXPERT] Configuration CORS robuste pour gérer les environnements multiples.
