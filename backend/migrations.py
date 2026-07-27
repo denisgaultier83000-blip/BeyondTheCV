@@ -72,8 +72,8 @@ def create_tables():
                 hashed_password TEXT NOT NULL,
                 first_name TEXT,
                 last_name TEXT,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMPTZ,
-                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMPTZ,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 is_premium BOOLEAN DEFAULT FALSE,
                 subscription_status subscription_status DEFAULT 'active',
                 subscription_start_date TIMESTAMPTZ,
@@ -85,9 +85,9 @@ def create_tables():
                 is_admin BOOLEAN DEFAULT FALSE
             )
         """)
-        # [NEW] Add the new column safely. "IF NOT EXISTS" prevents errors on subsequent runs.
+        # [NEW] Add new columns safely. "IF NOT EXISTS" prevents errors on subsequent runs.
         cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMPTZ;")
-        # [FIX] Add the missing total_ia_cost column to track AI expenses per user.
+        # [NEW] Add the total_ia_cost column to track AI expenses per user.
         cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS total_ia_cost REAL DEFAULT 0.0;")
 
         print("✅ Table 'users' created")
@@ -244,7 +244,6 @@ def create_tables():
         cur.execute("CREATE INDEX IF NOT EXISTS idx_products_created_at ON products(created_at)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_users_subscription_expiry ON users(subscription_expiration_date)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_tasks_application_id ON tasks(application_id)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_job_applications_user_session ON job_applications(user_id, session_hash)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_generation_cache_user_type ON generation_cache(user_id, content_type)")
