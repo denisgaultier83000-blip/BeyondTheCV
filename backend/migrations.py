@@ -167,6 +167,7 @@ def create_tables():
                 job_type TEXT,
                 is_positive BOOLEAN,
                 sentiment TEXT,
+                status TEXT DEFAULT 'new', -- Ajout du statut pour le suivi (new, read, resolved...)
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
