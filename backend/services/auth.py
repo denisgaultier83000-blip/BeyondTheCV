@@ -29,10 +29,15 @@ async def _insert_user(uid, email, hashed_pw, first, last, created):
                 await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_tester BOOLEAN DEFAULT FALSE")
             except Exception:
                 pass
+            # [FIX] Ajout de la colonne is_active si elle n'existe pas
+            try:
+                await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE")
+            except Exception:
+                pass
             await db.execute(conn, """
-                INSERT INTO users (id, email, hashed_password, first_name, last_name, created_at, is_premium, credits, is_tester)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (uid, email, hashed_pw, first, last, created, False, 100, True))
+                INSERT INTO users (id, email, hashed_password, first_name, last_name, created_at, is_premium, credits, is_tester, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (uid, email, hashed_pw, first, last, created, False, 100, True, True))
             
             # [FIX] Initialisation des compteurs dans les nouvelles colonnes de la table users
             try:
@@ -207,7 +212,7 @@ async def register(user: UserRegister):
             raise HTTPException(status_code=400, detail="Email already registered")
 
         user_id = str(uuid.uuid4())
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
 
         # Insertion du nouvel utilisateur
         await _insert_user(user_id, email, hashed_pw, user.first_name, user.last_name, now)
@@ -292,7 +297,7 @@ async def forgot_password(request: ForgotPasswordRequest, background_tasks: Back
             
             if user:
                 token = secrets.token_urlsafe(32)
-                expires = datetime.now() + timedelta(minutes=15)
+                expires = datetime.now(timezone.utc) + timedelta(minutes=15)
                 
                 await db.execute(conn, "UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE email = ?", (token, expires, email))
                 # Lancement de l'envoi de mail en arrière-plan pour ne pas bloquer l'UI
@@ -320,7 +325,7 @@ async def reset_password(request: ResetPasswordRequest):
             user_id = user[0] if isinstance(user, tuple) else user.get("id")
             expires = user[1] if isinstance(user, tuple) else user.get("reset_token_expires")
             
-            if expires and expires < datetime.now():
+            if expires and expires < datetime.now(timezone.utc):
                 raise HTTPException(status_code=400, detail="Ce lien a expiré (validité 15 minutes). Veuillez refaire une demande.")
                 
             hashed_pw = get_password_hash(request.new_password)
