@@ -42,6 +42,8 @@ jobs:
           TESTER_EMAILS: ${{ secrets.TESTER_EMAILS_LIST }}
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
           FRONTEND_URL_VAR: ${{ github.event.workflow_run.head_branch == 'master' && 'https://beyondthecv.app' || 'https://staging.beyondthecv.app' }}
+          # [FIX CORS] On s'assure que ALLOWED_ORIGINS est toujours défini pour la policy CORS.
+          # Essentiel pour que le frontend puisse communiquer avec l'API.
           ALLOWED_ORIGINS_VAR: ${{ (github.event.workflow_run.head_branch == 'master' && 'https://beyondthecv.app') || 'https://staging.beyondthecv.app,http://localhost:5173' }}
         with:
           host: ${{ secrets.SERVER_HOST }} # [CORRECTIF] L'action appleboy/ssh-action nettoie déjà les inputs. La sanitization manuelle n'est plus nécessaire.
