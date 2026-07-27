@@ -372,6 +372,13 @@ app.include_router(profile_router, prefix="/api") # prefix interne: /user
 app.include_router(products_router, prefix="/api") # prefix interne: (vide)
 app.include_router(admin_router, prefix="/api")   # prefix interne: /admin
 
+# --- Health Check Endpoint ---
+@app.get("/", tags=["Health"])
+async def read_root():
+    """Health check endpoint."""
+    return {"status": "ok"}
+
+
 # --- CORS CONFIGURATION ---
 
 # [FIX EXPERT] Configuration CORS robuste pour gérer les environnements multiples.
