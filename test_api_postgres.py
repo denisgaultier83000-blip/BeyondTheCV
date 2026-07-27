@@ -42,6 +42,57 @@ def test_admin_login():
     except Exception as e:
         print(f"❌ Exception: {e}")
 
+def test_user_login_success():
+    """
+    [NOUVEAU TEST D'INTÉGRATION]
+    Vérifie qu'un utilisateur standard peut se connecter avec succès.
+    Utilise les données du script `insert_test_users.py`.
+    """
+    print("\n👤 Test 0.1: User login (Success)...")
+    
+    payload = {
+        "username": "sophie.growthpm@test.com", # Utilisateur créé par insert_test_users.py
+        "password": "test123"
+    }
+    
+    try:
+        response = requests.post(f"{API_URL}/auth/token", data=payload)
+        print(f"Status: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            if "access_token" in data:
+                print("✅ User login successful, token received.")
+            else:
+                print("❌ User login successful but access_token is missing.")
+        else:
+            print(f"❌ Error: {response.text}")
+            
+    except Exception as e:
+        print(f"❌ Exception: {e}")
+
+def test_user_login_failure():
+    """
+    [NOUVEAU TEST D'INTÉGRATION]
+    Vérifie que le login échoue avec un mot de passe incorrect (HTTP 401).
+    """
+    print("\n👤 Test 0.2: User login (Failure with wrong password)...")
+    
+    payload = {
+        "username": "sophie.growthpm@test.com",
+        "password": "wrongpassword"
+    }
+    
+    try:
+        response = requests.post(f"{API_URL}/auth/token", data=payload)
+        print(f"Status: {response.status_code}")
+        if response.status_code == 401:
+            print("✅ Received HTTP 401 as expected for wrong password.")
+        else:
+            print(f"❌ Expected HTTP 401 but got {response.status_code}. Response: {response.text}")
+    except Exception as e:
+        print(f"❌ Exception: {e}")
+
 def test_create_product():
     """Test creating a product."""
     print("\n📦 Test 1: Creating a product...")
@@ -158,6 +209,10 @@ if __name__ == "__main__":
     try:
         # Test 0: Admin login
         test_admin_login()
+
+        # [NOUVEAU] Tests de connexion utilisateur standard
+        test_user_login_success()
+        test_user_login_failure()
 
         # Test 1: Create product
         product_id = test_create_product()
