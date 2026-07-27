@@ -15,8 +15,8 @@ from .ai_generator import ai_service
 from .audit_service import audit_service
 
 router = APIRouter(
-    # [FIX EXPERT] Le préfixe "/api" est désormais géré de manière centralisée dans main.py.
-    # On le retire ici pour éviter les URLs dupliquées (ex: /api/api/admin).
+    # [FIX EXPERT] Le préfixe "/api" est géré de manière centralisée dans main.py.
+    # On ne garde que le préfixe spécifique à ce module pour former /api/admin.
     prefix="/admin",
     tags=["Administration"],
     dependencies=[Depends(require_admin_user)] # [FIX] Protège toutes les routes de ce routeur

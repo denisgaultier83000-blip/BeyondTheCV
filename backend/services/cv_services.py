@@ -46,9 +46,8 @@ from .utils import (
 from .tasks import get_prompt_path
 from .websocket_manager import manager
 
-# [FIX EXPERT] Le préfixe "/api" est désormais géré de manière centralisée dans main.py.
-# On retire ici "/api" pour ne garder que le préfixe spécifique à ce module.
-# Cela évite les URLs dupliquées (ex: /api/api/cv) et standardise l'application.
+# [FIX EXPERT] Le préfixe "/api" est géré de manière centralisée dans main.py.
+# On ne garde que le préfixe spécifique à ce module pour former /api/cv.
 router = APIRouter(prefix="/cv", tags=["CV Generator"])
 
 from .costs import QUOTA_COSTS
