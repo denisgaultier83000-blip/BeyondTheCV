@@ -22,7 +22,10 @@ from db_services import (
 )
 from security import get_current_user, require_admin_user
 
-router = APIRouter(prefix="/api", tags=["products", "subscriptions"])
+# [FIX EXPERT] Le préfixe "/api" est désormais géré de manière centralisée dans main.py.
+# On le retire ici pour éviter les URLs dupliquées (ex: /api/api/products).
+# Cette standardisation résout les erreurs 404 Not Found.
+router = APIRouter(tags=["products", "subscriptions"])
 
 # ==================== PRODUCTS ROUTES ====================
 
