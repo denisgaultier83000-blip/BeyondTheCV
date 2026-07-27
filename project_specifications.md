@@ -119,6 +119,8 @@ Cet onglet permet au candidat de s'entraîner activement en répondant à des qu
    - L'IA génère des questions sur ce thème (basé sur `custom_question_generator.md`).
    - Le candidat répond et l'IA évalue la réponse en s'appuyant sur la méthode STAR (basé sur `evaluate_interview_answer.md`).
 
+### F. Onglet Débriefing et suivi
+Cet onglet permet au candidat de renseigner ses expériences d'entretiens et d'en tirer des propositions d'améliorations par l'IA. Tous les entretiens sont stockés dans cet onglet et les questions sensibles des premiers entretiens sont travaillées avant le prochain entretien. 
 ---
 
 ## 5. FONCTIONNALITÉS AVANCÉES & FUTURES (MODULES PREMIUM)
@@ -144,10 +146,6 @@ Cet onglet permet au candidat de s'entraîner activement en répondant à des qu
 
 ### Plan d'intégration (30-60-90 jours)
 - Feuille de route pour la prise de poste.
-
-### Career Radar (Trajectoires)
-- Détection de trajectoires non linéaires plausibles.
-- Ex: Officier Marine -> Chef Sécurité.
 
 ### Décodeur de Fiche de Poste
 - Traduction du jargon RH en réalité opérationnelle (ex: "Environnement exigeant" -> "Grosse charge de travail").
@@ -176,12 +174,6 @@ L'écran d'accueil après analyse rompt totalement avec la notion de "Dossier de
 
 ### Modules Spéciaux :
 - **Recruiter View :** "Voir mon profil comme un recruteur" (Points qui rassurent vs Doutes/Risques perçus).
-- **GPS de Carrière :**
-  - Position actuelle (Benchmark).
-  - Destination (Poste visé).
-  - Route (Étapes : Certifs, Expérience manquante).
-  - ETA (Temps estimé).
-- **Simulateur de Carrière :** "Si je passe la certif AWS, mon employabilité monte de +12%".
 
 ---
 
@@ -191,6 +183,3 @@ L'écran d'accueil après analyse rompt totalement avec la notion de "Dossier de
 - **Internationale :** Menu déroulant langue -> Appel prompt traduction IA.
 ```
 
-<!--
-[PROMPT_SUGGESTION]Analyse maintenant le fichier backend/services/cv_generator.py et vérifie s'il implémente correctement la logique des Threads de fond décrite dans la spécification.[/PROMPT_SUGGESTION]
-[PROMPT_SUGGESTION]Crée un test unitaire qui simule le flux complet de la Page 2 (Trigger Async) jusqu'à la récupération du résultat par le Dashboard.[/PROMPT_SUGGESTION]

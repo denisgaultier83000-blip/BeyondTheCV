@@ -24,9 +24,9 @@ def test_db_connection():
     # 2. Vérification de la Base de Données (Query)
     # On utilise /api/user/status qui exécute une requête SQL SELECT sur la table 'users'
     print("⏳ Querying database via /api/user/status...")
-    try:
+    try: # [FIX EXPERT] La route /api/user/status a été déplacée dans le routeur /api/cv
         start_time = time.time()
-        response = requests.get(f"{API_URL}/api/user/status")
+        response = requests.get(f"{API_URL}/api/cv/user/status")
         duration = (time.time() - start_time) * 1000
 
         if response.status_code == 200:

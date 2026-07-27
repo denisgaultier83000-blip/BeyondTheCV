@@ -353,14 +353,14 @@ from fastapi import Depends
 app = FastAPI(title="BeyondTheCV API", lifespan=lifespan, dependencies=[Depends(rate_limiter)])
 
 # --- [FIX EXPERT] INCLUSION DES ROUTEURS ---
-# C'est l'étape critique qui rend les endpoints accessibles.
-# Sans cela, l'application ne connaît pas les routes et renvoie des erreurs 404.
+# C'est l'étape critique qui rend les endpoints accessibles. Sans cela, l'application ne connaît pas les routes et renvoie des erreurs 404.
 # Les imports sont maintenant standardisés depuis le dossier 'services'.
 
-from services.auth import router as auth_router
+from services.auth import router as auth_router # [FIX] Import depuis services.auth
 from services.cv_services import router as cv_router
 from routes_products import router as products_router
 from services.admin_service import router as admin_router
+from services.profile import router as profile_router # [FIX] Import du nouveau routeur de profil
 
 # [FIX EXPERT] Centralisation de la gestion du préfixe "/api".
 # Tous les sous-routeurs sont maintenant inclus sous ce préfixe unique.
@@ -368,7 +368,9 @@ from services.admin_service import router as admin_router
 # Exemple: /api + /auth/token = /api/auth/token
 app.include_router(auth_router, prefix="/api") # prefix interne: /auth
 app.include_router(cv_router, prefix="/api")   # prefix interne: /cv
-app.include_router(products_router, prefix="/api")
+# [FIX EXPERT] Ajout du routeur de profil sous /api/cv
+app.include_router(profile_router, prefix="/api") # prefix interne: /cv
+app.include_router(products_router, prefix="/api") # prefix interne: (vide)
 app.include_router(admin_router, prefix="/api")   # prefix interne: /admin
 
 # --- CORS CONFIGURATION ---
