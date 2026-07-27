@@ -252,7 +252,7 @@ async def register(user: UserRegister):
         print(f"[AUTH] CRITICAL ERROR during register: {e}", flush=True)
         raise HTTPException(status_code=500, detail=f"Database Error: [{type(e).__name__}] {str(e)}")
 
-@router.get("/api/user/status")
+@router.get("/user/status") # [FIX EXPERT] Le préfixe /api est ajouté par main.py
 async def get_user_status(current_user: dict = Depends(get_current_user)):
     """Vérifie le statut Premium de l'utilisateur."""
 
@@ -366,7 +366,7 @@ async def reset_password(request: ResetPasswordRequest):
 
 # --- [NOUVEAU] Endpoints pour le Dashboard Admin ---
 
-@router.get("/api/admin/users", response_model=dict)
+@router.get("/admin/users", response_model=dict) # [FIX EXPERT] Le préfixe /api est ajouté par main.py
 async def get_all_users(current_user: dict = Depends(get_current_user)):
     if not current_user.get("is_admin"):
         raise HTTPException(status_code=403, detail="Accès refusé.")
@@ -393,7 +393,7 @@ async def get_all_users(current_user: dict = Depends(get_current_user)):
 
     return {"users": users_list}
 
-@router.get("/api/admin/billing", response_model=dict)
+@router.get("/admin/billing", response_model=dict) # [FIX EXPERT] Le préfixe /api est ajouté par main.py
 async def get_billing_data(current_user: dict = Depends(get_current_user)):
     if not current_user.get("is_admin"):
         raise HTTPException(status_code=403, detail="Accès refusé.")

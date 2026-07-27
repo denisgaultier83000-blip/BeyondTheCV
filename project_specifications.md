@@ -59,14 +59,14 @@ Les données sont stockées dans un JSON global au fil de la saisie.
   5. Plan de Bataille (Training Plan).
   *Note : Ces tâches tournent en fond pendant que l'utilisateur arrive sur le dashboard.*
 
-### Page 8 / Fin : Le Cockpit Stratégique (Dashboard)
+### Page 8 / Fin : Le Tableau de Bord (Dashboard)
 - Point d'atterrissage hyper-visuel concentré sur les KPI de l'entretien (Score de Fit, Red Flags, Conseils de Posture).
 
 ---
 
 ## 4. PRODUITS DU DASHBOARD
 
-### A. Onglet Cockpit (Ancien "Dossier")
+### A. Onglet Tableau de Bord
 - **Vue War Room :** Affichage de l'adéquation au poste, du nombre de failles identifiées, et du temps restant avant l'entretien.
 - **Conseil Stratégique d'Urgence :** Posture dictée par l'IA selon l'audience (RH vs Manager) et le format (Visio vs Présentiel).
 - **La Timeline :** Affichage du plan d'entraînement jour par jour (Mode Commando ou Progressif).
@@ -160,9 +160,9 @@ Cet onglet permet au candidat de s'entraîner activement en répondant à des qu
 
 ---
 
-## 6. UX / UI COCKPIT STRATÉGIQUE
+## 6. UX / UI TABLEAU DE BORD
 
-L'écran d'accueil après analyse rompt totalement avec la notion de "Dossier de candidature". Il s'agit d'un **Tableau de Bord de Pilotage (Cockpit)**.
+L'écran d'accueil après analyse rompt totalement avec la notion de "Dossier de candidature". Il s'agit d'un **Tableau de Bord**.
 
 ### Composants Clés :
 1. **Bandeau de Contexte :** Date, Audience cible, Format (Visio/Présentiel), État d'esprit du candidat.
