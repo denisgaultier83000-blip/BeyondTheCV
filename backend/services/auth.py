@@ -12,9 +12,6 @@ from models import UserLogin, UserRegister
 from security import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user, verify_password, get_password_hash
 from database import db
 router = APIRouter(
-    # [FIX EXPERT] Le préfixe "/api" est géré de manière centralisée dans main.py.
-    # On ne garde que le préfixe spécifique à l'authentification ici.
-    prefix="/auth",
     tags=["Authentication"]
 )
 
