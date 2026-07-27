@@ -1,5 +1,5 @@
 import React from 'react';
-import { Target, FileText, ArrowRight, CheckCircle2, Compass, Search, Mic, FolderOpen, Award, ShieldQuestion, BarChart3, Users, BatteryCharging, Package, Box, Archive, ShoppingCart } from 'lucide-react';
+import { FileText, ArrowRight, CheckCircle2, Search, Mic, ShieldQuestion } from 'lucide-react';
 
 interface LandingPageProps {
   onStart: () => void;
@@ -10,7 +10,7 @@ interface LandingPageProps {
   darkMode?: boolean;
 }
 
-export function LandingPage({ onStart, onLoginRedirect, onShowCGU, onShowPrivacy, onShowLegal, darkMode }: LandingPageProps) {
+export function LandingPage({ onLoginRedirect, onShowCGU, onShowPrivacy, onShowLegal, darkMode }: LandingPageProps) {
   return (
     <div className="lp-container">
       {/* Styles encapsulés pour un rendu "Plug & Play" */}
@@ -146,7 +146,7 @@ export function LandingPage({ onStart, onLoginRedirect, onShowCGU, onShowPrivacy
           grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
           gap: 2rem;
           margin: 4rem auto;
-          max-width: 1100px;
+          max-width: 900px;
         }
         .lp-pricing-card {
           background: var(--bg-card);
@@ -223,20 +223,20 @@ export function LandingPage({ onStart, onLoginRedirect, onShowCGU, onShowPrivacy
           Ne subissez plus l'entretien.<br/>Pilotez la conversation.
         </h1>
         <p className="lp-hero-subtitle">
-          Le CV n'est qu'un ticket d'entrée. <strong>Beyond The CV</strong> est votre plateforme d'Intelligence Stratégique pour décoder votre cible, anticiper ses failles et structurer un discours exécutif implacable. Pensé pour les cadres et dirigeants.
+          Le CV n'est qu'un ticket d'entrée. <strong>Beyond The CV</strong> vous aide à analyser le poste, comprendre les attentes du recruteur, construire un discours convaincant et vous entraîner avant l'entretien. Conçu pour les cadres, managers et dirigeants.
         </p>
         <button onClick={onLoginRedirect} className="lp-cta-main">
-          Démarrer l'audit de mon profil <ArrowRight size={18} />
+          Préparer mon prochain entretien <ArrowRight size={18} />
         </button>
         
         <div style={{ marginTop: '4rem', padding: '0 1rem' }}>
-          {/* EMPLACEMENT CAPTURE D'ÉCRAN N°1 : Le Cockpit / Hub Central */}
+          {/* Aperçu de l'espace de préparation */}
           <img 
             src={darkMode ? "/dashboard-preview-night.png" : "/dashboard-preview.png"} 
             alt="Aperçu du Dashboard Beyond The CV" 
             style={{ maxWidth: '1000px', width: '100%', height: 'auto', display: 'block', margin: '0 auto', borderRadius: '0.75rem', border: '4px solid var(--bg-card)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }} 
           />
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '1rem' }}>*Aperçu du Cockpit Stratégique</p>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '1rem' }}>*Aperçu de votre espace de préparation</p>
         </div>
       </section>
 
@@ -255,7 +255,7 @@ export function LandingPage({ onStart, onLoginRedirect, onShowCGU, onShowPrivacy
       {/* BENEFITS SECTION */}
       <section className="lp-section">
         <div style={{ textAlign: 'center' }}>
-          <h2 className="lp-section-title">L'arsenal complet du candidat exigeant</h2>
+          <h2 className="lp-section-title">Une préparation complète, centrée sur votre candidature</h2>
         </div>
 
         <div className="lp-grid-4">
@@ -273,8 +273,8 @@ export function LandingPage({ onStart, onLoginRedirect, onShowCGU, onShowPrivacy
 
           <div className="lp-card">
             <div className="lp-icon-wrapper"><ShieldQuestion size={24} strokeWidth={2} /></div>
-            <h3 className="lp-card-title">Anticipation des Failles</h3>
-            <p className="lp-card-desc">Cartographie de vos écarts face à l'offre d'emploi (Gap Analysis) et génération d'arguments défensifs pour contrer chaque objection du recruteur.</p>
+            <h3 className="lp-card-title">Anticipation des objections</h3>
+            <p className="lp-card-desc">Cartographiez les écarts entre votre profil et l'offre, puis préparez des réponses crédibles aux objections que le recruteur pourrait soulever.</p>
           </div>
 
           <div className="lp-card">
@@ -310,7 +310,7 @@ export function LandingPage({ onStart, onLoginRedirect, onShowCGU, onShowPrivacy
           </div>
           <div className="lp-faq-item">
             <p className="lp-faq-question">Est-ce que ça va me prendre des heures ?</p>
-            <p className="lp-faq-answer">Non. Importez votre PDF LinkedIn ou votre CV en un clic. L'Intelligence Artificielle travaille en tâche de fond. En quelques minutes, vous accédez à votre Cockpit Stratégique et à votre plan d'action logistique immédiat.</p>
+            <p className="lp-faq-answer">Non. Importez votre PDF LinkedIn ou votre CV en un clic. L'Intelligence Artificielle travaille en tâche de fond. En quelques minutes, vous accédez à votre espace de préparation et à un plan d'action personnalisé.</p>
           </div>
           <div className="lp-faq-item">
             <p className="lp-faq-question">Et concernant le prix ?</p>
@@ -324,64 +324,63 @@ export function LandingPage({ onStart, onLoginRedirect, onShowCGU, onShowPrivacy
         <div style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto' }}>
           <h2 style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-main)' }}>Choisissez votre préparation.</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', marginTop: '0.5rem' }}>
-            Pas d'abonnement toxique. Des séances d'entraînement plafonnées pour maîtriser des modèles IA de pointe.
+            Un paiement unique, 4 mois d'accès et deux niveaux de préparation clairement différenciés.
           </p>
         </div>
         
-        <div className="lp-pricing-grid">
-          {/* Offre Express */}
-          <div className="lp-pricing-card">
-            <h3 style={{ fontSize: '1.25rem', color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>Offre Express</h3>
-            <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.95rem' }}>Pour un entretien imminent.</p>
-            <div style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--text-main)', margin: '1.5rem 0 0.5rem 0' }}>39 €</div>
-            <p style={{ fontWeight: 600, color: 'var(--text-muted)', marginBottom: '2rem' }}>Accès 14 jours</p>
-            <div style={{ textAlign: 'left', flexGrow: 1, marginBottom: '2rem' }}>
-              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> 1 candidature</div>
-              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Analyse profil & offre rapide</div>
-              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Pitch & 8 questions probables</div>
-              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> <strong>3 séances d'entraînement IA</strong></div>
-            </div>
-            <button onClick={onLoginRedirect} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>Sélectionner</button>
-          </div>
-
+        <div className="lp-pricing-grid" style={{ maxWidth: '900px' }}>
           {/* Offre Stratégique */}
           <div className="lp-pricing-card popular">
-            <div className="lp-popular-badge">Recommandé</div>
-            <h3 style={{ fontSize: '1.25rem', color: 'var(--primary)', margin: '0 0 0.5rem 0' }}>Offre Stratégique</h3>
-            <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.95rem' }}>La préparation intégrale.</p>
+            <div className="lp-popular-badge">Offre cœur</div>
+            <h3 style={{ fontSize: '1.35rem', color: 'var(--primary)', margin: '0 0 0.5rem 0' }}>Stratégique</h3>
+            <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.95rem' }}>La préparation complète à un entretien important.</p>
             <div style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--primary)', margin: '1.5rem 0 0.5rem 0' }}>119 €</div>
-            <p style={{ fontWeight: 600, color: 'var(--text-muted)', marginBottom: '2rem' }}>Accès 4 mois</p>
+            <p style={{ fontWeight: 600, color: 'var(--text-muted)', marginBottom: '2rem' }}>Paiement unique · Accès 4 mois</p>
             <div style={{ textAlign: 'left', flexGrow: 1, marginBottom: '2rem' }}>
               <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> 1 candidature complète</div>
-              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Dossier Renseignement (OSINT)</div>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Analyse du profil et de l'offre</div>
               <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Décodeur d'annonce & Gap Analysis</div>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Dossier entreprise et enjeux du poste</div>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Pitchs adaptés aux interlocuteurs</div>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Questions probables et mises en situation</div>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Débrief post-entretien</div>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Export PDF de préparation</div>
               <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> <strong>15 séances d'entraînement IA</strong></div>
-              {/* Recharges sont maintenant dans une section dédiée */}
             </div>
-            <button onClick={onLoginRedirect} className="lp-cta-main" style={{ width: '100%', justifyContent: 'center' }}>Créer mon profil</button>
+            <button onClick={onLoginRedirect} className="lp-cta-main" style={{ width: '100%', justifyContent: 'center' }}>Préparer mon entretien</button>
           </div>
 
-          {/* Offre Intensive */}
+          {/* Offre Décisive */}
           <div className="lp-pricing-card">
-            <h3 style={{ fontSize: '1.25rem', color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>Offre Intensive</h3>
-            <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.95rem' }}>Pour les très gros enjeux.</p>
+            <h3 style={{ fontSize: '1.35rem', color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>Décisive</h3>
+            <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.95rem' }}>Pour les derniers tours, les postes à fort enjeu et la négociation.</p>
             <div style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--text-main)', margin: '1.5rem 0 0.5rem 0' }}>219 €</div>
-            <p style={{ fontWeight: 600, color: 'var(--text-muted)', marginBottom: '2rem' }}>Accès 4 mois</p>
+            <p style={{ fontWeight: 600, color: 'var(--text-muted)', marginBottom: '2rem' }}>Paiement unique · Accès 4 mois</p>
             <div style={{ textAlign: 'left', flexGrow: 1, marginBottom: '2rem' }}>
-              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Tout le pack Stratégique</div>
-              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> OSINT Entreprise actualisable</div>
-              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Stress Test & Négociation salaire</div>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> <strong>Tout le pack Stratégique</strong></div>
               <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> <strong>30 séances d'entraînement IA</strong></div>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Actualisation de l'analyse entreprise</div>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Stress Test final sous pression</div>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Négociation salariale avancée</div>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Plan personnalisé « 24 h avant »</div>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Analyse post-entretien avancée</div>
+              <div className="lp-check-item"><CheckCircle2 size={18} color="var(--primary)" style={{ flexShrink: 0 }} /> Synthèse finale avant entretien</div>
             </div>
-            <button onClick={onLoginRedirect} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>Sélectionner</button>
+            <button onClick={onLoginRedirect} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>Sécuriser ma candidature</button>
           </div>
+        </div>
+
+        <div style={{ maxWidth: '900px', margin: '-1rem auto 4rem auto', textAlign: 'center' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
+            <strong>Stratégique</strong> vous prépare complètement. <strong>Décisive</strong> ajoute la répétition, la pression, l'actualisation et la négociation pour franchir la dernière étape.
+          </p>
         </div>
 
         {/* SECTION RECHARGES */}
         <div style={{ textAlign: 'center', maxWidth: '800px', margin: '4rem auto 2rem auto' }}>
           <h3 style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-main)' }}>Besoin de recharges IA ?</h3>
           <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', marginTop: '0.5rem' }}>
-            Une fois votre pack principal sélectionné, vous pouvez recharger vos séances d'entraînement à la carte.
+            Les recharges restent optionnelles et n'apparaissent qu'après l'achat d'une offre principale.
           </p>
         </div>
         
@@ -402,10 +401,6 @@ export function LandingPage({ onStart, onLoginRedirect, onShowCGU, onShowPrivacy
           <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', textAlign: 'center', flex: '1 1 150px' }}>
             <h4 style={{ margin: 0, color: 'var(--text-muted)', fontSize: '1rem' }}>+ 30 séances</h4>
             <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '0.5rem' }}>60 €</div>
-          </div>
-          <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', textAlign: 'center', flex: '1 1 150px' }}>
-            <h4 style={{ margin: 0, color: 'var(--text-muted)', fontSize: '1rem' }}>+ 60 séances</h4>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '0.5rem' }}>99 €</div>
           </div>
         </div>
       </section>
