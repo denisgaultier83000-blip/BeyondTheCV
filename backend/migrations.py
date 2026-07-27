@@ -2,6 +2,33 @@
 import os
 import psycopg2
 import database # [FIX EXPERT] On importe le module entier, pas la variable isolée.
+from dotenv import load_dotenv
+
+# Chargement robuste du .env (Docker vs Local)
+current_dir = os.path.dirname(__file__)
+env_paths = [os.path.join(current_dir, '.env'), os.path.join(current_dir, '..', '.env')]
+for path in env_paths:
+    if os.path.exists(path):
+        load_dotenv(dotenv_path=path)
+        break
+
+# [FIX LIFECYCLE] Initialisation de la base de données au bon moment.
+# L'URL de la base de données (qui peut nécessiter un appel réseau à Secret Manager)
+# est maintenant calculée ici, et non plus à l'import du module.
+try:
+    # 1. Calculer l'URL de manière sécurisée après le démarrage de l'app.
+    db_url = database.get_database_url()
+    
+    # 2. Configurer l'instance et le module de base de données avec l'URL obtenue.
+    database.DATABASE_URL = db_url
+    
+    # [DEBUG DB] Log ajouté pour confirmer l'URL injectée juste avant la connexion
+    print(f"[DEBUG DB] DATABASE_URL utilisée pour la connexion: {database.DATABASE_URL}", flush=True)
+
+except Exception as e:
+    print(f"[DB CRITICAL] Database initialization failed: {e}", flush=True)
+    raise RuntimeError("FATAL: Database initialization failed") from e
+
 
 def get_postgres_connection():
     """Creates a direct synchronous connection to PostgreSQL using the correct URL."""
