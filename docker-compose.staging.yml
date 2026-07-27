@@ -41,7 +41,6 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       # Injection dynamique pour les CORS
       FRONTEND_URL: "https://staging.beyondthecv.app"
-      ALLOWED_ORIGINS: "https://staging.beyondthecv.app,http://localhost:5173"
 
     depends_on:
       db:

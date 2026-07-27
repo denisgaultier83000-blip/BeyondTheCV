@@ -177,3 +177,4 @@ jobs:
             PAYLOAD='{"text": "❌ 🚨 *Échec du Déploiement* : Le déploiement de BeyondTheCV sur la Production a échoué. Veuillez vérifier les logs GitHub Actions."}'
             curl -X POST -H 'Content-type: application/json' --data "$PAYLOAD" $WEBHOOK_URL
           fi
+          
