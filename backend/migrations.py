@@ -106,7 +106,7 @@ def create_tables():
                 user_id TEXT,
                 target_company VARCHAR(255) NOT NULL,
                 target_job VARCHAR(255) NOT NULL,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMPTZ
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         """)
         print("✅ Table 'job_applications' created")
@@ -123,8 +123,8 @@ def create_tables():
                 title TEXT,
                 description TEXT,
                 metadata JSONB,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMPTZ,
-                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMPTZ,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 downloaded_count INTEGER DEFAULT 0,
                 printed_count INTEGER DEFAULT 0,
                 last_downloaded_at TIMESTAMPTZ,
@@ -143,7 +143,7 @@ def create_tables():
                 path TEXT,
                 type TEXT,
                 media_type TEXT,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMPTZ
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         """)
         print("✅ Table 'documents' created")
@@ -162,8 +162,8 @@ def create_tables():
                 description TEXT,
                 features JSONB,
                 is_active BOOLEAN DEFAULT TRUE,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMPTZ,
-                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMPTZ
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         """)
         print("✅ Table 'subscription_plans' created")
@@ -173,13 +173,13 @@ def create_tables():
                 id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 plan_id TEXT NOT NULL REFERENCES subscription_plans(id),
-                extension_date TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMPTZ,
+                extension_date TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 new_expiration_date TIMESTAMPTZ NOT NULL,
                 price_paid_cents INTEGER,
                 payment_status TEXT,
                 transaction_id TEXT,
                 notes TEXT,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMPTZ
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         """)
         print("✅ Table 'subscription_extensions' created")
@@ -195,7 +195,7 @@ def create_tables():
                 is_positive BOOLEAN,
                 sentiment TEXT,
                 status TEXT DEFAULT 'new', -- Ajout du statut pour le suivi (new, read, resolved...)
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMPTZ
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         """)
         print("✅ Table 'feedbacks' created")
@@ -213,7 +213,7 @@ def create_tables():
                 weaknesses TEXT,
                 improved_answer TEXT,
                 application_id TEXT REFERENCES job_applications(id) ON DELETE SET NULL,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMPTZ
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         """)
         print("✅ Table 'training_sessions' created")
@@ -227,7 +227,7 @@ def create_tables():
                 result TEXT,
                 error_message TEXT,
                 progress_percent INTEGER DEFAULT 0,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMPTZ,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 started_at TIMESTAMPTZ,
                 completed_at TIMESTAMPTZ,
                 metadata JSONB
