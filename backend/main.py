@@ -376,14 +376,7 @@ app.include_router(admin_router, prefix="/api")   # prefix interne: /admin
 @app.get("/", tags=["Health"])
 async def read_root():
     """Health check endpoint."""
-    # Temporarily return origins for debugging
-    allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173")
-    origins = [origin.strip() for origin in allowed_origins_str.split(',')]
-    return {
-        "status": "ok",
-        "configured_origins": origins,
-        "raw_env_var": allowed_origins_str
-    }
+    return {"status": "ok"}
 
 
 # --- CORS CONFIGURATION ---
