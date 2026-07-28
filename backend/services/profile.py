@@ -6,8 +6,8 @@ from .utils import _get_sortable_date_tuple
 
 # [FIX EXPERT] Le préfixe "/api" est géré de manière centralisée dans main.py.
 router = APIRouter(
-    prefix="/user", # [FIX] Préfixe dédié pour les routes de profil utilisateur.
-    tags=["User Profile"]
+    prefix="/cv", # [FIX] Alignement du préfixe sur "/cv" pour correspondre aux appels frontend (/api/cv/me/profile)
+    tags=["User Profile & CV Data"]
 )
 
 @router.get("/me/profile")
@@ -74,29 +74,6 @@ async def update_my_profile(payload: dict = Body(...), current_user: dict = Depe
         return {"status": "error", "message": str(e)}
 
 @router.get("/status")
-async def get_user_status(current_user: dict = Depends(get_current_user)):
-    """
-    Vérifie le statut Premium de l'utilisateur.
-    Cette route est maintenant dans le module 'profile' pour une meilleure organisation.
-    """
-    try:
-        async with db.get_connection() as conn:
-            cursor = await db.execute(conn, "SELECT is_premium, subscription_status, subscription_expiration_date FROM users WHERE id = ?", (current_user["id"],))
-            user_row = await cursor.fetchone()
-
-        if not user_row:
-            raise HTTPException(status_code=404, detail="Utilisateur introuvable.")
-
-        is_premium = user_row[0] if isinstance(user_row, tuple) else user_row.get("is_premium")
-        subscription_status = user_row[1] if isinstance(user_row, tuple) else user_row.get("subscription_status")
-        subscription_expiration_date = user_row[2] if isinstance(user_row, tuple) else user_row.get("subscription_expiration_date")
-
-        return {"is_premium": is_premium, "subscription_status": subscription_status, "subscription_expiration_date": subscription_expiration_date}
-    except Exception as e:
-        print(f"[USER STATUS ERROR] {e}", flush=True)
-        raise HTTPException(status_code=500, detail="Erreur interne lors de la récupération du statut utilisateur.")
-
-@router.get("/user/status")
 async def get_user_status(current_user: dict = Depends(get_current_user)):
     """
     Vérifie le statut Premium de l'utilisateur.
