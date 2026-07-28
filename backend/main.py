@@ -274,6 +274,7 @@ api_router.include_router(cv_router)
 api_router.include_router(profile_router)
 api_router.include_router(products_router)
 api_router.include_router(admin_router)
+api_router.include_router(dashboard_router) # [FIX] Inclusion du routeur du dashboard
 
 app.mount("/api", api_router)
 
