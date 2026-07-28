@@ -37,17 +37,22 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from typing import Dict, List
 
-from database import init_db, db, get_database_url
+from database import init_db, db
 import database as database_module
 
 # [CONFIG] Chargement de la configuration globale de l'application
 def load_app_config():
     try:
         config_path = os.path.join(os.path.dirname(__file__), "data", "app_config.json")
-        
+
         if not os.path.exists(config_path):
             os.makedirs(os.path.dirname(config_path), exist_ok=True)
             default_config = {
+                # [FIX] Ajout des clés manquantes pour éviter les KeyErrors au démarrage
+                "maintenance_mode": "off",
+                "feature_flags": {
+                    "enable_new_dashboard": True
+                },
                 "rate_limit_window": 60,
                 "rate_limit_max_requests": 100,
                 "required_templates": ["cv_ats.tex"]
@@ -55,7 +60,7 @@ def load_app_config():
             with open(config_path, "w", encoding="utf-8") as f:
                 json.dump(default_config, f, indent=4)
             return default_config
-            
+
         with open(config_path, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
@@ -134,14 +139,14 @@ async def lifespan(app: FastAPI):
         # [FIX LIFECYCLE] Initialisation de la base de données au bon moment.
         # L'URL de la base de données (qui peut nécessiter un appel réseau à Secret Manager)
         # est maintenant calculée ici, et non plus à l'import du module.
+        # [FIX] On utilise la fonction get_database_url du module database
         try:
             # 1. Calculer l'URL de manière sécurisée après le démarrage de l'app.
-            db_url = get_database_url()
-            
+            db_url = database_module.get_database_url()
+
             # 2. Configurer l'instance et le module de base de données avec l'URL obtenue.
             database_module.DATABASE_URL = db_url
             db.database_url = db_url
-            
             # [DEBUG DB] Log ajouté pour confirmer l'URL injectée juste avant la connexion
             print(f"[DEBUG DB] DATABASE_URL utilisée pour la connexion: {db.database_url}", flush=True)
             
@@ -151,7 +156,7 @@ async def lifespan(app: FastAPI):
             print("[DB] Database initialized successfully.", flush=True)
         except Exception as e:
             print(f"[DB CRITICAL] Database initialization failed: {e}", flush=True)
-            raise RuntimeError("FATAL: Database initialization failed") from e
+            raise RuntimeError(f"FATAL: Database initialization failed: {e}") from e
         
         # [LOG] Network Info - Affiche l'IP réelle pour configurer le Frontend
         current_ip = get_local_ip()
@@ -259,24 +264,34 @@ app = FastAPI(title="BeyondTheCV API", lifespan=lifespan, dependencies=[Depends(
 # C'est l'étape critique qui rend les endpoints accessibles. Sans cela, l'application ne connaît pas les routes et renvoie des erreurs 404.
 # Les imports sont maintenant standardisés depuis le dossier 'services'.
 
-from services.auth import router as auth_router # [FIX] Import depuis services.auth
-from services.cv_services import router as cv_router
-from routes_products import router as products_router
+from services.auth import router as auth_router
+from services.cv_services import router as cv_router # Contient /api/cv/generate, /api/cv/parse-cv, etc.
+from services.profile import router as profile_router # Contient /api/cv/me/profile
+from services.dashboard import router as dashboard_router # Contient /api/research/*
+from services.documents import router as documents_router
+from services.payment import router as payment_router
+from services.simulation_service import router as simulation_router
 from services.admin_service import router as admin_router
-from services.profile import router as profile_router # [FIX] Import du nouveau routeur de profil
+from services.audit_log_service import router as audit_router
+from services.user_management_service import router as user_management_router
+from services.generation_service import router as generation_router
+from routes_products import router as products_router # Contient /api/products, /api/subscriptions
 
 # [FIX EXPERT] Centralisation de la gestion du préfixe "/api".
 # Tous les sous-routeurs sont maintenant inclus sous ce préfixe unique.
 # Cela garantit que toutes les URLs sont cohérentes et résout les erreurs 404.
-api_router = FastAPI()
-api_router.include_router(auth_router)
-api_router.include_router(cv_router)
-api_router.include_router(profile_router)
-api_router.include_router(products_router)
-api_router.include_router(admin_router)
-api_router.include_router(dashboard_router) # [FIX] Inclusion du routeur du dashboard
-
-app.mount("/api", api_router)
+app.include_router(auth_router, prefix="/api")
+app.include_router(cv_router, prefix="/api") # Le préfixe interne est déjà /cv
+app.include_router(profile_router, prefix="/api") # Le préfixe interne est déjà /cv, il sera donc monté sur /api/cv
+app.include_router(dashboard_router, prefix="/api")
+app.include_router(documents_router, prefix="/api")
+app.include_router(payment_router, prefix="/api")
+app.include_router(simulation_router, prefix="/api")
+app.include_router(admin_router, prefix="/api")
+app.include_router(audit_router, prefix="/api")
+app.include_router(user_management_router, prefix="/api")
+app.include_router(generation_router, prefix="/api")
+app.include_router(products_router, prefix="/api")
 
 # --- Health Check Endpoint ---
 @app.get("/", tags=["Health"])
@@ -303,6 +318,6 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,  # Permet aux cookies d'être inclus dans les requêtes
-    allow_methods=["*"],     # Autorise toutes les méthodes (GET, POST, etc.)
-    allow_headers=["*"],     # Autorise tous les en-têtes
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],     # Autorise les méthodes HTTP courantes
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],     # Autorise les en-têtes nécessaires
 )
