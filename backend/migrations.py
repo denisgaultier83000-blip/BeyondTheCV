@@ -51,203 +51,39 @@ def create_tables():
         conn = get_postgres_connection()
         cur = conn.cursor()
 
-        # [FIX CRITIQUE] Création sécurisée des types ENUM sans destruction
-        cur.execute("SELECT 1 FROM pg_type WHERE typname = 'product_type';")
-        if not cur.fetchone():
-            cur.execute("CREATE TYPE product_type AS ENUM ('cv_ats', 'report', 'document', 'other');")
-            print("✅ Type 'product_type' created")
-            
-        cur.execute("SELECT 1 FROM pg_type WHERE typname = 'subscription_status';")
-        if not cur.fetchone():
-            cur.execute("CREATE TYPE subscription_status AS ENUM ('active', 'expired', 'extended');")
-            print("✅ Type 'subscription_status' created")
-            
-        conn.commit()
+        print("[MIGRATE] Applying incremental migrations...")
 
-        # Create tables
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id TEXT PRIMARY KEY,
-                email TEXT UNIQUE NOT NULL,
-                hashed_password TEXT NOT NULL,
-                first_name TEXT,
-                last_name TEXT,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-                is_premium BOOLEAN DEFAULT FALSE,
-                subscription_status subscription_status DEFAULT 'active',
-                subscription_start_date TIMESTAMPTZ,
-                subscription_expiration_date TIMESTAMPTZ,
-                subscription_extension_count INTEGER DEFAULT 0,
-                last_extension_date TIMESTAMPTZ,
-                deleted_at TIMESTAMPTZ,
-                is_active BOOLEAN DEFAULT TRUE,
-                is_admin BOOLEAN DEFAULT FALSE
-            )
-        """)
-        # [NEW] Add new columns safely. "IF NOT EXISTS" prevents errors on subsequent runs.
+        # --- MIGRATIONS POUR LA TABLE 'users' ---
+        # Ce script ne crée plus la table, il s'assure que les colonnes existent.
         cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMPTZ;")
-        # [NEW] Add the total_ia_cost column to track AI expenses per user.
         cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS total_ia_cost REAL DEFAULT 0.0;")
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE;")
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_tester BOOLEAN DEFAULT FALSE;")
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_pitch INTEGER DEFAULT 10;")
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_qa INTEGER DEFAULT 25;")
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_mes INTEGER DEFAULT 6;")
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_negotiation INTEGER DEFAULT 4;")
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_regeneration INTEGER DEFAULT 3;")
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_update INTEGER DEFAULT 1;")
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT 100;")
+        print("✅ Table 'users' migrated.")
 
-        print("✅ Table 'users' created")
-
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS user_profiles (
-                user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-                profile_data JSONB
-            )
-        """)
-        print("✅ Table 'user_profiles' created")
-
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS job_applications (
-                id TEXT PRIMARY KEY,
-                user_id TEXT,
-                target_company VARCHAR(255) NOT NULL,
-                target_job VARCHAR(255) NOT NULL,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        print("✅ Table 'job_applications' created")
-
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS products (
-                id TEXT PRIMARY KEY,
-                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                product_type product_type NOT NULL,
-                filename TEXT NOT NULL,
-                file_path TEXT,
-                file_size INTEGER,
-                mime_type TEXT,
-                title TEXT,
-                description TEXT,
-                metadata JSONB,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-                downloaded_count INTEGER DEFAULT 0,
-                printed_count INTEGER DEFAULT 0,
-                last_downloaded_at TIMESTAMPTZ,
-                last_printed_at TIMESTAMPTZ,
-                is_archived BOOLEAN DEFAULT FALSE,
-                deleted_at TIMESTAMPTZ
-            )
-        """)
-        print("✅ Table 'products' created")
-
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS documents (
-                id TEXT PRIMARY KEY,
-                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                filename TEXT NOT NULL,
-                path TEXT,
-                type TEXT,
-                media_type TEXT,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        print("✅ Table 'documents' created")
-        
-        # Ajout de la colonne application_id de manière sécurisée
+        # --- MIGRATIONS POUR LA TABLE 'documents' ---
         cur.execute("ALTER TABLE documents ADD COLUMN IF NOT EXISTS application_id TEXT REFERENCES job_applications(id) ON DELETE SET NULL;")
-        print("✅ Column 'application_id' added to documents")
+        print("✅ Table 'documents' migrated.")
 
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS subscription_plans (
-                id TEXT PRIMARY KEY,
-                plan_name TEXT NOT NULL,
-                duration_days INTEGER NOT NULL,
-                price_cents INTEGER NOT NULL,
-                currency TEXT DEFAULT 'USD',
-                description TEXT,
-                features JSONB,
-                is_active BOOLEAN DEFAULT TRUE,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        print("✅ Table 'subscription_plans' created")
-
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS subscription_extensions (
-                id TEXT PRIMARY KEY,
-                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                plan_id TEXT NOT NULL REFERENCES subscription_plans(id),
-                extension_date TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-                new_expiration_date TIMESTAMPTZ NOT NULL,
-                price_paid_cents INTEGER,
-                payment_status TEXT,
-                transaction_id TEXT,
-                notes TEXT,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        print("✅ Table 'subscription_extensions' created")
-
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS feedbacks (
-                id SERIAL PRIMARY KEY,
-                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                feature TEXT,
-                feedback TEXT NOT NULL,
-                reason TEXT,
-                job_type TEXT,
-                is_positive BOOLEAN,
-                sentiment TEXT,
-                status TEXT DEFAULT 'new', -- Ajout du statut pour le suivi (new, read, resolved...)
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        print("✅ Table 'feedbacks' created")
-
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS training_sessions (
-                id TEXT PRIMARY KEY,
-                user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
-                theme TEXT,
-                question_type TEXT,
-                question_text TEXT,
-                user_answer TEXT,
-                score INTEGER,
-                strengths TEXT,
-                weaknesses TEXT,
-                improved_answer TEXT,
-                application_id TEXT REFERENCES job_applications(id) ON DELETE SET NULL,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        print("✅ Table 'training_sessions' created")
-
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS tasks (
-                id TEXT PRIMARY KEY,
-                user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
-                status TEXT,
-                task_type TEXT,
-                result TEXT,
-                error_message TEXT,
-                progress_percent INTEGER DEFAULT 0,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-                started_at TIMESTAMPTZ,
-                completed_at TIMESTAMPTZ,
-                metadata JSONB
-            )
-        """)
-        print("✅ Table 'tasks' created")
-        
-        # Ajout de la colonne application_id de manière sécurisée
+        # --- MIGRATIONS POUR LA TABLE 'tasks' ---
         cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS application_id TEXT REFERENCES job_applications(id) ON DELETE CASCADE;")
-        print("✅ Column 'application_id' added to tasks")
+        cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS duration_ms INTEGER;")
+        cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS estimated_cost REAL;")
+        cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS model_used TEXT;")
+        cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS prompt_version TEXT;")
+        print("✅ Table 'tasks' migrated.")
 
-        # Create indexes for performance
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_products_user_id ON products(user_id)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_products_created_at ON products(created_at)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_users_subscription_expiry ON users(subscription_expiration_date)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_tasks_application_id ON tasks(application_id)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_job_applications_user_session ON job_applications(user_id, session_hash)")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_generation_cache_user_type ON generation_cache(user_id, content_type)")
-        print("✅ Indexes created")
+        # --- MIGRATIONS POUR LA TABLE 'job_applications' ---
+        cur.execute("ALTER TABLE job_applications ADD COLUMN IF NOT EXISTS session_hash TEXT;")
+        cur.execute("ALTER TABLE job_applications ADD COLUMN IF NOT EXISTS tasks_map JSONB;")
+        print("✅ Table 'job_applications' migrated.")
 
         conn.commit()
         return True
