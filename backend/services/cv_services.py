@@ -18,7 +18,6 @@ from database import db
 from models import GenerateRequest, CVFinal, FeedbackRequest, ExperienceRequest, SkillExtractionRequest, FullCVData
 from security import get_current_user, require_admin_user
 # [FIX] Utilisation du service unifié au lieu d'imports inexistants
-from .ai_generator import ai_service
 from .latex import generate_pdf_from_latex
 from .docx_generator import generate_cv_docx
 from .tasks import (
@@ -45,6 +44,9 @@ from .utils import (
 )
 from .tasks import get_prompt_path
 from .websocket_manager import manager
+
+# [FIX] Importation centralisée du service AI pour éviter les dépendances circulaires
+from ai.service import ai_service
 
 # [FIX EXPERT] Le préfixe "/api" est géré de manière centralisée dans main.py.
 # On ne garde que le préfixe spécifique à ce module pour former /api/cv.

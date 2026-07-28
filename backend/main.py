@@ -148,103 +148,6 @@ async def lifespan(app: FastAPI):
             # 3. Lancer les migrations maintenant que la connexion est possible.
             init_db()
             
-            # [FIX EXPERT] Création de la table de cache manquante pour éviter les erreurs SQL
-            try:
-                with db.get_sync_connection() as conn:
-                    with conn.cursor() as cur:
-                        cur.execute("""
-                            CREATE TABLE IF NOT EXISTS generation_cache (
-                                cache_key TEXT PRIMARY KEY,
-                                user_id TEXT NOT NULL,
-                                content_type TEXT NOT NULL,
-                                result JSONB,
-                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                            )
-                        """)
-                        cur.execute("""
-                            CREATE TABLE IF NOT EXISTS training_sessions (
-                                id TEXT PRIMARY KEY,
-                                user_id TEXT NOT NULL,
-                                theme TEXT,
-                                question_type TEXT,
-                                question_text TEXT,
-                                user_answer TEXT,
-                                score INTEGER,
-                                strengths JSONB,
-                                weaknesses JSONB,
-                                improved_answer TEXT,
-                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                            )
-                        """)
-                        cur.execute("""
-                            CREATE TABLE IF NOT EXISTS interview_sessions (
-                                id TEXT PRIMARY KEY,
-                                user_id TEXT NOT NULL,
-                                application_id TEXT,
-                                question_text TEXT,
-                                user_answer TEXT,
-                                score INTEGER,
-                                feedback JSONB,
-                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                            )
-                        """)
-                        cur.execute("""
-                            CREATE TABLE IF NOT EXISTS interview_debriefs (
-                                id TEXT PRIMARY KEY,
-                                user_id TEXT NOT NULL,
-                                application_id TEXT,
-                                company_name TEXT,
-                                job_title TEXT,
-                                interview_date TIMESTAMP,
-                                interview_format TEXT,
-                                interlocutor_type TEXT,
-                                interlocutor_name TEXT,
-                                interlocutor_role TEXT,
-                                next_step_known BOOLEAN,
-                                next_step_details TEXT,
-                                ambiance JSONB,
-                                positive_signals JSONB,
-                                red_flags JSONB,
-                                questions_asked TEXT,
-                                difficult_questions TEXT,
-                                learnings TEXT,
-                                preparation_points TEXT,
-                                interest_level INTEGER,
-                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
-                                FOREIGN KEY(application_id) REFERENCES job_applications(id) ON DELETE SET NULL
-                            )
-                        """)
-                        # [FIX EXPERT] Suppression de la création redondante et incohérente de la table 'feedbacks'.
-                        # Le script `init_postgres.py` est désormais la seule source de vérité pour le schéma,
-                        # ce qui élimine les conflits de colonnes (ex: colonne 'status' manquante).
-                    conn.commit()
-            except Exception as e:
-                print(f"[DB WARNING] Failed to create tables: {e}", flush=True)
-
-            # [NOUVEAU] Ajout des colonnes de quotas granulaires à la table users
-            try:
-                with conn.cursor() as cur:
-                    try:
-                        cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name='users'")
-                        user_columns_raw = cur.fetchall()
-                        user_columns = [col[0] for col in user_columns_raw]
-                    except Exception: # Fallback pour SQLite
-                        cur.execute("PRAGMA table_info(users)")
-                        user_columns_raw = cur.fetchall()
-                        user_columns = [col[1] for col in user_columns_raw]
-
-                    quota_cols = { "quota_pitch": "INTEGER DEFAULT 10", "quota_qa": "INTEGER DEFAULT 25", "quota_mes": "INTEGER DEFAULT 6", "quota_negotiation": "INTEGER DEFAULT 4", "quota_regeneration": "INTEGER DEFAULT 3", "quota_update": "INTEGER DEFAULT 1" }
-                    
-                    for col, col_type in quota_cols.items():
-                        if col not in user_columns:
-                            print(f"[DB MIGRATE] Adding column {col} to users table.")
-                            cur.execute(f"ALTER TABLE users ADD COLUMN {col} {col_type}")
-                conn.commit()
-            except Exception as e:
-                print(f"[DB WARNING] Failed to add quota columns to users table: {e}", flush=True)
-                print(f"[DB WARNING] Failed to create generation_cache table: {e}", flush=True)
-                
             print("[DB] Database initialized successfully.", flush=True)
         except Exception as e:
             print(f"[DB CRITICAL] Database initialization failed: {e}", flush=True)
@@ -365,12 +268,14 @@ from services.profile import router as profile_router # [FIX] Import du nouveau 
 # [FIX EXPERT] Centralisation de la gestion du préfixe "/api".
 # Tous les sous-routeurs sont maintenant inclus sous ce préfixe unique.
 # Cela garantit que toutes les URLs sont cohérentes et résout les erreurs 404.
-# Exemple: /api + /auth/token = /api/auth/token
-app.include_router(auth_router, prefix="/api/auth") # prefix interne: /auth
-app.include_router(cv_router, prefix="/api")      # prefix interne: /cv
-app.include_router(profile_router, prefix="/api") # prefix interne: /user
-app.include_router(products_router, prefix="/api") # prefix interne: (vide)
-app.include_router(admin_router, prefix="/api")   # prefix interne: /admin
+api_router = FastAPI()
+api_router.include_router(auth_router)
+api_router.include_router(cv_router)
+api_router.include_router(profile_router)
+api_router.include_router(products_router)
+api_router.include_router(admin_router)
+
+app.mount("/api", api_router)
 
 # --- Health Check Endpoint ---
 @app.get("/", tags=["Health"])
