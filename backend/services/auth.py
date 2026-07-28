@@ -12,6 +12,7 @@ from models import UserLogin, UserRegister
 from security import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user, verify_password, get_password_hash
 from database import db
 router = APIRouter(
+    prefix="/auth", # [FIX] Ajout du préfixe manquant pour correspondre à l'URL /api/auth/token
     tags=["Authentication"]
 )
 
