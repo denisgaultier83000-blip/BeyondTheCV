@@ -1,6 +1,7 @@
 // backend/src/app.js  (ESM)
 
 // Imports
+import cors from "cors";
 import express from "express";
 import morgan from "morgan";
 import fs from "fs/promises";
@@ -501,18 +502,20 @@ export function createApp(opts = {}) {
   app.use(express.json({ limit: "10mb" }));
   app.use(morgan("dev"));
 
+  // Création d'un routeur principal pour préfixer toutes les routes avec /api
+  const apiRouter = express.Router();
+
   // -----------------------------
   // CORS (dev)
   // -----------------------------
-  // Autorise les requêtes de l'URL du frontend définie dans l'environnement, ou localhost:5173 par défaut
-  const allowedOrigin = process.env.FRONTEND_URL || "http://localhost:5173";
-  app.use((req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-    if (req.method === "OPTIONS") return res.sendStatus(204);
-    next();
-  });
+  // [FIX] Remplacement de la gestion manuelle par le middleware 'cors' plus robuste.
+  // Il gère automatiquement les requêtes OPTIONS (preflight) et autorise les origines multiples.
+  const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173,https://staging.beyondthecv.app").split(',');
+  apiRouter.use(cors({
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"], // Ajout de X-Requested-With pour certaines requêtes AJAX
+  }));
 
   // -----------------------------
   // JWT Auth (MVP)
@@ -543,9 +546,10 @@ export function createApp(opts = {}) {
   // -----------------------------
   // Routes
   // -----------------------------
-  app.get("/health", (req, res) => res.json({ ok: true }));
+  apiRouter.get("/health", (req, res) => res.json({ ok: true }));
 
-  app.post("/auth/login", (req, res) => {
+  // [FIX] La route est renommée pour correspondre à l'appel du client (/api/auth/token)
+  apiRouter.post("/auth/token", (req, res) => {
     const { email, password } = req.body || {};
     if (!email || !password) return res.status(400).json({ error: "missing_credentials" });
 
@@ -554,10 +558,10 @@ export function createApp(opts = {}) {
     return res.json({ token });
   });
 
-  app.get("/me", requireAuth, (req, res) => res.json(req.user));
+  // [FIX] La route est renommée pour correspondre à l'appel du client (/api/cv/me/profile)
+  apiRouter.get("/cv/me/profile", requireAuth, (req, res) => res.json(req.user));
 
-  // POST /orders/:orderId/generate
-  app.post("/orders/:orderId/generate", async (req, res) => {
+  apiRouter.post("/orders/:orderId/generate", async (req, res) => {
     try {
       const parsed = GenerateRequest.safeParse(req.body || {});
       if (!parsed.success) return res.status(400).json({ error: "invalid_request" });
@@ -583,7 +587,7 @@ export function createApp(opts = {}) {
   });
 
   // ✅ QUESTIONS IA (après génération CV)
-  app.post("/cv/questions", requireAuth, async (req, res) => {
+  apiRouter.post("/cv/questions", requireAuth, async (req, res) => {
     try {
       const outputLanguage =
         safeStr(req.body?.output_language) || safeStr(req.body?.languages?.[0]) || "en";
@@ -649,7 +653,7 @@ export function createApp(opts = {}) {
   });
 
   // ✅ PREP GENERATION (JSON)
-  app.post("/cv/prep", requireAuth, async (req, res) => {
+  apiRouter.post("/cv/prep", requireAuth, async (req, res) => {
     try {
       const form = req.body?.form || {};
       const meta = req.body?.meta || {};
@@ -694,7 +698,7 @@ Output JSON.`;
   });
 
   // ✅ PREP PDF (LaTeX)
-  app.post("/cv/prep/pdf", requireAuth, async (req, res) => {
+  apiRouter.post("/cv/prep/pdf", requireAuth, async (req, res) => {
     let tempDir = null;
     try {
       const prep = req.body?.prep || {};
@@ -732,7 +736,7 @@ Output JSON.`;
   });
 
   // ✅ PDF via LaTeX (protégé)
-  app.post("/cv/pdf", requireAuth, async (req, res) => {
+  apiRouter.post("/cv/pdf", requireAuth, async (req, res) => {
     let tempDir = null;
     try {
       const form = req.body?.form || {};
@@ -772,7 +776,7 @@ Output JSON.`;
   });
 
   // [NOUVEAU] Analyse d'un débrief pour préparer l'étape suivante
-  app.post("/api/debriefs/:id/analyze", requireAuth, async (req, res) => {
+  apiRouter.post("/debriefs/:id/analyze", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const { cvData, nextInterviewContext } = req.body; // Le front devra envoyer ces données
@@ -820,7 +824,7 @@ Output JSON.`;
   });
 
   // ✅ TeX export (simple .tex generator)
-  app.post("/cv/tex", requireAuth, async (req, res) => {
+  apiRouter.post("/cv/tex", requireAuth, async (req, res) => {
     try {
       const form = req.body?.form || {};
       const variant = req.body?.meta?.variant || "human";
@@ -834,6 +838,9 @@ Output JSON.`;
       return res.status(500).json({ error: "tex_failed" });
     }
   });
+
+  // On utilise le routeur préfixé
+  app.use("/api", apiRouter);
 
   return app;
 }
