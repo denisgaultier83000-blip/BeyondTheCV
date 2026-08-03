@@ -349,6 +349,18 @@ async def rate_limiter(request: Request):
 from fastapi import Depends
 app = FastAPI(title="BeyondTheCV API", lifespan=lifespan, dependencies=[Depends(rate_limiter)])
 
+
+@app.middleware("http")
+async def strip_api_prefix(request: Request, call_next):
+    """Accepte les routes servies avec ou sans préfixe /api."""
+    path = request.scope.get("path", "")
+    if path.startswith("/api/"):
+        request.scope["path"] = path[4:]
+        root_path = request.scope.get("root_path", "")
+        request.scope["root_path"] = f"{root_path}/api" if root_path else "/api"
+
+    return await call_next(request)
+
 # --- CORS CONFIGURATION ---
 cors_origins = [
     "http://localhost:3000",  # Frontend URL (React/Next.js)
@@ -363,6 +375,11 @@ cors_origins = [
 frontend_env = os.getenv("FRONTEND_URL")
 if frontend_env and frontend_env not in cors_origins:
     cors_origins.append(frontend_env)
+
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
+for origin in [item.strip() for item in allowed_origins_env.split(",") if item.strip()]:
+    if origin not in cors_origins:
+        cors_origins.append(origin)
 
 app.add_middleware(
     CORSMiddleware,
