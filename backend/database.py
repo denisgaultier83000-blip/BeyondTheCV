@@ -122,6 +122,9 @@ def get_database_url():
     fallback_url = os.getenv("DATABASE_URL", "")
     if not fallback_url:
         print("[WARNING] Ni DATABASE_SECRET_NAME ni DATABASE_URL ne sont définis. Tentative de connexion par défaut (localhost).", flush=True)
+    else:
+        # Docker n'expanse pas les ${VAR} à l'intérieur d'un env_file, donc on le fait ici.
+        fallback_url = os.path.expandvars(fallback_url)
     # [NOTE] Si vous utilisez une DATABASE_URL locale avec des caractères spéciaux dans le mot de passe,
     # vous devez les encoder vous-même au format URL (ex: le '@' devient '%40', le '#' devient '%23').
     return _normalize_database_url(fallback_url)

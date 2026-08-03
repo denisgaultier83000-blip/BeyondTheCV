@@ -2,11 +2,10 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   Video, Phone, Users, Coffee, Award, UserCog, Map as MapIcon,
-  X, Zap, Loader2, AlertTriangle, Target, MessageCircle, Shield, Star, ChevronsRight, ChevronsLeft, UserCheck, Clock, Check, Edit, LifeBuoy, CheckSquare,
-  HelpCircle, Mail, Eye, 
-  WifiOff, PhoneMissed, VolumeX, BrainCircuit, DollarSign, Send
+  X, Zap, Loader2, AlertTriangle, Target, MessageCircle, Shield, Star, ChevronsRight, ChevronsLeft, UserCheck, Clock, Check, Edit, LifeBuoy,
+  HelpCircle, Mail, Eye,
+  WifiOff, PhoneMissed, VolumeX, BrainCircuit, DollarSign, Send, CheckSquare
 } from 'lucide-react';
-import { DashboardCard } from './DashboardCard';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 
@@ -39,7 +38,7 @@ function RoadmapGeneratorModal({ onClose }: RoadmapGeneratorModalProps) {
     setResult(null);
 
     try {
-      const response = await authenticatedFetch(`${API_BASE_URL}/cv/generate-roadmap`, {
+      const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/generate-roadmap`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -172,6 +171,8 @@ function RoadmapGeneratorModal({ onClose }: RoadmapGeneratorModalProps) {
     </div>
   );
 }
+
+import { DashboardCard } from './DashboardCard';
 
 export default function PostureTab() {
   const { t } = useTranslation();

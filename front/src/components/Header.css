@@ -88,6 +88,6 @@
   /* The stepper inside the header can be specifically styled if needed */
   flex: 1; /* Prend l'espace disponible au centre */
   width: auto;
-  max-width: 1000px; /* Aligns with the card width */
+  max-width: none;
   margin: 0 20px; /* Espacement latéral */
 }

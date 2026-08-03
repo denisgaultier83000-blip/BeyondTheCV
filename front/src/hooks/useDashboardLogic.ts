@@ -80,7 +80,7 @@ export function useDashboardLogic() {
   const [error, setError] = useState<string | null>(null);
 
   const [isPilotLoading, setIsPilotLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'cv' | 'interview' | 'market' | 'career' | 'actions'>('overview');
+  const [activeTab, setActiveTab] = useState<'cockpit' | 'overview' | 'profile' | 'cv' | 'interview' | 'market' | 'career' | 'actions' | 'training' | 'posture' | 'debrief'>('overview');
   const [pilotData, setPilotData] = useState<any | null>(null);
   const [toasts, setToasts] = useState<Array<{ id: number; text: string }>>([]);
 

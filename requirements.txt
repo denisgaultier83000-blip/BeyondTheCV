@@ -26,5 +26,6 @@ email-validator>=2.1.0            # Validation des emails dans Pydantic
 python-dotenv>=1.0.1     # Chargement des variables .env
 requests>=2.31.0         # Appels HTTP synchrones (Search API)
 stripe>=8.1.0            # Gestion des paiements
+aiohttp>=3.9.0           # Appels HTTP asynchrones (OSINT pipeline)
 
 # Note: pdflatex doit être installé au niveau système (MiKTeX ou TeX Live), pas via pip.

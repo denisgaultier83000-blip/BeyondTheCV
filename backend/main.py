@@ -37,22 +37,17 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from typing import Dict, List
 
-from database import init_db, db
+from database import init_db, db, get_database_url
 import database as database_module
 
 # [CONFIG] Chargement de la configuration globale de l'application
 def load_app_config():
     try:
         config_path = os.path.join(os.path.dirname(__file__), "data", "app_config.json")
-
+        
         if not os.path.exists(config_path):
             os.makedirs(os.path.dirname(config_path), exist_ok=True)
             default_config = {
-                # [FIX] Ajout des clés manquantes pour éviter les KeyErrors au démarrage
-                "maintenance_mode": "off",
-                "feature_flags": {
-                    "enable_new_dashboard": True
-                },
                 "rate_limit_window": 60,
                 "rate_limit_max_requests": 100,
                 "required_templates": ["cv_ats.tex"]
@@ -60,7 +55,7 @@ def load_app_config():
             with open(config_path, "w", encoding="utf-8") as f:
                 json.dump(default_config, f, indent=4)
             return default_config
-
+            
         with open(config_path, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
@@ -139,24 +134,118 @@ async def lifespan(app: FastAPI):
         # [FIX LIFECYCLE] Initialisation de la base de données au bon moment.
         # L'URL de la base de données (qui peut nécessiter un appel réseau à Secret Manager)
         # est maintenant calculée ici, et non plus à l'import du module.
-        # [FIX] On utilise la fonction get_database_url du module database
         try:
             # 1. Calculer l'URL de manière sécurisée après le démarrage de l'app.
-            db_url = database_module.get_database_url()
-
+            db_url = get_database_url()
+            
             # 2. Configurer l'instance et le module de base de données avec l'URL obtenue.
             database_module.DATABASE_URL = db_url
             db.database_url = db_url
+            
             # [DEBUG DB] Log ajouté pour confirmer l'URL injectée juste avant la connexion
             print(f"[DEBUG DB] DATABASE_URL utilisée pour la connexion: {db.database_url}", flush=True)
             
             # 3. Lancer les migrations maintenant que la connexion est possible.
             init_db()
             
+            # [FIX EXPERT] Création de la table de cache manquante pour éviter les erreurs SQL
+            try:
+                with db.get_sync_connection() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute("""
+                            CREATE TABLE IF NOT EXISTS generation_cache (
+                                cache_key TEXT PRIMARY KEY,
+                                user_id TEXT NOT NULL,
+                                content_type TEXT NOT NULL,
+                                result JSONB,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            )
+                        """)
+                        cur.execute("""
+                            CREATE TABLE IF NOT EXISTS training_sessions (
+                                id TEXT PRIMARY KEY,
+                                user_id TEXT NOT NULL,
+                                theme TEXT,
+                                question_type TEXT,
+                                question_text TEXT,
+                                user_answer TEXT,
+                                score INTEGER,
+                                strengths JSONB,
+                                weaknesses JSONB,
+                                improved_answer TEXT,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            )
+                        """)
+                        cur.execute("""
+                            CREATE TABLE IF NOT EXISTS interview_sessions (
+                                id TEXT PRIMARY KEY,
+                                user_id TEXT NOT NULL,
+                                application_id TEXT,
+                                question_text TEXT,
+                                user_answer TEXT,
+                                score INTEGER,
+                                feedback JSONB,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            )
+                        """)
+                        cur.execute("""
+                            CREATE TABLE IF NOT EXISTS interview_debriefs (
+                                id TEXT PRIMARY KEY,
+                                user_id TEXT NOT NULL,
+                                application_id TEXT,
+                                company_name TEXT,
+                                job_title TEXT,
+                                interview_date TIMESTAMP,
+                                interview_format TEXT,
+                                interlocutor_type TEXT,
+                                interlocutor_name TEXT,
+                                interlocutor_role TEXT,
+                                next_step_known BOOLEAN,
+                                next_step_details TEXT,
+                                ambiance JSONB,
+                                positive_signals JSONB,
+                                red_flags JSONB,
+                                questions_asked TEXT,
+                                difficult_questions TEXT,
+                                learnings TEXT,
+                                preparation_points TEXT,
+                                interest_level INTEGER,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+                                FOREIGN KEY(application_id) REFERENCES job_applications(id) ON DELETE SET NULL
+                            )
+                        """)
+                    conn.commit()
+            except Exception as e:
+                print(f"[DB WARNING] Failed to create tables: {e}", flush=True)
+
+            # [NOUVEAU] Ajout des colonnes de quotas granulaires à la table users
+            try:
+                with conn.cursor() as cur:
+                    try:
+                        cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name='users'")
+                        user_columns_raw = cur.fetchall()
+                        user_columns = [col[0] for col in user_columns_raw]
+                    except Exception: # Fallback pour SQLite
+                        cur.execute("PRAGMA table_info(users)")
+                        user_columns_raw = cur.fetchall()
+                        user_columns = [col[1] for col in user_columns_raw]
+
+                    quota_cols = { "quota_pitch": "INTEGER DEFAULT 10", "quota_qa": "INTEGER DEFAULT 25", "quota_mes": "INTEGER DEFAULT 6", "quota_negotiation": "INTEGER DEFAULT 4", "quota_regeneration": "INTEGER DEFAULT 3", "quota_update": "INTEGER DEFAULT 1" }
+                    
+                    for col, col_type in quota_cols.items():
+                        if col not in user_columns:
+                            print(f"[DB MIGRATE] Adding column {col} to users table.")
+                            cur.execute(f"ALTER TABLE users ADD COLUMN {col} {col_type}")
+                conn.commit()
+            except Exception as e:
+                print(f"[DB WARNING] Failed to add quota columns to users table: {e}", flush=True)
+                print(f"[DB WARNING] Failed to create generation_cache table: {e}", flush=True)
+                
             print("[DB] Database initialized successfully.", flush=True)
         except Exception as e:
             print(f"[DB CRITICAL] Database initialization failed: {e}", flush=True)
-            print("[DB] Continuing in degraded mode so auth endpoints can still respond. Persistence features may be unavailable until the database becomes reachable.", flush=True)
+            raise RuntimeError("FATAL: Database initialization failed") from e
         
         # [LOG] Network Info - Affiche l'IP réelle pour configurer le Frontend
         current_ip = get_local_ip()
@@ -218,7 +307,6 @@ def get_local_ip():
 async def rate_limiter(request: Request):
     """
     Simple in-memory rate limiter to prevent abuse.
-    Les IPs locales (localhost, Docker) ont une limite plus haute pour le développement.
     """
     global _last_cleanup_time
     # Allow health check without limit
@@ -231,34 +319,28 @@ async def rate_limiter(request: Request):
         client_ip = forwarded_for.split(",")[0].strip()
     else:
         client_ip = request.client.host if request.client else "unknown"
-
-    # [DEV] IPs locales et réseau Docker exempt d'un rate limit strict
-    _LOCAL_PREFIXES = ("127.", "::1", "172.16.", "172.17.", "172.18.", "172.19.",
-                       "172.20.", "172.21.", "172.22.", "172.23.", "172.24.", "172.25.",
-                       "172.26.", "172.27.", "172.28.", "172.29.", "172.30.", "172.31.",
-                       "192.168.", "10.")
-    is_local = any(client_ip.startswith(p) for p in _LOCAL_PREFIXES)
-    effective_limit = RATE_LIMIT_MAX_REQUESTS * 5 if is_local else RATE_LIMIT_MAX_REQUESTS
-
+        
     now = time.time()
     
-    # [OPTIMISATION] Nettoyage temporel prédictible (toutes les 60s)
+    # [OPTIMISATION] Nettoyage temporel prédictible (toutes les 60s) au lieu d'aléatoire (1%).
+    # Évite de bloquer l'Event Loop de manière imprévisible lors des pics de trafic.
     if now - _last_cleanup_time > 60:
         _last_cleanup_time = now
         stale_ips = [ip for ip, timestamps in request_history.items() if not timestamps or now - timestamps[-1] > RATE_LIMIT_WINDOW]
         for ip in stale_ips:
             del request_history[ip]
             
-    # [SÉCURITÉ ANTI-OOM]
+    # [SÉCURITÉ ANTI-OOM] Limite stricte de taille. Empêche un attaquant de forger
+    # des milliers de faux "X-Forwarded-For" pour faire exploser la RAM du serveur.
     if len(request_history) > MAX_TRACKED_IPS:
-        request_history.clear()
+        request_history.clear() # O(1) flush : sauve le serveur du crash
         print("[SECURITY WARNING] Rate limiter memory flushed due to massive unique IP volume (DDoS).", flush=True)
 
-    # Sliding Window
+    # Clean up old timestamps for the current IP (Sliding Window)
     request_history[client_ip] = [t for t in request_history[client_ip] if now - t < RATE_LIMIT_WINDOW]
 
-    if len(request_history[client_ip]) >= effective_limit:
-        print(f"[SECURITY] Rate limit exceeded for IP: {client_ip} (limit={effective_limit})")
+    if len(request_history[client_ip]) >= RATE_LIMIT_MAX_REQUESTS:
+        print(f"[SECURITY] Rate limit exceeded for IP: {client_ip}")
         raise HTTPException(status_code=429, detail="Too many requests. Please try again later.")
     
     request_history[client_ip].append(now)
@@ -268,75 +350,93 @@ from fastapi import Depends
 app = FastAPI(title="BeyondTheCV API", lifespan=lifespan, dependencies=[Depends(rate_limiter)])
 
 # --- CORS CONFIGURATION ---
+cors_origins = [
+    "http://localhost:3000",  # Frontend URL (React/Next.js)
+    "http://localhost:5173",  # Frontend URL (Vite)
+    "http://127.0.0.1:3000",
+    "https://www.beyondthecv.app", # Allow production domain (www)
+    "https://beyondthecv.app",     # Allow production domain (apex)
+    "https://staging.beyondthecv.app", # [FIX EXPERT] Autoriser le domaine de staging
+]
 
-# [FIX EXPERT] Configuration CORS robuste pour gérer les environnements multiples.
-# Cela résout le problème "No 'Access-Control-Allow-Origin' header is present".
-
-# 1. On lit la variable d'environnement qui contient les URLs du frontend, séparées par des virgules.
-#    Exemple: "http://localhost:5173,https://staging.beyondthecv.app,https://beyondthecv.app"
-allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "").strip()
-
-origins = []
-for origin in allowed_origins_str.split(","):
-    origin = origin.strip().strip('"').strip("'")
-    if origin:
-        origins.append(origin)
-
-# 2. Si aucune origine n'est fournie, on applique un fallback sûr pour le développement local.
-if not origins:
-    origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
-
-print(f"CORS: Allowing origins: {origins}")
+# Ajout dynamique via variable d’environnement
+frontend_env = os.getenv("FRONTEND_URL")
+if frontend_env and frontend_env not in cors_origins:
+    cors_origins.append(frontend_env)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,  # Permet aux cookies d'être inclus dans les requêtes
-    allow_methods=["*"],    # Autorise toutes les méthodes HTTP pour éviter les erreurs de préflight
-    allow_headers=["*"],    # Autorise tous les en-têtes pour éviter les erreurs de préflight
+    allow_origins=cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# --- [FIX EXPERT] INCLUSION DES ROUTEURS ---
-# C'est l'étape critique qui rend les endpoints accessibles. Sans cela, l'application ne connaît pas les routes et renvoie des erreurs 404.
-# Les imports sont maintenant standardisés depuis le dossier 'services'.
+# [DEBUG] Middleware pour tracer les requêtes entrantes (Confirme la connexion réseau)
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.time()
+    
+    # [ROBUSTESSE] Catch-all pour éviter le crash "Exception in ASGI application"
+    try:
+        response = await call_next(request)
+    except Exception as e:
+        print(f"[CRITICAL] Uncaught Exception in {request.url.path}: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
+        response = JSONResponse(status_code=500, content={"detail": "Internal Server Error", "error": "Une erreur interne critique est survenue."})
 
-from services.auth import router as auth_router
-from services.cv_services import router as cv_router # [FIX] Contient maintenant /cv/parse-cv ET /cv/me/profile
-from services.dashboard import router as dashboard_router # Contient /api/research/*
-from services.documents import router as documents_router
-from services.payment import router as payment_router
-from services.simulation_service import router as simulation_router
-from services.admin_service import router as admin_router
-from services.admin_settings_service import router as admin_settings_router
-from services.audit_log_service import router as audit_router
-from services.user_management_service import router as user_management_router
-from services.generation_service import router as generation_router
-from routes_products import router as products_router # Contient /api/products, /api/subscriptions
-from services.debrief_service import router as debrief_router
-from services.task_service import router as task_router
-from services.applications_service import router as applications_router
+    process_time = (time.time() - start_time) * 1000
+    try:
+        client_ip = request.client.host if request.client else "unknown"
+        print(f"[NET] {request.method} {request.url.path} - {response.status_code} ({process_time:.2f}ms) - IP: {client_ip}", flush=True)
+    except Exception as e:
+        print(f"[NET LOG ERROR] Could not log request: {e}", flush=True)
+    return response
 
-# [FIX EXPERT] Centralisation de la gestion du préfixe "/api".
-# Tous les sous-routeurs sont maintenant inclus sous ce préfixe unique.
-# Cela garantit que toutes les URLs sont cohérentes et résout les erreurs 404.
-app.include_router(auth_router, prefix="/api")
-app.include_router(cv_router, prefix="/api") # [FIX] Contient maintenant /cv/parse-cv, /cv/me/profile, /cv/training/balance
-app.include_router(dashboard_router, prefix="/api")
-app.include_router(documents_router, prefix="/api")
-app.include_router(payment_router, prefix="/api")
-app.include_router(simulation_router, prefix="/api")
-app.include_router(admin_router, prefix="/api")
-app.include_router(admin_settings_router, prefix="/api")
-app.include_router(audit_router, prefix="/api")
-app.include_router(user_management_router, prefix="/api")
-app.include_router(generation_router, prefix="/api")
-app.include_router(products_router, prefix="/api")
-app.include_router(debrief_router, prefix="/api")
-app.include_router(task_router, prefix="/api")
-app.include_router(applications_router, prefix="/api")
+# [ROBUSTESSE] Chargement défensif des routeurs
+# Si un fichier plante (ex: erreur de syntaxe ou d'import), l'API démarre quand même.
+def include_safe_router(module_name, from_services=True):
+    try:
+        # Import dynamique
+        if from_services:
+            mod = __import__(f"services.{module_name}", fromlist=["router"]) # was: from services import cv
+        else:
+            mod = __import__(module_name, fromlist=["router"])
+        app.include_router(mod.router)
+        print(f"[ROUTER] ✅ Loaded: {module_name}", flush=True)
+    except Exception as e:
+        # [FIABILITÉ] Ne JAMAIS démarrer silencieusement si un routeur est cassé.
+        # Une erreur de syntaxe doit crasher l'appli pour empêcher un déploiement corrompu (Fail-Closed).
+        print(f"[ROUTER] ❌ FATAL ERROR loading {module_name}: {e}", flush=True)
+        raise RuntimeError(f"Failed to load vital router: {module_name}") from e
 
-# --- Health Check Endpoint ---
-@app.get("/", tags=["Health"])
-async def read_root():
-    """Health check endpoint."""
-    return {"status": "ok"}
+include_safe_router("auth")
+include_safe_router("cv_services")
+include_safe_router("dashboard")
+include_safe_router("profile")
+include_safe_router("simulation_service")
+include_safe_router("documents")
+include_safe_router("payment")
+include_safe_router("admin_service")
+include_safe_router("debrief_service")
+# New routes for products, evaluations, and subscriptions
+include_safe_router("routes_products", from_services=False)
+
+# [HEALTH] Endpoint racine pour vérifier la connectivité facilement depuis le navigateur
+@app.get("/")
+def health_check():
+    return {"status": "online", "ip": get_local_ip(), "message": "Backend is reachable"}
+
+if __name__ == "__main__":
+    import uvicorn
+    import os
+    # [FIX] Détecte si on est dans Docker pour utiliser la méthode de lancement la plus robuste.
+    # `python -m uvicorn` est plus fiable que `uvicorn` car il ne dépend pas du PATH.
+    is_in_docker = os.path.exists('/.dockerenv')
+    port = int(os.environ.get("PORT", 8080))
+    
+    if not is_in_docker:
+        print(f"🚀 Starting backend locally on http://127.0.0.1:{port}", flush=True)
+    
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=not is_in_docker)
