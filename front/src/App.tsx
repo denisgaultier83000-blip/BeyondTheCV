@@ -597,46 +597,41 @@ function AppContent() {
                 navigate('/candidate', { replace: true });
               }
               }} /> :
-          (<div style={{ paddingTop: '100px', paddingBottom: '2rem', width: '100%', maxWidth: '1200px', margin: '0 auto', paddingLeft: '1rem', paddingRight: '1rem', boxSizing: 'border-box' }}>
-            {/* [FIX] Ajout d'un padding-top de 100px pour descendre sous le Header et centrage global de l'interface */}
-            {/* [FIX] Forcer la largeur à 100% et injecter un padding fantôme à droite pour éviter la coupure au scroll */}
-            <div className="stepper-container custom-stepper" style={{ display: 'flex', alignItems: 'flex-start', overflowX: 'auto', padding: '1.5rem 1rem', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px solid var(--border-color)', margin: '0 auto 2rem auto', gap: '0.25rem', width: '100%', boxSizing: 'border-box' }}>
-              {CAREER_EDGE_STEPS.map((step, index) => (
-                <React.Fragment key={step.id}>
-                  <div 
-                    className={`stepper-item ${currentStep === step.id ? 'current' : currentStep > step.id ? 'completed' : ''}`} 
-                    onClick={() => currentStep > step.id && setCurrentStep(step.id)}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: currentStep > step.id ? 'pointer' : 'default', flex: 1, minWidth: '70px', flexShrink: 0, opacity: currentStep < step.id ? 0.5 : 1 }}
-                  >
-                    <div 
-                      className="stepper-circle" 
-                      style={{ width: '36px', height: '36px', borderRadius: '50%', background: currentStep > step.id ? '#10b981' : currentStep === step.id ? 'var(--primary)' : 'var(--bg-secondary)', color: currentStep >= step.id ? 'white' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.5rem', fontWeight: 'bold', boxShadow: currentStep === step.id ? '0 0 0 4px rgba(59, 130, 246, 0.2)' : 'none', transition: 'all 0.3s ease', flexShrink: 0 }}
-                    >
-                      {currentStep > step.id ? <CheckCircle2 size={18} /> : step.id}
-                    </div>
-                    <span 
-                      className="stepper-title" 
-                      style={{ fontSize: '0.7rem', textAlign: 'center', color: currentStep === step.id ? 'var(--primary)' : 'var(--text-main)', fontWeight: currentStep === step.id ? 700 : 500, whiteSpace: 'normal', maxWidth: '100px', lineHeight: 1.2 }}
-                    >
-                      {step.title}
-                    </span>
-                  </div>
-                  {index < CAREER_EDGE_STEPS.length - 1 && (
-                    <div 
-                      className={`stepper-line ${currentStep > step.id ? 'completed' : ''}`} 
-                      style={{ flex: 1, height: '3px', background: currentStep > step.id ? '#10b981' : 'var(--border-color)', minWidth: '15px', borderRadius: '2px', transition: 'background 0.3s ease', marginTop: '16px' }}
-                    ></div>
-                  )}
-                </React.Fragment>
-              ))}
+          (<div className="wizard-outer-wrapper">
+            <div className="wizard-layout">
+              {/* Stepper Sidebar Vertical (à gauche) */}
+              <nav className="wizard-stepper-sidebar" aria-label="Étapes du formulaire">
+                {CAREER_EDGE_STEPS.map((step, index) => {
+                  const isCompleted = currentStep > step.id;
+                  const isCurrent = currentStep === step.id;
+                  return (
+                    <React.Fragment key={step.id}>
+                      <div
+                        className={`stepper-sidebar-item${isCurrent ? ' current' : isCompleted ? ' completed clickable' : ''}`}
+                        onClick={() => isCompleted && setCurrentStep(step.id)}
+                        title={step.title}
+                      >
+                        <div className="stepper-sidebar-track">
+                          <div className="stepper-sidebar-circle">
+                            {isCompleted ? <CheckCircle2 size={16} /> : step.id}
+                          </div>
+                        </div>
+                        <div className="stepper-sidebar-label-wrap">
+                          <span className="stepper-sidebar-label">{step.title}</span>
+                        </div>
+                      </div>
+                      {index < CAREER_EDGE_STEPS.length - 1 && (
+                        <div className={`stepper-sidebar-connector${isCompleted ? ' done' : ''}`} aria-hidden="true" />
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </nav>
+              {/* Contenu Principal (à droite) */}
+              <div className="wizard-content">
+                {renderStepContent()}
+              </div>
             </div>
-            <style>{`
-              .custom-stepper { scrollbar-width: none; } /* Cache la scrollbar sur Firefox */
-              .custom-stepper::-webkit-scrollbar { display: none; } /* Cache la scrollbar Chrome/Safari */
-              .custom-stepper::after { content: ''; min-width: 1.5rem; display: block; flex-shrink: 0; } /* Élément fantôme pour forcer le padding droit */
-              .custom-stepper::before { display: none !important; } /* Nettoie la ligne absolue obsolète d'index.css */
-            `}</style>
-            <div className="card-container">{renderStepContent()}</div>
           </div>)}
       </main>
 
