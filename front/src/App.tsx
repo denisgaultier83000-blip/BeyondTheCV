@@ -597,38 +597,40 @@ function AppContent() {
                 navigate('/candidate', { replace: true });
               }
               }} /> :
-          (<div className="wizard-layout">
-            {/* Stepper Sidebar Vertical (à gauche) */}
-            <nav className="wizard-stepper-sidebar" aria-label="Étapes du formulaire">
-              {CAREER_EDGE_STEPS.map((step, index) => {
-                const isCompleted = currentStep > step.id;
-                const isCurrent = currentStep === step.id;
-                return (
-                  <React.Fragment key={step.id}>
-                    <div
-                      className={`stepper-sidebar-item${isCurrent ? ' current' : isCompleted ? ' completed clickable' : ''}`}
-                      onClick={() => isCompleted && setCurrentStep(step.id)}
-                      title={step.title}
-                    >
-                      <div className="stepper-sidebar-track">
-                        <div className="stepper-sidebar-circle">
-                          {isCompleted ? <CheckCircle2 size={16} /> : step.id}
+          (<div className="wizard-outer-wrapper">
+            <div className="wizard-layout">
+              {/* Stepper Sidebar Vertical (à gauche) */}
+              <nav className="wizard-stepper-sidebar" aria-label="Étapes du formulaire">
+                {CAREER_EDGE_STEPS.map((step, index) => {
+                  const isCompleted = currentStep > step.id;
+                  const isCurrent = currentStep === step.id;
+                  return (
+                    <React.Fragment key={step.id}>
+                      <div
+                        className={`stepper-sidebar-item${isCurrent ? ' current' : isCompleted ? ' completed clickable' : ''}`}
+                        onClick={() => isCompleted && setCurrentStep(step.id)}
+                        title={step.title}
+                      >
+                        <div className="stepper-sidebar-track">
+                          <div className="stepper-sidebar-circle">
+                            {isCompleted ? <CheckCircle2 size={16} /> : step.id}
+                          </div>
+                        </div>
+                        <div className="stepper-sidebar-label-wrap">
+                          <span className="stepper-sidebar-label">{step.title}</span>
                         </div>
                       </div>
-                      <div className="stepper-sidebar-label-wrap">
-                        <span className="stepper-sidebar-label">{step.title}</span>
-                      </div>
-                    </div>
-                    {index < CAREER_EDGE_STEPS.length - 1 && (
-                      <div className={`stepper-sidebar-connector${isCompleted ? ' done' : ''}`} aria-hidden="true" />
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </nav>
-            {/* Contenu Principal (à droite) */}
-            <div className="wizard-content">
-              {renderStepContent()}
+                      {index < CAREER_EDGE_STEPS.length - 1 && (
+                        <div className={`stepper-sidebar-connector${isCompleted ? ' done' : ''}`} aria-hidden="true" />
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </nav>
+              {/* Contenu Principal (à droite) */}
+              <div className="wizard-content">
+                {renderStepContent()}
+              </div>
             </div>
           </div>)}
       </main>

@@ -224,52 +224,46 @@ button { cursor: pointer; font-family: inherit; }
   align-items: center;
 }
 
-/* --- Wizard Layout (stepper à gauche, contenu à droite) --- */
-.wizard-layout {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 1.5rem;
-  width: 100%;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding-top: 90px;
-  padding-bottom: 2rem;
-  padding-left: 1rem;
-  padding-right: 1rem;
+/* --- Wizard Outer Wrapper: compense le header fixe --- */
+.wizard-outer-wrapper {
+  padding-top: 80px;
+  min-height: 100vh;
   box-sizing: border-box;
+}
+
+/* --- Wizard Layout: grille 2 colonnes (sidebar + contenu) --- */
+.wizard-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  box-sizing: border-box;
+  align-items: start;
 }
 
 /* --- Stepper Sidebar (Vertical, à gauche) --- */
 .wizard-stepper-sidebar {
-  flex-shrink: 0;
-  width: 220px;
+  grid-column: 1;
+  width: 100%;
   background: var(--bg-card);
   border-radius: 16px;
   border: 1px solid var(--border-color);
   box-shadow: var(--shadow-md);
-  padding: 1.5rem 1rem;
+  padding: 1.25rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0;
-  position: sticky;
-  top: 90px;
-  max-height: calc(100vh - 110px);
-  overflow-y: auto;
   box-sizing: border-box;
 }
-
-.wizard-stepper-sidebar::-webkit-scrollbar { width: 4px; }
-.wizard-stepper-sidebar::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
 
 .stepper-sidebar-item {
   display: flex;
   flex-direction: row;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.75rem;
   cursor: default;
-  position: relative;
-  padding-bottom: 0;
+  min-height: 36px;
 }
 
 .stepper-sidebar-item.clickable { cursor: pointer; }
@@ -300,7 +294,6 @@ button { cursor: pointer; font-family: inherit; }
   color: var(--text-muted);
   transition: all 0.25s ease;
   flex-shrink: 0;
-  z-index: 1;
 }
 
 .stepper-sidebar-item.current .stepper-sidebar-circle {
@@ -323,34 +316,30 @@ button { cursor: pointer; font-family: inherit; }
 
 .stepper-sidebar-connector {
   width: 2px;
-  flex: 1;
-  min-height: 24px;
+  height: 20px;
   background: var(--border-color);
-  margin: 4px 0;
+  margin: 2px 0 2px 17px;
   border-radius: 2px;
   transition: background 0.25s ease;
 }
 
-.stepper-sidebar-item.completed + .stepper-sidebar-item .stepper-sidebar-connector,
 .stepper-sidebar-connector.done {
   background: var(--success);
 }
 
 .stepper-sidebar-label-wrap {
   flex: 1;
-  padding-top: 5px;
-  padding-bottom: 0;
-  min-height: 32px;
-  display: flex;
-  align-items: flex-start;
+  min-width: 0;
 }
 
 .stepper-sidebar-label {
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 500;
   color: var(--text-muted);
   line-height: 1.3;
   transition: color 0.2s;
+  display: block;
+  word-break: break-word;
 }
 
 .stepper-sidebar-item.current .stepper-sidebar-label {
@@ -365,8 +354,19 @@ button { cursor: pointer; font-family: inherit; }
 
 /* --- Content Area (à droite du stepper) --- */
 .wizard-content {
-  flex: 1;
+  grid-column: 2;
   min-width: 0;
+  width: 100%;
+}
+
+/* --- Card & Step wrapper dans le contenu --- */
+.step-wrapper {
+  background: var(--bg-card);
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-md);
+  padding: 2rem;
+  box-sizing: border-box;
 }
 
 /* --- Stepper (Header, ancien style conservé pour compatibilité) --- */
@@ -461,35 +461,29 @@ button { cursor: pointer; font-family: inherit; }
   background: rgba(109, 190, 247, 0.08);
 }
 
-/* --- Responsive: mobile / tablette --- */
-@media (max-width: 768px) {
+/* --- Responsive: tablette --- */
+@media (max-width: 900px) {
   .wizard-layout {
-    flex-direction: column;
-    padding-top: 80px;
-    gap: 1rem;
+    grid-template-columns: 1fr;
+    padding: 1rem;
   }
 
   .wizard-stepper-sidebar {
-    width: 100%;
-    position: static;
+    grid-column: 1;
     flex-direction: row;
     flex-wrap: nowrap;
     overflow-x: auto;
-    overflow-y: hidden;
-    max-height: none;
-    padding: 0.75rem 0.75rem;
-    gap: 0;
+    padding: 0.75rem 1rem;
     scrollbar-width: none;
-    border-radius: 12px;
   }
   .wizard-stepper-sidebar::-webkit-scrollbar { display: none; }
 
   .stepper-sidebar-item {
     flex-direction: column;
     align-items: center;
-    gap: 0.25rem;
-    min-width: 60px;
     flex-shrink: 0;
+    min-width: 64px;
+    gap: 0.25rem;
   }
 
   .stepper-sidebar-track {
@@ -499,31 +493,32 @@ button { cursor: pointer; font-family: inherit; }
   }
 
   .stepper-sidebar-connector {
-    width: 20px;
-    min-height: 2px;
+    width: 24px;
     height: 2px;
-    margin: 0 4px;
-    flex: 1;
-  }
-
-  .stepper-sidebar-label-wrap {
-    padding-top: 2px;
-    min-height: auto;
-    justify-content: center;
+    margin: 0 2px;
   }
 
   .stepper-sidebar-label {
     font-size: 0.65rem;
     text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 70px;
+  }
+
+  .wizard-content {
+    grid-column: 1;
   }
 }
 
 @media (max-width: 600px) {
+  .wizard-outer-wrapper { padding-top: 70px; }
   .step-label { display: none; }
   .row { flex-direction: column; gap: 0; }
   .stepper-sidebar-label { display: none; }
-  .wizard-stepper-sidebar { padding: 0.5rem; }
   .stepper-sidebar-item { min-width: 44px; }
+  .step-wrapper { padding: 1.25rem; }
 }
 /* Ajout pour gérer la couleur bleue des infos */
 .toast.info, .status-message.info {
