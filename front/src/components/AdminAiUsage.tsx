@@ -52,7 +52,7 @@ export function AdminAiUsage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/ai-usage-stats`);
+        const response = await authenticatedFetch(`${API_BASE_URL}/admin/ai-usage-stats`);
         if (!response.ok) throw new Error("Impossible de charger les statistiques d'usage IA.");
         setStats(await response.json());
       } catch (err: any) {

@@ -19,7 +19,7 @@ export interface RegisterPayload {
  * Gère l'inscription d'un nouvel utilisateur.
  */
 const registerUser = async (payload: RegisterPayload) => {
-  const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+  const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -44,7 +44,7 @@ export const loginOrRegister = async (payload: LoginCredentials & Partial<Regist
     await registerUser(payload as RegisterPayload);
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/auth/token`, {
+  const response = await fetch(`${API_BASE_URL}/auth/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ username: payload.email, password: payload.password }),

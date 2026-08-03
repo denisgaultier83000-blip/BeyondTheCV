@@ -23,8 +23,8 @@ export function useDocumentGenerator({ onSuccess, onError }: GeneratorOptions = 
         : payload;
 
       // 2. Appel API
-      console.log(`[useDocumentGenerator] Fetching ${API_BASE_URL}/api/generate...`);
-      const response = await fetch(`${API_BASE_URL}/api/generate`, {
+      console.log(`[useDocumentGenerator] Fetching ${API_BASE_URL}/generate...`);
+      const response = await fetch(`${API_BASE_URL}/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, data: requestData, renderer: "latex" }),
@@ -91,7 +91,7 @@ export function useDocumentGenerator({ onSuccess, onError }: GeneratorOptions = 
   const generateJson = async (action: string, payload: any) => {
       setLoading(true);
       try {
-        const response = await fetch(`${API_BASE_URL}/api/generate`, {
+        const response = await fetch(`${API_BASE_URL}/generate`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action, data: payload }),

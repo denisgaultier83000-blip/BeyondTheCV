@@ -59,7 +59,7 @@ export function useAiActions({
     try {
       // 2. Actions spécifiques
       if (action === "Questionnaire") {
-        const res = await authenticatedFetch(`${API_BASE_URL}/api/generate`, {
+        const res = await authenticatedFetch(`${API_BASE_URL}/generate`, {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: "Questionnaire", data: payload }),
         });
@@ -69,7 +69,7 @@ export function useAiActions({
         setShowQuestionnaire(true);
       }
       else if (action === "Pitch") {
-        const res = await authenticatedFetch(`${API_BASE_URL}/api/generate`, {
+        const res = await authenticatedFetch(`${API_BASE_URL}/generate`, {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: "Pitch", data: payload }),
         });
@@ -91,7 +91,7 @@ export function useAiActions({
             // --- NOUVEAU: PIPELINE ASYNCHRONE ---
             try {
                 // 1. Démarrer la tâche de fond
-                const startRes = await authenticatedFetch(`${API_BASE_URL}/api/research/start`, {
+                const startRes = await authenticatedFetch(`${API_BASE_URL}/research/start`, {
                     method: "POST", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         target_company: form.target_company,
@@ -104,10 +104,10 @@ export function useAiActions({
 
                 // 2. Attendre la fin de la tâche (polling)
                 const poll = async (tid: string): Promise<any> => {
-                    const statusRes = await authenticatedFetch(`${API_BASE_URL}/api/tasks/status/${tid}`);
+                    const statusRes = await authenticatedFetch(`${API_BASE_URL}/tasks/status/${tid}`);
                     const data = await statusRes.json();
                     if (data.status === "SUCCESS") {
-                        const resultRes = await authenticatedFetch(`${API_BASE_URL}/api/tasks/result/${tid}`);
+                        const resultRes = await authenticatedFetch(`${API_BASE_URL}/tasks/result/${tid}`);
                         return resultRes.json();
                     } else if (data.status === "FAILED") {
                         throw new Error("Research task failed on the server.");
@@ -136,7 +136,7 @@ export function useAiActions({
             setToast({ type: "error", message: "Please enter a Job Description first." });
         } else {
             try {
-                const res = await authenticatedFetch(`${API_BASE_URL}/api/generate`, { 
+                const res = await authenticatedFetch(`${API_BASE_URL}/generate`, { 
                     method: "POST", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ action: "Gap Analysis", data: payload }),
                 });
@@ -151,7 +151,7 @@ export function useAiActions({
         }
       }
       else if (action === "Salary Estimate") {
-        const res = await authenticatedFetch(`${API_BASE_URL}/api/generate`, {
+        const res = await authenticatedFetch(`${API_BASE_URL}/generate`, {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: "Salary Estimate", data: payload }),
         });
@@ -174,7 +174,7 @@ export function useAiActions({
     const action = `Generate CV (${cvMode})`;
 
     try {
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/generate`, {
+      const response = await authenticatedFetch(`${API_BASE_URL}/generate`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, data: payload, renderer: "latex" }),
       });
@@ -219,7 +219,7 @@ export function useAiActions({
   const handlePreview = async () => {
     if (!cvMode) return "";
     try {
-      const res = await authenticatedFetch(`${API_BASE_URL}/api/generate`, {
+      const res = await authenticatedFetch(`${API_BASE_URL}/generate`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: `Generate CV (${cvMode})`, data: payload, renderer: "latex", preview: true }),
       });

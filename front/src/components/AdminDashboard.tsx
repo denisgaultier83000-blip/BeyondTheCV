@@ -91,10 +91,10 @@ export function AdminDashboard() {
       };
 
       const [statsRes, healthRes, usersRes, cacheHistoryRes] = await Promise.all([
-        fetch('/api/admin/dashboard-stats', { headers }),
-        fetch('/api/admin/health-check', { headers }),
-        fetch('/api/admin/users?limit=5', { headers }),
-        fetch('/api/admin/cache-history?days=7', { headers }),
+        fetch('/admin/dashboard-stats', { headers }),
+        fetch('/admin/health-check', { headers }),
+        fetch('/admin/users?limit=5', { headers }),
+        fetch('/admin/cache-history?days=7', { headers }),
       ]);
 
       if (!statsRes.ok || !healthRes.ok || !usersRes.ok) {
@@ -129,7 +129,7 @@ export function AdminDashboard() {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/admin/users/${subscriptionModalUser.id}/subscription`, {
+      const res = await fetch(`/admin/users/${subscriptionModalUser.id}/subscription`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -154,7 +154,7 @@ export function AdminDashboard() {
   const toggleUserActive = async (userId: string) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/admin/users/${userId}/toggle-active`, {
+      const res = await fetch(`/admin/users/${userId}/toggle-active`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });

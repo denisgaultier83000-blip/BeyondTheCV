@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (token) {
         try {
           // Fetch user profile using the token
-          const response = await authenticatedFetch(`${API_BASE_URL}/api/auth/me`);
+          const response = await authenticatedFetch(`${API_BASE_URL}/auth/me`);
           if (response.ok) {
             const userData = await response.json();
             setUser(userData);

@@ -175,7 +175,7 @@ export function DebriefDetail({ debriefId, onBack, autoAnalyze }: DebriefDetailP
     setAnalysisError(null);
     setAnalysisResult(null);
     try {
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/debriefs/${debriefId}/analyze`, {
+      const response = await authenticatedFetch(`${API_BASE_URL}/debriefs/${debriefId}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -201,7 +201,7 @@ export function DebriefDetail({ debriefId, onBack, autoAnalyze }: DebriefDetailP
       setLoading(true);
       setError(null);
       try {
-        const response = await authenticatedFetch(`${API_BASE_URL}/api/debriefs/${debriefId}`);
+        const response = await authenticatedFetch(`${API_BASE_URL}/debriefs/${debriefId}`);
         if (!response.ok) throw new Error("Impossible de charger ce débrief.");
         const data = await response.json();
         setDebrief(data);

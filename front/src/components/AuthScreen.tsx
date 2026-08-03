@@ -26,7 +26,7 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
     try {
       // [ONBOARDING FLUIDE] 0. Réinitialisation du mot de passe
       if (isForgotPassword) {
-        const res = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+        const res = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email }),
@@ -40,7 +40,7 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
 
       // [ONBOARDING FLUIDE] 1. Si nouveau, on le crée d'abord
       if (isRegistering) {
-        const regRes = await fetch(`${API_BASE_URL}/api/auth/register`, {
+        const regRes = await fetch(`${API_BASE_URL}/auth/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -55,7 +55,7 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
 
       // [ONBOARDING FLUIDE] 2. On le connecte (soit il vient d'être créé, soit c'est un login classique)
       // [FIX EXPERT] Utilisation du format URL-encoded requis par OAuth2PasswordRequestForm
-      const response = await fetch(`${API_BASE_URL}/api/auth/token`, {
+      const response = await fetch(`${API_BASE_URL}/auth/token`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ username: email, password }),

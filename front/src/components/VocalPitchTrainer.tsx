@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useDashboard } from '../hooks/DashboardContext';
 import { RechargeModal } from './RechargeModal';
 import { AsyncBoundary } from './AsyncBoundary';
+import AutoResizeTextarea from './AutoResizeTextarea';
 
 interface VocalPitchTrainerProps {
   targetJob?: string;
@@ -94,7 +95,7 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDe
     }
 
     try {
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/evaluate-vocal-pitch`, {
+      const response = await authenticatedFetch(`${API_BASE_URL}/cv/training/evaluate-vocal-pitch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -169,11 +170,12 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDe
             )}
           </div>
           
-          <textarea 
+          <AutoResizeTextarea 
             value={transcript}
             onChange={e => setTranscript(e.target.value)}
             placeholder="La retranscription s'affichera ici. Vous pouvez corriger le texte manuellement avant l'analyse..."
-            style={{ width: '100%', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '0.75rem', padding: '1rem', color: 'var(--text-main)', fontFamily: 'inherit', fontSize: '1rem', minHeight: '120px', resize: 'vertical', outline: 'none' }}
+            style={{ width: '100%', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '0.75rem', padding: '1rem', color: 'var(--text-main)', fontFamily: 'inherit', fontSize: '1rem', outline: 'none' }}
+            minHeight={120}
             disabled={isRecording}
           />
 

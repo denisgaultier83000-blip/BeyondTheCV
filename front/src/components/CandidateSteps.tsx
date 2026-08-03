@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import ScoreGauge from "./ScoreGauge";
 import { useTranslation } from "react-i18next";
 import { 
-  Camera, Loader2, Sparkles, User, Briefcase, GraduationCap, Circle, CheckCircle2, Plus, Trash2, Target, Gem, RefreshCw, HelpCircle, Linkedin, UploadCloud, FileText
+  Camera, Loader2, Sparkles, User, Briefcase, GraduationCap, Circle, CheckCircle2, Plus, Trash2, Target, Gem, RefreshCw, HelpCircle, Linkedin, UploadCloud, FileText, Link2, Globe, AlertTriangle
 } from 'lucide-react';
 import RadarChart from './RadarChart'; // Import the new component
 import { API_BASE_URL } from "../config";
@@ -27,6 +27,24 @@ interface ListStepProps {
   onOptimize?: (id: number, item: any) => void;
 }
 
+interface JobOfferImportPreview {
+  status: string;
+  source_url: string;
+  source: string;
+  title: string;
+  company: string;
+  location: string;
+  industry: string;
+  employment_type: string;
+  date_posted: string;
+  description: string;
+  content_hash: string;
+  word_count: number;
+  confidence: number;
+  warnings: string[];
+  is_cached?: boolean;
+}
+
 const COUNTRIES = [
   { code: "FR", name: "France" },
   { code: "US", name: "United States" },
@@ -44,6 +62,19 @@ const COUNTRIES = [
   { code: "BR", name: "Brazil" },
   { code: "AE", name: "United Arab Emirates" }
 ];
+
+const previewBadgeStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.35rem",
+  padding: "0.35rem 0.65rem",
+  borderRadius: "999px",
+  background: "rgba(59, 130, 246, 0.08)",
+  border: "1px solid rgba(59, 130, 246, 0.18)",
+  color: "var(--text-main)",
+  fontSize: "0.8rem",
+  fontWeight: 600,
+};
 
 export const StepImport = ({ onUpload, loading, lang = 'en' }: { onUpload?: (payload: File | string) => void, loading?: boolean, lang?: string }) => {
   const { t } = useTranslation();
@@ -237,6 +268,83 @@ export const StepProfile = ({ data, onChange, errors, lang = 'en' }: StepProps) 
 export const StepTarget = ({ data, onChange, errors, loading, lang = 'en' }: StepProps) => {
   // Extraction de i18n et t sans doublon (correction du crash React)
   const { t, i18n } = useTranslation();
+  const [jobUrl, setJobUrl] = useState(data.job_posting_url || "");
+  const [isImportingUrl, setIsImportingUrl] = useState(false);
+  const [jobUrlError, setJobUrlError] = useState("");
+  const [jobUrlPreview, setJobUrlPreview] = useState<JobOfferImportPreview | null>(null);
+
+  const sourceLabels: Record<string, string> = {
+    json_ld: "JobPosting structuré",
+    main: "Bloc principal de la page",
+    article: "Article principal",
+    job_container: "Bloc annonce détecté",
+    body: "Texte HTML global",
+    greenhouse: "Greenhouse",
+    lever: "Lever",
+  };
+
+  useEffect(() => {
+    if (typeof data.job_posting_url === "string" && data.job_posting_url !== jobUrl) {
+      setJobUrl(data.job_posting_url);
+    }
+  }, [data.job_posting_url]);
+
+  const handleJobUrlImport = async () => {
+    const normalizedUrl = jobUrl.trim();
+    if (!normalizedUrl) {
+      setJobUrlError("Veuillez renseigner l’URL d’une annonce publique.");
+      return;
+    }
+
+    setIsImportingUrl(true);
+    setJobUrlError("");
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/cv/job-offer/import-url`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: normalizedUrl }),
+      });
+
+      if (!response.ok) {
+        let detail = "Impossible d’importer cette annonce automatiquement.";
+        try {
+          const errorPayload = await response.json();
+          detail = errorPayload.detail || detail;
+        } catch (readError) {
+          console.warn("Job URL import error payload unreadable", readError);
+        }
+        throw new Error(detail);
+      }
+
+      const preview: JobOfferImportPreview = await response.json();
+      setJobUrlPreview(preview);
+    } catch (error) {
+      console.error("Job URL import failed", error);
+      setJobUrlPreview(null);
+      setJobUrlError(error instanceof Error ? error.message : "Impossible d’importer cette annonce automatiquement.");
+    } finally {
+      setIsImportingUrl(false);
+    }
+  };
+
+  const handleApplyJobUrlPreview = () => {
+    if (!jobUrlPreview) return;
+    if (jobUrlPreview.title) {
+      onChange("target_job", jobUrlPreview.title);
+      onChange("target_role_primary", jobUrlPreview.title);
+    }
+    if (jobUrlPreview.company) {
+      onChange("target_company", jobUrlPreview.company);
+    }
+    if (jobUrlPreview.industry) {
+      onChange("target_industry", jobUrlPreview.industry);
+    }
+    onChange("job_description", jobUrlPreview.description || "");
+    onChange("job_posting_url", jobUrlPreview.source_url || jobUrl.trim());
+    setJobUrl(jobUrlPreview.source_url || jobUrl.trim());
+    setJobUrlPreview(null);
+  };
+
   return (
   <div className="step-content">
     <h2>{t('target_title')}</h2>
@@ -273,9 +381,115 @@ export const StepTarget = ({ data, onChange, errors, loading, lang = 'en' }: Ste
         Veuillez renseigner au moins une entreprise ou un secteur d'activité.
       </p>
     )}
+    <div style={{ marginBottom: "1rem", padding: "1rem", borderRadius: "0.85rem", border: "1px solid var(--border-color)", background: "var(--bg-secondary)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.65rem", marginBottom: "0.5rem" }}>
+        <Globe size={18} color="var(--primary)" />
+        <strong style={{ color: "var(--text-main)" }}>Importer une annonce depuis une URL</strong>
+      </div>
+      <p style={{ margin: "0 0 0.85rem 0", fontSize: "0.9rem", color: "var(--text-muted)" }}>
+        Import technique sans quota : nous récupérons le contenu public de l’annonce, vous le vérifiez, puis seulement après vous lancez l’analyse.
+      </p>
+      <div style={{ display: "flex", gap: "0.75rem", alignItems: "stretch", flexWrap: "wrap" }}>
+        <div style={{ flex: "1 1 420px" }}>
+          <input
+            type="url"
+            disabled={loading || isImportingUrl}
+            value={jobUrl}
+            onChange={(e) => setJobUrl(e.target.value)}
+            placeholder="https://careers.example.com/job/..."
+            style={{ width: "100%", opacity: loading ? 0.6 : 1 }}
+          />
+        </div>
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={handleJobUrlImport}
+          disabled={loading || isImportingUrl || !jobUrl.trim()}
+          style={{ minWidth: "180px", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}
+        >
+          {isImportingUrl ? <><Loader2 size={16} className="spin" />Import en cours...</> : <><Link2 size={16} />Importer l’annonce</>}
+        </button>
+      </div>
+      {jobUrlError && (
+        <div style={{ marginTop: "0.85rem", display: "flex", alignItems: "flex-start", gap: "0.5rem", color: "var(--danger-text)", fontSize: "0.88rem" }}>
+          <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: "1px" }} />
+          <span>{jobUrlError}</span>
+        </div>
+      )}
+      {jobUrlPreview && (
+        <div style={{ marginTop: "1rem", borderRadius: "0.75rem", border: "1px solid rgba(59,130,246,0.25)", background: "var(--bg-card)", padding: "1rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.45rem", color: "#10b981", fontWeight: 700, marginBottom: "0.25rem" }}>
+                <CheckCircle2 size={16} />
+                Offre détectée
+              </div>
+              <div style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-main)" }}>
+                {jobUrlPreview.title || "Intitulé non détecté"}
+              </div>
+              <div style={{ fontSize: "0.9rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
+                {[jobUrlPreview.company, jobUrlPreview.location].filter(Boolean).join(" • ") || "Entreprise ou localisation à vérifier"}
+              </div>
+            </div>
+            <div style={{ textAlign: "right", minWidth: "200px" }}>
+              <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                Source
+              </div>
+              <div style={{ fontWeight: 600, color: "var(--text-main)" }}>{sourceLabels[jobUrlPreview.source] || jobUrlPreview.source}</div>
+              {jobUrlPreview.is_cached && (
+                <div style={{ fontSize: "0.8rem", color: "#10b981", fontWeight: 600, marginTop: "0.3rem" }}>
+                  Import déjà connu • réutilisé depuis le cache
+                </div>
+              )}
+              <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "0.35rem" }}>
+                {jobUrlPreview.word_count} mots extraits • confiance {Math.round((jobUrlPreview.confidence || 0) * 100)}%
+              </div>
+            </div>
+          </div>
+
+          {(jobUrlPreview.employment_type || jobUrlPreview.date_posted || jobUrlPreview.industry) && (
+            <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
+              {jobUrlPreview.industry && <span style={previewBadgeStyle}>Secteur : {jobUrlPreview.industry}</span>}
+              {jobUrlPreview.employment_type && <span style={previewBadgeStyle}>Contrat : {jobUrlPreview.employment_type}</span>}
+              {jobUrlPreview.date_posted && <span style={previewBadgeStyle}>Publié : {jobUrlPreview.date_posted}</span>}
+            </div>
+          )}
+
+          {jobUrlPreview.warnings?.length > 0 && (
+            <div style={{ marginBottom: "0.75rem", padding: "0.7rem 0.85rem", borderRadius: "0.6rem", background: "rgba(245, 158, 11, 0.08)", border: "1px solid rgba(245, 158, 11, 0.2)", color: "#b45309", fontSize: "0.86rem" }}>
+              {jobUrlPreview.warnings.map((warning) => (
+                <div key={warning}>• {warning}</div>
+              ))}
+            </div>
+          )}
+
+          <div className="form-group" style={{ marginBottom: "0.85rem" }}>
+            <label style={{ marginBottom: "0.45rem", display: "block" }}>Contenu extrait à valider</label>
+            <textarea
+              rows={8}
+              value={jobUrlPreview.description || ""}
+              readOnly
+              style={{ width: "100%", resize: "vertical", background: "var(--bg-secondary)", color: "var(--text-main)" }}
+            />
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem", flexWrap: "wrap" }}>
+            <button type="button" className="btn-ghost" onClick={() => setJobUrlPreview(null)}>
+              Annuler
+            </button>
+            <button type="button" className="btn-primary" onClick={handleApplyJobUrlPreview}>
+              Utiliser cette annonce
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
     <div className="form-group">
       <label>{t('job_desc_label')}</label>
       <textarea disabled={loading} rows={6} value={data.job_description || ""} onChange={e => onChange("job_description", e.target.value)} placeholder={t('job_desc_placeholder')} style={{ width: "100%", opacity: loading ? 0.6 : 1 }} />
+      <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginTop: "0.45rem", marginBottom: 0 }}>
+        Vous pouvez aussi corriger manuellement le contenu importé ou continuer en copier-coller si l’extraction automatique est incomplète.
+      </p>
     </div>
 
     {/* --- [NOUVEAU] Contexte de l'entretien --- */}
@@ -746,7 +960,22 @@ export const StepQualitiesFlaws = ({ data, onChange, lang = 'en' }: any) => {
 
 export const StepClarification = ({ clarifications, answers = {}, onAnswer, lang = 'en' }: any) => {
   const { t } = useTranslation();
+  // Local controlled state to avoid spamming parent with every keystroke
+  const [localAnswers, setLocalAnswers] = useState<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    (clarifications || []).forEach((c: any) => { map[c.id] = (answers && answers[c.id]) || ""; });
+    return map;
+  });
+
+  // Keep localAnswers in sync when clarifications or answers props change
+  useEffect(() => {
+    const map: Record<string, string> = {};
+    (clarifications || []).forEach((c: any) => { map[c.id] = (answers && answers[c.id]) || ""; });
+    setLocalAnswers(map);
+  }, [clarifications, answers]);
+
   if (!clarifications || clarifications.length === 0) return <div className="step-content"><h2>{t('all_good')}</h2><p>{t('profile_complete')}</p></div>;
+
   return (
     <div className="step-content">
       <h2>{t('clarification_title')}</h2>
@@ -763,8 +992,9 @@ export const StepClarification = ({ clarifications, answers = {}, onAnswer, lang
           <textarea 
             rows={3} 
             placeholder={t('placeholder_answer')} 
-            defaultValue={answers[item.id] || ""}
-            onBlur={(e) => onAnswer(item.id, e.target.value)} 
+            value={localAnswers[item.id] || ""}
+            onChange={(e) => setLocalAnswers(prev => ({ ...prev, [item.id]: e.target.value }))}
+            onBlur={() => onAnswer(item.id, localAnswers[item.id] || "")} 
             style={{ width: "100%", borderRadius: "8px", borderColor: "var(--border-color)" }} 
           />
         </div>

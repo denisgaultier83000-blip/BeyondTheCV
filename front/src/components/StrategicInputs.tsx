@@ -1,4 +1,5 @@
 import React from 'react';
+import AutoResizeTextarea from './AutoResizeTextarea';
 
 interface StrategicInputsProps {
   jobChallenge: string;
@@ -91,13 +92,13 @@ const StrategicInputs: React.FC<StrategicInputsProps> = ({
 
       <div className="form-group">
         <label htmlFor="strongProof">Quel résultat concret prouve le mieux votre valeur ?</label>
-        <textarea
+        <AutoResizeTextarea
           id="strongProof"
           placeholder="Ex: J'ai piloté un budget de 2M€ et réduit les coûts de 15% en 6 mois."
           value={strongProof}
           onChange={(e) => setStrongProof(e.target.value)}
           className="form-control"
-          rows={3}
+          minHeight={84}
         />
       </div>
 

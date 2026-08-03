@@ -73,9 +73,9 @@ export function AdminUserDetail() {
       try {
         // [MODIFIÉ] Ajout de l'endpoint pour les notes
         const [userRes, appsRes, notesRes] = await Promise.all([
-          authenticatedFetch(`${API_BASE_URL}/api/admin/users/${userId}`),
-          authenticatedFetch(`${API_BASE_URL}/api/admin/users/${userId}/applications`),
-          authenticatedFetch(`${API_BASE_URL}/api/admin/users/${userId}/notes`) // Endpoint à créer
+          authenticatedFetch(`${API_BASE_URL}/admin/users/${userId}`),
+          authenticatedFetch(`${API_BASE_URL}/admin/users/${userId}/applications`),
+          authenticatedFetch(`${API_BASE_URL}/admin/users/${userId}/notes`) // Endpoint à créer
         ]);
 
         if (!userRes.ok) throw new Error("Impossible de charger les détails de l'utilisateur.");
@@ -99,7 +99,7 @@ export function AdminUserDetail() {
     if (!window.confirm("Voulez-vous vraiment supprimer ce dossier de candidature et tous les documents associés ?")) return;
     
     try {
-      const res = await authenticatedFetch(`${API_BASE_URL}/api/admin/applications/${appId}`, { method: 'DELETE' });
+      const res = await authenticatedFetch(`${API_BASE_URL}/admin/applications/${appId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error("Erreur lors de la suppression.");
       setApplications(prev => prev.filter(app => app.id !== appId));
     } catch (err: any) {
@@ -110,7 +110,7 @@ export function AdminUserDetail() {
   // [AJOUT] Sauvegarde des notes internes
   const handleSaveNotes = async () => {
     try {
-      const res = await authenticatedFetch(`${API_BASE_URL}/api/admin/users/${userId}/notes`, {
+      const res = await authenticatedFetch(`${API_BASE_URL}/admin/users/${userId}/notes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notes: internalNotes })

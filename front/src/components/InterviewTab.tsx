@@ -11,6 +11,7 @@ import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
 import SalaryNegotiator from './SalaryNegotiator';
 import PitchOralTrainer from './PitchOralTrainer';
+import AutoResizeTextarea from './AutoResizeTextarea';
 
 // --- LOGIQUE TÉLÉPROMPTEUR DÉPLACÉE ICI (À LA RACINE) ---
 const Teleprompter = ({ fullPitchText, setIsTeleprompterOpen, isDark, t }: { fullPitchText: string, setIsTeleprompterOpen: any, isDark: boolean, t: any }) => {
@@ -149,8 +150,8 @@ export const InterviewTab = () => {
   const handlePurgeCache = async () => {
     if (window.confirm(t('confirm_purge', "Voulez-vous effacer vos anciennes réponses et forcer l'IA à regénérer un nouveau set de questions au prochain chargement ?"))) {
       try {
-        await authenticatedFetch(`${API_BASE_URL}/api/cv/cache?content_type=interview_questions`, { method: 'DELETE' });
-        await authenticatedFetch(`${API_BASE_URL}/api/cv/cache?content_type=extra_scenarios`, { method: 'DELETE' });
+        await authenticatedFetch(`${API_BASE_URL}/cv/cache?content_type=interview_questions`, { method: 'DELETE' });
+        await authenticatedFetch(`${API_BASE_URL}/cv/cache?content_type=extra_scenarios`, { method: 'DELETE' });
         alert(t('purge_success', "Cache purgé. Veuillez rafraîchir la page (F5) pour générer de nouvelles questions vierges."));
       } catch (e) {
         console.error(e);
@@ -202,8 +203,14 @@ export const InterviewTab = () => {
         for (const key of Object.keys(obj)) {
             const val = obj[key];
             if (Array.isArray(val)) {
-                if (val.length > 0 && typeof val[0] === 'object' && val[0].question) {
-                    found = found.concat(val);
+                for (const item of val) {
+                    if (item && typeof item === 'object') {
+                        if (item.question) {
+                            found.push(item);
+                        } else {
+                            found = found.concat(extractQuestionsDeep(item));
+                        }
+                    }
                 }
             } else if (typeof val === 'object' && val !== null) {
                 found = found.concat(extractQuestionsDeep(val));
@@ -245,10 +252,10 @@ export const InterviewTab = () => {
         if (Array.isArray(obj)) {
             obj.forEach(item => extractDeep(item, currentCategory));
         } else {
-            if (obj.scenario || obj.question || obj.situation || obj.text || obj.contexte || obj.description || obj.defi) {
+            if (obj.scenario || obj.question || obj.situation || obj.text || obj.contexte || obj.description || obj.defi || obj.title) {
                 scenarios.push({
                     category: "SCÉNARIO : " + currentCategory.toUpperCase(),
-                    question: obj.scenario || obj.question || obj.situation || obj.text || obj.contexte || obj.description || obj.defi,
+                    question: obj.scenario || obj.question || obj.situation || obj.text || obj.contexte || obj.description || obj.defi || obj.title,
                     suggested_answer: obj.expected_behavior || obj.suggested_answer || obj.answer || obj.solution || "Utilisez la méthode STAR (Situation, Tâche, Action, Résultat) pour structurer votre réponse.",
                     advice: obj.advice || obj.context || obj.rationale || obj.strategy || obj.feedback || "Cette mise en situation évalue vos réflexes professionnels.",
                     user_answer: obj.user_answer,
@@ -334,12 +341,13 @@ export const InterviewTab = () => {
               {/* --- BLOC DES 4 CHAMPS ÉDITABLES --- */}
               {/* --- [NOUVEAU] Champ d'édition unique --- */}
               <div className="pitch-single-field" style={{ animation: 'fadeIn 0.4s ease-out' }}>
-                <textarea
+                <AutoResizeTextarea
                   className="pitch-textarea"
                   style={{ fontSize: 'clamp(1rem, 2.5vw, 1.25rem)' }}
                   value={fullPitchText}
                   onChange={e => handlePitchChange(e.target.value)}
-                  rows={12}
+                  minHeight={140}
+                  maxHeight={460}
                 />
               </div>
               

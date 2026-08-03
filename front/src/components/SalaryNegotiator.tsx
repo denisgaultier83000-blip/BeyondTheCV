@@ -131,7 +131,7 @@ export default function SalaryNegotiator() {
     }
 
     try {
-      const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/simulate-negotiation`, {
+      const res = await authenticatedFetch(`${API_BASE_URL}/cv/simulate-negotiation`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

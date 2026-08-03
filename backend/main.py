@@ -156,7 +156,7 @@ async def lifespan(app: FastAPI):
             print("[DB] Database initialized successfully.", flush=True)
         except Exception as e:
             print(f"[DB CRITICAL] Database initialization failed: {e}", flush=True)
-            raise RuntimeError(f"FATAL: Database initialization failed: {e}") from e
+            print("[DB] Continuing in degraded mode so auth endpoints can still respond. Persistence features may be unavailable until the database becomes reachable.", flush=True)
         
         # [LOG] Network Info - Affiche l'IP réelle pour configurer le Frontend
         current_ip = get_local_ip()
@@ -218,6 +218,7 @@ def get_local_ip():
 async def rate_limiter(request: Request):
     """
     Simple in-memory rate limiter to prevent abuse.
+    Les IPs locales (localhost, Docker) ont une limite plus haute pour le développement.
     """
     global _last_cleanup_time
     # Allow health check without limit
@@ -230,28 +231,34 @@ async def rate_limiter(request: Request):
         client_ip = forwarded_for.split(",")[0].strip()
     else:
         client_ip = request.client.host if request.client else "unknown"
-        
+
+    # [DEV] IPs locales et réseau Docker exempt d'un rate limit strict
+    _LOCAL_PREFIXES = ("127.", "::1", "172.16.", "172.17.", "172.18.", "172.19.",
+                       "172.20.", "172.21.", "172.22.", "172.23.", "172.24.", "172.25.",
+                       "172.26.", "172.27.", "172.28.", "172.29.", "172.30.", "172.31.",
+                       "192.168.", "10.")
+    is_local = any(client_ip.startswith(p) for p in _LOCAL_PREFIXES)
+    effective_limit = RATE_LIMIT_MAX_REQUESTS * 5 if is_local else RATE_LIMIT_MAX_REQUESTS
+
     now = time.time()
     
-    # [OPTIMISATION] Nettoyage temporel prédictible (toutes les 60s) au lieu d'aléatoire (1%).
-    # Évite de bloquer l'Event Loop de manière imprévisible lors des pics de trafic.
+    # [OPTIMISATION] Nettoyage temporel prédictible (toutes les 60s)
     if now - _last_cleanup_time > 60:
         _last_cleanup_time = now
         stale_ips = [ip for ip, timestamps in request_history.items() if not timestamps or now - timestamps[-1] > RATE_LIMIT_WINDOW]
         for ip in stale_ips:
             del request_history[ip]
             
-    # [SÉCURITÉ ANTI-OOM] Limite stricte de taille. Empêche un attaquant de forger
-    # des milliers de faux "X-Forwarded-For" pour faire exploser la RAM du serveur.
+    # [SÉCURITÉ ANTI-OOM]
     if len(request_history) > MAX_TRACKED_IPS:
-        request_history.clear() # O(1) flush : sauve le serveur du crash
+        request_history.clear()
         print("[SECURITY WARNING] Rate limiter memory flushed due to massive unique IP volume (DDoS).", flush=True)
 
-    # Clean up old timestamps for the current IP (Sliding Window)
+    # Sliding Window
     request_history[client_ip] = [t for t in request_history[client_ip] if now - t < RATE_LIMIT_WINDOW]
 
-    if len(request_history[client_ip]) >= RATE_LIMIT_MAX_REQUESTS:
-        print(f"[SECURITY] Rate limit exceeded for IP: {client_ip}")
+    if len(request_history[client_ip]) >= effective_limit:
+        print(f"[SECURITY] Rate limit exceeded for IP: {client_ip} (limit={effective_limit})")
         raise HTTPException(status_code=429, detail="Too many requests. Please try again later.")
     
     request_history[client_ip].append(now)
@@ -260,46 +267,6 @@ async def rate_limiter(request: Request):
 from fastapi import Depends
 app = FastAPI(title="BeyondTheCV API", lifespan=lifespan, dependencies=[Depends(rate_limiter)])
 
-# --- [FIX EXPERT] INCLUSION DES ROUTEURS ---
-# C'est l'étape critique qui rend les endpoints accessibles. Sans cela, l'application ne connaît pas les routes et renvoie des erreurs 404.
-# Les imports sont maintenant standardisés depuis le dossier 'services'.
-
-from services.auth import router as auth_router
-from services.cv_services import router as cv_router # Contient /api/cv/generate, /api/cv/parse-cv, etc.
-from services.profile import router as profile_router # Contient /api/cv/me/profile
-from services.dashboard import router as dashboard_router # Contient /api/research/*
-from services.documents import router as documents_router
-from services.payment import router as payment_router
-from services.simulation_service import router as simulation_router
-from services.admin_service import router as admin_router
-from services.audit_log_service import router as audit_router
-from services.user_management_service import router as user_management_router
-from services.generation_service import router as generation_router
-from routes_products import router as products_router # Contient /api/products, /api/subscriptions
-
-# [FIX EXPERT] Centralisation de la gestion du préfixe "/api".
-# Tous les sous-routeurs sont maintenant inclus sous ce préfixe unique.
-# Cela garantit que toutes les URLs sont cohérentes et résout les erreurs 404.
-app.include_router(auth_router, prefix="/api")
-app.include_router(cv_router, prefix="/api") # Le préfixe interne est déjà /cv
-app.include_router(profile_router, prefix="/api") # Le préfixe interne est déjà /cv, il sera donc monté sur /api/cv
-app.include_router(dashboard_router, prefix="/api")
-app.include_router(documents_router, prefix="/api")
-app.include_router(payment_router, prefix="/api")
-app.include_router(simulation_router, prefix="/api")
-app.include_router(admin_router, prefix="/api")
-app.include_router(audit_router, prefix="/api")
-app.include_router(user_management_router, prefix="/api")
-app.include_router(generation_router, prefix="/api")
-app.include_router(products_router, prefix="/api")
-
-# --- Health Check Endpoint ---
-@app.get("/", tags=["Health"])
-async def read_root():
-    """Health check endpoint."""
-    return {"status": "ok"}
-
-
 # --- CORS CONFIGURATION ---
 
 # [FIX EXPERT] Configuration CORS robuste pour gérer les environnements multiples.
@@ -307,10 +274,17 @@ async def read_root():
 
 # 1. On lit la variable d'environnement qui contient les URLs du frontend, séparées par des virgules.
 #    Exemple: "http://localhost:5173,https://staging.beyondthecv.app,https://beyondthecv.app"
-allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173")
+allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "").strip()
 
-# 2. On transforme la chaîne en une liste propre.
-origins = [origin.strip() for origin in allowed_origins_str.split(',')]
+origins = []
+for origin in allowed_origins_str.split(","):
+    origin = origin.strip().strip('"').strip("'")
+    if origin:
+        origins.append(origin)
+
+# 2. Si aucune origine n'est fournie, on applique un fallback sûr pour le développement local.
+if not origins:
+    origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
 print(f"CORS: Allowing origins: {origins}")
 
@@ -318,6 +292,51 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,  # Permet aux cookies d'être inclus dans les requêtes
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],     # Autorise les méthodes HTTP courantes
-    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],     # Autorise les en-têtes nécessaires
+    allow_methods=["*"],    # Autorise toutes les méthodes HTTP pour éviter les erreurs de préflight
+    allow_headers=["*"],    # Autorise tous les en-têtes pour éviter les erreurs de préflight
 )
+
+# --- [FIX EXPERT] INCLUSION DES ROUTEURS ---
+# C'est l'étape critique qui rend les endpoints accessibles. Sans cela, l'application ne connaît pas les routes et renvoie des erreurs 404.
+# Les imports sont maintenant standardisés depuis le dossier 'services'.
+
+from services.auth import router as auth_router
+from services.cv_services import router as cv_router # [FIX] Contient maintenant /cv/parse-cv ET /cv/me/profile
+from services.dashboard import router as dashboard_router # Contient /api/research/*
+from services.documents import router as documents_router
+from services.payment import router as payment_router
+from services.simulation_service import router as simulation_router
+from services.admin_service import router as admin_router
+from services.admin_settings_service import router as admin_settings_router
+from services.audit_log_service import router as audit_router
+from services.user_management_service import router as user_management_router
+from services.generation_service import router as generation_router
+from routes_products import router as products_router # Contient /api/products, /api/subscriptions
+from services.debrief_service import router as debrief_router
+from services.task_service import router as task_router
+from services.applications_service import router as applications_router
+
+# [FIX EXPERT] Centralisation de la gestion du préfixe "/api".
+# Tous les sous-routeurs sont maintenant inclus sous ce préfixe unique.
+# Cela garantit que toutes les URLs sont cohérentes et résout les erreurs 404.
+app.include_router(auth_router, prefix="/api")
+app.include_router(cv_router, prefix="/api") # [FIX] Contient maintenant /cv/parse-cv, /cv/me/profile, /cv/training/balance
+app.include_router(dashboard_router, prefix="/api")
+app.include_router(documents_router, prefix="/api")
+app.include_router(payment_router, prefix="/api")
+app.include_router(simulation_router, prefix="/api")
+app.include_router(admin_router, prefix="/api")
+app.include_router(admin_settings_router, prefix="/api")
+app.include_router(audit_router, prefix="/api")
+app.include_router(user_management_router, prefix="/api")
+app.include_router(generation_router, prefix="/api")
+app.include_router(products_router, prefix="/api")
+app.include_router(debrief_router, prefix="/api")
+app.include_router(task_router, prefix="/api")
+app.include_router(applications_router, prefix="/api")
+
+# --- Health Check Endpoint ---
+@app.get("/", tags=["Health"])
+async def read_root():
+    """Health check endpoint."""
+    return {"status": "ok"}

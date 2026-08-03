@@ -32,7 +32,7 @@ export function CareerSimulator({ candidateData }: SimulatorProps) {
     setError(null);
 
     try {
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/simulate-career`, {
+      const response = await authenticatedFetch(`${API_BASE_URL}/cv/simulate-career`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

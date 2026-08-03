@@ -9,10 +9,6 @@ RUN npm install
 # Copie du code source et compilation (nécessite le .env pour VITE_API_URL)
 COPY . .
 
-# Si aucune valeur n'est passée, il utilisera l'URL par défaut (pratique pour le dev local)
-ARG VITE_API_URL=http://localhost:8000
-ENV VITE_API_URL=$VITE_API_URL
-
 RUN npm run build
 
 # Étape 2 : Serveur Web de Production (Nginx)

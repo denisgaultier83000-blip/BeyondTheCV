@@ -73,6 +73,12 @@ services:
     image: ghcr.io/denisgaultier83000-blip/beyondthecv-frontend:${VERSION}
     container_name: btcv-frontend-staging
     restart: unless-stopped
+    # [FIX] On s'assure que la variable VITE_API_URL est injectée au moment du build
+    # si l'image est reconstruite dans cet environnement.
+    build:
+      context: ./front
+      args:
+        VITE_API_URL: https://api-staging.beyondthecv.app/api
 
     environment:
       ENVIRONMENT: staging

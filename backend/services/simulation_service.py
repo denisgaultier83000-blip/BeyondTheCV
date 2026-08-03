@@ -14,7 +14,7 @@ from .utils import load_prompt, clean_ai_json_response, normalize_language, cons
 from .cv_services import require_active_subscription
 
 router = APIRouter(
-    prefix="/api/cv",
+    prefix="/cv",
     tags=["Simulations & Coaching"]
 )
 
@@ -100,8 +100,40 @@ async def simulate_situation(request: SituationSimulationRequest, current_user: 
     
     try:
         result_str = await ai_service.generate(final_prompt, provider="openai", system_instruction="Tu es un Recruteur Expert et Coach de Carrière.")
+
+        # Nettoyage initial via helper
         feedback = clean_ai_json_response(result_str)
-        
+
+        # Validation simple du feedback attendu
+        def _is_valid_situation(fb):
+            if not isinstance(fb, dict):
+                return False
+            required = ["adapted_scenario", "score", "improved_answer"]
+            return all(k in fb for k in required)
+
+        if not _is_valid_situation(feedback):
+            print(f"[VALIDATION WARNING] simulate_situation task for scenario_id={request.scenario_id} user={current_user.get('id')} - unexpected feedback format. Raw AI output excerpt: {str(result_str)[:2000]}", flush=True)
+            # Tentative de salvage via conversion en JSON structuré
+            try:
+                raw_text = result_str if isinstance(result_str, str) else json.dumps(result_str, ensure_ascii=False)
+            except Exception:
+                raw_text = str(result_str)
+            salvage_prompt = f"Parse the following recruiter/coaching AI output into STRICT JSON with keys: adapted_scenario, user_answer_analyzed, score, strengths, weaknesses, analysis (diagnostic, human, action, follow_up), recommendations, improved_answer. Language: {normalize_language(request.candidate_profile.get('target_language', 'French'))}. RAW:\n{raw_text}"
+            try:
+                salvage = await ai_service.generate_valid_json(salvage_prompt, provider="openai", system_instruction="You are a JSON conversion assistant. Output STRICT JSON matching the schema exactly.")
+                if isinstance(salvage, dict) and _is_valid_situation(salvage):
+                    feedback = salvage
+                    print(f"[VALIDATION] Salvaged simulate_situation feedback for scenario_id={request.scenario_id}", flush=True)
+                else:
+                    print(f"[VALIDATION ERROR] Salvage failed for simulate_situation scenario_id={request.scenario_id}. Storing raw output.", flush=True)
+                    try:
+                        # store diagnostic
+                        await db.execute(conn, "INSERT INTO generation_cache (cache_key, user_id, content_type, result) VALUES (?, ?, ?, ?)", (f"diag_simulate_{request.scenario_id}", current_user.get('id'), 'diagnostic', json.dumps({'raw': raw_text}, ensure_ascii=False)))
+                    except Exception:
+                        pass
+            except Exception as e:
+                print(f"[VALIDATION ERROR] Salvage attempt crashed: {e}", flush=True)
+
         # [SAUVEGARDE DB] On stocke la réponse et le feedback dans la tâche pour que ça survive au rechargement (Hash de session)
         try:
             async with db.get_connection() as conn:
@@ -112,11 +144,11 @@ async def simulate_situation(request: SituationSimulationRequest, current_user: 
                     ORDER BY t.created_at DESC LIMIT 20
                 """, (current_user["id"],))
                 rows = await cursor.fetchall()
-                
+
                 for row in rows:
                     task_id = row[0] if isinstance(row, tuple) else row.get("id")
                     t_res = row[1] if isinstance(row, tuple) else row.get("result")
-                    
+
                     if t_res and request.scenario_id in str(t_res):
                         task_result = t_res
                         for _ in range(3):

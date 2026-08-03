@@ -34,7 +34,7 @@ const AdminAuditLogs: React.FC = () => {
     setError(null);
     try {
       const offset = (page - 1) * limit;
-      const response = await authenticatedFetch(`${API_URL}/api/admin/audit-logs?limit=${limit}&offset=${offset}`);
+      const response = await authenticatedFetch(`${API_URL}/admin/audit-logs?limit=${limit}&offset=${offset}`);
       if (!response.ok) {
         throw new Error("Impossible de charger les logs d'audit.");
       }

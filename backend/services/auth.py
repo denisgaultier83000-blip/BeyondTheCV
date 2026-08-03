@@ -15,34 +15,30 @@ router = APIRouter(
     prefix="/auth", # [FIX] Ajout du préfixe manquant pour correspondre à l'URL /api/auth/token
     tags=["Authentication"]
 )
+TESTER_SESSION_CAP = 30
 
 async def _insert_user(uid, email, hashed_pw, first, last, created):
     """Insère un nouvel utilisateur."""
     try:
         async with db.get_connection() as conn:
-            # Fail-safe : Création de la colonne credits si elle n'existe pas
-            try:
-                await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT 100")
-            except Exception:
-                pass
-            # [FIX] Ajout de la colonne is_tester si elle n'existe pas
-            try:
-                await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_tester BOOLEAN DEFAULT FALSE")
-            except Exception:
-                pass
-            # [FIX] Ajout de la colonne is_active si elle n'existe pas
-            try:
-                await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE")
-            except Exception:
-                pass
             await db.execute(conn, """
                 INSERT INTO users (id, email, hashed_password, first_name, last_name, created_at, is_premium, credits, is_tester, is_active)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (uid, email, hashed_pw, first, last, created, False, 100, True, True))
+            """, (uid, email, hashed_pw, first, last, created, False, TESTER_SESSION_CAP, True, True))
             
-            # [FIX] Initialisation des compteurs dans les nouvelles colonnes de la table users
+            # Initialisation de tous les quotas (entraînements + ressources candidature)
             try:
-                await db.execute(conn, "UPDATE users SET quota_pitch = 10, quota_qa = 25, quota_mes = 6, quota_negotiation = 4, quota_regeneration = 3, quota_update = 1 WHERE id = ?", (uid,))
+                await db.execute(
+                    conn,
+                    """UPDATE users SET
+                        quota_pitch = ?, quota_qa = ?, quota_mes = ?,
+                        quota_negotiation = ?, quota_regeneration = ?, quota_update = ?,
+                        quota_entreprises = ?, quota_offres = ?
+                       WHERE id = ?""",
+                    (TESTER_SESSION_CAP, TESTER_SESSION_CAP, TESTER_SESSION_CAP,
+                     TESTER_SESSION_CAP, TESTER_SESSION_CAP, TESTER_SESSION_CAP,
+                     5, 15, uid)
+                )
             except Exception as q_err:
                 print(f"[DB WARNING] Impossible d'initialiser les quotas : {q_err}", flush=True)
     except Exception as e:
@@ -57,11 +53,6 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         # [FIX] On gère la casse de l'email pour garantir un login fiable
         email = form_data.username.lower().strip()
         async with db.get_connection() as conn:
-            # Fail-safe : Création de la colonne credits avant le SELECT
-            try:
-                await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT 100")
-            except Exception:
-                pass
             # Requête propre et directe
             # [CORRECTIF] Ajout de is_admin dans le SELECT pour qu'il soit bien récupéré.
             cursor = await db.execute(conn, "SELECT id, email, hashed_password, first_name, last_name, created_at, is_premium, credits, is_admin, is_active, is_tester FROM users WHERE email = ?", (email,))
@@ -149,17 +140,19 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         )
 
         # --- [MODIFICATION] GESTION DES CRÉDITS & RELANCE TESTEURS ---
-        # Recharge automatique de 60 crédits si le solde est bas.
-        # [MODIFICATION] Si le solde est à 0 ou moins, on le réinitialise à 60.
+        # En mode test, les séances sont rechargées à 30 quand le solde atteint 0.
         user_credits = user_dict.get("credits")
         if user_credits is not None and user_credits <= 0:
-            new_balance = 60
+            new_balance = TESTER_SESSION_CAP
             user_credits = new_balance # Mise à jour pour le token
             async with db.get_connection() as conn:
                 try:
-                    # On réinitialise tous les quotas à 60 pour une expérience de test fluide.
+                    # On réinitialise tous les quotas pour une expérience de test cohérente.
                     await db.execute(conn, """
-                        UPDATE users SET credits = ?, quota_pitch = ?, quota_qa = ?, quota_mes = ?, quota_negotiation = ?, quota_regeneration = ?, quota_update = ? 
+                        UPDATE users SET
+                            credits = ?, quota_pitch = ?, quota_qa = ?, quota_mes = ?,
+                            quota_negotiation = ?, quota_regeneration = ?, quota_update = ?,
+                            quota_entreprises = 5, quota_offres = 15
                         WHERE id = ?
                     """, (new_balance, new_balance, new_balance, new_balance, new_balance, new_balance, new_balance, user_dict.get("id")))
                     print(f"[AUTH] 🎁 Compte recrédité à {new_balance} séances pour : {email}", flush=True)
@@ -286,13 +279,6 @@ async def forgot_password(request: ForgotPasswordRequest, background_tasks: Back
     email = request.email.lower().strip()
     try:
         async with db.get_connection() as conn:
-            # [FIX EXPERT] Fail-safe Migration : Crée les colonnes si elles n'existent pas encore
-            try:
-                await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token TEXT")
-                await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires TIMESTAMP")
-            except Exception as e:
-                print(f"[DB WARNING] Impossible d'ajouter les colonnes reset_token : {e}", flush=True)
-                
             cursor = await db.execute(conn, "SELECT id FROM users WHERE email = ?", (email,))
             user = await cursor.fetchone()
             

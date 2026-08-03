@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ShieldAlert, Clock, Zap, Target, CheckCircle2, Circle, Mic, CalendarDays, Timer, Lock, RefreshCw, Loader2, AlertTriangle, Flame, Activity } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
+import { formatInterviewCountdownLabel } from '../utils/interviewDate';
 import { useDashboard } from '../hooks/DashboardContext';
 import OralSimulatorModal from './OralSimulatorModal';
 
@@ -46,6 +47,7 @@ export const CockpitTab: React.FC<CockpitProps> = ({
   const [selectedTrainingModule, setSelectedTrainingModule] = useState<TrainingModule | null>(null);
   const [hasFiredConfetti, setHasFiredConfetti] = useState(false);
   const [trainingScores, setTrainingScores] = useState<Record<string, number>>(cvData?.trainingScores || {});
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
     setLocalData(actionPlanData);
@@ -63,12 +65,17 @@ export const CockpitTab: React.FC<CockpitProps> = ({
     }
   }, [cvData?.trainingScores]);
 
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setNowMs(Date.now()), 60000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
   const handleRegenerate = async () => {
     if (!window.confirm("Voulez-vous forcer l'IA à calculer une nouvelle stratégie d'action ?")) return;
     setIsRegenerating(true);
     setError(null);
     try {
-      const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/regenerate/action-plan`, {
+      const res = await authenticatedFetch(`${API_BASE_URL}/cv/regenerate/action-plan`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cvData)
       });
       if (!res.ok) throw new Error("Erreur réseau");
@@ -121,8 +128,10 @@ export const CockpitTab: React.FC<CockpitProps> = ({
   const training: TrainingModule[] = actualData.training_plan || actualData.trainingPlan || [];
   const advice = actualData.strategy_advice || actualData.strategyAdvice || "Aucun conseil stratégique disponible pour le moment.";
   
-  const dateStr = interviewDate || "";
-  const displayDate = dateStr ? `Entretien : ${dateStr}` : "Date non définie";
+  const displayDate = useMemo(
+    () => formatInterviewCountdownLabel(interviewDate || '', nowMs),
+    [interviewDate, nowMs]
+  );
 
   const toggleCheck = (idx: number) => {
     const newChecked = checkedItems.includes(idx) ? checkedItems.filter(i => i !== idx) : [...checkedItems, idx];
@@ -140,7 +149,7 @@ export const CockpitTab: React.FC<CockpitProps> = ({
         parsed.cockpitCheckedItems = newChecked;
         localStorage.setItem("cvData", JSON.stringify(parsed));
         // Sauvegarde silencieuse en DB pour garantir la synchro
-        authenticatedFetch(`${API_BASE_URL}/api/cv/me/profile`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(parsed) }).catch(() => {});
+        authenticatedFetch(`${API_BASE_URL}/cv/me/profile`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(parsed) }).catch(() => {});
       } catch (e) {}
     }
   };

@@ -18,8 +18,8 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
     const fetchHistories = async () => {
       try {
         const [resInt, resTrain] = await Promise.all([
-          authenticatedFetch(`${API_BASE_URL}/api/cv/interview/history`),
-          authenticatedFetch(`${API_BASE_URL}/api/cv/training/history`)
+          authenticatedFetch(`${API_BASE_URL}/cv/interview/history`),
+          authenticatedFetch(`${API_BASE_URL}/cv/training/history`)
         ]);
         if (resInt.ok) {
           const data = await resInt.json();

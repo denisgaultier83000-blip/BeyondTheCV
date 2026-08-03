@@ -9,6 +9,7 @@ from database import db
 
 from asyncio import Lock
 _CACHE_LOCKS = {}
+TESTER_SESSION_CAP = 30
 
 def load_prompt(filename: str) -> str:
     """Helper to load prompts from the ai/prompts directory."""
@@ -26,11 +27,18 @@ async def consume_quota(user_id: str, quota_type: str, cost: int = 1):
     """Vérifie le solde d'un quota spécifique et le décrémente si suffisant."""
     
     # [SÉCURITÉ] Whitelist des noms de colonnes pour éviter l'injection SQL
-    valid_quotas = ["pitch", "qa", "mes", "negotiation", "regeneration", "update"]
+    valid_quotas = ["pitch", "qa", "mes", "negotiation", "regeneration", "update", "entreprises", "offres"]
     if quota_type not in valid_quotas:
         raise HTTPException(status_code=400, detail=f"Type de quota invalide : {quota_type}")
     
     column_name = f"quota_{quota_type}"
+
+    # Plafond de rechargement testeur selon le type de quota
+    tester_caps = {
+        "entreprises": 5,
+        "offres": 15,
+    }
+    recharge_cap = tester_caps.get(quota_type, TESTER_SESSION_CAP)
     
     async with db.get_connection() as conn:
         # On utilise un lock pour éviter les race conditions si l'utilisateur clique très vite
@@ -46,6 +54,15 @@ async def consume_quota(user_id: str, quota_type: str, cost: int = 1):
                 raise HTTPException(status_code=404, detail="Utilisateur introuvable pour la gestion des quotas.")
             
             balance = row[0] if isinstance(row, tuple) else row.get(column_name)
+
+            # Mode test: dès qu'un quota est vidé, on le recharge automatiquement
+            if balance is not None and balance <= 0:
+                balance = recharge_cap
+                await db.execute(
+                    conn,
+                    f"UPDATE users SET {column_name} = ? WHERE id = ?",
+                    (recharge_cap, user_id)
+                )
             
             if balance is None or balance < cost:
                 raise HTTPException(status_code=402, detail=f"Crédits '{quota_type}' insuffisants (Solde: {balance or 0}, Requis: {cost}).")
@@ -55,7 +72,7 @@ async def consume_quota(user_id: str, quota_type: str, cost: int = 1):
 
 async def refund_quota(user_id: str, quota_type: str, cost: int = 1):
     """Rembourse un quota en cas d'erreur de l'API IA."""
-    valid_quotas = ["pitch", "qa", "mes", "negotiation", "regeneration", "update"]
+    valid_quotas = ["pitch", "qa", "mes", "negotiation", "regeneration", "update", "entreprises", "offres"]
     if quota_type not in valid_quotas:
         return
     
@@ -156,7 +173,7 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
             'work_style', 'relational_style', 'professional_approach', 'free_text',
             'job_description', 'remote_preference', 'interview_date', 'interview_format',
             'interview_type', 'available_time', 'stress_level', 'seniority_level',
-            'current_situation', 'salary_expectations', 'coaching_style'
+            'current_situation', 'salary_expectations', 'coaching_style', 'clarification_insights'
         }
         clean_data = {k: v for k, v in clean_data.items() if k in allowed_keys}
         
@@ -217,6 +234,29 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
                 clean_data[list_key] = clean_list
             
     return clean_data
+
+_RECRUITER_VISIBLE_KEYS = {
+    'personal_info', 'experiences', 'educations', 'projects',
+    'skills', 'languages', 'interests', 'bio', 'free_text',
+    'job_description', 'target_company', 'target_job', 'target_industry',
+    'company_analysis', 'seniority_level',
+}
+
+def _sanitize_data_for_recruiter_view(data: dict) -> dict:
+    """Retourne uniquement les champs visibles d'un CV réel.
+
+    Exclut explicitement : flaws, motivations, work_style, relational_style,
+    professional_approach, coaching_style, fears, clarifications,
+    clarification_insights, stress_level, current_situation,
+    salary_expectations, remote_preference, interview_*.
+    """
+    clean = _sanitize_data_for_ai(data, strict=True)
+    recruiter_clean = {k: v for k, v in clean.items() if k in _RECRUITER_VISIBLE_KEYS}
+    if 'personal_info' in recruiter_clean and isinstance(recruiter_clean['personal_info'], dict):
+        for key in ['email', 'phone', 'address', 'city']:
+            recruiter_clean['personal_info'].pop(key, None)
+    return recruiter_clean
+
 
 def _generate_cache_key(user_id: str, content_type: str, data: dict) -> str:
     """Génère une signature unique (hash) pour mettre en cache les requêtes IA identiques."""

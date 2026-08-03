@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { authenticatedFetch } from '../utils/auth';
-import { LucideUser, LucideClock, LucideShieldCheck, LucideGanttChartSquare, LucideTrash2, LucidePlusCircle, LucidePower, LucidePowerOff } from 'lucide-react';
+import { LucideUser, LucideClock, LucideShieldCheck, LucideGanttChartSquare, LucideTrash2, LucidePlusCircle, LucideMinusCircle, LucidePower, LucidePowerOff, LucideDownload } from 'lucide-react';
 
 // --- ANALYSE DE L'EXPERT ---
 // Ce composant est une "War Room" pour un utilisateur spécifique.
@@ -82,8 +82,8 @@ const AdminUserDetails: React.FC = () => {
     setError(null);
     try {
       const [userRes, generationsRes] = await Promise.all([
-        authenticatedFetch(`${API_URL}/api/admin/users/${userId}`),
-        authenticatedFetch(`${API_URL}/api/admin/users/${userId}/generations?limit=5`)
+        authenticatedFetch(`${API_URL}/admin/users/${userId}`),
+        authenticatedFetch(`${API_URL}/admin/users/${userId}/generations?limit=5`)
       ]);
 
       if (!userRes.ok) throw new Error("Impossible de charger les détails de l'utilisateur.");
@@ -111,7 +111,7 @@ const AdminUserDetails: React.FC = () => {
     if (!user) return;
     setIsToggling(true);
     try {
-      const response = await authenticatedFetch(`${API_URL}/api/admin/users/${user.id}/toggle-active`, { method: 'POST' });
+      const response = await authenticatedFetch(`${API_URL}/admin/users/${user.id}/toggle-active`, { method: 'POST' });
       if (!response.ok) throw new Error('Échec de la modification du statut.');
       const data = await response.json();
       setUser(prev => prev ? { ...prev, is_active: data.is_active } : null);
@@ -126,7 +126,7 @@ const AdminUserDetails: React.FC = () => {
     if (!user) return;
     setIsCrediting(true);
     try {
-      const response = await authenticatedFetch(`${API_URL}/api/admin/credit-quotas`, {
+      const response = await authenticatedFetch(`${API_URL}/admin/credit-quotas`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: user.email, quota_type: creditType, amount: creditAmount })
@@ -149,7 +149,7 @@ const AdminUserDetails: React.FC = () => {
     if (!user || !window.confirm("Êtes-vous sûr de vouloir purger le cache de cet utilisateur ? Cette action est irréversible.")) return;
     setIsPurgingCache(true);
     try {
-      const response = await authenticatedFetch(`${API_URL}/api/admin/users/${user.id}/cache`, { method: 'DELETE' });
+      const response = await authenticatedFetch(`${API_URL}/admin/users/${user.id}/cache`, { method: 'DELETE' });
       if (!response.ok) throw new Error('Échec de la purge du cache.');
       alert('Cache utilisateur purgé avec succès.');
     } catch (err: any) {
@@ -163,7 +163,7 @@ const AdminUserDetails: React.FC = () => {
     if (!user || !window.confirm(`Êtes-vous sûr de vouloir prolonger l'abonnement de ${days} jours ?`)) return;
     setIsExtending(true);
     try {
-      const response = await authenticatedFetch(`${API_URL}/api/admin/users/${user.id}/subscription`, {
+      const response = await authenticatedFetch(`${API_URL}/admin/users/${user.id}/subscription`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'extend', days })
@@ -182,7 +182,7 @@ const AdminUserDetails: React.FC = () => {
     if (!user || !window.confirm(`ATTENTION : Vous êtes sur le point d'anonymiser cet utilisateur. Toutes ses données personnelles (CV, documents, générations) seront DÉFINITIVEMENT supprimées. Cette action est IRREVERSIBLE. Confirmez-vous ?`)) return;
     setIsAnonymizing(true);
     try {
-      const response = await authenticatedFetch(`${API_URL}/api/admin/users/${user.id}/anonymize`, { method: 'POST' });
+      const response = await authenticatedFetch(`${API_URL}/admin/users/${user.id}/anonymize`, { method: 'POST' });
       if (!response.ok) {
         const errData = await response.json();
         throw new Error(errData.detail || 'Échec de l\'anonymisation.');
@@ -208,7 +208,7 @@ const AdminUserDetails: React.FC = () => {
     if (!user || !window.confirm(`ATTENTION : Vous êtes sur le point de SUPPRIMER DÉFINITIVEMENT cet utilisateur et toutes ses données. Cette action est IRREVERSIBLE. Confirmez-vous ?`)) return;
     setIsDeleting(true);
     try {
-      const response = await authenticatedFetch(`${API_URL}/api/admin/users/${user.id}`, { method: 'DELETE' });
+      const response = await authenticatedFetch(`${API_URL}/admin/users/${user.id}`, { method: 'DELETE' });
       if (!response.ok) {
         const errData = await response.json();
         throw new Error(errData.detail || 'Échec de la suppression du compte.');
@@ -226,7 +226,7 @@ const AdminUserDetails: React.FC = () => {
     if (!user || !window.confirm(`Confirmez-vous la suppression de tous les dossiers de candidature de cet utilisateur ? Cette action est irréversible.`)) return;
     setIsDeletingApplications(true);
     try {
-      const response = await authenticatedFetch(`${API_URL}/api/admin/users/${user.id}/applications`, { method: 'DELETE' });
+      const response = await authenticatedFetch(`${API_URL}/admin/users/${user.id}/applications`, { method: 'DELETE' });
       if (!response.ok) throw new Error('Échec de la suppression des dossiers.');
       alert('Dossiers de candidature supprimés.');
       // Optionally re-fetch data if there's a visual representation of applications
@@ -241,7 +241,7 @@ const AdminUserDetails: React.FC = () => {
     if (!user || !window.confirm(`Confirmez-vous la suppression de toutes les générations IA de cet utilisateur ? Cette action est irréversible.`)) return;
     setIsDeletingGenerations(true);
     try {
-      const response = await authenticatedFetch(`${API_URL}/api/admin/users/${user.id}/generations`, { method: 'DELETE' });
+      const response = await authenticatedFetch(`${API_URL}/admin/users/${user.id}/generations`, { method: 'DELETE' });
       if (!response.ok) throw new Error('Échec de la suppression des générations.');
       alert('Générations IA supprimées.');
       fetchData(); // Refresh generations list
@@ -259,7 +259,7 @@ const AdminUserDetails: React.FC = () => {
 
     setIsDebiting(true);
     try {
-      const response = await authenticatedFetch(`${API_URL}/api/admin/credit-quotas`, { // Assuming the same endpoint with negative value
+      const response = await authenticatedFetch(`${API_URL}/admin/credit-quotas`, { // Assuming the same endpoint with negative value
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: user.email, quota_type: creditType, amount: -amountToDebit })
@@ -303,7 +303,7 @@ const AdminUserDetails: React.FC = () => {
           <InfoRow label="Statut du compte" value={user.is_active ? 'Actif' : 'Inactif'} badge={user.is_active ? 'active' : 'inactive'} />
           <InfoRow label="Statut abonnement" value={user.status || 'N/A'} badge={user.status || 'inactive'} />
           <InfoRow label="Expiration" value={user.expiration_date ? new Date(user.expiration_date).toLocaleDateString() : 'N/A'} />
-          <InfoRow label="Coût IA total" value={`${user.total_ia_cost.toFixed(2)} €`} />
+          <InfoRow label="Coût IA total" value={`${Number(user.total_ia_cost || 0).toFixed(2)} €`} />
           <InfoRow label="Séances restantes" value={`${user.sessions_remaining}`} />
           <InfoRow label="Acceptation CGU/CGV" value={user.cgu_cgv_acceptance_date ? new Date(user.cgu_cgv_acceptance_date).toLocaleString() : 'Non enregistré'} />
           <InfoRow label="Acceptation Politique Conf." value={user.privacy_policy_acceptance_date ? new Date(user.privacy_policy_acceptance_date).toLocaleString() : 'Non enregistré'} />

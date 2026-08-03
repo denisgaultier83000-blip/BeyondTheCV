@@ -1,0 +1,20 @@
+# Image de base Python légère
+FROM python:3.11-slim
+
+# Variables d'environnement pour Python
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# [FIX] Ajout des dépendances système requises par requirements.txt (notamment pour psycopg2)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copie et installation des dépendances
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Le code sera monté via un volume dans docker-compose.yml

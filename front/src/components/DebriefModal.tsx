@@ -87,7 +87,7 @@ export function DebriefModal({ onClose, cvData, debriefIdToEdit }: DebriefModalP
       const fetchDebrief = async () => {
         setLoading(true);
         try {
-          const response = await authenticatedFetch(`${API_BASE_URL}/api/debriefs/${debriefIdToEdit}`);
+          const response = await authenticatedFetch(`${API_BASE_URL}/debriefs/${debriefIdToEdit}`);
           if (!response.ok) throw new Error("Impossible de charger le débrief pour modification.");
           const data = await response.json();
           // On s'assure que les champs qui peuvent être null sont bien des chaînes vides
@@ -122,7 +122,7 @@ export function DebriefModal({ onClose, cvData, debriefIdToEdit }: DebriefModalP
     e.preventDefault();
     setLoading(true);
     try {
-      const url = debriefIdToEdit ? `${API_BASE_URL}/api/debriefs/${debriefIdToEdit}` : `${API_BASE_URL}/api/debriefs`;
+      const url = debriefIdToEdit ? `${API_BASE_URL}/debriefs/${debriefIdToEdit}` : `${API_BASE_URL}/debriefs`;
       const method = debriefIdToEdit ? 'PUT' : 'POST';
       const response = await authenticatedFetch(url, {
         method: method,

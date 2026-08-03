@@ -3,6 +3,7 @@ import { FeedbackWidget } from './FeedbackWidget';
 import { AsyncBoundary } from './AsyncBoundary';
 
 interface DashboardCardProps {
+  id?: string;
   title?: React.ReactNode;
   icon?: React.ReactNode;
   headerAction?: React.ReactNode;
@@ -20,7 +21,7 @@ interface DashboardCardProps {
 }
 
 export function DashboardCard({
-  title, icon, headerAction, loading, loadingText = "Chargement en cours...",
+  id, title, icon, headerAction, loading, loadingText = "Chargement en cours...",
   error, errorText = "Analyse échouée.", featureId, feedbackQuestion, feedbackBullets, jobType, children, className = "", style
 }: DashboardCardProps) {
   if (!children && !loading && !error) return null;
@@ -37,7 +38,7 @@ export function DashboardCard({
       style={style}
     >
       {children && (
-        <div className={`result-card ${className}`.trim()} style={{ padding: '1.5rem', borderRadius: '1rem', position: 'relative', overflow: 'hidden', animation: 'fadeIn 0.4s ease-out', ...style }}>
+        <div id={id} className={`result-card ${className}`.trim()} style={{ padding: '1.5rem', borderRadius: '1rem', position: 'relative', overflow: 'hidden', animation: 'fadeIn 0.4s ease-out', ...style }}>
           {(title || headerAction) && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
               <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: 0, color: 'var(--text-main)' }}>

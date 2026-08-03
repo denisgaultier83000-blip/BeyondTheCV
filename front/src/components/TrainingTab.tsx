@@ -48,6 +48,7 @@ export default function TrainingTab() {
   const [feedback, setFeedback] = useState<any>(null);
   const [trainingHistory, setTrainingHistory] = useState<any[]>([]);
   const [interviewHistory, setInterviewHistory] = useState<any[]>([]);
+  const prewarmTriggeredRef = useRef<string | null>(null);
 
   const themes = ['Management', 'Gestion de crise', 'Négociation', 'Leadership', 'Communication'];
   const types = [{ id: 'Classique', label: 'Questions Classiques' }, { id: 'MES', label: 'Mises en Situation' }];
@@ -55,7 +56,7 @@ export default function TrainingTab() {
   // Méthode de rafraîchissement des stats globales extraite pour pouvoir être appelée par le Questionnaire
   const fetchStats = async () => {
     try {
-      const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/stats`);
+      const res = await authenticatedFetch(`${API_BASE_URL}/cv/training/stats`);
       if (res.ok) {
         const data = await res.json();
         setScore(data.global_score);
@@ -71,8 +72,8 @@ export default function TrainingTab() {
   const fetchHistory = async () => {
     try {
       const [trainRes, intRes] = await Promise.all([
-        authenticatedFetch(`${API_BASE_URL}/api/cv/training/history`),
-        authenticatedFetch(`${API_BASE_URL}/api/cv/interview/history`)
+        authenticatedFetch(`${API_BASE_URL}/cv/training/history`),
+        authenticatedFetch(`${API_BASE_URL}/cv/interview/history`)
       ]);
       if (trainRes.ok) {
         const data = await trainRes.json();
@@ -87,12 +88,51 @@ export default function TrainingTab() {
     }
   };
 
+  const prewarmTrainingPool = async () => {
+    try {
+      const payload = {
+        theme: selectedTheme,
+        question_type: selectedType,
+        target_language: cvData?.target_language || 'fr',
+        target_company: cvData?.target_company || '',
+        target_job: cvData?.target_job || cvData?.target_role_primary || '',
+        target_role_primary: cvData?.target_role_primary || '',
+        interview_format: cvData?.interview_format || '',
+        stress_level: cvData?.stress_level || '',
+        skills: cvData?.skills || [],
+        profile: cvData?.profile || cvData?.personal_info || {},
+        research_data: cvData?.research_data || cvData?.researchResult || {},
+      };
+      await authenticatedFetch(`${API_BASE_URL}/cv/training/prewarm-pool`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (err) {
+      console.error('Erreur préchauffage pool entraînement', err);
+    }
+  };
+
   // Charger les statistiques globales au montage
   useEffect(() => {
     fetchStats();
     fetchHistory();
     if (fetchQuotas) fetchQuotas();
   }, [fetchQuotas]);
+
+  useEffect(() => {
+    const contextKey = [
+      cvData?.target_company || '',
+      cvData?.target_job || cvData?.target_role_primary || '',
+      cvData?.target_role_primary || '',
+      cvData?.target_language || 'fr',
+      selectedTheme,
+      selectedType,
+    ].join('|');
+    if (!cvData || prewarmTriggeredRef.current === contextKey) return;
+    prewarmTriggeredRef.current = contextKey;
+    void prewarmTrainingPool();
+  }, [cvData?.target_company, cvData?.target_job, cvData?.target_role_primary, cvData?.target_language, selectedTheme, selectedType]);
 
   const refreshAllStats = () => {
     fetchStats();
@@ -104,10 +144,23 @@ export default function TrainingTab() {
     setErrorMsg(null);
     
     try {
-      const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/generate-question`, {
+      const res = await authenticatedFetch(`${API_BASE_URL}/cv/training/generate-question`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ theme: selectedTheme, question_type: selectedType, count: 1, target_language: cvData?.target_language || 'fr' })
+        body: JSON.stringify({
+          theme: selectedTheme,
+          question_type: selectedType,
+          count: 1,
+          target_language: cvData?.target_language || 'fr',
+          target_company: cvData?.target_company || '',
+          target_job: cvData?.target_job || cvData?.target_role_primary || '',
+          target_role_primary: cvData?.target_role_primary || '',
+          interview_format: cvData?.interview_format || '',
+          stress_level: cvData?.stress_level || '',
+          skills: cvData?.skills || [],
+          profile: cvData?.profile || cvData?.personal_info || {},
+          research_data: cvData?.research_data || cvData?.researchResult || {},
+        })
       });
       if (!res.ok) {
         if (res.status === 402) setShowRechargeModal(true);
@@ -123,6 +176,7 @@ export default function TrainingTab() {
           question: data.questions[0].text,
           advice: data.questions[0].advice,
           suggested_answer: data.questions[0].suggested_answer,
+          tags: data.questions[0].tags || [],
         };
         // Démarre la session interactive
         setActiveQuestion(newQ);
@@ -153,7 +207,7 @@ export default function TrainingTab() {
     }
 
     try {
-      const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/evaluate`, {
+      const res = await authenticatedFetch(`${API_BASE_URL}/cv/training/evaluate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -161,6 +215,7 @@ export default function TrainingTab() {
           question_type: activeQuestion.type, 
           question_text: activeQuestion.question, 
           user_answer: userAnswer,
+          tags: activeQuestion.tags || [],
           interview_format: cvData?.interview_format,
           stress_level: cvData?.stress_level,
           target_language: cvData?.target_language || 'fr'
@@ -483,7 +538,7 @@ export default function TrainingTab() {
           {/* Bouton Générer */}
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
             <button 
-              onClick={() => { if ((quotas?.qa ?? 0) > 0 || (quotas?.mes ?? 0) > 0) handleGenerate(); else setShowRechargeModal(true); }} 
+              onClick={handleGenerate}
               disabled={isGenerating}
               className="btn-primary"
               style={{ padding: '1rem 3rem', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
@@ -492,6 +547,12 @@ export default function TrainingTab() {
               {isGenerating ? "Génération par l'IA..." : "Générer mon défi"}
             </button>
           </div>
+          {errorMsg && !activeQuestion && (
+            <div style={{ marginTop: '0.75rem', color: 'var(--danger-text)', fontSize: '0.9rem', textAlign: 'center' }}>
+              <AlertCircle size={15} style={{ verticalAlign: 'text-bottom', marginRight: '0.4rem' }} />
+              {errorMsg}
+            </div>
+          )}
         </div>
       </DashboardCard>
       </div>
@@ -622,6 +683,7 @@ export default function TrainingTab() {
           100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
       `}</style>
+      <RechargeModal isOpen={showRechargeModal} onClose={() => setShowRechargeModal(false)} />
     </div>
   );
 }

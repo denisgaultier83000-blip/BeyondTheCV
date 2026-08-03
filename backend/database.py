@@ -14,6 +14,38 @@ for path in env_paths:
         load_dotenv(dotenv_path=path)
         break
 
+def _normalize_database_url(url: str):
+    """Adapte l'URL de base de données au contexte d'exécution (Docker vs host local)."""
+    if not url:
+        return url
+
+    try:
+        parsed = urllib.parse.urlparse(url)
+    except Exception:
+        return url
+
+    if parsed.scheme not in {"postgresql", "postgres"} or not parsed.hostname:
+        return url
+
+    if os.path.exists('/.dockerenv') or os.getenv('K_SERVICE'):
+        return url
+
+    if parsed.hostname in {"db", "postgres", "postgresql"}:
+        host = 'localhost'
+        username = urllib.parse.quote(parsed.username or '', safe='')
+        password = urllib.parse.quote(parsed.password or '', safe='')
+        auth = username
+        if password:
+            auth = f"{auth}:{password}" if auth else f":{password}"
+        if parsed.port:
+            netloc = f"{auth}@{host}:{parsed.port}"
+        else:
+            netloc = f"{auth}@{host}"
+        return urllib.parse.urlunparse((parsed.scheme, netloc, parsed.path, parsed.params, parsed.query, parsed.fragment))
+
+    return url
+
+
 def get_database_url():
     """
     Construit l'URL de connexion à la base de données.
@@ -92,7 +124,7 @@ def get_database_url():
         print("[WARNING] Ni DATABASE_SECRET_NAME ni DATABASE_URL ne sont définis. Tentative de connexion par défaut (localhost).", flush=True)
     # [NOTE] Si vous utilisez une DATABASE_URL locale avec des caractères spéciaux dans le mot de passe,
     # vous devez les encoder vous-même au format URL (ex: le '@' devient '%40', le '#' devient '%23').
-    return fallback_url
+    return _normalize_database_url(fallback_url)
 
 DATABASE_URL = None # [FIX LIFECYCLE] L'URL est maintenant calculée et assignée dans le lifespan de main.py pour éviter les I/O à l'import.
 try:
@@ -127,15 +159,14 @@ class Database:
     def _init_db(self):
         """Initialize the database and create tables if they don't exist."""
         try:
-            # Import and run migrations
-            from migrations import create_tables, insert_default_subscription_plans
-            
-            print("[DB] Running PostgreSQL migrations...", flush=True)
-            if not create_tables():
-                raise RuntimeError("Échec de la création des tables PostgreSQL.")
-            if not insert_default_subscription_plans():
-                raise RuntimeError("Échec de l'insertion des plans d'abonnement par défaut.")
-            print("[DB] PostgreSQL migrations completed successfully", flush=True)
+            # [FIX CRITICAL] Ensure base schema is created first
+            import init_postgres
+            print("[DB] Running initial schema creation (init_postgres.py)...", flush=True)
+            init_postgres.main()
+
+            # [FIX] The migrations.py script is now intended for manual, incremental updates, not for initial creation.
+            # init_postgres.py handles the complete schema setup.
+            print("[DB] PostgreSQL schema initialization completed successfully via init_postgres.py", flush=True)
         except Exception as e:
             print(f"[DB] Error initializing PostgreSQL: {e}", flush=True)
             raise
@@ -245,6 +276,11 @@ class Database:
 # Singleton
 db = Database()
 
-# Helper function for main.py (backward compatibility)
 def init_db():
-    db._init_db()
+    """
+    [FIX] Helper function for main.py.
+    This function now correctly uses the database URL configured in the 'db' singleton instance,
+    ensuring that the password and other credentials from the .env file are used during initialization.
+    """
+    with db.get_sync_connection() as conn:
+        db._init_db()

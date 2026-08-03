@@ -8,6 +8,9 @@ RUN npm install
 
 COPY . .
 
-EXPOSE 3000
+# [FIX] Exposition du port 5173, le standard de Vite utilisé dans docker-compose.
+EXPOSE 5173
 
-CMD ["npm", "run", "dev", "--", "--host"]
+# [FIX] La commande `npm create vite` génère `npm run dev`.
+# On s'assure que le serveur Vite est accessible depuis l'extérieur du conteneur.
+CMD ["npm", "run", "dev"]

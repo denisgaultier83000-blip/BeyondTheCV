@@ -53,7 +53,7 @@ const AdminSettings = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/settings`);
+        const response = await authenticatedFetch(`${API_BASE_URL}/admin/settings`);
         if (!response.ok) {
           throw new Error('Failed to fetch system settings.');
         }

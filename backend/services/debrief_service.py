@@ -16,7 +16,7 @@ class AnalyzeDebriefRequest(BaseModel):
     nextInterviewContext: Optional[dict] = None
 
 router = APIRouter(
-    prefix="/api/debriefs",
+    prefix="/debriefs",
     tags=["Interview Debriefs"],
     dependencies=[Depends(get_current_user)]
 )
@@ -111,11 +111,22 @@ async def get_debrief_details(debrief_id: str, current_user: dict = Depends(get_
         raise HTTPException(status_code=404, detail="Debrief not found")
 
     debrief_details = dict(row)
-    # Dé-sérialisation des champs JSON
+    # Dé-sérialisation sûre des champs JSON (éviter eval qui peut planter et provoquer des 500)
     for field in ['ambiance', 'positive_signals', 'red_flags']:
+        raw = debrief_details.get(field)
+        # Cas simple : valeur nulle ou vide -> liste vide
+        if raw is None or raw == "":
+            debrief_details[field] = []
+            continue
+        # Si c'est déjà une structure python, conservez-la
+        if isinstance(raw, (list, dict)):
+            debrief_details[field] = raw
+            continue
+        # Essayer le parsing JSON d'abord
         try:
-            debrief_details[field] = eval(debrief_details[field])
-        except:
+            debrief_details[field] = json.loads(raw)
+        except Exception:
+            # Si le JSON est invalide, fallback sécurisé : liste vide
             debrief_details[field] = []
 
     return debrief_details

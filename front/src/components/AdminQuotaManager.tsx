@@ -16,7 +16,7 @@ export default function AdminQuotaManager() {
     setMessage(null);
 
     try {
-      const res = await authenticatedFetch(`${API_BASE_URL}/api/admin/credit-quotas`, {
+      const res = await authenticatedFetch(`${API_BASE_URL}/admin/credit-quotas`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, quota_type: quotaType, amount })

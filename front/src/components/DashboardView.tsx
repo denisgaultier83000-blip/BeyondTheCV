@@ -14,6 +14,7 @@ import FlawCoaching from './FlawCoaching';
 import TrainingTab from './TrainingTab';
 import { PrintableDossier } from './PrintableDossier';
 import { CoachingSummaryCard } from './CoachingSummaryCard';
+import { getDaysUntilInterview } from '../utils/interviewDate';
 const DebriefTab = lazy(() => import('./DebriefTab'));
 const PostureTab = lazy(() => import('./PostureTab'));
 
@@ -95,6 +96,7 @@ const subMenus: Record<string, {label: string, id: string}[]> = {
     { label: 'Entraînement au Pitch', id: 'training_pitch_section' } // ID déjà présent
   ],
   posture: [
+    { label: 'Feuille de Route', id: 'roadmap_section' },
     { label: 'Dernière Heure', id: 'last_hour_section' },
     { label: 'Questions Stratégiques', id: 'strategic_questions_section' },
     { label: 'Signaux à Observer', id: 'signals_section' },
@@ -266,34 +268,6 @@ export const DashboardView: FC = () => {
   const meta = cvData?.meta || cvData || {};
 
   // Détection du Mode Commando (Entretien dans < 48h)
-  const getDaysUntilInterview = (dateStr: string): number => {
-    if (!dateStr) return 999;
-    const lowerStr = dateStr.toLowerCase().trim();
-    
-    // 1. Détection des chaînes relatives
-    if (lowerStr.includes("aujourd'hui") || lowerStr.includes("today") || lowerStr.includes("ce jour")) return 0;
-    if (lowerStr.includes("demain") || lowerStr.includes("tomorrow") || lowerStr.includes("24h") || lowerStr.includes("24 h")) return 1;
-    if (lowerStr.includes("48h") || lowerStr.includes("48 h") || lowerStr.includes("2 jours") || lowerStr.includes("2 days")) return 2;
-    
-    // 2. Détection des dates exactes (YYYY-MM-DD ou DD/MM/YYYY)
-    let match = lowerStr.match(/(\d{4})-(\d{2})-(\d{2})/);
-    let parsedDate: Date | null = null;
-    if (match) {
-      parsedDate = new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]));
-    } else {
-      match = lowerStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-      if (match) parsedDate = new Date(parseInt(match[3]), parseInt(match[2]) - 1, parseInt(match[1]));
-    }
-    
-    if (parsedDate && !isNaN(parsedDate.getTime())) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      parsedDate.setHours(0, 0, 0, 0);
-      const diffTime = parsedDate.getTime() - today.getTime();
-      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    }
-    return 999;
-  };
   const isCommando = useMemo(() => getDaysUntilInterview(meta.interview_date || "") <= 2, [meta.interview_date]);
   const commandoReason = t('commando_disabled_reason', "Désactivé (Urgence : Entretien imminent)");
 
@@ -580,10 +554,10 @@ export const DashboardView: FC = () => {
         }
         .dashboard-wrapper { display: flex; flex-direction: column; gap: 2rem; width: 100%; }
         
-        .tabs-navigation { display: flex; gap: 0.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0; overflow-x: auto; align-items: flex-end; scrollbar-width: none; -ms-overflow-style: none; }
+        .tabs-navigation { display: flex; gap: 0.25rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0; overflow-x: auto; align-items: flex-end; scrollbar-width: none; -ms-overflow-style: none; }
         .tabs-navigation::-webkit-scrollbar { display: none; }
         .tabs-navigation.has-sub { border-bottom: 2px solid var(--primary); }
-        .tab-btn { display: flex; align-items: center; gap: 0.5rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-bottom: none; padding: 0.75rem 1.25rem; cursor: pointer; font-weight: 600; color: var(--text-muted); border-radius: 0.75rem 0.75rem 0 0; transition: all 0.2s; white-space: nowrap; margin-bottom: -2px; z-index: 1; }
+        .tab-btn { display: flex; align-items: center; gap: 0.4rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-bottom: none; padding: 0.7rem 0.9rem; cursor: pointer; font-weight: 600; font-size: 0.95rem; color: var(--text-muted); border-radius: 0.75rem 0.75rem 0 0; transition: all 0.2s; white-space: nowrap; margin-bottom: -2px; z-index: 1; }
         .tab-btn:hover { background: var(--bg-card); color: var(--text-main); border-color: var(--primary); }
         .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); border-bottom: 2px solid var(--primary); z-index: 10; }
         

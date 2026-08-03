@@ -196,7 +196,7 @@ export const CVTab = ({ data }: { data: any }) => {
           <div className="preview-document" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: '800px', padding: 0 }}>
           {previewBody ? (
             <PdfPreviewer 
-              fetchUrl={`${API_BASE_URL}/api/cv/generate`}
+              fetchUrl={`${API_BASE_URL}/cv/generate`}
               requestBody={previewBody}
               refreshTrigger={refreshTrigger}
               onSuccess={(url) => setPreviewUrl(url)}

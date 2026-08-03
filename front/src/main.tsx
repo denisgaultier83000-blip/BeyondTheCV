@@ -13,6 +13,7 @@ import AdminBilling from "./components/AdminBilling"; // Nouvelle page Admin
 import AdminUserDetails from "./components/AdminUserDetails"; // Nouvelle page de détail
 import AdminGenerations from "./components/AdminGenerations"; // Nouvelle page Admin
 import AdminSettings from "./components/AdminSettings"; // Nouvelle page Admin
+import { AdminDashboard } from "./components/AdminDashboard";
 import ErrorBoundary from "./components/ErrorBoundary";
 import "./index.css";
 import "./theme.css";
@@ -52,7 +53,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             path="/admin" 
             element={<ProtectedRoute adminRoute={true}><AdminLayout /></ProtectedRoute>}
           >
-            <Route index element={<Navigate to="users" replace />} /> {/* Redirige /admin vers /admin/users */}
+            <Route index element={<AdminDashboard />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="user/:userId" element={<AdminUserDetails />} />
             <Route path="billing" element={<AdminBilling />} />

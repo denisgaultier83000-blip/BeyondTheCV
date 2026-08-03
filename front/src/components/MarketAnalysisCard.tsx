@@ -25,7 +25,8 @@ export function MarketAnalysisCard({ data, salaryData, loading, error }: MarketA
   if (!loading && !error && (!parsedData || parsedData.error)) return null;
 
   // [FIX] Unwrap au cas où l'IA encapsule l'objet JSON
-  const root = parsedData.data || parsedData.result || parsedData.market_research || parsedData;
+  const safeParsedData = (parsedData && typeof parsedData === 'object') ? parsedData : {};
+  const root = safeParsedData.data || safeParsedData.result || safeParsedData.market_research || safeParsedData;
   const report = root?.market_report || root?.rapport_marche || root?.market_analysis || root?.analyse_marche || root?.synthesis || root || {};
   
   const tensionRaw = report.tension_score || report.score_tension || 85;

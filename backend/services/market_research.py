@@ -184,6 +184,8 @@ def _enforce_schema(data: dict) -> dict:
 async def perform_market_research(data: dict, task_id: str = None) -> dict:
     """
     Exécute le pipeline agentique complet (V2) de manière asynchrone.
+    Si `_cached_market_report` est injecté dans data (par tasks.py via le cache L3),
+    la partie marché est skippée et seule la partie entreprise est générée.
     """
     company = data.get('target_company')
     industry = data.get('target_industry', 'Unknown')
@@ -191,8 +193,11 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
     provider = data.get('provider') # Permet de forcer 'gemini' ou 'openai' depuis le front
     target_lang = data.get('target_language', 'French')
     target_country = data.get('target_country', 'Global')
+    cached_market_report = data.get('_cached_market_report')  # Injecté par tasks.py si L3 HIT
 
     print(f"[PIPELINE] Starting Deep Market Research for: {company}", flush=True)
+    if cached_market_report:
+        print(f"[PIPELINE] ♻️ Market report from shared cache (L3), skipping market generation.", flush=True)
     if task_id:
         await manager.broadcast(task_id, f"Démarrage de l'analyse pour {company}...")
     
@@ -368,6 +373,13 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
     # [ROBUSTESSE] Application stricte du schéma pour éviter le crash du frontend
     safe_synthesis = _enforce_schema(final_synthesis)
 
+    # [CACHE L3] Si le market_report était en cache, on réutilise le contenu stocké
+    # (plus riche car généré une première fois avec les vraies données Serper).
+    if cached_market_report and isinstance(cached_market_report, dict):
+        safe_synthesis["market_report"] = cached_market_report
+        if task_id:
+            await manager.broadcast(task_id, "♻️ Données marché injectées depuis le cache partagé.")
+
     # On récupère le tableau d'actualités généré par l'IA contenant son analyse stratégique
     ai_generated_news = safe_synthesis["company_report"].get("news_links", [])
     
@@ -388,11 +400,7 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
                         "hidden_meaning": news.get("hidden_meaning", "")
                     })
 
-    real_news_links = []
-    # [SIMPLIFICATION] Le prompt marche_synthese est maintenant assez robuste pour extraire les URLs
-    # et titres directement depuis le search_context. On lui fait confiance.
     safe_synthesis["company_report"]["news_links"] = ai_generated_news
-    
     display_sources = []
 
     return {

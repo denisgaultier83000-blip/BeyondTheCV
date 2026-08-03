@@ -40,7 +40,7 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
   const fetchDocuments = async () => {
     try {
       // Utilisation du nouvel endpoint qui lit la table job_applications en base de données
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/applications`);
+      const response = await authenticatedFetch(`${API_BASE_URL}/applications`);
       if (!response.ok) throw new Error(t('error_fetch_documents', "Failed to fetch applications"));
       
       const data = await response.json();
@@ -106,7 +106,7 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
     setActionError(null);
 
     try {
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/applications/${appId}`, {
+      const response = await authenticatedFetch(`${API_BASE_URL}/applications/${appId}`, {
         method: "DELETE",
       });
       if (!response.ok) throw new Error("Delete failed");
@@ -123,7 +123,7 @@ export default function DocumentsModal({ onClose }: DocumentsModalProps) {
     setActionError(null);
     try {
       setLoading(true);
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/applications/${appId}/load`);
+      const response = await authenticatedFetch(`${API_BASE_URL}/applications/${appId}/load`);
       if (!response.ok) throw new Error("Erreur de chargement");
       const loadedData = await response.json();
       

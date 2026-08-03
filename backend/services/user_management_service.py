@@ -5,7 +5,7 @@ import uuid
 from .audit_service import audit_service
 
 router = APIRouter(
-    prefix="/api/admin/users",
+    prefix="/admin/users",
     tags=["Administration - User Management"],
     dependencies=[Depends(require_admin_user)]
 )

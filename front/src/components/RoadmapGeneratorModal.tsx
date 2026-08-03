@@ -34,8 +34,8 @@ export default function RoadmapGeneratorModal({ onClose }: RoadmapGeneratorModal
     setResult(null);
 
     try {
-      // NOTE: L'endpoint /api/cv/generate-roadmap est à créer côté backend.
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/generate-roadmap`, {
+      // NOTE: L'endpoint /cv/generate-roadmap est à créer côté backend.
+      const response = await authenticatedFetch(`${API_BASE_URL}/cv/generate-roadmap`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

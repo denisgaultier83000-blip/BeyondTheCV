@@ -7,6 +7,7 @@ import { useDashboard } from '../hooks/DashboardContext';
 import { useTranslation } from 'react-i18next';
 import { RechargeModal } from './RechargeModal';
 import { AsyncBoundary } from './AsyncBoundary';
+import AutoResizeTextarea from './AutoResizeTextarea';
 
 export default function PitchOralTrainer() {
   const { cvData, quotas, fetchQuotas } = useDashboard();
@@ -79,7 +80,7 @@ export default function PitchOralTrainer() {
     }
 
     try {
-      const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/evaluate-oral-pitch`, {
+      const res = await authenticatedFetch(`${API_BASE_URL}/cv/evaluate-oral-pitch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -120,7 +121,7 @@ export default function PitchOralTrainer() {
       {!feedback ? (
         <AsyncBoundary loading={isEvaluating} error={error || undefined} loadingText="Analyse de votre pitch en cours..." style={{ background: 'transparent', border: 'none', padding: 0 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', animation: 'fadeIn 0.3s ease-out' }}>
-            <textarea value={userAnswer} onChange={e => setUserAnswer(e.target.value)} placeholder="Commencez à parler ou dictez votre pitch ici..." rows={5} style={{ width: '100%', background: 'var(--bg-body)', border: '1px solid var(--border-color)', borderRadius: '0.5rem', padding: '1rem', color: 'var(--text-main)', fontFamily: 'inherit', resize: 'vertical' }} />
+            <AutoResizeTextarea value={userAnswer} onChange={e => setUserAnswer(e.target.value)} placeholder="Commencez à parler ou dictez votre pitch ici..." minHeight={120} style={{ width: '100%', background: 'var(--bg-body)', border: '1px solid var(--border-color)', borderRadius: '0.5rem', padding: '1rem', color: 'var(--text-main)', fontFamily: 'inherit' }} />
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
               <button onClick={toggleRecording} className={`btn-${isRecording ? 'primary' : 'secondary'}`} style={{ background: isRecording ? '#ef4444' : undefined, borderColor: isRecording ? '#ef4444' : undefined, color: isRecording ? 'white' : undefined, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 {isRecording ? <MicOff size={18} /> : <Mic size={18} />} {isRecording ? "Arrêter" : "Dicter mon pitch"}

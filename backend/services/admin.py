@@ -25,7 +25,7 @@ from security import get_current_active_admin_user
 #     évitant les erreurs d'incohérence des données.
 
 router = APIRouter(
-    prefix="/api/admin",
+    prefix="/admin",
     tags=["Admin"],
     dependencies=[Depends(get_current_active_admin_user)]
 )

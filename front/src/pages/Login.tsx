@@ -31,8 +31,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
     try {
       if (isRegister) {
-        // 1. Appel à la route d'inscription
-        const registerRes = await fetch(`${API_BASE_URL}/api/auth/register`, {
+        // 1. Appel à la route d'inscription - [FIX] Suppression du préfixe /api redondant
+        const registerRes = await fetch(`${API_BASE_URL}/auth/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -44,9 +44,15 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         });
 
         if (!registerRes.ok) {
-          const errData = await registerRes.json();
-          throw new Error(errData.detail || 'Erreur lors de l\'inscription. Cet email est peut-être déjà utilisé.');
-        }
+            let detail = 'Erreur lors de l\'inscription. Cet email est peut-être déjà utilisé.';
+            try {
+              const errData = await registerRes.json();
+              detail = errData.detail || errData.message || detail;
+            } catch (parseError) {
+              console.warn('Impossible de lire l’erreur de création de compte.', parseError);
+            }
+            throw new Error(detail);
+          }
       }
 
       // 2. Appel à la route de connexion (OAuth2 standard) pour obtenir le JWT
@@ -54,14 +60,21 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       loginData.append('username', formData.email);
       loginData.append('password', formData.password);
 
-      const loginRes = await fetch(`${API_BASE_URL}/api/auth/token`, {
+      const loginRes = await fetch(`${API_BASE_URL}/auth/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: loginData
       });
 
       if (!loginRes.ok) {
-        throw new Error('Identifiants incorrects.');
+        let detail = 'Identifiants incorrects.';
+        try {
+          const errData = await loginRes.json();
+          detail = errData.detail || errData.message || detail;
+        } catch (parseError) {
+          console.warn('Impossible de lire l’erreur retournée par l’API auth.', parseError);
+        }
+        throw new Error(detail);
       }
 
       const tokenData = await loginRes.json();

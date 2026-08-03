@@ -32,7 +32,7 @@ const CompanySearch: React.FC<CompanySearchProps> = ({ candidateData, onAnalysis
         setSelectedCandidate(null);
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/research/disambiguate`, {
+            const response = await fetch(`${API_BASE_URL}/research/disambiguate`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ company_name: query }),
@@ -84,7 +84,7 @@ const CompanySearch: React.FC<CompanySearchProps> = ({ candidateData, onAnalysis
             };
 
             // Appel de l'endpoint pour lancer la recherche et le salaire
-            const response = await fetch(`${API_BASE_URL}/api/research/start`, {
+            const response = await fetch(`${API_BASE_URL}/research/start`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),

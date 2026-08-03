@@ -1,32 +1,43 @@
 
 from fastapi import APIRouter, Depends
 import os
+from datetime import datetime, timezone
 
 from security import require_admin_user
 
 router = APIRouter(
-    prefix="/api/admin",
+    prefix="/admin",
     tags=["Administration"],
     dependencies=[Depends(require_admin_user)]
 )
 
+
 @router.get("/settings")
 async def get_system_settings():
-    """
-    [NOUVEAU] Retourne la configuration système en lecture seule.
-    Ces valeurs sont généralement lues depuis les variables d'environnement
-    ou un fichier de configuration.
-    """
-    # Ces valeurs sont des exemples. Dans une vraie application, elles viendraient
-    # d'un système de configuration plus robuste.
-    settings = {
-        "Modèle IA par défaut": os.getenv("DEFAULT_AI_MODEL", "Gemini"),
-        "Version des prompts (Pitch)": "pitch_v1.3",
-        "Version des prompts (Q/A)": "qa_v2.1",
-        "Seuil d'alerte coûts": f"{os.getenv('COST_ALERT_THRESHOLD', '0.3')} (30% du prix)",
-        "Mode Maintenance": os.getenv("MAINTENANCE_MODE", "Non"),
-        "Email Support": os.getenv("SUPPORT_EMAIL", "support@beyondthecv.app"),
-        "Langues disponibles": "FR, EN",
-        "Délai expiration token (min)": os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"),
+    """Retourne la configuration système au format attendu par le dashboard admin."""
+    maintenance_raw = str(os.getenv("MAINTENANCE_MODE", "off")).strip().lower()
+    maintenance_mode = maintenance_raw in {"1", "true", "on", "yes"}
+
+    return {
+        "environment": os.getenv("ENVIRONMENT", "staging"),
+        "frontend_version": os.getenv("FRONTEND_VERSION", "dev"),
+        "backend_version": os.getenv("BACKEND_VERSION", "dev"),
+        "last_git_commit": os.getenv("GIT_COMMIT_SHA", "local-dev"),
+        "last_deployment_at": os.getenv("LAST_DEPLOYMENT_AT", datetime.now(timezone.utc).isoformat()),
+        "maintenance_mode": maintenance_mode,
+        "active_offers": [
+            {"name": "Starter", "price": "29€", "quotas": "Pitch + Q/A", "duration": "30 jours"},
+            {"name": "Strategic", "price": "59€", "quotas": "Complet", "duration": "90 jours"}
+        ],
+        "ai_models_by_module": [
+            {"module": "pitch", "model_name": os.getenv("DEFAULT_AI_MODEL", "Gemini")},
+            {"module": "questions", "model_name": os.getenv("DEFAULT_AI_MODEL", "Gemini")},
+            {"module": "scenarios", "model_name": os.getenv("DEFAULT_AI_MODEL", "Gemini")}
+        ],
+        "active_prompts": [
+            {"module": "pitch", "prompt_version": "strategic_pitch_v2"},
+            {"module": "questions", "prompt_version": "interview_questions"},
+            {"module": "scenarios", "prompt_version": "custom_scenarios"}
+        ],
+        "ia_cost_alert_threshold": float(os.getenv("COST_ALERT_THRESHOLD", "0.3")) * 100
     }
-    return {"settings": settings}

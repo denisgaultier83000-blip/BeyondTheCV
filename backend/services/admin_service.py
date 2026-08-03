@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Body, BackgroundTasks, Request
+﻿from fastapi import APIRouter, Depends, HTTPException, Body, BackgroundTasks, Request
 from pydantic import BaseModel, EmailStr
 from typing import Literal, Optional, List
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import stripe, json
 import httpx
 
@@ -30,6 +30,26 @@ class CreditQuotaRequest(BaseModel):
 class AdminSubscriptionRequest(BaseModel):
     action: Literal["extend", "cancel"]
     days: Optional[int] = 30
+
+
+async def _get_table_columns(conn, table_name: str) -> set[str]:
+    cursor = await db.execute(
+        conn,
+        """
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = ?
+        """,
+        (table_name,)
+    )
+    rows = await cursor.fetchall()
+    cols = set()
+    for row in rows:
+        if isinstance(row, tuple):
+            cols.add(row[0])
+        else:
+            cols.add(row.get("column_name"))
+    return cols
 
 def send_quota_recharge_email(to_email: str, amount: int, quota_type: str):
     """Envoie un email de notification en tâche de fond via SMTP."""
@@ -138,36 +158,66 @@ async def admin_list_users(
     status: Optional[str] = None
 ):
     """[MODIFIÉ] 1. Gestion : Liste complète des utilisateurs avec pagination."""
-    params = []
-    where_clauses = []
-
-    if search:
-        where_clauses.append("(email ILIKE ? OR first_name ILIKE ? OR last_name ILIKE ?)")
-        search_term = f"%{search}%"
-        params.extend([search_term, search_term, search_term])
-
-    if status:
-        where_clauses.append("subscription_status = ?")
-        params.append(status)
-
-    where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
-    
-    query = f"""
-            SELECT id, email, first_name, last_name, created_at, is_premium, is_active, 
-                   subscription_expiration_date, last_login, total_ia_cost
-            FROM users 
-            {where_sql}
-            ORDER BY created_at DESC LIMIT ? OFFSET ?
-        """
-    
-    # [FIX] Séparation des paramètres pour la recherche et la pagination.
-    # Le comptage total doit utiliser les mêmes filtres que la recherche.
-    where_params = tuple(params)
-    
-    pagination_params = list(where_params)
-    pagination_params.extend([limit, offset])
-
     async with db.get_connection() as conn:
+        user_columns = await _get_table_columns(conn, "users")
+
+        params = []
+        where_clauses = []
+
+        if search:
+            where_clauses.append("(email ILIKE ? OR first_name ILIKE ? OR last_name ILIKE ?)")
+            search_term = f"%{search}%"
+            params.extend([search_term, search_term, search_term])
+
+        if status:
+            if "subscription_status" in user_columns:
+                where_clauses.append("subscription_status = ?")
+                params.append(status)
+            elif "is_premium" in user_columns:
+                if status in {"active", "extended"}:
+                    where_clauses.append("COALESCE(is_premium, FALSE) = TRUE")
+                elif status == "expired":
+                    where_clauses.append("COALESCE(is_premium, FALSE) = FALSE")
+
+        status_expr = (
+            "subscription_status"
+            if "subscription_status" in user_columns
+            else "CASE WHEN COALESCE(is_premium, FALSE) THEN 'active' ELSE 'expired' END AS subscription_status"
+        )
+        expiration_expr = (
+            "subscription_expiration_date"
+            if "subscription_expiration_date" in user_columns
+            else "NULL::timestamp AS subscription_expiration_date"
+        )
+        sessions_expr = (
+            "quota_qa AS sessions_remaining"
+            if "quota_qa" in user_columns
+            else ("credits AS sessions_remaining" if "credits" in user_columns else "0 AS sessions_remaining")
+        )
+        ia_cost_expr = (
+            "total_ia_cost"
+            if "total_ia_cost" in user_columns
+            else "0::double precision AS total_ia_cost"
+        )
+        is_active_expr = (
+            "is_active"
+            if "is_active" in user_columns
+            else "TRUE AS is_active"
+        )
+
+        where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+        query = f"""
+                SELECT id, email, first_name, last_name, created_at, {is_active_expr},
+                       {status_expr}, {expiration_expr}, last_login, {ia_cost_expr}, {sessions_expr}
+                FROM users
+                {where_sql}
+                ORDER BY created_at DESC LIMIT ? OFFSET ?
+            """
+
+        where_params = tuple(params)
+        pagination_params = list(where_params)
+        pagination_params.extend([limit, offset])
+
         cursor = await db.execute(conn, query, tuple(pagination_params))
         rows = await cursor.fetchall()
         
@@ -192,6 +242,8 @@ async def admin_list_users(
         user_dict.setdefault("is_premium", False)
         user_dict.setdefault("is_active", True)
         user_dict.setdefault("credits", 0)
+        user_dict.setdefault("sessions_remaining", user_dict.get("credits", 0))
+        user_dict.setdefault("subscription_status", "expired")
         user_dict.setdefault("subscription_expiration_date", None)
         user_dict.setdefault("last_login", None)
         user_dict.setdefault("total_ia_cost", 0)
@@ -227,6 +279,89 @@ async def admin_get_billing_history(limit: int = 50, offset: int = 0):
         # Si la table n'existe pas, on renvoie une liste vide au lieu de crasher.
         print(f"Could not query payments table: {e}")
         return {"payments": [], "total": 0}
+
+
+@router.get("/billing/webhook-status")
+async def admin_get_billing_webhook_status():
+    """Retourne un état de santé minimal des flux Stripe pour le dashboard admin."""
+    last_payment_processed_at = None
+    async with db.get_connection() as conn:
+        try:
+            cursor = await db.execute(
+                conn,
+                "SELECT MAX(purchase_date) AS last_payment_processed_at FROM payments WHERE status = 'succeeded'"
+            )
+            row = await cursor.fetchone()
+            if row:
+                if isinstance(row, tuple):
+                    last_payment_processed_at = row[0]
+                else:
+                    last_payment_processed_at = row.get("last_payment_processed_at")
+        except Exception as e:
+            print(f"[ADMIN BILLING] webhook-status fallback: {e}", flush=True)
+
+    return {
+        "last_webhook_received_at": None,
+        "last_payment_processed_at": last_payment_processed_at,
+        "recent_failed_webhooks": [],
+        "unactivated_payments": [],
+        "activated_without_payment": []
+    }
+
+
+@router.get("/feedbacks")
+async def admin_get_feedbacks(limit: int = 200, offset: int = 0):
+    """Retourne les feedbacks utilisateurs pour le dashboard admin."""
+    async with db.get_connection() as conn:
+        feedback_columns = await _get_table_columns(conn, "feedbacks")
+        status_expr = "f.status" if "status" in feedback_columns else "'new' AS status"
+
+        cursor = await db.execute(conn, f"""
+            SELECT
+                f.id, f.feature, f.is_positive, f.comments, f.created_at,
+                {status_expr},
+                u.email AS user_email
+            FROM feedbacks f
+            LEFT JOIN users u ON f.user_id = u.id
+            ORDER BY f.created_at DESC
+            LIMIT ? OFFSET ?
+        """, (limit, offset))
+        rows = await cursor.fetchall()
+
+    result = []
+    for row in rows:
+        if isinstance(row, tuple):
+            result.append(dict(zip([desc[0] for desc in cursor.description], row)))
+        else:
+            result.append(dict(row))
+    return {"feedbacks": result}
+
+
+@router.post("/feedbacks/{feedback_id}/archive")
+async def admin_archive_feedback(feedback_id: int):
+    """Archive un feedback, ou le supprime si la colonne status n'existe pas."""
+    async with db.get_connection() as conn:
+        feedback_columns = await _get_table_columns(conn, "feedbacks")
+        if "status" in feedback_columns:
+            cursor = await db.execute(
+                conn,
+                "UPDATE feedbacks SET status = 'archived' WHERE id = ? RETURNING id",
+                (feedback_id,)
+            )
+            row = await cursor.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Feedback introuvable.")
+        else:
+            cursor = await db.execute(
+                conn,
+                "DELETE FROM feedbacks WHERE id = ? RETURNING id",
+                (feedback_id,)
+            )
+            row = await cursor.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Feedback introuvable.")
+
+    return {"status": "success", "feedback_id": feedback_id}
 
 @router.get("/generations")
 async def admin_get_generations_history(limit: int = 20, offset: int = 0):
@@ -272,11 +407,52 @@ async def admin_get_generations_history(limit: int = 20, offset: int = 0):
 async def admin_get_user_details(user_id: str):
     """[NOUVEAU] Récupère les détails complets d'un utilisateur."""
     async with db.get_connection() as conn:
-        # [FIX] La sous-requête pour login_count peut faire échouer toute la requête si la table n'existe pas.
-        # On la retire de la requête principale pour la rendre plus robuste.
-        cursor = await db.execute(conn, """
-            SELECT id, email, first_name, last_name, created_at, last_login, subscription_status as status,
-                   subscription_expiration_date as expiration_date, total_ia_cost, quota_qa as sessions_remaining
+        user_columns = await _get_table_columns(conn, "users")
+        status_expr = (
+            "subscription_status AS status"
+            if "subscription_status" in user_columns
+            else "CASE WHEN COALESCE(is_premium, FALSE) THEN 'active' ELSE 'expired' END AS status"
+        )
+        expiration_expr = (
+            "subscription_expiration_date AS expiration_date"
+            if "subscription_expiration_date" in user_columns
+            else "NULL::timestamp AS expiration_date"
+        )
+        sessions_expr = (
+            "quota_qa AS sessions_remaining"
+            if "quota_qa" in user_columns
+            else ("credits AS sessions_remaining" if "credits" in user_columns else "0 AS sessions_remaining")
+        )
+        ia_cost_expr = (
+            "total_ia_cost"
+            if "total_ia_cost" in user_columns
+            else "0::double precision AS total_ia_cost"
+        )
+        is_active_expr = (
+            "is_active"
+            if "is_active" in user_columns
+            else "TRUE AS is_active"
+        )
+        is_admin_expr = (
+            "is_admin"
+            if "is_admin" in user_columns
+            else "FALSE AS is_admin"
+        )
+        cgu_expr = (
+            "cgu_cgv_acceptance_date"
+            if "cgu_cgv_acceptance_date" in user_columns
+            else "NULL::timestamp AS cgu_cgv_acceptance_date"
+        )
+        privacy_expr = (
+            "privacy_policy_acceptance_date"
+            if "privacy_policy_acceptance_date" in user_columns
+            else "NULL::timestamp AS privacy_policy_acceptance_date"
+        )
+
+        cursor = await db.execute(conn, f"""
+            SELECT id, email, first_name, last_name, created_at, last_login, {status_expr},
+                   {expiration_expr}, {ia_cost_expr}, {sessions_expr}, {is_active_expr},
+                   {is_admin_expr}, {cgu_expr}, {privacy_expr}
             FROM users WHERE id = ?
         """, (user_id,))
         user = await cursor.fetchone()
@@ -291,6 +467,13 @@ async def admin_get_user_details(user_id: str):
     else:
         user_data = dict(user)
 
+    user_data.setdefault("status", "expired")
+    user_data.setdefault("expiration_date", None)
+    user_data.setdefault("sessions_remaining", 0)
+    user_data.setdefault("is_active", True)
+    user_data.setdefault("is_admin", False)
+    user_data.setdefault("cgu_cgv_acceptance_date", None)
+    user_data.setdefault("privacy_policy_acceptance_date", None)
     user_data['offer_name'] = 'Stratégique' # Placeholder
     return user_data
 
@@ -592,3 +775,85 @@ async def get_cache_stats():
             }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur base de données: {str(e)}")
+
+
+@router.get("/cache/shared-stats")
+async def get_shared_cache_stats():
+    """
+    Statistiques des caches partagés (cross-utilisateurs) :
+    entreprises, offres d'emploi, marché, et profils candidats.
+    Affiche les hits, les entrées stockées et les économies IA estimées.
+    """
+    from .cache_service import get_cache_stats
+    try:
+        stats = await get_cache_stats()
+        total_savings = sum(
+            v.get("estimated_savings_eur", 0)
+            for v in stats.values()
+            if isinstance(v, dict)
+        )
+        return {
+            "caches": stats,
+            "total_estimated_savings_eur": round(total_savings, 2)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur stats cache : {str(e)}")
+
+
+@router.delete("/cache/company/{company_name}")
+async def purge_company_cache(company_name: str, request: Request, admin_user: dict = Depends(get_current_user)):
+    """Force la régénération de l'analyse d'une entreprise (supprime l'entrée du cache partagé)."""
+    from .cache_service import _company_key
+    cache_key = _company_key(company_name)
+    try:
+        async with db.get_connection() as conn:
+            await db.execute(conn, "DELETE FROM company_analysis_cache WHERE cache_key = %s", (cache_key,))
+        await audit_service.log_admin_action(
+            request=request, admin_user=admin_user,
+            action="PURGE_COMPANY_CACHE",
+            target_user_id=None, target_user_email="",
+            details={"company_name": company_name}
+        )
+        return {"status": "success", "message": f"Cache supprimé pour : {company_name}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/refill-all-testers")
+async def refill_all_testers(request: Request, admin_user: dict = Depends(get_current_user)):
+    """Recharge tous les comptes actifs a 30 credits + quotas (mode testeur global)."""
+    try:
+        async with db.get_connection() as conn:
+            try:
+                await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_entreprises INTEGER DEFAULT 5;")
+                await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_offres INTEGER DEFAULT 15;")
+            except Exception:
+                pass
+            cursor = await db.execute(
+                conn,
+                """
+                UPDATE users SET
+                    credits            = 30,
+                    quota_pitch        = 30,
+                    quota_qa           = 30,
+                    quota_mes          = 30,
+                    quota_negotiation  = 30,
+                    quota_regeneration = 30,
+                    quota_update       = 30,
+                    quota_entreprises  = 5,
+                    quota_offres       = 15,
+                    is_tester          = TRUE
+                WHERE deleted_at IS NULL
+                RETURNING id
+                """
+            )
+            updated = await cursor.fetchall()
+            count = len(updated) if updated else 0
+        await audit_service.log_admin_action(
+            request=request, admin_user=admin_user,
+            action="REFILL_ALL_TESTERS",
+            target_user_id=None, target_user_email="",
+            details={"updated_count": count}
+        )
+        return {"status": "success", "updated_count": count, "message": f"{count} comptes recharges a 30 credits."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

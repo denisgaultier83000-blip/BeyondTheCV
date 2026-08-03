@@ -45,13 +45,9 @@ def main():
         cur.execute("CREATE TYPE product_type AS ENUM ('cv_ats', 'report', 'document', 'other');")
         print("✅ ENUM types created")
         
-        # Create tables
+        # Create tables - [FIX] Remplacement de DROP TABLE par CREATE TABLE IF NOT EXISTS pour la robustesse
         cur.execute("""
-            DROP TABLE IF EXISTS users CASCADE;
-        """)
-        
-        cur.execute("""
-            CREATE TABLE users (
+            CREATE TABLE IF NOT EXISTS users (
                 id TEXT PRIMARY KEY,
                 email TEXT UNIQUE NOT NULL,
                 hashed_password TEXT NOT NULL,
@@ -64,7 +60,21 @@ def main():
                 subscription_start_date TIMESTAMPTZ,
                 subscription_expiration_date TIMESTAMPTZ,
                 subscription_extension_count INTEGER DEFAULT 0,
-                last_extension_date TIMESTAMPTZ,
+                last_extension_date TIMESTAMPTZ,                
+                -- Columns from migrations.py
+                last_login TIMESTAMPTZ,
+                total_ia_cost REAL DEFAULT 0.0,
+                is_admin BOOLEAN DEFAULT FALSE,
+                is_tester BOOLEAN DEFAULT FALSE,
+                quota_pitch INTEGER DEFAULT 30,
+                quota_qa INTEGER DEFAULT 30,
+                quota_mes INTEGER DEFAULT 30,
+                quota_negotiation INTEGER DEFAULT 30,
+                quota_regeneration INTEGER DEFAULT 30,
+                quota_update INTEGER DEFAULT 30,
+                quota_entreprises INTEGER DEFAULT 5,
+                quota_offres INTEGER DEFAULT 15,
+                credits INTEGER DEFAULT 30,
                 deleted_at TIMESTAMPTZ,
                 is_active BOOLEAN DEFAULT TRUE
             )
@@ -93,11 +103,7 @@ def main():
         print("✅ Table 'job_applications' created")
 
         cur.execute("""
-            DROP TABLE IF EXISTS products CASCADE;
-        """)
-        
-        cur.execute("""
-            CREATE TABLE products (
+            CREATE TABLE IF NOT EXISTS products (
                 id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 product_type product_type NOT NULL,
@@ -107,7 +113,8 @@ def main():
                 mime_type TEXT,
                 title TEXT,
                 description TEXT,
-                metadata JSONB,
+                -- [FIX] metadata column was missing from products table
+                metadata JSONB, 
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 downloaded_count INTEGER DEFAULT 0,
@@ -121,17 +128,14 @@ def main():
         print("✅ Table 'products' created")
 
         cur.execute("""
-            DROP TABLE IF EXISTS documents CASCADE;
-        """)
-        
-        cur.execute("""
-            CREATE TABLE documents (
+            CREATE TABLE IF NOT EXISTS documents (
                 id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 filename TEXT NOT NULL,
                 path TEXT,
                 type TEXT,
-                media_type TEXT,
+                -- [FIX] media_type column was missing from documents table
+                media_type TEXT, 
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 application_id TEXT REFERENCES job_applications(id) ON DELETE CASCADE
             )
@@ -212,11 +216,39 @@ def main():
                 strengths TEXT,
                 weaknesses TEXT,
                 improved_answer TEXT,
+                tags JSONB DEFAULT '[]'::jsonb,
                 application_id TEXT REFERENCES job_applications(id) ON DELETE SET NULL,
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         """)
         print("✅ Table 'training_sessions' created")
+        cur.execute("ALTER TABLE training_sessions ADD COLUMN IF NOT EXISTS tags JSONB DEFAULT '[]'::jsonb;")
+        print("✅ Column 'training_sessions.tags' ensured")
+
+        # Interview debriefs table (used by debrief_service.py)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS interview_debriefs (
+                id TEXT PRIMARY KEY,
+                user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+                company_name TEXT,
+                job_title TEXT,
+                interview_date TIMESTAMPTZ,
+                interview_format TEXT,
+                interlocutor_type TEXT,
+                interlocutor_name TEXT,
+                interlocutor_role TEXT,
+                ambiance JSONB,
+                positive_signals JSONB,
+                red_flags JSONB,
+                questions_asked TEXT,
+                difficult_questions TEXT,
+                learnings TEXT,
+                preparation_points TEXT,
+                interest_level INTEGER,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        print("✅ Table 'interview_debriefs' created")
 
         cur.execute("""
             CREATE TABLE IF NOT EXISTS generation_cache (
@@ -230,17 +262,40 @@ def main():
         print("✅ Table 'generation_cache' created")
 
         cur.execute("""
-            DROP TABLE IF EXISTS tasks CASCADE;
+            CREATE TABLE IF NOT EXISTS job_offer_imports (
+                normalized_url TEXT PRIMARY KEY,
+                source_url TEXT NOT NULL,
+                provider TEXT DEFAULT '',
+                content_hash TEXT NOT NULL,
+                title TEXT,
+                company TEXT,
+                location TEXT,
+                industry TEXT,
+                employment_type TEXT,
+                date_posted TEXT,
+                description TEXT,
+                preview_json JSONB NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )
         """)
-        
+        print("✅ Table 'job_offer_imports' created")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_job_offer_imports_content_hash ON job_offer_imports(content_hash)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_job_offer_imports_provider ON job_offer_imports(provider)")
+
         cur.execute("""
-            CREATE TABLE tasks (
+            CREATE TABLE IF NOT EXISTS tasks (
                 id TEXT PRIMARY KEY,
                 user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
                 status TEXT,
                 task_type TEXT,
                 result TEXT,
-                error_message TEXT,
+                error_message TEXT,                
+                -- Columns from migrations.py
+                duration_ms INTEGER,
+                estimated_cost REAL,
+                model_used TEXT,
+                prompt_version TEXT,
                 progress_percent INTEGER DEFAULT 0,
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 started_at TIMESTAMPTZ,
@@ -304,6 +359,30 @@ def main():
 
         conn.commit()
         print("\n🎉 PostgreSQL migration completed successfully!")
+
+        # --- MIGRATION COLONNES MANQUANTES + RECHARGEMENT TESTEURS ---
+        # Ajout des colonnes quota_entreprises et quota_offres si absentes
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_entreprises INTEGER DEFAULT 5;")
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_offres INTEGER DEFAULT 15;")
+
+        # Rechargement inconditionnel de tous les comptes à 30 crédits (mode testeur)
+        cur.execute("""
+            UPDATE users SET
+                credits          = 30,
+                quota_pitch      = 30,
+                quota_qa         = 30,
+                quota_mes        = 30,
+                quota_negotiation = 30,
+                quota_regeneration = 30,
+                quota_update     = 30,
+                quota_entreprises = 5,
+                quota_offres     = 15,
+                is_tester        = TRUE
+            WHERE deleted_at IS NULL
+        """)
+        print(f"✅ Tous les comptes existants rechargés à 30 crédits (mode testeur)")
+
+        conn.commit()
         return True
 
     except Exception as e:

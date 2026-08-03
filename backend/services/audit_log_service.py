@@ -4,7 +4,7 @@ from database import db
 from typing import List, Optional
 
 router = APIRouter(
-    prefix="/api/admin/audit-logs",
+    prefix="/admin/audit-logs",
     tags=["Administration - Audit Logs"],
     dependencies=[Depends(require_admin_user)]
 )

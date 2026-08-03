@@ -106,7 +106,7 @@ export function PitchTrainer() {
       formData.append('cvData', JSON.stringify(cvData));
 
       // Appel à la future route d'évaluation audio
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/evaluate-pitch-audio`, {
+      const response = await authenticatedFetch(`${API_BASE_URL}/cv/evaluate-pitch-audio`, {
         method: 'POST',
         // Important: Ne PAS définir le Content-Type manuellement avec FormData
         body: formData 

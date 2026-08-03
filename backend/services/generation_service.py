@@ -6,7 +6,7 @@ from . import tasks
 from .audit_service import audit_service
 
 router = APIRouter(
-    prefix="/api/admin/generations",
+    prefix="/admin/generations",
     tags=["Administration - Generations"],
     dependencies=[Depends(require_admin_user)]
 )

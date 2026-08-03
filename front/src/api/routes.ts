@@ -1,37 +1,39 @@
-import { API_BASE_URL } from '../config';
-
 export const API_ROUTES = {
   AUTH: {
-    LOGIN: `${API_BASE_URL}/api/login`,
+    LOGIN: "/auth/token",
+    REGISTER: "/auth/register",
+    ME: "/auth/me",
   },
   PROFILE: {
-    GET: `${API_BASE_URL}/api/cv/me/profile`,
-    SAVE: `${API_BASE_URL}/api/cv/me/profile`,
-    PARSE_LINKEDIN: `${API_BASE_URL}/api/cv/parse-linkedin`,
+    GET: "/cv/me/profile",
+    SAVE: "/cv/me/profile",
+    PARSE_LINKEDIN: "/cv/parse-linkedin",
   },
   DOCUMENTS: {
-    LIST: `${API_BASE_URL}/api/documents`,
-    DOWNLOAD: (id: string) => `${API_BASE_URL}/api/documents/download/${id}`,
-    DELETE: (id: string) => `${API_BASE_URL}/api/documents/${id}`,
+    LIST: "/documents",
+    DOWNLOAD: (id: string) => `/documents/download/${id}`,
+    DELETE: (id: string) => `/documents/${id}`,
   },
   FEEDBACKS: {
-    LIST: `${API_BASE_URL}/api/cv/feedbacks`,
-    CREATE: `${API_BASE_URL}/api/cv/feedback`,
+    LIST: "/cv/feedbacks",
+    CREATE: "/cv/feedback",
   },
   SIMULATOR: {
-    SITUATION: `${API_BASE_URL}/api/cv/simulate-situation`,
-    CAREER: `${API_BASE_URL}/api/cv/simulate-career`,
+    SITUATION: "/cv/simulate-situation",
+    CAREER: "/cv/simulate-career",
   },
   INTERVIEW: {
-    EVALUATE: `${API_BASE_URL}/api/cv/evaluate-interview-answer`,
+    EVALUATE: "/cv/evaluate-interview-answer",
+    HISTORY: "/cv/interview/history",
   },
   TRAINING: {
-    STATS: `${API_BASE_URL}/api/cv/training/stats`,
-    GENERATE: `${API_BASE_URL}/api/cv/training/generate-question`,
-    EVALUATE: `${API_BASE_URL}/api/cv/training/evaluate`,
+    STATS: "/cv/training/stats",
+    GENERATE: "/cv/training/generate-question",
+    EVALUATE: "/cv/training/evaluate",
+    HISTORY: "/cv/training/history",
   },
   RESEARCH: {
-    DISAMBIGUATE: `${API_BASE_URL}/api/research/disambiguate`,
-    START: `${API_BASE_URL}/api/research/start`,
+    DISAMBIGUATE: "/research/disambiguate",
+    START: "/research/start",
   }
 };

@@ -18,6 +18,23 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
     } else {
       // L'IA peut utiliser d'autres clés selon la langue ou le contexte. On cherche la bonne clé, sinon le premier tableau.
       coachingList = payload.coaching || payload.flaws || payload.parades || payload.defauts || Object.values(payload).find(v => Array.isArray(v)) || [];
+      // Ensure we always have an array. The AI can return an object with numeric keys or a single object.
+      if (!Array.isArray(coachingList)) {
+        if (coachingList == null) {
+          coachingList = [];
+        } else if (typeof coachingList === 'object') {
+          // Try to find an inner array first
+          const inner = Object.values(coachingList).find(v => Array.isArray(v));
+          if (Array.isArray(inner)) coachingList = inner;
+          else {
+            // If keys look numeric, convert to array of values, otherwise wrap single object
+            const keysNumeric = Object.keys(coachingList).length > 0 && Object.keys(coachingList).every(k => /^\d+$/.test(k));
+            coachingList = keysNumeric ? Object.values(coachingList) : [coachingList];
+          }
+        } else {
+          coachingList = [];
+        }
+      }
     }
   }
 

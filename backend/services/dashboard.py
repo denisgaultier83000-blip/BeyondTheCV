@@ -66,13 +66,23 @@ async def start_research(request: ResearchRequest, background_tasks: BackgroundT
         )
         
         # 2. Insertion des tâches liées
-        for tid in tasks_map.values():
-            await db.execute(conn, "INSERT INTO tasks (id, status, result, created_at, application_id) VALUES (?, ?, ?, ?, ?)", (tid, "PENDING", None, now, application_id))
+        for task_type, tid in tasks_map.items():
+            await db.execute(
+                conn,
+                "INSERT INTO tasks (id, user_id, status, task_type, result, created_at, application_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (tid, current_user["id"], "PENDING", task_type, None, now, application_id)
+            )
             
     # [FIX] Si une description de poste est fournie, on lance aussi le décodeur.
     if unified_data.get("job_description"):
         job_decoder_task_id = str(uuid.uuid4())
         tasks_map["job_decoder"] = job_decoder_task_id
+        async with db.get_connection() as conn:
+            await db.execute(
+                conn,
+                "INSERT INTO tasks (id, user_id, status, task_type, result, created_at, application_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (job_decoder_task_id, current_user["id"], "PENDING", "job_decoder", None, now, application_id)
+            )
         background_tasks.add_task(process_job_decoder_in_background, job_decoder_task_id, unified_data)
         print(f"[API] 🕵️ Job Decoder triggered as well. Task ID: {job_decoder_task_id}", flush=True)
 

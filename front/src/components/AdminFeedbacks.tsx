@@ -26,7 +26,7 @@ export default function AdminFeedbacks() {
   useEffect(() => {
     const fetchFeedbacks = async () => {
       try {
-        const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/feedbacks`);
+        const response = await authenticatedFetch(`${API_BASE_URL}/admin/feedbacks`);
         if (!response.ok) {
           const errText = await response.text();
           throw new Error(`Erreur ${response.status} : ${errText}`);
@@ -48,7 +48,7 @@ export default function AdminFeedbacks() {
 
     setArchivingId(id);
     try {
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/feedbacks/${id}/archive`, {
+      const response = await authenticatedFetch(`${API_BASE_URL}/admin/feedbacks/${id}/archive`, {
         method: 'POST'
       });
       if (!response.ok) {

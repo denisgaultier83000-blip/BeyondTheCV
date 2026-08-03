@@ -85,6 +85,27 @@ def create_tables():
         cur.execute("ALTER TABLE job_applications ADD COLUMN IF NOT EXISTS tasks_map JSONB;")
         print("✅ Table 'job_applications' migrated.")
 
+        # --- CRÉATION TABLE 'candidate_behavioral_data' ---
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS candidate_behavioral_data (
+                user_id                 TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+                flaws                   JSONB DEFAULT '[]'::jsonb,
+                motivations             TEXT,
+                work_style              JSONB DEFAULT '[]'::jsonb,
+                relational_style        JSONB DEFAULT '[]'::jsonb,
+                professional_approach   JSONB DEFAULT '[]'::jsonb,
+                coaching_style          TEXT,
+                fears                   TEXT,
+                clarification_insights  JSONB DEFAULT '{}'::jsonb,
+                stress_level            TEXT,
+                current_situation       TEXT,
+                salary_expectations     TEXT,
+                remote_preference       TEXT,
+                updated_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        print("✅ Table 'candidate_behavioral_data' migrated.")
+
         conn.commit()
         return True
 

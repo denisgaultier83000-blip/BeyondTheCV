@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { API_BASE_URL } from '../config';
+import { useState, useEffect, useCallback } from 'react';
 import { authenticatedFetch } from '../utils/auth';
+import { normalizePilotSummaryResponse } from '../utils/pilotSummary';
 
 const INITIAL_DATA = {
   personal_info: { first_name: "", last_name: "", email: "", phone: "", address: "", city: "", linkedin: "", photo: "" },
@@ -85,52 +85,80 @@ export function useDashboardLogic() {
   const [toasts, setToasts] = useState<Array<{ id: number; text: string }>>([]);
 
 
-  const fetchPilotData = async () => {
-    if (pilotData || !formData) return; // Already fetched or no data
+  // Compute a lightweight signature of core CV fields to decide when to refetch the dashboard summary
+  const computePilotSignature = (data: any) => {
+    if (!data) return '';
+    return JSON.stringify({
+      target_job: data.target_job,
+      target_company: data.target_company,
+      experiences: data.experiences || [],
+      educations: data.educations || [],
+      skills: data.skills || '',
+      flaws: data.flaws || [],
+      researchResult: researchResult || null
+    });
+  };
+
+  const [pilotSignature, setPilotSignature] = useState<string>('');
+
+  const fetchPilotData = useCallback(async () => {
+    if (!formData) return; // nothing to enrich
+
+    const currentSig = computePilotSignature(formData);
+    // If we already have data and signature hasn't changed, skip re-fetch
+    if (pilotData && pilotSignature === currentSig) return;
+
     console.log("Fetching pilot data...");
     setIsPilotLoading(true);
+    setError(null);
     try {
       // [OPTIMISATION] On injecte les résultats de marché pour que la synthèse IA soit beaucoup plus riche
       const enrichedPayload = { ...formData };
       if (researchResult) enrichedPayload.research_data = researchResult;
 
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/dashboard/summary`, {
+      const response = await authenticatedFetch(`/cv/dashboard/summary`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(enrichedPayload)
       });
-      
-      if (response.ok) {
-        const data = await response.json();
-        
-        const safeGaps = Array.isArray(data.gapsMatrix) ? data.gapsMatrix : (Array.isArray(data.skills_to_bridge) ? data.skills_to_bridge : []);
-        const safeStrengths = Array.isArray(data.strengths) ? data.strengths : (Array.isArray(data.key_strengths) ? data.key_strengths : []);
 
-        setPilotData({
-          matchScore: data.matchScore ?? data.match_score ?? 0,
-          summary: data.summary ?? data.match_summary ?? 'Analyse IA terminée.',
-          strengths: safeStrengths.map((s: any) => typeof s === 'string' ? s : JSON.stringify(s)),
-          gapsMatrix: safeGaps.map((item: any) => ({ 
-            skill: typeof item === 'string' ? item : (item.skill || item.name || JSON.stringify(item)), 
-            impact: (typeof item === 'object' && item.impact) ? item.impact : 'High',
-            action: (typeof item === 'object' && item.action) ? item.action : 'À prioriser pour ce poste' 
-          })),
-          recommendedStrategy: data.recommendedStrategy || (Array.isArray(data.application_strategy) ? data.application_strategy.join('\n• ') : '')
-        });
+      if (!response.ok) {
+        let detail = '';
+        try {
+          detail = await response.text();
+        } catch (readError) {
+          console.warn('Impossible de lire l’erreur du backend.', readError);
+        }
+        throw new Error(detail || `Erreur serveur (${response.status})`);
       }
-    } catch (err) { 
-      console.error('Erreur API Dashboard Summary:', err); 
-      setPilotData({
-        matchScore: 0,
-        summary: "Données non disponibles.",
-        strengths: [],
-        gapsMatrix: [],
-        recommendedStrategy: ""
-      });
+
+      const data = await response.json();
+      setPilotData(normalizePilotSummaryResponse(enrichedPayload, data, researchResult));
+      setPilotSignature(currentSig);
+    } catch (err) {
+      console.error('Erreur API Dashboard Summary:', err);
+      const fallbackSummary = normalizePilotSummaryResponse({ ...formData, ...(researchResult ? { research_data: researchResult } : {}) }, null, researchResult);
+      setPilotData(fallbackSummary);
+      setPilotSignature(currentSig);
+      setError(err instanceof Error ? err.message : 'La synthèse n’a pas pu être chargée.');
     } finally {
       setIsPilotLoading(false);
     }
-  };
+  }, [formData, pilotData, pilotSignature, researchResult]);
+
+  // Trigger pilot data refetch when core CV data changes
+  useEffect(() => {
+    try {
+      const currentSig = computePilotSignature(formData);
+      if (currentSig !== pilotSignature) {
+        // Small debounce to avoid rapid refetch while the user types
+        const id = setTimeout(() => {
+          fetchPilotData();
+        }, 600);
+        return () => clearTimeout(id);
+      }
+    } catch (e) { console.warn('Signature compare error', e); }
+  }, [formData, researchResult, pilotSignature]);
 
   // --- Conversion de Devise ---
   const EUROPEAN_COUNTRIES = ['FRANCE', 'GERMANY', 'SPAIN', 'ITALY', 'PORTUGAL', 'BELGIUM', 'NETHERLANDS', 'AUSTRIA', 'IRELAND', 'DE', 'ES', 'FR', 'IT', 'PT'];
@@ -159,7 +187,7 @@ export function useDashboardLogic() {
   }, [formData, currentStep, taskIds, cvResult, gapResult, researchResult, salaryResult, careerGpsResult, careerRadarResult, jobDecoderResult, pitchResult, questionsResult, hiddenMarketResult, recruiterResult, realityResult, flawCoachingResult, actionPlanResult, customScenariosResult]);
 
   // --- GESTION DU FORMULAIRE ---
-  const updateFormData = (key: string, value: any) => {
+  const updateFormData = useCallback((key: string, value: any) => {
     setFormData((prev: any) => {
       // Gestion des champs imbriqués (ex: personal_info.first_name)
       if (['first_name', 'last_name', 'email', 'phone', 'address', 'city', 'linkedin', 'photo'].includes(key)) {
@@ -167,15 +195,15 @@ export function useDashboardLogic() {
       }
       return { ...prev, [key]: value };
     });
-  };
+  }, []);
 
   // Helpers pour les listes (Expériences, Education...)
-  const updateList = (listName: string, id: number, field: string, value: any) => {
+  const updateList = useCallback((listName: string, id: number, field: string, value: any) => {
     setFormData((prev: any) => ({
       ...prev,
       [listName]: prev[listName].map((item: any) => item.id === id ? { ...item, [field]: value } : item)
     }));
-  };
+  }, []);
 
   // [RESET] Pour recommencer à zéro
   const resetDashboard = (onComplete?: () => void) => {
@@ -227,7 +255,7 @@ export function useDashboardLogic() {
         // On ne lance que si une entreprise ou un secteur est défini
         if (formData.target_company || formData.target_industry) {
         console.log("🚀 Triggering Page 2 Background Tasks (Market/Company)...");
-        const res = await authenticatedFetch(`${API_BASE_URL}/api/research/start`, {
+        const res = await authenticatedFetch(`/research/start`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -245,7 +273,7 @@ export function useDashboardLogic() {
       else if (currentStep === 5) {
         // Lancement anticipé (asynchrone) de l'analyse de complétude
         console.log("🚀 Triggering Page 5 Background Task (Completeness)...");
-        authenticatedFetch(`${API_BASE_URL}/api/cv/analyze-completeness`, {
+        authenticatedFetch(`/cv/analyze-completeness`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -259,26 +287,17 @@ export function useDashboardLogic() {
         // PAGE 6 -> 7 : Sync Call for Clarifications
         setGlobalStatus("PROCESSING"); // Petit feedback visuel
         console.log("⏳ Fetching Clarification Questions..."); 
-        let responseData;
-        
-        const fetchResult = async (tid: string) => {
-            while (true) {
-                const res = await fetch(`${API_BASE_URL}/api/cv/analysis-status/${tid}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.status === "SUCCESS" || data.status === "COMPLETED") return data.result;
-                    if (data.status === "FAILED") throw new Error("Task failed");
-                }
-                await new Promise(r => setTimeout(r, 1500));
-            }
-        };
-
-        if (taskIds?.completeness) {
-            responseData = await fetchResult(taskIds.completeness);
-        } else {
-            const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/analyze-completeness`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            const initData = await res.json();
-            responseData = initData.task_id ? await fetchResult(initData.task_id) : initData;
+        let responseData: any = null;
+        {
+            // [FIX] Toujours régénérer à partir des données courantes pour éviter les questions figées
+            // quand l'utilisateur modifie les étapes précédentes puis revient à cette page.
+            const res = await authenticatedFetch(`/cv/analyze-completeness`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error(`Erreur API (Clarifications): ${res.statusText}`);
+            responseData = await res.json();
         }
         
         // Mise à jour du formulaire avec les questions reçues
@@ -308,7 +327,7 @@ export function useDashboardLogic() {
              payloadWithCache.research_data = { _pending: true };
          }
 
-         const res = await authenticatedFetch(`${API_BASE_URL}/api/cv/start-analysis`, {
+         const res = await authenticatedFetch(`/cv/start-analysis`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...payloadWithCache, is_partial_start: false })
@@ -337,14 +356,17 @@ export function useDashboardLogic() {
   };
 
   // --- POLLING GÉNÉRIQUE ---
-  const useTaskPolling = (taskId: string | undefined, onComplete: (data: any) => void) => {
+  // existingResult : si déjà disponible (localStorage), on ne repoll pas les vieux IDs
+  const useTaskPolling = (taskId: string | undefined, onComplete: (data: any) => void, existingResult?: any) => {
     useEffect(() => {
-      // [FIX] On retire 'globalStatus !== "PROCESSING"' pour permettre le background polling dès la page 3
       if (!taskId) return;
-      
+      // Si un résultat valide existe déjà, inutile de repoll un ancien ID :
+      // on nettoie juste le taskId pour ne pas le relancer au prochain rendu.
+      if (existingResult && !existingResult.error) return;
+
       const interval = setInterval(async () => {
         try {
-          const res = await fetch(`${API_BASE_URL}/api/cv/analysis-status/${taskId}`);
+          const res = await authenticatedFetch(`/tasks/status/${taskId}`);
           if (res.ok) {
             const data = await res.json();
             // [FIX] Support du nouveau statut backend (SUCCESS) et de l'ancien (COMPLETED)
@@ -357,8 +379,8 @@ export function useDashboardLogic() {
               clearInterval(interval); // On arrête mais on ne bloque pas tout le dashboard
             }
           } else if (res.status === 404) {
-            // [FIX] La tâche n'existe plus en BDD (expiration ou DB reset). On arrête de spammer !
-            onComplete({ error: true, message: "Tâche introuvable ou expirée." });
+            // La tâche n'existe plus en DB (expirée / serveur redémarré).
+            // On arrête le polling SANS écraser un éventuel résultat existant.
             clearInterval(interval);
           }
         } catch (e) { console.error("Polling error", e); }
@@ -367,24 +389,25 @@ export function useDashboardLogic() {
     }, [taskId]);
   };
 
-  // Activation des pollings parallèles
-  useTaskPolling(taskIds?.cv_analysis, setCvResult);
-  useTaskPolling(taskIds?.gap_analysis, setGapResult);
-  useTaskPolling(taskIds?.market_research, setResearchResult);
-  useTaskPolling(taskIds?.salary_estimation, setSalaryResult);
+  // Activation des pollings parallèles — on passe le résultat existant en 3ème argument
+  // pour éviter de repoll des IDs périmés au rechargement de page.
+  useTaskPolling(taskIds?.cv_analysis, setCvResult, cvResult);
+  useTaskPolling(taskIds?.gap_analysis, setGapResult, gapResult);
+  useTaskPolling(taskIds?.market_research, setResearchResult, researchResult);
+  useTaskPolling(taskIds?.salary_estimation, setSalaryResult, salaryResult);
   
   // [FIX] Rétablissement de l'écoute (polling) des tâches Premium
-  useTaskPolling(taskIds?.career_gps, setCareerGpsResult);
-  useTaskPolling(taskIds?.career_radar, setCareerRadarResult);
-  useTaskPolling(taskIds?.job_decoder, setJobDecoderResult);
-  useTaskPolling(taskIds?.pitch, setPitchResult);
-  useTaskPolling(taskIds?.questions, setQuestionsResult);
-  useTaskPolling(taskIds?.hidden_market, setHiddenMarketResult);
-  useTaskPolling(taskIds?.recruiter_view, setRecruiterResult);
-  useTaskPolling(taskIds?.reality_check, setRealityResult);
-  useTaskPolling(taskIds?.flaw_coaching, setFlawCoachingResult);
-  useTaskPolling(taskIds?.action_plan, setActionPlanResult);
-  useTaskPolling(taskIds?.custom_scenarios, setCustomScenariosResult);
+  useTaskPolling(taskIds?.career_gps, setCareerGpsResult, careerGpsResult);
+  useTaskPolling(taskIds?.career_radar, setCareerRadarResult, careerRadarResult);
+  useTaskPolling(taskIds?.job_decoder, setJobDecoderResult, jobDecoderResult);
+  useTaskPolling(taskIds?.pitch, setPitchResult, pitchResult);
+  useTaskPolling(taskIds?.questions, setQuestionsResult, questionsResult);
+  useTaskPolling(taskIds?.hidden_market, setHiddenMarketResult, hiddenMarketResult);
+  useTaskPolling(taskIds?.recruiter_view, setRecruiterResult, recruiterResult);
+  useTaskPolling(taskIds?.reality_check, setRealityResult, realityResult);
+  useTaskPolling(taskIds?.flaw_coaching, setFlawCoachingResult, flawCoachingResult);
+  useTaskPolling(taskIds?.action_plan, setActionPlanResult, actionPlanResult);
+  useTaskPolling(taskIds?.custom_scenarios, setCustomScenariosResult, customScenariosResult);
 
   // Effect pour la conversion de devise
   useEffect(() => {
@@ -422,8 +445,7 @@ export function useDashboardLogic() {
     setResearchResult(null); // On vide l'ancien résultat pour forcer le chargement
     try {
       const payload = { ...formData, target_language: formData.target_language || 'fr' };
-      const res = await authenticatedFetch(`${API_BASE_URL}/api/research/start`, {
-        method: 'POST',
+      const res = await authenticatedFetch(`/research/start`, {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           target_company: payload.target_company,

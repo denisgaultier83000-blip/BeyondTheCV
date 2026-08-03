@@ -50,8 +50,8 @@ const AdminBilling: React.FC = () => {
     const fetchBillingData = async () => {
       try {
         const [paymentsRes, webhookStatusRes] = await Promise.all([
-            authenticatedFetch(`${API_BASE_URL}/api/admin/billing`),
-            authenticatedFetch(`${API_BASE_URL}/api/admin/billing/webhook-status`)
+            authenticatedFetch(`${API_BASE_URL}/admin/billing`),
+            authenticatedFetch(`${API_BASE_URL}/admin/billing/webhook-status`)
         ]);
 
         if (!paymentsRes.ok) throw new Error("Impossible de charger les données de facturation.");

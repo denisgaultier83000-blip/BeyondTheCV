@@ -102,9 +102,11 @@ def initialize_schema():
                 strengths TEXT,
                 weaknesses TEXT,
                 improved_answer TEXT,
+                tags JSONB DEFAULT '[]'::jsonb,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        cur.execute("ALTER TABLE training_sessions ADD COLUMN IF NOT EXISTS tags JSONB DEFAULT '[]'::jsonb;")
 
         print("   - Vérification de la table 'interview_sessions'...")
         cur.execute("""
@@ -131,6 +133,28 @@ def initialize_schema():
             )
         """)
         
+        print("   - Vérification de la table 'job_offer_imports'...")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS job_offer_imports (
+                normalized_url TEXT PRIMARY KEY,
+                source_url TEXT NOT NULL,
+                provider TEXT DEFAULT '',
+                content_hash TEXT NOT NULL,
+                title TEXT,
+                company TEXT,
+                location TEXT,
+                industry TEXT,
+                employment_type TEXT,
+                date_posted TEXT,
+                description TEXT,
+                preview_json JSONB NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_job_offer_imports_content_hash ON job_offer_imports(content_hash)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_job_offer_imports_provider ON job_offer_imports(provider)")
+
         print("   - Vérification de la table 'job_applications'...")
         cur.execute("""
             CREATE TABLE IF NOT EXISTS job_applications (
@@ -164,14 +188,31 @@ def initialize_schema():
 
         print("   - Migration de la table 'users' (Ajout des quotas)...")
         try:
-            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_pitch INTEGER DEFAULT 10;")
-            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_qa INTEGER DEFAULT 25;")
-            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_mes INTEGER DEFAULT 6;")
-            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_negotiation INTEGER DEFAULT 4;")
-            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_regeneration INTEGER DEFAULT 3;")
-            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_update INTEGER DEFAULT 1;")
-            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT 100;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_pitch INTEGER DEFAULT 30;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_qa INTEGER DEFAULT 30;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_mes INTEGER DEFAULT 30;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_negotiation INTEGER DEFAULT 30;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_regeneration INTEGER DEFAULT 30;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_update INTEGER DEFAULT 30;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT 30;")
             cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS total_ia_cost REAL DEFAULT 0.0;")
+            # Quotas de ressources (entreprises suivies, offres analysées)
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_entreprises INTEGER DEFAULT 5;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_offres INTEGER DEFAULT 15;")
+            # Mode test global: tous les comptes existants sont alignés aux limites testeurs.
+            cur.execute("""
+                UPDATE users
+                SET is_tester = TRUE,
+                    credits = 30,
+                    quota_pitch = 30,
+                    quota_qa = 30,
+                    quota_mes = 30,
+                    quota_negotiation = 30,
+                    quota_regeneration = 30,
+                    quota_update = 30,
+                    quota_entreprises = 5,
+                    quota_offres = 15
+            """)
         except Exception as e:
             conn.rollback()
             print(f"     ⚠️ Impossible d'altérer la table 'users' (elle n'existe peut-être pas encore) : {e}")
@@ -181,6 +222,76 @@ def initialize_schema():
             CREATE TABLE IF NOT EXISTS payments (
                 id TEXT PRIMARY KEY, user_id TEXT, user_email TEXT, status TEXT, offer_name TEXT, 
                 amount_paid REAL, currency TEXT, purchase_date TIMESTAMP, stripe_invoice_url TEXT
+            )
+        """)
+
+        # -------------------------------------------------------
+        # CACHES PARTAGÉS (cross-user, économies IA majeures)
+        # -------------------------------------------------------
+        print("   - Vérification de la table 'company_analysis_cache'...")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS company_analysis_cache (
+                cache_key    TEXT PRIMARY KEY,
+                company_name TEXT NOT NULL,
+                industry     TEXT DEFAULT '',
+                result       JSONB NOT NULL,
+                cached_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                hit_count    INTEGER NOT NULL DEFAULT 0,
+                last_hit_at  TIMESTAMP
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_company_cache_name ON company_analysis_cache (LOWER(company_name));")
+
+        print("   - Vérification de la table 'job_offer_cache'...")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS job_offer_cache (
+                cache_key  TEXT PRIMARY KEY,
+                result     JSONB NOT NULL,
+                cached_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                hit_count  INTEGER NOT NULL DEFAULT 0,
+                last_hit_at TIMESTAMP
+            )
+        """)
+
+        print("   - Vérification de la table 'job_market_cache'...")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS job_market_cache (
+                cache_key  TEXT PRIMARY KEY,
+                job_title  TEXT NOT NULL,
+                country    TEXT DEFAULT '',
+                result     JSONB NOT NULL,
+                cached_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                hit_count  INTEGER NOT NULL DEFAULT 0,
+                last_hit_at TIMESTAMP
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_market_cache_title ON job_market_cache (LOWER(job_title));")
+
+        # Enrichissement de user_profiles (cache profil candidat)
+        print("   - Migration de la table 'user_profiles' (cv_signature, updated_at)...")
+        try:
+            cur.execute("ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS cv_signature TEXT DEFAULT '';")
+            cur.execute("ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;")
+        except Exception:
+            conn.rollback()
+
+        print("   - Vérification de la table 'candidate_behavioral_data'...")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS candidate_behavioral_data (
+                user_id                 TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+                flaws                   JSONB DEFAULT '[]'::jsonb,
+                motivations             TEXT,
+                work_style              JSONB DEFAULT '[]'::jsonb,
+                relational_style        JSONB DEFAULT '[]'::jsonb,
+                professional_approach   JSONB DEFAULT '[]'::jsonb,
+                coaching_style          TEXT,
+                fears                   TEXT,
+                clarification_insights  JSONB DEFAULT '{}'::jsonb,
+                stress_level            TEXT,
+                current_situation       TEXT,
+                salary_expectations     TEXT,
+                remote_preference       TEXT,
+                updated_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
 

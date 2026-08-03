@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
  import { AlertCircle, RotateCcw, RefreshCw, Loader2, FileText, Target, MessageSquare, BarChart3, Bell as LucideBell, X as LucideX, Lock, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -18,17 +18,20 @@ import AdminGenerations from './components/AdminGenerations';
 import AdminAuditLogs from './components/AdminAuditLogs';
 import { AdminDashboard } from './components/AdminDashboard';
 import { LandingPage } from './components/LandingPage';
+import WizardStepper from './components/WizardStepper';
 import { CGU } from './components/CGU';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { LegalNotice } from './components/LegalNotice';
 import ResetPassword from './components/ResetPassword';
 import { LoadingScreen } from './components/LoadingScreen';
 import DocumentsModal from './components/DocumentsModal';
+import PackStatusWidget from './components/PackStatusWidget';
+import ConfirmAnalysisModal from './components/ConfirmAnalysisModal';
 import { API_BASE_URL } from './config';
 import { authenticatedFetch } from './utils/auth';
 import './index.css';
 
-// Composant fantôme séparé pour isoler le cycle de vie du useEffect
+// Composant fantÃƒÂ´me sÃƒÂ©parÃƒÂ© pour isoler le cycle de vie du useEffect
 function Step6Ghost({ onNext, t }: { onNext: () => void, t: any }) {
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -37,14 +40,29 @@ function Step6Ghost({ onNext, t }: { onNext: () => void, t: any }) {
     return () => clearTimeout(timer);
   }, [onNext]);
 
-  return <LoadingScreen title={t('loading_strat_title', "Création de votre profil stratégique...")} description={t('loading_strat_desc', "Analyse de vos expériences et exigences du marché...")} />;
+  return <LoadingScreen title={t('loading_strat_title', "CrÃƒÂ©ation de votre profil stratÃƒÂ©gique...")} description={t('loading_strat_desc', "Analyse de vos expÃƒÂ©riences et exigences du marchÃƒÂ©...")} />;
 }
 
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // --- États de l'interface ---
+  type AnalysisPreview = {
+    company_cached: boolean;
+    offer_cached: boolean;
+    costs: {
+      entreprises: number;
+      offres: number;
+    };
+    should_confirm: boolean;
+    quotas: {
+      entreprises: number;
+      offres: number;
+      credits: number;
+    };
+  };
+
+  // --- Ãƒâ€°tats de l'interface ---
   const [showAdmin, setShowAdmin] = useState(false);
   const [showCGU, setShowCGU] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
@@ -59,8 +77,13 @@ function AppContent() {
   const [stepErrors, setStepErrors] = useState<Record<string, boolean>>({});
   const [restoredData, setRestoredData] = useState<any>(null);
   const [lastSaveTime, setLastSaveTime] = useState<Date | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [currentQuotas, setCurrentQuotas] = useState<{ entreprises: number; offres: number; credits: number }>({ entreprises: 5, offres: 15, credits: 30 });
+  const [analysisPreview, setAnalysisPreview] = useState<AnalysisPreview | null>(null);
+  const [isCheckingAnalysisPreview, setIsCheckingAnalysisPreview] = useState(false);
+  const [quotaRefreshToken, setQuotaRefreshToken] = useState(0);
 
-  // Ref pour éviter de déclencher l'auto-sauvegarde au montage initial de la page
+  // Ref pour ÃƒÂ©viter de dÃƒÂ©clencher l'auto-sauvegarde au montage initial de la page
   const initialLoadRef = useRef(true);
 
   // --- Contexte Global (Hooks) ---
@@ -81,18 +104,18 @@ function AppContent() {
     resetDashboard,
     triggerResearch,
     toasts, setToasts,
-    // [FIX] Ajout des variables manquantes pour gérer les onglets
+    // [FIX] Ajout des variables manquantes pour gÃƒÂ©rer les onglets
     activeTab, setActiveTab 
   } = useGlobalDashboard();
 
-  // --- Contrat de Données (Lecture seule) ---
+  // --- Contrat de DonnÃƒÂ©es (Lecture seule) ---
   const transformProfileForFrontend = (profileData: any): object => {
     if (!profileData) return {};
-    // Priorité: 1. Form data, 2. Personal info, 3. Root data
+    // PrioritÃƒÂ©: 1. Form data, 2. Personal info, 3. Root data
     const source = { ...profileData, ...(profileData.personal_info || {}), ...(profileData.form || {}) };
     
     const frontendData = {
-      ...source, // On spread la source en premier pour ne pas écraser nos listes sécurisées
+      ...source, // On spread la source en premier pour ne pas ÃƒÂ©craser nos listes sÃƒÂ©curisÃƒÂ©es
       first_name: source.first_name || '',
       last_name: source.last_name || '',
       email: source.email || '',
@@ -100,7 +123,7 @@ function AppContent() {
       bio: source.bio || '',
       experiences: (source.experiences || []).map((exp: any, i: number) => ({ ...exp, id: exp.id || `exp_${Date.now()}_${i}` })),
       educations: (source.educations || []).map((edu: any, i: number) => ({ ...edu, id: edu.id || `edu_${Date.now()}_${i}` })),
-      pitch_result: source.pitch_result || null, // [FIX] Pré-remplissage des pitchs
+      pitch_result: source.pitch_result || null, // [FIX] PrÃƒÂ©-remplissage des pitchs
       skills: source.skills || []
     };
 
@@ -111,7 +134,7 @@ function AppContent() {
     return frontendData;
   };
 
-  // --- Contrat de Données (Écriture) ---
+  // --- Contrat de DonnÃƒÂ©es (Ãƒâ€°criture) ---
   // Reconstruit la structure attendue par le backend avant le PUT
   const transformProfileForBackend = (frontendData: any): object => {
     if (!frontendData) return {};
@@ -135,7 +158,7 @@ function AppContent() {
     { id: 0, title: t('step_import', "Import") }, { id: 1, title: t('profile_title') },
     { id: 2, title: t('target_title') }, { id: 3, title: t('education_title') },
     { id: 4, title: t('experience_title') }, { id: 5, title: t('qualities_title') },
-    { id: 7, title: t('clarification_title') }, { id: 8, title: t('step_results', "Résultats") }
+    { id: 7, title: t('clarification_title') }, { id: 8, title: t('step_results', "RÃ©sultats") }
   ];
 
   // --- Handlers transmis aux composants enfants ---
@@ -148,6 +171,61 @@ function AppContent() {
     setFormData((prev: any) => ({ ...(prev || {}), target_language: lang }));
   };
 
+  const fetchAnalysisPreview = async (): Promise<AnalysisPreview> => {
+    const response = await authenticatedFetch(`${API_BASE_URL}/cv/cache/analysis-preview`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        target_company: cvData?.target_company || '',
+        target_industry: cvData?.target_industry || '',
+        job_description: cvData?.job_description || '',
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erreur API (Preview): ${response.statusText}`);
+    }
+
+    return response.json();
+  };
+
+  const handleTargetAnalysisContinue = async () => {
+    const company = cvData?.target_company?.trim();
+    const industry = cvData?.target_industry?.trim();
+    if (!company && !industry) {
+      setStepErrors({ target_company: true, target_industry: true });
+      setToasts(prev => [...prev, { id: Date.now(), text: "Veuillez spÃƒÂ©cifier au moins une entreprise cible ou un secteur d'activitÃƒÂ©." }]);
+      return;
+    }
+
+    setIsCheckingAnalysisPreview(true);
+    try {
+      const preview = await fetchAnalysisPreview();
+      setCurrentQuotas(preview.quotas);
+
+      if (!preview.should_confirm) {
+        setAnalysisPreview(null);
+        await handleNextStep();
+        return;
+      }
+
+      setAnalysisPreview(preview);
+      setShowConfirmModal(true);
+    } catch (err) {
+      console.error("Ã°Å¸Å¡Â¨ [PREVIEW] Impossible de vÃƒÂ©rifier le coÃƒÂ»t rÃƒÂ©el de l'analyse:", err);
+      setAnalysisPreview({
+        company_cached: false,
+        offer_cached: false,
+        costs: { entreprises: 1, offres: 1 },
+        should_confirm: true,
+        quotas: currentQuotas,
+      });
+      setShowConfirmModal(true);
+    } finally {
+      setIsCheckingAnalysisPreview(false);
+    }
+  };
+
   // --- Fonction de Sauvegarde Silencieuse (Auto-Save) ---
   const saveProfileToDB = async (data: any) => {
     try {
@@ -156,8 +234,8 @@ function AppContent() {
       
       const payloadForBackend = transformProfileForBackend(data);
 
-      // Changement de PUT vers POST pour respecter le contrôleur backend
-      const res = await fetch(`${API_BASE_URL}/api/cv/me/profile`, {
+      // [FIX] Suppression du prÃƒÂ©fixe /api redondant
+      const res = await fetch(`${API_BASE_URL}/cv/me/profile`, {
         method: 'POST', 
         headers: {
           'Content-Type': 'application/json',
@@ -169,27 +247,27 @@ function AppContent() {
         setLastSaveTime(new Date());
       }
     } catch (e) {
-      console.error("🚨 [AUTO-SAVE] Échec de la sauvegarde en arrière-plan:", e);
+      console.error("Ã°Å¸Å¡Â¨ [AUTO-SAVE] Ãƒâ€°chec de la sauvegarde en arriÃƒÂ¨re-plan:", e);
     }
   };
 
   // --- Effet Debounce pour Sauvegarder Progressivement ---
   useEffect(() => {
-    // On ignore le tout premier rendu pour ne pas écraser la BDD avec des données vides
+    // On ignore le tout premier rendu pour ne pas ÃƒÂ©craser la BDD avec des donnÃƒÂ©es vides
     if (initialLoadRef.current) {
       initialLoadRef.current = false;
       return;
     }
 
-    // On ne sauvegarde pas si l'utilisateur n'est pas co ou si les données chargent
+    // On ne sauvegarde pas si l'utilisateur n'est pas co ou si les donnÃƒÂ©es chargent
     if (!isAuthenticated || isProfileLoading || !cvData || Object.keys(cvData).length === 0) return;
 
-    // Le "Debounce" : on attend 1.5s d'inactivité avant de faire l'appel réseau
+    // Le "Debounce" : on attend 1.5s d'inactivitÃƒÂ© avant de faire l'appel rÃƒÂ©seau
     const timer = setTimeout(() => {
       saveProfileToDB(cvData);
     }, 1500);
 
-    // Nettoyage : si l'utilisateur re-tape dans les 1.5s, on annule le timer précédent
+    // Nettoyage : si l'utilisateur re-tape dans les 1.5s, on annule le timer prÃƒÂ©cÃƒÂ©dent
     return () => clearTimeout(timer);
   }, [cvData, isAuthenticated, isProfileLoading]);
 
@@ -197,7 +275,8 @@ function AppContent() {
   const loadProfile = async () => {
     setIsProfileLoading(true);
     try {
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/me/profile`);
+      // [FIX] Removed redundant /api prefix
+      const response = await authenticatedFetch(`${API_BASE_URL}/cv/me/profile`);
       if (response.ok) {
         const rawProfileData = await response.json();
         if (rawProfileData && Object.keys(rawProfileData).length > 0) {
@@ -205,15 +284,15 @@ function AppContent() {
           setFormData(frontendData);
           if ((frontendData as any).target_language) { i18n.changeLanguage((frontendData as any).target_language.toLowerCase()); }
 
-          // [FIX ULTIME] Pré-remplissage des résultats d'analyse depuis le profil
+          // [FIX ULTIME] PrÃƒÂ©-remplissage des rÃƒÂ©sultats d'analyse depuis le profil
           if ((frontendData as any).pitch_result) {
             setPitchResult((frontendData as any).pitch_result);
           }
 
-          setLastSaveTime(new Date()); // On met à jour l'heure de sauvegarde avant la redirection potentielle
+          setLastSaveTime(new Date()); // On met ÃƒÂ  jour l'heure de sauvegarde avant la redirection potentielle
         }
       } else if (response.status === 404) {
-        resetDashboard(); // Le hook gère la réinitialisation à INITIAL_DATA
+        resetDashboard(); // Le hook gÃƒÂ¨re la rÃƒÂ©initialisation ÃƒÂ  INITIAL_DATA
       } else if (response.status === 401) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -221,7 +300,7 @@ function AppContent() {
         navigate('/', { replace: true });
       }
     } catch (e) {
-      console.error("🚨 [PROFIL] Fatal error during fetch:", e);
+      console.error("Ã°Å¸Å¡Â¨ [PROFIL] Fatal error during fetch:", e);
     } finally {
       setIsProfileLoading(false);
     }
@@ -238,18 +317,18 @@ function AppContent() {
         uploadData.append('file', payload);
       }
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE_URL}/api/cv/parse-cv`, {
+      const res = await fetch(`${API_BASE_URL}/cv/parse-cv`, {
         method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: uploadData
       });
       if (!res.ok) throw new Error("Erreur d'analyse du document");
       const parsedData = await res.json();
       const frontendData = transformProfileForFrontend(parsedData);
       setFormData((prev: any) => ({ ...prev, ...frontendData }));
-      setToasts(prev => [...prev, { id: Date.now(), text: "Données extraites avec succès !" }]);
+      setToasts(prev => [...prev, { id: Date.now(), text: "DonnÃƒÂ©es extraites avec succÃƒÂ¨s !" }]);
       setCurrentStep(1);
     } catch (e) {
       console.error(e);
-      setToasts(prev => [...prev, { id: Date.now(), text: "Échec de l'import." }]);
+      setToasts(prev => [...prev, { id: Date.now(), text: "Ãƒâ€°chec de l'import." }]);
     } finally {
       setIsImportLoading(false);
     }
@@ -285,6 +364,12 @@ function AppContent() {
     }
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    if (researchResult || gapResult) {
+      setQuotaRefreshToken(token => token + 1);
+    }
+  }, [researchResult, gapResult]);
+
   // --- RESTAURATION DE CANDIDATURE (Depuis Mes Documents) ---
   useEffect(() => {
     if (isAuthenticated) {
@@ -293,14 +378,14 @@ function AppContent() {
         try {
           const parsedData = JSON.parse(restoredDataStr);
           setRestoredData(parsedData);
-          setCurrentStep(8); // Redirection immédiate vers le Dashboard
-      // [FIX] On s'assure que le jobDecoder est aussi restauré
+          setCurrentStep(8); // Redirection immÃƒÂ©diate vers le Dashboard
+      // [FIX] On s'assure que le jobDecoder est aussi restaurÃƒÂ©
       if (parsedData.jobDecoderResult) {
         setJobDecoderResult(parsedData.jobDecoderResult);
       }
-          setToasts(prev => [...prev, { id: Date.now(), text: "Dossier de candidature restauré avec succès." }]);
+          setToasts(prev => [...prev, { id: Date.now(), text: "Dossier de candidature restaurÃƒÂ© avec succÃƒÂ¨s." }]);
         } catch (e) {
-          console.error("Erreur de parsing des données restaurées", e);
+          console.error("Erreur de parsing des donnÃƒÂ©es restaurÃƒÂ©es", e);
         }
         sessionStorage.removeItem('restored_application_data');
       }
@@ -317,7 +402,7 @@ function AppContent() {
 
 
   // [FIX EXPERT] Interception globale pour forcer l'ouverture de la page de paiement dans un nouvel onglet
-  // Cela évite de perdre le contexte de l'application (ex: une réponse vocale en cours d'évaluation)
+  // Cela ÃƒÂ©vite de perdre le contexte de l'application (ex: une rÃƒÂ©ponse vocale en cours d'ÃƒÂ©valuation)
   // lorsque l'utilisateur clique sur une proposition de recharge.
   useEffect(() => {
     const handleGlobalClick = (e: MouseEvent) => {
@@ -341,35 +426,45 @@ function AppContent() {
   const getCoreDataSignature = (data: any) => {
     if (!data) return "";
     return JSON.stringify({
+      current_role: data.current_role,
+      current_company: data.current_company,
       target_job: data.target_job,
       target_company: data.target_company,
+      target_industry: data.target_industry,
+      target_country: data.target_country,
+      target_language: data.target_language,
+      interview_type: data.interview_type,
+      interview_format: data.interview_format,
       experiences: data.experiences,
       educations: data.educations,
       skills: data.skills,
-      flaws: data.flaws
+      flaws: data.flaws,
+      languages: data.languages,
+      free_text: data.free_text,
+      job_description: data.job_description
     });
   };
 
-  // --- RENDU DES ÉTAPES ---
+  // --- RENDU DES Ãƒâ€°TAPES ---
   const renderStepContent = () => {
-    if (isProfileLoading) return <LoadingScreen title={t('loading_profile_title', "Chargement de votre profil...")} description={t('loading_profile_desc', "Récupération de vos données sécurisées...")} />;
+    if (isProfileLoading) return <LoadingScreen title={t('loading_profile_title', "Chargement de votre profil...")} description={t('loading_profile_desc', "RÃƒÂ©cupÃƒÂ©ration de vos donnÃƒÂ©es sÃƒÂ©curisÃƒÂ©es...")} />;
 
     switch(currentStep) {
       case 0: return (
         <div className="step-wrapper">
           <StepImport onUpload={handleCVImport} loading={isImportLoading} />
-          {/* [FIX] Bouton secondaire repoussé à droite */}
+          {/* [FIX] Bouton secondaire repoussÃƒÂ© ÃƒÂ  droite */}
           <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-outline" onClick={() => setCurrentStep(1)}>{t('or_fill_manually', 'Ou remplir manuellement')}</button></div>
         </div>);
       case 1: return (
         <div className="step-wrapper">
           <StepProfile data={cvData || {}} onChange={handleChange} />
-          {/* [FIX] Alignement propre avec le bouton reset poussé à gauche (marginRight: 'auto') et les autres à droite */}
+          {/* [FIX] Alignement propre avec le bouton reset poussÃƒÂ© ÃƒÂ  gauche (marginRight: 'auto') et les autres ÃƒÂ  droite */}
           <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem', gap: '1rem', alignItems: 'center' }}>
             <button className="btn-ghost" onClick={() => resetDashboard()} style={{ marginRight: 'auto' }}><RotateCcw size={16} style={{ marginRight: '0.5rem' }}/>{t('btn_reset')}</button>
             {lastSaveTime && (
               <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                {t('last_saved_at', 'Sauvegardé à')} {lastSaveTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {t('last_saved_at', 'SauvegardÃƒÂ© ÃƒÂ ')} {lastSaveTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             )}
             <button className="btn-secondary" onClick={loadProfile}><RefreshCw size={16} style={{ marginRight: '0.5rem' }}/>{t('btn_sync', 'Synchroniser')}</button>
@@ -378,25 +473,37 @@ function AppContent() {
         </div>);
       case 2: return (
         <div className="step-wrapper">
+          {/* Bloc quota permanent */}
+          <PackStatusWidget
+            onQuotasLoaded={(q) => setCurrentQuotas({ entreprises: q.entreprises, offres: q.offres, credits: q.credits })}
+            refreshToken={quotaRefreshToken}
+          />
           <StepTarget data={cvData || {}} onChange={(key, val) => {
             handleChange(key, val);
-            // Retire la bordure rouge dès que l'utilisateur commence à taper
             if (stepErrors[key]) setStepErrors(prev => ({ ...prev, [key]: false }));
           }} errors={stepErrors} loading={globalStatus === "STARTING"} />
           {globalStatus === "FAILED" && (<div className="error-box"><AlertCircle size={16}/><span>{t('error_msg')} {error}</span><button className="btn-link" onClick={() => handleNextStep()}>{t('btn_retry')}</button></div>)}
-          {/* [UX FIX] Le bouton est maintenant un simple "Suivant", le lancement de l'analyse est transparent */}
           <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>
-            <button className="btn-primary" onClick={() => {
-              const company = cvData?.target_company?.trim();
-              const industry = cvData?.target_industry?.trim();
-              if (!company && !industry) {
-                setStepErrors({ target_company: true, target_industry: true });
-                setToasts(prev => [...prev, { id: Date.now(), text: "Veuillez spécifier au moins une entreprise cible ou un secteur d'activité." }]);
-                return; // Bloque la requête vers le backend
-              }
-              handleNextStep();
-            }} disabled={globalStatus === "STARTING"}>{t('btn_next')}</button>
+            <button className="btn-primary" onClick={handleTargetAnalysisContinue} disabled={globalStatus === "STARTING" || isCheckingAnalysisPreview}>
+              {isCheckingAnalysisPreview ? <><Loader2 size={16} className="spin" style={{ marginRight: '0.5rem' }} />VÃƒÂ©rification...</> : t('btn_next')}
+            </button>
           </div>
+          {showConfirmModal && analysisPreview && (
+            <ConfirmAnalysisModal
+              companyName={cvData?.target_company || ''}
+              quotas={currentQuotas}
+              preview={analysisPreview}
+              onCancel={() => {
+                setShowConfirmModal(false);
+                setAnalysisPreview(null);
+              }}
+              onConfirm={async () => {
+                setShowConfirmModal(false);
+                setAnalysisPreview(null);
+                await handleNextStep();
+              }}
+            />
+          )}
         </div>);
       case 3: return (
         <div className="step-wrapper">
@@ -409,7 +516,7 @@ function AppContent() {
           <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={() => handleNextStep()}>{t('btn_next')}</button></div>
         </div>);
     case 5:
-        if (["STARTING", "PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus)) return <LoadingScreen title={t('loading_strat_title', "Création de votre profil stratégique...")} description={t('loading_strat_desc', "Analyse de vos expériences et exigences du marché...")} />;
+        if (["STARTING", "PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus)) return <LoadingScreen title={t('loading_strat_title', "CrÃƒÂ©ation de votre profil stratÃƒÂ©gique...")} description={t('loading_strat_desc', "Analyse de vos expÃƒÂ©riences et exigences du marchÃƒÂ©...")} />;
         return (
           <div className="step-wrapper">
           <StepQualitiesFlaws data={cvData || {}} onChange={handleChange} successes={[]} onAddSuccess={() => {}} onUpdateSuccess={() => {}} failures={[]} onAddFailure={() => {}} onUpdateFailure={() => {}} />
@@ -423,7 +530,7 @@ function AppContent() {
                     setShowPaywall(true); 
                   } else { 
                     const currentSignature = getCoreDataSignature(cvData);
-                    // Si la signature n'a pas changé et que nous avons déjà des questions
+                    // Si la signature n'a pas changÃƒÂ© et que nous avons dÃƒÂ©jÃƒÂ  des questions
                     if (cvData?.clarifications?.length > 0 && cvData?.last_clarification_signature === currentSignature) {
                     setCurrentStep(7); // On bypass le handleNextStep (pas d'appel API)
                     } else {
@@ -440,7 +547,7 @@ function AppContent() {
             </div>
           </div>);
     case 6:
-      // [FIX EXPERT] Composant fantôme pour réaligner la machine à états du DashboardContext
+      // [FIX EXPERT] Composant fantÃƒÂ´me pour rÃƒÂ©aligner la machine ÃƒÂ  ÃƒÂ©tats du DashboardContext
       return <Step6Ghost onNext={handleNextStep} t={t} />;
     case 7: 
         const clarificationAnswers = (cvData?.clarifications || []).reduce((acc: any, curr: any) => {
@@ -475,7 +582,7 @@ function AppContent() {
             onUpdateFormData={handleChange}
           >
             <DashboardView />
-            {/* Exemple d'intégration si vous appelez ApplicationDossier depuis App.tsx : */}
+            {/* Exemple d'intÃƒÂ©gration si vous appelez ApplicationDossier depuis App.tsx : */}
             {/* <ApplicationDossier onGoToTraining={() => { setActiveTab('training'); setCurrentStep(8); }} /> */}
           </TabProvider>
         </div>);
@@ -488,17 +595,17 @@ function AppContent() {
   const LegalComponent = showCGU ? CGU : showPrivacy ? PrivacyPolicy : showLegal ? LegalNotice : null;
   const closeLegal = () => { setShowCGU(false); setShowPrivacy(false); setShowLegal(false); };
   if (LegalComponent) return (
-    <div className="app-container"><main className="main-content" style={{ paddingTop: '2rem' }}><button onClick={closeLegal} className="btn-outline" style={{ marginBottom: '2rem' }}>← Retour</button><LegalComponent /></main></div>);
+    <div className="app-container"><main className="main-content" style={{ paddingTop: '2rem' }}><button onClick={closeLegal} className="btn-outline" style={{ marginBottom: '2rem' }}>Ã¢â€ Â Retour</button><LegalComponent /></main></div>);
 
   if (showAdmin) return (
-    <div className="app-container"><main className="main-content" style={{ paddingTop: '2rem' }}><button onClick={() => setShowAdmin(false)} className="btn-outline" style={{ marginBottom: '2rem' }}>← Retour</button><AdminFeedbacks /></main></div>);
+    <div className="app-container"><main className="main-content" style={{ paddingTop: '2rem' }}><button onClick={() => setShowAdmin(false)} className="btn-outline" style={{ marginBottom: '2rem' }}>Ã¢â€ Â Retour</button><AdminFeedbacks /></main></div>);
 
-  // Interception de la route pour le mot de passe oublié
+  // Interception de la route pour le mot de passe oubliÃƒÂ©
   if (location.pathname === '/reset-password') {
     return <ResetPassword />;
   }
 
-  // [FIX] Sécurisation du parsing JSON du nom d'utilisateur pour éviter la page blanche au login
+  // [FIX] SÃƒÂ©curisation du parsing JSON du nom d'utilisateur pour ÃƒÂ©viter la page blanche au login
   let parsedUserName = undefined;
   let isAdmin = false;
   if (isAuthenticated) {
@@ -517,7 +624,7 @@ function AppContent() {
       }
   }
 
-  // [FIX] S'assurer que le prénom commence toujours par une majuscule dans le Header
+  // [FIX] S'assurer que le prÃƒÂ©nom commence toujours par une majuscule dans le Header
   if (parsedUserName && typeof parsedUserName === 'string') {
     parsedUserName = parsedUserName.charAt(0).toUpperCase() + parsedUserName.slice(1);
   }
@@ -549,7 +656,7 @@ function AppContent() {
     }
     if (!isAdmin) {
       return (
-        <div className="app-container"><main className="main-content" style={{ paddingTop: '4rem', textAlign: 'center', color: 'var(--danger-text)', fontWeight: 'bold' }}>🚨 Accès refusé : Droits administrateur requis.</main></div>
+        <div className="app-container"><main className="main-content" style={{ paddingTop: '4rem', textAlign: 'center', color: 'var(--danger-text)', fontWeight: 'bold' }}>Ã°Å¸Å¡Â¨ AccÃƒÂ¨s refusÃƒÂ© : Droits administrateur requis.</main></div>
       );
     }
     return (
@@ -560,22 +667,22 @@ function AppContent() {
             <button onClick={() => navigate('/admin')} className="btn-ghost">Dashboard</button>
             <button onClick={() => navigate('/admin/users')} className="btn-ghost">Utilisateurs</button>
             <button onClick={() => navigate('/admin/billing')} className="btn-ghost">Facturation</button>
-            <button onClick={() => navigate('/admin/generations')} className="btn-ghost">Générations IA</button>
+            <button onClick={() => navigate('/admin/generations')} className="btn-ghost">GÃƒÂ©nÃƒÂ©rations IA</button>
             <button onClick={() => navigate('/admin/feedbacks')} className="btn-ghost">Feedbacks</button>
             <button onClick={() => navigate('/admin/audit-logs')} className="btn-ghost">Audit Logs</button>
           </div>
 
-          <button onClick={() => navigate('/candidate')} className="btn-outline" style={{ marginBottom: '2rem' }}>← Retour à l'application</button>
+          <button onClick={() => navigate('/candidate')} className="btn-outline" style={{ marginBottom: '2rem' }}>Ã¢â€ Â Retour ÃƒÂ  l'application</button>
           <AdminDashboard />
         </main>
       </div>
     );
   }
 
-  // [NOUVEAU] Routes admin spécifiques
+  // [NOUVEAU] Routes admin spÃƒÂ©cifiques
   if (location.pathname.startsWith('/admin/')) {
     if (!isAuthenticated || !isAdmin) {
-      return <div className="app-container"><main className="main-content" style={{ paddingTop: '4rem', textAlign: 'center', color: 'var(--danger-text)', fontWeight: 'bold' }}>🚨 Accès refusé.</main></div>;
+      return <div className="app-container"><main className="main-content" style={{ paddingTop: '4rem', textAlign: 'center', color: 'var(--danger-text)', fontWeight: 'bold' }}>Ã°Å¸Å¡Â¨ AccÃƒÂ¨s refusÃƒÂ©.</main></div>;
     }
     
     let AdminComponent;
@@ -593,7 +700,7 @@ function AppContent() {
             <button onClick={() => navigate('/admin')} className="btn-ghost">Dashboard</button>
             <button onClick={() => navigate('/admin/users')} className="btn-ghost">Utilisateurs</button>
             <button onClick={() => navigate('/admin/billing')} className="btn-ghost">Facturation</button>
-            <button onClick={() => navigate('/admin/generations')} className="btn-ghost">Générations IA</button>
+            <button onClick={() => navigate('/admin/generations')} className="btn-ghost">GÃƒÂ©nÃƒÂ©rations IA</button>
             <button onClick={() => navigate('/admin/feedbacks')} className="btn-ghost">Feedbacks</button>
             <button onClick={() => navigate('/admin/audit-logs')} className="btn-ghost">Audit Logs</button>
           </div>
@@ -603,10 +710,10 @@ function AppContent() {
     );
   }
 
-  // [NOUVEAU] Routes admin spécifiques
+  // [NOUVEAU] Routes admin spÃƒÂ©cifiques
   if (location.pathname.startsWith('/admin/')) {
     if (!isAuthenticated || !isAdmin) {
-      return <div className="app-container"><main className="main-content" style={{ paddingTop: '4rem', textAlign: 'center', color: 'var(--danger-text)', fontWeight: 'bold' }}>🚨 Accès refusé.</main></div>;
+      return <div className="app-container"><main className="main-content" style={{ paddingTop: '4rem', textAlign: 'center', color: 'var(--danger-text)', fontWeight: 'bold' }}>Ã°Å¸Å¡Â¨ AccÃƒÂ¨s refusÃƒÂ©.</main></div>;
     }
     
     let AdminComponent;
@@ -624,7 +731,7 @@ function AppContent() {
             <button onClick={() => navigate('/admin')} className="btn-ghost">Dashboard</button>
             <button onClick={() => navigate('/admin/users')} className="btn-ghost">Utilisateurs</button>
             <button onClick={() => navigate('/admin/billing')} className="btn-ghost">Facturation</button>
-            <button onClick={() => navigate('/admin/generations')} className="btn-ghost">Générations IA</button>
+            <button onClick={() => navigate('/admin/generations')} className="btn-ghost">GÃƒÂ©nÃƒÂ©rations IA</button>
             <button onClick={() => navigate('/admin/feedbacks')} className="btn-ghost">Feedbacks</button>
             <button onClick={() => navigate('/admin/audit-logs')} className="btn-ghost">Audit Logs</button>
           </div>
@@ -659,7 +766,7 @@ function AppContent() {
          !isAuthenticated ?
             <Login onLoginSuccess={(loginResponse) => {
               setIsAuthenticated(true);
-              // [FIX] La redirection se base maintenant sur la réponse de l'API,
+              // [FIX] La redirection se base maintenant sur la rÃƒÂ©ponse de l'API,
               // qui contient `role: "admin"` pour les administrateurs
               if (loginResponse?.role === 'admin') {
                 navigate('/admin', { replace: true });
@@ -669,55 +776,40 @@ function AppContent() {
               } else if (location.state?.from) {
                 navigate(location.state.from, { replace: true });
               } else {
-                // Redirection par défaut pour un utilisateur standard
+                // Redirection par dÃƒÂ©faut pour un utilisateur standard
                 navigate('/candidate', { replace: true });
               }
-              }} /> :
-          (<div style={{ paddingTop: '100px', paddingBottom: '2rem', width: '100%', maxWidth: '1200px', margin: '0 auto', paddingLeft: '1rem', paddingRight: '1rem', boxSizing: 'border-box' }}>
-            {/* [FIX] Ajout d'un padding-top de 100px pour descendre sous le Header et centrage global de l'interface */}
-            {/* [FIX] Forcer la largeur à 100% et injecter un padding fantôme à droite pour éviter la coupure au scroll */}
-            <div className="stepper-container custom-stepper" style={{ display: 'flex', alignItems: 'flex-start', overflowX: 'auto', padding: '1.5rem 1rem', background: 'var(--bg-card)', borderRadius: '1rem', border: '1px solid var(--border-color)', margin: '0 auto 2rem auto', gap: '0.25rem', width: '100%', boxSizing: 'border-box' }}>
-              {CAREER_EDGE_STEPS.map((step, index) => (
-                <React.Fragment key={step.id}>
-                  <div 
-                    className={`stepper-item ${currentStep === step.id ? 'current' : currentStep > step.id ? 'completed' : ''}`} 
-                    onClick={() => currentStep > step.id && setCurrentStep(step.id)}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: currentStep > step.id ? 'pointer' : 'default', flex: 1, minWidth: '70px', flexShrink: 0, opacity: currentStep < step.id ? 0.5 : 1 }}
-                  >
-                    <div 
-                      className="stepper-circle" 
-                      style={{ width: '36px', height: '36px', borderRadius: '50%', background: currentStep > step.id ? '#10b981' : currentStep === step.id ? 'var(--primary)' : 'var(--bg-secondary)', color: currentStep >= step.id ? 'white' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.5rem', fontWeight: 'bold', boxShadow: currentStep === step.id ? '0 0 0 4px rgba(59, 130, 246, 0.2)' : 'none', transition: 'all 0.3s ease', flexShrink: 0 }}
-                    >
-                      {currentStep > step.id ? <CheckCircle2 size={18} /> : step.id}
-                    </div>
-                    <span 
-                      className="stepper-title" 
-                      style={{ fontSize: '0.7rem', textAlign: 'center', color: currentStep === step.id ? 'var(--primary)' : 'var(--text-main)', fontWeight: currentStep === step.id ? 700 : 500, whiteSpace: 'normal', maxWidth: '100px', lineHeight: 1.2 }}
-                    >
-                      {step.title}
-                    </span>
-                  </div>
-                  {index < CAREER_EDGE_STEPS.length - 1 && (
-                    <div 
-                      className={`stepper-line ${currentStep > step.id ? 'completed' : ''}`} 
-                      style={{ flex: 1, height: '3px', background: currentStep > step.id ? '#10b981' : 'var(--border-color)', minWidth: '15px', borderRadius: '2px', transition: 'background 0.3s ease', marginTop: '16px' }}
-                    ></div>
-                  )}
-                </React.Fragment>
-              ))}
+            }} /> :
+          (<div className="candidate-layout" style={{ paddingTop: '100px', paddingBottom: '2rem' }}>
+            {/* Sidebar stepper â€” visible on desktop (>= 1024px) */}
+            <aside className="candidate-sidebar">
+              <WizardStepper
+                steps={CAREER_EDGE_STEPS}
+                currentStep={currentStep}
+                onStepClick={setCurrentStep}
+                orientation="vertical"
+              />
+            </aside>
+
+            {/* Horizontal stepper â€” visible on mobile / tablet (< 1024px) */}
+            <div className="candidate-stepper-mobile">
+              <WizardStepper
+                steps={CAREER_EDGE_STEPS}
+                currentStep={currentStep}
+                onStepClick={setCurrentStep}
+                orientation="horizontal"
+              />
             </div>
-            <style>{`
-              .custom-stepper { scrollbar-width: none; } /* Cache la scrollbar sur Firefox */
-              .custom-stepper::-webkit-scrollbar { display: none; } /* Cache la scrollbar Chrome/Safari */
-              .custom-stepper::after { content: ''; min-width: 1.5rem; display: block; flex-shrink: 0; } /* Élément fantôme pour forcer le padding droit */
-              .custom-stepper::before { display: none !important; } /* Nettoie la ligne absolue obsolète d'index.css */
-            `}</style>
-            <div className="card-container">{renderStepContent()}</div>
+
+            {/* Main content */}
+            <div className="candidate-content">
+              <div className="card-container">{renderStepContent()}</div>
+            </div>
           </div>)}
       </main>
 
       {isFrozen && isAuthenticated && !showLanding && !LegalComponent && !showAdmin && (
-        <div className="frozen-banner"><Lock size={20} /> {t('frozen_banner_text', 'Accès expiré. La génération IA est bloquée.')}<button onClick={() => setShowPaywall(true)} className="btn-reactivate">{t('btn_reactivate', 'Réactiver (30€)')}</button></div>)}
+        <div className="frozen-banner"><Lock size={20} /> {t('frozen_banner_text', 'AccÃƒÂ¨s expirÃƒÂ©. La gÃƒÂ©nÃƒÂ©ration IA est bloquÃƒÂ©e.')}<button onClick={() => setShowPaywall(true)} className="btn-reactivate">{t('btn_reactivate', 'RÃƒÂ©activer (30Ã¢â€šÂ¬)')}</button></div>)}
 
       <div className="toast-container">{(toasts || []).map(t => (<div key={t.id} className="toast-notification"><LucideBell size={16} /> {t.text}<button onClick={() => removeToast(t.id)}><LucideX size={14}/></button></div>))}</div>
 
@@ -725,18 +817,18 @@ function AppContent() {
         <div className="modal-overlay">
            <div className="modal-content">
               <div className="modal-icon"><Lock size={40} color="#3b82f6" /></div>
-              <h2>{t('paywall_title', 'Période d\'accès expirée')}</h2>
-              <p>{t('paywall_desc', 'Vos 3 mois d\'accès illimité sont terminés. Rassurez-vous, votre historique est sauvegardé.')}</p>
+              <h2>{t('paywall_title', 'PÃƒÂ©riode d\'accÃƒÂ¨s expirÃƒÂ©e')}</h2>
+              <p>{t('paywall_desc', 'Vos 3 mois d\'accÃƒÂ¨s illimitÃƒÂ© sont terminÃƒÂ©s. Rassurez-vous, votre historique est sauvegardÃƒÂ©.')}</p>
               <div className="modal-actions">
                  <button onClick={() => setShowPaywall(false)} className="btn-outline">{t('btn_later', 'Plus tard')}</button>
-                 <button onClick={() => window.open('/payment?plan=renewal', '_blank')} className="btn-primary">{t('btn_unlock', 'Débloquer pour 30 €')}</button>
+                 <button onClick={() => window.open('/payment?plan=renewal', '_blank')} className="btn-primary">{t('btn_unlock', 'DÃƒÂ©bloquer pour 30 Ã¢â€šÂ¬')}</button>
               </div>
            </div>
         </div>)}
 
       {showDocsModal && <DocumentsModal onClose={() => setShowDocsModal(false)} />}
 
-      {/* [FIX] Alignement centré et aéré du Footer réglementaire */}
+      {/* [FIX] Alignement centrÃƒÂ© et aÃƒÂ©rÃƒÂ© du Footer rÃƒÂ©glementaire */}
       <footer className="app-footer" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.5rem', padding: '2rem', flexWrap: 'wrap', opacity: 0.8, marginTop: 'auto' }}>
         {isAdmin && (
           <>
@@ -744,9 +836,9 @@ function AppContent() {
             <button className="btn-ghost" onClick={() => setShowAdmin(true)}>Feedbacks Admin</button><span>|</span>
           </>
         )}
-        <button className="btn-ghost" onClick={() => setShowLegal(true)}>{t('footer_legal', 'Mentions Légales')}</button><span>|</span>
+        <button className="btn-ghost" onClick={() => setShowLegal(true)}>{t('footer_legal', 'Mentions LÃƒÂ©gales')}</button><span>|</span>
         <button className="btn-ghost" onClick={() => setShowCGU(true)}>{t('footer_cgu', 'CGU')}</button><span>|</span>
-        <button className="btn-ghost" onClick={() => setShowPrivacy(true)}>{t('footer_privacy', 'Politique de Confidentialité')}</button>
+        <button className="btn-ghost" onClick={() => setShowPrivacy(true)}>{t('footer_privacy', 'Politique de ConfidentialitÃƒÂ©')}</button>
       </footer>
     </div>
   );
@@ -761,3 +853,4 @@ function App() {
 }
 
 export default App;
+

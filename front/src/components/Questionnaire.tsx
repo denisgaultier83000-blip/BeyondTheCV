@@ -58,17 +58,22 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
       userAnswersRef.current = userAnswers;
   });
 
+  const updateFormDataRef = useRef(updateFormData);
   useEffect(() => {
-      return () => {
-          if (updateFormData) updateFormData(userAnswersKey, userAnswersRef.current);
-      };
-  }, [updateFormData, userAnswersKey]);
+    updateFormDataRef.current = updateFormData;
+  }, [updateFormData]);
+
+  useEffect(() => {
+    return () => {
+      if (updateFormDataRef.current) updateFormDataRef.current(userAnswersKey, userAnswersRef.current);
+    };
+  }, [userAnswersKey]);
 
   // [FIX EXPERT] On utilise le texte de la question comme clé unique 
   // pour éviter que les réponses ne bavent d'un index à l'autre (ex: Index 0 Question = Index 0 MES)
   const getKey = (q: any, idx: number): string => {
     if (q.id) return String(q.id);
-    const text = q.question || q.scenario || q.situation || q.text || q.contexte || q.description || q.defi || "";
+    const text = q.question || q.scenario || q.situation || q.text || q.contexte || q.description || q.defi || q.title || "";
     if (text) return text.substring(0, 40).replace(/[^a-z0-9]/gi, '').toLowerCase();
     return idx.toString();
   };
@@ -195,7 +200,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
     const suggestedAnswer = q.suggested_answer || q.answer || q.reponse_suggeree || q.reponse || "";
     
     try {
-      const response = await authenticatedFetch(`${API_BASE_URL}${evalEndpoint || '/api/cv/evaluate-interview-answer'}`, {
+      const response = await authenticatedFetch(`${API_BASE_URL}${evalEndpoint || '/cv/evaluate-interview-answer'}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

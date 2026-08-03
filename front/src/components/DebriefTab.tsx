@@ -30,7 +30,7 @@ const DebriefTab = () => {
   const fetchHistory = useCallback(async () => {
     setError(null);
     try {
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/debriefs`);
+      const response = await authenticatedFetch(`${API_BASE_URL}/debriefs`);
       if (!response.ok) throw new Error("Impossible de charger l'historique des débriefs.");
       const data = await response.json();
       setHistory(data.debriefs || []);

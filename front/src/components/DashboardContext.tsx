@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
+import { normalizePilotSummaryResponse } from '../utils/pilotSummary';
 
 // --- TYPES & INTERFACES ---
 interface DashboardContextType {
@@ -107,31 +108,14 @@ export const DashboardProvider = ({
   });
 
   const fetchQuotas = useCallback(async () => {
-    // [FIX] Logique pour les testeurs avec quotas illimités
-    const testerEmails = (import.meta.env.VITE_REACT_APP_TESTER_EMAILS || '').split(',').map((e: string) => e.trim().toLowerCase());
-    const currentUserEmail = localCvData?.email?.toLowerCase();    // [MODIFICATION] Tous les utilisateurs sont maintenant des testeurs pour la phase de staging.
-    if (true) {
-      // L'utilisateur est un testeur, on lui donne des quotas "illimités"
-      setQuotas({
-        pitch: 999,
-        qa: 999,
-        mes: 999,
-        negotiation: 999,
-        regeneration: 999,
-        update: 999,
-      });
-      return; // On arrête ici, pas besoin d'appeler l'API
-    }
-
-    // Logique normale pour les utilisateurs standards
     try {
-        const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/balance`);
+        const response = await authenticatedFetch(`${API_BASE_URL}/cv/training/balance`);
         if (response.ok) {
             const data = await response.json();
             setQuotas(data);
         }
     } catch (e: any) {
-        console.error("Impossible de récupérer les quotas, utilisation des valeurs par défaut.", e);
+        console.error("Impossible de récupérer les quotas.", e);
     }
   }, [localCvData?.email]);
 
@@ -141,40 +125,44 @@ export const DashboardProvider = ({
     
     setIsPilotLoading(true);
     setPilotError(null);
-    try {
-      // [FIX] On injecte les résultats de marché pour une synthèse beaucoup plus riche
-      const payload = { ...initialCvData };
-      if (initialResearchResult) {
-        payload.research_data = initialResearchResult;
-      }
-      if (initialGapResult) {
-        payload.gap_analysis = initialGapResult;
-      }
+    const payload = { ...initialCvData };
+    if (initialResearchResult) {
+      payload.research_data = initialResearchResult;
+    }
+    if (initialGapResult) {
+      payload.gap_analysis = initialGapResult;
+    }
 
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/dashboard/summary`, {
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/cv/dashboard/summary`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setPilotData(data);
-      } else {
+
+      if (!response.ok) {
         let errMsg = `Erreur serveur (${response.status})`;
-        try { const errObj = await response.json(); errMsg = errObj.detail || errMsg; } catch(e) {}
-        setPilotError(errMsg);
-        console.error(`[DashboardContext] Failed to fetch pilot data. Status: ${response.status}`, errMsg);
+        try {
+          const errObj = await response.json();
+          errMsg = errObj.detail || errMsg;
+        } catch (e) {}
+        throw new Error(errMsg);
       }
+
+      const data = await response.json();
+      setPilotData(normalizePilotSummaryResponse(payload, data, initialResearchResult));
     } catch (error: any) {
-      setPilotError(error.message || "Erreur réseau (Timeout). L'intelligence artificielle met trop de temps à répondre.");
+      const fallbackData = normalizePilotSummaryResponse(payload, null, initialResearchResult);
+      setPilotData(fallbackData);
+      const errMsg = error?.message || "Erreur réseau (Timeout). L'intelligence artificielle met trop de temps à répondre.";
+      setPilotError(errMsg);
       console.error("[DashboardContext] Error fetching pilot data:", error);
     } finally {
       setIsPilotLoading(false);
     }
   // [FIX EXPERT] On évite le re-rendu infini en stringifiant les objets dans les dépendances.
   // Sinon, React recrée la fonction à chaque rendu parent (changement de référence mémoire), ce qui spamme le backend.
-  }, [JSON.stringify(initialCvData), JSON.stringify(initialResearchResult), JSON.stringify(initialGapResult)]); 
+  }, [JSON.stringify(initialCvData), JSON.stringify(initialResearchResult), JSON.stringify(initialGapResult)]);
 
   // Auto-fetch ultra-robuste quand le CV (mock puis réel) est mis à jour
   useEffect(() => {

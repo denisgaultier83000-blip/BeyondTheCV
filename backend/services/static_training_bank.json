@@ -1,0 +1,1134 @@
+{
+  "version": "1.0",
+  "language": "fr",
+  "description": "Banque V1 de 80 questions et mises en situation pour BeyondTheCV.",
+  "difficulty_scale": {
+    "1": "facile",
+    "2": "accessible",
+    "3": "intermédiaire",
+    "4": "difficile",
+    "5": "très difficile"
+  },
+  "items": [
+    {
+      "id": "MAN-Q-001",
+      "theme": "Management",
+      "type": "question",
+      "text": "Vous prenez la responsabilité d’une équipe dont les résultats sont en baisse depuis plusieurs mois. Quelles sont vos priorités pendant les trente premiers jours ?",
+      "advice": "Structurez votre réponse autour du diagnostic, de l’écoute, des priorités immédiates et des premiers indicateurs de progrès.",
+      "difficulty": 2,
+      "tags": [
+        "management",
+        "prise_de_poste",
+        "diagnostic",
+        "priorisation"
+      ]
+    },
+    {
+      "id": "MAN-Q-002",
+      "theme": "Management",
+      "type": "question",
+      "text": "Comment gérez-vous un collaborateur compétent qui ne respecte plus régulièrement ses engagements ?",
+      "advice": "Montrez que vous distinguez les causes, les faits observables, les attentes et le plan de suivi.",
+      "difficulty": 2,
+      "tags": [
+        "management",
+        "performance",
+        "recadrage",
+        "responsabilisation"
+      ]
+    },
+    {
+      "id": "MAN-Q-003",
+      "theme": "Management",
+      "type": "question",
+      "text": "Comment déléguez-vous une mission critique à un collaborateur encore peu expérimenté ?",
+      "advice": "Expliquez le niveau d’autonomie accordé, les points de contrôle et les critères de réussite.",
+      "difficulty": 2,
+      "tags": [
+        "management",
+        "delegation",
+        "autonomie",
+        "suivi"
+      ]
+    },
+    {
+      "id": "MAN-Q-004",
+      "theme": "Management",
+      "type": "question",
+      "text": "Vous devez arbitrer entre trois demandes importantes avec des ressources limitées. Quelle méthode utilisez-vous ?",
+      "advice": "Présentez des critères d’arbitrage explicites : impact, urgence, risque, dépendances et valeur créée.",
+      "difficulty": 3,
+      "tags": [
+        "management",
+        "arbitrage",
+        "ressources",
+        "decision"
+      ]
+    },
+    {
+      "id": "MAN-Q-005",
+      "theme": "Management",
+      "type": "question",
+      "text": "Comment faites-vous évoluer une équipe performante mais devenue trop dépendante de vous ?",
+      "advice": "Parlez de montée en compétence, de clarification des responsabilités et de réduction progressive de votre intervention.",
+      "difficulty": 3,
+      "tags": [
+        "management",
+        "autonomie",
+        "developpement",
+        "organisation"
+      ]
+    },
+    {
+      "id": "MAN-Q-006",
+      "theme": "Management",
+      "type": "question",
+      "text": "Comment réagissez-vous lorsqu’un collaborateur conteste publiquement une décision que vous avez prise ?",
+      "advice": "Distinguez la gestion immédiate de la situation, l’échange en privé et la remise en question éventuelle de la décision.",
+      "difficulty": 3,
+      "tags": [
+        "management",
+        "autorite",
+        "conflit",
+        "communication"
+      ]
+    },
+    {
+      "id": "MAN-Q-007",
+      "theme": "Management",
+      "type": "question",
+      "text": "Comment accompagnez-vous une équipe lors d’une réorganisation qui modifie fortement les rôles ?",
+      "advice": "Montrez comment vous donnez du sens, clarifiez les responsabilités et traitez les inquiétudes individuelles.",
+      "difficulty": 3,
+      "tags": [
+        "management",
+        "reorganisation",
+        "changement",
+        "accompagnement"
+      ]
+    },
+    {
+      "id": "MAN-Q-008",
+      "theme": "Management",
+      "type": "question",
+      "text": "Comment évaluez-vous la performance d’un collaborateur lorsque les résultats dépendent fortement d’autres équipes ?",
+      "advice": "Expliquez comment vous combinez résultats, comportements, contribution collective et facteurs de contexte.",
+      "difficulty": 4,
+      "tags": [
+        "management",
+        "evaluation",
+        "performance",
+        "collaboration"
+      ]
+    },
+    {
+      "id": "MAN-MES-001",
+      "theme": "Management",
+      "type": "mes",
+      "text": "Deux directions vous demandent simultanément des livrables incompatibles. Les deux affirment que leur demande est prioritaire et votre équipe ne peut en traiter qu’une. Vous devez décider aujourd’hui.",
+      "advice": "Commencez par objectiver les enjeux, rendre les arbitrages visibles et proposer une décision assumée avec ses conséquences.",
+      "difficulty": 3,
+      "tags": [
+        "management",
+        "priorisation",
+        "stakeholders",
+        "arbitrage"
+      ]
+    },
+    {
+      "id": "MAN-MES-002",
+      "theme": "Management",
+      "type": "mes",
+      "text": "Un collaborateur clé annonce qu’il souhaite quitter l’équipe à trois semaines d’un jalon critique. Vous disposez de peu de leviers financiers.",
+      "advice": "Traitez séparément la continuité opérationnelle, la compréhension de ses motivations et les conditions réalistes de rétention.",
+      "difficulty": 3,
+      "tags": [
+        "management",
+        "retention",
+        "continuité",
+        "talents"
+      ]
+    },
+    {
+      "id": "MAN-MES-003",
+      "theme": "Management",
+      "type": "mes",
+      "text": "Votre budget est réduit de 20 %, mais vos objectifs annuels restent inchangés. Vous devez présenter un nouveau plan sous quarante-huit heures.",
+      "advice": "Expliquez ce que vous protégez, ce que vous arrêtez, ce que vous simplifiez et les risques que vous faites valider.",
+      "difficulty": 4,
+      "tags": [
+        "management",
+        "budget",
+        "priorisation",
+        "risque"
+      ]
+    },
+    {
+      "id": "MAN-MES-004",
+      "theme": "Management",
+      "type": "mes",
+      "text": "Deux experts reconnus s’opposent sur la solution à retenir. Leur conflit bloque le projet et divise l’équipe.",
+      "advice": "Ne cherchez pas seulement à réconcilier les personnes : définissez des critères de décision, un délai et une autorité d’arbitrage.",
+      "difficulty": 3,
+      "tags": [
+        "management",
+        "conflit",
+        "expertise",
+        "decision"
+      ]
+    },
+    {
+      "id": "MAN-MES-005",
+      "theme": "Management",
+      "type": "mes",
+      "text": "Vous reprenez une équipe plus expérimentée que vous dans son domaine technique et plusieurs membres doutent ouvertement de votre légitimité.",
+      "advice": "Montrez comment vous construisez votre crédibilité sans prétendre être l’expert technique principal.",
+      "difficulty": 4,
+      "tags": [
+        "management",
+        "credibilite",
+        "prise_de_poste",
+        "expertise"
+      ]
+    },
+    {
+      "id": "MAN-MES-006",
+      "theme": "Management",
+      "type": "mes",
+      "text": "Un sponsor exige d’accélérer un projet alors que l’équipe estime que la qualité serait compromise. Vous devez répondre avant la fin de la journée.",
+      "advice": "Présentez plusieurs scénarios, leurs risques et les conditions minimales permettant une accélération responsable.",
+      "difficulty": 4,
+      "tags": [
+        "management",
+        "qualite",
+        "delai",
+        "sponsor"
+      ]
+    },
+    {
+      "id": "MAN-MES-007",
+      "theme": "Management",
+      "type": "mes",
+      "text": "Un manager intermédiaire de votre équipe obtient de bons résultats mais son comportement dégrade fortement la coopération avec les autres services.",
+      "advice": "Ne réduisez pas le sujet aux seuls résultats. Montrez comment vous recadrez, mesurez l’évolution et protégez le collectif.",
+      "difficulty": 4,
+      "tags": [
+        "management",
+        "comportement",
+        "performance",
+        "collaboration"
+      ]
+    },
+    {
+      "id": "MAN-MES-008",
+      "theme": "Management",
+      "type": "mes",
+      "text": "Votre équipe travaille depuis plusieurs semaines en surcharge. Un nouveau projet prioritaire vous est confié sans renfort supplémentaire.",
+      "advice": "Expliquez comment vous rendez la capacité réelle visible, négociez le périmètre et évitez de normaliser la surcharge.",
+      "difficulty": 4,
+      "tags": [
+        "management",
+        "charge",
+        "priorisation",
+        "negociation"
+      ]
+    },
+    {
+      "id": "CRI-Q-001",
+      "theme": "Gestion de crise",
+      "type": "question",
+      "text": "Racontez une situation où vous avez dû agir rapidement alors que les informations étaient incomplètes.",
+      "advice": "Expliquez les faits disponibles, les hypothèses, la décision prise, les mesures de protection et les ajustements ultérieurs.",
+      "difficulty": 3,
+      "tags": [
+        "gestion_de_crise",
+        "decision",
+        "incertitude",
+        "reactivite"
+      ]
+    },
+    {
+      "id": "CRI-Q-002",
+      "theme": "Gestion de crise",
+      "type": "question",
+      "text": "Quelles sont vos premières actions lorsque vous découvrez un incident susceptible d’affecter un client stratégique ?",
+      "advice": "Structurez votre réponse autour de la sécurisation, de l’évaluation, de la gouvernance et de la communication.",
+      "difficulty": 2,
+      "tags": [
+        "gestion_de_crise",
+        "client",
+        "incident",
+        "priorisation"
+      ]
+    },
+    {
+      "id": "CRI-Q-003",
+      "theme": "Gestion de crise",
+      "type": "question",
+      "text": "Comment décidez-vous s’il faut déclencher une cellule de crise ?",
+      "advice": "Donnez des critères concrets : gravité, propagation, incertitude, nombre d’acteurs et niveau de décision requis.",
+      "difficulty": 3,
+      "tags": [
+        "gestion_de_crise",
+        "gouvernance",
+        "escalade",
+        "decision"
+      ]
+    },
+    {
+      "id": "CRI-Q-004",
+      "theme": "Gestion de crise",
+      "type": "question",
+      "text": "Comment communiquez-vous pendant une crise lorsque vous ne connaissez pas encore toute la vérité ?",
+      "advice": "Montrez que vous savez communiquer ce qui est établi, ce qui ne l’est pas et quand aura lieu la prochaine mise à jour.",
+      "difficulty": 3,
+      "tags": [
+        "gestion_de_crise",
+        "communication",
+        "incertitude",
+        "credibilite"
+      ]
+    },
+    {
+      "id": "CRI-Q-005",
+      "theme": "Gestion de crise",
+      "type": "question",
+      "text": "Comment évitez-vous qu’une équipe en crise se disperse ou multiplie les initiatives contradictoires ?",
+      "advice": "Parlez de rôles, de chaîne de décision, de rythme de coordination et de journal de crise.",
+      "difficulty": 3,
+      "tags": [
+        "gestion_de_crise",
+        "coordination",
+        "leadership",
+        "organisation"
+      ]
+    },
+    {
+      "id": "CRI-Q-006",
+      "theme": "Gestion de crise",
+      "type": "question",
+      "text": "Racontez une crise où votre première hypothèse s’est révélée fausse. Comment avez-vous réagi ?",
+      "advice": "Valorisez votre capacité à réviser rapidement votre diagnostic sans perdre la maîtrise de la situation.",
+      "difficulty": 4,
+      "tags": [
+        "gestion_de_crise",
+        "adaptation",
+        "humilite",
+        "decision"
+      ]
+    },
+    {
+      "id": "CRI-Q-007",
+      "theme": "Gestion de crise",
+      "type": "question",
+      "text": "Comment préparez-vous le retour d’expérience après un incident majeur ?",
+      "advice": "Séparez les faits, les causes, les décisions, les enseignements et les actions suivies dans le temps.",
+      "difficulty": 3,
+      "tags": [
+        "gestion_de_crise",
+        "retour_experience",
+        "apprentissage",
+        "amelioration_continue"
+      ]
+    },
+    {
+      "id": "CRI-Q-008",
+      "theme": "Gestion de crise",
+      "type": "question",
+      "text": "Comment arbitrez-vous entre vitesse de reprise et sécurité lorsqu’un service critique est interrompu ?",
+      "advice": "Expliquez les seuils de risque acceptables, les options temporaires et l’autorité qui valide l’arbitrage.",
+      "difficulty": 4,
+      "tags": [
+        "gestion_de_crise",
+        "continuité",
+        "securite",
+        "arbitrage"
+      ]
+    },
+    {
+      "id": "CRI-MES-001",
+      "theme": "Gestion de crise",
+      "type": "mes",
+      "text": "Un incident majeur affecte un client stratégique à quarante-huit heures d’un comité de pilotage. Les causes sont encore inconnues et le client exige un plan immédiat.",
+      "advice": "Commencez par stabiliser la situation, nommer un pilote, fixer le rythme d’information et éviter les promesses non maîtrisées.",
+      "difficulty": 4,
+      "tags": [
+        "gestion_de_crise",
+        "client",
+        "incident",
+        "communication"
+      ]
+    },
+    {
+      "id": "CRI-MES-002",
+      "theme": "Gestion de crise",
+      "type": "mes",
+      "text": "Une erreur opérationnelle commise par votre équipe risque d’être rendue publique. La direction vous demande si elle doit communiquer avant d’être sollicitée.",
+      "advice": "Évaluez les parties prenantes, le niveau de certitude, le risque réputationnel et les conséquences d’un silence prolongé.",
+      "difficulty": 4,
+      "tags": [
+        "gestion_de_crise",
+        "reputation",
+        "transparence",
+        "decision"
+      ]
+    },
+    {
+      "id": "CRI-MES-003",
+      "theme": "Gestion de crise",
+      "type": "mes",
+      "text": "Un fournisseur critique annonce qu’il ne pourra pas livrer pendant six semaines. Votre projet n’a que dix jours de marge.",
+      "advice": "Présentez les solutions de continuité, les arbitrages de périmètre et la stratégie de négociation avec les parties concernées.",
+      "difficulty": 4,
+      "tags": [
+        "gestion_de_crise",
+        "fournisseur",
+        "continuité",
+        "delai"
+      ]
+    },
+    {
+      "id": "CRI-MES-004",
+      "theme": "Gestion de crise",
+      "type": "mes",
+      "text": "Une information sensible fuite en interne. Plusieurs versions contradictoires circulent et les équipes attendent une réaction de votre part.",
+      "advice": "Ne cherchez pas à tout expliquer immédiatement. Rétablissez les faits, fixez un canal officiel et traitez la cause de la fuite.",
+      "difficulty": 3,
+      "tags": [
+        "gestion_de_crise",
+        "information",
+        "communication",
+        "confiance"
+      ]
+    },
+    {
+      "id": "CRI-MES-005",
+      "theme": "Gestion de crise",
+      "type": "mes",
+      "text": "Un conflit éclate entre deux équipes pendant qu’une décision critique doit être prise. Aucun responsable ne veut assumer le risque.",
+      "advice": "Reprenez le contrôle de la décision, clarifiez les responsabilités et reportez le règlement du conflit après sécurisation de l’urgence.",
+      "difficulty": 4,
+      "tags": [
+        "gestion_de_crise",
+        "conflit",
+        "decision",
+        "responsabilite"
+      ]
+    },
+    {
+      "id": "CRI-MES-006",
+      "theme": "Gestion de crise",
+      "type": "mes",
+      "text": "Un système essentiel devient indisponible pendant une période de forte activité. La solution de secours fonctionne mais avec des performances dégradées.",
+      "advice": "Priorisez la continuité, définissez les usages critiques et organisez une communication régulière vers les utilisateurs.",
+      "difficulty": 3,
+      "tags": [
+        "gestion_de_crise",
+        "continuité",
+        "systeme",
+        "priorisation"
+      ]
+    },
+    {
+      "id": "CRI-MES-007",
+      "theme": "Gestion de crise",
+      "type": "mes",
+      "text": "À quelques heures d’une présentation importante, vous découvrez qu’un chiffre central du dossier est probablement erroné.",
+      "advice": "Montrez comment vous vérifiez rapidement, adaptez le message et protégez votre crédibilité sans masquer l’incertitude.",
+      "difficulty": 4,
+      "tags": [
+        "gestion_de_crise",
+        "fiabilite",
+        "communication",
+        "ethique"
+      ]
+    },
+    {
+      "id": "CRI-MES-008",
+      "theme": "Gestion de crise",
+      "type": "mes",
+      "text": "Une décision réglementaire inattendue remet en cause une partie de votre activité. Vous devez informer la direction et proposer une première réponse le jour même.",
+      "advice": "Distinguez l’impact immédiat, les zones d’incertitude, les actions conservatoires et les décisions qui peuvent attendre.",
+      "difficulty": 5,
+      "tags": [
+        "gestion_de_crise",
+        "reglementation",
+        "strategie",
+        "incertitude"
+      ]
+    },
+    {
+      "id": "NEG-Q-001",
+      "theme": "Négociation",
+      "type": "question",
+      "text": "Racontez une négociation où vous avez défendu une position ferme sans dégrader la relation.",
+      "advice": "Expliquez vos intérêts, ceux de l’autre partie, vos marges de manœuvre et la solution trouvée.",
+      "difficulty": 2,
+      "tags": [
+        "negociation",
+        "relation",
+        "interets",
+        "compromis"
+      ]
+    },
+    {
+      "id": "NEG-Q-002",
+      "theme": "Négociation",
+      "type": "question",
+      "text": "Comment préparez-vous une négociation importante avec un interlocuteur plus puissant que vous ?",
+      "advice": "Présentez votre objectif, votre solution de repli, vos arguments factuels et les leviers de l’autre partie.",
+      "difficulty": 3,
+      "tags": [
+        "negociation",
+        "preparation",
+        "rapport_de_force",
+        "strategie"
+      ]
+    },
+    {
+      "id": "NEG-Q-003",
+      "theme": "Négociation",
+      "type": "question",
+      "text": "Comment réagissez-vous lorsqu’un interlocuteur refuse toute concession ?",
+      "advice": "Montrez comment vous testez ses contraintes, changez le cadre et évitez de négocier contre vous-même.",
+      "difficulty": 3,
+      "tags": [
+        "negociation",
+        "blocage",
+        "ecoute",
+        "strategie"
+      ]
+    },
+    {
+      "id": "NEG-Q-004",
+      "theme": "Négociation",
+      "type": "question",
+      "text": "Racontez une situation où vous avez dû dire non à une demande légitime mais impossible à satisfaire.",
+      "advice": "Expliquez comment vous reconnaissez le besoin, posez la limite et proposez une alternative crédible.",
+      "difficulty": 2,
+      "tags": [
+        "negociation",
+        "refus",
+        "relation",
+        "alternative"
+      ]
+    },
+    {
+      "id": "NEG-Q-005",
+      "theme": "Négociation",
+      "type": "question",
+      "text": "Comment négociez-vous lorsque le délai est très court ?",
+      "advice": "Distinguez l’essentiel du négociable, sécurisez les points critiques et formalisez les engagements.",
+      "difficulty": 3,
+      "tags": [
+        "negociation",
+        "delai",
+        "priorisation",
+        "engagement"
+      ]
+    },
+    {
+      "id": "NEG-Q-006",
+      "theme": "Négociation",
+      "type": "question",
+      "text": "Comment identifiez-vous les véritables intérêts derrière une position exprimée ?",
+      "advice": "Parlez de questions ouvertes, d’écoute, de reformulation et d’hypothèses à vérifier.",
+      "difficulty": 3,
+      "tags": [
+        "negociation",
+        "ecoute",
+        "interets",
+        "influence"
+      ]
+    },
+    {
+      "id": "NEG-Q-007",
+      "theme": "Négociation",
+      "type": "question",
+      "text": "Comment savez-vous qu’il vaut mieux interrompre une négociation que conclure un mauvais accord ?",
+      "advice": "Définissez votre seuil minimal acceptable et les conséquences à long terme d’un accord déséquilibré.",
+      "difficulty": 4,
+      "tags": [
+        "negociation",
+        "decision",
+        "limites",
+        "strategie"
+      ]
+    },
+    {
+      "id": "NEG-Q-008",
+      "theme": "Négociation",
+      "type": "question",
+      "text": "Racontez une négociation où vous avez dû revenir sur une concession déjà envisagée.",
+      "advice": "Montrez comment vous avez préservé votre crédibilité et expliqué l’évolution des contraintes.",
+      "difficulty": 4,
+      "tags": [
+        "negociation",
+        "concession",
+        "credibilite",
+        "adaptation"
+      ]
+    },
+    {
+      "id": "NEG-MES-001",
+      "theme": "Négociation",
+      "type": "mes",
+      "text": "Un client exige une livraison deux semaines plus tôt sans accepter de réduire le périmètre ni d’augmenter le budget.",
+      "advice": "Faites expliciter ses priorités et proposez plusieurs combinaisons entre délai, coût, qualité et périmètre.",
+      "difficulty": 3,
+      "tags": [
+        "negociation",
+        "client",
+        "delai",
+        "perimetre"
+      ]
+    },
+    {
+      "id": "NEG-MES-002",
+      "theme": "Négociation",
+      "type": "mes",
+      "text": "Deux directions veulent mobiliser le même expert pendant la même période. Chacune affirme que son projet est stratégique.",
+      "advice": "Ne négociez pas seulement le calendrier : rendez visibles les impacts et faites valider les critères d’arbitrage.",
+      "difficulty": 4,
+      "tags": [
+        "negociation",
+        "ressource",
+        "priorites",
+        "arbitrage"
+      ]
+    },
+    {
+      "id": "NEG-MES-003",
+      "theme": "Négociation",
+      "type": "mes",
+      "text": "Un fournisseur propose une baisse de prix importante en échange d’un engagement de trois ans, mais sa fiabilité récente est moyenne.",
+      "advice": "Évaluez le coût total du risque et négociez des garanties, des paliers ou des clauses de sortie.",
+      "difficulty": 4,
+      "tags": [
+        "negociation",
+        "fournisseur",
+        "risque",
+        "contrat"
+      ]
+    },
+    {
+      "id": "NEG-MES-004",
+      "theme": "Négociation",
+      "type": "mes",
+      "text": "Votre direction veut réduire votre budget de 15 %. Vous estimez qu’au-delà de 5 %, les objectifs ne seront plus réalistes.",
+      "advice": "Préparez plusieurs scénarios chiffrés et reliez chaque niveau de budget à des résultats et des risques explicites.",
+      "difficulty": 4,
+      "tags": [
+        "negociation",
+        "budget",
+        "direction",
+        "scenario"
+      ]
+    },
+    {
+      "id": "NEG-MES-005",
+      "theme": "Négociation",
+      "type": "mes",
+      "text": "Un partenaire stratégique menace de se retirer si vous ne lui accordez pas une exclusivité commerciale.",
+      "advice": "Analysez votre dépendance, votre solution de repli et les concessions réciproques que vous pourriez exiger.",
+      "difficulty": 5,
+      "tags": [
+        "negociation",
+        "partenariat",
+        "exclusivite",
+        "rapport_de_force"
+      ]
+    },
+    {
+      "id": "NEG-MES-006",
+      "theme": "Négociation",
+      "type": "mes",
+      "text": "Vous devez convaincre un comité de financer un projet dont les bénéfices principaux n’apparaîtront que dans trois ans.",
+      "advice": "Transformez la discussion en comparaison entre le coût de l’action, le coût de l’inaction et les jalons intermédiaires.",
+      "difficulty": 4,
+      "tags": [
+        "negociation",
+        "investissement",
+        "comite",
+        "valeur"
+      ]
+    },
+    {
+      "id": "NEG-MES-007",
+      "theme": "Négociation",
+      "type": "mes",
+      "text": "Un collaborateur très recherché demande une évolution salariale supérieure à la grille de l’entreprise.",
+      "advice": "Explorez l’ensemble de la proposition de valeur : responsabilités, progression, reconnaissance, flexibilité et calendrier de révision.",
+      "difficulty": 3,
+      "tags": [
+        "negociation",
+        "salaire",
+        "talent",
+        "retention"
+      ]
+    },
+    {
+      "id": "NEG-MES-008",
+      "theme": "Négociation",
+      "type": "mes",
+      "text": "Votre hiérarchie vous demande d’accepter un engagement contractuel que vous jugez difficilement tenable.",
+      "advice": "Exposez les risques, proposez une formulation alternative et faites clairement valider le niveau de risque accepté.",
+      "difficulty": 5,
+      "tags": [
+        "negociation",
+        "hierarchie",
+        "contrat",
+        "risque"
+      ]
+    },
+    {
+      "id": "LEA-Q-001",
+      "theme": "Leadership",
+      "type": "question",
+      "text": "Comment donnez-vous une direction claire lorsque l’environnement change rapidement ?",
+      "advice": "Présentez une vision stable, quelques priorités concrètes et la manière dont vous ajustez l’exécution.",
+      "difficulty": 3,
+      "tags": [
+        "leadership",
+        "vision",
+        "incertitude",
+        "priorisation"
+      ]
+    },
+    {
+      "id": "LEA-Q-002",
+      "theme": "Leadership",
+      "type": "question",
+      "text": "Racontez une décision importante que vous avez prise sans consensus complet.",
+      "advice": "Expliquez comment vous avez écouté, arbitré, assumé et accompagné les oppositions.",
+      "difficulty": 3,
+      "tags": [
+        "leadership",
+        "decision",
+        "courage",
+        "responsabilite"
+      ]
+    },
+    {
+      "id": "LEA-Q-003",
+      "theme": "Leadership",
+      "type": "question",
+      "text": "Comment restaurez-vous la confiance après un échec collectif ?",
+      "advice": "Parlez de responsabilité, de vérité sur les faits, d’apprentissage et de nouvelle dynamique.",
+      "difficulty": 3,
+      "tags": [
+        "leadership",
+        "confiance",
+        "echec",
+        "mobilisation"
+      ]
+    },
+    {
+      "id": "LEA-Q-004",
+      "theme": "Leadership",
+      "type": "question",
+      "text": "Comment motivez-vous une équipe lorsqu’il n’existe ni prime ni promotion à offrir ?",
+      "advice": "Mettez en avant le sens, l’autonomie, la reconnaissance, la progression et la qualité du collectif.",
+      "difficulty": 2,
+      "tags": [
+        "leadership",
+        "motivation",
+        "reconnaissance",
+        "engagement"
+      ]
+    },
+    {
+      "id": "LEA-Q-005",
+      "theme": "Leadership",
+      "type": "question",
+      "text": "Comment adaptez-vous votre leadership à des collaborateurs très autonomes et très experts ?",
+      "advice": "Montrez que votre rôle porte sur le cap, les arbitrages, les interfaces et la confiance.",
+      "difficulty": 3,
+      "tags": [
+        "leadership",
+        "expertise",
+        "autonomie",
+        "posture"
+      ]
+    },
+    {
+      "id": "LEA-Q-006",
+      "theme": "Leadership",
+      "type": "question",
+      "text": "Racontez une situation où vous avez dû protéger votre équipe tout en maintenant un haut niveau d’exigence.",
+      "advice": "Expliquez ce que vous avez absorbé, ce que vous avez refusé et les exigences que vous avez maintenues.",
+      "difficulty": 4,
+      "tags": [
+        "leadership",
+        "protection",
+        "exigence",
+        "courage"
+      ]
+    },
+    {
+      "id": "LEA-Q-007",
+      "theme": "Leadership",
+      "type": "question",
+      "text": "Comment réagissez-vous lorsqu’une décision impopulaire est pourtant nécessaire ?",
+      "advice": "Montrez comment vous expliquez le pourquoi, assumez la décision et laissez un espace d’expression.",
+      "difficulty": 3,
+      "tags": [
+        "leadership",
+        "decision",
+        "communication",
+        "courage"
+      ]
+    },
+    {
+      "id": "LEA-Q-008",
+      "theme": "Leadership",
+      "type": "question",
+      "text": "Comment faites-vous émerger de nouveaux leaders dans votre équipe ?",
+      "advice": "Parlez d’exposition progressive, de responsabilités réelles, de feedback et de droit à l’erreur encadré.",
+      "difficulty": 3,
+      "tags": [
+        "leadership",
+        "developpement",
+        "talents",
+        "delegation"
+      ]
+    },
+    {
+      "id": "LEA-MES-001",
+      "theme": "Leadership",
+      "type": "mes",
+      "text": "Vous remplacez un manager très apprécié. L’équipe compare chacune de vos décisions à celles de votre prédécesseur.",
+      "advice": "Ne cherchez pas à imiter votre prédécesseur. Respectez l’héritage, écoutez et établissez progressivement votre propre cadre.",
+      "difficulty": 3,
+      "tags": [
+        "leadership",
+        "prise_de_poste",
+        "credibilite",
+        "changement"
+      ]
+    },
+    {
+      "id": "LEA-MES-002",
+      "theme": "Leadership",
+      "type": "mes",
+      "text": "Une équipe performante perd en motivation après plusieurs mois de pression et deux projets difficiles.",
+      "advice": "Reconnaissez la fatigue, redonnez des priorités réalistes et recréez des signes rapides de progrès.",
+      "difficulty": 3,
+      "tags": [
+        "leadership",
+        "motivation",
+        "pression",
+        "engagement"
+      ]
+    },
+    {
+      "id": "LEA-MES-003",
+      "theme": "Leadership",
+      "type": "mes",
+      "text": "Vous devez faire accepter une transformation stratégique à une équipe qui n’a pas participé à la décision.",
+      "advice": "Ne réduisez pas la réponse à la communication. Travaillez le sens, les marges d’influence et les conséquences concrètes.",
+      "difficulty": 4,
+      "tags": [
+        "leadership",
+        "transformation",
+        "adhesion",
+        "communication"
+      ]
+    },
+    {
+      "id": "LEA-MES-004",
+      "theme": "Leadership",
+      "type": "mes",
+      "text": "Un membre de votre équipe échoue publiquement sur une mission importante. Le collectif commence à douter de lui.",
+      "advice": "Protégez la personne sans nier l’échec, analysez les responsabilités et définissez les conditions d’un retour en confiance.",
+      "difficulty": 4,
+      "tags": [
+        "leadership",
+        "echec",
+        "confiance",
+        "developpement"
+      ]
+    },
+    {
+      "id": "LEA-MES-005",
+      "theme": "Leadership",
+      "type": "mes",
+      "text": "La direction vous impose une décision que votre équipe considère comme injuste. Vous ne pouvez pas la modifier.",
+      "advice": "Expliquez comment vous restez loyal envers l’organisation sans perdre votre crédibilité auprès de l’équipe.",
+      "difficulty": 5,
+      "tags": [
+        "leadership",
+        "loyaute",
+        "decision",
+        "credibilite"
+      ]
+    },
+    {
+      "id": "LEA-MES-006",
+      "theme": "Leadership",
+      "type": "mes",
+      "text": "Deux collaborateurs influents contestent votre orientation et entraînent progressivement le reste de l’équipe.",
+      "advice": "Distinguez la contestation légitime, les jeux d’influence et les limites comportementales à poser.",
+      "difficulty": 4,
+      "tags": [
+        "leadership",
+        "influence",
+        "opposition",
+        "autorite"
+      ]
+    },
+    {
+      "id": "LEA-MES-007",
+      "theme": "Leadership",
+      "type": "mes",
+      "text": "Un projet stratégique échoue alors que vous aviez publiquement défendu son lancement.",
+      "advice": "Assumez votre part, protégez l’analyse factuelle et transformez l’échec en décisions concrètes.",
+      "difficulty": 5,
+      "tags": [
+        "leadership",
+        "echec",
+        "responsabilite",
+        "apprentissage"
+      ]
+    },
+    {
+      "id": "LEA-MES-008",
+      "theme": "Leadership",
+      "type": "mes",
+      "text": "Vous souhaitez abandonner une pratique historique de l’entreprise, encore soutenue par plusieurs cadres influents.",
+      "advice": "Construisez une coalition, objectivez les limites de l’existant et proposez une transition plutôt qu’une rupture symbolique.",
+      "difficulty": 5,
+      "tags": [
+        "leadership",
+        "changement",
+        "influence",
+        "strategie"
+      ]
+    },
+    {
+      "id": "COM-Q-001",
+      "theme": "Communication",
+      "type": "question",
+      "text": "Comment adaptez-vous votre discours entre un expert technique, un dirigeant et un client ?",
+      "advice": "Montrez que vous adaptez le niveau de détail, les enjeux mis en avant et le vocabulaire, sans modifier les faits.",
+      "difficulty": 2,
+      "tags": [
+        "communication",
+        "adaptation",
+        "auditoire",
+        "clarte"
+      ]
+    },
+    {
+      "id": "COM-Q-002",
+      "theme": "Communication",
+      "type": "question",
+      "text": "Racontez une situation où vous avez dû annoncer une mauvaise nouvelle.",
+      "advice": "Présentez le moment choisi, le niveau de transparence, les conséquences et le plan proposé.",
+      "difficulty": 2,
+      "tags": [
+        "communication",
+        "mauvaise_nouvelle",
+        "transparence",
+        "credibilite"
+      ]
+    },
+    {
+      "id": "COM-Q-003",
+      "theme": "Communication",
+      "type": "question",
+      "text": "Comment rendez-vous compréhensible un sujet très technique à un comité de direction ?",
+      "advice": "Partez de la décision attendue, utilisez peu de données et reliez le sujet aux impacts métier.",
+      "difficulty": 3,
+      "tags": [
+        "communication",
+        "vulgarisation",
+        "comite",
+        "impact"
+      ]
+    },
+    {
+      "id": "COM-Q-004",
+      "theme": "Communication",
+      "type": "question",
+      "text": "Comment réagissez-vous lorsqu’un interlocuteur influent vous interrompt ou cherche à déstabiliser votre présentation ?",
+      "advice": "Gardez le contrôle du cadre, répondez brièvement et revenez à la décision attendue.",
+      "difficulty": 3,
+      "tags": [
+        "communication",
+        "prise_de_parole",
+        "pression",
+        "assertivite"
+      ]
+    },
+    {
+      "id": "COM-Q-005",
+      "theme": "Communication",
+      "type": "question",
+      "text": "Comment vérifiez-vous qu’un message important a réellement été compris ?",
+      "advice": "Parlez de reformulation, de responsabilités explicites, de traces écrites et de vérification des actions.",
+      "difficulty": 2,
+      "tags": [
+        "communication",
+        "clarte",
+        "alignement",
+        "suivi"
+      ]
+    },
+    {
+      "id": "COM-Q-006",
+      "theme": "Communication",
+      "type": "question",
+      "text": "Racontez une situation où vous avez dû reconnaître publiquement une erreur.",
+      "advice": "Montrez une responsabilité claire, sans justification excessive, puis expliquez les mesures prises.",
+      "difficulty": 3,
+      "tags": [
+        "communication",
+        "erreur",
+        "responsabilite",
+        "confiance"
+      ]
+    },
+    {
+      "id": "COM-Q-007",
+      "theme": "Communication",
+      "type": "question",
+      "text": "Comment communiquez-vous lorsqu’une décision n’est pas encore définitive mais que les équipes commencent à s’inquiéter ?",
+      "advice": "Distinguez les faits, les hypothèses, le calendrier de décision et ce que les équipes peuvent déjà faire.",
+      "difficulty": 3,
+      "tags": [
+        "communication",
+        "incertitude",
+        "transparence",
+        "confiance"
+      ]
+    },
+    {
+      "id": "COM-Q-008",
+      "theme": "Communication",
+      "type": "question",
+      "text": "Comment faites-vous passer un message difficile sans créer une opposition inutile ?",
+      "advice": "Séparez le fond non négociable, la manière de le présenter et les espaces de discussion possibles.",
+      "difficulty": 3,
+      "tags": [
+        "communication",
+        "influence",
+        "message_difficile",
+        "relation"
+      ]
+    },
+    {
+      "id": "COM-MES-001",
+      "theme": "Communication",
+      "type": "mes",
+      "text": "Vous devez annoncer à votre équipe le report d’un projet déjà très attendu. La direction refuse que vous expliquiez précisément toutes les causes.",
+      "advice": "Soyez transparent sur les faits communicables, les conséquences et le nouveau plan, sans spéculer sur ce qui est confidentiel.",
+      "difficulty": 3,
+      "tags": [
+        "communication",
+        "report",
+        "transparence",
+        "equipe"
+      ]
+    },
+    {
+      "id": "COM-MES-002",
+      "theme": "Communication",
+      "type": "mes",
+      "text": "Un sponsor vous demande de présenter comme satisfaisant un résultat que vous jugez encore insuffisant.",
+      "advice": "Protégez votre intégrité tout en présentant les progrès, les écarts et le plan de correction.",
+      "difficulty": 4,
+      "tags": [
+        "communication",
+        "ethique",
+        "sponsor",
+        "credibilite"
+      ]
+    },
+    {
+      "id": "COM-MES-003",
+      "theme": "Communication",
+      "type": "mes",
+      "text": "Une rumeur erronée circule sur une possible suppression de postes. Vous ne disposez pas encore de la décision finale.",
+      "advice": "Corrigez ce qui est faux, reconnaissez ce qui reste incertain et engagez-vous sur le prochain point d’information.",
+      "difficulty": 4,
+      "tags": [
+        "communication",
+        "rumeur",
+        "incertitude",
+        "confiance"
+      ]
+    },
+    {
+      "id": "COM-MES-004",
+      "theme": "Communication",
+      "type": "mes",
+      "text": "Vous disposez de cinq minutes pour présenter un projet complexe à un comité sceptique et obtenir une décision.",
+      "advice": "Commencez par l’enjeu, formulez la décision demandée, soutenez-la par trois arguments et traitez le principal risque.",
+      "difficulty": 4,
+      "tags": [
+        "communication",
+        "comite",
+        "synthese",
+        "conviction"
+      ]
+    },
+    {
+      "id": "COM-MES-005",
+      "theme": "Communication",
+      "type": "mes",
+      "text": "Vous devez recadrer un partenaire externe important dont les équipes ne respectent plus les engagements convenus.",
+      "advice": "Restez factuel, mesurez les écarts, explicitez les conséquences et proposez un mécanisme de retour à la normale.",
+      "difficulty": 3,
+      "tags": [
+        "communication",
+        "recadrage",
+        "partenaire",
+        "assertivite"
+      ]
+    },
+    {
+      "id": "COM-MES-006",
+      "theme": "Communication",
+      "type": "mes",
+      "text": "Lors d’une réunion, deux directions comprennent différemment la décision qui vient d’être prise.",
+      "advice": "Reformulez immédiatement la décision, les responsabilités, les échéances et les points restant ouverts.",
+      "difficulty": 2,
+      "tags": [
+        "communication",
+        "alignement",
+        "decision",
+        "clarte"
+      ]
+    },
+    {
+      "id": "COM-MES-007",
+      "theme": "Communication",
+      "type": "mes",
+      "text": "Vous devez présenter un plan de transformation à des salariés qui pensent que le projet est déjà décidé sans eux.",
+      "advice": "Reconnaissez la perception, distinguez ce qui est fixé de ce qui peut évoluer et ouvrez des mécanismes de contribution concrets.",
+      "difficulty": 4,
+      "tags": [
+        "communication",
+        "transformation",
+        "adhesion",
+        "ecoute"
+      ]
+    },
+    {
+      "id": "COM-MES-008",
+      "theme": "Communication",
+      "type": "mes",
+      "text": "Au cours d’un entretien tendu, un dirigeant remet publiquement en cause la fiabilité de vos chiffres.",
+      "advice": "Ne devenez pas défensif. Clarifiez la source, reconnaissez les limites éventuelles et proposez une vérification factuelle rapide.",
+      "difficulty": 4,
+      "tags": [
+        "communication",
+        "pression",
+        "credibilite",
+        "donnees"
+      ]
+    }
+  ]
+}

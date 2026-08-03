@@ -26,7 +26,7 @@ const AdminUsers = () => {
       if (search) params.append('search', search);
       if (status) params.append('status', status);
 
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/admin/users?${params.toString()}`);
+      const response = await authenticatedFetch(`${API_BASE_URL}/admin/users?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch users');
       const data = await response.json();
       setUsers(data.users);

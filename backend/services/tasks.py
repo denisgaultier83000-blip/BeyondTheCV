@@ -1,9 +1,11 @@
 import json
 import asyncio
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from database import db
 from .ai_generator import ai_service
+from .ia_costs import estimate_task_cost
 from .websocket_manager import manager
 # Import de la vraie logique de recherche
 from .market_research import perform_market_research
@@ -28,10 +30,82 @@ def update_task_status_sync(task_id: str, status: str, result: dict = None):
     """Mise à jour synchrone de la DB (pour exécution dans un thread)."""
     result_json = json.dumps(result, default=str) if result is not None else None
     try:
-        import os
+        from psycopg2.extras import RealDictCursor
         with db.get_sync_connection() as conn:
-            cur = conn.cursor()
-            cur.execute("UPDATE tasks SET status = %s, result = %s WHERE id = %s", (status, result_json, task_id))
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            cur.execute(
+                "SELECT id, user_id, application_id, status, task_type, estimated_cost, created_at, started_at FROM tasks WHERE id = %s",
+                (task_id,)
+            )
+            task_row = cur.fetchone()
+            if not task_row:
+                cur.close()
+                return
+
+            terminal = status in {"SUCCESS", "COMPLETED", "FAILED"}
+            success = status in {"SUCCESS", "COMPLETED"}
+
+            if status == "RUNNING":
+                cur.execute(
+                    "UPDATE tasks SET status = %s, started_at = COALESCE(started_at, CURRENT_TIMESTAMP) WHERE id = %s",
+                    (status, task_id)
+                )
+                conn.commit()
+                cur.close()
+                return
+
+            now_utc = datetime.now(timezone.utc)
+            ref_started = task_row.get("started_at") or task_row.get("created_at")
+            duration_ms = None
+            if terminal and ref_started:
+                try:
+                    if ref_started.tzinfo is None:
+                        ref_started = ref_started.replace(tzinfo=timezone.utc)
+                    duration_ms = max(0, int((now_utc - ref_started).total_seconds() * 1000))
+                except Exception:
+                    duration_ms = None
+
+            existing_cost = task_row.get("estimated_cost")
+            computed_cost = None
+            should_credit_user = False
+            if success and result_json:
+                if existing_cost is None:
+                    computed_cost = estimate_task_cost(task_row.get("task_type"), result_json)
+                    should_credit_user = True
+                else:
+                    computed_cost = float(existing_cost)
+
+            if terminal:
+                if computed_cost is not None:
+                    cur.execute(
+                        "UPDATE tasks SET status = %s, result = %s, completed_at = CURRENT_TIMESTAMP, duration_ms = COALESCE(%s, duration_ms), estimated_cost = COALESCE(estimated_cost, %s) WHERE id = %s",
+                        (status, result_json, duration_ms, computed_cost, task_id)
+                    )
+                else:
+                    cur.execute(
+                        "UPDATE tasks SET status = %s, result = %s, completed_at = CURRENT_TIMESTAMP, duration_ms = COALESCE(%s, duration_ms) WHERE id = %s",
+                        (status, result_json, duration_ms, task_id)
+                    )
+            else:
+                cur.execute(
+                    "UPDATE tasks SET status = %s, result = %s WHERE id = %s",
+                    (status, result_json, task_id)
+                )
+
+            resolved_user_id = task_row.get("user_id")
+            if not resolved_user_id and task_row.get("application_id"):
+                cur.execute("SELECT user_id FROM job_applications WHERE id = %s", (task_row.get("application_id"),))
+                app_row = cur.fetchone()
+                if app_row:
+                    resolved_user_id = app_row.get("user_id")
+
+            if should_credit_user and computed_cost and resolved_user_id:
+                if task_row.get("status") not in {"SUCCESS", "COMPLETED"}:
+                    cur.execute(
+                        "UPDATE users SET total_ia_cost = COALESCE(total_ia_cost, 0) + %s WHERE id = %s",
+                        (computed_cost, resolved_user_id)
+                    )
+
             conn.commit()
             cur.close()
     except Exception as e:
@@ -108,20 +182,68 @@ async def _run_research_logic(task_id: str, request_data: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
         user_id = request_data.get("user_id", "unknown_user")
+
+        # [CACHE L0] Cache per-user (existant)
         is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "research", request_data, "Analyse récupérée en cache")
         if is_cached: return
 
-        # Normalisation de la langue pour la recherche
+        company  = request_data.get("target_company", "")
+        industry = request_data.get("target_industry", "")
+        job_title = request_data.get("target_job", "")
+        country   = request_data.get("target_country", "")
+
+        # [CACHE L1] Cache entreprise partagé (cross-user, TTL 30 jours)
+        from .cache_service import (
+            get_company_cache, set_company_cache, touch_company_cache,
+            get_market_cache,  set_market_cache,  touch_market_cache
+        )
+        shared_company = await get_company_cache(company, industry)
+        if shared_company:
+            print(f"[CACHE L1 HIT] {company}", flush=True)
+            await touch_company_cache(company, industry)
+            await manager.broadcast(task_id, "✅ Analyse entreprise récupérée en cache partagé !")
+            await set_cached_content(cache_key, user_id, "research", shared_company)
+            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", shared_company)
+            await manager.broadcast(task_id, "Analyse récupérée en cache !", status="COMPLETED", data=shared_company)
+            return
+
+        # [QUOTA] Consommer 1 quota_entreprises pour une nouvelle analyse
+        if user_id and user_id != "unknown_user":
+            try:
+                from .utils import consume_quota
+                await consume_quota(user_id, "entreprises")
+            except Exception as quota_err:
+                detail = getattr(quota_err, "detail", str(quota_err))
+                if "insuffisants" in str(detail):
+                    fallback = {"company": company, "market_report": {}, "company_report": {}, "sources": [],
+                                "quota_error": "Quota entreprises atteint — rechargement automatique en mode test."}
+                    await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", fallback)
+                    await manager.broadcast(task_id, "Quota entreprises rechargé.", status="COMPLETED", data=fallback)
+                    return
+
+        # [CACHE L3] Cache marché partagé — si dispo, on l'injecte dans request_data pour éviter de regénérer
+        cached_market = await get_market_cache(job_title, country)
+        if cached_market:
+            print(f"[CACHE L3 HIT] Marché {job_title} / {country}", flush=True)
+            await touch_market_cache(job_title, country)
+            request_data["_cached_market_report"] = cached_market
+
+        # Normalisation de la langue
         if 'target_language' in request_data:
             request_data['target_language'] = normalize_language(request_data['target_language'])
-        final_report = await perform_market_research(request_data, task_id=task_id) # Utilise déjà Serper si configuré
-        
+
+        final_report = await perform_market_research(request_data, task_id=task_id)
+
+        # Stocker en cache partagé L1 + L3
+        await set_company_cache(company, industry, final_report)
+        if final_report.get("market_report"):
+            await set_market_cache(job_title, country, final_report["market_report"])
+
         await set_cached_content(cache_key, user_id, "research", final_report)
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", final_report)
         await manager.broadcast(task_id, "Analyse terminée avec succès !", status="COMPLETED", data=final_report)
     except Exception as e:
         print(f"[Task {task_id}] ❌ Research failed: {e}")
-        # [FIX] Fallback gracieux pour ne jamais bloquer le frontend
         fallback = {
             "company": request_data.get('target_company', 'Unknown'),
             "market_report": {},
@@ -311,9 +433,38 @@ async def _run_questions_logic(task_id: str, candidate_data: dict):
             """
             
             result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction=f"You are an expert interviewer. Output ONLY JSON. Language: {target_lang}.")
-            if "error" in result:
-                await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
-                await manager.broadcast(task_id, "Erreur lors de la génération", status="FAILED", data=result)
+
+            # --- Validation du format de sortie (détection des dérives vers des scénarios/MES ou du texte libre) ---
+            def _is_valid_questions(res):
+                return isinstance(res, dict) and isinstance(res.get("questions"), list)
+
+            if not _is_valid_questions(result):
+                print(f"[VALIDATION WARNING] task={task_id} user={user_id} - interview questions response did not match schema. Attempting salvage. Raw result: {str(result)[:2000]}", flush=True)
+                # Tentative de salvage : si l'IA a renvoyé du texte libre, demander une conversion stricte en JSON
+                try:
+                    raw_text = result if isinstance(result, str) else json.dumps(result, ensure_ascii=False)
+                except Exception:
+                    raw_text = str(result)
+
+                schema_str = '{"questions": [{"category":"","question":"","score":1,"suggested_answer":"","advice":""}]}'
+                salvage_prompt = f"Parse the following AI output into STRICT JSON with schema: {schema_str} . The language must be {target_lang}.\n\nRAW_OUTPUT:\n{raw_text}"
+                salvage = await ai_service.generate_valid_json(salvage_prompt, provider="openai", system_instruction="You are a JSON conversion assistant. Output STRICT JSON matching the schema exactly.")
+                if isinstance(salvage, dict) and isinstance(salvage.get("questions"), list):
+                    result = salvage
+                    print(f"[VALIDATION] Salvaged interview questions for task={task_id}", flush=True)
+                    await set_cached_content(cache_key, user_id, "interview_questions", result)
+                    await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+                    await manager.broadcast(task_id, "Questions générées avec succès (salvaged)", status="COMPLETED", data=result)
+                else:
+                    print(f"[VALIDATION ERROR] Salvage failed for task={task_id}. Storing raw output for inspection.", flush=True)
+                    try:
+                        await set_cached_content(cache_key + "_diagnostic", user_id, "diagnostic", {"raw": raw_text})
+                    except Exception:
+                        pass
+                    # Ne bloquons pas le frontend : on renvoie une structure minimale
+                    fallback = {"questions": []}
+                    await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", fallback)
+                    await manager.broadcast(task_id, "Questions générées (fallback)", status="COMPLETED", data=fallback)
             else:
                 await set_cached_content(cache_key, user_id, "interview_questions", result)
                 await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
@@ -332,22 +483,46 @@ async def _run_gap_analysis_logic(task_id: str, data: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
         user_id = data.get("user_id", "unknown_user")
+
+        # [CACHE L0] Cache per-user
         is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "gap_analysis", data, "Analyse d'écart récupérée en cache")
         if is_cached: return
 
         target_lang = normalize_language(data.get('target_language', 'French'))
-        # [FIX] Fallback robuste pour le titre du poste
         target_job = data.get('target_job') or data.get('target_role_primary', 'Unknown Position')
         job_description = data.get('job_description', '')
-        
-        # [AMELIORATION] Utilisation de la JD réelle si disponible
+
+        # [CACHE L2] Cache offre partagé (cross-user, TTL 90 jours)
+        from .cache_service import get_job_offer_cache, set_job_offer_cache, touch_job_offer_cache
+        if job_description and len(job_description) > 50:
+            shared_offer = await get_job_offer_cache(job_description)
+            if shared_offer:
+                print(f"[CACHE L2 HIT] Offre gap analysis", flush=True)
+                await touch_job_offer_cache(job_description)
+                await set_cached_content(cache_key, user_id, "gap_analysis", shared_offer)
+                await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", shared_offer)
+                await manager.broadcast(task_id, "Analyse d'écart récupérée en cache partagé !", status="COMPLETED", data=shared_offer)
+                return
+
+            # [QUOTA] Consommer 1 quota_offres pour une nouvelle offre analysée
+            if user_id and user_id != "unknown_user":
+                try:
+                    from .utils import consume_quota
+                    await consume_quota(user_id, "offres")
+                except Exception as quota_err:
+                    detail = getattr(quota_err, "detail", str(quota_err))
+                    if "insuffisants" in str(detail):
+                        fallback = {"quota_error": "Quota offres atteint — rechargement automatique en mode test."}
+                        await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", fallback)
+                        await manager.broadcast(task_id, "Quota offres rechargé.", status="COMPLETED", data=fallback)
+                        return
+
         context_job = f"Poste visé : '{target_job}'"
         if job_description and len(job_description) > 50:
             context_job += f"\n\nDESCRIPTION DE L'OFFRE (REFERENCE ABSOLUE) :\n{job_description}"
         else:
             context_job += "\n(Pas de description fournie, base-toi sur les standards du marché pour ce titre)"
         
-        # [FIX EXPERT] Whitelist stricte pour empêcher le JSON de dépasser la limite de l'IA
         clean_data = {
             "experiences": data.get("experiences", []),
             "educations": data.get("educations", []),
@@ -376,6 +551,9 @@ async def _run_gap_analysis_logic(task_id: str, data: dict):
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur d'analyse", status="FAILED", data=result)
         else:
+            # Stocker en cache offre partagé si une JD était présente
+            if job_description and len(job_description) > 50:
+                await set_job_offer_cache(job_description, result)
             await set_cached_content(cache_key, user_id, "gap_analysis", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
             await manager.broadcast(task_id, "Analyse terminée", status="COMPLETED", data=result)
@@ -955,9 +1133,48 @@ async def process_custom_scenarios_in_background(task_id: str, data: dict):
         """
         
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an Expert HR Scenario Designer.")
-        if "error" in result:
-            await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
-            await manager.broadcast(task_id, "Erreur de génération des scénarios", status="FAILED", data=result)
+
+        # --- Validation du format attendu (categories / scenarios) ---
+        def _is_valid_scenarios(res):
+            if not isinstance(res, dict):
+                return False
+            if isinstance(res.get("categories"), list) and len(res.get("categories"))>0:
+                # quick check: each category should have 'scenarios' list
+                for c in res.get("categories"):
+                    if not isinstance(c, dict):
+                        return False
+                    if not isinstance(c.get("scenarios"), list) or len(c.get("scenarios"))==0:
+                        return False
+                return True
+            if isinstance(res.get("scenarios"), list) and len(res.get("scenarios"))>0:
+                return True
+            return False
+
+        if not _is_valid_scenarios(result):
+            print(f"[VALIDATION WARNING] task={task_id} user={user_id} - custom scenarios response did not match schema. Attempting salvage. Raw result: {str(result)[:2000]}", flush=True)
+            try:
+                raw_text = result if isinstance(result, str) else json.dumps(result, ensure_ascii=False)
+            except Exception:
+                raw_text = str(result)
+
+            scenario_schema = '{"categories": [{"category":"","icon":"","scenarios":[{"id":"","title":"","description":"","ideal_response_flow":{}}]}]}'
+            salvage_prompt = f"Parse the following AI output into STRICT JSON with schema: {scenario_schema} . The language must be {target_lang}.\n\nRAW_OUTPUT:\n{raw_text}"
+            salvage = await ai_service.generate_valid_json(salvage_prompt, provider="openai", system_instruction="You are a JSON conversion assistant. Output STRICT JSON matching the schema exactly.")
+            if isinstance(salvage, dict) and _is_valid_scenarios(salvage):
+                result = salvage
+                print(f"[VALIDATION] Salvaged custom scenarios for task={task_id}", flush=True)
+                await set_cached_content(cache_key, user_id, "extra_scenarios", result)
+                await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
+                await manager.broadcast(task_id, "Scénarios générés avec succès (salvaged)", status="COMPLETED", data=result)
+            else:
+                print(f"[VALIDATION ERROR] Salvage failed for custom scenarios task={task_id}. Storing raw output for inspection.", flush=True)
+                try:
+                    await set_cached_content(cache_key + "_diagnostic", user_id, "diagnostic", {"raw": raw_text})
+                except Exception:
+                    pass
+                fallback = {"categories": []}
+                await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", fallback)
+                await manager.broadcast(task_id, "Scénarios générés (fallback)", status="COMPLETED", data=fallback)
         else:
             await set_cached_content(cache_key, user_id, "extra_scenarios", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)

@@ -21,7 +21,7 @@ export function ApplicationDossier({ appId, onBack, onOpenDeliverable, onGoToTra
   useEffect(() => {
     const loadDossier = async () => {
       try {
-        const response = await authenticatedFetch(`${API_BASE_URL}/api/applications/${appId}/load`);
+        const response = await authenticatedFetch(`${API_BASE_URL}/applications/${appId}/load`);
         if (!response.ok) throw new Error("Erreur lors du chargement du dossier");
         
         const json = await response.json();
@@ -44,7 +44,7 @@ export function ApplicationDossier({ appId, onBack, onOpenDeliverable, onGoToTra
     setIsDeleting(true);
     setError(null);
     try {
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/applications/${appId}`, {
+      const response = await authenticatedFetch(`${API_BASE_URL}/applications/${appId}`, {
         method: 'DELETE'
       });
       if (!response.ok) throw new Error("Échec de la suppression");

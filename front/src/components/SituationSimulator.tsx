@@ -193,7 +193,7 @@ export function SituationSimulator() {
 
     try {
       // Appel API Réel
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/simulate-situation`, {
+      const response = await authenticatedFetch(`${API_BASE_URL}/cv/simulate-situation`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -241,10 +241,10 @@ export function SituationSimulator() {
 
     try {
       // 1. Purge du cache existant pour forcer l'IA à inventer de NOUVEAUX scénarios inédits
-      await authenticatedFetch(`${API_BASE_URL}/api/cv/cache?content_type=extra_scenarios`, { method: 'DELETE' });
+      await authenticatedFetch(`${API_BASE_URL}/cv/cache?content_type=extra_scenarios`, { method: 'DELETE' });
       
       // 2. Génération des nouveaux cas
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/generate-extra-scenarios`, { 
+      const response = await authenticatedFetch(`${API_BASE_URL}/cv/generate-extra-scenarios`, { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(cvData)

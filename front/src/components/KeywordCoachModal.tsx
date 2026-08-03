@@ -19,7 +19,7 @@ export function KeywordCoachModal({ keyword, cvData, onClose, onApply }: Keyword
     const fetchAdvice = async () => {
       setLoading(true);
       try {
-        const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/coach-keyword`, {
+        const response = await authenticatedFetch(`${API_BASE_URL}/cv/coach-keyword`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

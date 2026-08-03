@@ -143,7 +143,7 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
     }
     
     try {
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/training/evaluate-vocal-pitch`, {
+      const response = await authenticatedFetch(`${API_BASE_URL}/cv/training/evaluate-vocal-pitch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
