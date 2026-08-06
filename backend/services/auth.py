@@ -2,6 +2,7 @@ import uuid
 import os
 import secrets
 import smtplib
+import asyncio
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from email.mime.text import MIMEText
@@ -16,6 +17,28 @@ router = APIRouter(
     tags=["Authentication"]
 )
 TESTER_SESSION_CAP = 30
+AUTH_DB_TIMEOUT_SECONDS = 8
+AUTH_LAST_LOGIN_TIMEOUT_SECONDS = 3
+
+
+async def _fetch_user_by_email(email: str):
+    async with db.get_connection() as conn:
+        cursor = await db.execute(
+            conn,
+            "SELECT id, email, hashed_password, first_name, last_name, created_at, is_premium, credits, is_admin, is_active, is_tester FROM users WHERE email = ?",
+            (email,),
+        )
+        return await cursor.fetchone()
+
+
+async def _touch_last_login(user_id: str):
+    async with db.get_connection() as conn:
+        update_cursor = await db.execute(
+            conn,
+            "UPDATE users SET last_login = ? WHERE id = ? RETURNING id",
+            (datetime.now(timezone.utc), user_id),
+        )
+        return await update_cursor.fetchone()
 
 async def _insert_user(uid, email, hashed_pw, first, last, created):
     """Insère un nouvel utilisateur."""
@@ -52,11 +75,14 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     try:
         # [FIX] On gère la casse de l'email pour garantir un login fiable
         email = form_data.username.lower().strip()
-        async with db.get_connection() as conn:
-            # Requête propre et directe
-            # [CORRECTIF] Ajout de is_admin dans le SELECT pour qu'il soit bien récupéré.
-            cursor = await db.execute(conn, "SELECT id, email, hashed_password, first_name, last_name, created_at, is_premium, credits, is_admin, is_active, is_tester FROM users WHERE email = ?", (email,))
-            user_row = await cursor.fetchone()
+        try:
+            user_row = await asyncio.wait_for(
+                _fetch_user_by_email(email),
+                timeout=AUTH_DB_TIMEOUT_SECONDS,
+            )
+        except asyncio.TimeoutError:
+            print(f"[AUTH ERROR] Timeout while fetching user for {email}", flush=True)
+            raise HTTPException(status_code=503, detail="Le service d'authentification est temporairement indisponible. Veuillez reessayer.")
 
         # Simple admin authentication
         admin_email = os.getenv("ADMIN_EMAIL", "").lower()
@@ -117,18 +143,14 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
         # [NEW] Update last_login timestamp upon successful login
         try:
-            async with db.get_connection() as conn:
-                # [FIX] Use RETURNING id to ensure the update is processed correctly by the db wrapper
-                # and to verify that a row was actually updated.
-                update_cursor = await db.execute(
-                    conn, 
-                    "UPDATE users SET last_login = ? WHERE id = ? RETURNING id", 
-                    (datetime.now(timezone.utc), user_dict.get("id"))
-                )
-                updated_row = await update_cursor.fetchone()
-                if not updated_row:
-                    # This log is critical for debugging if the issue persists.
-                    print(f"[DB WARNING] last_login was NOT updated for user {user_dict.get('id')}. The user might not exist or the query failed silently.", flush=True)
+            updated_row = await asyncio.wait_for(
+                _touch_last_login(str(user_dict.get("id"))),
+                timeout=AUTH_LAST_LOGIN_TIMEOUT_SECONDS,
+            )
+            if not updated_row:
+                print(f"[DB WARNING] last_login was NOT updated for user {user_dict.get('id')}. The user might not exist or the query failed silently.", flush=True)
+        except asyncio.TimeoutError:
+            print(f"[DB WARNING] last_login update timed out for user {user_dict.get('id')}", flush=True)
         except Exception as e:
             # More critical logging
             print(f"[DB CRITICAL] Failed to update last_login due to an exception: {e}", flush=True)
