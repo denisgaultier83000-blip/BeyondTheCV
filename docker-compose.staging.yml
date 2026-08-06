@@ -23,6 +23,9 @@ services:
 
   backend:
     image: ghcr.io/denisgaultier83000-blip/beyondthecv-backend:${VERSION}
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: btcv-backend-staging
     restart: unless-stopped
 
