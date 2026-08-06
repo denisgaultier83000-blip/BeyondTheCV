@@ -39,6 +39,7 @@ jobs:
           
           # [FIX EXPERT] Sécurisation de la variable de branche pour éviter les injections bash sur ton serveur
           TARGET_BRANCH: ${{ github.event.workflow_run.head_branch || github.event.inputs.branch || 'staging4' }}
+          TARGET_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
           TESTER_EMAILS: ${{ secrets.TESTER_EMAILS_LIST }}
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
           FRONTEND_URL_VAR: ${{ github.event.workflow_run.head_branch == 'master' && 'https://beyondthecv.app' || 'https://staging.beyondthecv.app' }}
@@ -49,11 +50,12 @@ jobs:
           host: ${{ secrets.SERVER_HOST }} # [CORRECTIF] L'action appleboy/ssh-action nettoie déjà les inputs. La sanitization manuelle n'est plus nécessaire.
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: DB_USER,DB_PASS,DB_NAME,OAI_KEY,GEM_KEY,SERPER_KEY,JWT_SEC,ADMIN_PASS,TARGET_BRANCH,TESTER_EMAILS,ADMIN_EMAIL,FRONTEND_URL_VAR,ALLOWED_ORIGINS_VAR
+          envs: DB_USER,DB_PASS,DB_NAME,OAI_KEY,GEM_KEY,SERPER_KEY,JWT_SEC,ADMIN_PASS,TARGET_BRANCH,TARGET_SHA,TESTER_EMAILS,ADMIN_EMAIL,FRONTEND_URL_VAR,ALLOWED_ORIGINS_VAR
           script: |
             set -e
 
             BRANCH="$TARGET_BRANCH"
+            IMAGE_TAG="$TARGET_SHA"
 
             # [MAINTENABILITÉ] Logique de déploiement flexible basée sur le nom de la branche
             if [[ "$BRANCH" == "master" ]]; then
@@ -99,7 +101,7 @@ jobs:
 
             # [SÉCURITÉ] Injection sécurisée des variables dans le fichier .env
             cat <<EOF > "$ENV_FILE"
-            VERSION=${BRANCH}
+            VERSION=${IMAGE_TAG}
             ENVIRONMENT=${ENVIRONMENT}
             API_HOST=${API_HOST}
             FRONTEND_URL=${FRONTEND_URL_VAR}
