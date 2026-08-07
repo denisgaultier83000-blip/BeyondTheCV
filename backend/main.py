@@ -31,7 +31,7 @@ def new_getaddrinfo(*args, **kwargs):
 socket.getaddrinfo = new_getaddrinfo
 
 from collections import defaultdict
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
@@ -173,6 +173,7 @@ async def lifespan(app: FastAPI):
                                 strengths JSONB,
                                 weaknesses JSONB,
                                 improved_answer TEXT,
+                                tags JSONB DEFAULT '[]'::jsonb,
                                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                             )
                         """)
@@ -213,6 +214,25 @@ async def lifespan(app: FastAPI):
                                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                                 FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
                                 FOREIGN KEY(application_id) REFERENCES job_applications(id) ON DELETE SET NULL
+                            )
+                        """)
+                        cur.execute("""
+                            CREATE TABLE IF NOT EXISTS candidate_behavioral_data (
+                                user_id TEXT PRIMARY KEY,
+                                flaws JSONB,
+                                motivations TEXT,
+                                work_style JSONB,
+                                relational_style JSONB,
+                                professional_approach JSONB,
+                                coaching_style TEXT,
+                                fears TEXT,
+                                clarification_insights JSONB,
+                                stress_level TEXT,
+                                current_situation TEXT,
+                                salary_expectations TEXT,
+                                remote_preference TEXT,
+                                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
                             )
                         """)
                     conn.commit()
@@ -420,6 +440,23 @@ def include_safe_router(module_name, from_services=True):
             mod = __import__(f"services.{module_name}", fromlist=["router"]) # was: from services import cv
         else:
             mod = __import__(module_name, fromlist=["router"])
+
+        # Certains déploiements peuvent charger un module partiel (sans attribut router).
+        # On évite un crash global pour le service profile qui n'est pas critique.
+        if not hasattr(mod, "router"):
+            if module_name == "profile":
+                print("[ROUTER] ⚠️ profile.router absent. Fallback router activé.", flush=True)
+                fallback_router = APIRouter(prefix="/profile", tags=["Profile"])
+
+                @fallback_router.get("/health")
+                def profile_router_health_fallback():
+                    return {"status": "ok", "service": "profile", "fallback": True}
+
+                app.include_router(fallback_router)
+                print(f"[ROUTER] ✅ Loaded fallback: {module_name}", flush=True)
+                return
+            raise AttributeError(f"module '{mod.__name__}' has no attribute 'router'")
+
         app.include_router(mod.router)
         print(f"[ROUTER] ✅ Loaded: {module_name}", flush=True)
     except Exception as e:
@@ -435,6 +472,7 @@ include_safe_router("profile")
 include_safe_router("simulation_service")
 include_safe_router("documents")
 include_safe_router("payment")
+include_safe_router("task_service")
 include_safe_router("admin_service")
 include_safe_router("debrief_service")
 # New routes for products, evaluations, and subscriptions

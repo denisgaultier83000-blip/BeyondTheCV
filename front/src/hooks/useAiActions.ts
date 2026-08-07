@@ -105,9 +105,18 @@ export function useAiActions({
                 // 2. Attendre la fin de la tâche (polling)
                 const poll = async (tid: string): Promise<any> => {
                     const statusRes = await authenticatedFetch(`${API_BASE_URL}/tasks/status/${tid}`);
-                    const data = await statusRes.json();
+                  if (statusRes.status === 404) {
+                    throw new Error("Task not found or expired on the server.");
+                  }
+                  if (!statusRes.ok) {
+                    throw new Error(`Task polling failed (${statusRes.status}).`);
+                  }
+                  const data = await statusRes.json();
                     if (data.status === "SUCCESS") {
                         const resultRes = await authenticatedFetch(`${API_BASE_URL}/tasks/result/${tid}`);
+                    if (!resultRes.ok) {
+                      throw new Error(`Task result fetch failed (${resultRes.status}).`);
+                    }
                         return resultRes.json();
                     } else if (data.status === "FAILED") {
                         throw new Error("Research task failed on the server.");

@@ -1144,17 +1144,42 @@ async def get_my_feedbacks(current_user: dict = Depends(get_current_user)):
 @router.get("/training/history")
 async def get_training_history(current_user: dict = Depends(get_current_user)):
     """Récupère l'historique des sessions de préparation à l'entretien de l'utilisateur."""
+    rows = []
+    include_tags = True
     async with db.get_connection() as conn:
-        cursor = await db.execute(
-            conn,
-            "SELECT id, theme, question_type, question_text, user_answer, score, strengths, weaknesses, improved_answer, tags, created_at FROM training_sessions WHERE user_id = ? ORDER BY created_at DESC LIMIT 20",
-            (current_user["id"],)
-        )
-        rows = await cursor.fetchall()
+        try:
+            cursor = await db.execute(
+                conn,
+                "SELECT id, theme, question_type, question_text, user_answer, score, strengths, weaknesses, improved_answer, tags, created_at FROM training_sessions WHERE user_id = ? ORDER BY created_at DESC LIMIT 20",
+                (current_user["id"],)
+            )
+            rows = await cursor.fetchall()
+        except Exception as exc:
+            print(f"[TRAINING_HISTORY] Falling back from full schema query: {exc}", flush=True)
+            include_tags = False
+            try:
+                cursor = await db.execute(
+                    conn,
+                    "SELECT id, theme, question_type, question_text, user_answer, score, strengths, weaknesses, improved_answer, created_at FROM training_sessions WHERE user_id = ? ORDER BY created_at DESC LIMIT 20",
+                    (current_user["id"],)
+                )
+                rows = await cursor.fetchall()
+            except Exception as legacy_exc:
+                print(f"[TRAINING_HISTORY] Falling back to minimal schema: {legacy_exc}", flush=True)
+                cursor = await db.execute(
+                    conn,
+                    "SELECT id, theme, question_text, user_answer, score, created_at FROM training_sessions WHERE user_id = ? ORDER BY created_at DESC LIMIT 20",
+                    (current_user["id"],)
+                )
+                rows = await cursor.fetchall()
 
     history = [dict(row) for row in rows]
     for item in history:
-        item["tags"] = _normalize_training_tags(item.get("tags"), fallback_text=item.get("theme") or "")
+        item.setdefault("question_type", "QA")
+        item.setdefault("strengths", [])
+        item.setdefault("weaknesses", [])
+        item.setdefault("improved_answer", "")
+        item["tags"] = _normalize_training_tags(item.get("tags") if include_tags else None, fallback_text=item.get("theme") or "")
     return {"history": history}
 
 
@@ -1618,12 +1643,23 @@ async def get_training_stats(current_user: dict = Depends(get_current_user)):
             total_sessions = int(row.get("total_sessions") or 0)
             avg_score = float(row.get("avg_score") or 0)
 
-            cursor2 = await db.execute(
-                conn,
-                "SELECT theme, score, tags FROM training_sessions WHERE user_id = ?",
-                (current_user["id"],)
-            )
-            rows = await cursor2.fetchall()
+            include_tags = True
+            try:
+                cursor2 = await db.execute(
+                    conn,
+                    "SELECT theme, score, tags FROM training_sessions WHERE user_id = ?",
+                    (current_user["id"],)
+                )
+                rows = await cursor2.fetchall()
+            except Exception as exc:
+                print(f"[TRAINING_STATS] Falling back to legacy schema without tags: {exc}", flush=True)
+                include_tags = False
+                cursor2 = await db.execute(
+                    conn,
+                    "SELECT theme, score FROM training_sessions WHERE user_id = ?",
+                    (current_user["id"],)
+                )
+                rows = await cursor2.fetchall()
 
             theme_scores = {label: 0.0 for label in TRAINING_THEME_ORDER}
             theme_counts = {label: 0 for label in TRAINING_THEME_ORDER}
@@ -1631,7 +1667,7 @@ async def get_training_stats(current_user: dict = Depends(get_current_user)):
             for r in rows:
                 score = float(r.get("score") or 0)
                 theme = r.get("theme") or ""
-                raw_tags = r.get("tags")
+                raw_tags = r.get("tags") if include_tags else None
                 tags = _normalize_training_tags(raw_tags, fallback_text=theme)
                 if not tags:
                     fallback_tag = _theme_to_tag(theme)

@@ -257,6 +257,7 @@
   "all_good": "¡Todo bien!",
   "profile_complete": "Tu perfil parece estar completo. Puedes pasar a la etapa final.",
   "clarification_title": "Necesidad de aclaraciones",
+  "step_results": "Resultados",
   "clarification_desc": "Para refinar el análisis, la IA necesita detalles sobre los siguientes puntos. Tus respuestas permitirán generar contenidos más pertinentes.",
   "placeholder_answer": "Tu respuesta aquí...",
   "mobility_title": "Movilidad y Preferencias",

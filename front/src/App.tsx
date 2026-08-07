@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
  import { AlertCircle, RotateCcw, RefreshCw, Loader2, FileText, Target, MessageSquare, BarChart3, Bell as LucideBell, X as LucideX, Lock, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -83,6 +83,19 @@ function AppContent() {
   const [isCheckingAnalysisPreview, setIsCheckingAnalysisPreview] = useState(false);
   const [quotaRefreshToken, setQuotaRefreshToken] = useState(0);
 
+  const handleQuotasLoaded = useCallback((q: { entreprises: number; offres: number; credits: number }) => {
+    setCurrentQuotas((prev) => {
+      if (
+        prev.entreprises === q.entreprises &&
+        prev.offres === q.offres &&
+        prev.credits === q.credits
+      ) {
+        return prev;
+      }
+      return { entreprises: q.entreprises, offres: q.offres, credits: q.credits };
+    });
+  }, []);
+
   // Ref pour ÃƒÂ©viter de dÃƒÂ©clencher l'auto-sauvegarde au montage initial de la page
   const initialLoadRef = useRef(true);
 
@@ -158,7 +171,7 @@ function AppContent() {
     { id: 0, title: t('step_import', "Import") }, { id: 1, title: t('profile_title') },
     { id: 2, title: t('target_title') }, { id: 3, title: t('education_title') },
     { id: 4, title: t('experience_title') }, { id: 5, title: t('qualities_title') },
-    { id: 7, title: t('clarification_title') }, { id: 8, title: t('step_results', "RÃ©sultats") }
+    { id: 7, title: t('clarification_title') }, { id: 8, title: t('step_results') }
   ];
 
   // --- Handlers transmis aux composants enfants ---
@@ -169,6 +182,15 @@ function AppContent() {
   const handleLanguageChange = (lang: string) => {
     i18n.changeLanguage(lang);
     setFormData((prev: any) => ({ ...(prev || {}), target_language: lang }));
+  };
+
+  const getTargetAnalysisSignature = (data: any) => {
+    const normalize = (value: any) => String(value || '').trim().toLowerCase();
+    return JSON.stringify({
+      target_company: normalize(data?.target_company),
+      target_industry: normalize(data?.target_industry),
+      job_description: normalize(data?.job_description),
+    });
   };
 
   const fetchAnalysisPreview = async (): Promise<AnalysisPreview> => {
@@ -192,6 +214,16 @@ function AppContent() {
   const handleTargetAnalysisContinue = async () => {
     const company = cvData?.target_company?.trim();
     const industry = cvData?.target_industry?.trim();
+    const currentSignature = getTargetAnalysisSignature(cvData);
+    const previousSignature = cvData?.last_target_analysis_signature;
+
+    // If the target inputs did not change since the last validated analysis,
+    // skip the pricing modal and continue directly.
+    if (previousSignature === currentSignature) {
+      await handleNextStep();
+      return;
+    }
+
     if (!company && !industry) {
       setStepErrors({ target_company: true, target_industry: true });
       setToasts(prev => [...prev, { id: Date.now(), text: "Veuillez spÃƒÂ©cifier au moins une entreprise cible ou un secteur d'activitÃƒÂ©." }]);
@@ -205,6 +237,7 @@ function AppContent() {
 
       if (!preview.should_confirm) {
         setAnalysisPreview(null);
+        handleChange('last_target_analysis_signature', currentSignature);
         await handleNextStep();
         return;
       }
@@ -475,7 +508,7 @@ function AppContent() {
         <div className="step-wrapper">
           {/* Bloc quota permanent */}
           <PackStatusWidget
-            onQuotasLoaded={(q) => setCurrentQuotas({ entreprises: q.entreprises, offres: q.offres, credits: q.credits })}
+            onQuotasLoaded={handleQuotasLoaded}
             refreshToken={quotaRefreshToken}
           />
           <StepTarget data={cvData || {}} onChange={(key, val) => {
@@ -500,6 +533,7 @@ function AppContent() {
               onConfirm={async () => {
                 setShowConfirmModal(false);
                 setAnalysisPreview(null);
+                handleChange('last_target_analysis_signature', getTargetAnalysisSignature(cvData));
                 await handleNextStep();
               }}
             />
@@ -749,6 +783,16 @@ function AppContent() {
         isAuthenticated={isAuthenticated}
         userName={parsedUserName} 
         onOpenProfile={() => setShowDocsModal(true)} 
+        onOpenRemainingSessions={() => {
+          setShowLanding(false);
+          setCurrentStep(2);
+          if (location.pathname !== '/candidate') {
+            navigate('/candidate', { replace: true });
+          }
+        }}
+        remainingSessions={currentQuotas?.credits}
+        remainingCompanies={currentQuotas?.entreprises}
+        remainingOffers={currentQuotas?.offres}
         onLogout={() => { localStorage.removeItem('token'); localStorage.removeItem('user'); resetDashboard(); setIsAuthenticated(false); navigate('/login', { replace: true }); }} 
         onLanguageChange={handleLanguageChange} 
         steps={CAREER_EDGE_STEPS}

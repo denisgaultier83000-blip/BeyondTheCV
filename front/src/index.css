@@ -239,6 +239,308 @@ button { cursor: pointer; font-family: inherit; }
   box-sizing: border-box;
 }
 
+/* --- Candidate Wizard Layout --- */
+.candidate-layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 1.25rem;
+  width: 100%;
+  padding-left: clamp(0.75rem, 2vw, 1.75rem);
+  padding-right: clamp(0.75rem, 2vw, 1.75rem);
+  box-sizing: border-box;
+}
+
+.candidate-sidebar {
+  position: sticky;
+  top: 112px;
+  align-self: start;
+}
+
+.candidate-stepper-mobile {
+  display: none;
+}
+
+.candidate-content {
+  min-width: 0;
+}
+
+/* --- Wizard Stepper (new component) --- */
+.wizard-stepper {
+  display: flex;
+  color: var(--text-main);
+}
+
+.wizard-stepper--vertical {
+  flex-direction: column;
+  gap: 0.4rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+  padding: 0.9rem;
+}
+
+.wizard-stepper--horizontal {
+  align-items: flex-start;
+  overflow-x: auto;
+  gap: 0.45rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+  padding: 0.7rem 0.8rem;
+}
+
+.wz-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 38px;
+  cursor: default;
+}
+
+.wizard-stepper--horizontal .wz-item {
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  min-width: 72px;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.wz-item[role="button"] {
+  cursor: pointer;
+}
+
+.wz-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 2px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.wz-item--current .wz-circle {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-fg);
+  box-shadow: 0 0 0 4px rgba(109, 190, 247, 0.18);
+}
+
+.wz-item--done .wz-circle {
+  background: var(--success);
+  border-color: var(--success);
+  color: #ffffff;
+}
+
+.wz-item[role="button"]:hover .wz-circle {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.wz-label {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.25;
+}
+
+.wz-item--current .wz-label {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.wz-item--done .wz-label {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.wizard-stepper--horizontal .wz-label {
+  text-align: center;
+  font-size: 0.68rem;
+  max-width: 88px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wz-connector {
+  width: 2px;
+  height: 16px;
+  margin-left: 16px;
+  border-radius: 2px;
+  background: var(--border-color);
+  flex-shrink: 0;
+}
+
+.wz-connector--done {
+  background: var(--success);
+}
+
+.wizard-stepper--horizontal .wz-connector {
+  width: 24px;
+  height: 2px;
+  margin: 15px 2px 0;
+}
+
+/* --- Candidate Wizard Layout --- */
+.candidate-layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 1.25rem;
+  width: 100%;
+  padding-left: clamp(0.75rem, 2vw, 1.75rem);
+  padding-right: clamp(0.75rem, 2vw, 1.75rem);
+  box-sizing: border-box;
+}
+
+.candidate-sidebar {
+  position: sticky;
+  top: 112px;
+  align-self: start;
+}
+
+.candidate-stepper-mobile {
+  display: none;
+}
+
+.candidate-content {
+  min-width: 0;
+}
+
+/* --- Wizard Stepper (new component) --- */
+.wizard-stepper {
+  display: flex;
+  color: var(--text-main);
+}
+
+.wizard-stepper--vertical {
+  flex-direction: column;
+  gap: 0.4rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+  padding: 0.9rem;
+}
+
+.wizard-stepper--horizontal {
+  align-items: flex-start;
+  overflow-x: auto;
+  gap: 0.45rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+  padding: 0.7rem 0.8rem;
+}
+
+.wz-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 38px;
+  cursor: default;
+}
+
+.wizard-stepper--horizontal .wz-item {
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  min-width: 72px;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.wz-item[role="button"] {
+  cursor: pointer;
+}
+
+.wz-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 2px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.wz-item--current .wz-circle {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-fg);
+  box-shadow: 0 0 0 4px rgba(109, 190, 247, 0.18);
+}
+
+.wz-item--done .wz-circle {
+  background: var(--success);
+  border-color: var(--success);
+  color: #ffffff;
+}
+
+.wz-item[role="button"]:hover .wz-circle {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.wz-label {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.25;
+}
+
+.wz-item--current .wz-label {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.wz-item--done .wz-label {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.wizard-stepper--horizontal .wz-label {
+  text-align: center;
+  font-size: 0.68rem;
+  max-width: 88px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wz-connector {
+  width: 2px;
+  height: 16px;
+  margin-left: 16px;
+  border-radius: 2px;
+  background: var(--border-color);
+  flex-shrink: 0;
+}
+
+.wz-connector--done {
+  background: var(--success);
+}
+
+.wizard-stepper--horizontal .wz-connector {
+  width: 24px;
+  height: 2px;
+  margin: 15px 2px 0;
+}
+
 /* --- Wizard Outer Wrapper: compense le header fixe --- */
 .wizard-outer-wrapper {
   padding-top: 80px;
@@ -479,6 +781,23 @@ button { cursor: pointer; font-family: inherit; }
 
 /* --- Responsive: tablette --- */
 @media (max-width: 900px) {
+  .candidate-layout {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .candidate-sidebar {
+    display: none;
+  }
+
+  .candidate-stepper-mobile {
+    display: block;
+  }
+
+  .candidate-content {
+    width: 100%;
+  }
+
   .wizard-layout {
     grid-template-columns: 1fr;
     padding: 1rem;
