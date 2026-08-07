@@ -51,6 +51,8 @@ JOB_IMPORT_MAX_BYTES = 1_500_000
 JOB_IMPORT_TIMEOUT_SECONDS = 12
 JOB_IMPORT_MAX_REDIRECTS = 3
 JOB_IMPORT_USER_AGENT = "BeyondTheCVJobImporter/1.0 (+https://beyondthecv.app)"
+DASHBOARD_SUMMARY_GAP_TIMEOUT_SECONDS = 12
+DASHBOARD_SUMMARY_AI_TIMEOUT_SECONDS = 12
 
 
 def _normalize_job_import_url(raw_url: str) -> str:
@@ -1673,7 +1675,12 @@ async def get_my_profile(current_user: dict = Depends(get_current_user)):
             row = await cursor.fetchone()
             if row and row.get("profile_data"):
                 data = row.get("profile_data")
-                return json.loads(data) if isinstance(data, str) else data
+                if isinstance(data, str):
+                    try:
+                        return json.loads(data)
+                    except Exception:
+                        return {"form": {"email": current_user.get("email", "")}}
+                return data
         # Fallback si aucun profil n'est trouvé
         return {"form": {"email": current_user.get("email", "")}}
     except Exception as e:
@@ -1685,9 +1692,19 @@ async def update_my_profile(payload: dict = Body(...), current_user: dict = Depe
     """Met à jour (écrase) le profil complet du candidat dans la base de données."""
     try:
         if 'experiences' in payload and isinstance(payload['experiences'], list):
-            payload['experiences'].sort(key=lambda exp: _get_sortable_date_tuple(exp.get('end_date') or exp.get('endDate') or exp.get('date') or ''), reverse=True)
+            normalized_experiences = []
+            for exp in payload['experiences']:
+                if isinstance(exp, dict):
+                    normalized_experiences.append(exp)
+            normalized_experiences.sort(key=lambda exp: _get_sortable_date_tuple(exp.get('end_date') or exp.get('endDate') or exp.get('date') or ''), reverse=True)
+            payload['experiences'] = normalized_experiences
         if 'educations' in payload and isinstance(payload['educations'], list):
-            payload['educations'].sort(key=lambda edu: _get_sortable_date_tuple(edu.get('end_date') or edu.get('endDate') or edu.get('date') or ''), reverse=True)
+            normalized_educations = []
+            for edu in payload['educations']:
+                if isinstance(edu, dict):
+                    normalized_educations.append(edu)
+            normalized_educations.sort(key=lambda edu: _get_sortable_date_tuple(edu.get('end_date') or edu.get('endDate') or edu.get('date') or ''), reverse=True)
+            payload['educations'] = normalized_educations
 
         # Behavioral fields saved separately
         _BEHAVIORAL_FIELDS = {
@@ -1702,45 +1719,48 @@ async def update_my_profile(payload: dict = Body(...), current_user: dict = Depe
             profile_json = json.dumps(payload)
             await db.execute(conn, "INSERT INTO user_profiles (user_id, profile_data) VALUES (?, ?::jsonb) ON CONFLICT (user_id) DO UPDATE SET profile_data = EXCLUDED.profile_data", (current_user["id"], profile_json))
             if behavioral:
-                await db.execute(
-                    conn,
-                    """INSERT INTO candidate_behavioral_data
-                        (user_id, flaws, motivations, work_style, relational_style,
-                         professional_approach, coaching_style, fears, clarification_insights,
-                         stress_level, current_situation, salary_expectations, remote_preference,
-                         updated_at)
-                       VALUES (?, ?::jsonb, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?, ?, ?::jsonb, ?, ?, ?, ?, NOW())
-                       ON CONFLICT (user_id) DO UPDATE SET
-                         flaws = EXCLUDED.flaws,
-                         motivations = EXCLUDED.motivations,
-                         work_style = EXCLUDED.work_style,
-                         relational_style = EXCLUDED.relational_style,
-                         professional_approach = EXCLUDED.professional_approach,
-                         coaching_style = EXCLUDED.coaching_style,
-                         fears = EXCLUDED.fears,
-                         clarification_insights = EXCLUDED.clarification_insights,
-                         stress_level = EXCLUDED.stress_level,
-                         current_situation = EXCLUDED.current_situation,
-                         salary_expectations = EXCLUDED.salary_expectations,
-                         remote_preference = EXCLUDED.remote_preference,
-                         updated_at = NOW()
-                    """,
-                    (
-                        current_user["id"],
-                        json.dumps(behavioral.get('flaws') or []),
-                        behavioral.get('motivations') or None,
-                        json.dumps(behavioral.get('work_style') or []),
-                        json.dumps(behavioral.get('relational_style') or []),
-                        json.dumps(behavioral.get('professional_approach') or []),
-                        behavioral.get('coaching_style') or None,
-                        behavioral.get('fears') or None,
-                        json.dumps(behavioral.get('clarification_insights') or {}),
-                        behavioral.get('stress_level') or None,
-                        behavioral.get('current_situation') or None,
-                        behavioral.get('salary_expectations') or None,
-                        behavioral.get('remote_preference') or None,
+                try:
+                    await db.execute(
+                        conn,
+                        """INSERT INTO candidate_behavioral_data
+                            (user_id, flaws, motivations, work_style, relational_style,
+                             professional_approach, coaching_style, fears, clarification_insights,
+                             stress_level, current_situation, salary_expectations, remote_preference,
+                             updated_at)
+                           VALUES (?, ?::jsonb, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?, ?, ?::jsonb, ?, ?, ?, ?, NOW())
+                           ON CONFLICT (user_id) DO UPDATE SET
+                             flaws = EXCLUDED.flaws,
+                             motivations = EXCLUDED.motivations,
+                             work_style = EXCLUDED.work_style,
+                             relational_style = EXCLUDED.relational_style,
+                             professional_approach = EXCLUDED.professional_approach,
+                             coaching_style = EXCLUDED.coaching_style,
+                             fears = EXCLUDED.fears,
+                             clarification_insights = EXCLUDED.clarification_insights,
+                             stress_level = EXCLUDED.stress_level,
+                             current_situation = EXCLUDED.current_situation,
+                             salary_expectations = EXCLUDED.salary_expectations,
+                             remote_preference = EXCLUDED.remote_preference,
+                             updated_at = NOW()
+                        """,
+                        (
+                            current_user["id"],
+                            json.dumps(behavioral.get('flaws') or []),
+                            behavioral.get('motivations') or None,
+                            json.dumps(behavioral.get('work_style') or []),
+                            json.dumps(behavioral.get('relational_style') or []),
+                            json.dumps(behavioral.get('professional_approach') or []),
+                            behavioral.get('coaching_style') or None,
+                            behavioral.get('fears') or None,
+                            json.dumps(behavioral.get('clarification_insights') or []),
+                            behavioral.get('stress_level') or None,
+                            behavioral.get('current_situation') or None,
+                            behavioral.get('salary_expectations') or None,
+                            behavioral.get('remote_preference') or None,
+                        )
                     )
-                )
+                except Exception as behavioral_err:
+                    print(f"[PROFILE WARNING] Behavioral data not saved: {behavioral_err}", flush=True)
         return {"status": "success", "message": "Profil sauvegardé"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur de sauvegarde du profil: {e}")
@@ -2624,7 +2644,16 @@ async def get_dashboard_summary(payload: dict = Body(...), current_user: dict = 
 
     if not gap_analysis:
         try:
-            gap_analysis = await generate_gap_analysis(payload)
+            gap_analysis = await asyncio.wait_for(
+                generate_gap_analysis(payload),
+                timeout=DASHBOARD_SUMMARY_GAP_TIMEOUT_SECONDS,
+            )
+        except asyncio.TimeoutError:
+            print(
+                f"[DASHBOARD SUMMARY] gap_analysis timed out after {DASHBOARD_SUMMARY_GAP_TIMEOUT_SECONDS}s; using deterministic fallback.",
+                flush=True,
+            )
+            gap_analysis = {}
         except Exception as e:
             print(f"[DASHBOARD SUMMARY] gap_analysis fallback error: {e}", flush=True)
             gap_analysis = {}
@@ -2681,11 +2710,20 @@ PROFIL_CANDIDAT_JSON:
 """
 
     try:
-        ai_result = await ai_service.generate_valid_json(
-            prompt,
-            provider="openai",
-            system_instruction=f"You are an executive interview strategist. Output STRICT JSON only. Language: {target_lang}."
+        ai_result = await asyncio.wait_for(
+            ai_service.generate_valid_json(
+                prompt,
+                provider="openai",
+                system_instruction=f"You are an executive interview strategist. Output STRICT JSON only. Language: {target_lang}."
+            ),
+            timeout=DASHBOARD_SUMMARY_AI_TIMEOUT_SECONDS,
         )
+    except asyncio.TimeoutError:
+        print(
+            f"[DASHBOARD SUMMARY] summary AI timed out after {DASHBOARD_SUMMARY_AI_TIMEOUT_SECONDS}s; using fallback summary.",
+            flush=True,
+        )
+        ai_result = {}
     except Exception as e:
         print(f"[DASHBOARD SUMMARY] AI call failed: {e}", flush=True)
         ai_result = {}
