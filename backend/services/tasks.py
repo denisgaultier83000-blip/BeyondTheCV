@@ -239,23 +239,6 @@ async def _run_research_logic(task_id: str, request_data: dict):
         job_title = request_data.get("target_job", "")
         country   = request_data.get("target_country", "")
 
-        # [QUOTA] Consommer 1 quota_entreprises a chaque lancement utilisateur
-        # du pipeline entreprise/marche (meme si le resultat provient du cache partage).
-        if user_id and user_id != "unknown_user":
-            try:
-                from .utils import consume_quota
-                await consume_quota(user_id, "entreprises")
-            except Exception as quota_err:
-                detail = getattr(quota_err, "detail", str(quota_err))
-                if "insuffisants" in str(detail):
-                    recharged = await _auto_recharge_business_quota_if_tester(user_id, "entreprises")
-                    if recharged:
-                        await consume_quota(user_id, "entreprises")
-                    else:
-                        raise
-                else:
-                    raise
-
         # [CACHE L1] Cache entreprise partagé (cross-user, TTL 30 jours)
         from .cache_service import (
             get_company_cache, set_company_cache, touch_company_cache,
@@ -270,6 +253,23 @@ async def _run_research_logic(task_id: str, request_data: dict):
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", shared_company)
             await manager.broadcast(task_id, "Analyse récupérée en cache !", status="COMPLETED", data=shared_company)
             return
+
+        # [QUOTA] Ne consommer le quota entreprise que si un nouveau calcul est nécessaire.
+        # Les résultats servis depuis le cache partagé ne doivent pas épuiser le quota.
+        if user_id and user_id != "unknown_user":
+            try:
+                from .utils import consume_quota
+                await consume_quota(user_id, "entreprises")
+            except Exception as quota_err:
+                detail = getattr(quota_err, "detail", str(quota_err))
+                if "insuffisants" in str(detail):
+                    recharged = await _auto_recharge_business_quota_if_tester(user_id, "entreprises")
+                    if recharged:
+                        await consume_quota(user_id, "entreprises")
+                    else:
+                        raise
+                else:
+                    raise
 
         # [CACHE L3] Cache marché partagé — si dispo, on l'injecte dans request_data pour éviter de regénérer
         cached_market = await get_market_cache(job_title, country)
@@ -293,15 +293,21 @@ async def _run_research_logic(task_id: str, request_data: dict):
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", final_report)
         await manager.broadcast(task_id, "Analyse terminée avec succès !", status="COMPLETED", data=final_report)
     except Exception as e:
-        print(f"[Task {task_id}] ❌ Research failed: {e}")
-        fallback = {
+        print(f"[Task {task_id}] ❌ Research failed: {e}", flush=True)
+        error_payload = {
+            "error": str(e),
             "company": request_data.get('target_company', 'Unknown'),
             "market_report": {},
             "company_report": {},
             "sources": []
         }
-        await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", fallback)
-        await manager.broadcast(task_id, f"Erreur IA interceptée (Fallback activé).", status="COMPLETED", data=fallback)
+        await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", error_payload)
+        await manager.broadcast(
+            task_id,
+            "Échec de l'analyse entreprise/marché. Vérifiez les quotas et les clés API (OpenAI/Gemini/Serper).",
+            status="FAILED",
+            data=error_payload,
+        )
 
 async def process_salary_in_background(task_id: str, candidate_data: dict):
     print(f"[Task {task_id}] 💰 Starting Salary estimation (Async)...")
