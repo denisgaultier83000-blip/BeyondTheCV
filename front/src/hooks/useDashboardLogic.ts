@@ -1120,7 +1120,15 @@ export function useDashboardLogic() {
                 delete next[taskKey];
                 return next;
               });
-              setError(`La tâche ${taskKey} a échoué.`);
+              const backendError =
+                (typeof data?.error === 'string' && data.error) ||
+                (typeof data?.result?.error === 'string' && data.result.error) ||
+                '';
+              const msg = backendError
+                ? `La tâche ${taskKey} a échoué: ${backendError}`
+                : `La tâche ${taskKey} a échoué.`;
+              setError(msg);
+              setGlobalStatus("FAILED");
               clearInterval(interval); // On arrête mais on ne bloque pas tout le dashboard
             }
           } else if (res.status === 404) {
