@@ -913,6 +913,60 @@ export function useDashboardLogic() {
            (!requiresDecoder || hasUsableDashboardCache(jobDecoderResult))
          );
 
+         const resolveResearchTaskRunningState = async (): Promise<boolean> => {
+           const existingResearchTaskId = taskIds?.market_research;
+           if (!existingResearchTaskId) return false;
+
+           try {
+             const statusRes = await authenticatedFetch(`/tasks/status/${existingResearchTaskId}`);
+
+             if (statusRes.status === 404) {
+               setTaskIds(prev => {
+                 if (!prev || prev.market_research !== existingResearchTaskId) return prev;
+                 const next = { ...prev } as any;
+                 delete next.market_research;
+                 return Object.keys(next).length > 0 ? next : null;
+               });
+               return false;
+             }
+
+             if (!statusRes.ok) {
+               return false;
+             }
+
+             const statusPayload = await statusRes.json();
+             const status = String(statusPayload?.status || '').toUpperCase();
+
+             if (status === 'SUCCESS' || status === 'COMPLETED') {
+               if (statusPayload?.result) {
+                 setResearchResult(normalizeResearchResult(statusPayload.result));
+               }
+               setTaskIds(prev => {
+                 if (!prev || prev.market_research !== existingResearchTaskId) return prev;
+                 const next = { ...prev } as any;
+                 delete next.market_research;
+                 return Object.keys(next).length > 0 ? next : null;
+               });
+               return false;
+             }
+
+             if (status === 'FAILED') {
+               setTaskIds(prev => {
+                 if (!prev || prev.market_research !== existingResearchTaskId) return prev;
+                 const next = { ...prev } as any;
+                 delete next.market_research;
+                 return Object.keys(next).length > 0 ? next : null;
+               });
+               return false;
+             }
+
+             return status === 'PENDING' || status === 'RUNNING';
+           } catch (statusErr) {
+             console.warn('[STEP7] Unable to validate market_research task status:', statusErr);
+             return false;
+           }
+         };
+
          const restartMissingDashboardTasks = async () => {
            // Nettoie les task IDs potentiellement perimes avant de relancer.
            setTaskIds(null);
@@ -920,7 +974,8 @@ export function useDashboardLogic() {
            // Relance marche/entreprise si necessaire.
            const hasTarget = !!(payload.target_company || payload.target_industry);
            const hasResearchReady = !!(researchResult && !researchResult?.error);
-           if (hasTarget && !hasResearchReady) {
+           const hasResearchTaskRunning = await resolveResearchTaskRunningState();
+           if (hasTarget && !hasResearchReady && !hasResearchTaskRunning) {
              try {
                const researchRes = await authenticatedFetch(`/research/start`, {
                  method: 'POST',
@@ -1024,7 +1079,7 @@ export function useDashboardLogic() {
          // ni en cours, on la declenche avant l'analyse complete.
          const hasTarget = !!(payload.target_company || payload.target_industry);
          const hasResearchReady = !!(researchResult && !researchResult?.error);
-         const hasResearchTaskRunning = !!taskIds?.market_research;
+         const hasResearchTaskRunning = await resolveResearchTaskRunningState();
          if (hasTarget && !hasResearchReady && !hasResearchTaskRunning) {
            try {
              const researchRes = await authenticatedFetch(`/research/start`, {
