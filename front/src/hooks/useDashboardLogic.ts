@@ -1115,6 +1115,14 @@ export function useDashboardLogic() {
               });
               clearInterval(interval);
             } else if (data.status === "FAILED") {
+              if (data?.result) {
+                if (taskKey === "market_research") {
+                  setResearchResult(normalizeResearchResult(data.result));
+                } else if (taskKey === "salary_estimation") {
+                  setSalaryResult(data.result);
+                }
+              }
+
               // Si la tâche backend échoue, on conserve le dernier résultat valide pour un affichage instantané.
               setTaskIds(prev => {
                 if (!prev || prev[taskKey] !== taskId) return prev;

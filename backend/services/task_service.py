@@ -7,6 +7,17 @@ router = APIRouter(
     tags=["Task Management"]
 )
 
+
+def _parse_task_result(raw_value):
+    if raw_value is None:
+        return None
+    if isinstance(raw_value, str):
+        try:
+            return json.loads(raw_value)
+        except json.JSONDecodeError:
+            return raw_value
+    return raw_value
+
 @router.get("/status/{task_id}")
 async def get_task_status(task_id: str):
     """
@@ -31,15 +42,20 @@ async def get_task_status(task_id: str):
     # 2) Si trouvée en DB, formater la réponse
     if task:
         status = task.get("status", "PENDING").upper()
+        result_data = _parse_task_result(task.get("result"))
+
         if status in ["COMPLETED", "SUCCESS"]:
-            result_data = task.get("result")
-            if isinstance(result_data, str):
-                try:
-                    result_data = json.loads(result_data)
-                except json.JSONDecodeError:
-                    pass
             return {"status": "SUCCESS", "result": result_data}
-        return {"status": status, "error": task.get("error_message")}
+
+        if status == "FAILED":
+            # Certaines tâches écrivent le détail d'erreur dans result.error
+            # plutôt que dans error_message. On harmonise ici la réponse API.
+            error_message = task.get("error_message")
+            if not error_message and isinstance(result_data, dict):
+                error_message = result_data.get("error")
+            return {"status": "FAILED", "error": error_message, "result": result_data}
+
+        return {"status": status, "result": result_data, "error": task.get("error_message")}
 
     # 3) Fallback : vérifier le store en mémoire (mock) défini dans services.cv_services
     try:
