@@ -3086,7 +3086,8 @@ async def start_analysis(
         if not user_id:
             raise HTTPException(status_code=401, detail="Utilisateur non authentifié")
 
-        now = datetime.now(timezone.utc)
+        # Aligner sur /research/start, déjà validé en staging.
+        now = datetime.now()
         application_id = payload.get("application_id") or str(uuid.uuid4())
 
         target_company = payload.get("target_company") or "Général"
@@ -3144,8 +3145,17 @@ async def start_analysis(
             for task_key, task_id in tasks.items():
                 await db.execute(
                     conn,
-                    "INSERT INTO tasks (id, user_id, status, task_type, result, created_at, application_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    (task_id, user_id, "PENDING", task_key, None, now, application_id),
+                    "INSERT INTO tasks (id, user_id, status, task_type, result, created_at, application_id, metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        task_id,
+                        user_id,
+                        "PENDING",
+                        task_key,
+                        None,
+                        now,
+                        application_id,
+                        json.dumps({"task_name": task_key, "candidate_data": candidate_data}, default=str),
+                    ),
                 )
 
         for task_key, worker in task_workers.items():
@@ -3157,6 +3167,7 @@ async def start_analysis(
             "tasks": tasks,
         }
     except Exception as e:
+        print(f"[START_ANALYSIS][ERROR] {e}", flush=True)
         raise HTTPException(status_code=500, detail=f"Failed to start analysis: {e}")
 
 
