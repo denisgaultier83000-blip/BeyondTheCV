@@ -12,6 +12,11 @@ on:
       - staging6
   workflow_dispatch:
 
+concurrency:
+  # Evite les pushes GHCR simultanés qui déclenchent les secondary rate limits.
+  group: build-and-push-${{ github.ref_name }}
+  cancel-in-progress: true
+
 env:
   VERSION: ""
   VERSION_SHA: ""
@@ -61,12 +66,14 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
+          provenance: false
+          sbom: false
           tags: |
             ${{ env.BACKEND_IMAGE }}:${{ env.VERSION }}
             ${{ env.BACKEND_IMAGE }}:${{ env.VERSION_SHA }}
           # Utilisation du cache GitHub Actions pour accélérer les builds
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min,ignore-error=true
 
       - name: Build and push frontend
         uses: docker/build-push-action@v6
@@ -75,10 +82,12 @@ jobs:
           context: ./front
           file: ./front/Dockerfile
           push: true
+          provenance: false
+          sbom: false
           tags: |
             ${{ env.FRONTEND_IMAGE }}:${{ env.VERSION }}
             ${{ env.FRONTEND_IMAGE }}:${{ env.VERSION_SHA }}
           build-args: |
             VITE_API_URL=${{ startsWith(github.ref_name, 'staging') && '/api' || 'https://api.beyondthecv.app' }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min,ignore-error=true
