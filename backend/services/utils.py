@@ -10,50 +10,36 @@ from database import db
 from asyncio import Lock
 _CACHE_LOCKS = {}
 TESTER_SESSION_CAP = 30
-_QUOTA_COLUMN_CACHE = {}
+_QUOTA_SCHEMA_READY = False
+
+
+async def _ensure_quota_schema(conn) -> None:
+    """Ensure canonical quota columns exist and are initialized."""
+    global _QUOTA_SCHEMA_READY
+    if _QUOTA_SCHEMA_READY:
+        return
+
+    await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT 30")
+    await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_entreprises INTEGER DEFAULT 5")
+    await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_offres INTEGER DEFAULT 15")
+    await db.execute(
+        conn,
+        """
+        UPDATE users
+        SET credits = COALESCE(credits, 30),
+            quota_entreprises = COALESCE(quota_entreprises, 5),
+            quota_offres = COALESCE(quota_offres, 15)
+        """,
+    )
+    _QUOTA_SCHEMA_READY = True
 
 
 async def _resolve_business_quota_column(conn, quota_type: str) -> str:
-    """Resolve the actual business quota column present in DB (new or legacy schema)."""
+    """Return canonical business quota column name after schema normalization."""
     if quota_type not in {"entreprises", "offres"}:
         raise HTTPException(status_code=400, detail=f"Type de quota invalide : {quota_type}")
-
-    cache_key = f"business_quota_col::{quota_type}"
-    if cache_key in _QUOTA_COLUMN_CACHE:
-        return _QUOTA_COLUMN_CACHE[cache_key]
-
-    preferred = f"quota_{quota_type}"
-    legacy = quota_type
-
-    cursor = await db.execute(
-        conn,
-        """
-        SELECT column_name
-        FROM information_schema.columns
-        WHERE table_schema = 'public'
-          AND table_name = 'users'
-          AND column_name IN (?, ?)
-        """,
-        (preferred, legacy),
-    )
-    rows = await cursor.fetchall()
-    names = {
-        (row[0] if isinstance(row, tuple) else row.get("column_name", ""))
-        for row in rows or []
-    }
-
-    if preferred in names:
-        resolved = preferred
-    elif legacy in names:
-        resolved = legacy
-    else:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Aucune colonne de quota trouvée pour '{quota_type}' (attendu: {preferred} ou {legacy}).",
-        )
-
-    _QUOTA_COLUMN_CACHE[cache_key] = resolved
-    return resolved
+    await _ensure_quota_schema(conn)
+    return f"quota_{quota_type}"
 
 def load_prompt(filename: str) -> str:
     """Helper to load prompts from the ai/prompts directory."""
@@ -84,6 +70,7 @@ async def consume_quota(user_id: str, quota_type: str, cost: int = 1):
             _CACHE_LOCKS[user_lock_key] = asyncio.Lock()
         
         async with _CACHE_LOCKS[user_lock_key]:
+            await _ensure_quota_schema(conn)
             if quota_type in session_quotas:
                 column_name = "credits"
             else:
@@ -134,6 +121,7 @@ async def refund_quota(user_id: str, quota_type: str, cost: int = 1):
     session_quotas = {"pitch", "qa", "mes", "negotiation", "regeneration", "update"}
     try:
         async with db.get_connection() as conn:
+            await _ensure_quota_schema(conn)
             if quota_type in session_quotas:
                 column_name = "credits"
             else:

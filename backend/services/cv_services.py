@@ -25,7 +25,7 @@ except ImportError:
 
 from security import get_current_user
 from database import db
-from .utils import _get_sortable_date_tuple, load_prompt, normalize_language, _sanitize_data_for_ai, _sanitize_data_for_recruiter_view, consume_quota, refund_quota, TESTER_SESSION_CAP
+from .utils import _get_sortable_date_tuple, load_prompt, normalize_language, _sanitize_data_for_ai, _sanitize_data_for_recruiter_view, consume_quota, refund_quota, TESTER_SESSION_CAP, _ensure_quota_schema
 from .ai_generator import ai_service
 
 TRAINING_THEME_LABELS = {
@@ -1358,6 +1358,7 @@ async def get_training_balance(current_user: dict = Depends(get_current_user)):
     """Retourne les quotas réels de l'utilisateur pour chaque type d'entraînement."""
     try:
         async with db.get_connection() as conn:
+            await _ensure_quota_schema(conn)
             cursor = await db.execute(
                 conn,
                 """SELECT credits, quota_entreprises, quota_offres
@@ -2043,6 +2044,7 @@ async def get_analysis_preview(
         offer_cached = await _is_job_offer_analysis_cached(job_description)
 
         async with db.get_connection() as conn:
+            await _ensure_quota_schema(conn)
             cursor = await db.execute(
                 conn,
                 "SELECT credits, quota_entreprises, quota_offres FROM users WHERE id = ?",
