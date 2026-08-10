@@ -205,37 +205,6 @@ const pickHydrationCandidate = (source: any, keys: string[]): any => {
   return null;
 };
 
-const normalizeResearchResult = (raw: any): any => {
-  const parsed = parsePossiblySerialized(raw);
-  if (!parsed || typeof parsed !== 'object') return parsed;
-
-  const hasExplicitShape = !!(parsed.market_report || parsed.company_report || parsed.synthesis);
-  if (hasExplicitShape) return parsed;
-
-  const companyLikeKeys = ['identity_dna', 'hot_news', 'strategic_challenges', 'culture_environment', 'news_links'];
-  const marketLikeKeys = ['tension_score', 'top_skills', 'trends', 'recruitment_dynamics', 'tension_index'];
-
-  const hasCompanyLike = companyLikeKeys.some((k) => Object.prototype.hasOwnProperty.call(parsed, k));
-  const hasMarketLike = marketLikeKeys.some((k) => Object.prototype.hasOwnProperty.call(parsed, k));
-
-  if (hasCompanyLike && hasMarketLike) {
-    return {
-      company_report: parsed,
-      market_report: parsed,
-    };
-  }
-
-  if (hasCompanyLike) {
-    return { company_report: parsed };
-  }
-
-  if (hasMarketLike) {
-    return { market_report: parsed };
-  }
-
-  return parsed;
-};
-
 export function useDashboardLogic() {
   // [FIX] On lit le token dès le démarrage pour ne jamais perdre la session en cas de redirection sauvage
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -275,7 +244,7 @@ export function useDashboardLogic() {
   // États séparés pour chaque brique du dashboard
   const [cvResult, setCvResult] = useState<any>(() => readCachedResultAny("cvResult", "cv_result", "optimized_data"));
   const [gapResult, setGapResult] = useState<any>(() => readCachedResultAny("gapResult", "gap_result", "gap_analysis"));
-  const [researchResult, setResearchResult] = useState<any>(() => normalizeResearchResult(readCachedResultAny("researchResult", "research_result", "research_data", "market_report", "company_report")));
+  const [researchResult, setResearchResult] = useState<any>(() => readCachedResultAny("researchResult", "research_result", "research_data", "market_report", "company_report"));
   const [salaryResult, setSalaryResult] = useState<any>(() => readCachedResultAny("salaryResult", "salary_result", "salary"));
   const [displaySalary, setDisplaySalary] = useState<any>(null);
   
@@ -409,7 +378,6 @@ export function useDashboardLogic() {
   useEffect(() => {
     const source = formData;
     if (!source || typeof source !== 'object') return;
-    if (globalStatus === "STARTING" || globalStatus === "PROCESSING") return;
 
     if (!researchResult) {
       const v = pickHydrationCandidate(source, [
@@ -423,7 +391,7 @@ export function useDashboardLogic() {
         'company_report',
         'synthesis',
       ]);
-      if (v) setResearchResult(normalizeResearchResult(v));
+      if (v) setResearchResult(v);
     }
     if (!salaryResult) {
       const v = pickHydrationCandidate(source, ['salary_result', 'salaryResult', 'salary']);
@@ -467,7 +435,6 @@ export function useDashboardLogic() {
     }
   }, [
     formData,
-    globalStatus,
     researchResult,
     salaryResult,
     gapResult,
@@ -679,23 +646,6 @@ export function useDashboardLogic() {
   // --- GESTION DU FORMULAIRE ---
   const updateFormData = useCallback((key: string, value: any) => {
     setFormData((prev: any) => {
-      const targetKeys = ['target_company', 'target_job', 'target_industry', 'job_description'];
-
-      // Si la cible change, on doit casser le lien avec l'ancienne candidature
-      // pour que le backend cree un nouveau dossier historique.
-      if (targetKeys.includes(key)) {
-        const prevValue = String(prev?.[key] ?? '').trim();
-        const nextValue = String(value ?? '').trim();
-        const changed = prevValue !== nextValue;
-        if (changed) {
-          const next = { ...prev, [key]: value };
-          delete next.application_id;
-          delete next.last_target_analysis_signature;
-          delete next.last_dashboard_impact_signature;
-          return next;
-        }
-      }
-
       // Gestion des champs imbriqués (ex: personal_info.first_name)
       if (['first_name', 'last_name', 'email', 'phone', 'address', 'city', 'linkedin', 'photo'].includes(key)) {
         return { ...prev, personal_info: { ...(prev.personal_info || {}), [key]: value } };
@@ -787,17 +737,6 @@ export function useDashboardLogic() {
         }
 
         if (hasTarget && !canReuseTargetAnalysis) {
-        // La cible a change: invalider aussi le pitch precedent (resultat + edition manuelle).
-        setPitchResult(null);
-        setFormData(prev => ({
-          ...(prev || {}),
-          editablePitch: { written: '', oral: '', full_text: '' },
-        }));
-        localStorage.removeItem("pitchResult");
-
-        // Invalide les anciens resultats pour forcer le polling des nouveaux task IDs.
-        setResearchResult(null);
-        setSalaryResult(null);
         console.log("🚀 Triggering Page 2 Background Tasks (Market/Company)...");
         const res = await authenticatedFetch(`/research/start`, {
           method: 'POST',
@@ -815,10 +754,6 @@ export function useDashboardLogic() {
           ...(normalizeTaskIds(data.tasks) || {}),
           market_research: data.tasks.research,
           salary_estimation: data.tasks.salary,
-        }));
-        setFormData(prev => ({
-          ...(prev || {}),
-          last_target_analysis_signature: currentSignature,
         }));
         }
         setCurrentStep(3);
@@ -882,8 +817,8 @@ export function useDashboardLogic() {
            previousImpactPayload = null;
          }
 
-         const requiresDecoder = !!String(formData?.job_description || '').trim();
-         const dashboardCacheComplete = [
+         const dashboardCacheAvailable = [
+           pilotData,
            cvResult,
            gapResult,
            researchResult,
@@ -895,81 +830,13 @@ export function useDashboardLogic() {
            flawCoachingResult,
            actionPlanResult,
            customScenariosResult,
-           requiresDecoder ? jobDecoderResult : { _optional: true },
-         ].every(hasUsableDashboardCache);
-
-         const hasAnyResolvedResult = !!(
-           hasUsableDashboardCache(cvResult) ||
-           hasUsableDashboardCache(gapResult) ||
-           hasUsableDashboardCache(researchResult) ||
-           hasUsableDashboardCache(salaryResult) ||
-           hasUsableDashboardCache(pitchResult) ||
-           hasUsableDashboardCache(questionsResult) ||
-           hasUsableDashboardCache(recruiterResult) ||
-           hasUsableDashboardCache(realityResult) ||
-           hasUsableDashboardCache(flawCoachingResult) ||
-           hasUsableDashboardCache(actionPlanResult) ||
-           hasUsableDashboardCache(customScenariosResult) ||
-           (!requiresDecoder || hasUsableDashboardCache(jobDecoderResult))
-         );
-
-         const restartMissingDashboardTasks = async () => {
-           // Nettoie les task IDs potentiellement perimes avant de relancer.
-           setTaskIds(null);
-
-           // Relance marche/entreprise si necessaire.
-           const hasTarget = !!(payload.target_company || payload.target_industry);
-           const hasResearchReady = !!(researchResult && !researchResult?.error);
-           if (hasTarget && !hasResearchReady) {
-             try {
-               const researchRes = await authenticatedFetch(`/research/start`, {
-                 method: 'POST',
-                 headers: { 'Content-Type': 'application/json' },
-                 body: JSON.stringify({
-                   target_company: payload.target_company,
-                   target_industry: payload.target_industry,
-                   candidate_data: payload,
-                 }),
-               });
-               if (researchRes.ok) {
-                 const researchData = await researchRes.json();
-                 setTaskIds(prev => ({
-                   ...(prev || {}),
-                   ...(normalizeTaskIds(researchData.tasks) || {}),
-                   market_research: researchData.tasks.research,
-                   salary_estimation: researchData.tasks.salary,
-                 }));
-               }
-             } catch (err) {
-               console.warn('[STEP7][RECOVERY] market research restart failed:', err);
-             }
-           }
-
-           // Relance le pipeline principal pour repopuler les modules en attente.
-           const analysisRes = await authenticatedFetch(`/cv/start-analysis`, {
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ ...payload, is_partial_start: false }),
-           });
-           if (analysisRes.ok) {
-             const analysisData = await analysisRes.json();
-             setTaskIds(prev => ({
-               ...(prev || {}),
-               ...(normalizeTaskIds(analysisData.tasks) || {}),
-             }));
-           }
-         };
+         ].some(hasUsableDashboardCache);
 
          // Cas simple demandé : si rien d'important n'a changé, on ré-ouvre instantanément le dashboard existant.
-         if (previousImpactSignature && previousImpactSignature === currentImpactSignature) {
+         if (previousImpactSignature && previousImpactSignature === currentImpactSignature && dashboardCacheAvailable) {
            console.info('[DASHBOARD_CACHE] HIT (step7_guard): no impactful changes, instant restore.');
+           setGlobalStatus("COMPLETED");
            setCurrentStep(8);
-           if (!hasAnyResolvedResult || !dashboardCacheComplete) {
-             setGlobalStatus("PROCESSING");
-             await restartMissingDashboardTasks();
-           } else {
-             setGlobalStatus("COMPLETED");
-           }
            return;
          }
 
@@ -981,18 +848,6 @@ export function useDashboardLogic() {
            changed_fields: changedImpactFields,
          });
 
-         if (recalcLevel === 'none') {
-           console.info('[DASHBOARD_CACHE] NO_IMPACT_CHANGE: instant restore, no recalculation.');
-           setCurrentStep(8);
-           if (!hasAnyResolvedResult || !dashboardCacheComplete) {
-             setGlobalStatus("PROCESSING");
-             await restartMissingDashboardTasks();
-           } else {
-             setGlobalStatus("COMPLETED");
-           }
-           return;
-         }
-
          if (recalcLevel === 'light') {
            setGlobalStatus("PROCESSING");
            await fetchPilotData();
@@ -1001,53 +856,7 @@ export function useDashboardLogic() {
            return;
          }
 
-         // [CRITICAL] Sur recalcul complet (ex: changement entreprise cible),
-         // on purge les sorties dependantes pour eviter de conserver l'ancien contenu
-         // et permettre le polling des nouveaux task IDs.
-         setGapResult(null);
-         setResearchResult(null);
-         setSalaryResult(null);
-         setJobDecoderResult(null);
-         setPitchResult(null);
-         setQuestionsResult(null);
-         setRecruiterResult(null);
-         setRealityResult(null);
-         setFlawCoachingResult(null);
-         setActionPlanResult(null);
-         setCustomScenariosResult(null);
-
          setGlobalStatus("STARTING");
-
-         // [SAFETY] Si aucune analyse marche/entreprise n'est disponible
-         // ni en cours, on la declenche avant l'analyse complete.
-         const hasTarget = !!(payload.target_company || payload.target_industry);
-         const hasResearchReady = !!(researchResult && !researchResult?.error);
-         const hasResearchTaskRunning = !!taskIds?.market_research;
-         if (hasTarget && !hasResearchReady && !hasResearchTaskRunning) {
-           try {
-             const researchRes = await authenticatedFetch(`/research/start`, {
-               method: 'POST',
-               headers: { 'Content-Type': 'application/json' },
-               body: JSON.stringify({
-                 target_company: payload.target_company,
-                 target_industry: payload.target_industry,
-                 candidate_data: payload,
-               }),
-             });
-
-             if (researchRes.ok) {
-               const researchData = await researchRes.json();
-               setTaskIds(prev => ({
-                 ...(prev || {}),
-                 ...(normalizeTaskIds(researchData.tasks) || {}),
-                 market_research: researchData.tasks.research,
-                 salary_estimation: researchData.tasks.salary,
-               }));
-             }
-           } catch (researchStartErr) {
-             console.warn('[STEP7] Unable to auto-start market research before full analysis:', researchStartErr);
-           }
-         }
          
          // [FIX] On injecte les résultats de recherche calculés en arrière-plan
          // pour que le backend comprenne qu'il ne doit pas relancer l'agent "Marché"
@@ -1146,7 +955,7 @@ export function useDashboardLogic() {
   // pour éviter de repoll des IDs périmés au rechargement de page.
   useTaskPolling("cv_analysis", taskIds?.cv_analysis, setCvResult, cvResult);
   useTaskPolling("gap_analysis", taskIds?.gap_analysis, setGapResult, gapResult);
-  useTaskPolling("market_research", taskIds?.market_research, (result: any) => setResearchResult(normalizeResearchResult(result)), researchResult);
+  useTaskPolling("market_research", taskIds?.market_research, setResearchResult, researchResult);
   useTaskPolling("salary_estimation", taskIds?.salary_estimation, setSalaryResult, salaryResult);
   
   // [FIX] Rétablissement de l'écoute (polling) des tâches Premium
@@ -1258,18 +1067,6 @@ export function useDashboardLogic() {
 
     setGlobalStatus("PROCESSING");
     try {
-      // Si la cible change, invalider explicitement le pitch precedent.
-      setPitchResult(null);
-      setFormData(prev => ({
-        ...(prev || {}),
-        editablePitch: { written: '', oral: '', full_text: '' },
-      }));
-      localStorage.removeItem("pitchResult");
-
-      // Force la prise en compte du nouveau task ID (sinon un ancien resultat bloque le polling).
-      setResearchResult(null);
-      setSalaryResult(null);
-
       const payload = { ...formData, target_language: formData.target_language || 'fr' };
       const res = await authenticatedFetch(`/research/start`, {
         method: 'POST',

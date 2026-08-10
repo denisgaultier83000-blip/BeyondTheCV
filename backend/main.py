@@ -39,25 +39,24 @@ from typing import Dict, List
 
 from database import init_db, db, get_database_url
 import database as database_module
+from services.storage_manager import storage
 
 # [CONFIG] Chargement de la configuration globale de l'application
 def load_app_config():
     try:
-        config_path = os.path.join(os.path.dirname(__file__), "data", "app_config.json")
-        
-        if not os.path.exists(config_path):
-            os.makedirs(os.path.dirname(config_path), exist_ok=True)
+        config_path = storage.path("data", "app_config.json")
+
+        if not storage.exists(config_path):
+            storage.ensure_dir("data")
             default_config = {
                 "rate_limit_window": 60,
                 "rate_limit_max_requests": 100,
                 "required_templates": ["cv_ats.tex"]
             }
-            with open(config_path, "w", encoding="utf-8") as f:
-                json.dump(default_config, f, indent=4)
+            storage.save_text(json.dumps(default_config, indent=4), "data", "app_config.json")
             return default_config
-            
-        with open(config_path, "r", encoding="utf-8") as f:
-            return json.load(f)
+
+        return json.loads(storage.load_text(config_path))
     except Exception as e:
         print(f"[WARNING] Could not load app_config.json: {e}", flush=True)
         return {}
@@ -75,13 +74,13 @@ def cleanup_system():
     now = time.time()
     
     # 1. Nettoyage du dossier temp (Fichiers > 24h)
-    temp_dir = "temp"
+    temp_dir = storage.ensure_dir("temp")
     if os.path.exists(temp_dir):
         for f in os.listdir(temp_dir):
             path = os.path.join(temp_dir, f)
             if os.path.isfile(path) and os.stat(path).st_mtime < now - 86400:
                 try:
-                    os.remove(path)
+                    storage.delete(path)
                     print(f"[CLEANUP] Removed old temp file: {f}")
                 except Exception as e:
                     print(f"[CLEANUP] Error removing {f}: {e}")
@@ -102,10 +101,10 @@ def cleanup_system():
 async def lifespan(app: FastAPI):
     # Startup
     try:
-        os.makedirs("temp", exist_ok=True)
-        os.makedirs("output", exist_ok=True)
-        os.makedirs(os.path.join(os.path.dirname(__file__), "ai", "prompts"), exist_ok=True)
-        os.makedirs(os.path.join(os.path.dirname(__file__), "data"), exist_ok=True)
+        storage.ensure_dir("temp")
+        storage.ensure_dir("output")
+        storage.ensure_dir("ai", "prompts")
+        storage.ensure_dir("data")
         print("Backend directories initialized.")
 
         print("✅ Critical packages verification skipped (handled by Dockerfile).", flush=True)
@@ -125,7 +124,7 @@ async def lifespan(app: FastAPI):
             print("⚠️ AI Provider: None (Simulation Mode)", flush=True)
 
         # Check for required templates
-        template_dir = os.path.join(os.path.dirname(__file__), "templates")
+        template_dir = storage.path("templates")
         required_templates = APP_CONFIG.get("required_templates", ["cv_ats.tex"])
         for template in required_templates:
             if not os.path.exists(os.path.join(template_dir, template)):
@@ -468,6 +467,7 @@ def include_safe_router(module_name, from_services=True):
 include_safe_router("auth")
 include_safe_router("cv_services")
 include_safe_router("dashboard")
+include_safe_router("applications_service")
 include_safe_router("profile")
 include_safe_router("simulation_service")
 include_safe_router("documents")

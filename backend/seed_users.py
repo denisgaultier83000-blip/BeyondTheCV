@@ -49,9 +49,16 @@ def seed_test_users():
         try:
             # Insertion alignée sur le modèle officiel (database.py)
             cursor.execute("""
-                INSERT INTO users (id, email, hashed_password, first_name, last_name, created_at, is_premium)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """, (user_id, email, hashed_pw, f"Candidat{i}", "Test", now, True))
+                INSERT INTO users (
+                    id, email, hashed_password, first_name, last_name, created_at,
+                    is_premium, is_tester, credits, quota_pitch, quota_qa, quota_mes,
+                    quota_negotiation, quota_regeneration, quota_update, quota_entreprises, quota_offres
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                user_id, email, hashed_pw, f"Candidat{i}", "Test", now, True, True,
+                30, 30, 30, 30, 30, 30, 30, 5, 15
+            ))
             
             # Un profil orienté "Tech" pour les impairs, "Sales/Management" pour les pairs
             target_role = "Développeur Fullstack Sénior" if i % 2 != 0 else "Directeur Commercial"

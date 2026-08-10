@@ -91,3 +91,13 @@
   max-width: none;
   margin: 0 20px; /* Espacement latéral */
 }
+
+.header-quotas-mobile-only {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .header-quotas-mobile-only {
+    display: block;
+  }
+}

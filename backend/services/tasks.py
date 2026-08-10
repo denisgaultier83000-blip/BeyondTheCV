@@ -26,6 +26,53 @@ def get_prompt_path(filename: str) -> str:
     """Retourne le chemin absolu vers un fichier prompt."""
     return str(PROMPTS_DIR / filename)
 
+
+async def _auto_recharge_business_quota_if_tester(user_id: str, quota_type: str) -> bool:
+    """
+    Recharge automatiquement les quotas business (entreprises/offres) en mode testeur.
+    Retourne True si une recharge a ete appliquee, sinon False.
+    """
+    if quota_type not in {"entreprises", "offres"}:
+        return False
+
+    target_col = "quota_entreprises" if quota_type == "entreprises" else "quota_offres"
+    default_value = 5 if quota_type == "entreprises" else 15
+
+    try:
+        async with db.get_connection() as conn:
+            cursor = await db.execute(
+                conn,
+                f"SELECT is_tester, {target_col} FROM users WHERE id = ?",
+                (user_id,)
+            )
+            row = await cursor.fetchone()
+            if not row:
+                return False
+
+            is_tester = bool(row[0]) if isinstance(row, tuple) else bool(row.get("is_tester"))
+            current_value = row[1] if isinstance(row, tuple) else row.get(target_col)
+
+            if not is_tester:
+                return False
+
+            try:
+                current_value = int(current_value or 0)
+            except Exception:
+                current_value = 0
+
+            if current_value > 0:
+                return False
+
+            await db.execute(
+                conn,
+                f"UPDATE users SET {target_col} = ? WHERE id = ?",
+                (default_value, user_id)
+            )
+            return True
+    except Exception as recharge_err:
+        print(f"[QUOTA AUTO-RECHARGE] Failed for {quota_type} ({user_id}): {recharge_err}", flush=True)
+        return False
+
 def update_task_status_sync(task_id: str, status: str, result: dict = None):
     """Mise à jour synchrone de la DB (pour exécution dans un thread)."""
     result_json = json.dumps(result, default=str) if result is not None else None
@@ -192,6 +239,23 @@ async def _run_research_logic(task_id: str, request_data: dict):
         job_title = request_data.get("target_job", "")
         country   = request_data.get("target_country", "")
 
+        # [QUOTA] Consommer 1 quota_entreprises a chaque lancement utilisateur
+        # du pipeline entreprise/marche (meme si le resultat provient du cache partage).
+        if user_id and user_id != "unknown_user":
+            try:
+                from .utils import consume_quota
+                await consume_quota(user_id, "entreprises")
+            except Exception as quota_err:
+                detail = getattr(quota_err, "detail", str(quota_err))
+                if "insuffisants" in str(detail):
+                    recharged = await _auto_recharge_business_quota_if_tester(user_id, "entreprises")
+                    if recharged:
+                        await consume_quota(user_id, "entreprises")
+                    else:
+                        raise
+                else:
+                    raise
+
         # [CACHE L1] Cache entreprise partagé (cross-user, TTL 30 jours)
         from .cache_service import (
             get_company_cache, set_company_cache, touch_company_cache,
@@ -206,20 +270,6 @@ async def _run_research_logic(task_id: str, request_data: dict):
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", shared_company)
             await manager.broadcast(task_id, "Analyse récupérée en cache !", status="COMPLETED", data=shared_company)
             return
-
-        # [QUOTA] Consommer 1 quota_entreprises pour une nouvelle analyse
-        if user_id and user_id != "unknown_user":
-            try:
-                from .utils import consume_quota
-                await consume_quota(user_id, "entreprises")
-            except Exception as quota_err:
-                detail = getattr(quota_err, "detail", str(quota_err))
-                if "insuffisants" in str(detail):
-                    fallback = {"company": company, "market_report": {}, "company_report": {}, "sources": [],
-                                "quota_error": "Quota entreprises atteint — rechargement automatique en mode test."}
-                    await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", fallback)
-                    await manager.broadcast(task_id, "Quota entreprises rechargé.", status="COMPLETED", data=fallback)
-                    return
 
         # [CACHE L3] Cache marché partagé — si dispo, on l'injecte dans request_data pour éviter de regénérer
         cached_market = await get_market_cache(job_title, country)
@@ -490,21 +540,14 @@ async def _run_gap_analysis_logic(task_id: str, data: dict):
 
         target_lang = normalize_language(data.get('target_language', 'French'))
         target_job = data.get('target_job') or data.get('target_role_primary', 'Unknown Position')
-        job_description = data.get('job_description', '')
+        job_description = str(data.get('job_description') or '').strip()
+        has_offer_input = len(job_description) > 0
 
         # [CACHE L2] Cache offre partagé (cross-user, TTL 90 jours)
         from .cache_service import get_job_offer_cache, set_job_offer_cache, touch_job_offer_cache
-        if job_description and len(job_description) > 50:
-            shared_offer = await get_job_offer_cache(job_description)
-            if shared_offer:
-                print(f"[CACHE L2 HIT] Offre gap analysis", flush=True)
-                await touch_job_offer_cache(job_description)
-                await set_cached_content(cache_key, user_id, "gap_analysis", shared_offer)
-                await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", shared_offer)
-                await manager.broadcast(task_id, "Analyse d'écart récupérée en cache partagé !", status="COMPLETED", data=shared_offer)
-                return
-
-            # [QUOTA] Consommer 1 quota_offres pour une nouvelle offre analysée
+        if has_offer_input:
+            # [QUOTA] Consommer 1 quota_offres a chaque lancement utilisateur
+            # de l'analyse d'offre (meme si le resultat provient du cache partage).
             if user_id and user_id != "unknown_user":
                 try:
                     from .utils import consume_quota
@@ -512,13 +555,26 @@ async def _run_gap_analysis_logic(task_id: str, data: dict):
                 except Exception as quota_err:
                     detail = getattr(quota_err, "detail", str(quota_err))
                     if "insuffisants" in str(detail):
-                        fallback = {"quota_error": "Quota offres atteint — rechargement automatique en mode test."}
-                        await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", fallback)
-                        await manager.broadcast(task_id, "Quota offres rechargé.", status="COMPLETED", data=fallback)
-                        return
+                        recharged = await _auto_recharge_business_quota_if_tester(user_id, "offres")
+                        if recharged:
+                            await consume_quota(user_id, "offres")
+                        else:
+                            raise
+                    else:
+                        raise
+
+            if len(job_description) > 50:
+                shared_offer = await get_job_offer_cache(job_description)
+                if shared_offer:
+                    print(f"[CACHE L2 HIT] Offre gap analysis", flush=True)
+                    await touch_job_offer_cache(job_description)
+                    await set_cached_content(cache_key, user_id, "gap_analysis", shared_offer)
+                    await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", shared_offer)
+                    await manager.broadcast(task_id, "Analyse d'écart récupérée en cache partagé !", status="COMPLETED", data=shared_offer)
+                    return
 
         context_job = f"Poste visé : '{target_job}'"
-        if job_description and len(job_description) > 50:
+        if has_offer_input:
             context_job += f"\n\nDESCRIPTION DE L'OFFRE (REFERENCE ABSOLUE) :\n{job_description}"
         else:
             context_job += "\n(Pas de description fournie, base-toi sur les standards du marché pour ce titre)"
@@ -552,7 +608,7 @@ async def _run_gap_analysis_logic(task_id: str, data: dict):
             await manager.broadcast(task_id, "Erreur d'analyse", status="FAILED", data=result)
         else:
             # Stocker en cache offre partagé si une JD était présente
-            if job_description and len(job_description) > 50:
+            if len(job_description) > 50:
                 await set_job_offer_cache(job_description, result)
             await set_cached_content(cache_key, user_id, "gap_analysis", result)
             await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)

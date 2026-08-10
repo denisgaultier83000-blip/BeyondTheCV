@@ -7,9 +7,11 @@ interface WizardStepperProps {
   currentStep: number;
   onStepClick: (id: number) => void;
   orientation: 'horizontal' | 'vertical';
+  navigationMode?: boolean;
+  completedStepIds?: number[];
 }
 
-const WizardStepper: React.FC<WizardStepperProps> = ({ steps, currentStep, onStepClick, orientation }) => {
+const WizardStepper: React.FC<WizardStepperProps> = ({ steps, currentStep, onStepClick, orientation, navigationMode = false, completedStepIds = [] }) => {
   const isVertical = orientation === 'vertical';
 
   return (
@@ -18,9 +20,9 @@ const WizardStepper: React.FC<WizardStepperProps> = ({ steps, currentStep, onSte
       className={isVertical ? 'wizard-stepper wizard-stepper--vertical' : 'wizard-stepper wizard-stepper--horizontal'}
     >
       {steps.map((step, index) => {
-        const isCompleted = currentStep > step.id;
+        const isCompleted = completedStepIds.length > 0 ? completedStepIds.includes(step.id) : currentStep > step.id;
         const isCurrent = currentStep === step.id;
-        const isClickable = isCompleted;
+        const isClickable = navigationMode ? true : isCompleted;
 
         return (
           <React.Fragment key={step.id}>

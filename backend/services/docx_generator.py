@@ -1,8 +1,9 @@
-import os
 from docx import Document
 from docx.shared import Pt
 
-OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "output")
+from services.storage_manager import storage
+
+OUTPUT_DIR = storage.ensure_dir("output")
 
 def generate_cv_docx(data: dict) -> str:
     """
@@ -61,10 +62,7 @@ def generate_cv_docx(data: dict) -> str:
             doc.add_paragraph(str(interests))
 
     filename = f"cv_{data.get('last_name', 'candidate')}.docx"
-    filepath = os.path.join(OUTPUT_DIR, filename)
-    
-    if not os.path.exists(OUTPUT_DIR):
-        os.makedirs(OUTPUT_DIR)
-        
+    filepath = storage.path("output", filename)
+
     doc.save(filepath)
     return filepath

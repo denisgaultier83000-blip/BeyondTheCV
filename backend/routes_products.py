@@ -3,14 +3,13 @@ API routes for products, evaluations, and subscriptions.
 """
 from fastapi import APIRouter, HTTPException, Query, Depends, File, UploadFile, Body
 from typing import List, Optional
-import os
 import uuid
 from datetime import datetime, timezone
 
 try:
-    from google.cloud import storage
+    from google.cloud import storage as gcs_storage
 except ImportError:
-    storage = None
+    gcs_storage = None
 
 from db_schemas import (
     ProductCreate, ProductResponse, ProductListResponse,
@@ -21,6 +20,7 @@ from db_services import (
     ProductService, SubscriptionService
 )
 from security import get_current_user, require_admin_user
+from services.storage_manager import storage as file_storage
 
 # [FIX EXPERT] Le préfixe "/api" est géré de manière centralisée dans main.py.
 # On retire tout préfixe ici pour éviter les URLs dupliquées (ex: /api/api/products).
@@ -48,16 +48,13 @@ def create_product(
         
         if file:
             # [SECURITÉ] Prévention du Path Traversal
-            secure_filename = os.path.basename(filename)
-            file_path = f"products/{user_id}/{secure_filename}"
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            secure_filename = file_storage.safe_filename(filename)
             
             content = file.file.read()
             file_size = len(content)
             mime_type = file.content_type
             
-            with open(file_path, "wb") as f:
-                f.write(content)
+            file_path = file_storage.save_bytes(content, "products", user_id, secure_filename)
         
         product_id = ProductService.create_product(
             user_id=user_id,

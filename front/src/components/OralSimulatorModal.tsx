@@ -23,6 +23,7 @@ interface OralSimulatorModalProps {
 export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetCompany, jobDescription, targetLanguage = 'fr', onScoreUpdate, trainingTitle, trainingFocus }: OralSimulatorModalProps) {
   const { t } = useTranslation();
   const { quotas, fetchQuotas } = useDashboard();
+  const pitchRemaining = Number(quotas?.pitch ?? 0) > 0 ? Number(quotas?.pitch) : Number(quotas?.credits ?? 0);
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [duration, setDuration] = useState(0);
@@ -51,8 +52,9 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
       setStatus('idle');
       setFeedback(null);
       setErrorMsg(null);
+      if (fetchQuotas) fetchQuotas();
     }
-  }, [isOpen, trainingTitle, trainingFocus]);
+  }, [isOpen, trainingTitle, trainingFocus, fetchQuotas]);
 
   if (!isOpen) return null;
 
@@ -136,7 +138,7 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
     setStatus('analyzing');
     setErrorMsg(null);
     
-    if ((quotas?.pitch ?? 0) <= 0) {
+    if (pitchRemaining <= 0) {
       setShowRechargeModal(true);
       setStatus('idle');
       return;
@@ -250,7 +252,7 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
 
               {transcript.length > 20 && !isRecording && (
                 <button onClick={handleEvaluate} className="btn-primary" style={{ padding: '1rem 2.5rem', fontSize: '1.1rem' }}>
-                  Analyser ma prestation ({quotas?.pitch ?? 0} restants)
+                  Analyser ma prestation
                 </button>
               )}
             </div>

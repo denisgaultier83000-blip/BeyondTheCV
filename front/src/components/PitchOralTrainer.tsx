@@ -12,6 +12,7 @@ import AutoResizeTextarea from './AutoResizeTextarea';
 export default function PitchOralTrainer() {
   const { cvData, quotas, fetchQuotas } = useDashboard();
   const { t } = useTranslation();
+  const pitchRemaining = Number(quotas?.pitch ?? 0) > 0 ? Number(quotas?.pitch) : Number(quotas?.credits ?? 0);
   
   const [userAnswer, setUserAnswer] = useState('');
   const [isEvaluating, setIsEvaluating] = useState(false);
@@ -21,6 +22,13 @@ export default function PitchOralTrainer() {
   const recognitionRef = useRef<any>(null);
   const [showRechargeModal, setShowRechargeModal] = useState(false);
 
+  const normalizeScore10 = (rawScore: any): number => {
+    const value = Number(rawScore ?? 0);
+    if (!Number.isFinite(value)) return 0;
+    if (value > 10) return Math.max(0, Math.min(10, value / 10));
+    return Math.max(0, Math.min(10, value));
+  };
+
   useEffect(() => {
     return () => {
       if (recognitionRef.current) {
@@ -28,6 +36,10 @@ export default function PitchOralTrainer() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (fetchQuotas) fetchQuotas();
+  }, [fetchQuotas]);
 
   const toggleRecording = () => {
     if (isRecording) {
@@ -73,18 +85,12 @@ export default function PitchOralTrainer() {
     setIsEvaluating(true);
     setError(null);
 
-    if ((quotas?.pitch ?? 0) <= 0) {
-      setShowRechargeModal(true);
-      setIsEvaluating(false);
-      return;
-    }
-
     try {
-      const res = await authenticatedFetch(`${API_BASE_URL}/cv/evaluate-oral-pitch`, {
+      const res = await authenticatedFetch(`${API_BASE_URL}/cv/training/evaluate-vocal-pitch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          target_job: cvData?.target_job || cvData?.target_role_primary || "Candidat",
+          target_job: cvData?.target_job || cvData?.target_role_primary || "",
           transcript: userAnswer
         })
       });
@@ -97,7 +103,7 @@ export default function PitchOralTrainer() {
       }
 
       const data = await res.json();
-      setFeedback(data.feedback || data);
+      setFeedback(data.feedback?.score ? data.feedback : data);
       if (fetchQuotas) fetchQuotas();
     } catch (err: any) {
       setError(err.message || "L'évaluation a échoué. Veuillez réessayer.");
@@ -121,27 +127,32 @@ export default function PitchOralTrainer() {
       {!feedback ? (
         <AsyncBoundary loading={isEvaluating} error={error || undefined} loadingText="Analyse de votre pitch en cours..." style={{ background: 'transparent', border: 'none', padding: 0 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', animation: 'fadeIn 0.3s ease-out' }}>
-            <AutoResizeTextarea value={userAnswer} onChange={e => setUserAnswer(e.target.value)} placeholder="Commencez à parler ou dictez votre pitch ici..." minHeight={120} style={{ width: '100%', background: 'var(--bg-body)', border: '1px solid var(--border-color)', borderRadius: '0.5rem', padding: '1rem', color: 'var(--text-main)', fontFamily: 'inherit' }} />
+            <AutoResizeTextarea value={userAnswer} onChange={e => { setUserAnswer(e.target.value); if (error) setError(null); }} placeholder="Commencez à parler ou dictez votre pitch ici..." minHeight={120} style={{ width: '100%', background: 'var(--bg-body)', border: '1px solid var(--border-color)', borderRadius: '0.5rem', padding: '1rem', color: 'var(--text-main)', fontFamily: 'inherit' }} />
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
               <button onClick={toggleRecording} className={`btn-${isRecording ? 'primary' : 'secondary'}`} style={{ background: isRecording ? '#ef4444' : undefined, borderColor: isRecording ? '#ef4444' : undefined, color: isRecording ? 'white' : undefined, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 {isRecording ? <MicOff size={18} /> : <Mic size={18} />} {isRecording ? "Arrêter" : "Dicter mon pitch"}
               </button>
               <button onClick={handleEvaluate} disabled={!userAnswer.trim()} className="btn-primary" style={{ background: !userAnswer.trim() ? '' : '#8b5cf6', borderColor: !userAnswer.trim() ? '' : '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Send size={18} /> {`Évaluer mon oral (${quotas?.pitch ?? 0} restants)`}
+                <Send size={18} /> Évaluer mon oral
               </button>
             </div>
           </div>
         </AsyncBoundary>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', animation: 'slideUp 0.4s ease-out' }}>
+          {(() => {
+            const score10 = normalizeScore10(feedback?.score);
+            return (
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
-            <ScoreGauge score={feedback.score / 10} label="Impact du Pitch" />
+            <ScoreGauge score={score10} label="Impact du Pitch" />
             <div style={{ flex: 1 }}>
                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-                 {feedback.score >= 75 ? "Excellent pitch, naturel et percutant." : feedback.score >= 50 ? "Bonne base, mais il faut gagner en fluidité ou en structure." : "Votre pitch manque d'impact, évitez de réciter votre CV."}
+                 {score10 >= 7.5 ? "Excellent pitch, naturel et percutant." : score10 >= 5 ? "Bonne base, mais il faut gagner en fluidité ou en structure." : "Votre pitch manque d'impact, évitez de réciter votre CV."}
                </p>
             </div>
           </div>
+            );
+          })()}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
             <div style={{ background: 'rgba(34, 197, 94, 0.05)', padding: '1rem', borderRadius: '0.5rem', border: '1px solid rgba(34, 197, 94, 0.2)' }}><h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle2 size={16} /> Points Forts</h4><ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-main)', fontSize: '0.9rem' }}>{feedback.strengths?.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul></div>
             <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1rem', borderRadius: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}><h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--danger-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><AlertTriangle size={16} /> À améliorer</h4><ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-main)', fontSize: '0.9rem' }}>{feedback.weaknesses?.map((w: string, i: number) => <li key={i}>{w}</li>)}</ul></div>

@@ -40,12 +40,17 @@ function Step6Ghost({ onNext, t }: { onNext: () => void, t: any }) {
     return () => clearTimeout(timer);
   }, [onNext]);
 
-  return <LoadingScreen title={t('loading_strat_title', "CrÃƒÂ©ation de votre profil stratÃƒÂ©gique...")} description={t('loading_strat_desc', "Analyse de vos expÃƒÂ©riences et exigences du marchÃƒÂ©...")} />;
+  return <LoadingScreen title={t('loading_strat_title', "Creation de votre profil strategique...")} description={t('loading_strat_desc', "Analyse de vos experiences et exigences du marche...")} />;
 }
 
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
+
+  type TargetNode = {
+    company: string;
+    jobs: string[];
+  };
 
   type AnalysisPreview = {
     company_cached: boolean;
@@ -60,6 +65,12 @@ function AppContent() {
       offres: number;
       credits: number;
     };
+  };
+
+  type ApplicationSession = {
+    id: string;
+    target_company?: string;
+    target_job?: string;
   };
 
   // --- Ãƒâ€°tats de l'interface ---
@@ -82,6 +93,22 @@ function AppContent() {
   const [analysisPreview, setAnalysisPreview] = useState<AnalysisPreview | null>(null);
   const [isCheckingAnalysisPreview, setIsCheckingAnalysisPreview] = useState(false);
   const [quotaRefreshToken, setQuotaRefreshToken] = useState(0);
+  const [onboardingCompleted, setOnboardingCompleted] = useState(false);
+  const [targetTree, setTargetTree] = useState<TargetNode[]>(() => {
+    try {
+      const raw = localStorage.getItem('btcv_target_tree');
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter((node: any) => node && typeof node.company === 'string' && Array.isArray(node.jobs));
+    } catch {
+      return [];
+    }
+  });
+  const [showNewApplicationModal, setShowNewApplicationModal] = useState(false);
+  const [selectedCompanyForApplication, setSelectedCompanyForApplication] = useState('');
+  const [newCompanyForApplication, setNewCompanyForApplication] = useState('');
+  const [newJobForApplication, setNewJobForApplication] = useState('');
 
   const handleQuotasLoaded = useCallback((q: { entreprises: number; offres: number; credits: number }) => {
     setCurrentQuotas((prev) => {
@@ -101,16 +128,18 @@ function AppContent() {
 
   // --- Contexte Global (Hooks) ---
   const { t, i18n } = useTranslation();
+  const targetCompaniesUsed = targetTree.length;
+  const targetOffersUsed = targetTree.reduce((sum, node) => sum + (Array.isArray(node.jobs) ? node.jobs.length : 0), 0);
   const {
     isAuthenticated, setIsAuthenticated,
     currentStep, setCurrentStep,
     gapResult, actionPlanResult,
     researchResult, salaryResult,
     jobDecoderResult,
-    pitchResult, setPitchResult, questionsResult,
+    pitchResult, questionsResult,
     recruiterResult, realityResult, flawCoachingResult,
     globalStatus, error,
-    customScenariosResult, setJobDecoderResult,
+    customScenariosResult,
     handleNextStep,
     cvData,
     setFormData,
@@ -120,6 +149,32 @@ function AppContent() {
     // [FIX] Ajout des variables manquantes pour gÃƒÂ©rer les onglets
     activeTab, setActiveTab 
   } = useGlobalDashboard();
+
+  const fetchLatestQuotas = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      const res = await authenticatedFetch(`${API_BASE_URL}/cv/training/balance`);
+      if (!res.ok) return;
+      const q = await res.json();
+      setCurrentQuotas((prev) => {
+        const next = {
+          credits: Number(q?.credits ?? prev.credits ?? 30),
+          entreprises: Number(q?.entreprises ?? prev.entreprises ?? 5),
+          offres: Number(q?.offres ?? prev.offres ?? 15),
+        };
+        if (
+          prev.credits === next.credits &&
+          prev.entreprises === next.entreprises &&
+          prev.offres === next.offres
+        ) {
+          return prev;
+        }
+        return next;
+      });
+    } catch {
+      // Silent: quotas are non-blocking UI data.
+    }
+  }, [isAuthenticated]);
 
   // --- Contrat de DonnÃƒÂ©es (Lecture seule) ---
   const transformProfileForFrontend = (profileData: any): object => {
@@ -134,6 +189,11 @@ function AppContent() {
       email: source.email || '',
       linkedin: source.linkedin || '',
       bio: source.bio || '',
+      target_job: source.target_job || source?.target?.job || '',
+      target_company: source.target_company || source?.target?.company || '',
+      target_industry: source.target_industry || source?.target?.industry || '',
+      target_country: source.target_country || source?.target?.country || '',
+      job_description: source.job_description || source?.target?.job_description || '',
       experiences: (source.experiences || []).map((exp: any, i: number) => ({ ...exp, id: exp.id || `exp_${Date.now()}_${i}` })),
       educations: (source.educations || []).map((edu: any, i: number) => ({ ...edu, id: edu.id || `edu_${Date.now()}_${i}` })),
       pitch_result: source.pitch_result || null, // [FIX] PrÃƒÂ©-remplissage des pitchs
@@ -174,6 +234,126 @@ function AppContent() {
     { id: 7, title: t('clarification_title') }, { id: 8, title: t('step_results') }
   ];
 
+  const normalizeText = (value: any) => String(value || '').trim();
+
+  const isStepComplete = (stepId: number, data: any) => {
+    const profile = data || {};
+    const hasIdentity = !!normalizeText(profile.first_name) && !!normalizeText(profile.last_name) && !!normalizeText(profile.email);
+    const hasTarget = !!normalizeText(profile.target_company) || !!normalizeText(profile.target_job) || !!normalizeText(profile.target_industry) || !!normalizeText(profile.job_description);
+    const hasEducation = Array.isArray(profile.educations) && profile.educations.length > 0;
+    const hasExperience = Array.isArray(profile.experiences) && profile.experiences.length > 0;
+    const hasQualities = (Array.isArray(profile.qualities) && profile.qualities.length > 0) || (Array.isArray(profile.flaws) && profile.flaws.length > 0);
+    const clarifications = Array.isArray(profile.clarifications) ? profile.clarifications : [];
+    const hasClarificationsAnswered = clarifications.length === 0 || clarifications.every((c: any) => !!normalizeText(c?.answer));
+
+    if (stepId === 0) return true;
+    if (stepId === 1) return hasIdentity;
+    if (stepId === 2) return hasTarget;
+    if (stepId === 3) return hasEducation;
+    if (stepId === 4) return hasExperience;
+    if (stepId === 5) return hasQualities;
+    if (stepId === 7) return hasClarificationsAnswered;
+    if (stepId === 8) return hasIdentity && hasTarget && hasEducation && hasExperience && hasQualities && hasClarificationsAnswered;
+    return false;
+  };
+
+  const getFirstIncompleteStep = (data: any) => {
+    const onboardingSteps = [1, 2, 3, 4, 5, 7];
+    const firstIncomplete = onboardingSteps.find((stepId) => !isStepComplete(stepId, data));
+    return firstIncomplete ?? 8;
+  };
+
+  const getCompletedStepIds = (data: any) => CAREER_EDGE_STEPS.map((s) => s.id).filter((id) => isStepComplete(id, data));
+
+  const getProfileCompletion = (data: any) => {
+    const checkSteps = [1, 2, 3, 4, 5, 7];
+    const completedCount = checkSteps.filter((id) => isStepComplete(id, data)).length;
+    return Math.round((completedCount / checkSteps.length) * 100);
+  };
+
+  const getProfileRecommendations = (data: any) => {
+    const recommendations: string[] = [];
+    if (!isStepComplete(1, data)) recommendations.push('Compléter identité et coordonnées de contact.');
+    if (!isStepComplete(2, data)) recommendations.push('Ajouter une cible claire: entreprise, poste ou annonce.');
+    if (!isStepComplete(4, data)) recommendations.push('Détailler les expériences clés avec impact mesurable.');
+    if (!isStepComplete(5, data)) recommendations.push('Renseigner vos forces/faiblesses pour personnaliser les entraînements.');
+    return recommendations.slice(0, 3);
+  };
+
+  const collapseTargetTree = (nodes: TargetNode[]) => {
+    const normalized = nodes
+      .filter((node) => node && typeof node.company === 'string')
+      .map((node) => ({
+        company: normalizeText(node.company),
+        jobs: Array.isArray(node.jobs) ? node.jobs.map((job) => normalizeText(job)).filter(Boolean) : [],
+      }))
+      .filter((node) => node.company);
+
+    const sorted = [...normalized].sort((a, b) => b.company.length - a.company.length);
+    const collapsed: TargetNode[] = [];
+
+    for (const node of sorted) {
+      const existing = collapsed.find((item) => item.company.toLowerCase() === node.company.toLowerCase());
+      if (existing) {
+        const mergedJobs = new Set([...(existing.jobs || []), ...(node.jobs || [])]);
+        existing.jobs = Array.from(mergedJobs);
+        continue;
+      }
+
+      const prefixMatch = collapsed.find((item) => {
+        const shorter = node.company.toLowerCase();
+        const longer = item.company.toLowerCase();
+        return longer.startsWith(shorter) || shorter.startsWith(longer);
+      });
+
+      if (prefixMatch) {
+        const mergedJobs = new Set([...(prefixMatch.jobs || []), ...(node.jobs || [])]);
+        prefixMatch.company = prefixMatch.company.length >= node.company.length ? prefixMatch.company : node.company;
+        prefixMatch.jobs = Array.from(mergedJobs);
+        continue;
+      }
+
+      collapsed.push({ company: node.company, jobs: Array.from(new Set(node.jobs || [])) });
+    }
+
+    return collapsed.sort((a, b) => a.company.localeCompare(b.company, 'fr', { sensitivity: 'base' }));
+  };
+
+  const upsertTargetTree = useCallback((companyValue: string, jobValue: string) => {
+    const company = normalizeText(companyValue);
+    const job = normalizeText(jobValue);
+    if (!company && !job) return;
+
+    setTargetTree((prev) => {
+      const next = [...prev, { company: company || 'Entreprise sans nom', jobs: job ? [job] : [] }];
+      return collapseTargetTree(next);
+    });
+  }, []);
+
+  const hydrateTargetTreeFromApplications = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      const response = await authenticatedFetch(`${API_BASE_URL}/applications`);
+      if (!response.ok) return;
+
+      const applications = await response.json();
+      if (!Array.isArray(applications)) return;
+
+      const nodesFromApi: TargetNode[] = (applications as ApplicationSession[])
+        .map((app) => ({
+          company: normalizeText(app?.target_company),
+          jobs: [normalizeText(app?.target_job)].filter(Boolean),
+        }))
+        .filter((node) => node.company);
+
+      if (nodesFromApi.length === 0) return;
+
+      setTargetTree((prev) => collapseTargetTree([...prev, ...nodesFromApi]));
+    } catch {
+      // non-blocking
+    }
+  }, [isAuthenticated]);
+
   // --- Handlers transmis aux composants enfants ---
   const handleChange = (key: string, value: any) => setFormData((prev: any) => ({ ...(prev || {}), [key]: value }));
   const handleUpdateList = (listName: string, id: string | number, field: string, val: any) => setFormData((prev: any) => ({ ...(prev || {}), [listName]: (prev?.[listName] || []).map((item: any) => item.id === id ? { ...item, [field]: val } : item) }));
@@ -191,6 +371,39 @@ function AppContent() {
       target_industry: normalize(data?.target_industry),
       job_description: normalize(data?.job_description),
     });
+  };
+
+  const getCompanyConfirmationKey = (data: any) => {
+    const normalize = (value: any) => String(value || '').trim().toLowerCase();
+    return `${normalize(data?.target_company)}|${normalize(data?.target_industry)}`;
+  };
+
+  const hasSeenCompanyConfirmation = (data: any) => {
+    const key = getCompanyConfirmationKey(data);
+    if (!key || key === '|') return false;
+    try {
+      const raw = localStorage.getItem('confirmed_company_analyses');
+      const seen = raw ? JSON.parse(raw) : [];
+      return Array.isArray(seen) && seen.includes(key);
+    } catch {
+      return false;
+    }
+  };
+
+  const markCompanyConfirmationSeen = (data: any) => {
+    const key = getCompanyConfirmationKey(data);
+    if (!key || key === '|') return;
+    try {
+      const raw = localStorage.getItem('confirmed_company_analyses');
+      const seen = raw ? JSON.parse(raw) : [];
+      const next = Array.isArray(seen) ? seen : [];
+      if (!next.includes(key)) {
+        next.push(key);
+        localStorage.setItem('confirmed_company_analyses', JSON.stringify(next));
+      }
+    } catch {
+      localStorage.setItem('confirmed_company_analyses', JSON.stringify([key]));
+    }
   };
 
   const fetchAnalysisPreview = async (): Promise<AnalysisPreview> => {
@@ -216,17 +429,24 @@ function AppContent() {
     const industry = cvData?.target_industry?.trim();
     const currentSignature = getTargetAnalysisSignature(cvData);
     const previousSignature = cvData?.last_target_analysis_signature;
+    const signatureMatch = previousSignature === currentSignature;
+
+    console.info(`[TARGET_ANALYSIS_CACHE] ${signatureMatch ? 'HIT' : 'MISS'} (target_continue_guard)`, {
+      signature_match: signatureMatch,
+      has_company: !!company,
+      has_industry: !!industry,
+    });
 
     // If the target inputs did not change since the last validated analysis,
     // skip the pricing modal and continue directly.
-    if (previousSignature === currentSignature) {
+    if (signatureMatch) {
       await handleNextStep();
       return;
     }
 
     if (!company && !industry) {
       setStepErrors({ target_company: true, target_industry: true });
-      setToasts(prev => [...prev, { id: Date.now(), text: "Veuillez spÃƒÂ©cifier au moins une entreprise cible ou un secteur d'activitÃƒÂ©." }]);
+      setToasts(prev => [...prev, { id: Date.now(), text: "Veuillez specifier au moins une entreprise cible ou un secteur d'activite." }]);
       return;
     }
 
@@ -234,10 +454,23 @@ function AppContent() {
     try {
       const preview = await fetchAnalysisPreview();
       setCurrentQuotas(preview.quotas);
+      const alreadyConfirmedCompany = hasSeenCompanyConfirmation(cvData);
+      const requiresCompanyCost = (preview.costs?.entreprises || 0) > 0;
 
-      if (!preview.should_confirm) {
+      console.info('[TARGET_ANALYSIS_CACHE] PREVIEW_RESULT (target_continue_guard)', {
+        should_confirm: !!preview.should_confirm,
+        company_cached: !!preview.company_cached,
+        offer_cached: !!preview.offer_cached,
+        requires_company_cost: requiresCompanyCost,
+        already_confirmed_company: alreadyConfirmedCompany,
+      });
+
+      if (!preview.should_confirm || (requiresCompanyCost && alreadyConfirmedCompany)) {
         setAnalysisPreview(null);
         handleChange('last_target_analysis_signature', currentSignature);
+        if (requiresCompanyCost) {
+          markCompanyConfirmationSeen(cvData);
+        }
         await handleNextStep();
         return;
       }
@@ -245,7 +478,7 @@ function AppContent() {
       setAnalysisPreview(preview);
       setShowConfirmModal(true);
     } catch (err) {
-      console.error("Ã°Å¸Å¡Â¨ [PREVIEW] Impossible de vÃƒÂ©rifier le coÃƒÂ»t rÃƒÂ©el de l'analyse:", err);
+      console.error("[PREVIEW] Impossible de verifier le cout reel de l'analyse:", err);
       setAnalysisPreview({
         company_cached: false,
         offer_cached: false,
@@ -280,7 +513,7 @@ function AppContent() {
         setLastSaveTime(new Date());
       }
     } catch (e) {
-      console.error("Ã°Å¸Å¡Â¨ [AUTO-SAVE] Ãƒâ€°chec de la sauvegarde en arriÃƒÂ¨re-plan:", e);
+      console.error("[AUTO-SAVE] Echec de la sauvegarde en arriere-plan:", e);
     }
   };
 
@@ -317,9 +550,26 @@ function AppContent() {
           setFormData(frontendData);
           if ((frontendData as any).target_language) { i18n.changeLanguage((frontendData as any).target_language.toLowerCase()); }
 
-          // [FIX ULTIME] PrÃƒÂ©-remplissage des rÃƒÂ©sultats d'analyse depuis le profil
-          if ((frontendData as any).pitch_result) {
-            setPitchResult((frontendData as any).pitch_result);
+          const hasImportedProfileData = !!(
+            normalizeText((frontendData as any).first_name) ||
+            normalizeText((frontendData as any).last_name) ||
+            normalizeText((frontendData as any).target_job) ||
+            normalizeText((frontendData as any).target_company) ||
+            normalizeText((frontendData as any).target_industry) ||
+            normalizeText((frontendData as any).job_description) ||
+            normalizeText((frontendData as any).bio) ||
+            (Array.isArray((frontendData as any).experiences) && (frontendData as any).experiences.length > 0) ||
+            (Array.isArray((frontendData as any).educations) && (frontendData as any).educations.length > 0)
+          );
+
+          if (!hasImportedProfileData) {
+            setOnboardingCompleted(false);
+            setCurrentStep(0);
+          } else {
+            const firstIncompleteStep = getFirstIncompleteStep(frontendData);
+            const done = firstIncompleteStep === 8;
+            setOnboardingCompleted(done);
+            setCurrentStep(done ? 8 : firstIncompleteStep);
           }
 
           setLastSaveTime(new Date()); // On met ÃƒÂ  jour l'heure de sauvegarde avant la redirection potentielle
@@ -328,12 +578,13 @@ function AppContent() {
         resetDashboard(); // Le hook gÃƒÂ¨re la rÃƒÂ©initialisation ÃƒÂ  INITIAL_DATA
       } else if (response.status === 401) {
         localStorage.removeItem('token');
+        setCurrentStep(1);
         localStorage.removeItem('user');
         setIsAuthenticated(false);
         navigate('/', { replace: true });
       }
     } catch (e) {
-      console.error("Ã°Å¸Å¡Â¨ [PROFIL] Fatal error during fetch:", e);
+      console.error("[PROFIL] Fatal error during fetch:", e);
     } finally {
       setIsProfileLoading(false);
     }
@@ -357,11 +608,11 @@ function AppContent() {
       const parsedData = await res.json();
       const frontendData = transformProfileForFrontend(parsedData);
       setFormData((prev: any) => ({ ...prev, ...frontendData }));
-      setToasts(prev => [...prev, { id: Date.now(), text: "DonnÃƒÂ©es extraites avec succÃƒÂ¨s !" }]);
+      setToasts(prev => [...prev, { id: Date.now(), text: "Données extraites avec succès !" }]);
       setCurrentStep(1);
     } catch (e) {
       console.error(e);
-      setToasts(prev => [...prev, { id: Date.now(), text: "Ãƒâ€°chec de l'import." }]);
+      setToasts(prev => [...prev, { id: Date.now(), text: "Échec de l'import." }]);
     } finally {
       setIsImportLoading(false);
     }
@@ -398,10 +649,37 @@ function AppContent() {
   }, [isAuthenticated]);
 
   useEffect(() => {
+    if (!cvData || !isAuthenticated) return;
+    setOnboardingCompleted(getFirstIncompleteStep(cvData) === 8);
+    upsertTargetTree(cvData?.target_company, cvData?.target_job);
+  }, [cvData, isAuthenticated, upsertTargetTree]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    try {
+      localStorage.setItem('btcv_target_tree', JSON.stringify(targetTree));
+    } catch {
+      // non-blocking
+    }
+  }, [targetTree, isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    hydrateTargetTreeFromApplications();
+  }, [isAuthenticated, quotaRefreshToken, hydrateTargetTreeFromApplications]);
+
+  useEffect(() => {
     if (researchResult || gapResult) {
       setQuotaRefreshToken(token => token + 1);
     }
   }, [researchResult, gapResult]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    fetchLatestQuotas();
+    const interval = setInterval(fetchLatestQuotas, 15000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated, fetchLatestQuotas]);
 
   // --- RESTAURATION DE CANDIDATURE (Depuis Mes Documents) ---
   useEffect(() => {
@@ -411,14 +689,10 @@ function AppContent() {
         try {
           const parsedData = JSON.parse(restoredDataStr);
           setRestoredData(parsedData);
-          setCurrentStep(8); // Redirection immÃƒÂ©diate vers le Dashboard
-      // [FIX] On s'assure que le jobDecoder est aussi restaurÃƒÂ©
-      if (parsedData.jobDecoderResult) {
-        setJobDecoderResult(parsedData.jobDecoderResult);
-      }
-          setToasts(prev => [...prev, { id: Date.now(), text: "Dossier de candidature restaurÃƒÂ© avec succÃƒÂ¨s." }]);
+          setCurrentStep(8); // Redirection immediate vers le Dashboard
+          setToasts(prev => [...prev, { id: Date.now(), text: "Dossier de candidature restaure avec succes." }]);
         } catch (e) {
-          console.error("Erreur de parsing des donnÃƒÂ©es restaurÃƒÂ©es", e);
+          console.error("Erreur de parsing des donnees restaurees", e);
         }
         sessionStorage.removeItem('restored_application_data');
       }
@@ -435,7 +709,7 @@ function AppContent() {
 
 
   // [FIX EXPERT] Interception globale pour forcer l'ouverture de la page de paiement dans un nouvel onglet
-  // Cela ÃƒÂ©vite de perdre le contexte de l'application (ex: une rÃƒÂ©ponse vocale en cours d'ÃƒÂ©valuation)
+  // Cela evite de perdre le contexte de l'application (ex: une reponse vocale en cours d'evaluation)
   // lorsque l'utilisateur clique sur une proposition de recharge.
   useEffect(() => {
     const handleGlobalClick = (e: MouseEvent) => {
@@ -478,26 +752,26 @@ function AppContent() {
     });
   };
 
-  // --- RENDU DES Ãƒâ€°TAPES ---
+  // --- RENDU DES ETAPES ---
   const renderStepContent = () => {
-    if (isProfileLoading) return <LoadingScreen title={t('loading_profile_title', "Chargement de votre profil...")} description={t('loading_profile_desc', "RÃƒÂ©cupÃƒÂ©ration de vos donnÃƒÂ©es sÃƒÂ©curisÃƒÂ©es...")} />;
+    if (isProfileLoading) return <LoadingScreen title={t('loading_profile_title', "Chargement de votre profil...")} description={t('loading_profile_desc', "Récupération de vos données sécurisées...")} />;
 
     switch(currentStep) {
       case 0: return (
         <div className="step-wrapper">
           <StepImport onUpload={handleCVImport} loading={isImportLoading} />
-          {/* [FIX] Bouton secondaire repoussÃƒÂ© ÃƒÂ  droite */}
+          {/* [FIX] Bouton secondaire repousse a droite */}
           <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-outline" onClick={() => setCurrentStep(1)}>{t('or_fill_manually', 'Ou remplir manuellement')}</button></div>
         </div>);
       case 1: return (
         <div className="step-wrapper">
           <StepProfile data={cvData || {}} onChange={handleChange} />
-          {/* [FIX] Alignement propre avec le bouton reset poussÃƒÂ© ÃƒÂ  gauche (marginRight: 'auto') et les autres ÃƒÂ  droite */}
+          {/* [FIX] Alignement propre avec le bouton reset pousse a gauche (marginRight: 'auto') et les autres a droite */}
           <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem', gap: '1rem', alignItems: 'center' }}>
             <button className="btn-ghost" onClick={() => resetDashboard()} style={{ marginRight: 'auto' }}><RotateCcw size={16} style={{ marginRight: '0.5rem' }}/>{t('btn_reset')}</button>
             {lastSaveTime && (
               <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                {t('last_saved_at', 'SauvegardÃƒÂ© ÃƒÂ ')} {lastSaveTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {t('last_saved_at', 'Sauvegardé à')} {lastSaveTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             )}
             <button className="btn-secondary" onClick={loadProfile}><RefreshCw size={16} style={{ marginRight: '0.5rem' }}/>{t('btn_sync', 'Synchroniser')}</button>
@@ -518,7 +792,7 @@ function AppContent() {
           {globalStatus === "FAILED" && (<div className="error-box"><AlertCircle size={16}/><span>{t('error_msg')} {error}</span><button className="btn-link" onClick={() => handleNextStep()}>{t('btn_retry')}</button></div>)}
           <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>
             <button className="btn-primary" onClick={handleTargetAnalysisContinue} disabled={globalStatus === "STARTING" || isCheckingAnalysisPreview}>
-              {isCheckingAnalysisPreview ? <><Loader2 size={16} className="spin" style={{ marginRight: '0.5rem' }} />VÃƒÂ©rification...</> : t('btn_next')}
+              {isCheckingAnalysisPreview ? <><Loader2 size={16} className="spin" style={{ marginRight: '0.5rem' }} />Verification...</> : t('btn_next')}
             </button>
           </div>
           {showConfirmModal && analysisPreview && (
@@ -534,6 +808,9 @@ function AppContent() {
                 setShowConfirmModal(false);
                 setAnalysisPreview(null);
                 handleChange('last_target_analysis_signature', getTargetAnalysisSignature(cvData));
+                if ((analysisPreview?.costs?.entreprises || 0) > 0) {
+                  markCompanyConfirmationSeen(cvData);
+                }
                 await handleNextStep();
               }}
             />
@@ -550,7 +827,7 @@ function AppContent() {
           <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={() => handleNextStep()}>{t('btn_next')}</button></div>
         </div>);
     case 5:
-        if (["STARTING", "PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus)) return <LoadingScreen title={t('loading_strat_title', "CrÃƒÂ©ation de votre profil stratÃƒÂ©gique...")} description={t('loading_strat_desc', "Analyse de vos expÃƒÂ©riences et exigences du marchÃƒÂ©...")} />;
+        if (["STARTING", "PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus)) return <LoadingScreen title={t('loading_strat_title', "Creation de votre profil strategique...")} description={t('loading_strat_desc', "Analyse de vos experiences et exigences du marche...")} />;
         return (
           <div className="step-wrapper">
           <StepQualitiesFlaws data={cvData || {}} onChange={handleChange} successes={[]} onAddSuccess={() => {}} onUpdateSuccess={() => {}} failures={[]} onAddFailure={() => {}} onUpdateFailure={() => {}} />
@@ -603,8 +880,8 @@ function AppContent() {
             initialActionPlanResult={restoredData?.actionPlanResult || actionPlanResult} 
             initialResearchResult={restoredData?.researchResult || researchResult} 
             initialSalaryResult={restoredData?.salaryResult || salaryResult}
-            initialJobDecoderResult={restoredData?.jobDecoderResult || jobDecoderResult} 
-            initialPitchResult={restoredData?.pitchResult || pitchResult} 
+            initialJobDecoderResult={restoredData?.jobDecoderResult || (cvData as any)?.job_decoder_result || jobDecoderResult} 
+            initialPitchResult={restoredData?.pitchResult || (cvData as any)?.pitch_result || pitchResult} 
             initialQuestionsResult={restoredData?.questionsResult || questionsResult} 
             initialRecruiterResult={restoredData?.recruiterResult || recruiterResult} 
             initialRealityResult={restoredData?.realityResult || realityResult} 
@@ -615,7 +892,25 @@ function AppContent() {
             onTriggerResearch={triggerResearch}
             onUpdateFormData={handleChange}
           >
-            <DashboardView />
+            <DashboardView
+              remainingSessions={currentQuotas?.credits}
+              remainingCompanies={currentQuotas?.entreprises}
+              remainingOffers={currentQuotas?.offres}
+              profileCompletion={getProfileCompletion(cvData)}
+              profileRecommendations={getProfileRecommendations(cvData)}
+              targetTree={targetTree}
+              onPrepareCandidature={(company: string, job: string) => {
+                setFormData((prev: any) => ({
+                  ...(prev || {}),
+                  target_company: company,
+                  target_job: job,
+                }));
+                setShowLanding(false);
+                setCurrentStep(8);
+                setActiveTab('overview');
+              }}
+              onCreateCandidature={handleStartNewApplication}
+            />
             {/* Exemple d'intÃƒÂ©gration si vous appelez ApplicationDossier depuis App.tsx : */}
             {/* <ApplicationDossier onGoToTraining={() => { setActiveTab('training'); setCurrentStep(8); }} /> */}
           </TabProvider>
@@ -626,13 +921,66 @@ function AppContent() {
 
   const removeToast = (id: number) => setToasts(prev => prev.filter(t => t.id !== id));
 
+  const handleStartNewCompany = () => {
+    setShowLanding(false);
+    setCurrentStep(2);
+    setFormData((prev: any) => ({
+      ...(prev || {}),
+      target_company: '',
+      target_job: '',
+      job_description: '',
+    }));
+  };
+
+  const handleStartNewApplication = () => {
+    setShowNewApplicationModal(true);
+    setSelectedCompanyForApplication('');
+    setNewCompanyForApplication('');
+    setNewJobForApplication('');
+  };
+
+  const handleConfirmNewApplication = () => {
+    const chosenCompany = normalizeText(newCompanyForApplication) || normalizeText(selectedCompanyForApplication);
+    const chosenJob = normalizeText(newJobForApplication);
+
+    if (!chosenCompany) {
+      setToasts(prev => [...prev, { id: Date.now(), text: 'Sélectionnez ou créez une entreprise avant de continuer.' }]);
+      return;
+    }
+    if (!chosenJob) {
+      setToasts(prev => [...prev, { id: Date.now(), text: 'Renseignez un intitulé de candidature/poste.' }]);
+      return;
+    }
+
+    upsertTargetTree(chosenCompany, chosenJob);
+    setFormData((prev: any) => ({
+      ...(prev || {}),
+      target_company: chosenCompany,
+      target_job: chosenJob,
+      job_description: '',
+    }));
+
+    setShowNewApplicationModal(false);
+    setShowLanding(false);
+    setCurrentStep(2);
+  };
+
+  const handleSelectTargetNode = (company: string, job?: string) => {
+    setFormData((prev: any) => ({
+      ...(prev || {}),
+      target_company: company,
+      target_job: job || prev?.target_job || '',
+    }));
+    setCurrentStep(onboardingCompleted ? 8 : 2);
+  };
+
   const LegalComponent = showCGU ? CGU : showPrivacy ? PrivacyPolicy : showLegal ? LegalNotice : null;
   const closeLegal = () => { setShowCGU(false); setShowPrivacy(false); setShowLegal(false); };
   if (LegalComponent) return (
-    <div className="app-container"><main className="main-content" style={{ paddingTop: '2rem' }}><button onClick={closeLegal} className="btn-outline" style={{ marginBottom: '2rem' }}>Ã¢â€ Â Retour</button><LegalComponent /></main></div>);
+    <div className="app-container"><main className="main-content" style={{ paddingTop: '2rem' }}><button onClick={closeLegal} className="btn-outline" style={{ marginBottom: '2rem' }}>{'<- Retour'}</button><LegalComponent /></main></div>);
 
   if (showAdmin) return (
-    <div className="app-container"><main className="main-content" style={{ paddingTop: '2rem' }}><button onClick={() => setShowAdmin(false)} className="btn-outline" style={{ marginBottom: '2rem' }}>Ã¢â€ Â Retour</button><AdminFeedbacks /></main></div>);
+    <div className="app-container"><main className="main-content" style={{ paddingTop: '2rem' }}><button onClick={() => setShowAdmin(false)} className="btn-outline" style={{ marginBottom: '2rem' }}>{'<- Retour'}</button><AdminFeedbacks /></main></div>);
 
   // Interception de la route pour le mot de passe oubliÃƒÂ©
   if (location.pathname === '/reset-password') {
@@ -690,7 +1038,7 @@ function AppContent() {
     }
     if (!isAdmin) {
       return (
-        <div className="app-container"><main className="main-content" style={{ paddingTop: '4rem', textAlign: 'center', color: 'var(--danger-text)', fontWeight: 'bold' }}>Ã°Å¸Å¡Â¨ AccÃƒÂ¨s refusÃƒÂ© : Droits administrateur requis.</main></div>
+        <div className="app-container"><main className="main-content" style={{ paddingTop: '4rem', textAlign: 'center', color: 'var(--danger-text)', fontWeight: 'bold' }}>Acces refuse : Droits administrateur requis.</main></div>
       );
     }
     return (
@@ -701,22 +1049,22 @@ function AppContent() {
             <button onClick={() => navigate('/admin')} className="btn-ghost">Dashboard</button>
             <button onClick={() => navigate('/admin/users')} className="btn-ghost">Utilisateurs</button>
             <button onClick={() => navigate('/admin/billing')} className="btn-ghost">Facturation</button>
-            <button onClick={() => navigate('/admin/generations')} className="btn-ghost">GÃƒÂ©nÃƒÂ©rations IA</button>
+            <button onClick={() => navigate('/admin/generations')} className="btn-ghost">Generations IA</button>
             <button onClick={() => navigate('/admin/feedbacks')} className="btn-ghost">Feedbacks</button>
             <button onClick={() => navigate('/admin/audit-logs')} className="btn-ghost">Audit Logs</button>
           </div>
 
-          <button onClick={() => navigate('/candidate')} className="btn-outline" style={{ marginBottom: '2rem' }}>Ã¢â€ Â Retour ÃƒÂ  l'application</button>
+          <button onClick={() => navigate('/candidate')} className="btn-outline" style={{ marginBottom: '2rem' }}>{'<- Retour a l\'application'}</button>
           <AdminDashboard />
         </main>
       </div>
     );
   }
 
-  // [NOUVEAU] Routes admin spÃƒÂ©cifiques
+  // [NOUVEAU] Routes admin specifiques
   if (location.pathname.startsWith('/admin/')) {
     if (!isAuthenticated || !isAdmin) {
-      return <div className="app-container"><main className="main-content" style={{ paddingTop: '4rem', textAlign: 'center', color: 'var(--danger-text)', fontWeight: 'bold' }}>Ã°Å¸Å¡Â¨ AccÃƒÂ¨s refusÃƒÂ©.</main></div>;
+      return <div className="app-container"><main className="main-content" style={{ paddingTop: '4rem', textAlign: 'center', color: 'var(--danger-text)', fontWeight: 'bold' }}>Acces refuse.</main></div>;
     }
     
     let AdminComponent;
@@ -734,7 +1082,7 @@ function AppContent() {
             <button onClick={() => navigate('/admin')} className="btn-ghost">Dashboard</button>
             <button onClick={() => navigate('/admin/users')} className="btn-ghost">Utilisateurs</button>
             <button onClick={() => navigate('/admin/billing')} className="btn-ghost">Facturation</button>
-            <button onClick={() => navigate('/admin/generations')} className="btn-ghost">GÃƒÂ©nÃƒÂ©rations IA</button>
+            <button onClick={() => navigate('/admin/generations')} className="btn-ghost">Generations IA</button>
             <button onClick={() => navigate('/admin/feedbacks')} className="btn-ghost">Feedbacks</button>
             <button onClick={() => navigate('/admin/audit-logs')} className="btn-ghost">Audit Logs</button>
           </div>
@@ -744,10 +1092,10 @@ function AppContent() {
     );
   }
 
-  // [NOUVEAU] Routes admin spÃƒÂ©cifiques
+  // [NOUVEAU] Routes admin specifiques
   if (location.pathname.startsWith('/admin/')) {
     if (!isAuthenticated || !isAdmin) {
-      return <div className="app-container"><main className="main-content" style={{ paddingTop: '4rem', textAlign: 'center', color: 'var(--danger-text)', fontWeight: 'bold' }}>Ã°Å¸Å¡Â¨ AccÃƒÂ¨s refusÃƒÂ©.</main></div>;
+      return <div className="app-container"><main className="main-content" style={{ paddingTop: '4rem', textAlign: 'center', color: 'var(--danger-text)', fontWeight: 'bold' }}>Acces refuse.</main></div>;
     }
     
     let AdminComponent;
@@ -765,7 +1113,7 @@ function AppContent() {
             <button onClick={() => navigate('/admin')} className="btn-ghost">Dashboard</button>
             <button onClick={() => navigate('/admin/users')} className="btn-ghost">Utilisateurs</button>
             <button onClick={() => navigate('/admin/billing')} className="btn-ghost">Facturation</button>
-            <button onClick={() => navigate('/admin/generations')} className="btn-ghost">GÃƒÂ©nÃƒÂ©rations IA</button>
+            <button onClick={() => navigate('/admin/generations')} className="btn-ghost">Generations IA</button>
             <button onClick={() => navigate('/admin/feedbacks')} className="btn-ghost">Feedbacks</button>
             <button onClick={() => navigate('/admin/audit-logs')} className="btn-ghost">Audit Logs</button>
           </div>
@@ -793,10 +1141,16 @@ function AppContent() {
         remainingSessions={currentQuotas?.credits}
         remainingCompanies={currentQuotas?.entreprises}
         remainingOffers={currentQuotas?.offres}
+        onboardingCompleted={onboardingCompleted}
+        onStartNewCompany={handleStartNewCompany}
+        onStartNewApplication={handleStartNewApplication}
+        targetTree={targetTree}
+        onSelectTargetNode={handleSelectTargetNode}
         onLogout={() => { localStorage.removeItem('token'); localStorage.removeItem('user'); resetDashboard(); setIsAuthenticated(false); navigate('/login', { replace: true }); }} 
         onLanguageChange={handleLanguageChange} 
         steps={CAREER_EDGE_STEPS}
         currentStep={currentStep}
+        goToStep={setCurrentStep}
       />
       <main className="main-content">
         {showLanding && !isAuthenticated ? (
@@ -810,7 +1164,7 @@ function AppContent() {
          !isAuthenticated ?
             <Login onLoginSuccess={(loginResponse) => {
               setIsAuthenticated(true);
-              // [FIX] La redirection se base maintenant sur la rÃƒÂ©ponse de l'API,
+              // [FIX] La redirection se base maintenant sur la reponse de l'API,
               // qui contient `role: "admin"` pour les administrateurs
               if (loginResponse?.role === 'admin') {
                 navigate('/admin', { replace: true });
@@ -820,7 +1174,7 @@ function AppContent() {
               } else if (location.state?.from) {
                 navigate(location.state.from, { replace: true });
               } else {
-                // Redirection par dÃƒÂ©faut pour un utilisateur standard
+                // Redirection par defaut pour un utilisateur standard
                 navigate('/candidate', { replace: true });
               }
             }} /> :
@@ -832,16 +1186,52 @@ function AppContent() {
                 currentStep={currentStep}
                 onStepClick={setCurrentStep}
                 orientation="vertical"
+                navigationMode={onboardingCompleted}
+                completedStepIds={getCompletedStepIds(cvData)}
               />
+              <div className="quota-summary-desktop" style={{ marginTop: '0.9rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', boxShadow: 'var(--shadow-sm)', padding: '0.85rem 0.9rem', fontSize: '0.82rem', color: 'var(--text-main)', lineHeight: 1.45 }}>
+                <div style={{ fontWeight: 700, marginBottom: '0.2rem' }}>Séances d'entraînement</div>
+                <div>{currentQuotas.credits} restante{currentQuotas.credits > 1 ? 's' : ''}</div>
+                <div style={{ fontWeight: 700, marginTop: '0.45rem', marginBottom: '0.2rem' }}>Entreprises ciblées</div>
+                <div>{targetCompaniesUsed} sur 5 utilisée{targetCompaniesUsed > 1 ? 's' : ''} - {Math.max(0, 5 - targetCompaniesUsed)} restante{Math.max(0, 5 - targetCompaniesUsed) > 1 ? 's' : ''}</div>
+                <div style={{ fontWeight: 700, marginTop: '0.45rem', marginBottom: '0.2rem' }}>Offres préparées</div>
+                <div>{targetOffersUsed} sur 15 utilisée{targetOffersUsed > 1 ? 's' : ''} - {Math.max(0, 15 - targetOffersUsed)} restante{Math.max(0, 15 - targetOffersUsed) > 1 ? 's' : ''}</div>
+              </div>
+              {onboardingCompleted && (
+                <div style={{ marginTop: '0.9rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', boxShadow: 'var(--shadow-sm)', padding: '0.85rem 0.9rem' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>MES CIBLES</div>
+                  <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.6rem' }}>
+                    <button className="btn-outline" style={{ fontSize: '0.75rem', padding: '0.3rem 0.45rem' }} onClick={handleStartNewCompany}>+ Entreprise</button>
+                    <button className="btn-primary" style={{ fontSize: '0.75rem', padding: '0.3rem 0.45rem' }} onClick={handleStartNewApplication}>+ Candidature</button>
+                  </div>
+                  <div style={{ display: 'grid', gap: '0.4rem', maxHeight: '300px', overflowY: 'auto' }}>
+                    {targetTree.length === 0 ? (
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Aucune entreprise enregistree pour le moment.</div>
+                    ) : targetTree.map((node, idx) => (
+                      <details key={`${node.company}-${idx}`}>
+                        <summary style={{ cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>{node.company} ({node.jobs.length})</summary>
+                        <div style={{ marginTop: '0.35rem', display: 'grid', gap: '0.28rem' }}>
+                          <button className="btn-ghost" style={{ textAlign: 'left', fontSize: '0.75rem' }} onClick={() => handleSelectTargetNode(node.company)}>Ouvrir les candidatures de cette entreprise</button>
+                          {node.jobs.map((job, jdx) => (
+                            <button key={`${job}-${jdx}`} className="btn-ghost" style={{ textAlign: 'left', fontSize: '0.74rem', paddingLeft: '0.85rem' }} onClick={() => handleSelectTargetNode(node.company, job)}>{job}</button>
+                          ))}
+                        </div>
+                      </details>
+                    ))}
+                  </div>
+                </div>
+              )}
             </aside>
 
             {/* Horizontal stepper â€” visible on mobile / tablet (< 1024px) */}
-            <div className="candidate-stepper-mobile">
+            <div className="candidate-stepper-mobile" style={{ display: onboardingCompleted ? 'none' : undefined }}>
               <WizardStepper
                 steps={CAREER_EDGE_STEPS}
                 currentStep={currentStep}
                 onStepClick={setCurrentStep}
                 orientation="horizontal"
+                navigationMode={onboardingCompleted}
+                completedStepIds={getCompletedStepIds(cvData)}
               />
             </div>
 
@@ -853,7 +1243,7 @@ function AppContent() {
       </main>
 
       {isFrozen && isAuthenticated && !showLanding && !LegalComponent && !showAdmin && (
-        <div className="frozen-banner"><Lock size={20} /> {t('frozen_banner_text', 'AccÃƒÂ¨s expirÃƒÂ©. La gÃƒÂ©nÃƒÂ©ration IA est bloquÃƒÂ©e.')}<button onClick={() => setShowPaywall(true)} className="btn-reactivate">{t('btn_reactivate', 'RÃƒÂ©activer (30Ã¢â€šÂ¬)')}</button></div>)}
+        <div className="frozen-banner"><Lock size={20} /> {t('frozen_banner_text', 'Acces expire. La generation IA est bloquee.')}<button onClick={() => setShowPaywall(true)} className="btn-reactivate">{t('btn_reactivate', 'Reactiver (30 EUR)')}</button></div>)}
 
       <div className="toast-container">{(toasts || []).map(t => (<div key={t.id} className="toast-notification"><LucideBell size={16} /> {t.text}<button onClick={() => removeToast(t.id)}><LucideX size={14}/></button></div>))}</div>
 
@@ -861,16 +1251,74 @@ function AppContent() {
         <div className="modal-overlay">
            <div className="modal-content">
               <div className="modal-icon"><Lock size={40} color="#3b82f6" /></div>
-              <h2>{t('paywall_title', 'PÃƒÂ©riode d\'accÃƒÂ¨s expirÃƒÂ©e')}</h2>
-              <p>{t('paywall_desc', 'Vos 3 mois d\'accÃƒÂ¨s illimitÃƒÂ© sont terminÃƒÂ©s. Rassurez-vous, votre historique est sauvegardÃƒÂ©.')}</p>
+              <h2>{t('paywall_title', 'Periode d\'acces expiree')}</h2>
+              <p>{t('paywall_desc', 'Vos 3 mois d\'accès illimité sont terminés. Rassurez-vous, votre historique est sauvegardé.')}</p>
               <div className="modal-actions">
                  <button onClick={() => setShowPaywall(false)} className="btn-outline">{t('btn_later', 'Plus tard')}</button>
-                 <button onClick={() => window.open('/payment?plan=renewal', '_blank')} className="btn-primary">{t('btn_unlock', 'DÃƒÂ©bloquer pour 30 Ã¢â€šÂ¬')}</button>
+                 <button onClick={() => window.open('/payment?plan=renewal', '_blank')} className="btn-primary">{t('btn_unlock', 'Debloquer pour 30 EUR')}</button>
               </div>
            </div>
         </div>)}
 
       {showDocsModal && <DocumentsModal onClose={() => setShowDocsModal(false)} />}
+
+      {showNewApplicationModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '560px' }}>
+            <div className="modal-icon"><Target size={40} color="#3b82f6" /></div>
+            <h2>Nouvelle candidature</h2>
+            <p>Choisissez une entreprise existante ou créez-en une nouvelle, puis indiquez le poste ciblé.</p>
+
+            <div style={{ display: 'grid', gap: '0.85rem', marginTop: '1rem', textAlign: 'left' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.35rem' }}>Entreprise existante</label>
+                <select
+                  value={selectedCompanyForApplication}
+                  onChange={(e) => {
+                    setSelectedCompanyForApplication(e.target.value);
+                    if (e.target.value) setNewCompanyForApplication('');
+                  }}
+                >
+                  <option value="">Choisir une entreprise...</option>
+                  {targetTree.map((node, idx) => (
+                    <option key={`${node.company}-${idx}`} value={node.company}>{node.company}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center' }}>ou</div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.35rem' }}>Nouvelle entreprise</label>
+                <input
+                  type="text"
+                  value={newCompanyForApplication}
+                  onChange={(e) => {
+                    setNewCompanyForApplication(e.target.value);
+                    if (e.target.value.trim()) setSelectedCompanyForApplication('');
+                  }}
+                  placeholder="Ex: Airbus"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.35rem' }}>Intitulé du poste / candidature</label>
+                <input
+                  type="text"
+                  value={newJobForApplication}
+                  onChange={(e) => setNewJobForApplication(e.target.value)}
+                  placeholder="Ex: Directeur cybersécurité"
+                />
+              </div>
+            </div>
+
+            <div className="modal-actions" style={{ marginTop: '1.2rem' }}>
+              <button onClick={() => setShowNewApplicationModal(false)} className="btn-outline">Annuler</button>
+              <button onClick={handleConfirmNewApplication} className="btn-primary">Créer la candidature</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* [FIX] Alignement centrÃƒÂ© et aÃƒÂ©rÃƒÂ© du Footer rÃƒÂ©glementaire */}
       <footer className="app-footer" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.5rem', padding: '2rem', flexWrap: 'wrap', opacity: 0.8, marginTop: 'auto' }}>
@@ -880,9 +1328,9 @@ function AppContent() {
             <button className="btn-ghost" onClick={() => setShowAdmin(true)}>Feedbacks Admin</button><span>|</span>
           </>
         )}
-        <button className="btn-ghost" onClick={() => setShowLegal(true)}>{t('footer_legal', 'Mentions LÃƒÂ©gales')}</button><span>|</span>
+        <button className="btn-ghost" onClick={() => setShowLegal(true)}>{t('footer_legal', 'Mentions Légales')}</button><span>|</span>
         <button className="btn-ghost" onClick={() => setShowCGU(true)}>{t('footer_cgu', 'CGU')}</button><span>|</span>
-        <button className="btn-ghost" onClick={() => setShowPrivacy(true)}>{t('footer_privacy', 'Politique de ConfidentialitÃƒÂ©')}</button>
+        <button className="btn-ghost" onClick={() => setShowPrivacy(true)}>{t('footer_privacy', 'Politique de Confidentialite')}</button>
       </footer>
     </div>
   );

@@ -11,7 +11,6 @@ from security import get_current_user
 from database import db
 from .ai_generator import ai_service
 from .utils import load_prompt, clean_ai_json_response, normalize_language, consume_quota, refund_quota
-from .cv_services import require_active_subscription
 
 router = APIRouter(
     prefix="/cv",
@@ -209,7 +208,7 @@ async def simulate_situation(request: SituationSimulationRequest, current_user: 
         raise HTTPException(status_code=500, detail=f"Situation simulation failed: {str(e)}")
 
 @router.post("/simulate-negotiation")
-async def simulate_negotiation(request: NegotiationSimulationRequest, current_user: dict = Depends(require_active_subscription)):
+async def simulate_negotiation(request: NegotiationSimulationRequest, current_user: dict = Depends(get_current_user)):
     """Analyse la façon dont le candidat négocie ou défend son salaire face à une objection du recruteur."""
     
     await consume_quota(current_user["id"], "negotiation", cost=1)

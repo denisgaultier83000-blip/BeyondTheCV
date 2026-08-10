@@ -6,9 +6,10 @@ import hashlib
 import html
 import ipaddress
 import socket
+import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Tuple
+from typing import Any, Tuple
 from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
 
 import aiohttp
@@ -23,7 +24,7 @@ except ImportError:
 
 from security import get_current_user
 from database import db
-from .utils import _get_sortable_date_tuple, load_prompt, normalize_language, _sanitize_data_for_ai, _sanitize_data_for_recruiter_view, consume_quota, refund_quota
+from .utils import _get_sortable_date_tuple, load_prompt, normalize_language, _sanitize_data_for_ai, _sanitize_data_for_recruiter_view, consume_quota, refund_quota, TESTER_SESSION_CAP
 from .ai_generator import ai_service
 
 TRAINING_THEME_LABELS = {
@@ -51,6 +52,10 @@ JOB_IMPORT_MAX_BYTES = 1_500_000
 JOB_IMPORT_TIMEOUT_SECONDS = 12
 JOB_IMPORT_MAX_REDIRECTS = 3
 JOB_IMPORT_USER_AGENT = "BeyondTheCVJobImporter/1.0 (+https://beyondthecv.app)"
+JOB_IMPORT_BROWSER_USER_AGENT = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+)
 DASHBOARD_SUMMARY_GAP_TIMEOUT_SECONDS = 12
 DASHBOARD_SUMMARY_AI_TIMEOUT_SECONDS = 12
 
@@ -780,37 +785,71 @@ async def _download_job_page(url: str, redirect_count: int = 0, allow_json: bool
 
     safe_url = await _validate_public_job_url(url)
     timeout = aiohttp.ClientTimeout(total=JOB_IMPORT_TIMEOUT_SECONDS, connect=4, sock_read=8)
-    headers = {
+    default_headers = {
         "User-Agent": JOB_IMPORT_USER_AGENT,
         "Accept": "text/html,application/xhtml+xml,text/plain;q=0.8,*/*;q=0.5",
     }
+    browser_like_headers = {
+        "User-Agent": JOB_IMPORT_BROWSER_USER_AGENT,
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+        "Upgrade-Insecure-Requests": "1",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
+    }
+    parsed = urlparse(safe_url)
+    if parsed.scheme and parsed.netloc:
+        browser_like_headers["Referer"] = f"{parsed.scheme}://{parsed.netloc}/"
+
+    header_candidates = [default_headers, browser_like_headers]
 
     try:
-        async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
-            async with session.get(safe_url, allow_redirects=False) as response:
-                if response.status in {301, 302, 303, 307, 308}:
-                    location = response.headers.get("Location")
-                    if not location:
-                        raise HTTPException(status_code=400, detail="Redirection invalide.")
-                    return await _download_job_page(urljoin(safe_url, location), redirect_count + 1, allow_json=allow_json)
-                if response.status != 200:
-                    raise HTTPException(status_code=400, detail=f"Impossible de récupérer l'annonce (HTTP {response.status}).")
+        last_status = None
+        for idx, headers in enumerate(header_candidates):
+            async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
+                async with session.get(safe_url, allow_redirects=False) as response:
+                    if response.status in {301, 302, 303, 307, 308}:
+                        location = response.headers.get("Location")
+                        if not location:
+                            raise HTTPException(status_code=400, detail="Redirection invalide.")
+                        return await _download_job_page(urljoin(safe_url, location), redirect_count + 1, allow_json=allow_json)
 
-                content_type = (response.headers.get("Content-Type") or "").lower()
-                accepted_content_types = ["text/html", "application/xhtml+xml", "text/plain"]
-                if allow_json:
-                    accepted_content_types.extend(["application/json", "application/javascript"])
-                if not any(token in content_type for token in accepted_content_types):
-                    raise HTTPException(status_code=400, detail="Cette URL ne renvoie pas un contenu exploitable.")
+                    if response.status in {403, 406} and idx < len(header_candidates) - 1:
+                        last_status = response.status
+                        continue
 
-                body = bytearray()
-                async for chunk in response.content.iter_chunked(32_768):
-                    body.extend(chunk)
-                    if len(body) > JOB_IMPORT_MAX_BYTES:
-                        raise HTTPException(status_code=400, detail="La page est trop volumineuse pour être importée automatiquement.")
+                    if response.status != 200:
+                        raise HTTPException(status_code=400, detail=f"Impossible de récupérer l'annonce (HTTP {response.status}).")
 
-                encoding = response.charset or "utf-8"
-                return body.decode(encoding, errors="ignore"), safe_url
+                    content_type = (response.headers.get("Content-Type") or "").lower()
+                    accepted_content_types = ["text/html", "application/xhtml+xml", "text/plain"]
+                    if allow_json:
+                        accepted_content_types.extend(["application/json", "application/javascript"])
+                    if not any(token in content_type for token in accepted_content_types):
+                        raise HTTPException(status_code=400, detail="Cette URL ne renvoie pas un contenu exploitable.")
+
+                    body = bytearray()
+                    async for chunk in response.content.iter_chunked(32_768):
+                        body.extend(chunk)
+                        if len(body) > JOB_IMPORT_MAX_BYTES:
+                            raise HTTPException(status_code=400, detail="La page est trop volumineuse pour être importée automatiquement.")
+
+                    encoding = response.charset or "utf-8"
+                    return body.decode(encoding, errors="ignore"), safe_url
+
+        if last_status is not None:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Le site a refuse l'acces automatique (HTTP {last_status}). "
+                    "Essayez une URL publique de l'annonce ou copiez-collez le texte de l'offre."
+                ),
+            )
+
+        raise HTTPException(status_code=400, detail="Impossible de télécharger cette annonce automatiquement.")
     except HTTPException:
         raise
     except aiohttp.ClientError as exc:
@@ -827,6 +866,53 @@ async def _extract_job_offer_preview_from_url(raw_url: str) -> dict:
         cached_preview.setdefault("status", "extracted")
         cached_preview["is_cached"] = True
         return cached_preview
+
+    # Tenter d'abord les APIs provider (Greenhouse/Lever), utile si la page HTML bloque en 403.
+    provider_preview, provider = await _try_provider_specific_extraction(raw_url)
+    if provider_preview:
+        job_posting = {
+            "title": _pick_first_non_empty(provider_preview.get("title")),
+            "company": _pick_first_non_empty(provider_preview.get("company")),
+            "location": _pick_first_non_empty(provider_preview.get("location")),
+            "industry": _pick_first_non_empty(provider_preview.get("industry")),
+            "description": _collapse_whitespace(provider_preview.get("description") or ""),
+            "employment_type": _pick_first_non_empty(provider_preview.get("employment_type")),
+            "date_posted": _pick_first_non_empty(provider_preview.get("date_posted")),
+        }
+        source = provider or "html"
+        description = _collapse_whitespace(job_posting.get("description") or "")
+        if len(description.split()) >= 30:
+            content_hash = hashlib.sha256(description.encode("utf-8")).hexdigest()
+            cached_by_hash = await _get_cached_job_offer_preview_by_hash(content_hash)
+            preview = {
+                "status": "extracted",
+                "source_url": raw_url,
+                "source": source,
+                "title": _pick_first_non_empty(job_posting.get("title")),
+                "company": _pick_first_non_empty(job_posting.get("company")),
+                "location": _pick_first_non_empty(job_posting.get("location")),
+                "industry": _pick_first_non_empty(job_posting.get("industry")),
+                "employment_type": _pick_first_non_empty(job_posting.get("employment_type")),
+                "date_posted": _pick_first_non_empty(job_posting.get("date_posted")),
+                "description": _truncate_preview_text(description),
+                "content_hash": content_hash,
+                "word_count": len(description.split()),
+                "confidence": 0.92 if source in {"greenhouse", "lever"} else 0.72,
+                "warnings": [],
+                "is_cached": False,
+            }
+
+            if cached_by_hash:
+                preview["is_cached"] = True
+                preview["source_url"] = cached_by_hash.get("source_url") or raw_url
+                preview["warnings"] = [
+                    "Annonce déjà importée précédemment ; nous l'avons réutilisée depuis le cache."
+                ]
+                await _upsert_cached_job_offer_preview(normalized_url, preview["source_url"], source, content_hash, preview)
+                return preview
+
+            await _upsert_cached_job_offer_preview(normalized_url, raw_url, source, content_hash, preview)
+            return preview
 
     html_content, final_url = await _download_job_page(raw_url)
     warnings = []
@@ -931,6 +1017,89 @@ def _extract_name(text: str) -> Tuple[str, str]:
             last_name = " ".join(parts[1:])
             return first_name, last_name
     return "", ""
+
+
+def _normalize_context_field(value: Any) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+
+    normalized = unicodedata.normalize("NFD", raw.lower())
+    normalized = "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
+    normalized = re.sub(r"\s+", " ", normalized)
+
+    placeholders = {
+        "non defini",
+        "non specifie",
+        "non renseigne",
+        "poste vise",
+        "le poste vise",
+        "unknown position",
+        "unknown",
+        "n/a",
+        "na",
+        "none",
+    }
+
+    if normalized in placeholders:
+        return ""
+    return raw
+
+
+def _infer_target_job_from_job_description(job_description: str) -> str:
+    text = str(job_description or "").strip()
+    if not text:
+        return ""
+
+    patterns = [
+        r"(?:intitule du poste|intitule poste|titre du poste|titre poste|poste|fonction|job title|position)\s*[:\-]\s*(.+)",
+        r"nous recrutons\s+(?:un|une)\s+(.+)",
+        r"recherche\s+(?:un|une)\s+(.+)",
+    ]
+
+    def _clean_candidate(value: str) -> str:
+        candidate = re.sub(r"\s+", " ", str(value or "").strip(" -:\t"))
+        if not candidate:
+            return ""
+        lowered = candidate.lower()
+        banned_fragments = {
+            "description du poste",
+            "a propos",
+            "à propos",
+            "missions",
+            "responsabilites",
+            "responsabilités",
+            "profil recherche",
+            "profil recherché",
+            "candidat ideal",
+            "candidat idéal",
+        }
+        if lowered in banned_fragments:
+            return ""
+        if len(candidate) > 120:
+            return ""
+        if any(punct in candidate for punct in [".", ";", "?", "!"]) and len(candidate.split()) > 8:
+            return ""
+        return candidate
+
+    for pattern in patterns:
+        match = re.search(pattern, text, flags=re.IGNORECASE)
+        if match:
+            candidate = _clean_candidate(match.group(1))
+            if candidate:
+                return candidate
+
+    lines = [re.sub(r"^[\-•#*\s]+", "", line).strip() for line in text.splitlines()]
+    significant_lines = [line for line in lines if line]
+    for line in significant_lines[:10]:
+        candidate = _clean_candidate(line)
+        if not candidate:
+            continue
+        word_count = len(candidate.split())
+        if 2 <= word_count <= 10:
+            return candidate
+
+    return ""
 
 
 def _extract_skills(text: str) -> list[str]:
@@ -1190,9 +1359,7 @@ async def get_training_balance(current_user: dict = Depends(get_current_user)):
         async with db.get_connection() as conn:
             cursor = await db.execute(
                 conn,
-                """SELECT credits, quota_pitch, quota_qa, quota_mes,
-                          quota_negotiation, quota_regeneration, quota_update,
-                          quota_entreprises, quota_offres
+                """SELECT credits, quota_entreprises, quota_offres
                    FROM users WHERE id = ?""",
                 (current_user["id"],)
             )
@@ -1200,20 +1367,35 @@ async def get_training_balance(current_user: dict = Depends(get_current_user)):
         if not row:
             raise HTTPException(status_code=404, detail="Utilisateur introuvable.")
         data = dict(row) if hasattr(row, 'keys') else {
-            "credits": row[0], "quota_pitch": row[1], "quota_qa": row[2],
-            "quota_mes": row[3], "quota_negotiation": row[4],
-            "quota_regeneration": row[5], "quota_update": row[6],
-            "quota_entreprises": row[7] if len(row) > 7 else 5,
-            "quota_offres": row[8] if len(row) > 8 else 15,
+            "credits": row[0],
+            "quota_entreprises": row[1] if len(row) > 1 else 5,
+            "quota_offres": row[2] if len(row) > 2 else 15,
         }
+
+        def _effective_session_balance(raw_value: int | None) -> int:
+            try:
+                val = int(raw_value or 0)
+            except Exception:
+                val = 0
+            # Le moteur recharge automatiquement les quotas d'entraînement à 30
+            # lorsqu'ils tombent à 0: l'UI doit refléter ce solde effectif.
+            return TESTER_SESSION_CAP if val <= 0 else val
+
+        effective_credits = _effective_session_balance(data.get("credits", 0))
         return {
-            "credits":       data.get("credits", 0),
-            "pitch":         data.get("quota_pitch", 0),
-            "qa":            data.get("quota_qa", 0),
-            "mes":           data.get("quota_mes", 0),
-            "negotiation":   data.get("quota_negotiation", 0),
-            "regeneration":  data.get("quota_regeneration", 0),
-            "update":        data.get("quota_update", 0),
+            "credits":       effective_credits,
+            "pitch":         effective_credits,
+            "qa":            effective_credits,
+            "mes":           effective_credits,
+            "negotiation":   effective_credits,
+            "regeneration":  effective_credits,
+            "update":        effective_credits,
+            "quota_pitch":   effective_credits,
+            "quota_qa":      effective_credits,
+            "quota_mes":     effective_credits,
+            "quota_negotiation": effective_credits,
+            "quota_regeneration": effective_credits,
+            "quota_update":  effective_credits,
             "entreprises":   data.get("quota_entreprises", 5),
             "offres":        data.get("quota_offres", 15),
         }
@@ -1223,6 +1405,8 @@ async def get_training_balance(current_user: dict = Depends(get_current_user)):
         print(f"[BALANCE] Error: {e}", flush=True)
         return {"credits": 30, "pitch": 30, "qa": 30, "mes": 30,
                 "negotiation": 30, "regeneration": 30, "update": 30,
+                "quota_pitch": 30, "quota_qa": 30, "quota_mes": 30,
+                "quota_negotiation": 30, "quota_regeneration": 30, "quota_update": 30,
                 "entreprises": 5, "offres": 15}
 
 
@@ -1494,6 +1678,288 @@ OUTPUT LANGUAGE: {target_lang}
         raise HTTPException(status_code=500, detail="Erreur lors de l'évaluation de la réponse.")
 
 
+@router.post("/training/evaluate-vocal-pitch")
+async def evaluate_vocal_pitch(payload: dict = Body(...), current_user: dict = Depends(get_current_user)):
+    """
+    Évalue un pitch oral à partir d'une retranscription et renvoie un feedback structuré.
+    """
+    user_id = current_user.get("id")
+    transcript = str(payload.get("transcript") or payload.get("user_answer") or "").strip()
+    raw_target_job = _normalize_context_field(payload.get("target_job") or payload.get("target_role_primary"))
+    target_company = _normalize_context_field(payload.get("target_company")) or "l'entreprise ciblée"
+    job_description = str(payload.get("job_description") or payload.get("job_description_text") or "").strip()
+    inferred_target_job = _infer_target_job_from_job_description(job_description)
+    target_job = raw_target_job or inferred_target_job or "ce poste"
+    target_lang = normalize_language(payload.get("target_language", "French"))
+    duration_seconds = payload.get("duration_seconds") or payload.get("duration") or 0
+    transcript_words = [word for word in re.split(r"\s+", transcript.lower()) if word]
+    filler_word_bank = {"euh", "heu", "bah", "voilà", "genre", "en fait", "du coup"}
+    negative_word_bank = {"impossible", "difficile", "hésite", "peur", "problème", "problèmes", "stress"}
+
+    if not transcript:
+        raise HTTPException(status_code=400, detail="Transcription vide.")
+
+    try:
+        duration_seconds = int(duration_seconds)
+    except Exception:
+        duration_seconds = 0
+
+    await consume_quota(user_id, "pitch", cost=2)
+
+    def _build_metrics() -> dict:
+        duration_minutes = max(duration_seconds, 1) / 60.0
+        wpm = round(len(transcript_words) / duration_minutes) if transcript_words else 0
+        pace_status = "à calibrer"
+        if 90 <= wpm <= 160:
+            pace_status = "bon"
+        elif wpm < 90:
+            pace_status = "lent"
+        elif wpm > 160:
+            pace_status = "rapide"
+
+        filler_words_detected = [word for word in filler_word_bank if word in transcript.lower()]
+        negative_words_detected = [word for word in negative_word_bank if word in transcript.lower()]
+
+        return {
+            "wpm": wpm,
+            "pace_status": pace_status,
+            "filler_words_detected": filler_words_detected,
+            "negative_words_detected": negative_words_detected,
+        }
+
+    def _fallback_feedback() -> dict:
+        word_count = len([w for w in re.split(r"\s+", transcript) if w])
+        duration_label = max(duration_seconds, 1)
+        pace = word_count / max(duration_label / 60.0, 1 / 60.0)
+        score = 55
+        if word_count >= 60:
+            score += 10
+        if 90 <= pace <= 180:
+            score += 10
+        if len(transcript) >= 240:
+            score += 10
+        if len(transcript) < 120:
+            score -= 10
+        score = max(0, min(100, score))
+
+        strengths = [
+            "Le pitch existe et peut être amélioré avec davantage de preuves concrètes.",
+            f"Le discours cible le poste de {target_job}.",
+        ]
+        weaknesses = [
+            "Ajoutez une accroche plus mémorable et un bénéfice clair pour l'entreprise.",
+            "Introduisez un exemple chiffré ou un résultat mesurable.",
+        ]
+        if pace < 80:
+            weaknesses.append("Le débit semble trop lent pour un pitch de 3 minutes.")
+        elif pace > 200:
+            weaknesses.append("Le débit semble trop rapide pour laisser respirer les idées.")
+
+        improved_pitch = (
+            f"Bonjour, je candidate pour {target_job} chez {target_company}. "
+            "Je combine impact, clarté et résultats mesurables. "
+            "J'ai déjà obtenu des résultats concrets que je peux relier directement à vos enjeux."
+        )
+
+        return {
+            "score": score,
+            "strengths": strengths[:3],
+            "weaknesses": weaknesses[:3],
+            "analysis": {
+                "hook": "Votre accroche doit dire en une phrase pourquoi vous êtes crédible.",
+                "structure": "Structurez en Qui je suis / Ce que j'ai fait / Ce que j'apporte.",
+                "delivery": "Parlez clairement, avec des pauses, et gardez un rythme stable."
+            },
+            "improved_pitch": improved_pitch,
+        }
+
+    def _normalize_weaknesses(items) -> list[str]:
+        if not isinstance(items, list):
+            return []
+        normalized: list[str] = []
+        for item in items:
+            if isinstance(item, str):
+                text = item.strip()
+                if text:
+                    normalized.append(text)
+                continue
+            if isinstance(item, dict):
+                issue = str(item.get("issue") or "").strip()
+                recommendation = str(item.get("recommendation") or "").strip()
+                evidence = str(item.get("evidence") or "").strip()
+                if issue and recommendation:
+                    normalized.append(f"{issue} -> {recommendation}")
+                elif issue and evidence:
+                    normalized.append(f"{issue} ({evidence})")
+                elif issue:
+                    normalized.append(issue)
+                elif recommendation:
+                    normalized.append(recommendation)
+        return normalized[:4]
+
+    try:
+        prompt_template = load_prompt("evaluate_pitch_v2.md")
+        if not prompt_template:
+            raise ValueError("Prompt introuvable: evaluate_pitch_v2.md")
+
+        metrics = _build_metrics()
+        context_payload = {
+            "POSTE_CIBLE": target_job,
+            "ENTREPRISE_CIBLE": target_company,
+            "JOB_DESCRIPTION": job_description or None,
+            "PITCH_TYPE": str(payload.get("pitch_type") or "three_minutes"),
+            "REFERENCE_PITCH": payload.get("reference_pitch") or payload.get("pitch_reference") or None,
+            "CANDIDATE_CONTEXT": payload.get("candidate_context") or {
+                "target_job": target_job,
+                "target_company": target_company,
+                "job_description": job_description,
+            },
+            "TRANSCRIPTION_PITCH": transcript,
+            "AUDIO_METRICS": payload.get("audio_metrics") or {
+                "duration_seconds": duration_seconds,
+                "words_per_minute": metrics.get("wpm"),
+            },
+            "TARGET_LANGUAGE": target_lang,
+        }
+
+        prompt = (
+            f"{prompt_template}\n\n"
+            "# INPUT DATA\n"
+            f"{json.dumps(context_payload, ensure_ascii=False, indent=2, default=str)}\n\n"
+            "Rappel: retourne STRICTEMENT un JSON valide conforme au schéma demandé."
+        )
+
+        result = await ai_service.generate_valid_json(
+            prompt,
+            provider="openai",
+            system_instruction=f"You are a strict pitch evaluator. Output STRICT JSON only. Language: {target_lang}."
+        )
+
+        if not isinstance(result, dict):
+            result = {}
+
+        score = result.get("score", 0)
+        try:
+            score = int(score)
+        except Exception:
+            score = 0
+        score = max(0, min(100, score))
+
+        strengths = result.get("strengths") if isinstance(result.get("strengths"), list) else []
+        analysis = result.get("analysis") if isinstance(result.get("analysis"), dict) else {}
+        improved_pitch = result.get("improved_pitch") if isinstance(result.get("improved_pitch"), str) else ""
+        subscores = result.get("subscores") if isinstance(result.get("subscores"), dict) else {}
+
+        hook_analysis = analysis.get("hook") if isinstance(analysis.get("hook"), dict) else {}
+        delivery_analysis = analysis.get("delivery") if isinstance(analysis.get("delivery"), dict) else {}
+        normalized_weaknesses = _normalize_weaknesses(result.get("weaknesses"))
+
+        feedback = {
+            "score": score,
+            "strengths": [str(s) for s in strengths[:4]] or ["Pitch compréhensible et exploitable."],
+            "weaknesses": normalized_weaknesses,
+            "subscores": {
+                "hook": int(subscores.get("hook") or 0),
+                "value": int(subscores.get("value") or 0),
+                "proof": int(subscores.get("proof") or 0),
+                "structure": int(subscores.get("structure") or 0),
+                "projection": int(subscores.get("projection") or 0),
+            },
+            "analysis": {
+                "hook": str(hook_analysis.get("assessment") or analysis.get("hook") or "Soignez l'accroche initiale."),
+                "alternative_hook": str(hook_analysis.get("alternative_hook") or "").strip() or None,
+                "value_proposition": str(analysis.get("value_proposition") or "Rendez votre proposition de valeur explicite dès le début."),
+                "proofs": str(analysis.get("proofs") or "Renforcez chaque affirmation clé par une preuve observable."),
+                "structure": str(analysis.get("structure") or "Structurez le pitch en 3 blocs clairs."),
+                "projection": str(analysis.get("projection") or "Faites le lien explicite avec le poste ciblé."),
+                "delivery": str(delivery_analysis.get("assessment") or analysis.get("delivery") or "Travaillez la fluidité et la respiration si nécessaire."),
+            },
+            "improved_pitch": improved_pitch or _fallback_feedback()["improved_pitch"],
+        }
+
+        response = {
+            "score": feedback["score"],
+            "subscores": feedback["subscores"],
+            "metrics": metrics,
+            "feedback": {
+                "pace_and_silences": feedback["analysis"]["delivery"],
+                "structure_and_clarity": feedback["analysis"]["structure"],
+                "impact_and_length": f"Votre pitch vise {target_job} chez {target_company}. Resserrez-le pour tenir dans le tempo attendu.",
+                "relevance_to_target": f"Le message doit relier vos preuves au poste de {target_job}.",
+                "examples_precision": feedback["analysis"].get("proofs"),
+                "actionable_advice": feedback["weaknesses"][:4],
+                "alternative_hook": feedback["analysis"].get("alternative_hook"),
+            },
+            "micro_exercises": [
+                {"title": "Accroche en 1 phrase", "description": "Formulez votre valeur ajoutée en 15 secondes."},
+                {"title": "Preuve chiffrée", "description": "Ajoutez un résultat concret ou un KPI."},
+                {"title": "Conclusion nette", "description": "Terminez par une phrase d'ouverture vers l'échange."},
+            ],
+            "strengths": feedback["strengths"],
+            "weaknesses": feedback["weaknesses"],
+            "analysis": feedback["analysis"],
+            "improved_pitch": feedback["improved_pitch"],
+        }
+
+    except HTTPException:
+        await refund_quota(user_id, "pitch", cost=2)
+        raise
+    except Exception as e:
+        await refund_quota(user_id, "pitch", cost=2)
+        print(f"[VOCAL PITCH] Error: {e}", flush=True)
+        feedback = _fallback_feedback()
+        metrics = _build_metrics()
+        response = {
+            "score": feedback["score"],
+            "metrics": metrics,
+            "feedback": {
+                "pace_and_silences": feedback["analysis"]["delivery"],
+                "structure_and_clarity": feedback["analysis"]["structure"],
+                "impact_and_length": f"Votre pitch vise {target_job} chez {target_company}. Resserrez-le pour tenir dans le tempo attendu.",
+                "relevance_to_target": f"Le message doit relier vos preuves au poste de {target_job}.",
+                "examples_precision": feedback["analysis"]["hook"],
+                "actionable_advice": feedback["weaknesses"][:4],
+            },
+            "micro_exercises": [
+                {"title": "Accroche en 1 phrase", "description": "Formulez votre valeur ajoutée en 15 secondes."},
+                {"title": "Preuve chiffrée", "description": "Ajoutez un résultat concret ou un KPI."},
+                {"title": "Conclusion nette", "description": "Terminez par une phrase d'ouverture vers l'échange."},
+            ],
+            "strengths": feedback["strengths"],
+            "weaknesses": feedback["weaknesses"],
+            "analysis": feedback["analysis"],
+            "improved_pitch": feedback["improved_pitch"],
+        }
+
+    session_id = f"pitch_{user_id}_{int(datetime.now(timezone.utc).timestamp() * 1000)}"
+    try:
+        async with db.get_connection() as conn:
+            await db.execute(
+                conn,
+                """
+                INSERT INTO training_sessions (id, user_id, theme, question_type, question_text, user_answer, score, strengths, weaknesses, improved_answer, tags, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, NOW())
+                """,
+                (
+                    session_id,
+                    user_id,
+                    target_job,
+                    "PITCH",
+                    target_company or job_description or "Pitch oral",
+                    transcript,
+                    int(feedback.get("score") or 0),
+                    json.dumps(feedback.get("strengths") or [], ensure_ascii=False),
+                    json.dumps(feedback.get("weaknesses") or [], ensure_ascii=False),
+                    str(feedback.get("improved_pitch") or ""),
+                    json.dumps(["pitch", "oral"], ensure_ascii=False),
+                )
+            )
+    except Exception as e:
+        print(f"[VOCAL PITCH] History save failed: {e}", flush=True)
+
+    return response
+
+
 @router.get("/cache/company-check")
 async def check_company_cache(
     company: str,
@@ -1594,8 +2060,15 @@ async def get_analysis_preview(
                 "quota_entreprises": row[1] if len(row) > 1 else 5,
                 "quota_offres": row[2] if len(row) > 2 else 15,
             }
+            def _effective_session_balance(raw_value: int | None) -> int:
+                try:
+                    val = int(raw_value or 0)
+                except Exception:
+                    val = 0
+                return TESTER_SESSION_CAP if val <= 0 else val
+
             quotas = {
-                "credits": int(data.get("credits") or 0),
+                "credits": _effective_session_balance(data.get("credits")),
                 "entreprises": int(data.get("quota_entreprises") or 0),
                 "offres": int(data.get("quota_offres") or 0),
             }
@@ -2524,13 +2997,13 @@ OUTPUT LANGUAGE: {target_lang}
 
 async def generate_pitch(candidate_data: dict, quality: str = "smart") -> dict:
     """
-    Génère une matrice de pitchs via le prompt stratégique v2.
+    Génère une matrice de pitchs via le prompt stratégique v4.
     Cette fonction est aussi appelée par services.tasks._run_pitch_logic.
     """
     target_lang = normalize_language(candidate_data.get("target_language", "French"))
-    prompt_template = load_prompt("strategic_pitch_v2.md")
+    prompt_template = load_prompt("strategic_pitch_v4.md")
     if not prompt_template:
-        raise ValueError("Prompt introuvable: strategic_pitch_v2.md")
+        raise ValueError("Prompt introuvable: strategic_pitch_v4.md")
 
     profile_context = _sanitize_data_for_ai(candidate_data, strict=True)
     normalized_context = {
@@ -2558,7 +3031,7 @@ async def generate_pitch(candidate_data: dict, quality: str = "smart") -> dict:
         .replace("{{CANDIDATE_DATA_JSON}}", json.dumps(normalized_context, ensure_ascii=False, indent=2, default=str))
         .replace("{{TARGET_LANGUAGE}}", target_lang)
     )
-    print("[PITCH] Using prompt strategic_pitch_v2.md", flush=True)
+    print("[PITCH] Using prompt strategic_pitch_v4.md", flush=True)
 
     result = await ai_service.generate_valid_json(
         final_prompt,
@@ -2567,6 +3040,39 @@ async def generate_pitch(candidate_data: dict, quality: str = "smart") -> dict:
     )
 
     return _ensure_pitch_matrix_shape(result, candidate_data)
+
+async def generate_job_decoder(candidate_data: dict) -> dict:
+    """
+    Génère le décodeur d'annonce depuis le prompt job_decoder.md.
+    Utilisé par le flux /cv/start-analysis (mode local task store).
+    """
+    target_lang = normalize_language(candidate_data.get("target_language", "French"))
+    prompt_template = load_prompt("job_decoder.md")
+
+    final_prompt = f"""
+{prompt_template}
+
+OFFRE D'EMPLOI :
+Titre : {candidate_data.get('target_job', 'Non spécifié')}
+Description : {candidate_data.get('job_description', 'Non fournie')}
+Entreprise : {candidate_data.get('target_company', 'Non spécifiée')}
+
+OUTPUT LANGUAGE: {target_lang}
+"""
+
+    result = await ai_service.generate_valid_json(
+        final_prompt,
+        provider="openai",
+        system_instruction="You are a Job Market Analyst. Output STRICT JSON."
+    )
+
+    if isinstance(result, dict) and "error" not in result:
+        return result
+
+    fallback_company = candidate_data.get('target_company') or "l'entreprise cible"
+    return {
+        "decoded": f"Points clés attendus par {fallback_company}: leadership, rigueur."
+    }
 
 @router.post("/start-analysis")
 async def start_analysis(payload: dict = Body(...), current_user: dict = Depends(get_current_user)):
@@ -2621,6 +3127,7 @@ async def start_analysis(payload: dict = Body(...), current_user: dict = Depends
         TASK_STORE[tasks['pitch']] = {"status": "PENDING"}
         TASK_STORE[tasks['questions']] = {"status": "PENDING"}
         TASK_STORE[tasks['gap_analysis']] = {"status": "PENDING"}
+        TASK_STORE[tasks['job_decoder']] = {"status": "PENDING"}
         TASK_STORE[tasks['recruiter_view']] = {"status": "PENDING"}
         TASK_STORE[tasks['reality_check']] = {"status": "PENDING"}
         TASK_STORE[tasks['flaw_coaching']] = {"status": "PENDING"}
@@ -2630,14 +3137,12 @@ async def start_analysis(payload: dict = Body(...), current_user: dict = Depends
         _spawn_local_task(tasks['pitch'], lambda: generate_pitch(payload, quality="smart"))
         _spawn_local_task(tasks['questions'], lambda: generate_interview_questions(payload))
         _spawn_local_task(tasks['gap_analysis'], lambda: generate_gap_analysis(payload))
+        _spawn_local_task(tasks['job_decoder'], lambda: generate_job_decoder(payload))
         _spawn_local_task(tasks['recruiter_view'], lambda: generate_recruiter_view(payload))
         _spawn_local_task(tasks['reality_check'], lambda: generate_reality_check(payload))
         _spawn_local_task(tasks['flaw_coaching'], lambda: generate_flaw_coaching(payload))
         _spawn_local_task(tasks['action_plan'], lambda: generate_action_plan(payload))
         _spawn_local_task(tasks['custom_scenarios'], lambda: generate_custom_scenarios(payload))
-
-        # Job decoder
-        TASK_STORE[tasks['job_decoder']] = {"status": "SUCCESS", "result": {"decoded": f"Points clés attendus par {target_company}: leadership, rigueur."}}
 
         return {"message": "Full analysis started", "tasks": tasks}
     except Exception as e:

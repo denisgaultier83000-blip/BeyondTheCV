@@ -15,7 +15,7 @@ interface VocalPitchTrainerProps {
   onSuccess?: () => void;
 }
 
-export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDescription, onSuccess }: VocalPitchTrainerProps) => {
+export const VocalPitchTrainer = ({ targetJob = "", targetCompany, jobDescription, onSuccess }: VocalPitchTrainerProps) => {
   const { t } = useTranslation();
   const { quotas, fetchQuotas } = useDashboard();
   
@@ -26,6 +26,7 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDe
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [showRechargeModal, setShowRechargeModal] = useState(false);
+  const pitchRemaining = Number(quotas?.pitch ?? 0) > 0 ? Number(quotas?.pitch) : Number(quotas?.credits ?? 0);
   
   const recognitionRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
@@ -36,6 +37,10 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDe
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (fetchQuotas) fetchQuotas();
+  }, [fetchQuotas]);
 
   const startRecording = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -88,7 +93,7 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDe
     setIsAnalyzing(true);
     setError(null);
 
-    if ((quotas?.pitch ?? 0) <= 0) {
+    if (pitchRemaining <= 0) {
       setShowRechargeModal(true);
       setIsAnalyzing(false);
       return;
@@ -171,8 +176,8 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDe
           </div>
           
           <AutoResizeTextarea 
-            value={transcript}
-            onChange={e => setTranscript(e.target.value)}
+              value={transcript}
+              onChange={e => { setTranscript(e.target.value); if (error) setError(null); }}
             placeholder="La retranscription s'affichera ici. Vous pouvez corriger le texte manuellement avant l'analyse..."
             style={{ width: '100%', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '0.75rem', padding: '1rem', color: 'var(--text-main)', fontFamily: 'inherit', fontSize: '1rem', outline: 'none' }}
             minHeight={120}
@@ -194,7 +199,7 @@ export const VocalPitchTrainer = ({ targetJob = "Candidat", targetCompany, jobDe
                     if (seconds < 10) { alert("L'enregistrement est trop court (minimum 10 secondes) pour une analyse pertinente."); return; }
                     analyzePitch();
                   }} className="btn-primary" style={{ background: '#10b981', borderColor: '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem', fontSize: '1.1rem' }}>
-                    <Activity size={20} /> Analyser ma prestation ({quotas?.pitch ?? 0} restants)
+                    <Activity size={20} /> Analyser ma prestation
                   </button>
                 )}
               </>

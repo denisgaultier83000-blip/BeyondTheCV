@@ -1,4 +1,3 @@
-import os
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
@@ -6,6 +5,7 @@ from fastapi.responses import FileResponse
 from database import db
 from models import DocumentMetadata
 from security import get_current_user
+from services.storage_manager import storage
 
 router = APIRouter(tags=["Documents"])
 
@@ -36,17 +36,17 @@ async def download_document(doc_id: str, current_user: dict = Depends(get_curren
         raise HTTPException(status_code=404, detail="Document not found.")
     
     file_path = doc["path"]
-    if not os.path.exists(file_path):
+    if not storage.exists(file_path):
         raise HTTPException(status_code=404, detail="File missing on server.")
     
     # [FIX EXPERT] Sécurité : Prévention du Path Traversal par répertoire voisin
     # (startswith est vulnérable si le dossier ciblé est "/app/backend_secrets")
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    abs_file_path = os.path.abspath(file_path)
-    if os.path.commonpath([base_dir, abs_file_path]) != base_dir:
+    try:
+        abs_file_path = storage.resolve_path(file_path)
+    except ValueError:
         raise HTTPException(status_code=403, detail="Access denied.")
         
-    return FileResponse(path=file_path, filename=doc["filename"], media_type=doc.get("media_type", "application/octet-stream"))
+    return FileResponse(path=abs_file_path, filename=doc["filename"], media_type=doc.get("media_type", "application/octet-stream"))
 
 @router.delete("/documents/{doc_id}")
 async def delete_document(doc_id: str, current_user: dict = Depends(get_current_user)):
@@ -60,13 +60,6 @@ async def delete_document(doc_id: str, current_user: dict = Depends(get_current_
         await conn.commit()
         
         file_path = row["path"]
-        if file_path and os.path.exists(file_path):
-            # [FIX EXPERT] Sécurité : Empêche un attaquant de supprimer des fichiers système
-            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-            abs_file_path = os.path.abspath(file_path)
-            if os.path.commonpath([base_dir, abs_file_path]) == base_dir:
-                try:
-                    os.remove(file_path)
-                except Exception:
-                    pass
+        if file_path:
+            storage.delete(file_path)
     return {"status": "success", "id": doc_id}

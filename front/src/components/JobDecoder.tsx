@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, MessageSquare, Target, ShieldAlert, Building, ArrowRight, User, HelpCircle, Key, List, Lightbulb } from 'lucide-react';
+import { Search, MessageSquare, Target, ShieldAlert, Building, ArrowRight, User, HelpCircle, Key, List, Lightbulb, FileText } from 'lucide-react';
 import { formatMarkdown } from '../utils/markdown';
 import { authenticatedFetch } from '../utils/auth';
 import { API_BASE_URL } from '../config';
@@ -77,6 +77,19 @@ const extractDecoderData = (data: any) => {
 
 export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) => {
   const decoderData = extractDecoderData(data);
+  const decodedText = typeof decoderData?.decoded === 'string' ? decoderData.decoded.trim() : '';
+  const hasStructuredContent = !!(
+    decoderData?.job_summary ||
+    decoderData?.manager_fear ||
+    (Array.isArray(decoderData?.red_flags) && decoderData.red_flags.length > 0) ||
+    decoderData?.candidate_positioning ||
+    (Array.isArray(decoderData?.implicit_expectations) && decoderData.implicit_expectations.length > 0) ||
+    (Array.isArray(decoderData?.reality_check) && decoderData.reality_check.length > 0) ||
+    (Array.isArray(decoderData?.questions_to_ask) && decoderData.questions_to_ask.length > 0) ||
+    (Array.isArray(decoderData?.explicit_requirements) && decoderData.explicit_requirements.length > 0) ||
+    (Array.isArray(decoderData?.ats_keywords) && decoderData.ats_keywords.length > 0) ||
+    decoderData?.culture_fit
+  );
 
   const ConfidenceBadge: React.FC<{ level?: 'low' | 'medium' | 'high' }> = ({ level }) => {
     if (!level) return null;
@@ -105,6 +118,19 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
             <p className="job-decoder-intro">
               Traduction du jargon RH en réalité opérationnelle pour déjouer les pièges de l'offre.
             </p>
+           {!hasStructuredContent && decodedText && (
+              <Section title="Synthèse de l'annonce" icon={<FileText size={18} />}>
+                <p style={{ margin: 0, lineHeight: 1.6 }}>{decodedText}</p>
+              </Section>
+           )}
+           {!hasStructuredContent && !decodedText && (
+              <Section title="Analyse partielle" icon={<HelpCircle size={18} />}>
+                <p style={{ margin: 0, lineHeight: 1.6 }}>
+                  L'annonce a été détectée mais le détail stratégique n'a pas été renvoyé dans ce format.
+                  Relancez l'analyse depuis la page Cible après avoir collé une description de poste plus complète.
+                </p>
+              </Section>
+           )}
            {decoderData.job_summary && <p className="job-summary">{decoderData.job_summary}</p>}
 
             <div className="job-decoder-grid">

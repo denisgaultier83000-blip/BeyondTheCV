@@ -19,10 +19,22 @@ export default function SalaryNegotiator() {
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<any>(null);
   const [showRechargeModal, setShowRechargeModal] = useState(false);
+  const [salaryDraft, setSalaryDraft] = useState(String(cvData?.salary_expectations || ''));
+  const [savedExpectations, setSavedExpectations] = useState(String(cvData?.salary_expectations || '').trim());
+  const [isEditingExpectations, setIsEditingExpectations] = useState(false);
   
   const [history, setHistory] = useState<any[]>(cvData?.negotiationHistory || []);
 
-  const expectations = cvData?.salary_expectations;
+  useEffect(() => {
+    const incoming = String(cvData?.salary_expectations || '').trim();
+    setSavedExpectations(incoming);
+    if (!isEditingExpectations) {
+      setSalaryDraft(incoming);
+    }
+  }, [cvData?.salary_expectations, isEditingExpectations]);
+
+  const expectations = savedExpectations;
+  const hasExpectations = !!String(expectations || '').trim();
 
   // --- GESTION DE LA RECONNAISSANCE VOCALE (Speech-to-Text) ---
   useEffect(() => {
@@ -72,8 +84,6 @@ export default function SalaryNegotiator() {
     setIsRecording(true);
   };
   
-  if (!expectations) return null; // Ne s'affiche que si le candidat a rempli ses prétentions
-
   // Le recruteur utilise l'estimation basse du marché de l'IA pour créer la tension
   const currencySymbol = salaryResult?.currency === 'USD' ? '$' : '€';
   const marketLowNum = salaryResult?.salary_range?.low;
@@ -90,7 +100,9 @@ export default function SalaryNegotiator() {
 
   const marketLow = marketLowNum ? formatDisplayK(marketLowNum) : "légèrement inférieur à ce que vous demandez";
   const marketHigh = marketHighNum ? formatDisplayK(marketHighNum) : "";
-  const recruiterPrompt = `Votre profil est très intéressant, mais vos prétentions salariales (${expectations}) sont au-dessus de notre grille. Notre budget maximum pour ce poste est de ${marketLow}. Qu'en pensez-vous ?`;
+  const recruiterPrompt = hasExpectations
+    ? `Votre profil est très intéressant, mais vos prétentions salariales (${expectations}) sont au-dessus de notre grille. Notre budget maximum pour ce poste est de ${marketLow}. Qu'en pensez-vous ?`
+    : `Votre profil est très intéressant. Notre budget maximum pour ce poste est de ${marketLow}. Quelle rémunération visez-vous et pourquoi ?`;
 
   // Calcul dynamique de la position des prétentions sur le graphique (en %)
   let expectationPos = 70; // Position par défaut
@@ -123,12 +135,6 @@ export default function SalaryNegotiator() {
     if (!userAnswer.trim()) return;
     setIsEvaluating(true);
     setError(null);
-
-    if ((quotas?.negotiation ?? 0) <= 0) {
-      setShowRechargeModal(true);
-      setIsEvaluating(false);
-      return;
-    }
 
     try {
       const res = await authenticatedFetch(`${API_BASE_URL}/cv/simulate-negotiation`, {
@@ -183,6 +189,57 @@ export default function SalaryNegotiator() {
       <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
         L'argent ne doit pas être un sujet tabou. Défendez vos prétentions salariales face à l'objection du recruteur.
       </p>
+
+      {(!hasExpectations || isEditingExpectations) && (
+        <div style={{ marginBottom: '1.5rem', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(245, 158, 11, 0.25)', background: 'rgba(245, 158, 11, 0.08)' }}>
+          <div style={{ fontWeight: 700, color: '#b45309', marginBottom: '0.35rem' }}>Prétentions salariales à renseigner</div>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <input
+              value={salaryDraft}
+              onChange={(e) => setSalaryDraft(e.target.value)}
+              placeholder="Ex: 45k€ à 50k€"
+              style={{ flex: '1 1 240px', minWidth: '220px' }}
+            />
+            <button
+              className="btn-secondary"
+              onClick={() => {
+                const cleaned = salaryDraft.trim();
+                if (!cleaned) return;
+                setSavedExpectations(cleaned);
+                updateFormData?.('salary_expectations', cleaned);
+                setIsEditingExpectations(false);
+              }}
+            >
+              Enregistrer mes prétentions
+            </button>
+            {hasExpectations && (
+              <button
+                className="btn-ghost"
+                onClick={() => {
+                  setSalaryDraft(savedExpectations);
+                  setIsEditingExpectations(false);
+                }}
+              >
+                Annuler
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {hasExpectations && !isEditingExpectations && (
+        <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            className="btn-ghost"
+            onClick={() => {
+              setSalaryDraft(savedExpectations);
+              setIsEditingExpectations(true);
+            }}
+          >
+            Modifier mes prétentions
+          </button>
+        </div>
+      )}
 
       {/* --- GRAPHIQUE DES SALAIRES --- */}
       {marketLowNum && marketHighNum && (
@@ -245,7 +302,7 @@ export default function SalaryNegotiator() {
               </button>
               <button onClick={handleEvaluate} disabled={!userAnswer.trim()} className="btn-primary" style={{ background: !userAnswer.trim() ? '' : '#10b981', borderColor: !userAnswer.trim() ? '' : '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Send size={18} />
-                {`Tenter de négocier (${quotas?.negotiation ?? 0} restants)`}
+                Tenter de négocier
               </button>
             </div>
           </div>

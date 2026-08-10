@@ -23,7 +23,7 @@ export const API_ROUTES = {
     CAREER: "/cv/simulate-career",
   },
   INTERVIEW: {
-    EVALUATE: "/cv/evaluate-interview-answer",
+    EVALUATE: "/cv/training/evaluate",
     HISTORY: "/cv/interview/history",
   },
   TRAINING: {

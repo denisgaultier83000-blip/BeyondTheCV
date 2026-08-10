@@ -29,6 +29,7 @@ import { RechargeModal } from './RechargeModal';
 
 export default function TrainingTab() {
   const { cvData, updateFormData, actionPlanResult, quotas, fetchQuotas } = useDashboard();
+  const trainingRemaining = Number(quotas?.credits ?? quotas?.qa ?? quotas?.pitch ?? quotas?.mes ?? quotas?.negotiation ?? 0);
   const [score, setScore] = useState(0);
   const [totalSessions, setTotalSessions] = useState(0);
   const [themeScores, setThemeScores] = useState<Record<string, number>>({});
@@ -199,13 +200,6 @@ export default function TrainingTab() {
     setIsEvaluating(true);
     setErrorMsg(null);
 
-    const requiredQuota = activeQuestion.type === 'MES' ? (quotas?.mes ?? 0) : (quotas?.qa ?? 0);
-    if (requiredQuota <= 0) {
-      setShowRechargeModal(true);
-      setIsEvaluating(false);
-      return;
-    }
-
     try {
       const res = await authenticatedFetch(`${API_BASE_URL}/cv/training/evaluate`, {
         method: 'POST',
@@ -262,9 +256,17 @@ export default function TrainingTab() {
     return 'var(--text-muted)';
   };
 
-  // [FIX EXPERT] On remplace la note du "Fond" par la vraie note vocale calculée par le VocalPitchTrainer
-  const oralPitchScore = themeScores['Pitch Vocal'] ?? 0;
-  const oralPitchSessions = themeCounts['Pitch Vocal'] ?? 0;
+  // Les stats pitch sont dérivées de l'historique réel (question_type=PITCH)
+  // car l'agrégation backend par thème peut classer les sessions vocales hors du bucket attendu.
+  const pitchHistory = trainingHistory.filter((h: any) => String(h?.question_type || '').toUpperCase() === 'PITCH');
+  const oralPitchSessions = pitchHistory.length;
+  const oralPitchScore = oralPitchSessions > 0
+    ? Math.round(
+        pitchHistory.reduce((acc: number, h: any) => acc + Number(h?.score || 0), 0) / oralPitchSessions
+      )
+    : 0;
+
+  const trainingQaHistory = trainingHistory.filter((h: any) => String(h?.question_type || '').toUpperCase() !== 'PITCH');
 
   // --- FUSION DES HISTORIQUES (PITCH + MES + ENTRETIEN + NEGO) ---
   const negoHistory = cvData?.negotiationHistory || [];
@@ -279,13 +281,8 @@ export default function TrainingTab() {
   const negoScore = negoTotalSessions > 0 ? Math.round(negoHistory.reduce((acc: number, h: any) => acc + (h.feedback?.score || 0), 0) / negoTotalSessions) : 0;
 
   // Calcul des stats spécifiques Q/A (Training Q&A + Interview Q&A)
-  const trainingQACount = totalSessions - oralPitchSessions;
-  let trainingQATotalScore = 0;
-  if (trainingQACount > 0) {
-    Object.entries(themeScores).forEach(([theme, tScore]) => {
-      if (theme !== 'Pitch Vocal') trainingQATotalScore += tScore * (themeCounts[theme] ?? 0);
-    });
-  }
+  const trainingQACount = trainingQaHistory.length;
+  const trainingQATotalScore = trainingQaHistory.reduce((acc: number, h: any) => acc + Number(h?.score || 0), 0);
   const interviewQACount = interviewHistory.length;
   const interviewQATotalScore = interviewHistory.reduce((acc: number, h: any) => acc + (h.score || 0), 0);
 
@@ -342,35 +339,41 @@ export default function TrainingTab() {
       {/* --- NOUVEAU : AFFICHAGE DES QUOTAS PAR MODULE --- */}
       <DashboardCard title="Simulations Notées Disponibles" icon={<Dumbbell size={24} />} id="training_pitch_section">
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
-          Votre pack inclut un nombre de simulations évaluées par l'IA pour chaque type d'exercice. L'entraînement libre (lecture des questions et réponses) est illimité.
+          Votre pack inclut un solde global unique de simulations évaluées par l'IA, partagé entre tous les exercices. L'entraînement libre (lecture des questions et réponses) est illimité.
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-          {[
-            { key: 'qa', label: "Questions / Réponses", icon: <MessageSquare size={20} /> },
-            { key: 'pitch', label: "Pitch Vocal", icon: <Mic size={20} /> },
-            { key: 'mes', label: "Mises en Situation", icon: <BrainCircuit size={20} /> },
-            { key: 'negotiation', label: "Négociation Salariale", icon: <DollarSign size={20} /> },
-          ].map(q => {
-            const remaining = quotas?.[q.key] ?? 0;
-            const hasQuota = remaining > 0;
-            return (
-              <div key={q.key} style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: `1px solid ${hasQuota ? 'rgba(59, 130, 246, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`, display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ color: hasQuota ? 'var(--primary)' : 'var(--danger-text)' }}>
-                  {q.icon}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+          <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: `1px solid ${trainingRemaining > 0 ? 'rgba(59, 130, 246, 0.2)' : 'rgba(239, 68, 68, 0.2)'}` }}>
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.45rem' }}>
+              Séances notées restantes (total)
+            </div>
+            <div style={{ fontSize: '2rem', fontWeight: 900, color: trainingRemaining > 0 ? 'var(--text-main)' : 'var(--danger-text)', lineHeight: 1 }}>
+              {trainingRemaining}
+            </div>
+            <div style={{ marginTop: '0.5rem', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+              Ce compteur est commun à toutes les simulations évaluées.
+            </div>
+          </div>
+
+          <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.55rem' }}>
+              Exercices utilisant ce solde
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '0.6rem' }}>
+              {[
+                { key: 'qa', label: "Questions / Réponses", icon: <MessageSquare size={18} /> },
+                { key: 'pitch', label: "Pitch Vocal", icon: <Mic size={18} /> },
+                { key: 'mes', label: "Mises en Situation", icon: <BrainCircuit size={18} /> },
+                { key: 'negotiation', label: "Négociation Salariale", icon: <DollarSign size={18} /> },
+              ].map(q => (
+                <div key={q.key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-main)', fontSize: '0.9rem', fontWeight: 600, padding: '0.55rem 0.65rem', borderRadius: '0.55rem', border: '1px solid var(--border-color)', background: 'var(--bg-card)' }}>
+                  <span style={{ color: 'var(--primary)', display: 'inline-flex' }}>{q.icon}</span>
+                  <span>{q.label}</span>
                 </div>
-                <div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: hasQuota ? 'var(--text-main)' : 'var(--danger-text)' }}>
-                    {remaining}
-                  </div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-                    {q.label}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+              ))}
+            </div>
+          </div>
         </div>
-        {(quotas?.qa === 0 || quotas?.pitch === 0 || quotas?.mes === 0 || quotas?.negotiation === 0) && <button onClick={() => setShowRechargeModal(true)} className="btn-primary" style={{ marginTop: '1.5rem', alignSelf: 'center' }}>Recharger des simulations</button>}
+        {(quotas?.credits ?? 0) === 0 && <button onClick={() => setShowRechargeModal(true)} className="btn-primary" style={{ marginTop: '1.5rem', alignSelf: 'center' }}>Recharger des simulations</button>}
       </DashboardCard>
 
       {/* --- SECTION STATISTIQUES --- */}
@@ -475,7 +478,7 @@ export default function TrainingTab() {
 
       {/* --- NOUVEAU MODULE : ENTRAINEMENT AU PITCH VOCAL --- */}
       <VocalPitchTrainer 
-        targetJob={cvData?.target_job || cvData?.target_role_primary || "Candidat"} 
+        targetJob={cvData?.target_job || cvData?.target_role_primary || ""} 
         targetCompany={cvData?.target_company}
         jobDescription={cvData?.job_description}
         onSuccess={refreshAllStats} 
@@ -591,10 +594,9 @@ export default function TrainingTab() {
           )}
 
           {(() => {
-            const remainingForType = activeQuestion.type === 'MES' ? (quotas?.mes ?? 0) : (quotas?.qa ?? 0);
             return (
               <button onClick={handleEvaluate} disabled={isEvaluating || !userAnswer.trim()} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {isEvaluating ? <RefreshCw className="spin" size={18} /> : <MessageSquare size={18} />} {isEvaluating ? "Évaluation..." : `Soumettre & Évaluer (${remainingForType} restants)`}
+                {isEvaluating ? <RefreshCw className="spin" size={18} /> : <MessageSquare size={18} />} {isEvaluating ? "Évaluation..." : "Soumettre & Évaluer"}
               </button>
             );
           })()}

@@ -35,7 +35,7 @@ async def get_system_settings():
             {"module": "scenarios", "model_name": os.getenv("DEFAULT_AI_MODEL", "Gemini")}
         ],
         "active_prompts": [
-            {"module": "pitch", "prompt_version": "strategic_pitch_v2"},
+            {"module": "pitch", "prompt_version": "strategic_pitch_v4"},
             {"module": "questions", "prompt_version": "interview_questions"},
             {"module": "scenarios", "prompt_version": "custom_scenarios"}
         ],

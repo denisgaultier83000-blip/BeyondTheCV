@@ -54,13 +54,15 @@ def init_db(conn):
                 created_at TEXT,
                 is_premium BOOLEAN DEFAULT FALSE,
                 is_tester BOOLEAN DEFAULT FALSE,
-                credits INTEGER DEFAULT 100,
-                quota_pitch INTEGER DEFAULT 10,
-                quota_qa INTEGER DEFAULT 25,
-                quota_mes INTEGER DEFAULT 6,
-                quota_negotiation INTEGER DEFAULT 4,
-                quota_regeneration INTEGER DEFAULT 3,
-                quota_update INTEGER DEFAULT 1
+                credits INTEGER DEFAULT 30,
+                quota_pitch INTEGER DEFAULT 30,
+                quota_qa INTEGER DEFAULT 30,
+                quota_mes INTEGER DEFAULT 30,
+                quota_negotiation INTEGER DEFAULT 30,
+                quota_regeneration INTEGER DEFAULT 30,
+                quota_update INTEGER DEFAULT 30,
+                quota_entreprises INTEGER DEFAULT 5,
+                quota_offres INTEGER DEFAULT 15
             )
         """)
         cur.execute("""

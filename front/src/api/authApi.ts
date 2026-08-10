@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '../config';
-import { storageManager } from '../utils/storageManager';
+import { readApiErrorMessage } from './errorParser';
 
 /* [CORRECTIF] Définition des types directement dans le fichier pour résoudre l'erreur d'import. */
 export interface LoginCredentials {
@@ -30,14 +30,14 @@ const registerUser = async (payload: RegisterPayload) => {
     }),
   });
   if (!response.ok) {
-    const errData = await response.json().catch(() => ({}));
-    throw new Error(errData.detail || 'La création du compte a échoué.');
+    const detail = await readApiErrorMessage(response, 'La creation du compte a echoue.');
+    throw new Error(detail);
   }
 };
 
 /**
- * Gère la connexion et la récupération du token d'accès.
- * Si `isRegistering` est vrai, il tente d'abord de créer le compte.
+ * Gere la connexion et la recuperation du token d'acces.
+ * Si `isRegistering` est vrai, il tente d'abord de creer le compte.
  */
 export const loginOrRegister = async (payload: LoginCredentials & Partial<RegisterPayload>) => {
   if (payload.isRegistering) {
@@ -51,8 +51,8 @@ export const loginOrRegister = async (payload: LoginCredentials & Partial<Regist
   });
 
   if (!response.ok) {
-    const errData = await response.json().catch(() => ({}));
-    throw new Error(errData.detail || 'Identifiants incorrects');
+    const detail = await readApiErrorMessage(response, 'Identifiants incorrects');
+    throw new Error(detail);
   }
 
   return response.json();

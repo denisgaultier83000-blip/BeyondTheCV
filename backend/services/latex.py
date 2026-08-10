@@ -5,8 +5,10 @@ import subprocess
 import shutil
 from jinja2 import Environment, FileSystemLoader
 
-TEMPLATE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "templates"))
-OUTPUT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "output"))
+from services.storage_manager import storage
+
+TEMPLATE_DIR = storage.path("templates")
+OUTPUT_DIR = storage.ensure_dir("output")
 
 def sanitize_for_latex(data):
     """
@@ -86,19 +88,13 @@ def generate_pdf_from_latex(data: dict, template_name: str) -> str:
     print(f"[DEBUG] LaTeX rendered. Length: {len(rendered_tex)} chars. Preview: {rendered_tex[:100]}...", flush=True)
     
     # ⚡ Optimisation RAM Disk (tmpfs) pour des I/O instantanés
-    run_dir = "/dev/shm" if os.path.exists("/dev/shm") else OUTPUT_DIR
+    run_dir = storage.ensure_dir("temp")
 
     # 3. Écriture du fichier .tex temporaire
     # Utilisation d'un UUID pour éviter toute collision en accès concurrent
     unique_id = uuid.uuid4().hex[:8]
     tex_filename = f"temp_{data.get('last_name', 'cv')}_{unique_id}.tex"
-    tex_path = os.path.join(run_dir, tex_filename)
-    
-    if not os.path.exists(run_dir):
-        os.makedirs(run_dir, exist_ok=True)
-        
-    with open(tex_path, "w", encoding="utf-8") as f:
-        f.write(rendered_tex)
+    tex_path = storage.save_text(rendered_tex, "temp", tex_filename)
     print(f"[DEBUG] TeX file written to: {tex_path}", flush=True)
         
     # 4. Compilation avec pdflatex (si disponible)
@@ -142,7 +138,7 @@ def generate_pdf_from_latex(data: dict, template_name: str) -> str:
     # [ROBUSTESSE] Nettoyage complet des fichiers générés par LaTeX (sauf le PDF final)
     for ext in [".tex", ".log", ".aux", ".out"]:
         temp_file = tex_path.replace(".tex", ext)
-        if os.path.exists(temp_file):
-            os.remove(temp_file)
+        if storage.exists(temp_file):
+            storage.delete(temp_file)
         
     return pdf_path

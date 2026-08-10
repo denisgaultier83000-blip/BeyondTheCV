@@ -31,14 +31,8 @@ async def consume_quota(user_id: str, quota_type: str, cost: int = 1):
     if quota_type not in valid_quotas:
         raise HTTPException(status_code=400, detail=f"Type de quota invalide : {quota_type}")
     
-    column_name = f"quota_{quota_type}"
-
-    # Plafond de rechargement testeur selon le type de quota
-    tester_caps = {
-        "entreprises": 5,
-        "offres": 15,
-    }
-    recharge_cap = tester_caps.get(quota_type, TESTER_SESSION_CAP)
+    session_quotas = {"pitch", "qa", "mes", "negotiation", "regeneration", "update"}
+    column_name = "credits" if quota_type in session_quotas else f"quota_{quota_type}"
     
     async with db.get_connection() as conn:
         # On utilise un lock pour éviter les race conditions si l'utilisateur clique très vite
@@ -53,21 +47,34 @@ async def consume_quota(user_id: str, quota_type: str, cost: int = 1):
             if not row:
                 raise HTTPException(status_code=404, detail="Utilisateur introuvable pour la gestion des quotas.")
             
-            balance = row[0] if isinstance(row, tuple) else row.get(column_name)
+            raw_balance = row[0] if isinstance(row, tuple) else row.get(column_name)
+            try:
+                balance = int(raw_balance) if raw_balance is not None else 0
+            except Exception:
+                balance = 0
 
-            # Mode test: dès qu'un quota est vidé, on le recharge automatiquement
-            if balance is not None and balance <= 0:
-                balance = recharge_cap
+            # Mode test: toutes les séances d'entraînement utilisent le pool global credits.
+            if quota_type in session_quotas and balance <= 0:
+                balance = TESTER_SESSION_CAP
                 await db.execute(
                     conn,
                     f"UPDATE users SET {column_name} = ? WHERE id = ?",
-                    (recharge_cap, user_id)
+                    (TESTER_SESSION_CAP, user_id)
                 )
             
             if balance is None or balance < cost:
                 raise HTTPException(status_code=402, detail=f"Crédits '{quota_type}' insuffisants (Solde: {balance or 0}, Requis: {cost}).")
             
             await db.execute(conn, f"UPDATE users SET {column_name} = {column_name} - ? WHERE id = ?", (cost, user_id))
+
+            if quota_type in session_quotas:
+                updated_balance = balance - cost
+                if updated_balance <= 0:
+                    await db.execute(
+                        conn,
+                        f"UPDATE users SET {column_name} = ? WHERE id = ?",
+                        (TESTER_SESSION_CAP, user_id)
+                    )
     return True
 
 async def refund_quota(user_id: str, quota_type: str, cost: int = 1):
@@ -75,8 +82,9 @@ async def refund_quota(user_id: str, quota_type: str, cost: int = 1):
     valid_quotas = ["pitch", "qa", "mes", "negotiation", "regeneration", "update", "entreprises", "offres"]
     if quota_type not in valid_quotas:
         return
-    
-    column_name = f"quota_{quota_type}"
+
+    session_quotas = {"pitch", "qa", "mes", "negotiation", "regeneration", "update"}
+    column_name = "credits" if quota_type in session_quotas else f"quota_{quota_type}"
     try:
         async with db.get_connection() as conn:
             await db.execute(conn, f"UPDATE users SET {column_name} = {column_name} + ? WHERE id = ?", (cost, user_id))

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   RadarChart as RechartsRadarChart,
   PolarGrid,
@@ -30,11 +30,13 @@ import {
   Sparkles,
   Target,
   TrendingUp,
+  X,
   UserCheck,
   Zap
 } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 import { useDashboard } from '../hooks/DashboardContext';
+import { authenticatedFetch } from '../utils/auth';
 
 type ProfileMode = 'general' | 'application';
 
@@ -52,6 +54,7 @@ interface AxisDefinition {
   label: string;
   shortLabel: string;
   score: number;
+  signalCount: number;
   color: string;
   level: string;
   why: string;
@@ -64,6 +67,16 @@ interface AxisDefinition {
 
 interface StrategicProfileTabProps {
   onNavigate: (tab: string, anchor?: string) => void;
+  profileCompletion?: number;
+  profileRecommendations?: string[];
+}
+
+interface HistoryEntry {
+  score: number;
+  createdAt: Date;
+  theme?: string;
+  questionType?: string;
+  tags?: string[];
 }
 
 const clamp = (value: number, min = 0, max = 100) => Math.max(min, Math.min(max, Math.round(value)));
@@ -84,13 +97,14 @@ const average = (values: number[]) => {
 };
 
 const levelForScore = (score: number) => {
-  if (score >= 75) return 'Solide';
+  if (score >= 85) return 'Maîtrisé';
+  if (score >= 70) return 'Solide';
   if (score >= 55) return 'À renforcer';
   return 'Prioritaire';
 };
 
 const colorForScore = (score: number) => {
-  if (score >= 75) return '#10b981';
+  if (score >= 70) return '#10b981';
   if (score >= 55) return '#f59e0b';
   return '#ef4444';
 };
@@ -151,7 +165,27 @@ const hasContent = (value: any) => {
   return true;
 };
 
-export function StrategicProfileTab({ onNavigate }: StrategicProfileTabProps) {
+const DAYS_30_MS = 30 * 24 * 60 * 60 * 1000;
+
+const averageOrNull = (values: number[]): number | null => {
+  if (!values.length) return null;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+};
+
+const parseHistoryDate = (raw: any): Date | null => {
+  if (!raw) return null;
+  const d = new Date(raw);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
+const scoreDeltaLabel = (delta: number | null) => {
+  if (delta === null) return 'Pas assez d\'historique';
+  if (delta >= 4) return `+${Math.round(delta)} pts (en hausse)`;
+  if (delta <= -4) return `${Math.round(delta)} pts (en baisse)`;
+  return 'Stable';
+};
+
+export function StrategicProfileTab({ onNavigate, profileCompletion, profileRecommendations }: StrategicProfileTabProps) {
   const {
     cvData,
     gapResult,
@@ -166,6 +200,75 @@ export function StrategicProfileTab({ onNavigate }: StrategicProfileTabProps) {
     customScenariosResult
   } = useDashboard();
   const [mode, setMode] = useState<ProfileMode>('general');
+  const [showScoringHelp, setShowScoringHelp] = useState(false);
+  const [trainingHistory, setTrainingHistory] = useState<HistoryEntry[]>([]);
+  const [interviewHistory, setInterviewHistory] = useState<HistoryEntry[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [selectedAxis, setSelectedAxis] = useState<AxisDefinition | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadHistory = async () => {
+      setIsLoadingHistory(true);
+      try {
+        const [trainingRes, interviewRes] = await Promise.all([
+          authenticatedFetch('/cv/training/history'),
+          authenticatedFetch('/cv/interview/history')
+        ]);
+
+        if (!cancelled && trainingRes.ok) {
+          const trainingData = await trainingRes.json();
+          const normalizedTraining = (trainingData?.history || [])
+            .map((item: any) => {
+              const createdAt = parseHistoryDate(item?.created_at);
+              if (!createdAt) return null;
+              const tags = Array.isArray(item?.tags)
+                ? item.tags.map((tag: any) => String(tag).toLowerCase())
+                : [];
+              return {
+                score: toNumber(item?.score),
+                createdAt,
+                theme: String(item?.theme || '').toLowerCase(),
+                questionType: String(item?.question_type || '').toLowerCase(),
+                tags
+              } as HistoryEntry;
+            })
+            .filter((entry: HistoryEntry | null) => Boolean(entry));
+          setTrainingHistory(normalizedTraining as HistoryEntry[]);
+        }
+
+        if (!cancelled && interviewRes.ok) {
+          const interviewData = await interviewRes.json();
+          const normalizedInterview = (interviewData?.history || [])
+            .map((item: any) => {
+              const createdAt = parseHistoryDate(item?.created_at);
+              if (!createdAt) return null;
+              return {
+                score: toNumber(item?.score),
+                createdAt,
+                questionType: 'interview',
+                tags: []
+              } as HistoryEntry;
+            })
+            .filter((entry: HistoryEntry | null) => Boolean(entry));
+          setInterviewHistory(normalizedInterview as HistoryEntry[]);
+        }
+      } catch {
+        if (!cancelled) {
+          setTrainingHistory([]);
+          setInterviewHistory([]);
+        }
+      } finally {
+        if (!cancelled) setIsLoadingHistory(false);
+      }
+    };
+
+    loadHistory();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const profile = useMemo(() => {
     const experiences = Array.isArray(cvData?.experiences) ? cvData.experiences : [];
@@ -209,9 +312,9 @@ export function StrategicProfileTab({ onNavigate }: StrategicProfileTabProps) {
     const flawList = getFlawList(flawCoachingResult);
     const flawCount = flawList.length;
     const recruiterPersona = recruiterResult?.recruiter_persona || {};
-    const recruiterProbability = toNumber(recruiterPersona?.interview_probability);
     const recruiterRedFlags = Array.isArray(recruiterPersona?.red_flags) ? recruiterPersona.red_flags.length : 0;
     const recruiterReassurance = Array.isArray(recruiterPersona?.reassurance_points) ? recruiterPersona.reassurance_points.length : 0;
+    const hasRecruiterSignals = hasContent(recruiterPersona);
 
     const gapData = gapResult?.gap_analysis || gapResult || {};
     const gapScore = clamp(
@@ -308,12 +411,19 @@ export function StrategicProfileTab({ onNavigate }: StrategicProfileTabProps) {
       20 +
       Math.min(18, experiences.length * 4) +
       Math.min(20, quantifiedExperienceCount * 6) +
-      recruiterProbability * 0.18 +
-      recruiterReassurance * 4 +
+      recruiterReassurance * 6 +
       (simulatorAverage > 0 ? simulatorAverage * 0.16 : 0) -
       recruiterRedFlags * 4 +
       (generalBoost ? 6 : 0)
     );
+
+    const claritySignals = [pitchText, questionCount > 0, simulatorAverage > 0].filter(Boolean).length;
+    const impactSignals = [quantifiedExperienceCount > 0, gapScore > 0, recruiterReassurance > 0].filter(Boolean).length;
+    const jobFitSignals = [hasJobDescription, gapScore > 0, hasJobDecoder, targetJobReady].filter(Boolean).length;
+    const companyKnowledgeSignals = [targetCompanyReady, hasCompanyResearch, hasMarketResearch].filter(Boolean).length;
+    const objectionsSignals = [flawCount > 0, hasJobDecoder, scenarioCount > 0, questionCount > 0].filter(Boolean).length;
+    const leadershipSignals = [experiences.length > 0, hasRecruiterSignals, simulatorAverage > 0].filter(Boolean).length;
+    const salarySignals = [salaryRangeReady, salaryExpectationsReady, negotiationAverage > 0, negotiationHistory.length > 0].filter(Boolean).length;
 
     const salary = clamp(
       15 +
@@ -329,10 +439,11 @@ export function StrategicProfileTab({ onNavigate }: StrategicProfileTabProps) {
         label: 'Clarté du discours',
         shortLabel: 'Clarté',
         score: clarity,
+        signalCount: claritySignals,
         color: colorForScore(clarity),
         level: levelForScore(clarity),
         why: pitchText
-          ? 'BTCV dispose déjà d\'une base de pitch et de plusieurs signaux de formulation.'
+          ? 'Un pitch général est déjà disponible dans votre profil et sert de base de travail.'
           : 'Le discours reste peu stabilisé tant qu\'un pitch clair n\'a pas été consolidé.',
         evidence: [
           pitchText ? 'Un pitch exploitable est déjà présent dans votre profil.' : 'Aucun pitch consolidé n\'est encore visible dans le profil.',
@@ -349,6 +460,7 @@ export function StrategicProfileTab({ onNavigate }: StrategicProfileTabProps) {
         label: 'Impact et preuves',
         shortLabel: 'Impact',
         score: impact,
+        signalCount: impactSignals,
         color: colorForScore(impact),
         level: levelForScore(impact),
         why: quantifiedExperienceCount > 0
@@ -369,6 +481,7 @@ export function StrategicProfileTab({ onNavigate }: StrategicProfileTabProps) {
         label: 'Adéquation au poste',
         shortLabel: 'Adéquation',
         score: jobFit,
+        signalCount: jobFitSignals,
         color: colorForScore(jobFit),
         level: levelForScore(jobFit),
         why: gapScore > 0
@@ -389,6 +502,7 @@ export function StrategicProfileTab({ onNavigate }: StrategicProfileTabProps) {
         label: 'Connaissance de l\'entreprise',
         shortLabel: 'Entreprise',
         score: companyKnowledge,
+        signalCount: companyKnowledgeSignals,
         color: colorForScore(companyKnowledge),
         level: levelForScore(companyKnowledge),
         why: hasCompanyResearch
@@ -409,6 +523,7 @@ export function StrategicProfileTab({ onNavigate }: StrategicProfileTabProps) {
         label: 'Gestion des objections',
         shortLabel: 'Objections',
         score: objections,
+        signalCount: objectionsSignals,
         color: colorForScore(objections),
         level: levelForScore(objections),
         why: flawCount > 0
@@ -429,14 +544,15 @@ export function StrategicProfileTab({ onNavigate }: StrategicProfileTabProps) {
         label: 'Posture et leadership',
         shortLabel: 'Leadership',
         score: leadership,
+        signalCount: leadershipSignals,
         color: colorForScore(leadership),
         level: levelForScore(leadership),
-        why: recruiterProbability > 0
-          ? 'Votre posture commence à être testée par des signaux recruteur et des simulations.'
+        why: hasRecruiterSignals
+          ? 'Votre posture a été évaluée dans des simulations et des signaux recruteur, avec encore des points à consolider.'
           : 'Le leadership reste encore peu observable sans simulations et sans regard recruteur.',
         evidence: [
           `${experiences.length} expérience(s) alimentent actuellement le profil.`,
-          recruiterProbability > 0 ? `Probabilité d\'entretien vue recruteur : ${recruiterProbability}%.` : 'La vue recruteur n\'a pas encore été calculée.',
+          hasRecruiterSignals ? `La vue recruteur a identifié ${recruiterReassurance} point(s) rassurant(s) et ${recruiterRedFlags} point(s) de vigilance.` : 'La vue recruteur n\'a pas encore été calculée.',
           simulatorAverage > 0 ? `Moyenne actuelle des simulations : ${Math.round(simulatorAverage)}/100.` : 'Aucune simulation notée ne permet encore de consolider la posture.'
         ],
         recommendationTitle: 'Montrer davantage votre capacité à tenir le poste',
@@ -449,6 +565,7 @@ export function StrategicProfileTab({ onNavigate }: StrategicProfileTabProps) {
         label: 'Négociation salariale',
         shortLabel: 'Salaire',
         score: salary,
+        signalCount: salarySignals,
         color: colorForScore(salary),
         level: levelForScore(salary),
         why: salaryRangeReady
@@ -466,20 +583,151 @@ export function StrategicProfileTab({ onNavigate }: StrategicProfileTabProps) {
       }
     ];
 
-    const averageScore = Math.round(average(axisDefinitions.map((axis) => axis.score)));
+    const alwaysVisibleIds: AxisId[] = ['clarity', 'impact', 'jobFit', 'objections'];
+    const dynamicVisibility: Record<AxisId, boolean> = {
+      clarity: true,
+      impact: true,
+      jobFit: true,
+      objections: true,
+      companyKnowledge: targetCompanyReady || hasCompanyResearch || hasMarketResearch || mode === 'application',
+      leadership: experiences.length >= 2 || hasRecruiterSignals || simulatorAverage > 0 || questionCount >= 3,
+      salary: salaryRangeReady || salaryExpectationsReady || negotiationHistory.length > 0 || cvData?.interview_type === 'final'
+    };
+
+    const visibleAxes = axisDefinitions.filter((axis) => {
+      if (alwaysVisibleIds.includes(axis.id)) return true;
+      return dynamicVisibility[axis.id];
+    });
+
+    const inLastWindow = (entryDate: Date, daysStart: number, daysEnd: number = 0) => {
+      const now = Date.now();
+      const age = now - entryDate.getTime();
+      return age >= daysEnd * 24 * 60 * 60 * 1000 && age < daysStart * 24 * 60 * 60 * 1000;
+    };
+
+    const historyByAxis: Record<AxisId, { recent: number[]; previous: number[]; recentCount: number }> = {
+      clarity: { recent: [], previous: [], recentCount: 0 },
+      impact: { recent: [], previous: [], recentCount: 0 },
+      jobFit: { recent: [], previous: [], recentCount: 0 },
+      companyKnowledge: { recent: [], previous: [], recentCount: 0 },
+      objections: { recent: [], previous: [], recentCount: 0 },
+      leadership: { recent: [], previous: [], recentCount: 0 },
+      salary: { recent: [], previous: [], recentCount: 0 }
+    };
+
+    const addHistoryValue = (axisId: AxisId, score: number, isRecent: boolean, isPrevious: boolean) => {
+      if (!Number.isFinite(score) || score <= 0) return;
+      if (isRecent) {
+        historyByAxis[axisId].recent.push(score);
+        historyByAxis[axisId].recentCount += 1;
+      }
+      if (isPrevious) {
+        historyByAxis[axisId].previous.push(score);
+      }
+    };
+
+    trainingHistory.forEach((entry) => {
+      const isRecent = inLastWindow(entry.createdAt, 30);
+      const isPrevious = inLastWindow(entry.createdAt, 60, 30);
+      if (!isRecent && !isPrevious) return;
+
+      const theme = (entry.theme || '').toLowerCase();
+      const questionType = (entry.questionType || '').toLowerCase();
+      const tags = (entry.tags || []).join(' ');
+
+      addHistoryValue('clarity', entry.score, isRecent, isPrevious);
+      addHistoryValue('objections', entry.score, isRecent, isPrevious);
+
+      if (questionType.includes('mes') || theme.includes('crise') || tags.includes('objection')) {
+        addHistoryValue('leadership', entry.score, isRecent, isPrevious);
+      }
+      if (theme.includes('negociation') || tags.includes('salaire')) {
+        addHistoryValue('salary', entry.score, isRecent, isPrevious);
+      }
+      if (theme.includes('management') || theme.includes('leadership') || theme.includes('communication')) {
+        addHistoryValue('leadership', entry.score, isRecent, isPrevious);
+      }
+    });
+
+    interviewHistory.forEach((entry) => {
+      const isRecent = inLastWindow(entry.createdAt, 30);
+      const isPrevious = inLastWindow(entry.createdAt, 60, 30);
+      if (!isRecent && !isPrevious) return;
+
+      addHistoryValue('clarity', entry.score, isRecent, isPrevious);
+      addHistoryValue('impact', entry.score, isRecent, isPrevious);
+      addHistoryValue('objections', entry.score, isRecent, isPrevious);
+      addHistoryValue('leadership', entry.score, isRecent, isPrevious);
+    });
+
+    const globalRecent = [...trainingHistory, ...interviewHistory]
+      .filter((entry) => inLastWindow(entry.createdAt, 30))
+      .map((entry) => entry.score)
+      .filter((score) => Number.isFinite(score) && score > 0);
+
+    const globalPrevious = [...trainingHistory, ...interviewHistory]
+      .filter((entry) => inLastWindow(entry.createdAt, 60, 30))
+      .map((entry) => entry.score)
+      .filter((score) => Number.isFinite(score) && score > 0);
+
+    const globalRecentAvg = averageOrNull(globalRecent);
+    const globalPreviousAvg = averageOrNull(globalPrevious);
+    const globalDelta = globalRecentAvg !== null && globalPreviousAvg !== null
+      ? globalRecentAvg - globalPreviousAvg
+      : null;
+
+    const domainTrends = visibleAxes.map((axis) => {
+      const recentAvg = averageOrNull(historyByAxis[axis.id].recent);
+      const previousAvg = averageOrNull(historyByAxis[axis.id].previous);
+      const delta = recentAvg !== null && previousAvg !== null ? recentAvg - previousAvg : null;
+      return {
+        axisId: axis.id,
+        label: axis.label,
+        recentCount: historyByAxis[axis.id].recentCount,
+        delta,
+        trendLabel: scoreDeltaLabel(delta)
+      };
+    });
+
+    const risingDomains = domainTrends
+      .filter((trend) => trend.delta !== null && (trend.delta as number) > 0)
+      .sort((a, b) => (b.delta as number) - (a.delta as number));
+
+    const stableOrDownDomains = domainTrends
+      .filter((trend) => trend.delta === null || (trend.delta as number) <= 0)
+      .sort((a, b) => {
+        const aDelta = a.delta ?? -999;
+        const bDelta = b.delta ?? -999;
+        return aDelta - bDelta;
+      });
+
+    const averageScore = Math.round(average(visibleAxes.map((axis) => axis.score)));
     const readinessLabel = averageScore >= 75 ? 'Solide' : averageScore >= 55 ? 'En progression' : 'À cadrer';
+    const documentedDomains = visibleAxes.filter((axis) => axis.signalCount >= 2).length;
+    const reliabilityLabel = documentedDomains >= 6 ? 'Élevée' : documentedDomains >= 4 ? 'Intermédiaire' : 'Initiale';
+    const reliabilityDetail = `${documentedDomains} domaine(s) sur ${visibleAxes.length} suffisamment documenté(s)`;
+    const progressionLabel = scoreDeltaLabel(globalDelta);
+    const recentActivityCount = globalRecent.length;
 
     return {
-      axes: axisDefinitions,
+      axes: visibleAxes,
       averageScore,
       readinessLabel,
+      reliabilityLabel,
+      reliabilityDetail,
+      progressionDelta30d: globalDelta !== null ? Math.round(globalDelta) : 0,
+      progressionLabel,
+      recentActivityCount,
+      risingDomain: risingDomains[0] || null,
+      stableOrDownDomain: stableOrDownDomains[0] || null,
       facts: [
         targetJobReady ? `Poste cible : ${cvData?.target_job}` : null,
         targetCompanyReady ? `Entreprise cible : ${cvData?.target_company}` : null,
         experiences.length > 0 ? `${experiences.length} expérience(s) structurée(s)` : null,
         salaryExpectationsReady ? `Prétentions : ${cvData?.salary_expectations}` : null,
         hasJobDescription ? 'Annonce renseignée' : null,
-        recruiterProbability > 0 ? `Probabilité d'entretien recruteur : ${recruiterProbability}%` : null
+        hasRecruiterSignals ? 'Vue recruteur analysée' : null,
+        isLoadingHistory ? null : `${recentActivityCount} session(s) prises en compte sur 30 jours`
       ].filter(Boolean) as string[]
     };
   }, [
@@ -494,7 +742,10 @@ export function StrategicProfileTab({ onNavigate }: StrategicProfileTabProps) {
     flawCoachingResult,
     jobDecoderResult,
     actionPlanResult,
-    customScenariosResult
+    customScenariosResult,
+    trainingHistory,
+    interviewHistory,
+    isLoadingHistory
   ]);
 
   const priorities = useMemo(() => {
@@ -510,9 +761,41 @@ export function StrategicProfileTab({ onNavigate }: StrategicProfileTabProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <DashboardCard title="Mon profil" icon={<UserCheck size={24} />}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
+          <div style={{ minWidth: '220px' }}>
+            <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Profil complété</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary)' }}>{Math.max(0, Math.min(100, Number(profileCompletion ?? 0)))}%</div>
+            <div style={{ marginTop: '0.45rem', width: '100%', maxWidth: '260px', height: '10px', borderRadius: '999px', background: 'var(--bg-secondary)', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+              <div style={{ height: '100%', width: `${Math.max(0, Math.min(100, Number(profileCompletion ?? 0)))}%`, background: 'var(--gradient-primary)', transition: 'width 0.35s ease' }} />
+            </div>
+            <div style={{ marginTop: '0.4rem', fontSize: '0.78rem', fontWeight: 700, color: Number(profileCompletion ?? 0) >= 85 ? 'var(--success)' : 'var(--warning)' }}>
+              {Number(profileCompletion ?? 0) >= 85 ? 'Pret pour candidature' : 'A consolider'}
+            </div>
+          </div>
+          <div style={{ flex: 1, minWidth: '260px' }}>
+            <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Priorités recommandées</div>
+            {Array.isArray(profileRecommendations) && profileRecommendations.length > 0 ? (
+              <ul style={{ margin: 0, paddingLeft: '1rem', color: 'var(--text-main)', fontSize: '0.9rem', lineHeight: 1.45 }}>
+                {profileRecommendations.map((item, idx) => (<li key={idx}>{item}</li>))}
+              </ul>
+            ) : (
+              <div style={{ color: 'var(--success)', fontWeight: 600, fontSize: '0.9rem' }}>Profil opérationnel: aucune action prioritaire.</div>
+            )}
+          </div>
+        </div>
+      </DashboardCard>
+
       <DashboardCard
         title="Profil stratégique évolutif"
         icon={<Sparkles size={24} />}
+        featureId="strategic_profile_overview"
+        feedbackQuestion="Ce profil stratégique vous aide-t-il réellement à mieux vous préparer ?"
+        feedbackBullets={[
+          "Le résumé reste trop théorique.",
+          "Les priorités ne sont pas assez actionnables.",
+          "Le score ne reflète pas assez mon niveau réel.",
+        ]}
         headerAction={
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button
@@ -532,11 +815,41 @@ export function StrategicProfileTab({ onNavigate }: StrategicProfileTabProps) {
           </div>
         }
       >
+        <div style={{ marginBottom: '1rem', color: 'var(--text-muted)', fontSize: '0.92rem', lineHeight: 1.5 }}>
+          Le profil général reflète vos tendances de fond. La candidature active reflète votre préparation pour le poste ciblé actuellement.
+        </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
           <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '1.25rem' }}>
-            <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Niveau actuel</div>
+            <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>État de préparation</div>
             <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)' }}>{profile.readinessLabel}</div>
-            <div style={{ color: 'var(--text-muted)', marginTop: '0.5rem', fontSize: '0.92rem' }}>Score synthétique : {profile.averageScore}/100</div>
+            <div style={{ color: 'var(--text-muted)', marginTop: '0.5rem', fontSize: '0.92rem' }}>Score de préparation : {profile.averageScore}/100</div>
+            <div style={{ color: 'var(--text-muted)', marginTop: '0.35rem', fontSize: '0.87rem' }}>Fiabilité : {profile.reliabilityLabel} · {profile.reliabilityDetail}</div>
+            <div style={{ color: 'var(--text-muted)', marginTop: '0.45rem', fontSize: '0.82rem' }}>
+              Ce score évolue avec vos entraînements et ne constitue pas une prédiction de recrutement.
+            </div>
+            <button className="btn-outline" style={{ marginTop: '0.75rem', padding: '0.45rem 0.7rem', fontSize: '0.8rem' }} onClick={() => setShowScoringHelp((prev) => !prev)}>
+              {showScoringHelp ? 'Masquer la méthode de calcul' : 'Comment ce score est-il calculé ?'}
+            </button>
+            <button
+              onClick={() => {
+                const node = document.getElementById('profile_principles_section');
+                if (node) node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+              style={{
+                marginTop: '0.45rem',
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                color: 'var(--primary)',
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                fontSize: '0.82rem',
+                textAlign: 'left'
+              }}
+            >
+              Comment cette analyse est-elle construite ?
+            </button>
           </div>
           <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '1.25rem' }}>
             <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Lecture du profil</div>
@@ -544,12 +857,54 @@ export function StrategicProfileTab({ onNavigate }: StrategicProfileTabProps) {
             <div style={{ color: 'var(--text-muted)', marginTop: '0.5rem', fontSize: '0.92rem' }}>Le profil se précise au fil des simulations, des réponses et des analyses déjà réalisées dans BTCV.</div>
           </div>
           <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '1.25rem' }}>
-            <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Mise à jour</div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)' }}>Dynamique</div>
-            <div style={{ color: 'var(--text-muted)', marginTop: '0.5rem', fontSize: '0.92rem' }}>Les recommandations et les domaines évoluent selon vos nouveaux exercices et la qualité des signaux observés.</div>
+            <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Progression récente</div>
+            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)' }}>
+              {profile.progressionDelta30d > 0 ? `+${profile.progressionDelta30d}` : profile.progressionDelta30d} pts / 30j
+            </div>
+            <div style={{ color: 'var(--text-muted)', marginTop: '0.5rem', fontSize: '0.92rem' }}>
+              {profile.progressionLabel}. {isLoadingHistory ? 'Chargement des sessions en cours…' : `${profile.recentActivityCount} session(s) observée(s) sur 30 jours.`}
+            </div>
           </div>
         </div>
+
+        {showScoringHelp && (
+          <div style={{ marginTop: '1rem', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '1rem', color: 'var(--text-muted)', lineHeight: 1.55, fontSize: '0.9rem' }}>
+            Ce score repose sur les informations de votre profil, les analyses de l'offre, les réponses évaluées, les simulations réalisées et les débriefings enregistrés. Les domaines peu documentés sont signalés et influencent moins fortement la lecture globale.
+          </div>
+        )}
       </DashboardCard>
+
+      <div id="profile_priorities_section">
+        <DashboardCard
+          title="Vos trois prochaines actions"
+          icon={<Target size={24} />}
+          featureId="strategic_profile_priorities"
+          feedbackQuestion="Ces trois prochaines actions sont-elles claires et utiles ?"
+          feedbackBullets={[
+            "Les actions sont trop génériques.",
+            "Je veux des étapes plus concrètes.",
+            "L'ordre des priorités me semble discutable.",
+          ]}
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+            {priorities.map((axis, index) => (
+              <div key={axis.id} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderLeft: `4px solid ${axis.color}`, borderRadius: '1rem', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                <div>
+                  <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: 700, color: axis.color, marginBottom: '0.35rem' }}>Priorité {index + 1}</div>
+                  <h4 style={{ margin: 0, color: 'var(--text-main)', fontSize: '1.05rem' }}>{axis.recommendationTitle}</h4>
+                </div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.92rem', lineHeight: 1.55 }}>{axis.why}</div>
+                <div style={{ color: 'var(--text-main)', fontWeight: 600, fontSize: '0.92rem' }}>
+                  Domaine concerné : {axis.label} · {axis.level} ({axis.score}/100)
+                </div>
+                <button className="btn-primary" onClick={() => onNavigate(axis.targetTab, axis.targetAnchor)} style={{ alignSelf: 'flex-start', padding: '0.65rem 1rem' }}>
+                  {axis.recommendationAction}
+                </button>
+              </div>
+            ))}
+          </div>
+        </DashboardCard>
+      </div>
 
       <div id="profile_graph_section" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
         <DashboardCard title="Vue rapide des domaines" icon={<BarChart3 size={24} />}>
@@ -586,27 +941,34 @@ export function StrategicProfileTab({ onNavigate }: StrategicProfileTabProps) {
         </DashboardCard>
       </div>
 
-      <div id="profile_priorities_section">
-        <DashboardCard title="Vos trois priorités" icon={<Target size={24} />}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
-            {priorities.map((axis, index) => (
-              <div key={axis.id} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderLeft: `4px solid ${axis.color}`, borderRadius: '1rem', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-                <div>
-                  <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: 700, color: axis.color, marginBottom: '0.35rem' }}>Priorité {index + 1}</div>
-                  <h4 style={{ margin: 0, color: 'var(--text-main)', fontSize: '1.05rem' }}>{axis.recommendationTitle}</h4>
-                </div>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.92rem', lineHeight: 1.55 }}>{axis.why}</div>
-                <div style={{ color: 'var(--text-main)', fontWeight: 600, fontSize: '0.92rem' }}>
-                  Domaine concerné : {axis.label} · {axis.level} ({axis.score}/100)
-                </div>
-                <button className="btn-primary" onClick={() => onNavigate(axis.targetTab, axis.targetAnchor)} style={{ alignSelf: 'flex-start', padding: '0.65rem 1rem' }}>
-                  {axis.recommendationAction}
-                </button>
-              </div>
-            ))}
+      <DashboardCard title="Progression récente" icon={<TrendingUp size={24} />}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+          <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '1rem' }}>
+            <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '0.4rem' }}>Domaine en hausse</div>
+            <div style={{ color: 'var(--text-main)', fontWeight: 700 }}>{profile.risingDomain?.label || 'Aucune hausse nette détectée'}</div>
+            <div style={{ marginTop: '0.35rem', color: '#10b981', fontWeight: 700, fontSize: '0.9rem' }}>{profile.risingDomain?.trendLabel || 'Pas assez d\'historique'}</div>
           </div>
-        </DashboardCard>
-      </div>
+          <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '1rem' }}>
+            <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '0.4rem' }}>Domaine à relancer</div>
+            <div style={{ color: 'var(--text-main)', fontWeight: 700 }}>{profile.stableOrDownDomain?.label || 'Aucun domaine critique détecté'}</div>
+            <div style={{ marginTop: '0.35rem', color: '#f59e0b', fontWeight: 700, fontSize: '0.9rem' }}>{profile.stableOrDownDomain?.trendLabel || 'Pas assez d\'historique'}</div>
+          </div>
+          <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '1rem' }}>
+            <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '0.4rem' }}>Activité récente</div>
+            <div style={{ color: 'var(--text-main)', fontWeight: 700 }}>{profile.recentActivityCount} session(s)</div>
+            <div style={{ marginTop: '0.35rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>Questions, simulations et entraînements des 30 derniers jours.</div>
+          </div>
+        </div>
+      </DashboardCard>
+
+      <DashboardCard title="Légende des scores" icon={<Activity size={24} />}>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <span style={{ padding: '0.45rem 0.7rem', borderRadius: '999px', background: 'rgba(239,68,68,0.12)', color: '#ef4444', fontWeight: 700, fontSize: '0.82rem' }}>0-54 Prioritaire</span>
+          <span style={{ padding: '0.45rem 0.7rem', borderRadius: '999px', background: 'rgba(245,158,11,0.14)', color: '#f59e0b', fontWeight: 700, fontSize: '0.82rem' }}>55-69 À renforcer</span>
+          <span style={{ padding: '0.45rem 0.7rem', borderRadius: '999px', background: 'rgba(16,185,129,0.14)', color: '#10b981', fontWeight: 700, fontSize: '0.82rem' }}>70-84 Solide</span>
+          <span style={{ padding: '0.45rem 0.7rem', borderRadius: '999px', background: 'rgba(16,185,129,0.24)', color: '#047857', fontWeight: 700, fontSize: '0.82rem' }}>85-100 Maîtrisé</span>
+        </div>
+      </DashboardCard>
 
       <div id="profile_strengths_section" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
         <DashboardCard title="Forces à exploiter" icon={<TrendingUp size={24} />}>
@@ -625,7 +987,7 @@ export function StrategicProfileTab({ onNavigate }: StrategicProfileTabProps) {
           </div>
         </DashboardCard>
 
-        <DashboardCard title="Référentiel factuel" icon={<Compass size={24} />}>
+        <DashboardCard title="Éléments pris en compte" icon={<Compass size={24} />}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {profile.facts.length > 0 ? profile.facts.map((fact) => (
               <div key={fact} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '0.85rem', padding: '0.9rem 1rem', color: 'var(--text-main)', fontWeight: 500 }}>
@@ -659,40 +1021,104 @@ export function StrategicProfileTab({ onNavigate }: StrategicProfileTabProps) {
 
                 <p style={{ margin: '0 0 0.9rem 0', color: 'var(--text-muted)', lineHeight: 1.55 }}>{axis.why}</p>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem', marginBottom: '1rem' }}>
-                  {axis.evidence.map((item) => (
-                    <div key={item} style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start', color: 'var(--text-main)', fontSize: '0.9rem' }}>
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: axis.color, marginTop: '0.42rem', flexShrink: 0 }} />
-                      <span>{item}</span>
-                    </div>
-                  ))}
+                <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.9rem' }}>
+                  <button
+                    className="btn-ghost"
+                    style={{ padding: '0.45rem 0.7rem', fontSize: '0.82rem' }}
+                    onClick={() => setSelectedAxis(axis)}
+                  >
+                    Voir le détail
+                  </button>
+                  <button className="btn-outline" onClick={() => onNavigate(axis.targetTab, axis.targetAnchor)} style={{ padding: '0.45rem 0.7rem', fontSize: '0.82rem' }}>
+                    {axis.recommendationAction}
+                  </button>
                 </div>
-
-                <button className="btn-outline" onClick={() => onNavigate(axis.targetTab, axis.targetAnchor)} style={{ padding: '0.55rem 0.9rem' }}>
-                  {axis.recommendationAction}
-                </button>
               </div>
             ))}
           </div>
         </DashboardCard>
       </div>
 
+      <div id="profile_principles_section">
       <DashboardCard title="Principe de fonctionnement" icon={<Lightbulb size={24} />}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
           <div style={{ background: 'var(--bg-secondary)', borderRadius: '1rem', padding: '1rem', border: '1px solid var(--border-color)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem', color: 'var(--text-main)', fontWeight: 700 }}><Briefcase size={18} color="var(--primary)" /> Faits confirmés</div>
-            <p style={{ margin: 0, color: 'var(--text-muted)', lineHeight: 1.55 }}>Le référentiel reprend ce que vous avez renseigné ou ce que BTCV a déjà généré de manière stable.</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem', color: 'var(--text-main)', fontWeight: 700 }}><Briefcase size={18} color="var(--primary)" /> Données vérifiées</div>
+            <p style={{ margin: 0, color: 'var(--text-muted)', lineHeight: 1.55 }}>Les éléments factuels proviennent des informations que vous avez renseignées, de vos candidatures et des analyses déjà réalisées.</p>
           </div>
           <div style={{ background: 'var(--bg-secondary)', borderRadius: '1rem', padding: '1rem', border: '1px solid var(--border-color)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem', color: 'var(--text-main)', fontWeight: 700 }}><ShieldAlert size={18} color="#f59e0b" /> Observations BTCV</div>
-            <p style={{ margin: 0, color: 'var(--text-muted)', lineHeight: 1.55 }}>Les faiblesses affichées sont formulées comme des observations de coaching, pas comme des étiquettes figées.</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem', color: 'var(--text-main)', fontWeight: 700 }}><ShieldAlert size={18} color="#f59e0b" /> Observations de préparation</div>
+            <p style={{ margin: 0, color: 'var(--text-muted)', lineHeight: 1.55 }}>Les forces et les axes de progrès sont des observations de coaching. Elles évoluent avec vos réponses, vos simulations et vos entretiens.</p>
           </div>
           <div style={{ background: 'var(--bg-secondary)', borderRadius: '1rem', padding: '1rem', border: '1px solid var(--border-color)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem', color: 'var(--text-main)', fontWeight: 700 }}><Zap size={18} color="#10b981" /> Recommandations actionnables</div>
-            <p style={{ margin: 0, color: 'var(--text-muted)', lineHeight: 1.55 }}>Chaque priorité renvoie vers un module concret de BTCV pour transformer le diagnostic en entraînement utile.</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem', color: 'var(--text-main)', fontWeight: 700 }}><Zap size={18} color="#10b981" /> Actions recommandées</div>
+            <p style={{ margin: 0, color: 'var(--text-muted)', lineHeight: 1.55 }}>Chaque priorité vous dirige vers un exercice concret afin de transformer l'analyse en progression.</p>
           </div>
         </div>
+        <p style={{ marginTop: '1rem', marginBottom: 0, color: 'var(--text-muted)', lineHeight: 1.55, fontSize: '0.9rem' }}>
+          Les scores constituent des indicateurs de préparation. Ils ne prédisent ni la décision d'un recruteur ni l'issue d'une candidature.
+        </p>
       </DashboardCard>
+      </div>
+
+      {selectedAxis && (
+        <div
+          onClick={() => setSelectedAxis(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.5)',
+            zIndex: 1200,
+            display: 'flex',
+            justifyContent: 'flex-end'
+          }}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: 'min(480px, 100%)',
+              height: '100%',
+              background: 'var(--bg-card)',
+              borderLeft: '1px solid var(--border-color)',
+              padding: '1.25rem',
+              overflowY: 'auto',
+              boxShadow: '-8px 0 24px rgba(0,0,0,0.2)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.9rem' }}>
+              <div>
+                <h3 style={{ margin: 0, color: 'var(--text-main)' }}>{selectedAxis.label}</h3>
+                <div style={{ color: selectedAxis.color, fontWeight: 700, fontSize: '0.9rem' }}>{selectedAxis.level} · {selectedAxis.score}/100</div>
+              </div>
+              <button className="btn-ghost" style={{ padding: '0.35rem 0.5rem' }} onClick={() => setSelectedAxis(null)}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <p style={{ color: 'var(--text-muted)', lineHeight: 1.55, marginBottom: '1rem' }}>{selectedAxis.why}</p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem', marginBottom: '1rem' }}>
+              {selectedAxis.evidence.map((item) => (
+                <div key={item} style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start', color: 'var(--text-main)', fontSize: '0.9rem' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: selectedAxis.color, marginTop: '0.42rem', flexShrink: 0 }} />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+
+            <button
+              className="btn-primary"
+              style={{ width: '100%' }}
+              onClick={() => {
+                onNavigate(selectedAxis.targetTab, selectedAxis.targetAnchor);
+                setSelectedAxis(null);
+              }}
+            >
+              {selectedAxis.recommendationAction}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

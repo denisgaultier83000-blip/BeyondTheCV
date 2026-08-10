@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Building, Newspaper, ExternalLink, Globe2, Target, Users, TrendingUp, BookOpen, Brain, Activity } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 import { useTranslation } from 'react-i18next';
@@ -40,6 +40,70 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
   const sources = data?.sources || []; // Exploitation des sources Web fournies par le backend
   
   let newsLinks = report.news_links || [];
+
+  const getSafeHttpUrl = (rawUrl: any): string | null => {
+    const value = String(rawUrl || '').trim();
+    if (!value || value === '#') return null;
+
+    try {
+      const normalized = value.startsWith('http://') || value.startsWith('https://') ? value : `https://${value}`;
+      const parsed = new URL(normalized);
+      const host = parsed.hostname.toLowerCase();
+      if (!['http:', 'https:'].includes(parsed.protocol)) return null;
+      if (!host || ['example.com', 'www.example.com', 'exemple.com', 'www.exemple.com', 'localhost'].includes(host)) return null;
+      return parsed.toString();
+    } catch {
+      return null;
+    }
+  };
+
+  const getFaviconCandidates = (url: string | null): string[] => {
+    if (!url) return [];
+    try {
+      const parsed = new URL(url);
+      const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
+      const encodedHost = encodeURIComponent(host);
+      const encodedUrl = encodeURIComponent(parsed.toString());
+      return [
+        `https://www.google.com/s2/favicons?domain=${encodedHost}&sz=16`,
+        `https://icons.duckduckgo.com/ip3/${host}.ico`,
+        `https://icon.horse/icon/${host}`,
+        `https://www.google.com/s2/favicons?domain_url=${encodedUrl}&sz=16`
+      ];
+    } catch {
+      return [];
+    }
+  };
+
+  const FaviconImage = ({ url }: { url: string | null }) => {
+    const candidates = useMemo(() => getFaviconCandidates(url), [url]);
+    const [index, setIndex] = useState(0);
+    const [failed, setFailed] = useState(false);
+
+    useEffect(() => {
+      setIndex(0);
+      setFailed(false);
+    }, [url]);
+
+    if (!url || failed || candidates.length === 0) {
+      return <Globe2 size={14} color="var(--primary)" />;
+    }
+
+    return (
+      <img
+        src={candidates[index]}
+        alt=""
+        style={{ width: '16px', height: '16px', borderRadius: '2px', flexShrink: 0 }}
+        onError={() => {
+          if (index < candidates.length - 1) {
+            setIndex(index + 1);
+            return;
+          }
+          setFailed(true);
+        }}
+      />
+    );
+  };
 
   const formatStrategicAnalysis = (text: string) => formatMarkdownReact(text);
 
@@ -162,15 +226,13 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
               {newsLinks.map((news: any, i: number) => {
-                const urlStr = news.url || '#';
-                const isDummyUrl = urlStr === '#';
-                const fullUrl = isDummyUrl ? '#' : (urlStr.startsWith('http') ? urlStr : `https://${urlStr}`);
+                const fullUrl = getSafeHttpUrl(news.url);
                 return (
                   <div key={i} style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-card)', borderRadius: '0.75rem', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
                     <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
                       <div style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 600, marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '0.25rem 0.5rem', borderRadius: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        {!isDummyUrl && <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(fullUrl)}&sz=16`} alt="" style={{ width: '16px', height: '16px', borderRadius: '2px', flexShrink: 0 }} />}
+                        <FaviconImage url={fullUrl} />
                         {news.source}
                       </span>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -182,7 +244,7 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
                           )}
                         </span>
                       </div>
-              {isDummyUrl ? (
+              {!fullUrl ? (
                 <div style={{ fontWeight: 600, fontSize: '1rem', lineHeight: 1.4, color: 'var(--text-main)' }}>
                   {news.title}
                 </div>
@@ -207,7 +269,7 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
                           <div style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-main)' }}>{formatStrategicAnalysis(news.strategic_analysis)}</div>
                         </div>
                       )}
-              {!isDummyUrl && (
+              {fullUrl && (
                 <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ marginTop: 'auto', fontSize: '0.85rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600, textDecoration: 'none' }}>
                   Source Originale <ExternalLink size={14} />
                 </a>

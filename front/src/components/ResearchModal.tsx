@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ScoreGauge from "./ScoreGauge";
 import { formatStrategicAnalysisReact } from '../utils/formatUtils';
@@ -8,6 +8,70 @@ interface ResearchModalProps {
   mode?: 'company' | 'market';
   onClose: () => void;
 }
+
+const getSafeHttpUrl = (rawUrl: any): string | null => {
+  const value = String(rawUrl || '').trim();
+  if (!value || value === '#') return null;
+
+  try {
+    const normalized = value.startsWith('http://') || value.startsWith('https://') ? value : `https://${value}`;
+    const parsed = new URL(normalized);
+    const host = parsed.hostname.toLowerCase();
+    if (!['http:', 'https:'].includes(parsed.protocol)) return null;
+    if (!host || ['example.com', 'www.example.com', 'exemple.com', 'www.exemple.com', 'localhost'].includes(host)) return null;
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+};
+
+const getFaviconCandidates = (url: string | null): string[] => {
+  if (!url) return [];
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
+    const encodedHost = encodeURIComponent(host);
+    const encodedUrl = encodeURIComponent(parsed.toString());
+    return [
+      `https://www.google.com/s2/favicons?domain=${encodedHost}&sz=16`,
+      `https://icons.duckduckgo.com/ip3/${host}.ico`,
+      `https://icon.horse/icon/${host}`,
+      `https://www.google.com/s2/favicons?domain_url=${encodedUrl}&sz=16`
+    ];
+  } catch {
+    return [];
+  }
+};
+
+const FaviconImage = ({ url }: { url: string | null }) => {
+  const candidates = useMemo(() => getFaviconCandidates(url), [url]);
+  const [index, setIndex] = useState(0);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setIndex(0);
+    setFailed(false);
+  }, [url]);
+
+  if (!url || failed || candidates.length === 0) {
+    return null;
+  }
+
+  return (
+    <img
+      src={candidates[index]}
+      alt=""
+      style={{ width: '16px', height: '16px', marginRight: '8px', borderRadius: '2px', flexShrink: 0 }}
+      onError={() => {
+        if (index < candidates.length - 1) {
+          setIndex(index + 1);
+          return;
+        }
+        setFailed(true);
+      }}
+    />
+  );
+};
 
 const ResearchModal: React.FC<ResearchModalProps> = ({ data, mode = 'company', onClose }) => {
   const { t } = useTranslation();
@@ -103,19 +167,17 @@ const ResearchModal: React.FC<ResearchModalProps> = ({ data, mode = 'company', o
                         {company_report.news_links && company_report.news_links.length > 0 ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             {company_report.news_links.map((link: any, i: number) => {
-                              const urlStr = link.url || '#';
-                              const isDummyUrl = urlStr === '#';
-                              const fullUrl = isDummyUrl ? '#' : (urlStr.startsWith('http') ? urlStr : `https://${urlStr}`);
+                              const fullUrl = getSafeHttpUrl(link.url);
                               return (
                                 <div key={i} style={{ background: 'var(--bg-card)', padding: '0.75rem', borderRadius: '6px', border: '1px solid rgba(225, 29, 72, 0.2)' }} onClick={(e) => e.stopPropagation()}>
                                   <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                    {!isDummyUrl ? (
+                                    {fullUrl ? (
                                         <>
-                                            <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(fullUrl)}&sz=16`} alt="source" style={{ width: '16px', height: '16px', marginRight: '8px', borderRadius: '2px', flexShrink: 0 }} />
+                                            <FaviconImage url={fullUrl} />
                                             <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--danger-text)', textDecoration: 'none', fontWeight: 600, fontSize: '0.9rem' }} onClick={(e) => e.stopPropagation()}>{link.title}</a>
                                         </>
                                     ) : (
-                                        <span style={{ color: 'var(--danger-text)', fontWeight: 600, fontSize: '0.9rem' }}>💡 {link.title}</span>
+                                        <span style={{ color: 'var(--danger-text)', fontWeight: 600, fontSize: '0.9rem' }}>{link.title}</span>
                                     )}
                                   </div>
                                   {link.strategic_analysis && (

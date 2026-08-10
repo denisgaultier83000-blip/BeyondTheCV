@@ -34,6 +34,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
   const cvData = dashboard?.cvData;
   const { quotas, fetchQuotas } = dashboard;
   const updateFormData = dashboard?.updateFormData;
+  const trainingRemaining = Number(quotas?.credits ?? quotas?.qa ?? quotas?.pitch ?? 0);
   
   const userAnswersKey = `${storageKeyPrefix}UserAnswers`;
   const feedbacksKey = `${storageKeyPrefix}Feedbacks`;
@@ -189,7 +190,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
     setErrors(prev => ({ ...prev, [qKey]: "" }));
     
     // [NOUVEAU] Vérification du quota avant de lancer l'évaluation
-    if ((quotas?.qa ?? 0) <= 0) {
+    if (trainingRemaining <= 0) {
       setShowRechargeModal(true);
       setIsSubmitting(null);
       return;
@@ -200,7 +201,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
     const suggestedAnswer = q.suggested_answer || q.answer || q.reponse_suggeree || q.reponse || "";
     
     try {
-      const response = await authenticatedFetch(`${API_BASE_URL}${evalEndpoint || '/cv/evaluate-interview-answer'}`, {
+      const response = await authenticatedFetch(`${API_BASE_URL}${evalEndpoint || '/cv/training/evaluate'}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -442,7 +443,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <button onClick={() => { setActiveMode(prev => ({...prev, [qKey]: false})); setErrors(prev => ({...prev, [qKey]: ""})); }} className="btn-ghost" style={{ fontSize: '0.85rem' }}>{t('btn_cancel', 'Annuler')}</button>
                     <button onClick={() => handleSubmit(qKey, q)} disabled={!(userAnswers[qKey] || "").trim()} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
-                      <Send size={16} /> {`${t('q_analyze_answer', 'Analyser ma réponse')} (${quotas?.qa ?? 0} restants)`}
+                      <Send size={16} /> {t('q_analyze_answer', 'Analyser ma réponse')}
                     </button>
                  </div>
               </div>

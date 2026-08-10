@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { API_BASE_URL } from "../config";
+import { readApiErrorMessage } from "../api/errorParser";
 import { useTranslation } from "react-i18next";
 import "./AuthScreen.css";
 
@@ -48,8 +49,11 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
           }),
         });
         if (!regRes.ok) {
-          const errData = await regRes.json().catch(() => ({}));
-          throw new Error(errData.detail || "La création du compte a échoué. Cet email est peut-être déjà utilisé.");
+          const detail = await readApiErrorMessage(
+            regRes,
+            "La creation du compte a echoue. Cet email est peut-etre deja utilise."
+          );
+          throw new Error(detail);
         }
       }
 
@@ -62,8 +66,11 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
       });
 
       if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.detail || t('auth_error_signin_failed', "Identifiants incorrects"));
+        const detail = await readApiErrorMessage(
+          response,
+          t('auth_error_signin_failed', "Identifiants incorrects")
+        );
+        throw new Error(detail);
       }
 
       const data = await response.json();

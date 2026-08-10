@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import { API_BASE_URL } from '../config';
+import { readApiErrorMessage } from '../api/errorParser';
 
 interface LoginProps {
-  onLoginSuccess?: () => void;
+  onLoginSuccess?: (loginResponse?: any) => void;
 }
 
 export default function Login({ onLoginSuccess }: LoginProps) {
@@ -44,13 +45,10 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         });
 
         if (!registerRes.ok) {
-            let detail = 'Erreur lors de l\'inscription. Cet email est peut-être déjà utilisé.';
-            try {
-              const errData = await registerRes.json();
-              detail = errData.detail || errData.message || detail;
-            } catch (parseError) {
-              console.warn('Impossible de lire l’erreur de création de compte.', parseError);
-            }
+            const detail = await readApiErrorMessage(
+              registerRes,
+              'Erreur lors de l\'inscription. Cet email est peut-etre deja utilise.'
+            );
             throw new Error(detail);
           }
       }
@@ -67,13 +65,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       });
 
       if (!loginRes.ok) {
-        let detail = 'Identifiants incorrects.';
-        try {
-          const errData = await loginRes.json();
-          detail = errData.detail || errData.message || detail;
-        } catch (parseError) {
-          console.warn('Impossible de lire l’erreur retournée par l’API auth.', parseError);
-        }
+          const detail = await readApiErrorMessage(loginRes, 'Identifiants incorrects.');
         throw new Error(detail);
       }
 

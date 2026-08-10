@@ -62,6 +62,12 @@ export function CareerSimulator({ candidateData }: SimulatorProps) {
       title="Simulateur de Carrière"
       icon={<Play size={24} />}
       featureId={result ? "career_simulator" : undefined}
+      feedbackQuestion="Cette simulation vous aide-t-elle à décider plus clairement ?"
+      feedbackBullets={[
+        "Le scénario reste trop théorique.",
+        "Je veux une projection plus réaliste.",
+        "Le coût ou le bénéfice n'est pas assez clair.",
+      ]}
       jobType={candidateData?.target_job}
     >
       <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>

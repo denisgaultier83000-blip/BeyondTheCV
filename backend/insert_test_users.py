@@ -109,15 +109,18 @@ def insert_test_users():
                 INSERT INTO users (
                     id, email, hashed_password, first_name, last_name,
                     created_at, subscription_start_date, subscription_expiration_date,
-                    is_premium, subscription_status, is_admin, is_tester
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    is_premium, subscription_status, is_admin, is_tester,
+                    credits, quota_pitch, quota_qa, quota_mes, quota_negotiation,
+                    quota_regeneration, quota_update, quota_entreprises, quota_offres
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (id) DO NOTHING
             """, (
                 user["id"], user["email"], get_password_hash(user["password"]),
                 user["first_name"], user["last_name"], created_at,
                 subscription_start, subscription_expiry, True, 'active',
                 user["email"] == "julien.techpm@test.com", # Julien est maintenant admin
-                True # Tous ces utilisateurs sont des testeurs
+                True, # Tous ces utilisateurs sont des testeurs
+                30, 30, 30, 30, 30, 30, 30, 5, 15
             ))
 
             # Créer des produits CV pour chaque utilisateur

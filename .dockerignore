@@ -3,6 +3,9 @@ __pycache__
 .git
 .vscode
 .idea
+.venv
+.venv/
+venv/
 dist
 build
 *.pdf

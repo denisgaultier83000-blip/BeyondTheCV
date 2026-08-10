@@ -52,6 +52,13 @@ export function MarketAnalysisCard({ data, salaryData, loading, error }: MarketA
       loadingText="Analyse du marché en cours..."
       error={error || parsedData?.error}
       errorText="Analyse échouée."
+      featureId="market_analysis"
+      feedbackQuestion="Cette analyse du marché vous aide-t-elle à mieux vous positionner ?"
+      feedbackBullets={[
+        "La lecture du marché manque de concret.",
+        "Les salaires ou tensions sont trop vagues.",
+        "Je veux des signaux plus exploitables.",
+      ]}
     >
       {!loading && !error && parsedData && !parsedData.error && (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>

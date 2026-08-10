@@ -3,12 +3,190 @@ import json
 import asyncio
 import re
 from datetime import datetime
+from urllib.parse import urlparse
 from .ai_generator import ai_service
 from .search_service import search_web
 # Correction de l'import circulaire : utilisation de utils
 from ai.prompts.osint_pipeline import OSINTPipeline
 from .utils import load_prompt, clean_ai_json_response
 from .websocket_manager import manager
+
+
+def _extract_urls_from_text(raw_text: str) -> list[str]:
+    if not raw_text:
+        return []
+    matches = re.findall(r"https?://[^\s\]\)\}\"'>]+", str(raw_text))
+    cleaned: list[str] = []
+    seen = set()
+    for candidate in matches:
+        url = candidate.strip().rstrip('.,;:!?)')
+        try:
+            parsed = urlparse(url)
+            host = (parsed.netloc or "").lower()
+            if not parsed.scheme.startswith("http"):
+                continue
+            if not host:
+                continue
+            if host in {"example.com", "www.example.com", "exemple.com", "www.exemple.com", "localhost"}:
+                continue
+            if url not in seen:
+                seen.add(url)
+                cleaned.append(url)
+        except Exception:
+            continue
+    return cleaned
+
+
+def _is_placeholder_url(url: str) -> bool:
+    try:
+        parsed = urlparse(str(url or "").strip())
+        host = (parsed.netloc or "").lower()
+        if host in {"", "example.com", "www.example.com", "exemple.com", "www.exemple.com", "localhost"}:
+            return True
+        return False
+    except Exception:
+        return True
+
+
+def _domain_from_url(url: str) -> str:
+    try:
+        host = urlparse(url).netloc.lower()
+        if host.startswith("www."):
+            host = host[4:]
+        return host or "Source Web"
+    except Exception:
+        return "Source Web"
+
+
+def _deduplicate_queries(queries: list[str], limit: int = 15) -> list[str]:
+    deduped: list[str] = []
+    seen = set()
+    for query in queries or []:
+        if not isinstance(query, str):
+            continue
+        cleaned = re.sub(r"\s+", " ", query).strip()
+        if not cleaned:
+            continue
+        key = cleaned.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(cleaned)
+        if len(deduped) >= limit:
+            break
+    return deduped
+
+
+async def _score_osint_articles(articles: list[dict], company: str, role: str, provider: str | None = None) -> list[dict]:
+    if not articles:
+        return []
+
+    prompt_template = load_prompt("osint_scoring.md")
+    if not prompt_template:
+        return articles
+
+    prompt = prompt_template.replace("{company_name}", company or "Entreprise cible") \
+                            .replace("{role}", role or "Poste visé") \
+                            .replace("{articles_json}", json.dumps(articles, ensure_ascii=False, indent=2, default=str))
+    try:
+        scored = await ai_service.generate_valid_json(
+            prompt,
+            provider=provider or "openai",
+            system_instruction="You are an OSINT scoring engine. Output STRICT JSON only."
+        )
+    except Exception as e:
+        print(f"[OSINT SCORING] Error: {e}", flush=True)
+        return articles
+
+    scored_items = scored.get("scored_articles") if isinstance(scored, dict) else None
+    if not isinstance(scored_items, list):
+        return articles
+
+    score_map = {
+        str(item.get("article_id") or ""): item
+        for item in scored_items
+        if isinstance(item, dict) and item.get("article_id")
+    }
+    enriched = []
+    for article in articles:
+        score_data = score_map.get(str(article.get("article_id") or ""), {})
+        candidate_score = int(score_data.get("candidate_score") or 0) if isinstance(score_data, dict) else 0
+        enriched.append({
+            **article,
+            "candidate_score": candidate_score,
+            "job_relevance": score_data.get("job_relevance") if isinstance(score_data, dict) else None,
+            "themes": score_data.get("themes") if isinstance(score_data, dict) else [],
+            "score_breakdown": score_data.get("score_breakdown") if isinstance(score_data, dict) else {},
+            "scoring_reasoning": score_data.get("reasoning") if isinstance(score_data, dict) else "",
+        })
+    return enriched
+
+
+async def _extract_osint_facts(selected_articles: list[dict], provider: str | None = None) -> list[dict]:
+    if not selected_articles:
+        return []
+
+    prompt_template = load_prompt("marche_extraction.md")
+    if not prompt_template:
+        return []
+
+    prompt = (
+        f"{prompt_template}\n\n"
+        "selected_articles_json:\n"
+        f"{json.dumps(selected_articles, ensure_ascii=False, indent=2, default=str)}\n"
+    )
+    try:
+        extracted = await ai_service.generate_valid_json(
+            prompt,
+            provider=provider or "openai",
+            system_instruction="You are a factual extraction engine. Output STRICT JSON only."
+        )
+    except Exception as e:
+        print(f"[OSINT EXTRACTION] Error: {e}", flush=True)
+        return []
+
+    facts = extracted.get("facts") if isinstance(extracted, dict) else None
+    return facts if isinstance(facts, list) else []
+
+
+async def _cluster_osint_facts(facts: list[dict], company: str, industry: str, role: str, country: str, provider: str | None = None) -> dict:
+    if not facts:
+        return {"clusters": [], "unclustered_facts": []}
+
+    prompt_template = load_prompt("osint_clustering.md")
+    if not prompt_template:
+        return {"clusters": [], "unclustered_facts": []}
+
+    prompt = prompt_template.replace("{company}", company or "Entreprise cible") \
+                            .replace("{industry}", industry or "Non spécifié") \
+                            .replace("{role}", role or "Poste visé") \
+                            .replace("{country}", country or "Global") \
+                            .replace("{facts_json}", json.dumps(facts, ensure_ascii=False, indent=2, default=str))
+    try:
+        clustered = await ai_service.generate_valid_json(
+            prompt,
+            provider=provider or "openai",
+            system_instruction="You are an OSINT clustering engine. Output STRICT JSON only."
+        )
+    except Exception as e:
+        print(f"[OSINT CLUSTERING] Error: {e}", flush=True)
+        return {"clusters": [], "unclustered_facts": []}
+
+    if not isinstance(clustered, dict):
+        return {"clusters": [], "unclustered_facts": []}
+    clustered.setdefault("clusters", [])
+    clustered.setdefault("unclustered_facts", [])
+    return clustered
+
+
+def _build_structured_search_context(selected_articles: list[dict], extracted_facts: list[dict], clustered_signals: dict) -> str:
+    payload = {
+        "selected_articles": selected_articles,
+        "extracted_facts": extracted_facts,
+        "clusters": clustered_signals.get("clusters", []),
+        "unclustered_facts": clustered_signals.get("unclustered_facts", []),
+    }
+    return json.dumps(payload, ensure_ascii=False, indent=2, default=str)
 
 def get_market_sources():
     """
@@ -249,9 +427,14 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
     # Recherche du mot-clé correspondant au rôle
     specific_theme = next((keywords for key, keywords in role_specific_keywords.items() if key in role_lower), None)
     
+    fixed_queries = generate_deterministic_queries(safe_company, industry)
+
     if safe_company and safe_company.lower() not in ["unknown", "none"]:
         queries = [
             f'"{safe_company}" (stratégie OR croissance OR transformation) {current_year}',
+            f'"{safe_company}" (résultats OR chiffre d\'affaires OR rentabilité OR marge) {current_year}',
+            f'"{safe_company}" (recrutement OR talents OR culture OR management) {current_year}',
+            f'"{safe_company}" (transformation OR réorganisation OR investissement) {current_year}',
             f'"{safe_company}" (difficultés OR retard OR controverse OR licenciement OR critique OR risque)',
         ]
         if specific_theme:
@@ -267,6 +450,9 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
             f'{safe_industry} market trends challenges {current_year}',
             f'{safe_industry} in-demand skills recruitment {current_year}'
         ]
+
+    ai_queries = await generate_ai_search_plan(safe_company, industry, role, target_country, provider=provider)
+    queries = _deduplicate_queries([*queries, *fixed_queries, *ai_queries], limit=15)
         
     print(f"[PIPELINE] Executing {len(queries)} thematic queries.", flush=True)
     
@@ -275,11 +461,22 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
         await manager.broadcast(task_id, f"🌍 Agent OSINT : Exploration et extraction du contenu web...")
     
     search_context = ""
+    selected_articles: list[dict] = []
+    extracted_facts: list[dict] = []
+    clustered_signals: dict = {"clusters": [], "unclustered_facts": []}
     if api_key:
         try:
             osint_agent = OSINTPipeline(serper_api_key=api_key)
-            # L'agent OSINT gère maintenant la recherche, le filtrage, l'extraction et le formatage.
-            search_context = await osint_agent.run(company_name=safe_company)
+            raw_articles = await osint_agent.run_structured(company_name=safe_company, queries=queries, max_articles=20)
+            scored_articles = await _score_osint_articles(raw_articles, company=safe_company, role=role, provider=provider)
+            scored_articles = sorted(scored_articles, key=lambda item: int(item.get("candidate_score") or 0), reverse=True)
+            selected_articles = [article for article in scored_articles if int(article.get("candidate_score") or 0) >= 55][:10]
+            if not selected_articles:
+                selected_articles = scored_articles[:8]
+
+            extracted_facts = await _extract_osint_facts(selected_articles, provider=provider)
+            clustered_signals = await _cluster_osint_facts(extracted_facts, safe_company, industry, role, target_country, provider=provider)
+            search_context = _build_structured_search_context(selected_articles, extracted_facts, clustered_signals)
         except Exception as e:
             print(f"[PIPELINE] OSINT Agent failed: {e}", flush=True)
             search_context = "ERREUR LORS DE L'ANALYSE OSINT. UTILISE TES CONNAISSANCES GÉNÉRALES."
@@ -307,9 +504,6 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
                                       .replace("{target_lang}", target_lang) \
                                       .replace("{current_date}", datetime.now().strftime("%Y-%m-%d"))
                                       
-        # [FIX EXPERT] Injection forcée du contexte de recherche
-        if search_context and "Source [1]" not in final_prompt:
-            final_prompt += f"\n\n### RÉSULTATS WEB BRUTS (CONTEXTE RAG OBLIGATOIRE) ###\n{search_context}"
     else:
         # Fallback robuste si le fichier est manquant
         final_prompt = f"""
@@ -382,6 +576,12 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
 
     # On récupère le tableau d'actualités généré par l'IA contenant son analyse stratégique
     ai_generated_news = safe_synthesis["company_report"].get("news_links", [])
+    extracted_web_urls = [article.get("url") for article in selected_articles if article.get("url")]
+    source_map = {
+        str(article.get("url")): article
+        for article in selected_articles
+        if isinstance(article, dict) and article.get("url")
+    }
     
     # Extraction intelligente des analyses IA tout en conservant les URLs RÉELLES (issues de Serper)
     ai_analyses = []
@@ -400,8 +600,52 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
                         "hidden_meaning": news.get("hidden_meaning", "")
                     })
 
-    safe_synthesis["company_report"]["news_links"] = ai_generated_news
-    display_sources = []
+    if not isinstance(ai_generated_news, list):
+        ai_generated_news = []
+
+    # Remplacement des URLs factices/vides par des URLs réelles trouvées dans le contexte web.
+    replacement_idx = 0
+    normalized_news = []
+    for news in ai_generated_news:
+        if not isinstance(news, dict):
+            continue
+        url = str(news.get("url") or "").strip()
+        if _is_placeholder_url(url):
+            if replacement_idx < len(extracted_web_urls):
+                url = extracted_web_urls[replacement_idx]
+                replacement_idx += 1
+        if _is_placeholder_url(url):
+            continue
+
+        source_data = source_map.get(url, {})
+
+        normalized_news.append({
+            "title": news.get("title") or f"Article source {_domain_from_url(url)}",
+            "url": url,
+            "source": news.get("source") or source_data.get("source") or _domain_from_url(url),
+            "date": news.get("date") or source_data.get("published_at") or datetime.now().strftime("%Y-%m-%d"),
+            "strategic_analysis": news.get("strategic_analysis") or news.get("analyse_strategique") or "",
+            "interview_relevance": news.get("interview_relevance") or source_data.get("candidate_score"),
+            "hidden_meaning": news.get("hidden_meaning", "")
+        })
+
+    # Si l'IA n'a pas produit de liens exploitables, on construit une revue de presse minimale à partir des URLs web réelles.
+    if not normalized_news and extracted_web_urls:
+        normalized_news = [
+            {
+                "title": source_map.get(url, {}).get("title") or f"Source presse: {_domain_from_url(url)}",
+                "url": url,
+                "source": source_map.get(url, {}).get("source") or _domain_from_url(url),
+                "date": source_map.get(url, {}).get("published_at") or datetime.now().strftime("%Y-%m-%d"),
+                "strategic_analysis": "Source réelle collectée automatiquement. Analyse détaillée indisponible pour cette entrée.",
+                "interview_relevance": source_map.get(url, {}).get("candidate_score"),
+                "hidden_meaning": ""
+            }
+            for url in extracted_web_urls[:8]
+        ]
+
+    safe_synthesis["company_report"]["news_links"] = normalized_news
+    display_sources = extracted_web_urls
 
     return {
         "company": company,

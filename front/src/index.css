@@ -260,6 +260,14 @@ button { cursor: pointer; font-family: inherit; }
   display: none;
 }
 
+.quota-summary-desktop {
+  display: block;
+}
+
+.quota-summary-mobile {
+  display: none;
+}
+
 .candidate-content {
   min-width: 0;
 }
@@ -794,6 +802,14 @@ button { cursor: pointer; font-family: inherit; }
     display: block;
   }
 
+  .quota-summary-desktop {
+    display: none;
+  }
+
+  .quota-summary-mobile {
+    display: block;
+  }
+
   .candidate-content {
     width: 100%;
   }
@@ -868,7 +884,7 @@ button { cursor: pointer; font-family: inherit; }
   padding: 24px; /* 1.5rem */
   border-radius: 16px;
   border: 1px solid var(--border-color); /* On garde une bordure discrète */
-  border-top: 3px solid var(--accent); /* Mais on ajoute un accent de couleur en haut */
+  border-top: 3px solid var(--primary); /* Accent unifié pour toutes les cartes */
   box-shadow: var(--shadow-md);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }

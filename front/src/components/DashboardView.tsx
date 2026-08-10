@@ -115,18 +115,28 @@ const formatLabels: Record<string, string> = { visio: 'Visioconférence', phone:
 
 // --- [FIX] SUB-COMPONENTS (for readability) ---
 
-const DeliverablesHub = ({ deliverableItems, isProcessing, longLoading, viewedTabs, isDataReady, onPrintClick, onItemClick }: any) => {
+const DeliverablesHub: React.FC<any> = ({ deliverableItems, isProcessing, longLoading, viewedTabs, isDataReady, onPrintClick, onItemClick, remainingSessions, remainingCompanies, remainingOffers, onCreateCandidature }) => {
   const { t } = useTranslation();
+
   return (
     <div className="bento-card col-span-3" id="hub_section" style={{ background: 'var(--bg-card)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div className="bento-header" style={{ marginBottom: 0 }}><Activity size={20} color="var(--primary)"/> {t('hub_title', 'Centre de Suivi des Analyses')}</div>
-        <button 
-          onClick={onPrintClick} 
-          disabled={isProcessing}
-          className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem', opacity: isProcessing ? 0.5 : 1, cursor: isProcessing ? 'not-allowed' : 'pointer' }}>
-          <Printer size={16} /> Imprimer mon Dossier
-        </button>
+        <div style={{ display: 'flex', gap: '0.55rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <button
+            onClick={onCreateCandidature}
+            className="btn-primary"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.45rem 0.95rem', fontSize: '0.85rem' }}
+          >
+            + Nouvelle candidature
+          </button>
+          <button 
+            onClick={onPrintClick} 
+            disabled={isProcessing}
+            className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem', opacity: isProcessing ? 0.5 : 1, cursor: isProcessing ? 'not-allowed' : 'pointer' }}>
+            <Printer size={16} /> Imprimer mon Dossier
+          </button>
+        </div>
       </div>
       <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: '0 0 1rem 0' }}>{t('hub_desc', 'Suivez la génération de vos outils en temps réel et cliquez pour y accéder.')}</p>
     
@@ -178,19 +188,50 @@ const DeliverablesHub = ({ deliverableItems, isProcessing, longLoading, viewedTa
   );
 };
 
-export const DashboardView: FC = () => {
+interface DashboardViewProps {
+  remainingSessions?: number;
+  remainingCompanies?: number;
+  remainingOffers?: number;
+  profileCompletion?: number;
+  profileRecommendations?: string[];
+  targetTree?: Array<{ company: string; jobs: string[] }>;
+  onPrepareCandidature?: (company: string, job: string) => void;
+  onCreateCandidature?: () => void;
+}
+
+export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remainingCompanies, remainingOffers, profileCompletion, profileRecommendations, targetTree = [], onPrepareCandidature, onCreateCandidature }) => {
   const { t } = useTranslation();
-  const { 
-    activeTab, setActiveTab, pilotData, isPilotLoading, pilotError, cvData, fetchPilotData,
-    researchResult, salaryResult, setCurrentStep,
-    jobDecoderResult, recruiterResult, realityResult, flawCoachingResult,
-    globalStatus, triggerResearch,
-    pitchResult, questionsResult, gapResult, customScenariosResult, actionPlanResult
-  } = useDashboard();
+  const dashboard: any = useDashboard();
+  const {
+    activeTab,
+    setActiveTab,
+    pilotData,
+    isPilotLoading,
+    cvData,
+    fetchPilotData,
+    researchResult,
+    salaryResult,
+    setCurrentStep,
+    jobDecoderResult,
+    recruiterResult,
+    realityResult,
+    flawCoachingResult,
+    globalStatus,
+    triggerResearch,
+    pitchResult,
+    questionsResult,
+    gapResult,
+    customScenariosResult,
+    actionPlanResult,
+  } = dashboard;
+
+  const pilotError = dashboard?.pilotError ?? dashboard?.error ?? null;
 
   // --- GESTION DES NOTIFICATIONS ---
   const [viewedTabs, setViewedTabs] = useState<string[]>(['cockpit']);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [candidatureFilter, setCandidatureFilter] = useState<'all' | 'active' | 'done'>('all');
+  const [candidatureSort, setCandidatureSort] = useState<'recent' | 'alpha'>('recent');
   
   // --- GESTION DE L'IMPRESSION ---
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
@@ -208,7 +249,7 @@ export const DashboardView: FC = () => {
   };
 
   const handleTabChange = (tab: string, anchor?: string) => {
-    setActiveTab(tab);
+    (setActiveTab as any)(tab);
     if (!viewedTabs.includes(tab)) {
       setViewedTabs(prev => [...prev, tab]);
     }
@@ -305,12 +346,61 @@ export const DashboardView: FC = () => {
   const commandoReason = t('commando_disabled_reason', "Désactivé (Urgence : Entretien imminent)");
 
   const hasJobDesc = !!(cvData?.job_description && cvData.job_description.trim().length > 0);
+  const hasDecoderResult = !!jobDecoderResult;
+
+  const normalizeText = (value: any) => String(value || '').trim().toLowerCase();
+  const isCurrentTarget = (company: string, job: string) => {
+    return normalizeText(company) === normalizeText(cvData?.target_company) && normalizeText(job) === normalizeText(cvData?.target_job);
+  };
+
+  const currentTrainingCount =
+    (Array.isArray(cvData?.trainingHistory) ? cvData.trainingHistory.length : 0) +
+    (Array.isArray(cvData?.interviewHistory) ? cvData.interviewHistory.length : 0) +
+    (Array.isArray(cvData?.negotiationHistory) ? cvData.negotiationHistory.length : 0);
+
+  const currentLastInterview = cvData?.interview_date
+    ? String(cvData.interview_date)
+    : '—';
+
+  const currentAnalysisDone = Boolean(researchResult || gapResult || jobDecoderResult || pitchResult || questionsResult);
+
+  const candidatureCards = useMemo(() => {
+    const base = targetTree.flatMap((node, companyIdx) =>
+      (node.jobs || []).map((job, jobIdx) => {
+        const current = isCurrentTarget(node.company, job);
+        const done = current ? currentAnalysisDone : false;
+        return {
+          key: `${node.company}-${job}-${companyIdx}-${jobIdx}`,
+          company: node.company,
+          job,
+          done,
+          trainings: current ? currentTrainingCount : 0,
+          lastInterview: current ? currentLastInterview : '—',
+          statusLabel: current
+            ? (done ? 'Analyse terminée' : (isProcessing ? 'Analyse en cours' : 'Analyse à lancer'))
+            : 'Analyse à lancer',
+          order: companyIdx * 1000 + jobIdx,
+        };
+      })
+    );
+
+    let filtered = base;
+    if (candidatureFilter === 'done') filtered = filtered.filter((c) => c.done);
+    if (candidatureFilter === 'active') filtered = filtered.filter((c) => !c.done);
+
+    if (candidatureSort === 'alpha') {
+      filtered = [...filtered].sort((a, b) => `${a.company} ${a.job}`.localeCompare(`${b.company} ${b.job}`, 'fr'));
+    } else {
+      filtered = [...filtered].sort((a, b) => b.order - a.order);
+    }
+    return filtered;
+  }, [targetTree, candidatureFilter, candidatureSort, cvData?.target_company, cvData?.target_job, currentAnalysisDone, currentTrainingCount, currentLastInterview, isProcessing]);
 
   // Liste de tous les livrables avec leur état
   const deliverableItems: DeliverableItem[] = useMemo(() => [
-      { name: t('deliv_pitch', "Pitch de 3 minutes"), tab: "interview", anchor: "pitch_section", data: pitchResult, icon: <Mic size={18}/> },
+      { name: t('deliv_pitch', "Matrices de pitchs"), tab: "interview", anchor: "pitch_section", data: pitchResult, icon: <Mic size={18}/> },
       { name: t('card_interview_title', "Questionnaire d'Entretien"), tab: "interview", anchor: "questionnaire_section", data: questionsResult, icon: <MessageSquare size={18}/> },
-      { name: t('deliv_mes', "Mises en situation"), tab: "interview", anchor: "mes_anchor", data: customScenariosResult || cvData, icon: <ShieldAlert size={18}/> },
+      { name: t('deliv_mes', "Mises en situation"), tab: "interview", anchor: "mes_anchor", data: customScenariosResult, icon: <ShieldAlert size={18}/> },
       { name: t('deliv_flaws', "Parades aux Défauts"), tab: "interview", anchor: "flaws_section", data: flawCoachingResult, icon: <AlertTriangle size={18}/> },
       { name: t('deliv_gap', "Analyse d'Écarts (Gap)"), tab: "market", anchor: "gap_section", data: gapResult, icon: <Target size={18}/> },
       { name: t('deliv_company', "Rapport Entreprise"), tab: "market", anchor: "company_section", data: researchResult, icon: <Building size={18}/> },
@@ -321,14 +411,14 @@ export const DashboardView: FC = () => {
         anchor: "decoder_section", 
         data: jobDecoderResult, 
         icon: <Search size={18}/>,
-        disabled: !hasJobDesc || (isCommando && !jobDecoderResult),
-        disabledReason: !hasJobDesc ? t('card_decoder_disabled', "Annonce non renseignée. Ajoutez l'annonce dans votre profil pour l'analyser.") : (isCommando ? commandoReason : undefined)
+        disabled: (!hasJobDesc && !hasDecoderResult) || (isCommando && !jobDecoderResult),
+        disabledReason: (!hasJobDesc && !hasDecoderResult) ? t('card_decoder_disabled', "Annonce non renseignée. Ajoutez l'annonce dans votre profil pour l'analyser.") : (isCommando ? commandoReason : undefined)
       },
       { name: t('deliv_recruiter', "Vue Recruteur"), tab: "overview", anchor: "recruiter_section", data: recruiterResult, icon: <Eye size={18}/>, disabled: isCommando && !recruiterResult, disabledReason: isCommando ? commandoReason : undefined }
     ], 
     [
       t, pitchResult, questionsResult, customScenariosResult, cvData, flawCoachingResult, 
-      gapResult, researchResult, jobDecoderResult, recruiterResult, hasJobDesc, isCommando, commandoReason
+      gapResult, researchResult, jobDecoderResult, recruiterResult, hasJobDesc, hasDecoderResult, isCommando, commandoReason
     ]
   );
 
@@ -351,9 +441,6 @@ export const DashboardView: FC = () => {
 
   // La condition de chargement est maintenant robuste grâce à l'état explicite `isPilotLoading`
   const isLoadingOverview = isPilotLoading || (!pilotData && !pilotError);
-
-  // Extraction de la logique d'affichage du hub dans un composant mémoïsé
-  const MemoizedDeliverablesHub = React.memo(DeliverablesHub as any);
 
   return (
     <div className="dashboard-wrapper">
@@ -418,75 +505,103 @@ export const DashboardView: FC = () => {
         )}
 
         {activeTab === 'overview' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-              
-              {/* AVERTISSEMENTS / ASTUCES */}
-              {((!cvData?.target_company && cvData?.target_industry) || !hasJobDesc) && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {(!cvData?.target_company && cvData?.target_industry) && (
-                    <div style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#d97706', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(245, 158, 11, 0.2)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <AlertTriangle size={20} style={{ flexShrink: 0 }} />
-                      <span style={{ fontSize: '0.95rem', lineHeight: '1.5' }}><strong>Attention :</strong> Vous avez renseigné le secteur (<strong>{cvData.target_industry}</strong>) mais laissé l'entreprise cible vide. L'IA générera des conseils génériques pour ce secteur. Modifiez votre profil pour cibler une entreprise précise si vous en avez une.</span>
-                    </div>
-                  )}
-                  {!hasJobDesc && (
-                    <div style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#2563eb', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(59, 130, 246, 0.2)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <FileText size={20} style={{ flexShrink: 0 }} />
-                      <span style={{ fontSize: '0.95rem', lineHeight: '1.5' }}><strong>Astuce :</strong> Le module <strong>Décodeur d'Annonce</strong> est actuellement inactif. Renseignez la description de l'offre d'emploi dans votre profil pour l'activer et découvrir les attentes cachées du recruteur.</span>
-                    </div>
-                  )}
-                </div>
-              )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            {/* [PRIORITE UX] Centre de suivi placé en premier sur la vue d'ensemble */}
+            <DeliverablesHub
+              deliverableItems={deliverableItems}
+              isProcessing={isProcessing}
+              longLoading={longLoading}
+              viewedTabs={viewedTabs}
+              isDataReady={isDataReady}
+              onPrintClick={() => setIsPrintModalOpen(true)}
+              onItemClick={handleTabChange}
+              remainingSessions={remainingSessions}
+              remainingCompanies={remainingCompanies}
+              remainingOffers={remainingOffers}
+              onCreateCandidature={onCreateCandidature}
+            />
 
-              {/* [FIX ARCHITECTURE] Le Hub est sorti de la condition de chargement. 
-                  Il s'affiche instantanément. Les analyses terminées en amont (ex: Marché) 
-                  seront cliquables immédiatement sans attendre la synthèse IA. */}
-              <MemoizedDeliverablesHub
-                deliverableItems={deliverableItems}
-                isProcessing={isProcessing}
-                longLoading={longLoading}
-                viewedTabs={viewedTabs}
-                isDataReady={isDataReady}
-                onPrintClick={() => setIsPrintModalOpen(true)}
-                onItemClick={handleTabChange}
-              />
-
-              {/* Seules les cartes dépendantes de la synthèse affichent le Skeleton */}
-              {isLoadingOverview ? (
-                <div className="bento-grid">
-                   <div className="bento-card row-span-2 skeleton-pulse" style={{ minHeight: '350px' }}></div> {/* This was the unclosed div */}
-                   <div className="bento-card col-span-2 skeleton-pulse" style={{ minHeight: '150px' }}></div>
-                   <div className="bento-card col-span-2 skeleton-pulse" style={{ minHeight: '150px' }}></div>
-                </div>
-              ) : pilotError ? (
-                <div className="bento-card col-span-3" style={{ textAlign: 'center', padding: '3rem 1rem', border: '1px solid var(--danger-text)', background: 'var(--bg-card)' }}>
-                  <AlertTriangle size={48} color="var(--danger-text)" style={{ margin: '0 auto 1rem auto' }} />
-                  <h3 style={{ color: 'var(--danger-text)', marginBottom: '0.5rem' }}>Analyse momentanément interrompue</h3>
-                  <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>{pilotError}</p>
-                  <button onClick={fetchPilotData} className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <RotateCcw size={16} /> Réessayer
-                  </button>
-                </div>
+            <div className="bento-card col-span-3" style={{ background: 'var(--bg-card)' }}>
+              <div className="bento-header" style={{ marginBottom: '0.75rem' }}><ClipboardList size={20} color="var(--primary)"/> Mes candidatures / postes</div>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.7rem' }}>
+                <button className="btn-ghost" style={{ border: candidatureFilter === 'all' ? '1px solid var(--primary)' : '1px solid var(--border-color)' }} onClick={() => setCandidatureFilter('all')}>Toutes</button>
+                <button className="btn-ghost" style={{ border: candidatureFilter === 'active' ? '1px solid var(--primary)' : '1px solid var(--border-color)' }} onClick={() => setCandidatureFilter('active')}>Actives</button>
+                <button className="btn-ghost" style={{ border: candidatureFilter === 'done' ? '1px solid var(--primary)' : '1px solid var(--border-color)' }} onClick={() => setCandidatureFilter('done')}>Terminées</button>
+                <button className="btn-ghost" style={{ border: '1px solid var(--border-color)' }} onClick={() => setCandidatureSort((prev) => (prev === 'recent' ? 'alpha' : 'recent'))}>
+                  Tri: {candidatureSort === 'recent' ? 'récent' : 'alphabétique'}
+                </button>
+              </div>
+              {candidatureCards.length === 0 ? (
+                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>Aucune candidature enregistrée pour le moment.</p>
               ) : (
-                <>
-                  <PilotBento 
-                      data={pilotData} 
-                      onGoToGap={() => handleTabChange('market', 'gap_section')} 
-                  />
-                  {/* [NOUVEAU] Carte de synthèse du coaching vocal */}
-                  <CoachingSummaryCard 
-                    data={pitchResult?.coaching_notes}
-                    loading={isProcessing && !pitchResult}
-                  />
-                  <CareerRealityCheck data={realityResult} score={realityResult?.score} loading={isProcessing && !realityResult && !isCommando} />
-                  {(!isCommando || recruiterResult) && (
-                    <div id="recruiter_section">
-                      <RecruiterView data={recruiterResult} loading={isProcessing && !recruiterResult} />
+                <div style={{ display: 'grid', gap: '0.7rem' }}>
+                  {candidatureCards.map((item) => (
+                    <div key={item.key} style={{ border: '1px solid var(--border-color)', borderRadius: '12px', padding: '0.8rem', background: 'var(--bg-secondary)' }}>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.company}</div>
+                      <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.1rem' }}>{item.job}</div>
+                      <div style={{ marginTop: '0.35rem', fontSize: '0.82rem', color: 'var(--text-muted)' }}>{item.statusLabel} · {item.trainings} entraînements · dernier entretien {item.lastInterview}</div>
+                      <div style={{ marginTop: '0.55rem' }}>
+                        <button className="btn-primary" style={{ fontSize: '0.8rem', padding: '0.35rem 0.7rem' }} onClick={() => onPrepareCandidature?.(item.company, item.job)}>
+                          Préparer cette candidature
+                        </button>
+                      </div>
                     </div>
-                  )}
-                </>
+                  ))}
+                </div>
               )}
             </div>
+
+            {((!cvData?.target_company && cvData?.target_industry) || !hasJobDesc) && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {(!cvData?.target_company && cvData?.target_industry) && (
+                  <div style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#d97706', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(245, 158, 11, 0.2)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <AlertTriangle size={20} style={{ flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.95rem', lineHeight: '1.5' }}><strong>Attention :</strong> Vous avez renseigné le secteur (<strong>{cvData.target_industry}</strong>) mais laissé l'entreprise cible vide. L'IA générera des conseils génériques pour ce secteur. Modifiez votre profil pour cibler une entreprise précise si vous en avez une.</span>
+                  </div>
+                )}
+                {!hasJobDesc && (
+                  <div style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#2563eb', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(59, 130, 246, 0.2)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <FileText size={20} style={{ flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.95rem', lineHeight: '1.5' }}><strong>Astuce :</strong> Le module <strong>Décodeur d'Annonce</strong> est actuellement inactif. Renseignez la description de l'offre d'emploi dans votre profil pour l'activer et découvrir les attentes cachées du recruteur.</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {isLoadingOverview ? (
+              <div className="bento-grid">
+                <div className="bento-card row-span-2 skeleton-pulse" style={{ minHeight: '350px' }}></div>
+                <div className="bento-card col-span-2 skeleton-pulse" style={{ minHeight: '150px' }}></div>
+                <div className="bento-card col-span-2 skeleton-pulse" style={{ minHeight: '150px' }}></div>
+              </div>
+            ) : pilotError ? (
+              <div className="bento-card col-span-3" style={{ textAlign: 'center', padding: '3rem 1rem', border: '1px solid var(--danger-text)', background: 'var(--bg-card)' }}>
+                <AlertTriangle size={48} color="var(--danger-text)" style={{ margin: '0 auto 1rem auto' }} />
+                <h3 style={{ color: 'var(--danger-text)', marginBottom: '0.5rem' }}>Analyse momentanément interrompue</h3>
+                <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>{pilotError}</p>
+                <button onClick={fetchPilotData} className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <RotateCcw size={16} /> Réessayer
+                </button>
+              </div>
+            ) : (
+              <>
+                <PilotBento
+                  data={pilotData}
+                  onGoToGap={() => handleTabChange('market', 'gap_section')}
+                />
+                <CoachingSummaryCard
+                  data={pitchResult?.coaching_notes}
+                  loading={isProcessing && !pitchResult}
+                />
+                <CareerRealityCheck data={realityResult} score={realityResult?.score} loading={isProcessing && !realityResult && !isCommando} />
+                {(!isCommando || recruiterResult) && (
+                  <div id="recruiter_section">
+                    <RecruiterView data={recruiterResult} loading={isProcessing && !recruiterResult} />
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         )}
         
         {activeTab === 'interview' && (
@@ -500,7 +615,11 @@ export const DashboardView: FC = () => {
 
         {activeTab === 'profile' && (
            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-             <StrategicProfileTab onNavigate={handleTabChange} />
+             <StrategicProfileTab
+               onNavigate={handleTabChange}
+               profileCompletion={profileCompletion}
+               profileRecommendations={profileRecommendations}
+             />
            </div>
         )}
 
@@ -609,7 +728,7 @@ export const DashboardView: FC = () => {
         
         /* BENTO GRID CSS */
         .bento-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; grid-auto-rows: minmax(150px, auto); }
-        .bento-card { background: var(--bg-card); border-radius: 1rem; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid var(--border-color); display: flex; flex-direction: column; position: relative; overflow: hidden; color: var(--text-main); }
+        .bento-card { background: var(--bg-card); border-radius: 1rem; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid var(--border-color); border-top: 3px solid var(--primary); display: flex; flex-direction: column; position: relative; overflow: hidden; color: var(--text-main); }
         .bento-card.col-span-2 { grid-column: span 2; }
         .bento-card.col-span-3 { grid-column: span 3; }
         .bento-card.row-span-2 { grid-row: span 2; }

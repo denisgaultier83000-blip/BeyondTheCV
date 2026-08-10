@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Building, Target, Lightbulb, TrendingUp, Users, DollarSign, Newspaper } from 'lucide-react';
 import { formatStrategicAnalysisReact } from '../utils/formatUtils';
 
@@ -28,6 +28,70 @@ interface ResearchReportProps {
   data: ResearchData | null;
   companyName?: string;
 }
+
+const getSafeHttpUrl = (rawUrl: any): string | null => {
+  const value = String(rawUrl || '').trim();
+  if (!value || value === '#') return null;
+
+  try {
+    const normalized = value.startsWith('http://') || value.startsWith('https://') ? value : `https://${value}`;
+    const parsed = new URL(normalized);
+    const host = parsed.hostname.toLowerCase();
+    if (!['http:', 'https:'].includes(parsed.protocol)) return null;
+    if (!host || ['example.com', 'www.example.com', 'exemple.com', 'www.exemple.com', 'localhost'].includes(host)) return null;
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+};
+
+const getFaviconCandidates = (url: string | null): string[] => {
+  if (!url) return [];
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
+    const encodedHost = encodeURIComponent(host);
+    const encodedUrl = encodeURIComponent(parsed.toString());
+    return [
+      `https://www.google.com/s2/favicons?domain=${encodedHost}&sz=16`,
+      `https://icons.duckduckgo.com/ip3/${host}.ico`,
+      `https://icon.horse/icon/${host}`,
+      `https://www.google.com/s2/favicons?domain_url=${encodedUrl}&sz=16`
+    ];
+  } catch {
+    return [];
+  }
+};
+
+const FaviconImage = ({ url }: { url: string | null }) => {
+  const candidates = useMemo(() => getFaviconCandidates(url), [url]);
+  const [index, setIndex] = useState(0);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setIndex(0);
+    setFailed(false);
+  }, [url]);
+
+  if (!url || failed || candidates.length === 0) {
+    return null;
+  }
+
+  return (
+    <img
+      src={candidates[index]}
+      alt=""
+      style={{ width: '16px', height: '16px', marginRight: '8px', borderRadius: '2px', flexShrink: 0 }}
+      onError={() => {
+        if (index < candidates.length - 1) {
+          setIndex(index + 1);
+          return;
+        }
+        setFailed(true);
+      }}
+    />
+  );
+};
 
 export function ResearchReport({ data, companyName }: ResearchReportProps) {
   if (!data) return null;
@@ -139,21 +203,19 @@ export function ResearchReport({ data, companyName }: ResearchReportProps) {
           </h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {newsLinks.map((article: any, idx: number) => {
-              const urlStr = article.url || '#';
-              const isDummyUrl = urlStr === '#';
-              const fullUrl = isDummyUrl ? '#' : (urlStr.startsWith('http') ? urlStr : `https://${urlStr}`);
+              const fullUrl = getSafeHttpUrl(article.url);
               return (
                 <div key={idx} style={{ background: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }} onClick={(e) => e.stopPropagation()}>
                   <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
-                    {!isDummyUrl ? (
+                    {fullUrl ? (
                         <>
-                            <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(fullUrl)}&sz=16`} alt="source" style={{ width: '16px', height: '16px', marginRight: '8px', borderRadius: '2px', flexShrink: 0 }} />
+                            <FaviconImage url={fullUrl} />
                             <a href={fullUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 600 }} onClick={(e) => e.stopPropagation()}>
                                 {article.title}
                             </a>
                         </>
                     ) : (
-                        <span style={{ color: 'var(--primary)', fontWeight: 600 }}>💡 {article.title}</span>
+                        <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{article.title}</span>
                     )}
                   </div>
                   {(article.source || article.date) && (

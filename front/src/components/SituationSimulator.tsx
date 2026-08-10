@@ -185,12 +185,6 @@ export function SituationSimulator() {
     setAiFeedback(null);
     setError(null);
 
-    if ((quotas?.mes ?? 0) <= 0) {
-      setShowRechargeModal(true);
-      setIsSubmitting(false);
-      return;
-    }
-
     try {
       // Appel API Réel
       const response = await authenticatedFetch(`${API_BASE_URL}/cv/simulate-situation`, {
@@ -233,7 +227,7 @@ export function SituationSimulator() {
     setIsGeneratingMore(true);
     setError(null);
 
-    if ((quotas?.mes ?? 0) < 2) {
+    if ((quotas?.credits ?? 0) <= 0) {
       setShowRechargeModal(true);
       setIsGeneratingMore(false);
       return;
@@ -499,7 +493,7 @@ export function SituationSimulator() {
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
                     <button onClick={reset} className="btn-ghost">{t('sim_btn_cancel', 'Annuler')}</button>
                     <button onClick={handleSubmit} disabled={!userAnswer.trim()} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Send size={18} /> {t('sim_analyze_answer', 'Analyser ma réponse')} ({quotas?.mes ?? 0} restants)
+                      <Send size={18} /> {t('sim_analyze_answer', 'Analyser ma réponse')}
                     </button>
                   </div>
                 </div>

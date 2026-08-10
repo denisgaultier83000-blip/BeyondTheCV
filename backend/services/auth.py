@@ -40,6 +40,38 @@ async def _touch_last_login(user_id: str):
         )
         return await update_cursor.fetchone()
 
+
+async def _ensure_tester_training_quotas(user_id: str):
+    """Garantit des quotas testeurs utilisables pour les séances d'entraînement."""
+    async with db.get_connection() as conn:
+        await db.execute(
+            conn,
+            """
+            UPDATE users
+            SET
+                credits = ?,
+                quota_pitch = ?,
+                quota_qa = ?,
+                quota_mes = ?,
+                quota_negotiation = ?,
+                quota_regeneration = ?,
+                quota_update = ?,
+                quota_entreprises = COALESCE(quota_entreprises, 5),
+                quota_offres = COALESCE(quota_offres, 15)
+            WHERE id = ?
+            """,
+            (
+                TESTER_SESSION_CAP,
+                TESTER_SESSION_CAP,
+                TESTER_SESSION_CAP,
+                TESTER_SESSION_CAP,
+                TESTER_SESSION_CAP,
+                TESTER_SESSION_CAP,
+                TESTER_SESSION_CAP,
+                user_id,
+            ),
+        )
+
 async def _insert_user(uid, email, hashed_pw, first, last, created):
     """Insère un nouvel utilisateur."""
     try:
@@ -161,25 +193,19 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             expires_delta=access_token_expires
         )
 
-        # --- [MODIFICATION] GESTION DES CRÉDITS & RELANCE TESTEURS ---
-        # En mode test, les séances sont rechargées à 30 quand le solde atteint 0.
+        # En mode test, on guérit les quotas NULL/vides et les soldes <= 0 au login.
+        try:
+            await _ensure_tester_training_quotas(str(user_dict.get("id")))
+        except Exception as e:
+            print(f"[AUTH WARNING] Échec du réapprovisionnement automatique des quotas : {e}", flush=True)
+
         user_credits = user_dict.get("credits")
-        if user_credits is not None and user_credits <= 0:
-            new_balance = TESTER_SESSION_CAP
-            user_credits = new_balance # Mise à jour pour le token
-            async with db.get_connection() as conn:
-                try:
-                    # On réinitialise tous les quotas pour une expérience de test cohérente.
-                    await db.execute(conn, """
-                        UPDATE users SET
-                            credits = ?, quota_pitch = ?, quota_qa = ?, quota_mes = ?,
-                            quota_negotiation = ?, quota_regeneration = ?, quota_update = ?,
-                            quota_entreprises = 5, quota_offres = 15
-                        WHERE id = ?
-                    """, (new_balance, new_balance, new_balance, new_balance, new_balance, new_balance, new_balance, user_dict.get("id")))
-                    print(f"[AUTH] 🎁 Compte recrédité à {new_balance} séances pour : {email}", flush=True)
-                except Exception as e:
-                    print(f"[AUTH WARNING] Échec de la recharge automatique des crédits : {e}", flush=True)
+        try:
+            user_credits = int(user_credits) if user_credits is not None else TESTER_SESSION_CAP
+        except Exception:
+            user_credits = TESTER_SESSION_CAP
+        if user_credits <= 0:
+            user_credits = TESTER_SESSION_CAP
 
         # --- [MODIFICATION] Tous les utilisateurs sont des testeurs ---
         is_tester_flag = True

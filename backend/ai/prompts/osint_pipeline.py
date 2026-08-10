@@ -70,8 +70,8 @@ class OSINTPipeline:
             
         return queries
 
-    async def fetch_serper_async(self, session: aiohttp.ClientSession, query: str) -> list[dict]:
-        url = "https://google.serper.dev/search"
+    async def fetch_serper_async(self, session: aiohttp.ClientSession, query: str, endpoint: str = "search") -> list[dict]:
+        url = f"https://google.serper.dev/{endpoint}"
         payload = json.dumps({
             "q": query,
             "num": 5,
@@ -87,10 +87,28 @@ class OSINTPipeline:
             async with session.post(url, headers=headers, data=payload, timeout=timeout) as response:
                 response.raise_for_status()
                 data = await response.json()
+                if endpoint == "news":
+                    return data.get("news", [])
                 return data.get("organic", [])
         except Exception as e:
-            print(f"[OSINT] Erreur Serper pour la requête '{query}': {e}")
+            print(f"[OSINT] Erreur Serper ({endpoint}) pour la requête '{query}': {e}")
             return []
+
+    def _normalize_serper_item(self, item: dict, query: str, endpoint: str) -> dict:
+        link = item.get("link") or item.get("url") or ""
+        domain = urlparse(link).netloc.lower()
+        if domain.startswith("www."):
+            domain = domain[4:]
+        return {
+            "title": item.get("title") or "",
+            "url": link,
+            "snippet": item.get("snippet") or item.get("description") or "",
+            "date": item.get("date") or item.get("publishedAt") or item.get("datePublished") or "",
+            "source": item.get("source") or domain,
+            "domain": domain,
+            "query": query,
+            "endpoint": endpoint,
+        }
 
     def deduplicate_and_filter(self, articles: list[dict]) -> list[dict]:
         """Supprime les doublons, syndications d'agences et sites poubelles."""
@@ -101,12 +119,12 @@ class OSINTPipeline:
         bad_domains = ["yahoo.com", "msn.com", "zonebourse.com", "globenewswire.com", "prnewswire.com", "boursorama.com", "businesswire.com"]
         
         for art in articles:
-            url = art.get("link", "")
+            url = art.get("url") or art.get("link") or ""
             if not url or url in seen_urls:
                 continue
             seen_urls.add(url)
             
-            domain = urlparse(url).netloc.lower()
+            domain = (art.get("domain") or urlparse(url).netloc.lower())
             if any(bad in domain for bad in bad_domains):
                 continue
                 
@@ -178,48 +196,73 @@ class OSINTPipeline:
         except Exception as e:
             return f"[Erreur lors de l'extraction : {type(e).__name__}]"
 
-    async def run(self, company_name: str) -> str:
-        """Exécute l'analyse et retourne le contexte formaté pour le Prompt final."""
+    async def run_structured(self, company_name: str, queries: list[str] | None = None, max_articles: int = 18) -> list[dict]:
+        """Retourne une liste structurée d'articles validés avec contenu extrait."""
         aliases = self.expand_entity(company_name)
-        queries = self.build_queries(aliases)
+        queries = queries or self.build_queries(aliases)
         
         all_articles = []
         # [FIX] Recherches en parallèle pour des performances optimales
         sem = asyncio.Semaphore(5) # Limite à 5 requêtes concurrentes
         
-        async def fetch_with_sem(session, q):
+        async def fetch_with_sem(session, q, endpoint):
             async with sem:
-                return await self.fetch_serper_async(session, q)
+                raw_items = await self.fetch_serper_async(session, q, endpoint=endpoint)
+                return [self._normalize_serper_item(item, q, endpoint) for item in raw_items]
 
         async with aiohttp.ClientSession() as session:
-            tasks = [fetch_with_sem(session, q) for q in queries]
+            tasks = []
+            for q in queries:
+                tasks.append(fetch_with_sem(session, q, "search"))
+                tasks.append(fetch_with_sem(session, q, "news"))
             results = await asyncio.gather(*tasks)
             for res in results:
                 all_articles.extend(res)
                 
         filtered_articles = self.deduplicate_and_filter(all_articles)
-        top_articles = filtered_articles[:15] # On ne traite que les 15 articles les plus pertinents
-        
-        # [MODIFIÉ] Étape d'extraction de contenu complet
+        top_articles = filtered_articles[:max_articles]
+
+        if not top_articles:
+            return []
+
+        async with aiohttp.ClientSession() as session:
+            extraction_tasks = [self.extract_main_content_async(session, art.get("url")) for art in top_articles]
+            extracted_contents = await asyncio.gather(*extraction_tasks)
+
+        structured_articles = []
+        for i, art in enumerate(top_articles):
+            content = extracted_contents[i]
+            structured_articles.append({
+                "article_id": f"art_{i + 1:03d}",
+                "title": art.get("title") or f"Article {i + 1}",
+                "url": art.get("url") or "",
+                "source": art.get("source") or art.get("domain") or "Source Web",
+                "domain": art.get("domain") or "",
+                "published_at": art.get("date") or "Récente",
+                "snippet": art.get("snippet") or "",
+                "query": art.get("query") or "",
+                "endpoint": art.get("endpoint") or "search",
+                "content": content or "",
+            })
+        return structured_articles
+
+    async def run(self, company_name: str) -> str:
+        """Exécute l'analyse et retourne le contexte formaté pour le Prompt final."""
+        top_articles = await self.run_structured(company_name=company_name)
+
         context_str = "### ANALYSE DE PRESSE OSINT (Contenu Complet) ###\n"
         if top_articles:
-            async with aiohttp.ClientSession() as session:
-                extraction_tasks = [self.extract_main_content_async(session, art.get("link")) for art in top_articles]
-                extracted_contents = await asyncio.gather(*extraction_tasks)
-
             for i, art in enumerate(top_articles):
-                full_content = extracted_contents[i]
-                # On tronque pour ne pas dépasser les limites de tokens du LLM final, tout en gardant l'essentiel.
+                full_content = art.get("content") or ""
                 truncated_content = (full_content[:4000] + '...') if full_content and len(full_content) > 4000 else full_content
-                
                 context_str += (
                     f"--- SOURCE {i+1} ---\n"
                     f"Titre: {art.get('title')}\n"
-                    f"URL: {art.get('link')}\n"
-                    f"Date: {art.get('date', 'Récente')}\n"
+                    f"URL: {art.get('url')}\n"
+                    f"Date: {art.get('published_at', 'Récente')}\n"
                     f"CONTENU COMPLET DE L'ARTICLE:\n{truncated_content}\n\n"
                 )
         else:
             context_str += "Aucun article pertinent trouvé lors de la recherche web."
-            
+
         return context_str

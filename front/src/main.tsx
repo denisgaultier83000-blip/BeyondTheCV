@@ -14,6 +14,7 @@ import AdminUserDetails from "./components/AdminUserDetails"; // Nouvelle page d
 import AdminGenerations from "./components/AdminGenerations"; // Nouvelle page Admin
 import AdminSettings from "./components/AdminSettings"; // Nouvelle page Admin
 import { AdminDashboard } from "./components/AdminDashboard";
+import ResetPassword from "./components/ResetPassword";
 import ErrorBoundary from "./components/ErrorBoundary";
 import "./index.css";
 import "./theme.css";

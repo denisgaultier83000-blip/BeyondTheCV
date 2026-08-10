@@ -13,9 +13,13 @@ export default function ResetPassword() {
 
   // Extraction automatique du token de sécurité depuis l'URL
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlToken = urlParams.get('token');
-    setToken(urlToken);
+      const searchParams = new URLSearchParams(window.location.search);
+      const hashRaw = (window.location.hash || '').replace(/^#/, '');
+      const hashParams = new URLSearchParams(hashRaw);
+      const hashToken = hashParams.get('token');
+      const directHashToken = hashRaw && !hashRaw.includes('=') ? decodeURIComponent(hashRaw) : null;
+      const urlToken = searchParams.get('token') || hashToken || directHashToken;
+      setToken(urlToken);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
