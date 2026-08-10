@@ -964,7 +964,9 @@ export function useDashboardLogic() {
          if (previousImpactSignature && previousImpactSignature === currentImpactSignature) {
            console.info('[DASHBOARD_CACHE] HIT (step7_guard): no impactful changes, instant restore.');
            setCurrentStep(8);
-           if (!hasAnyResolvedResult || !dashboardCacheComplete) {
+           // Sans changement d'inputs, on évite de relancer tout le pipeline
+           // uniquement parce qu'un module secondaire est absent du cache.
+           if (!hasAnyResolvedResult) {
              setGlobalStatus("PROCESSING");
              await restartMissingDashboardTasks();
            } else {
@@ -984,7 +986,7 @@ export function useDashboardLogic() {
          if (recalcLevel === 'none') {
            console.info('[DASHBOARD_CACHE] NO_IMPACT_CHANGE: instant restore, no recalculation.');
            setCurrentStep(8);
-           if (!hasAnyResolvedResult || !dashboardCacheComplete) {
+           if (!hasAnyResolvedResult) {
              setGlobalStatus("PROCESSING");
              await restartMissingDashboardTasks();
            } else {
