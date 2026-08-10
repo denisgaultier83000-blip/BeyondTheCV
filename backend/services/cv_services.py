@@ -3061,8 +3061,8 @@ OUTPUT LANGUAGE: {target_lang}
 
 @router.post("/start-analysis")
 async def start_analysis(
-    payload: dict = Body(...),
     background_tasks: BackgroundTasks,
+    payload: dict = Body(...),
     current_user: dict = Depends(get_current_user),
 ):
     """
