@@ -967,9 +967,19 @@ export function useDashboardLogic() {
            }
          };
 
-         const restartMissingDashboardTasks = async () => {
-           // Nettoie les task IDs potentiellement perimes avant de relancer.
-           setTaskIds(null);
+         const restartMissingDashboardTasks = async (forceResearchOnly: boolean = false) => {
+           // Nettoie uniquement les IDs concernés pour éviter d'effacer des tâches utiles.
+           if (forceResearchOnly) {
+             setTaskIds(prev => {
+               if (!prev) return prev;
+               const next = { ...prev } as any;
+               delete next.market_research;
+               delete next.salary_estimation;
+               return Object.keys(next).length > 0 ? next : null;
+             });
+           } else {
+             setTaskIds(null);
+           }
 
            // Relance marche/entreprise si necessaire.
            const hasTarget = !!(payload.target_company || payload.target_industry);
@@ -1000,20 +1010,25 @@ export function useDashboardLogic() {
              }
            }
 
-           // Relance le pipeline principal pour repopuler les modules en attente.
-           const analysisRes = await authenticatedFetch(`/cv/start-analysis`, {
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ ...payload, is_partial_start: false }),
-           });
-           if (analysisRes.ok) {
-             const analysisData = await analysisRes.json();
-             setTaskIds(prev => ({
-               ...(prev || {}),
-               ...(normalizeTaskIds(analysisData.tasks) || {}),
-             }));
+           if (!forceResearchOnly) {
+             // Relance le pipeline principal pour repopuler les modules en attente.
+             const analysisRes = await authenticatedFetch(`/cv/start-analysis`, {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({ ...payload, is_partial_start: false }),
+             });
+             if (analysisRes.ok) {
+               const analysisData = await analysisRes.json();
+               setTaskIds(prev => ({
+                 ...(prev || {}),
+                 ...(normalizeTaskIds(analysisData.tasks) || {}),
+               }));
+             }
            }
          };
+
+         const hasTargetForResearch = !!(payload.target_company || payload.target_industry);
+         const needsResearchRecovery = hasTargetForResearch && !hasUsableDashboardCache(researchResult);
 
          // Cas simple demandé : si rien d'important n'a changé, on ré-ouvre instantanément le dashboard existant.
          if (previousImpactSignature && previousImpactSignature === currentImpactSignature) {
@@ -1021,9 +1036,9 @@ export function useDashboardLogic() {
            setCurrentStep(8);
            // Sans changement d'inputs, on évite de relancer tout le pipeline
            // uniquement parce qu'un module secondaire est absent du cache.
-           if (!hasAnyResolvedResult) {
+           if (!hasAnyResolvedResult || needsResearchRecovery) {
              setGlobalStatus("PROCESSING");
-             await restartMissingDashboardTasks();
+             await restartMissingDashboardTasks(needsResearchRecovery && hasAnyResolvedResult);
            } else {
              setGlobalStatus("COMPLETED");
            }
@@ -1041,9 +1056,9 @@ export function useDashboardLogic() {
          if (recalcLevel === 'none') {
            console.info('[DASHBOARD_CACHE] NO_IMPACT_CHANGE: instant restore, no recalculation.');
            setCurrentStep(8);
-           if (!hasAnyResolvedResult) {
+           if (!hasAnyResolvedResult || needsResearchRecovery) {
              setGlobalStatus("PROCESSING");
-             await restartMissingDashboardTasks();
+             await restartMissingDashboardTasks(needsResearchRecovery && hasAnyResolvedResult);
            } else {
              setGlobalStatus("COMPLETED");
            }

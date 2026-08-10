@@ -2,6 +2,7 @@ import io
 import json
 import re
 import asyncio
+import uuid
 import hashlib
 import html
 import ipaddress
@@ -13,7 +14,7 @@ from typing import Any, Tuple
 from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
 
 import aiohttp
-from fastapi import APIRouter, Depends, Body, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, Body, HTTPException, UploadFile, File, Form, BackgroundTasks
 from pydantic import BaseModel
 from pypdf import PdfReader
 
@@ -2409,9 +2410,6 @@ async def analyze_completeness(payload: dict = Body(...), current_user: dict = D
             {"id": 3, "field": "objections", "question": "Quelle objection principale anticipez-vous en entretien et quelle preuve factuelle préparerez-vous pour y répondre ?", "answer": ""}
         ]}
 
-# Simple in-memory task store for mocked background tasks
-TASK_STORE: dict = {}
-_ACTIVE_LOCAL_TASKS = set()
 TRAINING_POOL_STORE: dict = {}
 _TRAINING_POOL_LOCK = asyncio.Lock()
 TRAINING_POOL_VERSION = "v1"
@@ -2561,19 +2559,6 @@ def _ensure_pitch_matrix_shape(result: dict, candidate_data: dict) -> dict:
                 if isinstance(written, str) and not isinstance(oral, str):
                     value["oral"] = written
     return base
-
-def _spawn_local_task(task_id: str, producer):
-    async def _runner():
-        TASK_STORE[task_id] = {"status": "RUNNING"}
-        try:
-            result = await producer()
-            TASK_STORE[task_id] = {"status": "SUCCESS", "result": result}
-        except Exception as e:
-            TASK_STORE[task_id] = {"status": "FAILED", "result": {"error": str(e)}}
-
-    task = asyncio.create_task(_runner())
-    _ACTIVE_LOCAL_TASKS.add(task)
-    task.add_done_callback(_ACTIVE_LOCAL_TASKS.discard)
 
 async def generate_interview_questions(candidate_data: dict) -> dict:
     target_lang = normalize_language(candidate_data.get("target_language", "French"))
@@ -3075,38 +3060,37 @@ OUTPUT LANGUAGE: {target_lang}
     }
 
 @router.post("/start-analysis")
-async def start_analysis(payload: dict = Body(...), current_user: dict = Depends(get_current_user)):
+async def start_analysis(
+    payload: dict = Body(...),
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(get_current_user),
+):
     """
-    [IMPROVED MOCK] Start a set of background analysis tasks and store their results in-memory.
-    Returns a mapping of task keys to generated task IDs so the frontend can poll /tasks/status/{task_id}.
+    Démarre une analyse complète en mode DB-only.
+    Les tâches sont persistées dans la table `tasks` et exécutées en arrière-plan.
     """
     try:
-        user_id = current_user.get('id')
-        ts = int(datetime.now(timezone.utc).timestamp())
+        from .tasks import (
+            process_pitch_in_background,
+            process_questions_in_background,
+            process_gap_analysis_in_background,
+            process_job_decoder_in_background,
+            process_recruiter_view_in_background,
+            process_reality_check_in_background,
+            process_flaw_coaching_in_background,
+            process_action_plan_in_background,
+            process_custom_scenarios_in_background,
+        )
 
-        def mk(task_key: str):
-            return f"{task_key}_{user_id}_{ts}"
+        user_id = current_user.get("id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Utilisateur non authentifié")
 
-        tasks = {
-            "pitch": mk('pitch'),
-            "questions": mk('questions'),
-            "gap_analysis": mk('gap'),
-            "job_decoder": mk('decoder'),
-            "recruiter_view": mk('recruiter'),
-            "reality_check": mk('reality'),
-            "flaw_coaching": mk('flaws'),
-            "action_plan": mk('action'),
-            "custom_scenarios": mk('scenarios')
-        }
+        now = datetime.now(timezone.utc)
+        application_id = payload.get("application_id") or str(uuid.uuid4())
 
-        # Build lightweight defaults from payload
-        target_job = payload.get('target_job') or payload.get('target_role_primary') or 'le poste'
-        target_company = payload.get('target_company') or "l'entreprise cible"
-        skills = payload.get('skills') or []
-        if isinstance(skills, str):
-            skills_list = [s.strip() for s in skills.split(',') if s.strip()]
-        else:
-            skills_list = skills if isinstance(skills, list) else []
+        target_company = payload.get("target_company") or "Général"
+        target_job = payload.get("target_job") or payload.get("target_role_primary") or "Poste non spécifié"
 
         # Convert answered clarifications into explicit engine-ready signals
         raw_clarifications = payload.get("clarifications") if isinstance(payload.get("clarifications"), list) else []
@@ -3121,42 +3105,93 @@ async def start_analysis(payload: dict = Body(...), current_user: dict = Depends
                     "question": question,
                     "answer": answer
                 })
-        payload["clarification_insights"] = clarification_insights[:5]
 
-        # Mark async AI tasks as pending and run them in background
-        TASK_STORE[tasks['pitch']] = {"status": "PENDING"}
-        TASK_STORE[tasks['questions']] = {"status": "PENDING"}
-        TASK_STORE[tasks['gap_analysis']] = {"status": "PENDING"}
-        TASK_STORE[tasks['job_decoder']] = {"status": "PENDING"}
-        TASK_STORE[tasks['recruiter_view']] = {"status": "PENDING"}
-        TASK_STORE[tasks['reality_check']] = {"status": "PENDING"}
-        TASK_STORE[tasks['flaw_coaching']] = {"status": "PENDING"}
-        TASK_STORE[tasks['action_plan']] = {"status": "PENDING"}
-        TASK_STORE[tasks['custom_scenarios']] = {"status": "PENDING"}
+        candidate_data = {
+            **payload,
+            "user_id": user_id,
+            "application_id": application_id,
+            "clarification_insights": clarification_insights[:5],
+        }
 
-        _spawn_local_task(tasks['pitch'], lambda: generate_pitch(payload, quality="smart"))
-        _spawn_local_task(tasks['questions'], lambda: generate_interview_questions(payload))
-        _spawn_local_task(tasks['gap_analysis'], lambda: generate_gap_analysis(payload))
-        _spawn_local_task(tasks['job_decoder'], lambda: generate_job_decoder(payload))
-        _spawn_local_task(tasks['recruiter_view'], lambda: generate_recruiter_view(payload))
-        _spawn_local_task(tasks['reality_check'], lambda: generate_reality_check(payload))
-        _spawn_local_task(tasks['flaw_coaching'], lambda: generate_flaw_coaching(payload))
-        _spawn_local_task(tasks['action_plan'], lambda: generate_action_plan(payload))
-        _spawn_local_task(tasks['custom_scenarios'], lambda: generate_custom_scenarios(payload))
+        task_workers = {
+            "pitch": process_pitch_in_background,
+            "questions": process_questions_in_background,
+            "gap_analysis": process_gap_analysis_in_background,
+            "recruiter_view": process_recruiter_view_in_background,
+            "reality_check": process_reality_check_in_background,
+            "flaw_coaching": process_flaw_coaching_in_background,
+            "action_plan": process_action_plan_in_background,
+            "custom_scenarios": process_custom_scenarios_in_background,
+        }
 
-        return {"message": "Full analysis started", "tasks": tasks}
+        # Job decoder seulement si annonce disponible
+        has_job_description = bool(str(payload.get("job_description") or "").strip())
+        if has_job_description:
+            task_workers["job_decoder"] = process_job_decoder_in_background
+
+        tasks = {task_key: str(uuid.uuid4()) for task_key in task_workers.keys()}
+
+        async with db.get_connection() as conn:
+            await db.execute(
+                conn,
+                """
+                INSERT INTO job_applications (id, user_id, target_company, target_job, created_at)
+                VALUES (?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING
+                """,
+                (application_id, user_id, target_company, target_job, now),
+            )
+
+            for task_key, task_id in tasks.items():
+                await db.execute(
+                    conn,
+                    "INSERT INTO tasks (id, user_id, status, task_type, result, created_at, application_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (task_id, user_id, "PENDING", task_key, None, now, application_id),
+                )
+
+        for task_key, worker in task_workers.items():
+            background_tasks.add_task(worker, tasks[task_key], candidate_data)
+
+        return {
+            "message": "Full analysis started (db-only)",
+            "application_id": application_id,
+            "tasks": tasks,
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to start analysis: {e}")
 
 
 @router.get('/tasks/status/{task_id}')
 async def tasks_status(task_id: str):
-    """Endpoint polled by frontend to retrieve mocked task status/result."""
-    entry = TASK_STORE.get(task_id)
-    if entry:
-        return entry
-    # If not found, return PENDING to let frontend continue polling briefly
-    return {"status": "PENDING"}
+    """Alias DB-only pour le polling de statut des tâches."""
+    async with db.get_connection() as conn:
+        cursor = await db.execute(conn, "SELECT status, result, error_message FROM tasks WHERE id = ?", (task_id,))
+        task = await cursor.fetchone()
+
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    status = str(task.get("status", "PENDING")).upper()
+    result_raw = task.get("result")
+    error_message = task.get("error_message")
+
+    result_data = None
+    if isinstance(result_raw, str):
+        try:
+            result_data = json.loads(result_raw)
+        except json.JSONDecodeError:
+            result_data = result_raw
+    else:
+        result_data = result_raw
+
+    if status in {"SUCCESS", "COMPLETED"}:
+        return {"status": "SUCCESS", "result": result_data}
+
+    if status == "FAILED":
+        if not error_message and isinstance(result_data, dict):
+            error_message = result_data.get("error")
+        return {"status": "FAILED", "error": error_message, "result": result_data}
+
+    return {"status": status, "result": result_data, "error": error_message}
 
 
 @router.get("/analysis-status/{task_id}")
@@ -3164,10 +3199,7 @@ async def get_analysis_status(task_id: str):
     """
     Backwards-compatible alias for analysis status.
     """
-    entry = TASK_STORE.get(task_id)
-    if entry:
-        return entry
-    return {"status": "PENDING", "result": {}}
+    return await tasks_status(task_id)
 @router.post("/dashboard/summary")
 async def get_dashboard_summary(payload: dict = Body(...), current_user: dict = Depends(get_current_user)):
     """

@@ -23,20 +23,19 @@ async def get_task_status(task_id: str):
     """
     Vérifie le statut d'une tâche asynchrone (ex: génération IA).
     C'est le point de terminaison que le frontend interroge régulièrement (polling).
-    Comportement amélioré :
-      - Essaie la DB d'abord
-      - Si la tâche n'existe pas en DB, vérifie le TASK_STORE en mémoire (utilisé pour le dev local)
-      - Ne masque pas les HTTPException (404) en 500
+        Mode DB-only :
+            - Lit exclusivement la table `tasks`
+            - Retourne 404 si la tâche n'existe pas
     """
-    # 1) Tenter de lire depuis la base de données (si disponible)
+    # 1) Lecture depuis la base de données
     task = None
     try:
         async with db.get_connection() as conn:
             cursor = await db.execute(conn, "SELECT status, result, error_message FROM tasks WHERE id = ?", (task_id,))
             task = await cursor.fetchone()
     except Exception as e:
-        # Log d'information mais ne crash pas : on tentera le fallback mémoire
-        print(f"[TASKS] DB read error (continuing to in-memory fallback): {e}", flush=True)
+        # Mode DB-only: on loggue l'erreur puis on laisse la route renvoyer 404 si aucun enregistrement n'est disponible.
+        print(f"[TASKS] DB read error: {e}", flush=True)
         task = None
 
     # 2) Si trouvée en DB, formater la réponse
@@ -57,15 +56,5 @@ async def get_task_status(task_id: str):
 
         return {"status": status, "result": result_data, "error": task.get("error_message")}
 
-    # 3) Fallback : vérifier le store en mémoire (mock) défini dans services.cv_services
-    try:
-        from services.cv_services import TASK_STORE
-        entry = TASK_STORE.get(task_id)
-        if entry:
-            return entry
-    except Exception:
-        # Import/circular errors -> ignore, on renverra 404
-        pass
-
-    # 4) Pas trouvé : renvoyer 404
+    # 3) Pas trouvé en base : renvoyer 404 (mode DB-only)
     raise HTTPException(status_code=404, detail="Tâche non trouvée.")
