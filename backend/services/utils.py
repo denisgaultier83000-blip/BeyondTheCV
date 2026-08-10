@@ -10,6 +10,50 @@ from database import db
 from asyncio import Lock
 _CACHE_LOCKS = {}
 TESTER_SESSION_CAP = 30
+_QUOTA_COLUMN_CACHE = {}
+
+
+async def _resolve_business_quota_column(conn, quota_type: str) -> str:
+    """Resolve the actual business quota column present in DB (new or legacy schema)."""
+    if quota_type not in {"entreprises", "offres"}:
+        raise HTTPException(status_code=400, detail=f"Type de quota invalide : {quota_type}")
+
+    cache_key = f"business_quota_col::{quota_type}"
+    if cache_key in _QUOTA_COLUMN_CACHE:
+        return _QUOTA_COLUMN_CACHE[cache_key]
+
+    preferred = f"quota_{quota_type}"
+    legacy = quota_type
+
+    cursor = await db.execute(
+        conn,
+        """
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'users'
+          AND column_name IN (?, ?)
+        """,
+        (preferred, legacy),
+    )
+    rows = await cursor.fetchall()
+    names = {
+        (row[0] if isinstance(row, tuple) else row.get("column_name", ""))
+        for row in rows or []
+    }
+
+    if preferred in names:
+        resolved = preferred
+    elif legacy in names:
+        resolved = legacy
+    else:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Aucune colonne de quota trouvée pour '{quota_type}' (attendu: {preferred} ou {legacy}).",
+        )
+
+    _QUOTA_COLUMN_CACHE[cache_key] = resolved
+    return resolved
 
 def load_prompt(filename: str) -> str:
     """Helper to load prompts from the ai/prompts directory."""
@@ -32,7 +76,6 @@ async def consume_quota(user_id: str, quota_type: str, cost: int = 1):
         raise HTTPException(status_code=400, detail=f"Type de quota invalide : {quota_type}")
     
     session_quotas = {"pitch", "qa", "mes", "negotiation", "regeneration", "update"}
-    column_name = "credits" if quota_type in session_quotas else f"quota_{quota_type}"
     
     async with db.get_connection() as conn:
         # On utilise un lock pour éviter les race conditions si l'utilisateur clique très vite
@@ -41,6 +84,11 @@ async def consume_quota(user_id: str, quota_type: str, cost: int = 1):
             _CACHE_LOCKS[user_lock_key] = asyncio.Lock()
         
         async with _CACHE_LOCKS[user_lock_key]:
+            if quota_type in session_quotas:
+                column_name = "credits"
+            else:
+                column_name = await _resolve_business_quota_column(conn, quota_type)
+
             cursor = await db.execute(conn, f"SELECT {column_name} FROM users WHERE id = ?", (user_id,))
             row = await cursor.fetchone()
             
@@ -84,9 +132,12 @@ async def refund_quota(user_id: str, quota_type: str, cost: int = 1):
         return
 
     session_quotas = {"pitch", "qa", "mes", "negotiation", "regeneration", "update"}
-    column_name = "credits" if quota_type in session_quotas else f"quota_{quota_type}"
     try:
         async with db.get_connection() as conn:
+            if quota_type in session_quotas:
+                column_name = "credits"
+            else:
+                column_name = await _resolve_business_quota_column(conn, quota_type)
             await db.execute(conn, f"UPDATE users SET {column_name} = {column_name} + ? WHERE id = ?", (cost, user_id))
     except Exception as e:
         print(f"[DB WARNING] Refund quota failed for {user_id} on {quota_type}: {e}")

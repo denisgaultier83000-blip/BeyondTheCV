@@ -14,7 +14,8 @@ from .utils import (
     load_prompt, clean_ai_json_response, normalize_language, 
     _generate_cache_key, get_cached_content, set_cached_content,
     _CACHE_LOCKS,
-    _sanitize_data_for_ai
+    _sanitize_data_for_ai,
+    _resolve_business_quota_column,
 )
 
 # --- CONFIGURATION DES CHEMINS ---
@@ -35,11 +36,11 @@ async def _auto_recharge_business_quota_if_tester(user_id: str, quota_type: str)
     if quota_type not in {"entreprises", "offres"}:
         return False
 
-    target_col = "quota_entreprises" if quota_type == "entreprises" else "quota_offres"
     default_value = 5 if quota_type == "entreprises" else 15
 
     try:
         async with db.get_connection() as conn:
+            target_col = await _resolve_business_quota_column(conn, quota_type)
             cursor = await db.execute(
                 conn,
                 f"SELECT is_tester, {target_col} FROM users WHERE id = ?",
