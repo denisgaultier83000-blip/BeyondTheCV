@@ -88,6 +88,6 @@ jobs:
             ${{ env.FRONTEND_IMAGE }}:${{ env.VERSION }}
             ${{ env.FRONTEND_IMAGE }}:${{ env.VERSION_SHA }}
           build-args: |
-            VITE_API_URL=${{ startsWith(github.ref_name, 'staging') && '/api' || 'https://api.beyondthecv.app' }}
+            VITE_API_URL=${{ startsWith(github.ref_name, 'staging') && 'https://api-staging.beyondthecv.app/api' || 'https://api.beyondthecv.app/api' }}
           cache-from: type=gha
           cache-to: type=gha,mode=min,ignore-error=true
