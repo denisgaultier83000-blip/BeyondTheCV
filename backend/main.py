@@ -385,9 +385,12 @@ base_cors_origins = [
     "http://localhost:3000",
     "http://localhost:5173",
     "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
     "https://www.beyondthecv.app",
     "https://beyondthecv.app",
     "https://staging.beyondthecv.app",
+    "https://api.beyondthecv.app",
+    "https://api-staging.beyondthecv.app",
 ]
 
 frontend_env = os.getenv("FRONTEND_URL")
@@ -399,12 +402,19 @@ for origin in [item.strip() for item in allowed_origins_env.split(",") if item.s
     if origin not in base_cors_origins:
         base_cors_origins.append(origin)
 
+# [FIX CORS] Ajout d'un fallback par regex pour couvrir les sous-domaines staging/prod
+# et les environnements de test. Cela évite un blocage si l'origin n'est pas exactement dans la liste.
+allow_origin_regex = r"https://([a-z0-9-]+\.)*beyondthecv\.app|http://localhost(:\d+)?|http://127\.0\.0\.1(:\d+)?"
+
+print(f"[CORS] Allowed origins: {base_cors_origins}", flush=True)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=base_cors_origins,
+    allow_origin_regex=allow_origin_regex,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With", "X-CSRFToken"],
 )
 
 # [SECURITE] Middleware de logging limité aux environnements non-prod pour éviter les fuites d'information.
