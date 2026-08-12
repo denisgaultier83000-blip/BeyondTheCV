@@ -1,4 +1,6 @@
-const API_URL = import.meta.env.VITE_API_URL;
+import { API_BASE_URL } from '../config';
+
+const API_URL = API_BASE_URL;
 
 export function getToken() {
   return localStorage.getItem("token");
@@ -14,8 +16,9 @@ export function clearToken() {
 
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
+  const normalizedPath = path.startsWith("http") ? path : `${path.startsWith("/") ? "" : "/"}${path}`;
 
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(`${API_URL}${normalizedPath}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",

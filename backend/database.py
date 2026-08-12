@@ -54,7 +54,8 @@ def get_database_url():
     """
     # [DEBUG EXPERT] Affichage brut et inconditionnel de la variable pour lever le doute
     raw_secret = os.getenv("DATABASE_SECRET_NAME")
-    print(f"[DEBUG DB] os.getenv('DATABASE_SECRET_NAME') retourne : {repr(raw_secret)}", flush=True)
+    if os.getenv("ENVIRONMENT", "development").lower() != "production":
+        print(f"[DEBUG DB] os.getenv('DATABASE_SECRET_NAME') retourne : {repr(raw_secret)}", flush=True)
 
     secret_name = os.getenv("DATABASE_SECRET_NAME")
     
@@ -155,6 +156,10 @@ class Database:
         self._sync_pool = None
         self._async_lock = asyncio.Lock()
         self._sync_lock = threading.Lock()
+        self._async_pool_min = int(os.getenv("DB_POOL_MIN_SIZE", "5"))
+        self._async_pool_max = int(os.getenv("DB_POOL_MAX_SIZE", "20"))
+        self._sync_pool_min = int(os.getenv("DB_SYNC_POOL_MIN_SIZE", "5"))
+        self._sync_pool_max = int(os.getenv("DB_SYNC_POOL_MAX_SIZE", "20"))
         
         # [FIX EXPERT] L'initialisation ne doit pas se faire lors de l'import du module.
         # Elle est désormais déléguée exclusivement au gestionnaire 'lifespan' de FastAPI (main.py).
@@ -192,8 +197,12 @@ class Database:
             if not self._async_pool:
                 async with self._async_lock:
                     if not self._async_pool:
-                        # [OPTIMISATION] Pool asynchrone pour encaisser un pic de trafic
-                        self._async_pool = await asyncpg.create_pool(self.database_url, min_size=5, max_size=50)
+                        # [OPTIMISATION] Pool asynchrone configurable pour encaisser un pic de trafic sans saturer la base
+                        self._async_pool = await asyncpg.create_pool(
+                            self.database_url,
+                            min_size=max(1, self._async_pool_min),
+                            max_size=max(1, self._async_pool_max),
+                        )
             async with self._async_pool.acquire() as conn:
                 yield conn
         else:

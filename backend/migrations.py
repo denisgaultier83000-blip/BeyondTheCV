@@ -85,6 +85,11 @@ def create_tables():
         cur.execute("ALTER TABLE job_applications ADD COLUMN IF NOT EXISTS tasks_map JSONB;")
         print("✅ Table 'job_applications' migrated.")
 
+        # --- MIGRATIONS POUR LA TABLE 'interview_debriefs' ---
+        cur.execute("ALTER TABLE interview_debriefs ADD COLUMN IF NOT EXISTS analysis_result JSONB;")
+        cur.execute("ALTER TABLE interview_debriefs ADD COLUMN IF NOT EXISTS analysis_created_at TIMESTAMPTZ;")
+        print("✅ Table 'interview_debriefs' migrated.")
+
         # --- CRÉATION TABLE 'candidate_behavioral_data' ---
         cur.execute("""
             CREATE TABLE IF NOT EXISTS candidate_behavioral_data (

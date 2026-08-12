@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { authenticatedFetch } from '../utils/auth';
+import { API_BASE_URL } from '../config';
 import { Zap, RefreshCw, Eye } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar } from 'recharts';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = API_BASE_URL;
 
 interface Generation {
   id: string;

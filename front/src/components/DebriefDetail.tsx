@@ -169,11 +169,11 @@ export function DebriefDetail({ debriefId, onBack, autoAnalyze }: DebriefDetailP
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const hasPersistedAnalysis = !!(analysisResult || debrief?.analysis_result);
 
   const handleAnalyze = useCallback(async () => {
     setIsAnalyzing(true);
     setAnalysisError(null);
-    setAnalysisResult(null);
     try {
       const response = await authenticatedFetch(`${API_BASE_URL}/debriefs/${debriefId}/analyze`, {
         method: 'POST',
@@ -189,6 +189,10 @@ export function DebriefDetail({ debriefId, onBack, autoAnalyze }: DebriefDetailP
       }
       const data = await response.json();
       setAnalysisResult(data.analysis);
+      setDebrief((prev: any) => prev ? {
+        ...prev,
+        analysis_result: data.analysis,
+      } : prev);
     } catch (err: any) {
       setAnalysisError(err.message);
     } finally {
@@ -205,6 +209,7 @@ export function DebriefDetail({ debriefId, onBack, autoAnalyze }: DebriefDetailP
         if (!response.ok) throw new Error("Impossible de charger ce débrief.");
         const data = await response.json();
         setDebrief(data);
+        setAnalysisResult(data.analysis_result || null);
 
       } catch (err: any) {
         setError(err.message);
@@ -213,11 +218,14 @@ export function DebriefDetail({ debriefId, onBack, autoAnalyze }: DebriefDetailP
       }
     };
     fetchDebrief();
-    // [NOUVEAU] Déclenchement automatique de l'analyse si demandé
-    if (autoAnalyze) {
-      handleAnalyze();
+  }, [debriefId]);
+
+  useEffect(() => {
+    if (!autoAnalyze || loading || isAnalyzing || analysisResult || debrief?.analysis_result) {
+      return;
     }
-  }, [debriefId, autoAnalyze, handleAnalyze]);
+    handleAnalyze();
+  }, [autoAnalyze, loading, isAnalyzing, analysisResult, debrief, handleAnalyze]);
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.7)', zIndex: 2002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(4px)' }}>
@@ -226,10 +234,12 @@ export function DebriefDetail({ debriefId, onBack, autoAnalyze }: DebriefDetailP
           <button onClick={onBack} className="btn-secondary" style={{ padding: '0.5rem', borderRadius: '50%', width: '40px', height: '40px' }}>
             <ArrowLeft size={20} />
           </button>
-          <button onClick={handleAnalyze} disabled={isAnalyzing} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {isAnalyzing ? <Loader2 size={18} className="spin" /> : <Zap size={18} />}
-            {isAnalyzing ? "Analyse en cours..." : "Analyser et Préparer la suite"}
-          </button>
+          {!hasPersistedAnalysis && (
+            <button onClick={handleAnalyze} disabled={isAnalyzing} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {isAnalyzing ? <Loader2 size={18} className="spin" /> : <Zap size={18} />}
+              {isAnalyzing ? "Analyse en cours..." : "Analyser et Préparer la suite"}
+            </button>
+          )}
         </div>
 
         <div style={{ overflowY: 'auto', flex: 1, paddingTop: '3rem' }}>

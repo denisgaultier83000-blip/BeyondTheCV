@@ -381,39 +381,37 @@ async def strip_api_prefix(request: Request, call_next):
     return await call_next(request)
 
 # --- CORS CONFIGURATION ---
-cors_origins = [
-    "http://localhost:3000",  # Frontend URL (React/Next.js)
-    "http://localhost:5173",  # Frontend URL (Vite)
+base_cors_origins = [
+    "http://localhost:3000",
+    "http://localhost:5173",
     "http://127.0.0.1:3000",
-    "https://www.beyondthecv.app", # Allow production domain (www)
-    "https://beyondthecv.app",     # Allow production domain (apex)
-    "https://staging.beyondthecv.app", # [FIX EXPERT] Autoriser le domaine de staging
+    "https://www.beyondthecv.app",
+    "https://beyondthecv.app",
+    "https://staging.beyondthecv.app",
 ]
 
-# Ajout dynamique via variable d’environnement
 frontend_env = os.getenv("FRONTEND_URL")
-if frontend_env and frontend_env not in cors_origins:
-    cors_origins.append(frontend_env)
+if frontend_env and frontend_env not in base_cors_origins:
+    base_cors_origins.append(frontend_env)
 
 allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
 for origin in [item.strip() for item in allowed_origins_env.split(",") if item.strip()]:
-    if origin not in cors_origins:
-        cors_origins.append(origin)
+    if origin not in base_cors_origins:
+        base_cors_origins.append(origin)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,
+    allow_origins=base_cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With"],
 )
 
-# [DEBUG] Middleware pour tracer les requêtes entrantes (Confirme la connexion réseau)
+# [SECURITE] Middleware de logging limité aux environnements non-prod pour éviter les fuites d'information.
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start_time = time.time()
-    
-    # [ROBUSTESSE] Catch-all pour éviter le crash "Exception in ASGI application"
+
     try:
         response = await call_next(request)
     except Exception as e:
@@ -422,12 +420,13 @@ async def log_requests(request: Request, call_next):
         traceback.print_exc()
         response = JSONResponse(status_code=500, content={"detail": "Internal Server Error", "error": "Une erreur interne critique est survenue."})
 
-    process_time = (time.time() - start_time) * 1000
-    try:
-        client_ip = request.client.host if request.client else "unknown"
-        print(f"[NET] {request.method} {request.url.path} - {response.status_code} ({process_time:.2f}ms) - IP: {client_ip}", flush=True)
-    except Exception as e:
-        print(f"[NET LOG ERROR] Could not log request: {e}", flush=True)
+    if os.getenv("ENVIRONMENT", "development").lower() != "production":
+        process_time = (time.time() - start_time) * 1000
+        try:
+            client_ip = request.client.host if request.client else "unknown"
+            print(f"[NET] {request.method} {request.url.path} - {response.status_code} ({process_time:.2f}ms) - IP: {client_ip}", flush=True)
+        except Exception:
+            pass
     return response
 
 # [ROBUSTESSE] Chargement défensif des routeurs

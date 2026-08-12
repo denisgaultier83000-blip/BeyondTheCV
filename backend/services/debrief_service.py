@@ -11,6 +11,17 @@ from models import InterviewDebriefRequest
 from .ai_generator import ai_service
 from .utils import load_prompt, normalize_language
 
+_DEBRIEF_ANALYSIS_SCHEMA_READY = False
+
+
+async def _ensure_debrief_analysis_schema(conn) -> None:
+    global _DEBRIEF_ANALYSIS_SCHEMA_READY
+    if _DEBRIEF_ANALYSIS_SCHEMA_READY:
+        return
+    await db.execute(conn, "ALTER TABLE interview_debriefs ADD COLUMN IF NOT EXISTS analysis_result JSONB")
+    await db.execute(conn, "ALTER TABLE interview_debriefs ADD COLUMN IF NOT EXISTS analysis_created_at TIMESTAMPTZ")
+    _DEBRIEF_ANALYSIS_SCHEMA_READY = True
+
 class AnalyzeDebriefRequest(BaseModel):
     cvData: dict
     nextInterviewContext: Optional[dict] = None
@@ -104,6 +115,7 @@ async def get_debrief_details(debrief_id: str, current_user: dict = Depends(get_
     query = "SELECT * FROM interview_debriefs WHERE id = ? AND user_id = ?"
     
     async with db.get_connection() as conn:
+        await _ensure_debrief_analysis_schema(conn)
         cursor = await db.execute(conn, query, (debrief_id, user_id))
         row = await cursor.fetchone()
 
@@ -112,10 +124,13 @@ async def get_debrief_details(debrief_id: str, current_user: dict = Depends(get_
 
     debrief_details = dict(row)
     # Dé-sérialisation sûre des champs JSON (éviter eval qui peut planter et provoquer des 500)
-    for field in ['ambiance', 'positive_signals', 'red_flags']:
+    for field in ['ambiance', 'positive_signals', 'red_flags', 'analysis_result']:
         raw = debrief_details.get(field)
         # Cas simple : valeur nulle ou vide -> liste vide
         if raw is None or raw == "":
+            if field == 'analysis_result':
+                debrief_details[field] = None
+                continue
             debrief_details[field] = []
             continue
         # Si c'est déjà une structure python, conservez-la
@@ -126,8 +141,8 @@ async def get_debrief_details(debrief_id: str, current_user: dict = Depends(get_
         try:
             debrief_details[field] = json.loads(raw)
         except Exception:
-            # Si le JSON est invalide, fallback sécurisé : liste vide
-            debrief_details[field] = []
+            # Si le JSON est invalide, fallback sécurisé.
+            debrief_details[field] = None if field == 'analysis_result' else []
 
     return debrief_details
 
@@ -137,6 +152,7 @@ async def analyze_debrief(debrief_id: str, request: AnalyzeDebriefRequest, curre
     Lance l'analyse IA sur un débrief pour générer le plan de préparation.
     """
     async with db.get_connection() as conn:
+        await _ensure_debrief_analysis_schema(conn)
         cursor = await db.execute(conn, "SELECT * FROM interview_debriefs WHERE id = ? AND user_id = ?", (debrief_id, current_user["id"]))
         debrief_row = await cursor.fetchone()
 
@@ -163,6 +179,13 @@ async def analyze_debrief(debrief_id: str, request: AnalyzeDebriefRequest, curre
     try:
         # Appel au service IA pour générer l'analyse
         analysis_result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction=f"You are a Career Coach. Output STRICT JSON in {target_lang}.")
+        async with db.get_connection() as conn:
+            await _ensure_debrief_analysis_schema(conn)
+            await db.execute(
+                conn,
+                "UPDATE interview_debriefs SET analysis_result = ?::jsonb, analysis_created_at = ? WHERE id = ? AND user_id = ?",
+                (json.dumps(analysis_result, ensure_ascii=False, default=str), datetime.now(), debrief_id, current_user["id"]),
+            )
         return {"analysis": analysis_result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI analysis failed: {str(e)}")

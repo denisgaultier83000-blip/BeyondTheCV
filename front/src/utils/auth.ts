@@ -1,11 +1,12 @@
 import { API_BASE_URL } from '../config';
+import { storageManager } from './storageManager';
 
 export const isAuthenticated = (): boolean => {
-  return !!localStorage.getItem('token');
+  return !!storageManager.local.getItem('token');
 };
 
 export const getUser = (): any | null => {
-  const userStr = localStorage.getItem('user');
+  const userStr = storageManager.local.getItem('user');
   try {
     return userStr ? JSON.parse(userStr) : null;
   } catch (e) {
@@ -14,8 +15,8 @@ export const getUser = (): any | null => {
 };
 
 export const removeAuthToken = (): void => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
+  storageManager.local.removeItem('token');
+  storageManager.local.removeItem('user');
 };
 
 const normalizeUrl = (url: string): string => {
@@ -32,7 +33,7 @@ const normalizeUrl = (url: string): string => {
 };
 
 export const authenticatedFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
-  const token = localStorage.getItem('token');
+  const token = storageManager.local.getItem('token');
   const fullUrl = normalizeUrl(url);
 
   const headers = new Headers(options.headers || {});

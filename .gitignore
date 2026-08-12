@@ -4,6 +4,18 @@ build/
 .env
 .env.*
 *.log
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+*.secret
+KEY_FILE.json
+json-db-secret.txt
+github_actions_key
+github_actions_key.pub
+github_deploy_key
+github_deploy_key.pub
 
 # Python
 __pycache__/

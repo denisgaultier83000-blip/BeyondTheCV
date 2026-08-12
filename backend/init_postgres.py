@@ -245,10 +245,15 @@ def main():
                 learnings TEXT,
                 preparation_points TEXT,
                 interest_level INTEGER,
+                analysis_result JSONB,
+                analysis_created_at TIMESTAMPTZ,
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         """)
         print("✅ Table 'interview_debriefs' created")
+        cur.execute("ALTER TABLE interview_debriefs ADD COLUMN IF NOT EXISTS analysis_result JSONB")
+        cur.execute("ALTER TABLE interview_debriefs ADD COLUMN IF NOT EXISTS analysis_created_at TIMESTAMPTZ")
+        print("✅ Columns 'interview_debriefs.analysis_*' ensured")
 
         cur.execute("""
             CREATE TABLE IF NOT EXISTS generation_cache (

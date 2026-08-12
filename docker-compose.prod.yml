@@ -113,10 +113,13 @@ services:
     image: amir20/dozzle:latest
     container_name: btcv-dozzle-prod
     restart: unless-stopped
-    ports:
-      - "8888:8080"
+    networks:
+      - btcv-prod-internal
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      DOZZLE_LEVEL: info
+      DOZZLE_AUTH_PROVIDER: none
 
 networks:
   btcv-prod-internal:

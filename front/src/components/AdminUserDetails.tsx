@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { authenticatedFetch } from '../utils/auth';
+import { API_BASE_URL } from '../config';
 import { LucideUser, LucideClock, LucideShieldCheck, LucideGanttChartSquare, LucideTrash2, LucidePlusCircle, LucideMinusCircle, LucidePower, LucidePowerOff, LucideDownload } from 'lucide-react';
 
 // --- ANALYSE DE L'EXPERT ---
@@ -24,7 +25,7 @@ import { LucideUser, LucideClock, LucideShieldCheck, LucideGanttChartSquare, Luc
 // 5.  **Robustesse :** Le composant gère élégamment les états de chargement initiaux
 //     et les erreurs, affichant des messages clairs plutôt qu'une page blanche.
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = API_BASE_URL;
 
 interface UserDetails {
   id: string;
