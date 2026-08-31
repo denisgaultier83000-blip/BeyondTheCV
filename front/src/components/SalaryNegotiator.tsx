@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { DollarSign, MessageSquare, Send, Loader2, AlertTriangle, CheckCircle2, RefreshCw, Lightbulb, Mic, MicOff } from 'lucide-react';
+import { DollarSign, MessageSquare, Send, Loader2, AlertTriangle, CheckCircle2, RefreshCw, Lightbulb, Mic, MicOff, Video, VideoOff } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
@@ -7,6 +7,9 @@ import { useDashboard } from '../hooks/DashboardContext';
 import { useTranslation } from 'react-i18next';
 import { RechargeModal } from './RechargeModal';
 import { AsyncBoundary } from './AsyncBoundary';
+import { useVideoRecorder } from '../hooks/useVideoRecorder';
+import { VideoPreview } from './VideoPreview';
+import { savePostureSession } from '../utils/postureStorage';
 
 export default function SalaryNegotiator() {
   const { cvData, salaryResult, updateFormData, quotas, fetchQuotas } = useDashboard();
@@ -17,6 +20,8 @@ export default function SalaryNegotiator() {
   const [feedback, setFeedback] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const videoRecorder = useVideoRecorder();
+  const [recordingModeUsed, setRecordingModeUsed] = useState<'voice' | 'video' | null>(null);
   const recognitionRef = useRef<any>(null);
   const [showRechargeModal, setShowRechargeModal] = useState(false);
   const [salaryDraft, setSalaryDraft] = useState(String(cvData?.salary_expectations || ''));
@@ -36,7 +41,7 @@ export default function SalaryNegotiator() {
   const expectations = savedExpectations;
   const hasExpectations = !!String(expectations || '').trim();
 
-  // --- GESTION DE LA RECONNAISSANCE VOCALE (Speech-to-Text) ---
+  // --- GESTION DE LA RECONNAISSANCE VOCALE & VISIO ---
   useEffect(() => {
     return () => {
       if (recognitionRef.current) {
@@ -45,18 +50,14 @@ export default function SalaryNegotiator() {
     };
   }, []);
 
-  const toggleRecording = () => {
-    if (isRecording) {
-      if (recognitionRef.current) recognitionRef.current.stop();
-      setIsRecording(false);
-      return;
-    }
-
+  const startSpeechRecognition = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert(t('sim_mic_unsupported', "La reconnaissance vocale n'est pas supportée par votre navigateur."));
       return;
     }
+
+    if (recognitionRef.current) recognitionRef.current.stop();
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'fr-FR';
@@ -72,16 +73,64 @@ export default function SalaryNegotiator() {
         if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
         else interimTranscript += event.results[i][0].transcript;
       }
-      if (finalTranscript) baselineAnswer += (baselineAnswer ? ' ' : '') + finalTranscript;
-      setUserAnswer(baselineAnswer + interimTranscript);
+      if (finalTranscript) {
+        baselineAnswer += (baselineAnswer && !baselineAnswer.endsWith(' ') ? ' ' : '') + finalTranscript;
+        setUserAnswer(baselineAnswer + interimTranscript);
+      } else {
+        setUserAnswer(baselineAnswer + (baselineAnswer && !baselineAnswer.endsWith(' ') ? ' ' : '') + interimTranscript);
+      }
     };
 
     recognition.onerror = () => setIsRecording(false);
-    recognition.onend = () => setIsRecording(false);
+    recognition.onend = () => {
+      if (isRecording || videoRecorder.isVideoRecording) {
+        try { recognition.start(); return; } catch (e) {}
+      }
+      setIsRecording(false);
+    };
 
-    recognition.start();
-    recognitionRef.current = recognition;
-    setIsRecording(true);
+    try {
+      recognition.start();
+      recognitionRef.current = recognition;
+      setIsRecording(true);
+    } catch (e) {
+      setIsRecording(false);
+    }
+  };
+
+  const toggleRecording = () => {
+    if (videoRecorder.isVideoRecording) {
+      videoRecorder.stopVideo();
+    }
+
+    if (isRecording) {
+      if (recognitionRef.current) recognitionRef.current.stop();
+      setIsRecording(false);
+      if (userAnswer) {
+        savePostureSession('voice', 'Négociation salariale', userAnswer);
+      }
+      return;
+    }
+
+    setRecordingModeUsed('voice');
+    startSpeechRecognition();
+  };
+
+  const handleVideoToggle = async () => {
+    if (isRecording || videoRecorder.isVideoRecording) {
+      if (recognitionRef.current) recognitionRef.current.stop();
+      setIsRecording(false);
+    }
+
+    if (videoRecorder.isVideoRecording) {
+      videoRecorder.stopVideo('Négociation salariale', userAnswer || 'Négociation en visio enregistrée');
+    } else {
+      const ok = await videoRecorder.startVideo('negotiation');
+      if (ok) {
+        setRecordingModeUsed('video');
+        startSpeechRecognition();
+      }
+    }
   };
   
   // Le recruteur utilise l'estimation basse du marché de l'IA pour créer la tension
@@ -135,6 +184,17 @@ export default function SalaryNegotiator() {
     if (!userAnswer.trim()) return;
     setIsEvaluating(true);
     setError(null);
+
+    if (videoRecorder.isVideoRecording) {
+      videoRecorder.stopVideo();
+    }
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsRecording(false);
+    }
+    if (recordingModeUsed) {
+      savePostureSession(recordingModeUsed, 'Négociation salariale', userAnswer);
+    }
 
     try {
       const res = await authenticatedFetch(`${API_BASE_URL}/cv/simulate-negotiation`, {
@@ -286,6 +346,11 @@ export default function SalaryNegotiator() {
           style={{ background: 'transparent', border: 'none', padding: 0 }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', animation: 'fadeIn 0.3s ease-out' }}>
+            {/* PREVIEW VIDÉO SI ENREGISTREMENT VISIO */}
+            {videoRecorder.isVideoRecording && (
+              <VideoPreview stream={videoRecorder.videoStream} label="REC VISIO" />
+            )}
+
             <textarea 
               value={userAnswer}
               onChange={e => setUserAnswer(e.target.value)}
@@ -293,12 +358,24 @@ export default function SalaryNegotiator() {
               rows={4}
               style={{ width: '100%', background: 'var(--bg-body)', border: '1px solid var(--border-color)', borderRadius: '0.5rem', padding: '1rem', color: 'var(--text-main)', fontFamily: 'inherit', resize: 'vertical' }}
             />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', flexWrap: 'wrap' }}>
               <button 
                 onClick={toggleRecording} 
                 className={`btn-${isRecording ? 'primary' : 'secondary'}`} 
-                style={{ background: isRecording ? '#ef4444' : undefined, borderColor: isRecording ? '#ef4444' : undefined, color: isRecording ? 'white' : undefined, animation: isRecording ? 'pulse-record 1.5s infinite' : 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                style={{ background: isRecording ? '#ef4444' : undefined, borderColor: isRecording ? '#ef4444' : undefined, color: isRecording ? 'white' : undefined, animation: isRecording ? 'pulse-record 1.5s infinite' : 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                title="Répondre à la voix"
+              >
                 {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
+                {isRecording ? t('q_stop_recording', "Arrêter") : t('q_voice_answer', "Répondre à la voix")}
+              </button>
+              <button 
+                onClick={handleVideoToggle} 
+                className={`btn-${videoRecorder.isVideoRecording ? 'primary' : 'secondary'}`} 
+                style={{ background: videoRecorder.isVideoRecording ? '#ef4444' : undefined, borderColor: videoRecorder.isVideoRecording ? '#ef4444' : undefined, color: videoRecorder.isVideoRecording ? 'white' : undefined, animation: videoRecorder.isVideoRecording ? 'pulse-record 1.5s infinite' : 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                title="Répondre en visio"
+              >
+                {videoRecorder.isVideoRecording ? <VideoOff size={18} /> : <Video size={18} />}
+                {videoRecorder.isVideoRecording ? t('q_stop_video', "Arrêter Visio") : t('q_video_answer', "Répondre en visio")}
               </button>
               <button onClick={handleEvaluate} disabled={!userAnswer.trim()} className="btn-primary" style={{ background: !userAnswer.trim() ? '' : '#10b981', borderColor: !userAnswer.trim() ? '' : '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Send size={18} />

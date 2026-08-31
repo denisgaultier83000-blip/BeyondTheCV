@@ -1,252 +1,89 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   Video, Phone, Users, Coffee, Award, UserCog, Map as MapIcon,
   X, Zap, Loader2, AlertTriangle, Target, MessageCircle, Shield, Star, ChevronsRight, ChevronsLeft, UserCheck, Clock, Check, Edit, LifeBuoy,
   HelpCircle, Mail, Eye,
   WifiOff, PhoneMissed, VolumeX, BrainCircuit, DollarSign, Send, CheckSquare,
-  Camera, CameraOff, Gauge,
 } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 
-type PresenceMetrics = {
-  eyeContact: number;
-  postureStability: number;
-  headMovement: number;
-  cameraFraming: number;
-  notesGlances: number;
+type PostureTrainingEntry = {
+  id: string;
+  mode: 'manual' | 'voice' | 'video';
+  title: string;
+  summary: string;
+  date: string;
+  fileName?: string;
 };
 
-const defaultPresenceMetrics: PresenceMetrics = {
-  eyeContact: 0,
-  postureStability: 0,
-  headMovement: 0,
-  cameraFraming: 0,
-  notesGlances: 0,
-};
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
+function getPostureTrainingEntries(): PostureTrainingEntry[] {
+  try {
+    const raw = localStorage.getItem('btcv_posture_sessions');
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 }
 
-function PresenceCoachCard() {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const rafRef = useRef<number | null>(null);
-  const lastFrameRef = useRef<ImageData | null>(null);
-  const detectTimerRef = useRef<number>(0);
-  const [isCameraOn, setIsCameraOn] = useState(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
-  const [livemetrics, setLivemetrics] = useState<PresenceMetrics>(defaultPresenceMetrics);
-  const [status, setStatus] = useState('Prêt à analyser votre présence.');
-
-  useEffect(() => () => {
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-    }
-  }, []);
-
-  const computeMotionVariance = (canvas: HTMLCanvasElement) => {
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return 0;
-
-    const { width, height } = canvas;
-    const image = ctx.getImageData(0, 0, width, height).data;
-    const lastFrame = lastFrameRef.current;
-
-    if (!lastFrame) {
-      lastFrameRef.current = new ImageData(new Uint8ClampedArray(image), width, height);
-      return 0;
-    }
-
-    let diff = 0;
-    const step = 4;
-    for (let i = 0; i < image.length; i += step) {
-      const delta = Math.abs(image[i] - lastFrame.data[i]);
-      diff += delta;
-    }
-
-    const normalized = (diff / ((width * height * 255) || 1)) * 1000;
-    lastFrameRef.current = new ImageData(new Uint8ClampedArray(image), width, height);
-    return clamp(normalized, 0, 100);
-  };
-
-  const updateMetricsFromStream = () => {
-    const video = videoRef.current;
-    if (!video || video.videoWidth === 0 || video.videoHeight === 0) {
-      return;
-    }
-
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    const motion = computeMotionVariance(canvas);
-    const centerBias = Math.abs(canvas.width / 2 - (canvas.width * 0.5)) / (canvas.width * 0.5);
-    const postureStability = clamp(100 - motion * 2.5, 0, 100);
-    const eyeContact = clamp(100 - (centerBias * 100) - Math.max(0, motion - 10), 0, 100);
-    const headMovement = clamp(motion * 4, 0, 100);
-    const cameraFraming = clamp(100 - Math.abs((canvas.width * 0.5) - (canvas.width * 0.45)) / (canvas.width * 0.5) * 100, 0, 100);
-    const notesGlances = clamp(Math.max(0, headMovement - 35), 0, 100);
-
-    setLivemetrics({
-      eyeContact: Math.round(eyeContact),
-      postureStability: Math.round(postureStability),
-      headMovement: Math.round(headMovement),
-      cameraFraming: Math.round(cameraFraming),
-      notesGlances: Math.round(notesGlances),
-    });
-
-    if (postureStability < 60) {
-      setStatus('Votre posture bouge beaucoup : stabilisez votre base et réduisez les gestes parasites.');
-    } else if (eyeContact < 65) {
-      setStatus('Votre regard est partiellement détourné : cherchez à conserver plus de contact visuel avec la caméra.');
-    } else {
-      setStatus('Bonne présence visuelle : votre cadrage et votre posture sont globalement stables.');
-    }
-  };
+function PostureDataCard() {
+  const [sessions, setSessions] = useState<PostureTrainingEntry[]>(() => getPostureTrainingEntries());
 
   useEffect(() => {
-    if (!isCameraOn) return;
+    const sync = () => setSessions(getPostureTrainingEntries());
+    sync();
+    window.addEventListener('btcv-posture-updated', sync);
+    return () => window.removeEventListener('btcv-posture-updated', sync);
+  }, []);
 
-    const tick = () => {
-      const now = Date.now();
-      if (now - detectTimerRef.current > 350) {
-        updateMetricsFromStream();
-        detectTimerRef.current = now;
-      }
-      rafRef.current = requestAnimationFrame(tick);
-    };
-
-    rafRef.current = requestAnimationFrame(tick);
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, [isCameraOn]);
-
-  const startCamera = async () => {
-    try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setCameraError('Votre navigateur ne prend pas en charge la webcam.');
-        return;
-      }
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 960 }, height: { ideal: 540 } },
-        audio: false,
-      });
-
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-      setIsCameraOn(true);
-      setCameraError(null);
-      setStatus('Analyse en direct active. Gardez le regard sur la caméra.');
-    } catch (error) {
-      console.error(error);
-      setCameraError('L’accès à la caméra a été refusé. Vérifiez votre navigateur et vos permissions.');
-    }
+  const goToTraining = () => {
+    window.dispatchEvent(new CustomEvent('btcv-go-training'));
   };
-
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-    setIsCameraOn(false);
-    setStatus('Caméra fermée. Vous pouvez relancer l’analyse à tout moment.');
-    lastFrameRef.current = null;
-    setLivemetrics(defaultPresenceMetrics);
-  };
-
-  const metrics = [
-    { label: 'Contact caméra', value: `${livemetrics.eyeContact}/100`, tone: livemetrics.eyeContact >= 70 ? 'good' : livemetrics.eyeContact >= 50 ? 'warn' : 'bad' },
-    { label: 'Stabilité posture', value: `${livemetrics.postureStability}/100`, tone: livemetrics.postureStability >= 70 ? 'good' : livemetrics.postureStability >= 50 ? 'warn' : 'bad' },
-    { label: 'Mouvement tête', value: `${livemetrics.headMovement}/100`, tone: livemetrics.headMovement <= 50 ? 'good' : livemetrics.headMovement <= 70 ? 'warn' : 'bad' },
-    { label: 'Cadrage', value: `${livemetrics.cameraFraming}/100`, tone: livemetrics.cameraFraming >= 70 ? 'good' : livemetrics.cameraFraming >= 50 ? 'warn' : 'bad' },
-  ];
 
   return (
-    <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '1.25rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', background: 'rgba(37, 99, 235, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
-            <Camera size={20} />
-          </div>
-          <div>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-main)' }}>Présence & posture</h3>
-            <p style={{ margin: '0.2rem 0 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Observation de signaux visibles, sans inférence émotionnelle.</p>
-          </div>
+    <DashboardCard
+      title="Données de posture"
+      icon={<Award size={24} />}
+      id="posture_data_section"
+    >
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
+        Les données affichées ici proviennent des entraînements enregistrés dans la page S’entrainer. Elles servent de base pour suivre votre progression sans détour inutile.
+      </p>
+
+      {sessions.length === 0 ? (
+        <div style={{ background: 'var(--bg-secondary)', border: '1px dashed var(--border-color)', borderRadius: '1rem', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <p style={{ margin: 0, color: 'var(--text-muted)' }}>Aucune donnée de posture n’a encore été enregistrée depuis l’entraînement.</p>
+          <button onClick={goToTraining} className="btn-primary" style={{ alignSelf: 'flex-start' }}>
+            S’entraîner
+          </button>
         </div>
-
-        <button
-          onClick={isCameraOn ? stopCamera : startCamera}
-          className={isCameraOn ? 'btn-outline' : 'btn-primary'}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
-        >
-          {isCameraOn ? <CameraOff size={18} /> : <Camera size={18} />}
-          {isCameraOn ? 'Arrêter l’analyse' : 'Analyser ma présence'}
-        </button>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '1.25rem' }}>
-        <div style={{ position: 'relative', borderRadius: '0.9rem', overflow: 'hidden', background: '#0f172a', minHeight: '270px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <video ref={videoRef} autoPlay muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', display: isCameraOn ? 'block' : 'none' }} />
-          {!isCameraOn && (
-            <div style={{ textAlign: 'center', color: 'white', maxWidth: '300px', padding: '1rem' }}>
-              <Camera size={34} style={{ marginBottom: '0.5rem' }} />
-              <div style={{ fontWeight: 600, marginBottom: '0.35rem' }}>Lancez la caméra pour mesurer votre présence.</div>
-              <div style={{ color: '#cbd5e1', fontSize: '0.85rem' }}>Le score se base sur des éléments visibles : regard, cadrage, stabilité de posture, gestion de la tête.</div>
-            </div>
-          )}
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {metrics.map((metric) => (
-            <div key={metric.label} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '0.75rem', padding: '0.8rem 0.9rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>{metric.label}</span>
-                <span style={{
-                  fontWeight: 700,
-                  color: metric.tone === 'good' ? '#16a34a' : metric.tone === 'warn' ? '#d97706' : '#dc2626',
-                }}>{metric.value}</span>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+          {sessions.map((session) => (
+            <div key={session.id} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '0.9rem', padding: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', alignItems: 'center', marginBottom: '0.8rem' }}>
+                <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>{session.title}</span>
+                <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--primary)', background: 'rgba(59, 130, 246, 0.08)', padding: '0.3rem 0.5rem', borderRadius: '999px' }}>
+                  {session.mode === 'video' ? 'Vidéo' : session.mode === 'voice' ? 'Vocal' : 'Manuel'}
+                </span>
               </div>
-              <div style={{ width: '100%', height: '0.55rem', background: 'rgba(148, 163, 184, 0.15)', borderRadius: '999px', overflow: 'hidden' }}>
-                <div style={{
-                  width: `${Math.max(8, Number(metric.value.replace('/100', '')))}%`,
-                  height: '100%',
-                  borderRadius: '999px',
-                  background: metric.tone === 'good' ? '#22c55e' : metric.tone === 'warn' ? '#f59e0b' : '#ef4444',
-                }} />
+              <p style={{ margin: '0 0 0.8rem 0', color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.5 }}>{session.summary}</p>
+              {session.fileName && (
+                <p style={{ margin: '0 0 0.8rem 0', color: 'var(--text-muted)', fontSize: '0.82rem' }}>Fichier : {session.fileName}</p>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginTop: '0.75rem' }}>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{new Date(session.date).toLocaleDateString('fr-FR')}</span>
+                <button onClick={goToTraining} className="btn-secondary" style={{ padding: '0.45rem 0.8rem', fontSize: '0.8rem' }}>
+                  S’entraîner
+                </button>
               </div>
             </div>
           ))}
         </div>
-      </div>
-
-      {cameraError && (
-        <div style={{ marginTop: '1rem', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', color: '#991b1b', borderRadius: '0.75rem', padding: '0.75rem 1rem', fontSize: '0.9rem' }}>
-          {cameraError}
-        </div>
       )}
-
-      <div style={{ marginTop: '1rem', background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.2)', color: 'var(--text-main)', borderRadius: '0.75rem', padding: '0.9rem 1rem' }}>
-        <strong style={{ display: 'block', marginBottom: '0.35rem' }}>Conseil de coaching</strong>
-        <span>{status}</span>
-      </div>
-
-      <div style={{ marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-        <strong>Positionnement :</strong> cette analyse mesure uniquement des éléments observables : contact visuel, cadrage, posture, gestes et stabilité. Elle ne détermine pas votre personnalité ou votre émotion.
-      </div>
-    </div>
+    </DashboardCard>
   );
 }
 
@@ -277,7 +114,7 @@ function RoadmapGeneratorModal({ onClose }: RoadmapGeneratorModalProps) {
     setResult(null);
 
     try {
-      const response = await authenticatedFetch(`${API_BASE_URL}/api/cv/generate-roadmap`, {
+      const response = await authenticatedFetch(`${API_BASE_URL}/cv/generate-roadmap`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -419,16 +256,7 @@ export default function PostureTab() {
   
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', animation: 'fadeIn 0.3s ease-out' }}>
-      <DashboardCard
-        title="Présence & Posture"
-        icon={<Gauge size={24} />}
-        id="presence_posture_section"
-      >
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
-          Analysez votre présence devant la caméra avec des métriques observables et actionnables : regard, stabilité, cadrage et gestion de la gestuelle.
-        </p>
-        <PresenceCoachCard />
-      </DashboardCard>
+      <PostureDataCard />
 
       <DashboardCard
         title={t('posture_generator_title', "Feuille de Route Personnalisée")}

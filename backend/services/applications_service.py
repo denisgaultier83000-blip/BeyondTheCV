@@ -52,10 +52,9 @@ async def list_applications(current_user: dict = Depends(get_current_user)):
                         """SELECT id, filename, type, created_at
                            FROM documents
                            WHERE user_id = %s
-                             AND (application_id = %s
-                                  OR (application_id IS NULL AND %s IS NOT NULL))
+                             AND (application_id = %s OR application_id IS NULL)
                            ORDER BY created_at DESC""",
-                        (user_id, app["id"], app["id"])
+                        (user_id, app["id"])
                     )
                     doc_rows = await docs_cursor.fetchall()
                     for dr in (doc_rows or []):

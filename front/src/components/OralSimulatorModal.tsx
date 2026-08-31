@@ -1,12 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Mic, Square, Loader2, Play, Activity, AlertTriangle, CheckCircle2, Target, Award, X, RotateCcw, Flame } from 'lucide-react';
+import { Mic, Square, Loader2, Play, Activity, AlertTriangle, CheckCircle2, Target, Award, X, RotateCcw, Flame, Video, VideoOff } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
 import { RechargeModal } from './RechargeModal';
 import { useDashboard } from '../hooks/DashboardContext';
 import { AsyncBoundary } from './AsyncBoundary';
+import { useVideoRecorder } from '../hooks/useVideoRecorder';
+import { VideoPreview } from './VideoPreview';
 
 interface OralSimulatorModalProps {
   isOpen: boolean;
@@ -23,6 +25,7 @@ interface OralSimulatorModalProps {
 export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetCompany, jobDescription, targetLanguage = 'fr', onScoreUpdate, trainingTitle, trainingFocus }: OralSimulatorModalProps) {
   const { t } = useTranslation();
   const { quotas, fetchQuotas } = useDashboard();
+  const videoRecorder = useVideoRecorder();
   const pitchRemaining = Number(quotas?.pitch ?? 0) > 0 ? Number(quotas?.pitch) : Number(quotas?.credits ?? 0);
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -41,6 +44,7 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
     return () => {
       if (recognitionRef.current) recognitionRef.current.stop();
       if (timerRef.current) clearInterval(timerRef.current);
+      if (videoRecorder.isVideoRecording) videoRecorder.stopVideo();
     };
   }, []);
 
@@ -58,16 +62,11 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
 
   if (!isOpen) return null;
 
-  const toggleRecording = () => {
-    if (isRecording) {
-      stopRecording();
-      return;
-    }
-
+  const startSpeechRecognition = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert(t('sim_mic_unsupported', "La reconnaissance vocale n'est pas supportée par votre navigateur actuel. (Essayez Google Chrome)"));
-      return;
+      return false;
     }
 
     const recognition = new SpeechRecognition();
@@ -80,6 +79,7 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
     recognition.onstart = () => {
       intentionalStopRef.current = false;
       setIsRecording(true);
+      if (timerRef.current) clearInterval(timerRef.current);
       timerRef.current = setInterval(() => setDuration((prev) => prev + 1), 1000);
     };
 
@@ -101,11 +101,10 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
 
     recognition.onerror = (event: any) => {
       console.error("Speech recognition error:", event.error);
-      stopRecording(true);
     };
 
     recognition.onend = () => {
-      if (!intentionalStopRef.current) {
+      if (!intentionalStopRef.current || videoRecorder.isVideoRecording) {
         try { recognition.start(); } catch(e) { stopRecording(true); }
       } else {
         stopRecording(true);
@@ -115,8 +114,38 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
     try {
       recognition.start();
       recognitionRef.current = recognition;
+      return true;
     } catch (err) {
       stopRecording(true);
+      return false;
+    }
+  };
+
+  const toggleRecording = () => {
+    if (videoRecorder.isVideoRecording) {
+      videoRecorder.stopVideo();
+    }
+
+    if (isRecording) {
+      stopRecording();
+      return;
+    }
+
+    startSpeechRecognition();
+  };
+
+  const toggleVideoRecording = async () => {
+    if (isRecording) {
+      stopRecording();
+    }
+
+    if (videoRecorder.isVideoRecording) {
+      stopRecording();
+    } else {
+      const ok = await videoRecorder.startVideo('oral_sim');
+      if (ok) {
+        startSpeechRecognition();
+      }
     }
   };
 
@@ -124,6 +153,7 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
     intentionalStopRef.current = true;
     if (recognitionRef.current) recognitionRef.current.stop();
     if (timerRef.current) clearInterval(timerRef.current);
+    if (videoRecorder.isVideoRecording) videoRecorder.stopVideo('Simulateur oral', transcript || 'Enregistrement visio');
     setIsRecording(false);
   };
 
@@ -218,20 +248,24 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
                 </div>
               )}
               
+              {videoRecorder.isVideoRecording && (
+                <VideoPreview stream={videoRecorder.videoStream} label="REC VISIO" />
+              )}
+              
               <textarea 
                 value={transcript}
                 onChange={(e) => setTranscript(e.target.value)}
-                placeholder={t('oral_sim_placeholder', "La retranscription de votre voix s'affichera ici. Vous pouvez corriger le texte manuellement avant de lancer l'analyse...")}
-                disabled={isRecording}
+                placeholder={t('oral_sim_placeholder', "La retranscription de ce qui est dit en vidéo ou micro s'affichera ici en temps réel. Vous pouvez corriger le texte manuellement avant de lancer l'analyse...")}
+                disabled={isRecording || videoRecorder.isVideoRecording}
                 style={{ width: '100%', background: 'var(--bg-secondary)', color: 'var(--text-main)', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '1.5rem', fontSize: '1.1rem', lineHeight: '1.6', minHeight: '150px', resize: 'vertical', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s' }}
               />
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', width: '100%', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', width: '100%', justifyContent: 'center', flexWrap: 'wrap' }}>
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '120px' }}>
-                  <div style={{ fontSize: '2rem', fontFamily: 'monospace', fontWeight: 700, color: isRecording ? '#ef4444' : 'var(--text-main)' }}>
+                  <div style={{ fontSize: '2rem', fontFamily: 'monospace', fontWeight: 700, color: isRecording || videoRecorder.isVideoRecording ? '#ef4444' : 'var(--text-main)' }}>
                     {formatTime(duration)}
                   </div>
-                  {isRecording && (
+                  {(isRecording || videoRecorder.isVideoRecording) && (
                     <div style={{ position: 'absolute', right: '-25px', display: 'flex', alignItems: 'center', gap: '3px', height: '24px' }}>
                       {[0, 0.2, 0.4, 0.1, 0.3].map((delay, i) => (
                         <div
@@ -242,9 +276,13 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
                     </div>
                   )}
                 </div>
-                <button onClick={toggleRecording} style={{ background: isRecording ? '#ef4444' : 'var(--primary)', color: 'white', border: 'none', padding: '1rem 2rem', borderRadius: '3rem', fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', transition: 'all 0.2s', boxShadow: isRecording ? '0 0 0 8px rgba(239, 68, 68, 0.2)' : 'none' }}>
-                  {isRecording ? <Square size={20} fill="currentColor" /> : <Mic size={20} />}
-                  {isRecording ? "Arrêter l'enregistrement" : "Démarrer l'enregistrement"}
+                <button onClick={toggleRecording} style={{ background: isRecording && !videoRecorder.isVideoRecording ? '#ef4444' : 'var(--primary)', color: 'white', border: 'none', padding: '0.85rem 1.75rem', borderRadius: '3rem', fontSize: '1.05rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', transition: 'all 0.2s', boxShadow: isRecording && !videoRecorder.isVideoRecording ? '0 0 0 8px rgba(239, 68, 68, 0.2)' : 'none' }}>
+                  {isRecording && !videoRecorder.isVideoRecording ? <Square size={18} fill="currentColor" /> : <Mic size={18} />}
+                  {isRecording && !videoRecorder.isVideoRecording ? "Arrêter Vocal" : "Enregistrer Vocal"}
+                </button>
+                <button onClick={toggleVideoRecording} style={{ background: videoRecorder.isVideoRecording ? '#ef4444' : 'var(--secondary-btn-bg, #3b82f6)', color: 'white', border: 'none', padding: '0.85rem 1.75rem', borderRadius: '3rem', fontSize: '1.05rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', transition: 'all 0.2s', boxShadow: videoRecorder.isVideoRecording ? '0 0 0 8px rgba(239, 68, 68, 0.2)' : 'none' }}>
+                  {videoRecorder.isVideoRecording ? <VideoOff size={18} /> : <Video size={18} />}
+                  {videoRecorder.isVideoRecording ? "Arrêter Vidéo" : "Enregistrer Vidéo"}
                 </button>
               </div>
 

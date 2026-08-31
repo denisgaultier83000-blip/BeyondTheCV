@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BrainCircuit, Eye, Edit3, CheckCircle2, AlertTriangle, Lightbulb, MessageSquare, ArrowLeft, Target, ChevronDown, ChevronUp, Loader2, Send, Users, ListChecks, Shield, Award, RefreshCw, X, Mic, MicOff } from 'lucide-react';
+import { BrainCircuit, Eye, Edit3, CheckCircle2, AlertTriangle, Lightbulb, MessageSquare, ArrowLeft, Target, ChevronDown, ChevronUp, Loader2, Send, Users, ListChecks, Shield, Award, RefreshCw, X, Mic, MicOff, Video, VideoOff } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
@@ -8,6 +8,9 @@ import { useTranslation } from 'react-i18next';
 import scenariosData from './scenarios.json';
 import { RechargeModal } from './RechargeModal';
 import { AsyncBoundary } from './AsyncBoundary';
+import { useVideoRecorder } from '../hooks/useVideoRecorder';
+import { VideoPreview } from './VideoPreview';
+import { savePostureSession } from '../utils/postureStorage';
 
 // --- TYPES ---
 
@@ -61,6 +64,8 @@ export function SituationSimulator() {
   const [showPassiveModel, setShowPassiveModel] = useState(false);
   const [isGeneratingMore, setIsGeneratingMore] = useState(false);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  const videoRecorder = useVideoRecorder();
+  const [recordingModeUsed, setRecordingModeUsed] = useState<'voice' | 'video' | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showRechargeModal, setShowRechargeModal] = useState(false);
@@ -85,6 +90,9 @@ export function SituationSimulator() {
   };
 
   const reset = () => {
+    if (videoRecorder.isVideoRecording) {
+      videoRecorder.stopVideo();
+    }
     if (recognitionRef.current) {
       recognitionRef.current.stop();
       setIsRecording(false);
@@ -95,58 +103,46 @@ export function SituationSimulator() {
     setAiFeedback(null);
     setError(null);
     setShowPassiveModel(false);
+    setRecordingModeUsed(null);
   };
 
-  // --- GESTION DE LA RECONNAISSANCE VOCALE (Speech-to-Text) ---
-  const toggleRecording = () => {
-    if (isRecording) {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      setIsRecording(false);
-      return;
-    }
-
+  // --- GESTION DE LA RECONNAISSANCE VOCALE & VISIO ---
+  const startSpeechRecognition = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert(t('sim_mic_unsupported', "La reconnaissance vocale n'est pas supportée par votre navigateur actuel."));
       return;
     }
 
+    if (recognitionRef.current) recognitionRef.current.stop();
+
     const recognition = new SpeechRecognition();
     recognition.lang = 'fr-FR';
     recognition.continuous = true;
-    recognition.interimResults = true; // Permet de voir le texte s'afficher pendant qu'on parle
+    recognition.interimResults = true;
 
-    // On capture le texte déjà présent pour ne pas l'écraser si le candidat a déjà écrit un bout
     let baselineAnswer = userAnswer;
 
     recognition.onresult = (event: any) => {
       let interimTranscript = '';
       let finalTranscript = '';
-
       for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
-        } else {
-          interimTranscript += event.results[i][0].transcript;
-        }
+        if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
+        else interimTranscript += event.results[i][0].transcript;
       }
-      
       if (finalTranscript) {
-         baselineAnswer += (baselineAnswer && !baselineAnswer.endsWith(' ') ? ' ' : '') + finalTranscript;
-         setUserAnswer(baselineAnswer + interimTranscript);
+        baselineAnswer += (baselineAnswer && !baselineAnswer.endsWith(' ') ? ' ' : '') + finalTranscript;
+        setUserAnswer(baselineAnswer + interimTranscript);
       } else {
-         setUserAnswer(baselineAnswer + (baselineAnswer && !baselineAnswer.endsWith(' ') ? ' ' : '') + interimTranscript);
+        setUserAnswer(baselineAnswer + (baselineAnswer && !baselineAnswer.endsWith(' ') ? ' ' : '') + interimTranscript);
       }
     };
 
-    recognition.onerror = (event: any) => {
-      console.error("Erreur de reconnaissance vocale :", event.error);
-      setIsRecording(false);
-    };
-
+    recognition.onerror = () => setIsRecording(false);
     recognition.onend = () => {
+      if (isRecording || videoRecorder.isVideoRecording) {
+        try { recognition.start(); return; } catch (e) {}
+      }
       setIsRecording(false);
     };
 
@@ -155,8 +151,42 @@ export function SituationSimulator() {
       recognitionRef.current = recognition;
       setIsRecording(true);
     } catch (e) {
-      console.error(e);
       setIsRecording(false);
+    }
+  };
+
+  const toggleRecording = () => {
+    if (videoRecorder.isVideoRecording) {
+      videoRecorder.stopVideo();
+    }
+
+    if (isRecording) {
+      if (recognitionRef.current) recognitionRef.current.stop();
+      setIsRecording(false);
+      if (userAnswer) {
+        savePostureSession('voice', selectedScenario?.title || 'Mise en situation', userAnswer);
+      }
+      return;
+    }
+
+    setRecordingModeUsed('voice');
+    startSpeechRecognition();
+  };
+
+  const handleVideoToggle = async () => {
+    if (isRecording || videoRecorder.isVideoRecording) {
+      if (recognitionRef.current) recognitionRef.current.stop();
+      setIsRecording(false);
+    }
+
+    if (videoRecorder.isVideoRecording) {
+      videoRecorder.stopVideo(selectedScenario?.title || 'Mise en situation', userAnswer || 'Réponse visio enregistrée');
+    } else {
+      const ok = await videoRecorder.startVideo('scenario');
+      if (ok) {
+        setRecordingModeUsed('video');
+        startSpeechRecognition();
+      }
     }
   };
 
@@ -184,6 +214,17 @@ export function SituationSimulator() {
     setIsSubmitting(true);
     setAiFeedback(null);
     setError(null);
+
+    if (videoRecorder.isVideoRecording) {
+      videoRecorder.stopVideo();
+    }
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsRecording(false);
+    }
+    if (recordingModeUsed) {
+      savePostureSession(recordingModeUsed, selectedScenario.title || 'Mise en situation', userAnswer);
+    }
 
     try {
       // Appel API Réel
@@ -449,32 +490,50 @@ export function SituationSimulator() {
               )}
 
               {/* MODE ACTIF */}
-              {mode === 'active' && !aiFeedback && (
+              {mode === 'active' && !aiFeedback && (() => {
+                const isVideoRecordingThis = videoRecorder.isVideoRecording;
+                return (
                 <AsyncBoundary 
                   loading={isSubmitting} 
                   loadingText={t('sim_ai_analyzing', 'Analyse IA en cours...')}
                   style={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none' }}
                 >
                 <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
                       <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '0.75rem', borderRadius: '0.5rem', color: 'var(--primary)' }}><Edit3 size={24} /></div>
                       <div>
                         <h4 style={{ margin: '0 0 0.25rem 0', color: 'var(--text-main)', fontSize: '1.1rem' }}>{t('sim_your_turn', 'À vous de jouer')}</h4>
-                        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>{t('sim_your_turn_desc', 'Répondez à voix haute (micro) ou rédigez votre réponse. Soyez concret et structuré.')}</p>
+                        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>{t('sim_your_turn_desc', 'Répondez à voix haute (micro), en visio ou rédigez votre réponse.')}</p>
                       </div>
                     </div>
-                    <button 
-                      onClick={toggleRecording}
-                      className={`btn-${isRecording ? 'primary' : 'secondary'}`} 
-                      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: isRecording ? '#ef4444' : undefined, borderColor: isRecording ? '#ef4444' : undefined, color: isRecording ? 'white' : undefined, animation: isRecording ? 'pulse-record 1.5s infinite' : 'none' }}
-                      title="Répondre à la voix"
-                    >
-                      {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
-                      {isRecording ? t('q_stop_recording', "Arrêter") : t('q_voice_answer', "Répondre à la voix")}
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <button 
+                        onClick={toggleRecording}
+                        className={`btn-${isRecording ? 'primary' : 'secondary'}`} 
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: isRecording ? '#ef4444' : undefined, borderColor: isRecording ? '#ef4444' : undefined, color: isRecording ? 'white' : undefined, animation: isRecording ? 'pulse-record 1.5s infinite' : 'none' }}
+                        title="Répondre à la voix"
+                      >
+                        {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
+                        {isRecording ? t('q_stop_recording', "Arrêter") : t('q_voice_answer', "Répondre à la voix")}
+                      </button>
+                      <button 
+                        onClick={handleVideoToggle}
+                        className={`btn-${isVideoRecordingThis ? 'primary' : 'secondary'}`} 
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: isVideoRecordingThis ? '#ef4444' : undefined, borderColor: isVideoRecordingThis ? '#ef4444' : undefined, color: isVideoRecordingThis ? 'white' : undefined, animation: isVideoRecordingThis ? 'pulse-record 1.5s infinite' : 'none' }}
+                        title="Répondre en visio"
+                      >
+                        {isVideoRecordingThis ? <VideoOff size={18} /> : <Video size={18} />}
+                        {isVideoRecordingThis ? t('q_stop_video', "Arrêter Visio") : t('q_video_answer', "Répondre en visio")}
+                      </button>
+                    </div>
                   </div>
                   
+                  {/* PREVIEW VIDÉO SI ENREGISTREMENT VISIO */}
+                  {isVideoRecordingThis && (
+                    <VideoPreview stream={videoRecorder.videoStream} label="REC" />
+                  )}
+
                   {/* AFFICHER L'ERREUR GRACIEUSE */}
                   {error && (
                     <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.2)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--danger-text)' }}>
@@ -498,7 +557,8 @@ export function SituationSimulator() {
                   </div>
                 </div>
                 </AsyncBoundary>
-              )}
+                );
+              })()}
 
               {/* FEEDBACK IA */}
               {aiFeedback && (

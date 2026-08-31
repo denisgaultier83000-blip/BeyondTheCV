@@ -280,6 +280,20 @@ function AppContent() {
     return recommendations.slice(0, 3);
   };
 
+  const filterPrefixJobs = (jobsList: string[]): string[] => {
+    const unique = Array.from(new Set(jobsList.map((j) => normalizeText(j)).filter(Boolean)));
+    unique.sort((a, b) => b.length - a.length);
+    const cleaned: string[] = [];
+    for (const job of unique) {
+      const jobLower = job.toLowerCase();
+      const isPrefix = cleaned.some((longer) => longer.toLowerCase().startsWith(jobLower));
+      if (!isPrefix) {
+        cleaned.push(job);
+      }
+    }
+    return cleaned.sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
+  };
+
   const collapseTargetTree = (nodes: TargetNode[]) => {
     const normalized = nodes
       .filter((node) => node && typeof node.company === 'string')
@@ -314,6 +328,10 @@ function AppContent() {
       }
 
       collapsed.push({ company: node.company, jobs: Array.from(new Set(node.jobs || [])) });
+    }
+
+    for (const node of collapsed) {
+      node.jobs = filterPrefixJobs(node.jobs || []);
     }
 
     return collapsed.sort((a, b) => a.company.localeCompare(b.company, 'fr', { sensitivity: 'base' }));
@@ -650,9 +668,12 @@ function AppContent() {
 
   useEffect(() => {
     if (!cvData || !isAuthenticated) return;
-    setOnboardingCompleted(getFirstIncompleteStep(cvData) === 8);
-    upsertTargetTree(cvData?.target_company, cvData?.target_job);
-  }, [cvData, isAuthenticated, upsertTargetTree]);
+    const isDone = getFirstIncompleteStep(cvData) === 8;
+    setOnboardingCompleted(isDone);
+    if ((currentStep === 8 || isDone) && (cvData?.target_company || cvData?.target_job)) {
+      upsertTargetTree(cvData?.target_company, cvData?.target_job);
+    }
+  }, [cvData?.target_company, cvData?.target_job, currentStep, isAuthenticated, upsertTargetTree]);
 
   useEffect(() => {
     if (!isAuthenticated) return;

@@ -16,7 +16,9 @@ import {
   Send,
   CheckCircle2,
   AlertCircle,
-  Dumbbell
+  Dumbbell,
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { DashboardCard } from './DashboardCard';
@@ -39,6 +41,9 @@ export default function TrainingTab() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showRechargeModal, setShowRechargeModal] = useState(false);
+  const [trainingMode, setTrainingMode] = useState<'manual' | 'voice' | 'video'>('manual');
+  const [videoFileName, setVideoFileName] = useState('');
+  const videoInputRef = useRef<HTMLInputElement | null>(null);
 
   // UX Interactive (Aide & Suggestion)
   const [activeQuestion, setActiveQuestion] = useState<any>(null);
@@ -120,6 +125,44 @@ export default function TrainingTab() {
     fetchHistory();
     if (fetchQuotas) fetchQuotas();
   }, [fetchQuotas]);
+
+  useEffect(() => {
+    const handleGoTraining = () => {
+      const trainingNode = document.getElementById('training_section');
+      if (trainingNode) {
+        const y = trainingNode.getBoundingClientRect().top + window.scrollY - 120;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }
+    };
+
+    window.addEventListener('btcv-go-training', handleGoTraining);
+    return () => window.removeEventListener('btcv-go-training', handleGoTraining);
+  }, []);
+
+  useEffect(() => {
+    const saveSessionToPosture = (mode: 'manual' | 'voice' | 'video', title: string, summary: string, fileName?: string) => {
+      const sessions = JSON.parse(localStorage.getItem('btcv_posture_sessions') || '[]');
+      const next = [
+        {
+          id: `${Date.now()}`,
+          mode,
+          title,
+          summary,
+          fileName,
+          date: new Date().toISOString(),
+        },
+        ...sessions,
+      ].slice(0, 10);
+      localStorage.setItem('btcv_posture_sessions', JSON.stringify(next));
+      window.dispatchEvent(new CustomEvent('btcv-posture-updated'));
+    };
+
+    const lastMode = localStorage.getItem('btcv_last_training_mode');
+    if (lastMode) setTrainingMode(lastMode as 'manual' | 'voice' | 'video');
+
+    window.__btcvSavePostureSession = saveSessionToPosture;
+    return () => { delete (window as any).__btcvSavePostureSession; };
+  }, []);
 
   useEffect(() => {
     const contextKey = [
@@ -337,7 +380,7 @@ export default function TrainingTab() {
       )}
 
       {/* --- NOUVEAU : AFFICHAGE DES QUOTAS PAR MODULE --- */}
-      <DashboardCard title="Simulations Notées Disponibles" icon={<Dumbbell size={24} />} id="training_pitch_section">
+      <DashboardCard title="Simulations Notées Disponibles" icon={<Dumbbell size={24} />} id="training_section">
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
           Votre pack inclut un solde global unique de simulations évaluées par l'IA, partagé entre tous les exercices. L'entraînement libre (lecture des questions et réponses) est illimité.
         </p>
@@ -522,34 +565,67 @@ export default function TrainingTab() {
             </div>
           </div>
 
-          {/* Choix du Thème */}
           <div>
-            <h4 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)', fontSize: '1.05rem' }}>2. Choisissez la thématique cible</h4>
+            <h4 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)', fontSize: '1.05rem' }}>Choix de la saisie</h4>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-              {themes.map(t => (
+              {[
+                { id: 'manual', label: 'Saisie manuelle' },
+                { id: 'voice', label: 'Saisie vocale' },
+                { id: 'video', label: 'Saisie vidéo' },
+              ].map((option) => (
                 <button
-                  key={t}
-                  onClick={() => setSelectedTheme(t)}
-                  className={`btn-outline ${selectedTheme === t ? 'active' : ''}`}
+                  key={option.id}
+                  onClick={() => {
+                    setTrainingMode(option.id as 'manual' | 'voice' | 'video');
+                    localStorage.setItem('btcv_last_training_mode', option.id);
+                  }}
+                  className={trainingMode === option.id ? 'btn-primary' : 'btn-secondary'}
+                  style={{ padding: '0.7rem 1rem', fontSize: '0.9rem' }}
                 >
-                  {t}
+                  {option.label}
                 </button>
               ))}
             </div>
+
+            {trainingMode === 'video' && (
+              <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '0.9rem', padding: '1rem' }}>
+                <input
+                  ref={videoInputRef}
+                  type="file"
+                  accept="video/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setVideoFileName(file.name);
+                      const title = `Exercice vidéo - ${new Date().toLocaleDateString('fr-FR')}`;
+                      const summary = `Entraînement vidéo enregistré pour la posture. Le candidat a utilisé le mode vidéo pour valider sa posture et son cadrage.`;
+                      if ((window as any).__btcvSavePostureSession) {
+                        (window as any).__btcvSavePostureSession('video', title, summary, file.name);
+                      }
+                    }
+                  }}
+                  style={{ display: 'none' }}
+                />
+                <button onClick={() => videoInputRef.current?.click()} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Video size={18} /> Ajouter une vidéo
+                </button>
+                {videoFileName && <span style={{ color: 'var(--text-muted)' }}>{videoFileName}</span>}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '0.5rem' }}>
+              <button
+                onClick={handleGenerate}
+                className="btn-primary"
+                disabled={isGenerating || !selectedType}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', minWidth: '220px' }}
+              >
+                {isGenerating ? <Loader2 size={18} className="spin" /> : <Sparkles size={18} />}
+                {isGenerating ? "Génération par l'IA..." : "Générer mon défi"}
+              </button>
+            </div>
           </div>
 
-          {/* Bouton Générer */}
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
-            <button 
-              onClick={handleGenerate}
-              disabled={isGenerating}
-              className="btn-primary"
-              style={{ padding: '1rem 3rem', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
-            >
-              {isGenerating ? <RefreshCw className="spin" size={20} /> : <Target size={20} />}
-              {isGenerating ? "Génération par l'IA..." : "Générer mon défi"}
-            </button>
-          </div>
           {errorMsg && !activeQuestion && (
             <div style={{ marginTop: '0.75rem', color: 'var(--danger-text)', fontSize: '0.9rem', textAlign: 'center' }}>
               <AlertCircle size={15} style={{ verticalAlign: 'text-bottom', marginRight: '0.4rem' }} />

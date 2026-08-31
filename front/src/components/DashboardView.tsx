@@ -274,6 +274,22 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
   }, []);
 
   useEffect(() => {
+    const handleGoTraining = () => {
+      handleTabChange('training');
+      setTimeout(() => {
+        const el = document.getElementById('training_section');
+        if (el) {
+          const y = el.getBoundingClientRect().top + window.scrollY - 110;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        }
+      }, 150);
+    };
+
+    window.addEventListener('btcv-go-training', handleGoTraining);
+    return () => window.removeEventListener('btcv-go-training', handleGoTraining);
+  }, [handleTabChange]);
+
+  useEffect(() => {
     const handleScroll = () => {
       setShowBackToTop(window.scrollY > 300);
     };
@@ -522,7 +538,10 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
             />
 
             <div className="bento-card col-span-3" style={{ background: 'var(--bg-card)' }}>
-              <div className="bento-header" style={{ marginBottom: '0.75rem' }}><ClipboardList size={20} color="var(--primary)"/> Mes candidatures / postes</div>
+              <div className="bento-header" style={{ marginBottom: '0.75rem' }}>
+                <ClipboardList size={20} color="var(--primary)"/>
+                {t('hub_applications_title', 'Mes candidatures / postes')}
+              </div>
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.7rem' }}>
                 <button className="btn-ghost" style={{ border: candidatureFilter === 'all' ? '1px solid var(--primary)' : '1px solid var(--border-color)' }} onClick={() => setCandidatureFilter('all')}>Toutes</button>
                 <button className="btn-ghost" style={{ border: candidatureFilter === 'active' ? '1px solid var(--primary)' : '1px solid var(--border-color)' }} onClick={() => setCandidatureFilter('active')}>Actives</button>
@@ -777,7 +796,7 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
         .cv-preview { background: var(--bg-secondary); border-radius: 1rem; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border-color); }
         .preview-header { background: var(--bg-card); color: var(--text-main); border-bottom: 1px solid var(--border-color); padding: 0.75rem 1rem; font-size: 0.9rem; font-weight: 600; display: flex; justify-content: space-between; }
         .preview-document { flex: 1; padding: 2rem; display: flex; justify-content: center; overflow-y: auto; }
-        .pdf-placeholder { background: var(--bg-card); width: 100%; max-width: 800px; aspect-ratio: 1 / 1.414; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); border-radius: 4px; border: 1px solid var(--border-color); }
+        .pdf-placeholder { background: var(--bg-card); width: 100%; max-width: 800px; aspect-ratio: 1 / 1; object-fit: cover; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); border-radius: 4px; border: 1px solid var(--border-color); }
         
         /* Onglet Entretien */
         .interview-tab-container { display: flex; flex-direction: column; gap: 1.5rem; }

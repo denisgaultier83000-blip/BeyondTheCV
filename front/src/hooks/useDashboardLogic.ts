@@ -898,11 +898,9 @@ export function useDashboardLogic() {
            requiresDecoder ? jobDecoderResult : { _optional: true },
          ].every(hasUsableDashboardCache);
 
-         const hasAnyResolvedResult = !!(
+         const hasCoreAnalysisResolvedResult = !!(
            hasUsableDashboardCache(cvResult) ||
            hasUsableDashboardCache(gapResult) ||
-           hasUsableDashboardCache(researchResult) ||
-           hasUsableDashboardCache(salaryResult) ||
            hasUsableDashboardCache(pitchResult) ||
            hasUsableDashboardCache(questionsResult) ||
            hasUsableDashboardCache(recruiterResult) ||
@@ -911,6 +909,12 @@ export function useDashboardLogic() {
            hasUsableDashboardCache(actionPlanResult) ||
            hasUsableDashboardCache(customScenariosResult) ||
            (!requiresDecoder || hasUsableDashboardCache(jobDecoderResult))
+         );
+
+         const hasAnyResolvedResult = !!(
+           hasCoreAnalysisResolvedResult ||
+           hasUsableDashboardCache(researchResult) ||
+           hasUsableDashboardCache(salaryResult)
          );
 
          const resolveResearchTaskRunningState = async (): Promise<boolean> => {
@@ -1034,11 +1038,10 @@ export function useDashboardLogic() {
          if (previousImpactSignature && previousImpactSignature === currentImpactSignature) {
            console.info('[DASHBOARD_CACHE] HIT (step7_guard): no impactful changes, instant restore.');
            setCurrentStep(8);
-           // Sans changement d'inputs, on évite de relancer tout le pipeline
-           // uniquement parce qu'un module secondaire est absent du cache.
-           if (!hasAnyResolvedResult || needsResearchRecovery) {
+           // Si l'un des résultats du dashboard manque ou que la recherche est incomplète, relancer la récupération
+           if (!dashboardCacheComplete || needsResearchRecovery) {
              setGlobalStatus("PROCESSING");
-             await restartMissingDashboardTasks(needsResearchRecovery && hasAnyResolvedResult);
+             await restartMissingDashboardTasks(needsResearchRecovery && dashboardCacheComplete);
            } else {
              setGlobalStatus("COMPLETED");
            }
@@ -1056,9 +1059,9 @@ export function useDashboardLogic() {
          if (recalcLevel === 'none') {
            console.info('[DASHBOARD_CACHE] NO_IMPACT_CHANGE: instant restore, no recalculation.');
            setCurrentStep(8);
-           if (!hasAnyResolvedResult || needsResearchRecovery) {
+           if (!dashboardCacheComplete || needsResearchRecovery) {
              setGlobalStatus("PROCESSING");
-             await restartMissingDashboardTasks(needsResearchRecovery && hasAnyResolvedResult);
+             await restartMissingDashboardTasks(needsResearchRecovery && dashboardCacheComplete);
            } else {
              setGlobalStatus("COMPLETED");
            }
@@ -1273,12 +1276,33 @@ export function useDashboardLogic() {
     }
   }, [salaryResult, formData.target_country]);
 
-  // Vérification de fin globale
+  // Vérification de fin globale : passage en COMPLETED uniquement quand TOUS les résultats requis sont prêts
   useEffect(() => {
-    if (cvResult && researchResult && globalStatus === "PROCESSING") {
+    if (globalStatus !== "PROCESSING") return;
+    const requiresDecoder = !!String(formData?.job_description || '').trim();
+    const isCacheComplete = [
+      cvResult,
+      gapResult,
+      researchResult,
+      salaryResult,
+      pitchResult,
+      questionsResult,
+      recruiterResult,
+      realityResult,
+      flawCoachingResult,
+      actionPlanResult,
+      customScenariosResult,
+      requiresDecoder ? jobDecoderResult : { _optional: true },
+    ].every(hasUsableDashboardCache);
+
+    if (isCacheComplete) {
       setGlobalStatus("COMPLETED");
     }
-  }, [cvResult, researchResult, globalStatus]);
+  }, [
+    cvResult, gapResult, researchResult, salaryResult, pitchResult, questionsResult,
+    recruiterResult, realityResult, flawCoachingResult, actionPlanResult, customScenariosResult,
+    jobDecoderResult, formData?.job_description, globalStatus
+  ]);
 
   // Quand un dashboard est complet, on mémorise la signature de référence.
   useEffect(() => {
@@ -1295,34 +1319,37 @@ export function useDashboardLogic() {
     localStorage.setItem("lastDashboardImpactPayload", JSON.stringify(impactPayload));
   }, [globalStatus, formData, getDashboardImpactSignature]);
 
-  // Si aucun task n'est actif mais que des résultats existent déjà, on évite de rester bloqué en "PROCESSING".
+  // Si aucun task n'est actif et que tous les résultats sont prêts, on valide la fin de traitement.
   useEffect(() => {
     if (globalStatus !== "PROCESSING") return;
     if (taskIds && Object.keys(taskIds).length > 0) return;
 
-    const hasAnyResolvedResult = !!(
-      researchResult ||
-      salaryResult ||
-      gapResult ||
-      pitchResult ||
-      questionsResult ||
-      jobDecoderResult ||
-      recruiterResult ||
-      realityResult ||
-      flawCoachingResult ||
-      actionPlanResult ||
-      customScenariosResult
-    );
+    const requiresDecoder = !!String(formData?.job_description || '').trim();
+    const isCacheComplete = [
+      cvResult,
+      gapResult,
+      researchResult,
+      salaryResult,
+      pitchResult,
+      questionsResult,
+      recruiterResult,
+      realityResult,
+      flawCoachingResult,
+      actionPlanResult,
+      customScenariosResult,
+      requiresDecoder ? jobDecoderResult : { _optional: true },
+    ].every(hasUsableDashboardCache);
 
-    if (hasAnyResolvedResult) {
+    if (isCacheComplete) {
       setGlobalStatus("COMPLETED");
     }
   }, [
     globalStatus,
     taskIds,
+    cvResult,
+    gapResult,
     researchResult,
     salaryResult,
-    gapResult,
     pitchResult,
     questionsResult,
     jobDecoderResult,
@@ -1331,6 +1358,7 @@ export function useDashboardLogic() {
     flawCoachingResult,
     actionPlanResult,
     customScenariosResult,
+    formData?.job_description,
   ]);
 
   // --- DÉCLENCHEMENT MANUEL ---

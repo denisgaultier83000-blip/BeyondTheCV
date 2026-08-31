@@ -48,7 +48,7 @@ export function RecruiterView({ data, loading, error }: RecruiterViewProps) {
       icon={<Eye size={24} />}
       loading={loading}
       loadingText={t('rv_loading', "Simulation du recruteur en cours...")}
-      error={error || (!loading && !recruiter_persona)}
+      error={error || (!loading && !recruiter_persona) || undefined}
       errorText={t('rv_error', "Analyse échouée. Veuillez réessayer plus tard.")}
       featureId="recruiter_view"
     >
@@ -66,14 +66,14 @@ export function RecruiterView({ data, loading, error }: RecruiterViewProps) {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center'
       }}>
           <div>
-              <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: 'bold', color: getVerdictColor(rawVerdict) }}>{t('rv_verdict', 'Verdict')}</div>
+              <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: 'bold', color: getVerdictColor(verdict) }}>{t('rv_verdict', 'Verdict')}</div>
               <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--text-main)', animation: rawVerdict === "À l'étude" ? 'pulse-text 1.5s ease-in-out infinite' : 'none' }}>
                   {verdict}
               </div>
           </div>
           <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t('rv_probability', "Probabilité d'entretien")}</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '900', color: getVerdictColor(rawVerdict) }}>{recruiter_persona.interview_probability || 0}%</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '900', color: getVerdictColor(verdict) }}>{recruiter_persona.interview_probability || 0}%</div>
           </div>
       </div>
 

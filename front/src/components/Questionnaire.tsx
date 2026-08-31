@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HelpCircle, MessageSquare, Printer, ArrowLeft, CheckCircle2, Lightbulb, Eye, EyeOff, Edit3, Mic, MicOff, Send, Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { HelpCircle, MessageSquare, Printer, ArrowLeft, CheckCircle2, Lightbulb, Eye, EyeOff, Edit3, Mic, MicOff, Video, VideoOff, Send, Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
@@ -9,6 +9,9 @@ import { RechargeModal } from './RechargeModal';
 import { formatMarkdownReact } from '../utils/formatUtils';
 import { AsyncBoundary } from './AsyncBoundary';
 import { BulletList } from './BulletList';
+import { useVideoRecorder } from '../hooks/useVideoRecorder';
+import { VideoPreview } from './VideoPreview';
+import { savePostureSession } from '../utils/postureStorage';
 
 interface QuestionnaireProps {
   questions: any[];
@@ -40,6 +43,8 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
   const feedbacksKey = `${storageKeyPrefix}Feedbacks`;
 
   // Nouveaux états pour le mode interactif (Entraînement)
+  const videoRecorder = useVideoRecorder();
+  const [recordingModes, setRecordingModes] = useState<Record<string, 'voice' | 'video'>>({});
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
   const [activeMode, setActiveMode] = useState<Record<string, boolean>>({});
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>(cvData?.[userAnswersKey] || {});
@@ -125,21 +130,12 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
     setShowFeedbackDetails(prev => ({...prev, [qKey]: false}));
   };
 
-  // --- GESTION DE LA RECONNAISSANCE VOCALE ---
-  const toggleRecording = (qKey: string) => {
-    if (isRecording === qKey) {
-      if (recognitionRef.current) recognitionRef.current.stop();
-      setIsRecording(null);
-      return;
-    }
+  // --- GESTION DE LA RECONNAISSANCE VOCALE & VISIO ---
+  const startSpeechRecognition = (qKey: string) => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
 
     if (recognitionRef.current) recognitionRef.current.stop();
-
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("La reconnaissance vocale n'est pas supportée par votre navigateur actuel.");
-      return;
-    }
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'fr-FR';
@@ -164,7 +160,13 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
     };
 
     recognition.onerror = () => setIsRecording(null);
-    recognition.onend = () => setIsRecording(null);
+    recognition.onend = () => {
+      // Auto-redémarrage si l'enregistrement vidéo ou vocal est toujours actif
+      if (isRecording === qKey || (videoRecorder.isVideoRecording && videoRecorder.activeVideoKey === qKey)) {
+        try { recognition.start(); return; } catch (e) {}
+      }
+      setIsRecording(null);
+    };
 
     try {
       recognition.start();
@@ -172,6 +174,43 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
       setIsRecording(qKey);
     } catch (e) {
       setIsRecording(null);
+    }
+  };
+
+  const toggleRecording = (qKey: string, questionTitle: string = "Question d'entretien") => {
+    if (videoRecorder.isVideoRecording) {
+      videoRecorder.stopVideo();
+    }
+
+    if (isRecording === qKey) {
+      if (recognitionRef.current) recognitionRef.current.stop();
+      setIsRecording(null);
+      if (userAnswers[qKey]) {
+        savePostureSession('voice', questionTitle, userAnswers[qKey]);
+      }
+      return;
+    }
+
+    setRecordingModes(prev => ({ ...prev, [qKey]: 'voice' }));
+    startSpeechRecognition(qKey);
+  };
+
+  const handleVideoToggle = async (qKey: string, questionTitle: string) => {
+    const wasRecordingThis = videoRecorder.isVideoRecording && videoRecorder.activeVideoKey === qKey;
+
+    if (isRecording === qKey || wasRecordingThis) {
+      if (recognitionRef.current) recognitionRef.current.stop();
+      setIsRecording(null);
+    }
+
+    if (wasRecordingThis) {
+      videoRecorder.stopVideo(questionTitle, userAnswers[qKey] || 'Réponse visio enregistrée');
+    } else {
+      const ok = await videoRecorder.startVideo(qKey);
+      if (ok) {
+        setRecordingModes(prev => ({ ...prev, [qKey]: 'video' }));
+        startSpeechRecognition(qKey);
+      }
     }
   };
 
@@ -224,6 +263,21 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
         try { const errObj = await response.json(); errMsg = errObj.detail || errMsg; } catch(e) {}
         throw new Error(errMsg);
       }
+      // Arrêt des enregistrements actifs
+      if (videoRecorder.isVideoRecording) {
+        videoRecorder.stopVideo();
+      }
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+        setIsRecording(null);
+      }
+
+      // Sauvegarde dans la Posture si mode vocal ou vidéo utilisé
+      const modeUsed = recordingModes[qKey];
+      if (modeUsed) {
+        savePostureSession(modeUsed, questionText, answer);
+      }
+
       const data = await response.json();
       const newFeedbacks = { ...feedbacks, [qKey]: data.feedback };
       setFeedbacks(newFeedbacks);
@@ -404,27 +458,45 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
             )}
 
             {/* MODE ACTIF (Entraînement) */}
-            {isActive && !feedback && (
+            {isActive && !feedback && (() => {
+              const isVideoRecordingThis = videoRecorder.isVideoRecording && videoRecorder.activeVideoKey === qKey;
+              const questionTitle = q.question || q.text || "Question d'entretien";
+              return (
               <AsyncBoundary 
                 loading={isSubmittingThis} 
                 loadingText={t('q_ai_analyzing', 'Analyse IA en cours...')}
                 style={{ background: 'transparent', border: 'none', padding: 0 }}
               >
               <div style={{ marginTop: '1rem', background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)', animation: 'fadeIn 0.3s ease-out' }}>
-                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                     <div style={{ fontSize: '0.95rem', color: 'var(--text-main)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <Edit3 size={18} color="#8b5cf6" /> {t('q_write_dictate', 'Rédigez ou dictez votre réponse')}
                     </div>
-                    <button 
-                      onClick={() => toggleRecording(qKey)}
-                      className={`btn-${isRecordingThis ? 'primary' : 'secondary'}`} 
-                      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem', background: isRecordingThis ? '#ef4444' : undefined, borderColor: isRecordingThis ? '#ef4444' : undefined, color: isRecordingThis ? 'white' : undefined, animation: isRecordingThis ? 'pulse-record 1.5s infinite' : 'none' }}
-                    >
-                      {isRecordingThis ? <MicOff size={16} /> : <Mic size={16} />}
-                      {isRecordingThis ? t('q_stop_recording', "Arrêter") : t('q_voice_answer', "Répondre à la voix")}
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <button 
+                        onClick={() => toggleRecording(qKey, questionTitle)}
+                        className={`btn-${isRecordingThis ? 'primary' : 'secondary'}`} 
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem', background: isRecordingThis ? '#ef4444' : undefined, borderColor: isRecordingThis ? '#ef4444' : undefined, color: isRecordingThis ? 'white' : undefined, animation: isRecordingThis ? 'pulse-record 1.5s infinite' : 'none' }}
+                      >
+                        {isRecordingThis ? <MicOff size={16} /> : <Mic size={16} />}
+                        {isRecordingThis ? t('q_stop_recording', "Arrêter") : t('q_voice_answer', "Répondre à la voix")}
+                      </button>
+                      <button 
+                        onClick={() => handleVideoToggle(qKey, questionTitle)}
+                        className={`btn-${isVideoRecordingThis ? 'primary' : 'secondary'}`} 
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem', background: isVideoRecordingThis ? '#ef4444' : undefined, borderColor: isVideoRecordingThis ? '#ef4444' : undefined, color: isVideoRecordingThis ? 'white' : undefined, animation: isVideoRecordingThis ? 'pulse-record 1.5s infinite' : 'none' }}
+                      >
+                        {isVideoRecordingThis ? <VideoOff size={16} /> : <Video size={16} />}
+                        {isVideoRecordingThis ? t('q_stop_video', "Arrêter Visio") : t('q_video_answer', "Répondre en visio")}
+                      </button>
+                    </div>
                  </div>
                  
+                 {/* PREVIEW VIDÉO SI ENREGISTREMENT VISIO */}
+                 {isVideoRecordingThis && (
+                   <VideoPreview stream={videoRecorder.videoStream} label="REC" />
+                 )}
+
                  {/* AFFICHER L'ERREUR GRACIEUSE ICI */}
                  {errors[qKey] && (
                     <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.2)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--danger-text)' }}>
@@ -441,14 +513,20 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                  />
 
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <button onClick={() => { setActiveMode(prev => ({...prev, [qKey]: false})); setErrors(prev => ({...prev, [qKey]: ""})); }} className="btn-ghost" style={{ fontSize: '0.85rem' }}>{t('btn_cancel', 'Annuler')}</button>
+                    <button onClick={() => { 
+                      if (isVideoRecordingThis) videoRecorder.stopVideo();
+                      if (isRecordingThis && recognitionRef.current) recognitionRef.current.stop();
+                      setActiveMode(prev => ({...prev, [qKey]: false})); 
+                      setErrors(prev => ({...prev, [qKey]: ""})); 
+                    }} className="btn-ghost" style={{ fontSize: '0.85rem' }}>{t('btn_cancel', 'Annuler')}</button>
                     <button onClick={() => handleSubmit(qKey, q)} disabled={!(userAnswers[qKey] || "").trim()} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
                       <Send size={16} /> {t('q_analyze_answer', 'Analyser ma réponse')}
                     </button>
                  </div>
               </div>
               </AsyncBoundary>
-            )}
+              );
+            })()}
 
             {/* FEEDBACK IA APRÈS ENTRAÎNEMENT */}
             {isDone && showFeedback && (

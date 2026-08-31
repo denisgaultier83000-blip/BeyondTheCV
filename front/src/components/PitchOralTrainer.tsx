@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, MicOff, Send, AlertTriangle, CheckCircle2, Target, Lightbulb, RefreshCw, Play } from 'lucide-react';
+import { Mic, MicOff, Send, AlertTriangle, CheckCircle2, Target, Lightbulb, RefreshCw, Play, Video, VideoOff } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
@@ -8,11 +8,14 @@ import { useTranslation } from 'react-i18next';
 import { RechargeModal } from './RechargeModal';
 import { AsyncBoundary } from './AsyncBoundary';
 import AutoResizeTextarea from './AutoResizeTextarea';
+import { useVideoRecorder } from '../hooks/useVideoRecorder';
+import { VideoPreview } from './VideoPreview';
 
 export default function PitchOralTrainer() {
   const { cvData, quotas, fetchQuotas } = useDashboard();
   const { t } = useTranslation();
   const pitchRemaining = Number(quotas?.pitch ?? 0) > 0 ? Number(quotas?.pitch) : Number(quotas?.credits ?? 0);
+  const videoRecorder = useVideoRecorder();
   
   const [userAnswer, setUserAnswer] = useState('');
   const [isEvaluating, setIsEvaluating] = useState(false);
@@ -41,18 +44,14 @@ export default function PitchOralTrainer() {
     if (fetchQuotas) fetchQuotas();
   }, [fetchQuotas]);
 
-  const toggleRecording = () => {
-    if (isRecording) {
-      if (recognitionRef.current) recognitionRef.current.stop();
-      setIsRecording(false);
-      return;
-    }
-
+  const startSpeechRecognition = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert(t('sim_mic_unsupported', "La reconnaissance vocale n'est pas supportée par votre navigateur actuel."));
       return;
     }
+
+    if (recognitionRef.current) recognitionRef.current.stop();
 
     const recognition = new SpeechRecognition();
     recognition.lang = cvData?.target_language === 'en' ? 'en-US' : 'fr-FR';
@@ -73,11 +72,50 @@ export default function PitchOralTrainer() {
     };
 
     recognition.onerror = () => setIsRecording(false);
-    recognition.onend = () => setIsRecording(false);
+    recognition.onend = () => {
+      if (isRecording || videoRecorder.isVideoRecording) {
+        try { recognition.start(); return; } catch (e) {}
+      }
+      setIsRecording(false);
+    };
 
-    recognition.start();
-    recognitionRef.current = recognition;
-    setIsRecording(true);
+    try {
+      recognition.start();
+      recognitionRef.current = recognition;
+      setIsRecording(true);
+    } catch (e) {
+      setIsRecording(false);
+    }
+  };
+
+  const toggleRecording = () => {
+    if (videoRecorder.isVideoRecording) {
+      videoRecorder.stopVideo();
+    }
+
+    if (isRecording) {
+      if (recognitionRef.current) recognitionRef.current.stop();
+      setIsRecording(false);
+      return;
+    }
+
+    startSpeechRecognition();
+  };
+
+  const handleVideoToggle = async () => {
+    if (isRecording || videoRecorder.isVideoRecording) {
+      if (recognitionRef.current) recognitionRef.current.stop();
+      setIsRecording(false);
+    }
+
+    if (videoRecorder.isVideoRecording) {
+      videoRecorder.stopVideo('Pitch à l\'oral', userAnswer || 'Réponse visio enregistrée');
+    } else {
+      const ok = await videoRecorder.startVideo('pitch_oral');
+      if (ok) {
+        startSpeechRecognition();
+      }
+    }
   };
 
   const handleEvaluate = async () => {
@@ -127,10 +165,16 @@ export default function PitchOralTrainer() {
       {!feedback ? (
         <AsyncBoundary loading={isEvaluating} error={error || undefined} loadingText="Analyse de votre pitch en cours..." style={{ background: 'transparent', border: 'none', padding: 0 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', animation: 'fadeIn 0.3s ease-out' }}>
-            <AutoResizeTextarea value={userAnswer} onChange={e => { setUserAnswer(e.target.value); if (error) setError(null); }} placeholder="Commencez à parler ou dictez votre pitch ici..." minHeight={120} style={{ width: '100%', background: 'var(--bg-body)', border: '1px solid var(--border-color)', borderRadius: '0.5rem', padding: '1rem', color: 'var(--text-main)', fontFamily: 'inherit' }} />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-              <button onClick={toggleRecording} className={`btn-${isRecording ? 'primary' : 'secondary'}`} style={{ background: isRecording ? '#ef4444' : undefined, borderColor: isRecording ? '#ef4444' : undefined, color: isRecording ? 'white' : undefined, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {isRecording ? <MicOff size={18} /> : <Mic size={18} />} {isRecording ? "Arrêter" : "Dicter mon pitch"}
+            {videoRecorder.isVideoRecording && (
+              <VideoPreview stream={videoRecorder.videoStream} label="REC VISIO" />
+            )}
+            <AutoResizeTextarea value={userAnswer} onChange={e => { setUserAnswer(e.target.value); if (error) setError(null); }} placeholder="Commencez à parler ou dictez votre pitch ici (ce qui est dit en vidéo est aussi retranscrit ci-dessous)..." minHeight={120} style={{ width: '100%', background: 'var(--bg-body)', border: '1px solid var(--border-color)', borderRadius: '0.5rem', padding: '1rem', color: 'var(--text-main)', fontFamily: 'inherit' }} />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button onClick={toggleRecording} className={`btn-${isRecording && !videoRecorder.isVideoRecording ? 'primary' : 'secondary'}`} style={{ background: isRecording && !videoRecorder.isVideoRecording ? '#ef4444' : undefined, borderColor: isRecording && !videoRecorder.isVideoRecording ? '#ef4444' : undefined, color: isRecording && !videoRecorder.isVideoRecording ? 'white' : undefined, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {isRecording && !videoRecorder.isVideoRecording ? <MicOff size={18} /> : <Mic size={18} />} {isRecording && !videoRecorder.isVideoRecording ? "Arrêter Micro" : "Dicter (Vocal)"}
+              </button>
+              <button onClick={handleVideoToggle} className={`btn-${videoRecorder.isVideoRecording ? 'primary' : 'secondary'}`} style={{ background: videoRecorder.isVideoRecording ? '#ef4444' : undefined, borderColor: videoRecorder.isVideoRecording ? '#ef4444' : undefined, color: videoRecorder.isVideoRecording ? 'white' : undefined, display: 'flex', alignItems: 'center', gap: '0.5rem', animation: videoRecorder.isVideoRecording ? 'pulse-record 1.5s infinite' : 'none' }}>
+                {videoRecorder.isVideoRecording ? <VideoOff size={18} /> : <Video size={18} />} {videoRecorder.isVideoRecording ? "Arrêter Vidéo" : "Enregistrer Vidéo"}
               </button>
               <button onClick={handleEvaluate} disabled={!userAnswer.trim()} className="btn-primary" style={{ background: !userAnswer.trim() ? '' : '#8b5cf6', borderColor: !userAnswer.trim() ? '' : '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Send size={18} /> Évaluer mon oral

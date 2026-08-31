@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Square, Play, RotateCcw, Loader2, Activity, MessageSquare, AlertTriangle, CheckCircle2, Dumbbell, Ban } from 'lucide-react';
+import { Mic, Square, Play, RotateCcw, Loader2, Activity, MessageSquare, AlertTriangle, CheckCircle2, Dumbbell, Ban, Video, VideoOff } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +7,8 @@ import { useDashboard } from '../hooks/DashboardContext';
 import { RechargeModal } from './RechargeModal';
 import { AsyncBoundary } from './AsyncBoundary';
 import AutoResizeTextarea from './AutoResizeTextarea';
+import { useVideoRecorder } from '../hooks/useVideoRecorder';
+import { VideoPreview } from './VideoPreview';
 
 interface VocalPitchTrainerProps {
   targetJob?: string;
@@ -18,6 +20,7 @@ interface VocalPitchTrainerProps {
 export const VocalPitchTrainer = ({ targetJob = "", targetCompany, jobDescription, onSuccess }: VocalPitchTrainerProps) => {
   const { t } = useTranslation();
   const { quotas, fetchQuotas } = useDashboard();
+  const videoRecorder = useVideoRecorder();
   
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -42,50 +45,92 @@ export const VocalPitchTrainer = ({ targetJob = "", targetCompany, jobDescriptio
     if (fetchQuotas) fetchQuotas();
   }, [fetchQuotas]);
 
-  const startRecording = () => {
+  const startSpeechRecognition = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert("La reconnaissance vocale n'est pas supportée par votre navigateur (Utilisez Chrome ou Edge).");
-      return;
+      return false;
     }
 
-    setTranscript("");
-    setSeconds(0);
-    setResult(null);
-    setError(null);
+    if (recognitionRef.current) recognitionRef.current.stop();
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'fr-FR';
     recognition.continuous = true;
     recognition.interimResults = true;
 
+    let baseline = transcript;
+
     recognition.onresult = (event: any) => {
+      let interimTranscript = '';
       let finalTranscript = '';
       for (let i = event.resultIndex; i < event.results.length; ++i) {
         if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
+        else interimTranscript += event.results[i][0].transcript;
       }
       if (finalTranscript) {
-        setTranscript(prev => prev + " " + finalTranscript);
+        baseline += (baseline && !baseline.endsWith(' ') ? ' ' : '') + finalTranscript;
+        setTranscript(baseline + interimTranscript);
+      } else {
+        setTranscript(baseline + (baseline && !baseline.endsWith(' ') ? ' ' : '') + interimTranscript);
       }
     };
 
     recognition.onerror = (e: any) => {
       console.error("Speech recognition error", e);
-      stopRecording();
     };
 
-    recognition.start();
-    recognitionRef.current = recognition;
-    setIsRecording(true);
+    recognition.onend = () => {
+      if (isRecording || videoRecorder.isVideoRecording) {
+        try { recognition.start(); return; } catch (e) {}
+      }
+      setIsRecording(false);
+    };
 
-    timerRef.current = setInterval(() => {
-      setSeconds(prev => prev + 1);
-    }, 1000);
+    try {
+      recognition.start();
+      recognitionRef.current = recognition;
+      setIsRecording(true);
+
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        setSeconds(prev => prev + 1);
+      }, 1000);
+      return true;
+    } catch (e) {
+      setIsRecording(false);
+      return false;
+    }
+  };
+
+  const startRecording = () => {
+    if (videoRecorder.isVideoRecording) {
+      videoRecorder.stopVideo();
+    }
+    setTranscript("");
+    setSeconds(0);
+    setResult(null);
+    setError(null);
+    startSpeechRecognition();
+  };
+
+  const startVideoRecording = async () => {
+    setTranscript("");
+    setSeconds(0);
+    setResult(null);
+    setError(null);
+    const ok = await videoRecorder.startVideo('vocal_pitch');
+    if (ok) {
+      startSpeechRecognition();
+    }
   };
 
   const stopRecording = async () => {
     if (recognitionRef.current) recognitionRef.current.stop();
     if (timerRef.current) clearInterval(timerRef.current);
+    if (videoRecorder.isVideoRecording) {
+      videoRecorder.stopVideo('Simulateur de pitch', transcript || 'Enregistrement visio');
+    }
     setIsRecording(false);
   };
 
@@ -159,11 +204,15 @@ export const VocalPitchTrainer = ({ targetJob = "", targetCompany, jobDescriptio
 
       {!result && !isAnalyzing && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', padding: '2rem', background: 'var(--bg-secondary)', borderRadius: '1rem' }}>
+          {videoRecorder.isVideoRecording && (
+            <VideoPreview stream={videoRecorder.videoStream} label="REC VISIO" />
+          )}
+
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ fontSize: '3rem', fontWeight: 'bold', fontFamily: 'monospace', color: isRecording ? '#ef4444' : 'var(--text-main)' }}>
+            <div style={{ fontSize: '3rem', fontWeight: 'bold', fontFamily: 'monospace', color: isRecording || videoRecorder.isVideoRecording ? '#ef4444' : 'var(--text-main)' }}>
               {formatTime(seconds)}
             </div>
-            {isRecording && (
+            {(isRecording || videoRecorder.isVideoRecording) && (
               <div style={{ position: 'absolute', right: '-40px', display: 'flex', alignItems: 'center', gap: '4px', height: '36px' }}>
                 {[0, 0.2, 0.4, 0.1, 0.3].map((delay, i) => (
                   <div
@@ -176,27 +225,30 @@ export const VocalPitchTrainer = ({ targetJob = "", targetCompany, jobDescriptio
           </div>
           
           <AutoResizeTextarea 
-              value={transcript}
-              onChange={e => { setTranscript(e.target.value); if (error) setError(null); }}
-            placeholder="La retranscription s'affichera ici. Vous pouvez corriger le texte manuellement avant l'analyse..."
+            value={transcript}
+            onChange={e => { setTranscript(e.target.value); if (error) setError(null); }}
+            placeholder="La retranscription s'affichera ici en temps réel (ce qui est dit en vidéo/vocal est transcrit ci-dessous). Vous pouvez corriger le texte manuellement..."
             style={{ width: '100%', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '0.75rem', padding: '1rem', color: 'var(--text-main)', fontFamily: 'inherit', fontSize: '1rem', outline: 'none' }}
             minHeight={120}
-            disabled={isRecording}
+            disabled={isRecording || videoRecorder.isVideoRecording}
           />
 
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-            {isRecording ? (
+            {isRecording || videoRecorder.isVideoRecording ? (
               <button onClick={stopRecording} className="btn-primary" style={{ background: '#ef4444', borderColor: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem', fontSize: '1.1rem', animation: 'pulse-record 1.5s infinite' }}>
                 <Square size={20} /> Arrêter l'enregistrement
               </button>
             ) : (
               <>
-                <button onClick={startRecording} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem', fontSize: '1.1rem' }}>
-                  <Play size={20} /> {transcript ? "Nouvel enregistrement" : "Démarrer l'enregistrement"}
+                <button onClick={startRecording} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 1.5rem', fontSize: '1rem' }}>
+                  <Mic size={20} /> {transcript ? "Recommencer (Vocal)" : "Enregistrer Vocal"}
+                </button>
+                <button onClick={startVideoRecording} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 1.5rem', fontSize: '1rem' }}>
+                  <Video size={20} /> {transcript ? "Recommencer (Vidéo)" : "Enregistrer Vidéo"}
                 </button>
                 {transcript.trim().length > 0 && (
                   <button onClick={() => {
-                    if (seconds < 10) { alert("L'enregistrement est trop court (minimum 10 secondes) pour une analyse pertinente."); return; }
+                    if (seconds < 5) { alert("L'enregistrement est trop court pour une analyse pertinente."); return; }
                     analyzePitch();
                   }} className="btn-primary" style={{ background: '#10b981', borderColor: '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem', fontSize: '1.1rem' }}>
                     <Activity size={20} /> Analyser ma prestation
