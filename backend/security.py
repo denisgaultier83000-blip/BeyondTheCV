@@ -12,9 +12,10 @@ from database import db # [FIX] Import manquant qui cause des crashs sur les rou
 
 # Configuration
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development").lower()
-SECRET_KEY = os.getenv("SECRET_KEY")
+# [FIX] Le pipeline de déploiement (docker-compose.*.yml) injecte JWT_SECRET, pas SECRET_KEY.
+SECRET_KEY = os.getenv("SECRET_KEY") or os.getenv("JWT_SECRET")
 if not SECRET_KEY and ENVIRONMENT in {"production", "staging"}:
-    raise RuntimeError("SECRET_KEY must be set in production/staging environments.")
+    raise RuntimeError("SECRET_KEY (ou JWT_SECRET) must be set in production/staging environments.")
 if not SECRET_KEY:
     SECRET_KEY = "dev-secret-key-change-me"
 ALGORITHM = "HS256"
