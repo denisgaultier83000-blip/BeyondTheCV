@@ -380,7 +380,35 @@ async def strip_api_prefix(request: Request, call_next):
 
     return await call_next(request)
 
+
+# [SECURITE] Middleware de logging limité aux environnements non-prod pour éviter les fuites d'information.
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.time()
+
+    try:
+        response = await call_next(request)
+    except Exception as e:
+        print(f"[CRITICAL] Uncaught Exception in {request.url.path}: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
+        response = JSONResponse(status_code=500, content={"detail": "Internal Server Error", "error": "Une erreur interne critique est survenue."})
+
+    if os.getenv("ENVIRONMENT", "development").lower() != "production":
+        process_time = (time.time() - start_time) * 1000
+        try:
+            client_ip = request.client.host if request.client else "unknown"
+            print(f"[NET] {request.method} {request.url.path} - {response.status_code} ({process_time:.2f}ms) - IP: {client_ip}", flush=True)
+        except Exception:
+            pass
+    return response
+
+
 # --- CORS CONFIGURATION ---
+# [FIX ARCHITECTURE CORS] CORSMiddleware DOIT être le tout DERNIER middleware ajouté à app.
+# En Starlette/FastAPI, le dernier middleware ajouté devient le middleware le plus EXTERNE.
+# Cela garantit que TOUTES les réponses (y compris les erreurs 500/401/403/429 renvoyées par d'autres middlewares)
+# reçoivent impérativement les en-têtes 'Access-Control-Allow-Origin'.
 base_cors_origins = [
     "http://localhost:3000",
     "http://localhost:5173",
@@ -413,31 +441,9 @@ app.add_middleware(
     allow_origins=base_cors_origins,
     allow_origin_regex=allow_origin_regex,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With", "X-CSRFToken"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
-
-# [SECURITE] Middleware de logging limité aux environnements non-prod pour éviter les fuites d'information.
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    start_time = time.time()
-
-    try:
-        response = await call_next(request)
-    except Exception as e:
-        print(f"[CRITICAL] Uncaught Exception in {request.url.path}: {e}", flush=True)
-        import traceback
-        traceback.print_exc()
-        response = JSONResponse(status_code=500, content={"detail": "Internal Server Error", "error": "Une erreur interne critique est survenue."})
-
-    if os.getenv("ENVIRONMENT", "development").lower() != "production":
-        process_time = (time.time() - start_time) * 1000
-        try:
-            client_ip = request.client.host if request.client else "unknown"
-            print(f"[NET] {request.method} {request.url.path} - {response.status_code} ({process_time:.2f}ms) - IP: {client_ip}", flush=True)
-        except Exception:
-            pass
-    return response
 
 # [ROBUSTESSE] Chargement défensif des routeurs
 # Si un fichier plante (ex: erreur de syntaxe ou d'import), l'API démarre quand même.
