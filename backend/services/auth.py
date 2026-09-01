@@ -254,7 +254,9 @@ async def register(user: UserRegister):
             raise HTTPException(status_code=400, detail="Email already registered")
 
         user_id = str(uuid.uuid4())
-        now = datetime.now(timezone.utc)
+        # [FIX] La colonne users.created_at est "timestamp without time zone" en base :
+        # asyncpg refuse un datetime aware sur ce type ("can't subtract offset-naive and offset-aware datetimes").
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         # Insertion du nouvel utilisateur
         await _insert_user(user_id, email, hashed_pw, user.first_name, user.last_name, now)
