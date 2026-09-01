@@ -369,46 +369,12 @@ from fastapi import Depends
 app = FastAPI(title="BeyondTheCV API", lifespan=lifespan, dependencies=[Depends(rate_limiter)])
 
 
-@app.middleware("http")
-async def strip_api_prefix(request: Request, call_next):
-    """Accepte les routes servies avec ou sans préfixe /api."""
-    path = request.scope.get("path", "")
-    if path.startswith("/api/"):
-        request.scope["path"] = path[4:]
-        root_path = request.scope.get("root_path", "")
-        request.scope["root_path"] = f"{root_path}/api" if root_path else "/api"
-
-    return await call_next(request)
-
-
-# [SECURITE] Middleware de logging limité aux environnements non-prod pour éviter les fuites d'information.
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    start_time = time.time()
-
-    try:
-        response = await call_next(request)
-    except Exception as e:
-        print(f"[CRITICAL] Uncaught Exception in {request.url.path}: {e}", flush=True)
-        import traceback
-        traceback.print_exc()
-        response = JSONResponse(status_code=500, content={"detail": "Internal Server Error", "error": "Une erreur interne critique est survenue."})
-
-    if os.getenv("ENVIRONMENT", "development").lower() != "production":
-        process_time = (time.time() - start_time) * 1000
-        try:
-            client_ip = request.client.host if request.client else "unknown"
-            print(f"[NET] {request.method} {request.url.path} - {response.status_code} ({process_time:.2f}ms) - IP: {client_ip}", flush=True)
-        except Exception:
-            pass
-    return response
-
-
 # --- CORS CONFIGURATION ---
-# [FIX ARCHITECTURE CORS] CORSMiddleware DOIT être le tout DERNIER middleware ajouté à app.
-# En Starlette/FastAPI, le dernier middleware ajouté devient le middleware le plus EXTERNE.
-# Cela garantit que TOUTES les réponses (y compris les erreurs 500/401/403/429 renvoyées par d'autres middlewares)
-# reçoivent impérativement les en-têtes 'Access-Control-Allow-Origin'.
+# [FIX ARCHITECTURE CORS] CORSMiddleware est ajouté en premier sur l'application FastAPI.
+# En Starlette/FastAPI (qui applique les middlewares dans l'ordre inverse de création via `reversed(user_middleware)`),
+# le premier middleware `add_middleware` devient le middleware le plus EXTERNE.
+# Cela garantit que TOUTES les réponses (y compris les 404, 500, 401, 403, 429 générées par d'autres middlewares)
+# sont systématiquement enveloppées par CORSMiddleware et reçoivent l'en-tête 'Access-Control-Allow-Origin'.
 base_cors_origins = [
     "http://localhost:3000",
     "http://localhost:5173",
@@ -445,8 +411,45 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# [ROBUSTESSE] Chargement défensif des routeurs
-# Si un fichier plante (ex: erreur de syntaxe ou d'import), l'API démarre quand même.
+
+@app.middleware("http")
+async def strip_api_prefix(request: Request, call_next):
+    """Accepte les routes servies avec ou sans préfixe /api."""
+    path = request.scope.get("path", "")
+    if path.startswith("/api/"):
+        request.scope["path"] = path[4:]
+        root_path = request.scope.get("root_path", "")
+        request.scope["root_path"] = f"{root_path}/api" if root_path else "/api"
+
+    return await call_next(request)
+
+
+# [SECURITE] Middleware de logging limité aux environnements non-prod pour éviter les fuites d'information.
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.time()
+
+    try:
+        response = await call_next(request)
+    except Exception as e:
+        print(f"[CRITICAL] Uncaught Exception in {request.url.path}: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
+        response = JSONResponse(status_code=500, content={"detail": "Internal Server Error", "error": "Une erreur interne critique est survenue."})
+
+    if os.getenv("ENVIRONMENT", "development").lower() != "production":
+        process_time = (time.time() - start_time) * 1000
+        try:
+            client_ip = request.client.host if request.client else "unknown"
+            print(f"[NET] {request.method} {request.url.path} - {response.status_code} ({process_time:.2f}ms) - IP: {client_ip}", flush=True)
+        except Exception:
+            pass
+    return response
+
+
+# [ROBUSTESSE] Support natif des routes avec et sans préfixe /api
+api_router = APIRouter(prefix="/api")
+
 def include_safe_router(module_name, from_services=True):
     try:
         # Import dynamique
@@ -467,11 +470,13 @@ def include_safe_router(module_name, from_services=True):
                     return {"status": "ok", "service": "profile", "fallback": True}
 
                 app.include_router(fallback_router)
+                api_router.include_router(fallback_router)
                 print(f"[ROUTER] ✅ Loaded fallback: {module_name}", flush=True)
                 return
             raise AttributeError(f"module '{mod.__name__}' has no attribute 'router'")
 
         app.include_router(mod.router)
+        api_router.include_router(mod.router)
         print(f"[ROUTER] ✅ Loaded: {module_name}", flush=True)
     except Exception as e:
         # [FIABILITÉ] Ne JAMAIS démarrer silencieusement si un routeur est cassé.
@@ -493,8 +498,14 @@ include_safe_router("debrief_service")
 # New routes for products, evaluations, and subscriptions
 include_safe_router("routes_products", from_services=False)
 
-# [HEALTH] Endpoint racine pour vérifier la connectivité facilement depuis le navigateur
+# Enregistrement natif du routeur avec le préfixe /api
+app.include_router(api_router)
+
+# [HEALTH] Endpoint racine et /api/health pour vérifier la connectivité facilement
 @app.get("/")
+@app.get("/health")
+@app.get("/api")
+@app.get("/api/health")
 def health_check():
     return {"status": "online", "ip": get_local_ip(), "message": "Backend is reachable"}
 
