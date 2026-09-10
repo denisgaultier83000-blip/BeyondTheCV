@@ -1723,13 +1723,13 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
           .sub-tabs-navigation::-webkit-scrollbar { display: none; }
           .bento-card { padding: 1.25rem !important; }
 
-          /* En mode paysage sur téléphone, les sous-menus prennent trop de hauteur : on les masque */
-          @media (orientation: landscape) and (max-height: 500px) {
-            .sub-tabs-navigation { display: none !important; }
-          }
-          
           /* Prévention des dépassements de texte (Mots/URL trop longs) */
           .bento-card p, .bento-card h3, .bento-card h4, .bento-card div { overflow-wrap: break-word; word-break: break-word; hyphens: auto; }
+        }
+
+        /* En mode paysage sur téléphone, les sous-menus prennent trop de hauteur : on les masque */
+        @media (orientation: landscape) and (max-height: 600px) and (hover: none) and (pointer: coarse) {
+          .sub-tabs-navigation { display: none !important; }
         }
       `}</style>
     </div>
