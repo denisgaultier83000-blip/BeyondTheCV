@@ -743,6 +743,8 @@ export function useDashboardLogic() {
     localStorage.removeItem("taskIds");
     localStorage.removeItem("cvResult");
     localStorage.removeItem("researchResult");
+    localStorage.removeItem("research_result");
+    localStorage.removeItem("research_data");
     localStorage.removeItem("salaryResult");
     localStorage.removeItem("pilotData");
     localStorage.removeItem("pilotSignature");

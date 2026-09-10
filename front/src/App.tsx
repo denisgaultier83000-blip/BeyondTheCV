@@ -55,6 +55,30 @@ const getCurrentUserId = (): string | null => {
   }
 };
 
+const normalizeCompanyNameForCache = (name: string | null | undefined): string => {
+  return (name || '').toLowerCase().trim().replace(/\s+/g, ' ');
+};
+
+// [FIX] Empêche l'affichage d'un ancien researchResult (ex: Naval Group)
+// quand la candidature en cours est pour une autre entreprise (ex: LVMH).
+const invalidateStaleResearchCache = (currentTargetCompany: string): void => {
+  try {
+    const raw = localStorage.getItem('researchResult');
+    if (!raw || raw === 'undefined' || raw === 'null') return;
+    const parsed = JSON.parse(raw);
+    const cachedCompany = parsed?.company || parsed?.company_report?.company || '';
+    if (!cachedCompany) return;
+    if (normalizeCompanyNameForCache(cachedCompany) !== normalizeCompanyNameForCache(currentTargetCompany)) {
+      console.info('[CACHE INVALIDATION] researchResult mismatch:', cachedCompany, '!=', currentTargetCompany);
+      localStorage.removeItem('researchResult');
+      localStorage.removeItem('research_result');
+      localStorage.removeItem('research_data');
+    }
+  } catch {
+    localStorage.removeItem('researchResult');
+  }
+};
+
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -594,6 +618,8 @@ function AppContent() {
         if (rawProfileData && Object.keys(rawProfileData).length > 0) {
           const frontendData = transformProfileForFrontend(rawProfileData);
           setFormData(frontendData);
+          // [FIX] Si un ancien researchResult est stocké pour une autre entreprise, on l'invalide.
+          invalidateStaleResearchCache((frontendData as any).target_company || '');
           if ((frontendData as any).target_language) { i18n.changeLanguage((frontendData as any).target_language.toLowerCase()); }
 
           const hasImportedProfileData = !!(
@@ -624,10 +650,10 @@ function AppContent() {
         resetDashboard(); // Le hook gÃƒÂ¨re la rÃƒÂ©initialisation ÃƒÂ  INITIAL_DATA
       } else if (response.status === 401) {
         localStorage.removeItem('token');
-        setCurrentStep(1);
         localStorage.removeItem('user');
+        resetDashboard();
         setIsAuthenticated(false);
-        navigate('/', { replace: true });
+        navigate('/login', { replace: true });
       }
     } catch (e) {
       console.error("[PROFIL] Fatal error during fetch:", e);
@@ -1229,6 +1255,14 @@ function AppContent() {
               onShowLegal={() => setShowLegal(true)} />        ) :
          !isAuthenticated ?
             <Login onLoginSuccess={(loginResponse) => {
+              // [FIX] Si un autre utilisateur se connecte sur le même appareil,
+              // on vide le dashboard pour éviter de mélanger les données.
+              const previousUserRaw = localStorage.getItem('user');
+              const previousUserId = previousUserRaw ? JSON.parse(previousUserRaw)?.id : null;
+              const newUserId = loginResponse?.user?.id || loginResponse?.id;
+              if (previousUserId && newUserId && previousUserId !== newUserId) {
+                resetDashboard();
+              }
               setIsAuthenticated(true);
               // [FIX] La redirection se base maintenant sur la reponse de l'API,
               // qui contient `role: "admin"` pour les administrateurs
