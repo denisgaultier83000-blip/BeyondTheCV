@@ -1,17 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';import { useDashboard } from '../hooks/DashboardContext';
-import { Mic, MessageSquare, Play, Pause, RotateCcw, BrainCircuit, ArrowLeft, Loader2, RefreshCw, Lightbulb, Shield, Users, Briefcase, Building, Clock } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { useDashboard } from '../hooks/DashboardContext';
+import { Mic, Play, Pause, RotateCcw, ArrowLeft, Lightbulb, Shield, Users, Briefcase, Building, Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DashboardCard } from './DashboardCard';
-
-import Questionnaire from './Questionnaire';
-import Flashcards from './Flashcards';
-import { API_BASE_URL } from '../config';
-import { authenticatedFetch } from '../utils/auth';
-import ScoreGauge from './ScoreGauge';
-import SalaryNegotiator from './SalaryNegotiator';
-import PitchOralTrainer from './PitchOralTrainer';
 import AutoResizeTextarea from './AutoResizeTextarea';
+import { Button, SegmentedControl } from './common';
 
 // --- LOGIQUE TÉLÉPROMPTEUR DÉPLACÉE ICI (À LA RACINE) ---
 const Teleprompter = ({ fullPitchText, setIsTeleprompterOpen, isDark, t }: { fullPitchText: string, setIsTeleprompterOpen: any, isDark: boolean, t: any }) => {
@@ -141,143 +135,16 @@ export const InterviewTab = () => {
 
   const handleResetPitch = () => {
     if (!window.confirm(t('confirm_reset_pitch', "Voulez-vous vraiment annuler vos modifications et restaurer le pitch original généré par l'IA ?"))) return;
-    // On repeuple les champs avec la version sélectionnée actuellement
     if (pitchResult) {
       populateFieldsFromMatrix(pitchResult, activePitchKey, activePitchGroup);
     }
   };
 
-  const handlePurgeCache = async () => {
-    if (window.confirm(t('confirm_purge', "Voulez-vous effacer vos anciennes réponses et forcer l'IA à regénérer un nouveau set de questions au prochain chargement ?"))) {
-      try {
-        await authenticatedFetch(`${API_BASE_URL}/cv/cache?content_type=interview_questions`, { method: 'DELETE' });
-        await authenticatedFetch(`${API_BASE_URL}/cv/cache?content_type=extra_scenarios`, { method: 'DELETE' });
-        alert(t('purge_success', "Cache purgé. Veuillez rafraîchir la page (F5) pour générer de nouvelles questions vierges."));
-      } catch (e) {
-        console.error(e);
-      }
-    }
-  };
-
-  // Extraction ultra-robuste des questions pour pallier les variations de structure (encapsulation IA)
-  const getQuestionsArray = (data: any): any[] => {
-    if (!data) return [];
-    
-    // 1. Déballage d'un potentiel { result: ... } du polling
-    let actualData = data.result !== undefined ? data.result : data;
-    
-    // [FIX EXPERT] Boucle de désérialisation pour détruire la double/triple stringification
-    // Fréquent lors de l'enregistrement de JSON stringifié dans des colonnes JSONB (PostgreSQL)
-    let depth = 0;
-    while (typeof actualData === 'string' && depth < 7) {
-        try {
-            const match = actualData.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-            actualData = JSON.parse(match ? match[1] : actualData);
-            depth++;
-        } catch(e) {
-            break;
-        }
-    }
-    
-    if (Array.isArray(actualData)) return actualData;
-    
-    const payload = actualData.interview_questions_result || actualData.interview_questions || actualData;
-    if (Array.isArray(payload)) return payload;
-    
-    // 1. Cherche un format exact connu (ex: interview_prep)
-    if (payload?.interview_prep && typeof payload.interview_prep === 'object') {
-      if (Array.isArray(payload.interview_prep)) return payload.interview_prep;
-      const allQuestions: any[] = [];
-      Object.values(payload.interview_prep).forEach(val => {
-        if (Array.isArray(val)) allQuestions.push(...val);
-      });
-      if (allQuestions.length > 0) return allQuestions;
-    }
-
-    if (payload?.questions && Array.isArray(payload.questions)) return payload.questions;
-
-    // 2. Recherche récursive d'un tableau contenant des objets avec une clé "question"
-    const extractQuestionsDeep = (obj: any): any[] => {
-        if (!obj || typeof obj !== 'object') return [];
-        let found: any[] = [];
-        for (const key of Object.keys(obj)) {
-            const val = obj[key];
-            if (Array.isArray(val)) {
-                for (const item of val) {
-                    if (item && typeof item === 'object') {
-                        if (item.question) {
-                            found.push(item);
-                        } else {
-                            found = found.concat(extractQuestionsDeep(item));
-                        }
-                    }
-                }
-            } else if (typeof val === 'object' && val !== null) {
-                found = found.concat(extractQuestionsDeep(val));
-            }
-        }
-        return found;
-    };
-
-    const deepExtracted = extractQuestionsDeep(payload);
-    if (deepExtracted.length > 0) return deepExtracted;
-
-    // 3. Fallback: on retourne le premier tableau trouvé dans l'objet
-    return (Object.values(payload).find(v => Array.isArray(v)) as any[]) || [];
-  };
-
   const handleTabClick = (pitchKey: string, pitchGroup: string) => {
     setActivePitchKey(pitchKey);
     setActivePitchGroup(pitchGroup);
-    // Au clic, on met à jour les 4 champs avec le contenu correspondant
     populateFieldsFromMatrix(pitchResult, pitchKey, pitchGroup);
   };
-
-  // Convertir les Mises en Situation (MES) en format "Question" pour les fusionner
-  const getScenariosAsQuestions = (data: any): any[] => {
-    if (!data) return [];
-    let actualData = data.result !== undefined ? data.result : data;
-    let depth = 0;
-    while (typeof actualData === 'string' && depth < 7) {
-        try {
-            const match = actualData.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-            actualData = JSON.parse(match ? match[1] : actualData);
-            depth++;
-        } catch(e) { break; }
-    }
-    
-    const scenarios: any[] = [];
-    const extractDeep = (obj: any, currentCategory: string = "Mise en situation") => {
-        if (!obj || typeof obj !== 'object') return;
-        if (Array.isArray(obj)) {
-            obj.forEach(item => extractDeep(item, currentCategory));
-        } else {
-            if (obj.scenario || obj.question || obj.situation || obj.text || obj.contexte || obj.description || obj.defi || obj.title) {
-                scenarios.push({
-                    category: "SCÉNARIO : " + currentCategory.toUpperCase(),
-                    question: obj.scenario || obj.question || obj.situation || obj.text || obj.contexte || obj.description || obj.defi || obj.title,
-                    suggested_answer: obj.expected_behavior || obj.suggested_answer || obj.answer || obj.solution || "Utilisez la méthode STAR (Situation, Tâche, Action, Résultat) pour structurer votre réponse.",
-                    advice: obj.advice || obj.context || obj.rationale || obj.strategy || obj.feedback || "Cette mise en situation évalue vos réflexes professionnels.",
-                    user_answer: obj.user_answer,
-                    evaluation: obj.feedback || obj.evaluation
-                });
-            } else {
-                const cat = obj.category || obj.theme || obj.title || currentCategory;
-                Object.values(obj).forEach(v => extractDeep(v, cat));
-            }
-        }
-    };
-    extractDeep(actualData);
-    return scenarios;
-  };
-
-  const questionsArray = getQuestionsArray(questionsResult);
-  
-  const standardQuestions = questionsArray.filter(q => q.category !== "Questions à poser au recruteur" && q.category !== "Questions to Ask Recruiter");
-  const smartQuestions = questionsArray.filter(q => q.category === "Questions à poser au recruteur" || q.category === "Questions to Ask Recruiter");
-  
-  const scenariosArray = getScenariosAsQuestions(customScenariosResult);
-  const mergedQuestions = [...questionsArray, ...scenariosArray];
 
   return (
     <>
@@ -294,36 +161,51 @@ export const InterviewTab = () => {
           errorText={pitchResult?.message ? `Erreur IA : ${pitchResult.message}` : t('pitch_error', "Le pitch n'a pas pu être généré.")}
           featureId="pitch_3_min"
           headerAction={pitchResult && (
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button onClick={handleResetPitch} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} title="Restaurer le pitch généré par l'IA">
-                <RotateCcw size={16} /> {t('btn_reset', 'Réinitialiser')}
-              </button>
-              <button className="btn-primary" onClick={() => setIsTeleprompterOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
-                <Play size={16} /> {t('teleprompter_mode', 'Téléprompteur')}
-              </button>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={<RotateCcw size={16} />}
+                onClick={handleResetPitch}
+                title="Restaurer le pitch généré par l'IA"
+              >
+                {t('btn_reset', 'Réinitialiser')}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<Play size={16} />}
+                onClick={() => setIsTeleprompterOpen(true)}
+              >
+                {t('teleprompter_mode', 'Téléprompteur')}
+              </Button>
             </div>
           )}
         >
           {pitchResult && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              {/* --- NOUVELLE INTERFACE À ONGLETS --- */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  <h6 style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Format</h6>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button onClick={() => handleTabClick('thirty_seconds', 'core_pitches')} className={`btn-outline ${activePitchKey === 'thirty_seconds' ? 'active' : ''}`}><Clock size={14}/> 30s</button>
-                    <button onClick={() => handleTabClick('three_minutes', 'core_pitches')} className={`btn-outline ${activePitchKey === 'three_minutes' ? 'active' : ''}`}><Clock size={14}/> 3min</button>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  <h6 style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Par Audience</h6>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    <button onClick={() => handleTabClick('role_fit_pitch', 'audience_adaptations')} className={`btn-outline ${activePitchKey === 'role_fit_pitch' ? 'active' : ''}`}><Briefcase size={14}/> Manager</button>
-                    <button onClick={() => handleTabClick('business_impact_pitch', 'audience_adaptations')} className={`btn-outline ${activePitchKey === 'business_impact_pitch' ? 'active' : ''}`}><Building size={14}/> Dirigeant</button>
-                    <button onClick={() => handleTabClick('culture_fit_pitch', 'audience_adaptations')} className={`btn-outline ${activePitchKey === 'culture_fit_pitch' ? 'active' : ''}`}><Users size={14}/> RH</button>
-                    <button onClick={() => handleTabClick('objection_handling_pitch', 'audience_adaptations')} className={`btn-outline ${activePitchKey === 'objection_handling_pitch' ? 'active' : ''}`}><Shield size={14}/> Anti-Failles</button>
-                  </div>
-                </div>
+              {/* --- INTERFACE À ONGLETS DE SÉLECTION (CHIPS/SEGMENTED CONTROLS À GAUCHE) --- */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', alignItems: 'flex-start' }}>
+                <SegmentedControl
+                  label="Format"
+                  value={['thirty_seconds', 'three_minutes'].includes(activePitchKey) ? activePitchKey : ''}
+                  onChange={(val) => handleTabClick(val, 'core_pitches')}
+                  options={[
+                    { value: 'thirty_seconds', label: '30 s', icon: <Clock size={14} /> },
+                    { value: 'three_minutes', label: '3 min', icon: <Clock size={14} /> }
+                  ]}
+                />
+                <SegmentedControl
+                  label="Audience"
+                  value={['role_fit_pitch', 'business_impact_pitch', 'culture_fit_pitch', 'objection_handling_pitch'].includes(activePitchKey) ? activePitchKey : ''}
+                  onChange={(val) => handleTabClick(val, 'audience_adaptations')}
+                  options={[
+                    { value: 'role_fit_pitch', label: 'Manager', icon: <Briefcase size={14} /> },
+                    { value: 'business_impact_pitch', label: 'Dirigeant', icon: <Building size={14} /> },
+                    { value: 'culture_fit_pitch', label: 'RH', icon: <Users size={14} /> },
+                    { value: 'objection_handling_pitch', label: 'Anti-Failles', icon: <Shield size={14} /> }
+                  ]}
+                />
               </div>
 
               {/* --- NOUVEAU BLOC DE COACHING --- */}
@@ -337,9 +219,7 @@ export const InterviewTab = () => {
                 </div>
               )}
 
-
-              {/* --- BLOC DES 4 CHAMPS ÉDITABLES --- */}
-              {/* --- [NOUVEAU] Champ d'édition unique --- */}
+              {/* --- BLOC DU CHAMP ÉDITABLE UNIQUE --- */}
               <div className="pitch-single-field" style={{ animation: 'fadeIn 0.4s ease-out' }}>
                 <AutoResizeTextarea
                   className="pitch-textarea"
@@ -350,86 +230,10 @@ export const InterviewTab = () => {
                   maxHeight={460}
                 />
               </div>
-              
-              {/* NOUVEAU MODULE D'ENTRAÎNEMENT ORAL DU PITCH */}
-              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '1rem', marginBottom: '1rem', textAlign: 'center' }}>
-                {t('teleprompter_pitch_hint', "Le téléprompteur utilisera le contenu de la version orale que vous avez sélectionnée et modifiée ci-dessus.")}
-              </p>
-              <PitchOralTrainer />
             </div>
           )}
         </DashboardCard>
         </div>
-
-        {/* [MODIFICATION] Scission de la carte en deux pour plus de clarté */}
-
-        {/* 1. Carte pour les Questions Classiques et Stratégiques */}
-        <div id="questionnaire_section">
-          <DashboardCard
-            title={t('card_interview_title', "Questionnaire d'Entretien")}
-            icon={<MessageSquare size={24} />}
-            loading={globalStatus === 'PROCESSING' && !questionsResult}
-            loadingText={t('questions_loading', "Génération des questions...")}
-            error={!!questionsResult?.error || (!questionsResult && (globalStatus === 'COMPLETED' || globalStatus === 'FAILED'))}
-            errorText={questionsResult?.error ? `Erreur IA : ${typeof questionsResult.error === 'boolean' ? "Limite de contexte atteinte (données trop lourdes)." : questionsResult.error}` : t('questions_error', "Le questionnaire n'a pas pu être généré.")}
-            featureId="interview_questions"
-            headerAction={
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button onClick={handlePurgeCache} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} title="Effacer l'historique d'entraînement du profil">
-                  <RotateCcw size={16} /> Purger le cache
-                </button>
-              </div>
-            }
-          >
-            {questionsResult && (
-              <>
-                <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "1.5rem", fontStyle: "italic", background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
-                  * Légende : <span style={{color: '#f59e0b', fontWeight: 'bold'}}>★</span> (1-Facile) à <span style={{color: '#f59e0b', fontWeight: 'bold'}}>★★★★★</span> (5-Très Difficile)
-                </div>
-                {standardQuestions.length > 0 || smartQuestions.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                    {standardQuestions.length > 0 && <Questionnaire questions={standardQuestions} hideHeader={true} />}
-                    {smartQuestions.length > 0 && <SmartQuestionsList questions={smartQuestions} />}
-                  </div>
-                ) : (
-                  <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                    Les questions sont en cours d'analyse ou n'ont pas pu être formatées correctement.
-                  </div>
-                )}
-              </>
-            )}
-          </DashboardCard>
-        </div>
-
-        {/* 2. Carte pour les Mises en Situation */}
-        <div id="mes_anchor">
-          <DashboardCard
-            title="Mises en Situation (Cas Pratiques)"
-            icon={<BrainCircuit size={24} />}
-            loading={globalStatus === 'PROCESSING' && !customScenariosResult}
-            loadingText="Génération de vos cas pratiques..."
-            error={!!customScenariosResult?.error || (!customScenariosResult && (globalStatus === 'COMPLETED' || globalStatus === 'FAILED'))}
-            errorText="Les mises en situation n'ont pas pu être générées."
-            featureId="custom_scenarios"
-          >
-            {customScenariosResult && (
-              <>
-                {scenariosArray.length > 0 ? (
-                  <Questionnaire questions={scenariosArray} hideHeader={true} />
-                ) : (
-                  <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                    Les scénarios sont en cours d'analyse ou n'ont pas pu être formatés correctement.
-                  </div>
-                )}
-              </>
-            )}
-          </DashboardCard>
-        </div>
-
-        <div id="negotiation_section">
-          <SalaryNegotiator />
-        </div>
-
       </div>
     </>
   );

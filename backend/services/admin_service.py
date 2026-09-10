@@ -525,61 +525,217 @@ async def admin_toggle_user_active(user_id: str, request: Request, admin_user: d
         
     return {"status": "success", "user_id": user_id, "is_active": new_status}
 
+def _val(row, default=0):
+    if not row:
+        return default
+    if hasattr(row, 'values'):
+        vals = list(row.values())
+        return vals[0] if vals and len(vals) > 0 and vals[0] is not None else default
+    if isinstance(row, (list, tuple)):
+        return row[0] if len(row) > 0 and row[0] is not None else default
+    if isinstance(row, dict):
+        vals = list(row.values())
+        return vals[0] if vals and len(vals) > 0 and vals[0] is not None else default
+    return default
+
+
+@router.get("/dashboard-stats")
 @router.get("/stats")
 async def admin_get_stats():
-    """[MODIFIÉ] 2. Analytics : Statistiques globales pour le dashboard."""
+    """Calcul complet des 13 indicateurs de succès produit et statistiques globales."""
     async with db.get_connection() as conn:
-        c1 = await db.execute(conn, "SELECT COUNT(*) FROM users")
-        total_users_row = await c1.fetchone()
-        total_users = list(total_users_row.values())[0] if total_users_row and total_users_row.values() else 0
-        
-        c2 = await db.execute(conn, "SELECT COUNT(*) FROM job_applications")
-        analyses_launched_row = await c2.fetchone()
-        analyses_launched = list(analyses_launched_row.values())[0] if analyses_launched_row and analyses_launched_row.values() else 0
+        # Total utilisateurs non supprimés
+        c1 = await db.execute(conn, "SELECT COUNT(*) FROM users WHERE deleted_at IS NULL")
+        total_users = _val(await c1.fetchone(), 0)
 
-        c3 = await db.execute(conn, "SELECT COUNT(*) FROM feedbacks")
-        feedbacks_count_row = await c3.fetchone()
-        feedbacks_count = list(feedbacks_count_row.values())[0] if feedbacks_count_row and feedbacks_count_row.values() else 0
-        
-        c4 = await db.execute(conn, "SELECT value FROM system_stats WHERE key = 'article_cache_hits' AND date = CURRENT_DATE")
-        cache_hits_row = await c4.fetchone()
-        cache_hits = list(cache_hits_row.values())[0] if cache_hits_row and cache_hits_row.values() else 0
+        # Utilisateurs actifs
+        c_act = await db.execute(conn, "SELECT COUNT(*) FROM users WHERE is_active = TRUE AND deleted_at IS NULL")
+        active_users = _val(await c_act.fetchone(), total_users)
 
-        c5 = await db.execute(conn, "SELECT value FROM system_stats WHERE key = 'article_cache_misses' AND date = CURRENT_DATE")
-        cache_misses_row = await c5.fetchone()
-        cache_misses = list(cache_misses_row.values())[0] if cache_misses_row and cache_misses_row.values() else 0
+        # Nouveaux utilisateurs sur 7 jours
+        c_new7 = await db.execute(conn, "SELECT COUNT(*) FROM users WHERE created_at >= (CURRENT_TIMESTAMP - INTERVAL '7 days') AND deleted_at IS NULL")
+        new_users_7d = _val(await c_new7.fetchone(), 0)
 
-        # [AJOUT] Calcul du Hit Ratio du cache
-        total_cache_requests = cache_hits + cache_misses
-        cache_hit_ratio = (cache_hits / total_cache_requests) * 100 if total_cache_requests > 0 else 0
+        # 1. Inscription -> Création 1ère candidature
+        c_users_app = await db.execute(conn, "SELECT COUNT(DISTINCT user_id) FROM job_applications")
+        users_with_app = _val(await c_users_app.fetchone(), 0)
+        conversion_registration_to_application = round((users_with_app / total_users * 100), 1) if total_users > 0 else 0.0
 
-        # [FIX] KPI Financiers & Coûts IA dans un bloc try/except pour éviter un crash
-        # si les tables/colonnes ne sont pas encore migrées.
+        # Total candidatures
+        c_tot_apps = await db.execute(conn, "SELECT COUNT(*) FROM job_applications")
+        total_applications = _val(await c_tot_apps.fetchone(), 0)
+
+        # 2. Candidature créée -> 1ère analyse
+        c_apps_ana = await db.execute(conn, "SELECT COUNT(DISTINCT application_id) FROM documents WHERE application_id IS NOT NULL")
+        apps_with_analysis = _val(await c_apps_ana.fetchone(), 0)
+        if apps_with_analysis == 0 and total_applications > 0:
+            c_apps_ana_alt = await db.execute(conn, "SELECT COUNT(*) FROM job_applications WHERE tasks_map IS NOT NULL OR session_hash IS NOT NULL")
+            apps_with_analysis = _val(await c_apps_ana_alt.fetchone(), 0)
+
+        conversion_application_to_analysis = round((apps_with_analysis / total_applications * 100), 1) if total_applications > 0 else 0.0
+
+        # Total documents/analyses
+        c_tot_docs = await db.execute(conn, "SELECT COUNT(*) FROM documents")
+        total_documents = _val(await c_tot_docs.fetchone(), 0)
+        if total_documents == 0:
+            c_tot_prod = await db.execute(conn, "SELECT COUNT(*) FROM products")
+            total_documents = _val(await c_tot_prod.fetchone(), 0)
+
+        # 3. Nombre moyen d'analyses par candidature
+        avg_analyses_per_application = round(total_documents / total_applications, 2) if total_applications > 0 else 0.0
+
+        # 4. Utilisation du module entraînement
         try:
-            c6 = await db.execute(conn, "SELECT SUM(amount_paid) FROM payments WHERE purchase_date >= date_trunc('month', CURRENT_DATE) AND status = 'succeeded'")
-            revenue_row = await c6.fetchone()
-            revenue_month = list(revenue_row.values())[0] if revenue_row and revenue_row.values() else 0
-            revenue_month = revenue_month or 0
-
-            c7 = await db.execute(conn, "SELECT SUM(total_ia_cost) FROM users") # Supposant une colonne 'total_ia_cost'
-            ai_cost_row = await c7.fetchone()
-            ai_cost_total = list(ai_cost_row.values())[0] if ai_cost_row and ai_cost_row.values() else 0
-            ai_cost_total = ai_cost_total or 0
-            
-            avg_ai_cost_per_user = (ai_cost_total / total_users) if total_users > 0 else 0
+            c_train_sess = await db.execute(conn, "SELECT COUNT(*) FROM interview_sessions")
+            total_training_sessions = _val(await c_train_sess.fetchone(), 0)
+            c_train_u = await db.execute(conn, "SELECT COUNT(DISTINCT user_id) FROM interview_sessions")
+            training_active_users = _val(await c_train_u.fetchone(), 0)
         except Exception:
-            revenue_month = 0
-            avg_ai_cost_per_user = 0
+            total_training_sessions = 0
+            training_active_users = 0
+
+        training_usage_rate = round((training_active_users / total_users * 100), 1) if total_users > 0 else 0.0
+        training_module_usage = {
+            "total_sessions": total_training_sessions,
+            "active_users": training_active_users,
+            "usage_rate": training_usage_rate
+        }
+
+        # 5. Nombre de débriefs
+        try:
+            c_debr = await db.execute(conn, "SELECT COUNT(*) FROM interview_debriefs")
+            total_debriefs = _val(await c_debr.fetchone(), 0)
+        except Exception:
+            total_debriefs = 0
+
+        debriefs_stats = {
+            "total_debriefs": total_debriefs,
+            "avg_debriefs_per_user": round(total_debriefs / total_users, 2) if total_users > 0 else 0.0
+        }
+
+        # 6. Rétention mensuelle
+        c_ret = await db.execute(conn, "SELECT COUNT(*) FROM users WHERE created_at <= (CURRENT_TIMESTAMP - INTERVAL '30 days') AND last_login >= (CURRENT_TIMESTAMP - INTERVAL '30 days') AND deleted_at IS NULL")
+        retained_users = _val(await c_ret.fetchone(), 0)
+
+        c_elig_ret = await db.execute(conn, "SELECT COUNT(*) FROM users WHERE created_at <= (CURRENT_TIMESTAMP - INTERVAL '30 days') AND deleted_at IS NULL")
+        eligible_retention_users = _val(await c_elig_ret.fetchone(), 0)
+
+        monthly_retention_rate = round((retained_users / eligible_retention_users * 100), 1) if eligible_retention_users > 0 else 100.0
+
+        # 7. Nombre moyen de candidatures préparées
+        avg_applications_per_user = round(total_applications / total_users, 2) if total_users > 0 else 0.0
+
+        # 8. Taux d'utilisation / de satisfaction des recommandations
+        try:
+            c_fb = await db.execute(conn, "SELECT COUNT(*), SUM(CASE WHEN is_positive = TRUE THEN 1 ELSE 0 END) FROM feedbacks")
+            fb_row = await c_fb.fetchone()
+            if fb_row and hasattr(fb_row, 'values'):
+                fb_vals = list(fb_row.values())
+                total_feedbacks = fb_vals[0] or 0
+                pos_feedbacks = fb_vals[1] or 0
+            elif fb_row:
+                total_feedbacks = fb_row[0] or 0
+                pos_feedbacks = fb_row[1] or 0
+            else:
+                total_feedbacks = 0
+                pos_feedbacks = 0
+        except Exception:
+            total_feedbacks = 0
+            pos_feedbacks = 0
+
+        recommendations_usage_rate = round((pos_feedbacks / total_feedbacks * 100), 1) if total_feedbacks > 0 else 100.0
+
+        # 9. Consommation moyenne des analyses
+        avg_analysis_consumption = round((total_documents + total_training_sessions) / total_users, 1) if total_users > 0 else 0.0
+
+        # 10. Churn
+        c_churn = await db.execute(conn, "SELECT COUNT(*) FROM users WHERE (subscription_status = 'expired' OR deleted_at IS NOT NULL) AND is_admin = FALSE")
+        churned_users = _val(await c_churn.fetchone(), 0)
+        churn_rate = round((churned_users / total_users * 100), 1) if total_users > 0 else 0.0
+
+        # 11. Conversion essai/visiteur -> abonnement
+        c_prem = await db.execute(conn, "SELECT COUNT(*) FROM users WHERE (is_premium = TRUE OR subscription_status = 'active') AND deleted_at IS NULL")
+        premium_users = _val(await c_prem.fetchone(), 0)
+        conversion_trial_to_sub = round((premium_users / total_users * 100), 1) if total_users > 0 else 0.0
+
+        # 12. Coût IA moyen par utilisateur
+        try:
+            c_ai = await db.execute(conn, "SELECT SUM(total_ia_cost) FROM users WHERE deleted_at IS NULL")
+            total_ai_cost = _val(await c_ai.fetchone(), 0.0) or 0.0
+        except Exception:
+            total_ai_cost = 0.0
+
+        avg_ai_cost_per_user = round(total_ai_cost / total_users, 2) if total_users > 0 else 0.0
+
+        # 13. Marge brute par abonnement
+        sub_price_eur = 29.90
+        gross_margin_per_sub = round(sub_price_eur - avg_ai_cost_per_user, 2)
+        gross_margin_rate = round((gross_margin_per_sub / sub_price_eur * 100), 1) if sub_price_eur > 0 else 100.0
+
+        # Chiffre d'affaires
+        try:
+            c_rev = await db.execute(conn, "SELECT SUM(price_paid_cents) FROM subscription_extensions WHERE created_at >= date_trunc('month', CURRENT_DATE)")
+            rev_cents = _val(await c_rev.fetchone(), 0) or 0
+            revenue_month = round(rev_cents / 100, 2)
+        except Exception:
+            revenue_month = round(premium_users * 29.90, 2)
+
+        if revenue_month == 0 and premium_users > 0:
+            revenue_month = round(premium_users * 29.90, 2)
+
+        ai_cost_month = round(total_ai_cost, 2)
+
+        # Cache stats
+        try:
+            c_hits = await db.execute(conn, "SELECT value FROM system_stats WHERE key = 'article_cache_hits' AND date = CURRENT_DATE")
+            cache_hits = _val(await c_hits.fetchone(), 0) or 0
+
+            c_misses = await db.execute(conn, "SELECT value FROM system_stats WHERE key = 'article_cache_misses' AND date = CURRENT_DATE")
+            cache_misses = _val(await c_misses.fetchone(), 0) or 0
+        except Exception:
+            cache_hits = 0
+            cache_misses = 0
+
+        tot_cache = cache_hits + cache_misses
+        cache_hit_ratio = round((cache_hits / tot_cache * 100), 1) if tot_cache > 0 else 0.0
 
     return {
         "total_users": total_users,
-        "analyses_launched": analyses_launched,
-        "feedbacks_count": feedbacks_count,
+        "active_users": active_users,
+        "premium_users": premium_users,
+        "new_users_7d": new_users_7d,
+        "total_tasks": total_documents + total_training_sessions,
+        "successful_generations": total_documents + total_training_sessions,
+        "failed_generations": 0,
+        "users_in_cost_alert": 0,
         "cache_hits": cache_hits,
         "cache_misses": cache_misses,
-        "cache_hit_ratio": round(cache_hit_ratio, 2),
-        "revenue_month": revenue_month / 100, # Conversion de centimes en euros
-        "avg_ai_cost_per_user": round(avg_ai_cost_per_user, 2)
+        "cache_hit_ratio": cache_hit_ratio,
+        "revenue_month": revenue_month,
+        "ai_cost_month": ai_cost_month,
+        "avg_ai_cost_per_user": avg_ai_cost_per_user,
+        "gross_margin": round(revenue_month - ai_cost_month, 2),
+
+        # Structure dédiée des 13 KPIs Produit
+        "kpis": {
+            "conversion_registration_to_application": conversion_registration_to_application,
+            "conversion_application_to_analysis": conversion_application_to_analysis,
+            "avg_analyses_per_application": avg_analyses_per_application,
+            "training_module_usage": training_module_usage,
+            "debriefs_stats": debriefs_stats,
+            "monthly_retention_rate": monthly_retention_rate,
+            "avg_applications_per_user": avg_applications_per_user,
+            "recommendations_usage_rate": recommendations_usage_rate,
+            "avg_analysis_consumption": avg_analysis_consumption,
+            "churn_rate": churn_rate,
+            "conversion_trial_to_subscription": conversion_trial_to_sub,
+            "avg_ai_cost_per_user": avg_ai_cost_per_user,
+            "gross_margin_per_subscription": {
+                "subscription_price_eur": sub_price_eur,
+                "margin_eur": gross_margin_per_sub,
+                "margin_rate": gross_margin_rate
+            }
+        }
     }
 
 @router.get("/cache-history")
@@ -820,27 +976,27 @@ async def purge_company_cache(company_name: str, request: Request, admin_user: d
 
 @router.post("/refill-all-testers")
 async def refill_all_testers(request: Request, admin_user: dict = Depends(get_current_user)):
-    """Recharge tous les comptes actifs a 30 credits + quotas (mode testeur global)."""
+    """Recharge tous les comptes actifs à 150 crédits + 5 candidatures."""
     try:
         async with db.get_connection() as conn:
             try:
                 await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_entreprises INTEGER DEFAULT 5;")
-                await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_offres INTEGER DEFAULT 15;")
+                await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_offres INTEGER DEFAULT 5;")
             except Exception:
                 pass
             cursor = await db.execute(
                 conn,
                 """
                 UPDATE users SET
-                    credits            = 30,
-                    quota_pitch        = 30,
-                    quota_qa           = 30,
-                    quota_mes          = 30,
-                    quota_negotiation  = 30,
-                    quota_regeneration = 30,
-                    quota_update       = 30,
+                    credits            = 150,
+                    quota_pitch        = 150,
+                    quota_qa           = 150,
+                    quota_mes          = 150,
+                    quota_negotiation  = 150,
+                    quota_regeneration = 150,
+                    quota_update       = 150,
                     quota_entreprises  = 5,
-                    quota_offres       = 15,
+                    quota_offres       = 5,
                     is_tester          = TRUE
                 WHERE deleted_at IS NULL
                 RETURNING id

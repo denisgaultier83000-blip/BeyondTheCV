@@ -62,7 +62,7 @@ def init_db(conn):
                 quota_regeneration INTEGER DEFAULT 30,
                 quota_update INTEGER DEFAULT 30,
                 quota_entreprises INTEGER DEFAULT 5,
-                quota_offres INTEGER DEFAULT 15
+                quota_offres INTEGER DEFAULT 5
             )
         """)
         cur.execute("""

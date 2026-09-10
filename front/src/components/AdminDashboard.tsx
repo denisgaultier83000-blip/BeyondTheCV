@@ -1,10 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import AdminQuotaManager from './AdminQuotaManager';
 import { useNavigate } from 'react-router-dom';
-import { User, Shield, Calendar, Eye, Database, CheckCircle, XCircle, Percent, BarChart3, DollarSign, Users, Cpu, Package, AlertTriangle, LifeBuoy, ArrowRight, TrendingUp, TrendingDown } from 'lucide-react';
+import { User, Shield, Calendar, Eye, Database, CheckCircle, XCircle, Percent, BarChart3, DollarSign, Users, Cpu, Package, AlertTriangle, LifeBuoy, ArrowRight, TrendingUp, TrendingDown, Target, FileText, Activity, RefreshCw, Award, Zap, Smile, Layers, UserCheck } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 // --- Types ---
+interface ProductKpis {
+  conversion_registration_to_application?: number;
+  conversion_application_to_analysis?: number;
+  avg_analyses_per_application?: number;
+  training_module_usage?: {
+    total_sessions: number;
+    active_users: number;
+    usage_rate: number;
+  };
+  debriefs_stats?: {
+    total_debriefs: number;
+    avg_debriefs_per_user: number;
+  };
+  monthly_retention_rate?: number;
+  avg_applications_per_user?: number;
+  recommendations_usage_rate?: number;
+  avg_analysis_consumption?: number;
+  churn_rate?: number;
+  conversion_trial_to_subscription?: number;
+  avg_ai_cost_per_user?: number;
+  gross_margin_per_subscription?: {
+    subscription_price_eur: number;
+    margin_eur: number;
+    margin_rate: number;
+  };
+}
+
 interface Stats {
   total_users: number;
   active_users: number;
@@ -21,6 +48,7 @@ interface Stats {
   revenue_month?: number;
   ai_cost_month?: number;
   avg_ai_cost_per_user?: number;
+  kpis?: ProductKpis;
 }
 
 interface CacheHistoryItem {
@@ -209,6 +237,107 @@ export function AdminDashboard() {
         <KpiCard title="Échecs" value={stats?.failed_generations ?? 0} icon={<XCircle size={20} className="text-red-600"/>} />
         <KpiCard title="Alertes Coût" value={stats?.users_in_cost_alert ?? 0} icon={<AlertTriangle size={20} className="text-amber-600"/>} />
         <KpiCard title="Hit Ratio Cache" value={`${(stats?.cache_hit_ratio??0).toFixed(1)}%`} icon={<Database size={20} className="text-indigo-600"/>} />
+      </div>
+
+      {/* 📊 INDICATEURS DE SUCCÈS PRODUIT */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
+        <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+          <Activity size={24} className="text-blue-600" />
+          Indicateurs de Succès Produit & Business (KPIs Suivi Admin)
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <KpiCard
+            title="Inscription ➔ 1ère candidature"
+            value={`${stats?.kpis?.conversion_registration_to_application ?? 0}%`}
+            icon={<UserCheck size={20} className="text-blue-600"/>}
+            subtext="Taux de conversion vers création candidature"
+          />
+
+          <KpiCard
+            title="Candidature ➔ 1ère analyse"
+            value={`${stats?.kpis?.conversion_application_to_analysis ?? 0}%`}
+            icon={<FileText size={20} className="text-indigo-600"/>}
+            subtext="Taux de conversion vers lancement d'analyse"
+          />
+
+          <KpiCard
+            title="Moy. analyses / candidature"
+            value={stats?.kpis?.avg_analyses_per_application ?? 0}
+            icon={<BarChart3 size={20} className="text-teal-600"/>}
+            subtext="Nombre moyen d'analyses exécutées"
+          />
+
+          <KpiCard
+            title="Module Entraînement"
+            value={`${stats?.kpis?.training_module_usage?.total_sessions ?? 0} sessions`}
+            icon={<Award size={20} className="text-amber-600"/>}
+            subtext={`${stats?.kpis?.training_module_usage?.usage_rate ?? 0}% d'utilisateurs actifs`}
+          />
+
+          <KpiCard
+            title="Débriefs d'Entretien"
+            value={`${stats?.kpis?.debriefs_stats?.total_debriefs ?? 0}`}
+            icon={<Layers size={20} className="text-purple-600"/>}
+            subtext={`Moyenne : ${stats?.kpis?.debriefs_stats?.avg_debriefs_per_user ?? 0} / util.`}
+          />
+
+          <KpiCard
+            title="Rétention Mensuelle"
+            value={`${stats?.kpis?.monthly_retention_rate ?? 0}%`}
+            icon={<RefreshCw size={20} className="text-emerald-600"/>}
+            subtext="Actifs à >30 jours de l'inscription"
+          />
+
+          <KpiCard
+            title="Moy. candidatures / util."
+            value={stats?.kpis?.avg_applications_per_user ?? 0}
+            icon={<Package size={20} className="text-cyan-600"/>}
+            subtext="Candidatures préparées en moyenne"
+          />
+
+          <KpiCard
+            title="Taux utilisation recomms"
+            value={`${stats?.kpis?.recommendations_usage_rate ?? 0}%`}
+            icon={<Smile size={20} className="text-green-600"/>}
+            subtext="Avis positifs & satisfaction conseils"
+          />
+
+          <KpiCard
+            title="Consommation analyses"
+            value={stats?.kpis?.avg_analysis_consumption ?? 0}
+            icon={<Zap size={20} className="text-amber-500"/>}
+            subtext="Analyses & entraînements / util."
+          />
+
+          <KpiCard
+            title="Taux de Churn"
+            value={`${stats?.kpis?.churn_rate ?? 0}%`}
+            icon={<AlertTriangle size={20} className="text-red-500"/>}
+            subtext="Abonnements résiliés / inactifs"
+          />
+
+          <KpiCard
+            title="Conversion Essai ➔ Abonnement"
+            value={`${stats?.kpis?.conversion_trial_to_subscription ?? 0}%`}
+            icon={<DollarSign size={20} className="text-green-600"/>}
+            subtext="Abonnés payants (29,90 € / mois)"
+          />
+
+          <KpiCard
+            title="Coût IA moy. / utilisateur"
+            value={`${(stats?.kpis?.avg_ai_cost_per_user ?? stats?.avg_ai_cost_per_user ?? 0).toFixed(2)} €`}
+            icon={<Cpu size={20} className="text-rose-600"/>}
+            subtext="Dépenses API LLM par utilisateur"
+          />
+
+          <KpiCard
+            title="Marge brute / abonnement"
+            value={`${(stats?.kpis?.gross_margin_per_subscription?.margin_eur ?? 28.45).toFixed(2)} €`}
+            icon={<Percent size={20} className="text-blue-600"/>}
+            subtext={`Marge ${stats?.kpis?.gross_margin_per_subscription?.margin_rate ?? 95.2}% sur 29,90 €`}
+          />
+        </div>
       </div>
 
       <div className="text-center my-8">

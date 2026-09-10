@@ -42,8 +42,8 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
     return (
       <AsyncBoundary 
         loading={true} 
-        title={t('flaw_main_title', 'Parades aux Défauts (Entretien)')} 
-        icon={<Sparkles size={24} />} 
+        title={t('flaw_main_title', 'Parades aux Défauts')} 
+        icon={<Sparkles size={24} color="var(--mod-speech-accent)" />} 
         loadingText="Préparation de vos parades en cours..." 
         style={{ marginTop: '0.5rem' }}
       >
@@ -121,12 +121,12 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
   }
 
   const content = (
-      <div style={{ background: 'var(--bg-card)', padding: inline ? '1.5rem' : '2.5rem', borderRadius: '1rem', width: '100%', maxWidth: inline ? '100%' : '850px', position: 'relative', maxHeight: inline ? 'none' : '90vh', overflowY: inline ? 'visible' : 'auto', border: '1px solid var(--border-color)', boxShadow: inline ? 'none' : '0 20px 25px -5px rgba(0,0,0,0.1)', marginTop: inline ? '0.5rem' : '0' }}>
+      <div style={{ background: 'var(--bg-card)', padding: inline ? '1.5rem' : '2.5rem', borderRadius: '1rem', width: '100%', maxWidth: inline ? '100%' : '850px', position: 'relative', maxHeight: inline ? 'none' : '90vh', overflowY: inline ? 'visible' : 'auto', border: '1px solid var(--border-color)', borderTop: '4px solid var(--mod-speech-accent)', boxShadow: inline ? 'none' : '0 20px 25px -5px rgba(0,0,0,0.1)', marginTop: inline ? '0.5rem' : '0' }}>
         {!inline && onBack && <button onClick={onBack} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'var(--bg-secondary)', border: 'none', borderRadius: '50%', width: '36px', height: '36px', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>✕</button>}
         
         <h2 style={{ textAlign: inline ? 'left' : 'center', margin: '0 0 2rem 0', display: 'flex', alignItems: 'center', justifyContent: inline ? 'flex-start' : 'center', gap: '0.75rem', color: 'var(--text-main)', fontSize: inline ? '1.5rem' : '1.8rem' }}>
-          <Sparkles size={28} color="var(--primary)" />
-          {t('flaw_main_title', 'Parades aux Défauts (Entretien)')}
+          <Sparkles size={28} color="var(--mod-speech-accent)" />
+          {t('flaw_main_title', 'Parades aux Défauts')}
         </h2>
 
         {totalWithImpact > 0 && (
@@ -179,13 +179,13 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
                 <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', marginBottom: '1.25rem', border: '1px solid var(--border-color)' }}>
                   <div style={{ marginBottom: '1.5rem' }}>
                     <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>
-                      <MessageSquare size={18} color="var(--primary)" /> {t('flaw_short_ans', '🗣️ Réponse Courte (Entretien)')}
+                      <MessageSquare size={18} color="var(--mod-speech-accent)" /> {t('flaw_short_ans', '🗣️ Réponse Courte (Entretien)')}
                     </h4>
                     <p style={{ margin: 0, color: 'var(--text-muted)', lineHeight: '1.6', fontSize: '1rem', fontStyle: 'italic' }}>"{item.short_answer || item.reponse_courte || item.short || item.reponse}"</p>
                   </div>
                   <div>
                     <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>
-                      <Sparkles size={18} color="var(--primary)" /> {t('flaw_storytelling', '🧠 Storytelling (Réponse détaillée)')}
+                      <Sparkles size={18} color="var(--mod-speech-accent)" /> {t('flaw_storytelling', '🧠 Storytelling (Réponse détaillée)')}
                     </h4>
                     <p style={{ margin: 0, color: 'var(--text-muted)', lineHeight: '1.6', fontSize: '0.95rem' }}>"{item.long_answer || item.reponse_longue || item.storytelling || item.long}"</p>
                   </div>

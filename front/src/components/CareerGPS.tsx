@@ -52,7 +52,17 @@ export function CareerGPS({ data, loading, error }: CareerGPSProps) {
     );
   }
 
-  if (loading || !data) return null; // Le parent DashboardCard gère le loading/error
+  if (!loading && !data && !error) {
+    return (
+      <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-secondary)', borderRadius: '0.75rem', border: '1px dashed var(--border-color)' }}>
+        <Navigation size={32} style={{ opacity: 0.5, marginBottom: '0.5rem' }} />
+        <p style={{ margin: 0, fontWeight: 500 }}>Votre GPS de carrière sera calculé dès l'analyse de votre candidature.</p>
+        <p style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>Visualisez ici votre itinéraire pas-à-pas, vos étapes clés et vos opportunités de progression.</p>
+      </div>
+    );
+  }
+
+  if (loading || !data) return null;
 
   // Defensive Coding
   const gpsData = (data as any).career_gps_result || data;

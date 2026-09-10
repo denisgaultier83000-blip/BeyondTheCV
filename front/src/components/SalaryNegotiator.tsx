@@ -38,7 +38,18 @@ export default function SalaryNegotiator() {
     }
   }, [cvData?.salary_expectations, isEditingExpectations]);
 
-  const expectations = savedExpectations;
+  // [FIX] Récupère les prétentions depuis salary_expectations, ou à défaut depuis
+  // la fourchette min/max saisie dans le contexte d'entretien.
+  const fallbackMin = Number(cvData?.salary_min);
+  const fallbackMax = Number(cvData?.salary_max);
+  const hasValidFallback = Number.isFinite(fallbackMin) || Number.isFinite(fallbackMax);
+  const fallbackExpectations = hasValidFallback
+    ? `${Number.isFinite(fallbackMin) ? `${Math.round(fallbackMin / 1000)}k€` : ''}${
+        Number.isFinite(fallbackMin) && Number.isFinite(fallbackMax) ? ' - ' : ''
+      }${Number.isFinite(fallbackMax) ? `${Math.round(fallbackMax / 1000)}k€` : ''}`
+    : '';
+
+  const expectations = savedExpectations || fallbackExpectations;
   const hasExpectations = !!String(expectations || '').trim();
 
   // --- GESTION DE LA RECONNAISSANCE VOCALE & VISIO ---

@@ -18,7 +18,8 @@ import {
   AlertCircle,
   Dumbbell,
   Sparkles,
-  Loader2
+  Loader2,
+  Play
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { DashboardCard } from './DashboardCard';
@@ -28,6 +29,8 @@ import { authenticatedFetch } from '../utils/auth';
 import { useDashboard } from '../hooks/DashboardContext';
 import { VocalPitchTrainer } from './VocalPitchTrainer';
 import { RechargeModal } from './RechargeModal';
+import SalaryNegotiator from './SalaryNegotiator';
+import { Button, SegmentedControl } from './common';
 
 export default function TrainingTab() {
   const { cvData, updateFormData, actionPlanResult, quotas, fetchQuotas } = useDashboard();
@@ -364,20 +367,44 @@ export default function TrainingTab() {
       {upcomingModules.length > 0 && (
         <DashboardCard title="Anticipation & Prochains Rounds" icon={<TrendingUp size={24} />}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {upcomingModules.map((mod: any, idx: number) => (
-              <div key={idx} style={{ background: 'var(--bg-secondary)', border: '1px dashed var(--border-color)', borderRadius: '1rem', padding: '1.5rem', display: 'flex', gap: '1.25rem', alignItems: 'flex-start', opacity: 0.8 }}>
-                <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: '0.75rem', borderRadius: '0.75rem', color: 'var(--text-muted)' }}>
-                  <Lock size={24} />
+            {upcomingModules.map((mod: any, idx: number) => {
+              const isNegotiation = /négociation|salarial|salaire/i.test(mod.module || '') || /négociation|salarial|salaire/i.test(mod.focus || '');
+              return (
+                <div key={idx} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '1.5rem', display: 'flex', gap: '1.25rem', alignItems: 'flex-start' }}>
+                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: '0.75rem', borderRadius: '0.75rem', color: 'var(--primary)' }}>
+                    {isNegotiation ? <DollarSign size={24} /> : <Lock size={24} />}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)', fontWeight: 700, fontSize: '1.05rem' }}>{mod.module}</h4>
+                    <p style={{ margin: '0 0 0.75rem 0', color: 'var(--text-main)', fontSize: '0.95rem', lineHeight: 1.5 }}>{mod.focus}</p>
+                    {isNegotiation && (
+                      <Button
+                        variant="primary"
+                        module="training"
+                        size="sm"
+                        icon={<Play size={16} />}
+                        onClick={() => {
+                          const el = document.getElementById('salary_negotiation_section');
+                          if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }
+                        }}
+                      >
+                        Lancer la simulation de négociation
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontWeight: 700, fontSize: '1.05rem' }}>{mod.module}</h4>
-                  <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.5 }}>{mod.focus}</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </DashboardCard>
       )}
+
+      {/* --- SIMULATION DE NÉGOCIATION SALARIALE --- */}
+      <div id="salary_negotiation_section">
+        <SalaryNegotiator />
+      </div>
 
       {/* --- NOUVEAU : AFFICHAGE DES QUOTAS PAR MODULE --- */}
       <DashboardCard title="Simulations Notées Disponibles" icon={<Dumbbell size={24} />} id="training_section">
@@ -416,7 +443,7 @@ export default function TrainingTab() {
             </div>
           </div>
         </div>
-        {(quotas?.credits ?? 0) === 0 && <button onClick={() => setShowRechargeModal(true)} className="btn-primary" style={{ marginTop: '1.5rem', alignSelf: 'center' }}>Recharger des simulations</button>}
+        {(quotas?.credits ?? 0) === 0 && <Button variant="primary" module="training" onClick={() => setShowRechargeModal(true)} style={{ marginTop: '1.5rem', alignSelf: 'center' }}>Recharger des simulations</Button>}
       </DashboardCard>
 
       {/* --- SECTION STATISTIQUES --- */}
@@ -519,14 +546,6 @@ export default function TrainingTab() {
         </div>
       </DashboardCard>
 
-      {/* --- NOUVEAU MODULE : ENTRAINEMENT AU PITCH VOCAL --- */}
-      <VocalPitchTrainer 
-        targetJob={cvData?.target_job || cvData?.target_role_primary || ""} 
-        targetCompany={cvData?.target_company}
-        jobDescription={cvData?.job_description}
-        onSuccess={refreshAllStats} 
-      />
-
       {/* --- SECTION CONFIGURATION --- */}
       <div id="training_mes_section">
         <DashboardCard title="Nouvelle Session d'Entraînement" icon={<Settings2 size={24} />}>
@@ -566,26 +585,32 @@ export default function TrainingTab() {
           </div>
 
           <div>
-            <h4 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)', fontSize: '1.05rem' }}>Choix de la saisie</h4>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-              {[
-                { id: 'manual', label: 'Saisie manuelle' },
-                { id: 'voice', label: 'Saisie vocale' },
-                { id: 'video', label: 'Saisie vidéo' },
-              ].map((option) => (
-                <button
-                  key={option.id}
-                  onClick={() => {
-                    setTrainingMode(option.id as 'manual' | 'voice' | 'video');
-                    localStorage.setItem('btcv_last_training_mode', option.id);
-                  }}
-                  className={trainingMode === option.id ? 'btn-primary' : 'btn-secondary'}
-                  style={{ padding: '0.7rem 1rem', fontSize: '0.9rem' }}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
+            <h4 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)', fontSize: '1.05rem' }}>2. Choisissez le thème</h4>
+            <SegmentedControl
+              label="Thématique"
+              module="training"
+              value={selectedTheme}
+              onChange={(val) => setSelectedTheme(val)}
+              options={themes.map(theme => ({ value: theme, label: theme }))}
+            />
+          </div>
+
+          <div>
+            <h4 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)', fontSize: '1.05rem' }}>3. Choisissez le mode de réponse</h4>
+            <SegmentedControl
+              label="Choix de la saisie"
+              module="training"
+              value={trainingMode}
+              onChange={(val) => {
+                setTrainingMode(val as 'manual' | 'voice' | 'video');
+                localStorage.setItem('btcv_last_training_mode', val);
+              }}
+              options={[
+                { value: 'manual', label: 'Saisie manuelle' },
+                { value: 'voice', label: 'Saisie vocale' },
+                { value: 'video', label: 'Saisie vidéo' },
+              ]}
+            />
 
             {trainingMode === 'video' && (
               <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '0.9rem', padding: '1rem' }}>
@@ -606,23 +631,25 @@ export default function TrainingTab() {
                   }}
                   style={{ display: 'none' }}
                 />
-                <button onClick={() => videoInputRef.current?.click()} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Video size={18} /> Ajouter une vidéo
-                </button>
+                <Button variant="primary" module="training" icon={<Video size={18} />} onClick={() => videoInputRef.current?.click()}>
+                  Ajouter une vidéo
+                </Button>
                 {videoFileName && <span style={{ color: 'var(--text-muted)' }}>{videoFileName}</span>}
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '0.5rem' }}>
-              <button
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.25rem' }}>
+              <Button
+                variant="primary"
+                module="training"
                 onClick={handleGenerate}
-                className="btn-primary"
                 disabled={isGenerating || !selectedType}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', minWidth: '220px' }}
+                isLoading={isGenerating}
+                icon={<Sparkles size={18} />}
+                style={{ minWidth: '220px' }}
               >
-                {isGenerating ? <Loader2 size={18} className="spin" /> : <Sparkles size={18} />}
-                {isGenerating ? "Génération par l'IA..." : "Générer mon défi"}
-              </button>
+                Générer mon défi
+              </Button>
             </div>
           </div>
 
@@ -643,12 +670,12 @@ export default function TrainingTab() {
             <h3 style={{ marginTop: 0, color: 'var(--text-main)' }}>{activeQuestion.question}</h3>
             
             {!showHint ? (
-              <button className="btn-outline" onClick={() => setShowHint(true)} style={{ marginTop: '1rem' }}>💡 Besoin d'un conseil ?</button>
+              <Button variant="secondary" module="training" onClick={() => setShowHint(true)} style={{ marginTop: '1rem' }}>💡 Besoin d'un conseil ?</Button>
             ) : (
               <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '0.5rem', borderLeft: '4px solid var(--primary)' }}>
                 <p style={{ margin: 0, color: 'var(--text-main)', fontSize: '0.95rem' }}><strong>Objectif :</strong> {activeQuestion.advice}</p>
                 {!showSuggestion ? (
-                  <button className="btn-outline" onClick={() => setShowSuggestion(true)} style={{ marginTop: '1rem', fontSize: '0.85rem' }}>Voir une suggestion</button>
+                  <Button variant="secondary" module="training" size="sm" onClick={() => setShowSuggestion(true)} style={{ marginTop: '1rem' }}>Voir une suggestion</Button>
                 ) : (
                   <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--bg-card)', borderRadius: '0.5rem' }}>
                     <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}><em>Suggestion : {activeQuestion.suggested_answer || "Utilisez la méthode STAR."}</em></p>
@@ -671,9 +698,9 @@ export default function TrainingTab() {
 
           {(() => {
             return (
-              <button onClick={handleEvaluate} disabled={isEvaluating || !userAnswer.trim()} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {isEvaluating ? <RefreshCw className="spin" size={18} /> : <MessageSquare size={18} />} {isEvaluating ? "Évaluation..." : "Soumettre & Évaluer"}
-              </button>
+              <Button variant="primary" module="training" onClick={handleEvaluate} disabled={isEvaluating || !userAnswer.trim()} isLoading={isEvaluating} icon={<MessageSquare size={18} />}>
+                Soumettre & Évaluer
+              </Button>
             );
           })()}
 
@@ -696,7 +723,7 @@ export default function TrainingTab() {
                 <strong>Réponse idéale :</strong>
                 <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.5rem', whiteSpace: 'pre-line' }}>{typeof feedback.improved_answer === 'object' ? JSON.stringify(feedback.improved_answer) : feedback.improved_answer}</p>
               </div>
-              <button onClick={() => { setActiveQuestion(null); setFeedback(null); }} className="btn-secondary" style={{ marginTop: '1rem' }}>Terminer et passer à la suite</button>
+              <Button variant="secondary" module="training" onClick={() => { setActiveQuestion(null); setFeedback(null); }} style={{ marginTop: '1rem' }}>Terminer et passer à la suite</Button>
             </div>
             );
           })()}

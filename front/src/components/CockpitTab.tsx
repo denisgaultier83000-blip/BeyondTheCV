@@ -333,42 +333,44 @@ export const CockpitTab: React.FC<CockpitProps> = ({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {training.map((planItem: TrainingModule, idx: number) => {
                 const isUpcoming = planItem.stage === 'upcoming';
-                const accentColor = isUpcoming ? '#94a3b8' : '#8b5cf6'; // Gris ardoise si futur, sinon Violet
-                
+                // [FIX] Les modules d'anticipation (upcoming) restent cliquables et visuellement actifs,
+                // conformément au prompt du plan d'action qui les décrit comme "lanceables immédiatement".
+                const accentColor = '#8b5cf6';
+
                 return ( // [FIX] Remplacement de la div principale par une structure plus simple et robuste
-                  <div key={idx} style={{ 
-                    display: 'flex', 
-                    gap: '1rem', 
-                    padding: '1rem', 
-                    background: 'var(--bg-secondary)', 
-                    borderRadius: '0.75rem', 
-                    border: `1px solid ${isUpcoming ? 'var(--border-color)' : accentColor}`,
-                    opacity: isUpcoming ? 0.7 : 1
+                  <div key={idx} style={{
+                    display: 'flex',
+                    gap: '1rem',
+                    padding: '1rem',
+                    background: 'var(--bg-secondary)',
+                    borderRadius: '0.75rem',
+                    border: `1px solid ${accentColor}`,
+                    opacity: 1
                   }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <div style={{ 
-                        background: accentColor, color: 'white', width: '100%', 
-                        fontSize: '0.65rem', fontWeight: 800, textAlign: 'center', padding: '0.2rem 0.5rem', 
+                      <div style={{
+                        background: accentColor, color: 'white', width: '100%',
+                        fontSize: '0.65rem', fontWeight: 800, textAlign: 'center', padding: '0.2rem 0.5rem',
                         borderTopLeftRadius: '0.5rem', borderTopRightRadius: '0.5rem', textTransform: 'uppercase' }}>
-                        {isUpcoming ? <Lock size={12} style={{ margin: '0 auto' }} /> : "JOUR"}
+                        {isUpcoming ? "BONUS" : "JOUR"}
                       </div>
-                      <div style={{ padding: '0.4rem 0', fontWeight: 800, color: isUpcoming ? 'var(--text-muted)' : 'var(--text-main)', fontSize: '0.9rem' }}>{planItem.day.replace('J-', '-')}</div>
+                      <div style={{ padding: '0.4rem 0', fontWeight: 800, color: 'var(--text-main)', fontSize: '0.9rem' }}>{planItem.day.replace('J-', '-')}</div>
                     </div>
-                    
+
                     <div style={{ flex: 1 }}>
-                      <h4 style={{ margin: '0 0 0.25rem 0', fontWeight: 700, color: isUpcoming ? 'var(--text-muted)' : 'var(--text-main)', fontSize: '1rem' }}>{planItem.module}</h4>
+                      <h4 style={{ margin: '0 0 0.25rem 0', fontWeight: 700, color: 'var(--text-main)', fontSize: '1rem' }}>{planItem.module}</h4>
                       <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>{planItem.focus || "Répétez cet exercice chronométré à voix haute."}</p>
                       {isUpcoming && (
                         <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: '#64748b', fontStyle: 'italic', display: 'flex', alignItems: 'flex-start', gap: '0.25rem' }}>
-                          <span style={{ fontSize: '1rem', lineHeight: 1 }}>💡</span> Cette étape s'activera lors de votre prochain round d'entretien. Concentrez-vous sur l'immédiat !
+                          <span style={{ fontSize: '1rem', lineHeight: 1 }}>💡</span> Cette anticipation est déjà disponible : vous pouvez vous entraîner dès maintenant pour prendre de l'avance.
                         </div>
                       )}
-                      
+
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
-                        <button 
+                        <button
                           onClick={() => setSelectedTrainingModule(planItem)}
-                          className={`btn-outline ${isUpcoming ? '' : 'active'}`}
-                          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.4rem 1rem', borderRadius: '2rem', background: isUpcoming ? 'transparent' : 'var(--primary)', color: isUpcoming ? 'var(--text-muted)' : 'white', border: `1px solid ${isUpcoming ? 'var(--border-color)' : 'var(--primary)'}`, transition: 'all 0.2s', cursor: 'pointer' }}
+                          className="btn-outline active"
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.4rem 1rem', borderRadius: '2rem', background: 'var(--primary)', color: 'white', border: '1px solid var(--primary)', transition: 'all 0.2s', cursor: 'pointer' }}
                         >
                           <Mic size={14} /> {trainingScores[planItem.module] !== undefined ? "Refaire cet entraînement" : "S'entraîner avec le Coach IA"}
                         </button>
@@ -380,8 +382,8 @@ export const CockpitTab: React.FC<CockpitProps> = ({
                       </div>
                     </div>
                     
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 700, background: isUpcoming ? '#f1f5f9' : 'rgba(139, 92, 246, 0.1)', color: accentColor, padding: '0.3rem 0.6rem', borderRadius: '1rem', whiteSpace: 'nowrap' }}>
-                      {isUpcoming ? 'Prochaine étape' : `${planItem.duration_minutes} min`}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 700, background: 'rgba(139, 92, 246, 0.1)', color: accentColor, padding: '0.3rem 0.6rem', borderRadius: '1rem', whiteSpace: 'nowrap' }}>
+                      {isUpcoming ? 'Disponible' : `${planItem.duration_minutes} min`}
                     </span>
                   </div>
                 );

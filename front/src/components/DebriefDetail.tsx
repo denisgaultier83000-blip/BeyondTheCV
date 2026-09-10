@@ -4,6 +4,7 @@ import { authenticatedFetch } from '../utils/auth';
 import { useDashboard } from '../hooks/DashboardContext';
 import { API_BASE_URL } from '../config';
 import { BulletList } from './BulletList';
+import { Button } from './common';
 
 interface DebriefDetailProps {
   debriefId: string;
@@ -231,14 +232,18 @@ export function DebriefDetail({ debriefId, onBack, autoAnalyze }: DebriefDetailP
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.7)', zIndex: 2002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(4px)' }}>
       <div style={{ background: 'var(--bg-card)', padding: '2rem', borderRadius: '1.25rem', width: '90%', maxWidth: '800px', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'absolute', top: '1.5rem', left: '1.5rem', right: '1.5rem' }}>
-          <button onClick={onBack} className="btn-secondary" style={{ padding: '0.5rem', borderRadius: '50%', width: '40px', height: '40px' }}>
-            <ArrowLeft size={20} />
-          </button>
+          <Button variant="secondary" size="sm" icon={<ArrowLeft size={18} />} onClick={onBack} aria-label="Retour" />
           {!hasPersistedAnalysis && (
-            <button onClick={handleAnalyze} disabled={isAnalyzing} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              {isAnalyzing ? <Loader2 size={18} className="spin" /> : <Zap size={18} />}
-              {isAnalyzing ? "Analyse en cours..." : "Analyser et Préparer la suite"}
-            </button>
+            <Button
+              variant="primary"
+              module="progress"
+              onClick={handleAnalyze}
+              disabled={isAnalyzing}
+              isLoading={isAnalyzing}
+              icon={<Zap size={18} />}
+            >
+              Analyser et Préparer la suite
+            </Button>
           )}
         </div>
 

@@ -48,6 +48,7 @@ services:
       - .env  # Injecte aussi les variables pour le frontend (ex: VITE_API_URL)
     environment:
       - CHOKIDAR_USEPOLLING=true
+      - VITE_API_PROXY_TARGET=http://backend:8000
     volumes:
       - ./front:/app          # Synchronise le code source
       - /app/node_modules     # Protège les modules installés dans le conteneur

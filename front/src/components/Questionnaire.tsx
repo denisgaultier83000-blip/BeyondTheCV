@@ -12,6 +12,7 @@ import { BulletList } from './BulletList';
 import { useVideoRecorder } from '../hooks/useVideoRecorder';
 import { VideoPreview } from './VideoPreview';
 import { savePostureSession } from '../utils/postureStorage';
+import { Button } from './common';
 
 interface QuestionnaireProps {
   questions: any[];
@@ -306,18 +307,18 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
             {onBack ? (
-              <button onClick={onBack} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ArrowLeft size={16} /> {t('back_productions') || 'Retour'}
-              </button>
+              <Button variant="secondary" size="sm" icon={<ArrowLeft size={16} />} onClick={onBack}>
+                {t('back_productions') || 'Retour'}
+              </Button>
             ) : <div />}
             <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-main)' }}>
               <MessageSquare size={28} color="var(--primary)" />
               {t('card_interview_title') || 'Questionnaire d\'Entretien'}
             </h2>
             {onPrint ? (
-              <button onClick={() => onPrint(questions)} className="btn-primary" disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Printer size={16} /> {loading ? t('generating') : (t('print') || 'Imprimer')}
-              </button>
+              <Button variant="primary" module="training" size="sm" icon={<Printer size={16} />} onClick={() => onPrint(questions)} disabled={loading}>
+                {loading ? t('generating') : (t('print') || 'Imprimer')}
+              </Button>
             ) : <div />}
           </div>
           
@@ -431,15 +432,15 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
 
             {/* BOUTONS D'ACTION (Si ni révélé, ni en mode actif, ni feedback) */}
             {!isRevealed && !isActive && !feedback && (
-              <div style={{ marginTop: '0.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                 {suggestedAnswer && (
-                  <button onClick={() => toggleReveal(qKey)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
-                    <Eye size={16} /> {t('q_read_mode', 'Mode Lecture (Voir la suggestion)')}
-                  </button>
+                  <Button variant="secondary" module="training" size="sm" icon={<Eye size={16} />} onClick={() => toggleReveal(qKey)}>
+                    {t('q_read_mode', 'Mode Lecture (Voir la suggestion)')}
+                  </Button>
                 )}
-                <button onClick={() => setActiveMode(prev => ({...prev, [qKey]: true}))} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem', background: '#8b5cf6', borderColor: '#8b5cf6', boxShadow: '0 4px 6px -1px rgba(139, 92, 246, 0.2)' }}>
-                  <Edit3 size={16} /> {t('q_practice_mode', "S'entraîner (Micro / Texte)")}
-                </button>
+                <Button variant="primary" module="training" size="sm" icon={<Edit3 size={16} />} onClick={() => setActiveMode(prev => ({...prev, [qKey]: true}))}>
+                  {t('q_practice_mode', "S'entraîner (Micro / Texte)")}
+                </Button>
               </div>
             )}
 
@@ -513,15 +514,17 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                  />
 
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <button onClick={() => { 
+                    <Button variant="ghost" size="sm" onClick={() => { 
                       if (isVideoRecordingThis) videoRecorder.stopVideo();
                       if (isRecordingThis && recognitionRef.current) recognitionRef.current.stop();
                       setActiveMode(prev => ({...prev, [qKey]: false})); 
                       setErrors(prev => ({...prev, [qKey]: ""})); 
-                    }} className="btn-ghost" style={{ fontSize: '0.85rem' }}>{t('btn_cancel', 'Annuler')}</button>
-                    <button onClick={() => handleSubmit(qKey, q)} disabled={!(userAnswers[qKey] || "").trim()} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
-                      <Send size={16} /> {t('q_analyze_answer', 'Analyser ma réponse')}
-                    </button>
+                    }}>
+                      {t('btn_cancel', 'Annuler')}
+                    </Button>
+                    <Button variant="primary" module="training" size="sm" icon={<Send size={16} />} onClick={() => handleSubmit(qKey, q)} disabled={!(userAnswers[qKey] || "").trim()}>
+                      {t('q_analyze_answer', 'Analyser ma réponse')}
+                    </Button>
                  </div>
               </div>
               </AsyncBoundary>

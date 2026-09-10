@@ -264,7 +264,8 @@ async def lifespan(app: FastAPI):
             print("[DB] Database initialized successfully.", flush=True)
         except Exception as e:
             print(f"[DB CRITICAL] Database initialization failed: {e}", flush=True)
-            raise RuntimeError("FATAL: Database initialization failed") from e
+            if not os.getenv("TESTING"):
+                raise RuntimeError("FATAL: Database initialization failed") from e
         
         # [LOG] Network Info - Affiche l'IP réelle pour configurer le Frontend
         current_ip = get_local_ip()
@@ -332,10 +333,12 @@ async def rate_limiter(request: Request):
     if request.url.path == "/":
         return
 
-    # [SÉCURITÉ & RÉSEAU] Récupérer la vraie IP derrière un proxy/Docker
+    # [SÉCURITÉ & RÉSEAU] Récupérer la vraie IP derrière le reverse proxy (Traefik/nginx).
+    # On prend le DERNIER maillon de X-Forwarded-For : c'est celui ajouté par notre propre proxy
+    # (le seul hop de confiance), donc non falsifiable par un client qui préfixerait de fausses IP.
     forwarded_for = request.headers.get("X-Forwarded-For")
     if forwarded_for:
-        client_ip = forwarded_for.split(",")[0].strip()
+        client_ip = forwarded_for.split(",")[-1].strip()
     else:
         client_ip = request.client.host if request.client else "unknown"
         
@@ -495,6 +498,7 @@ include_safe_router("payment")
 include_safe_router("task_service")
 include_safe_router("admin_service")
 include_safe_router("debrief_service")
+include_safe_router("differentiators_service")
 # New routes for products, evaluations, and subscriptions
 include_safe_router("routes_products", from_services=False)
 

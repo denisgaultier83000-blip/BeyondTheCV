@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { SegmentedControl } from './common';
 
 // Définition des types pour la nouvelle structure de données
 interface Pitch {
@@ -60,10 +61,17 @@ export const PitchMatrixDisplay: React.FC<PitchMatrixDisplayProps> = ({ pitchDat
       <h2>Votre Matrice de Pitchs Stratégiques</h2>
       <p>Un pitch central, décliné en durées et adapté à chaque interlocuteur.</p>
 
-      <div style={{ display: 'flex', borderBottom: '1px solid #ccc', marginBottom: '24px' }}>
-        <button onClick={() => setActiveTab('base')} style={getTabStyle(activeTab === 'base')}>Pitchs de Base</button>
-        <button onClick={() => setActiveTab('variations')} style={getTabStyle(activeTab === 'variations')}>Adaptations par Angle</button>
-        <button onClick={() => setActiveTab('coaching')} style={getTabStyle(activeTab === 'coaching')}>Coaching</button>
+      <div style={{ marginBottom: '24px' }}>
+        <SegmentedControl
+          module="speech"
+          value={activeTab}
+          onChange={(val) => setActiveTab(val as any)}
+          options={[
+            { value: 'base', label: 'Pitchs de Base' },
+            { value: 'variations', label: 'Adaptations par Angle' },
+            { value: 'coaching', label: 'Coaching' }
+          ]}
+        />
       </div>
 
       {activeTab === 'base' && (

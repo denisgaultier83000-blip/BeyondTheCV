@@ -10,10 +10,11 @@ router = APIRouter(tags=["Payment"])
 # [FIX EXPERT] Centralisation des prix pour la sécurité et la maintenance.
 # Le backend est la seule source de vérité pour les prix.
 PLAN_PRICES = {
+    "subscription_monthly": 2990, # 29.90€ / mois (5 candidatures + 150 entraînements)
+    "renewal": 2990,              # 29.90€
     "express": 3900,
     "strategic": 11900,
     "intensive": 21900,
-    "renewal": 3000, # 30€
     "recharge_5": 1500,
     "recharge_10": 2500,
     "recharge_20": 4500,

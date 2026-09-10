@@ -51,3 +51,14 @@ def test_register_failure_email_exists(test_client: TestClient, mock_db):
     
     assert response.status_code == 400
     assert response.json()["detail"] == "Email already registered"
+
+# --- Test 7: Suppression de compte ---
+def test_delete_account_success(test_client: TestClient, mock_db):
+    """Vérifie que la route de suppression de compte s'exécute avec succès."""
+    payload = {
+        "reason": "job_found",
+        "comments": "Super service, merci !"
+    }
+    response = test_client.post("/api/auth/delete-account", json=payload)
+    assert response.status_code == 200
+    assert response.json()["status"] == "success"

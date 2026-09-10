@@ -1,5 +1,5 @@
 import React from 'react';
-import { Map, Clock, AlertCircle, Loader2, Target, Lightbulb, Wallet, ChevronRight } from 'lucide-react';
+import { Map, Clock, AlertCircle, Loader2, Target, Lightbulb, Wallet, ChevronRight, Compass } from 'lucide-react';
 import { AsyncBoundary } from './AsyncBoundary';
 import { FeedbackWidget } from './FeedbackWidget';
 
@@ -21,8 +21,22 @@ interface CareerRadarProps {
 }
 
 // Helper pour parser le gras Markdown fourni par l'IA (**texte**)
-const formatMarkdown = (text: string) => {
-  if (!text) return text;
+const formatMarkdown = (text: any): React.ReactNode => {
+  if (text === null || text === undefined) return null;
+  if (typeof text !== 'string') {
+    if (Array.isArray(text)) {
+      return text.map((item, idx) => (
+        <React.Fragment key={idx}>
+          {formatMarkdown(item)}
+          {idx < text.length - 1 ? ' ' : ''}
+        </React.Fragment>
+      ));
+    }
+    if (typeof text === 'object') {
+      return JSON.stringify(text);
+    }
+    text = String(text);
+  }
   return text.split('**').map((part, i) => 
     i % 2 === 1 ? <strong key={i} style={{ color: 'inherit', fontWeight: 700 }}>{part}</strong> : part
   );
@@ -36,7 +50,15 @@ const getScoreColor = (percent: number) => {
 };
 
 export const CareerRadar: React.FC<CareerRadarProps> = ({ data, loading, error }) => {
-  if (!loading && !error && (!data || !data.trajectories || data.trajectories.length === 0)) return null;
+  if (!loading && !error && (!data || !data.trajectories || data.trajectories.length === 0)) {
+    return (
+      <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-secondary)', borderRadius: '0.75rem', border: '1px dashed var(--border-color)' }}>
+        <Compass size={32} style={{ opacity: 0.5, marginBottom: '0.5rem' }} />
+        <p style={{ margin: 0, fontWeight: 500 }}>Votre Radar de carrière sera disponible dès l'analyse de votre candidature.</p>
+        <p style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>Découvrez ici des trajectoires de carrière alternatives et des opportunités de pivot adaptées.</p>
+      </div>
+    );
+  }
 
   return (
     <AsyncBoundary loading={loading} error={error} errorText="Une erreur est survenue lors de la génération du Radar de Carrière. Veuillez réessayer." style={{ background: 'transparent', border: 'none', padding: 0 }}>

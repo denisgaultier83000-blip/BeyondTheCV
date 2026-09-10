@@ -17,10 +17,10 @@ interface Quotas {
   negotiation: number;
 }
 
-// Totaux pack testeur
+// Totaux pack mensuel (29,90 € / mois : 5 candidatures et 150 entraînements)
 const TOTAL_ENTREPRISES = 5;
-const TOTAL_OFFRES = 15;
-const TOTAL_ENTRAINEMENTS = 30;
+const TOTAL_OFFRES = 5;
+const TOTAL_ENTRAINEMENTS = 150;
 
 interface Props {
   /** Appelé après chaque fetch — permet au parent d'accéder aux quotas frais */

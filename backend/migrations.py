@@ -90,6 +90,33 @@ def create_tables():
         cur.execute("ALTER TABLE interview_debriefs ADD COLUMN IF NOT EXISTS analysis_created_at TIMESTAMPTZ;")
         print("✅ Table 'interview_debriefs' migrated.")
 
+        # --- CRÉATION TABLE 'interview_question_intelligence' (base mutualisée et anonymisée) ---
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS interview_question_intelligence (
+                id TEXT PRIMARY KEY,
+                normalized_question TEXT NOT NULL,
+                raw_question TEXT,
+                company_name TEXT,
+                sector TEXT,
+                job_family TEXT,
+                seniority TEXT,
+                interview_stage TEXT,
+                themes JSONB DEFAULT '[]'::jsonb,
+                difficulty INTEGER,
+                candidate_struggled BOOLEAN DEFAULT FALSE,
+                occurrence_count INTEGER DEFAULT 1,
+                first_seen_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                last_seen_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                source_debrief_id TEXT,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_qint_company ON interview_question_intelligence(company_name)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_qint_sector ON interview_question_intelligence(sector)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_qint_job_family ON interview_question_intelligence(job_family)")
+        print("✅ Table 'interview_question_intelligence' migrated.")
+
         # --- CRÉATION TABLE 'candidate_behavioral_data' ---
         cur.execute("""
             CREATE TABLE IF NOT EXISTS candidate_behavioral_data (
@@ -106,10 +133,64 @@ def create_tables():
                 current_situation       TEXT,
                 salary_expectations     TEXT,
                 remote_preference       TEXT,
+                off_cv_text             TEXT,
                 updated_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        cur.execute("ALTER TABLE candidate_behavioral_data ADD COLUMN IF NOT EXISTS off_cv_text TEXT;")
         print("✅ Table 'candidate_behavioral_data' migrated.")
+
+        # --- TABLES MARQUEURS DIFFÉRENCIANTS ET MESSAGES CLÉS ---
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS candidate_differentiators (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                fact TEXT NOT NULL,
+                proof TEXT NOT NULL,
+                interpretation TEXT NOT NULL,
+                interview_usage TEXT NOT NULL,
+                oral_phrasing TEXT,
+                source TEXT DEFAULT 'manual',
+                raw_user_story TEXT,
+                category TEXT DEFAULT 'general',
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_cand_diff_user ON candidate_differentiators(user_id)")
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS application_key_messages (
+                id TEXT PRIMARY KEY,
+                application_id TEXT NOT NULL REFERENCES job_applications(id) ON DELETE CASCADE,
+                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                differentiator_id TEXT REFERENCES candidate_differentiators(id) ON DELETE SET NULL,
+                priority_level TEXT NOT NULL DEFAULT 'priority',
+                headline TEXT NOT NULL,
+                supporting_fact TEXT NOT NULL,
+                oral_pitch TEXT,
+                target_situation TEXT,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_app_key_msg_app ON application_key_messages(application_id)")
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS interview_message_delivery (
+                id TEXT PRIMARY KEY,
+                debrief_id TEXT NOT NULL REFERENCES interview_debriefs(id) ON DELETE CASCADE,
+                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                application_id TEXT REFERENCES job_applications(id) ON DELETE SET NULL,
+                key_message_id TEXT REFERENCES application_key_messages(id) ON DELETE SET NULL,
+                headline TEXT,
+                delivered BOOLEAN DEFAULT FALSE,
+                reason_if_not_delivered TEXT,
+                candidate_comment TEXT,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_msg_deliv_debrief ON interview_message_delivery(debrief_id)")
+        print("✅ Tables 'candidate_differentiators', 'application_key_messages', 'interview_message_delivery' migrated.")
 
         conn.commit()
         return True

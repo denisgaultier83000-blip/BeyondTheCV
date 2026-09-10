@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { X, Loader2, Send, CheckCircle2, History } from 'lucide-react';
 import { DebriefHistoryModal } from './DebriefHistoryModal'; // Nouveau composant pour l'historique
+import { DebriefKeyMessagesChecklist, MessageDeliveryState } from './DebriefKeyMessagesChecklist';
 import { authenticatedFetch } from '../utils/auth';
 import { API_BASE_URL } from '../config';
+import { Button } from './common';
 
 interface DebriefModalProps {
   onClose: () => void;
@@ -77,6 +79,9 @@ export function DebriefModal({ onClose, cvData, debriefIdToEdit }: DebriefModalP
     next_interview_date: '',
     next_interview_type: '',
     next_interview_interlocutor: '',
+    message_deliveries: [] as MessageDeliveryState[],
+    sensitive_situation_occurred: '',
+    sensitive_situation_feedback: '',
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -231,16 +236,62 @@ export function DebriefModal({ onClose, cvData, debriefIdToEdit }: DebriefModalP
               </div>
             </div>
 
+            {/* [NOUVEAU] Suivi de la situation sensible */}
+            <div style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>
+                Suivi des situations sensibles & points de fragilité
+              </h4>
+              <div>
+                <label style={{ fontSize: '0.85rem' }}>La situation sensible que vous aviez identifiée s'est-elle produite ?</label>
+                <select
+                  value={state.sensitive_situation_occurred || ''}
+                  onChange={e => handleChange('sensitive_situation_occurred', e.target.value)}
+                  style={{ width: '100%', padding: '0.45rem', fontSize: '0.85rem', borderRadius: '0.375rem', background: 'var(--bg-card)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
+                >
+                  <option value="">Sélectionnez...</option>
+                  <option value="non">Non, pas du tout</option>
+                  <option value="oui">Oui, elle s'est produite</option>
+                  <option value="partiel">Partiellement</option>
+                </select>
+              </div>
+
+              {state.sensitive_situation_occurred && state.sensitive_situation_occurred !== 'non' && (
+                <div>
+                  <label style={{ fontSize: '0.85rem' }}>Comment l'avez-vous gérée et quel est votre ressenti ?</label>
+                  <textarea
+                    value={state.sensitive_situation_feedback || ''}
+                    onChange={e => handleChange('sensitive_situation_feedback', e.target.value)}
+                    rows={2}
+                    placeholder="Ex: J'ai appliqué la phrase de temporisation préparée et nous avons basculé sans blocage..."
+                  ></textarea>
+                </div>
+              )}
+            </div>
+
             {/* Intérêt */}
             <InterestSlider value={state.interest_level} onChange={(v) => handleChange('interest_level', v)} />
 
+            {/* Checklist des marqueurs clés à placer */}
+            <DebriefKeyMessagesChecklist
+              applicationId={cvData?.application_id || cvData?.id}
+              debriefId={debriefIdToEdit || undefined}
+              initialDeliveries={state.message_deliveries}
+              onChange={(deliveries) => handleChange('message_deliveries', deliveries)}
+            />
+
             {/* Actions */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
-              <button type="button" onClick={onClose} className="btn-secondary">Annuler</button>
-              <button type="submit" className="btn-primary" disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {loading ? <Loader2 size={18} className="spin" /> : <Send size={18} />}
-                {loading ? 'Enregistrement...' : (debriefIdToEdit ? 'Mettre à jour' : 'Enregistrer mon débrief')}
-              </button>
+              <Button type="button" variant="ghost" onClick={onClose}>Annuler</Button>
+              <Button
+                type="submit"
+                variant="primary"
+                module="progress"
+                disabled={loading}
+                isLoading={loading}
+                icon={<Send size={18} />}
+              >
+                {debriefIdToEdit ? 'Mettre à jour' : 'Enregistrer mon débrief'}
+              </Button>
             </div>
           </form>
         )}

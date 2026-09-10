@@ -8,7 +8,7 @@ from .ai_generator import ai_service
 from .ia_costs import estimate_task_cost
 from .websocket_manager import manager
 # Import de la vraie logique de recherche
-from .market_research import perform_market_research
+from .market_research import perform_market_research, build_unknown_company_fallback
 # Import des utilitaires pour éviter le cycle
 from .utils import (
     load_prompt, clean_ai_json_response, normalize_language, 
@@ -36,7 +36,7 @@ async def _auto_recharge_business_quota_if_tester(user_id: str, quota_type: str)
     if quota_type not in {"entreprises", "offres"}:
         return False
 
-    default_value = 5 if quota_type == "entreprises" else 15
+    default_value = 5
 
     try:
         async with db.get_connection() as conn:
@@ -283,7 +283,19 @@ async def _run_research_logic(task_id: str, request_data: dict):
         if 'target_language' in request_data:
             request_data['target_language'] = normalize_language(request_data['target_language'])
 
-        final_report = await perform_market_research(request_data, task_id=task_id)
+        # [FIX] Timeout strict pour ne jamais laisser le client tourner dans le vide
+        # si la recherche web (Serper / extraction) est trop lente ou bloquée.
+        try:
+            final_report = await asyncio.wait_for(
+                perform_market_research(request_data, task_id=task_id),
+                timeout=60.0,
+            )
+        except asyncio.TimeoutError:
+            print(f"[Task {task_id}] ⏱️ Market research timeout, returning unknown-company fallback", flush=True)
+            final_report = build_unknown_company_fallback(
+                request_data.get("target_company"),
+                request_data.get("target_industry"),
+            )
 
         # Stocker en cache partagé L1 + L3
         await set_company_cache(company, industry, final_report)
@@ -942,6 +954,166 @@ async def _run_hidden_market_logic(task_id: str, data: dict):
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", err)
         await manager.broadcast(task_id, "Erreur", status="FAILED", data=err)
 
+def _extract_salary_target_for_gps(data: dict) -> str:
+    """Construit une fourchette cible exploitable pour le GPS de carrière."""
+    expectations = str(data.get('salary_expectations') or '').strip()
+    if expectations:
+        return expectations
+
+    min_s = str(data.get('salary_min') or '').strip()
+    max_s = str(data.get('salary_max') or '').strip()
+    min_n = float(min_s) if min_s else None
+    max_n = float(max_s) if max_s else None
+
+    def fmt(n: float | None) -> str:
+        if n is None:
+            return ''
+        return f"{int(round(n / 1000))}k€" if n >= 1000 else f"{int(n)}€"
+
+    if min_n is not None and max_n is not None:
+        return f"{fmt(min_n)} - {fmt(max_n)}"
+    if min_n is not None:
+        return f"à partir de {fmt(min_n)}"
+    if max_n is not None:
+        return f"jusqu'à {fmt(max_n)}"
+    return "45 k€ - 55 k€"
+
+
+def _normalize_career_gps_result(result: dict, source_data: dict) -> dict:
+    """
+    Post-validation du Career GPS : garantit que les champs numériques critiques
+    ne sont jamais vides ou à 0, et aligne les clés du prompt backend v2 avec
+    celles attendues par le frontend (CareerGPS.tsx).
+    """
+    if not isinstance(result, dict):
+        result = {}
+
+    target_role = source_data.get('target_role_primary') or source_data.get('target_job') or 'Poste visé'
+    current_role = source_data.get('current_role') or 'Profil actuel'
+    salary_target = _extract_salary_target_for_gps(source_data)
+
+    current = result.get('current_position') or {}
+    if not isinstance(current, dict):
+        current = {}
+    current.setdefault('role', current_role)
+    current.setdefault('market_level', current.get('market_level') or 'Top 50 %')
+    current.setdefault('employability_score', current.get('employability_score') or 60)
+    current.setdefault('strengths', current.get('strengths') or ["Expérience sectorielle", "Compétences techniques"])
+    current.setdefault('gaps', current.get('gaps') or ["Alignement sur le poste cible à valider"])
+
+    destination = result.get('destination') or {}
+    if not isinstance(destination, dict):
+        destination = {}
+    destination.setdefault('target_role', target_role)
+
+    route = result.get('route') or {}
+    if not isinstance(route, dict):
+        route = {}
+    # [FIX] Mapping prompt v2 -> clés frontend
+    if not route.get('estimated_time'):
+        route['estimated_time'] = route.get('estimated_time_range') or '12 - 24 mois'
+    if route.get('probability') is None or route.get('probability') == 0:
+        route['probability'] = route.get('feasibility_score') or 60
+    route.setdefault('steps', [
+        {"name": "Analyser les écarts clés avec le poste cible", "impact": "critical", "impact_color": "#ef4444"},
+        {"name": "Développer les compétences différenciantes", "impact": "high", "impact_color": "#f59e0b"},
+    ])
+    route.setdefault('obstacles', ["Concurrence sur le poste", "Expérience spécifique à démontrer"])
+
+    # Normalisation des steps si l'IA renvoie des objets plus riches
+    normalized_steps = []
+    for step in (route.get('steps') or []):
+        if isinstance(step, dict):
+            normalized_steps.append({
+                "icon": step.get('icon', ''),
+                "name": step.get('name', 'Étape de progression'),
+                "impact": step.get('impact', 'high'),
+                "impact_color": step.get('impact_color') or (
+                    '#ef4444' if str(step.get('impact')).lower() == 'critical' else
+                    '#f59e0b' if str(step.get('impact')).lower() == 'high' else '#3b82f6'
+                ),
+                "why_it_matters": step.get('why_it_matters', ''),
+                "evidence_to_build": step.get('evidence_to_build', ''),
+            })
+    route['steps'] = normalized_steps if normalized_steps else [
+        {"name": "Analyser les écarts clés avec le poste cible", "impact": "critical", "impact_color": "#ef4444"},
+        {"name": "Développer les compétences différenciantes", "impact": "high", "impact_color": "#f59e0b"},
+    ]
+
+    # Normalisation des obstacles pour le frontend
+    normalized_obstacles = []
+    for obs in (route.get('obstacles') or []):
+        if isinstance(obs, dict):
+            normalized_obstacles.append({
+                "icon": obs.get('icon', '⚠️'),
+                "text": obs.get('text') or obs.get('obstacle') or 'Obstacle à anticiper',
+                "mitigation": obs.get('mitigation', ''),
+            })
+        elif isinstance(obs, str):
+            normalized_obstacles.append({"icon": "⚠️", "text": obs})
+    route['obstacles'] = normalized_obstacles if normalized_obstacles else [
+        {"icon": "⚠️", "text": "Concurrence sur le poste"},
+        {"icon": "⚠️", "text": "Expérience spécifique à démontrer"},
+    ]
+
+    progression = result.get('progression') or {}
+    if not isinstance(progression, dict):
+        progression = {}
+    progression.setdefault('percentage', 50)
+    progression.setdefault('acquired', ["Base technique", "Culture d'entreprise"])
+    progression.setdefault('remaining', ["Expertise métier cible", "Réseau sectoriel"])
+
+    radar = result.get('market_radar') or {}
+    if not isinstance(radar, dict):
+        radar = {}
+    if radar.get('demand_score') is None or radar.get('demand_score') == 0:
+        radar['demand_score'] = 70
+    if not radar.get('salary_target'):
+        radar['salary_target'] = salary_target
+    if not radar.get('next_step_recommendation'):
+        radar['next_step_recommendation'] = route['steps'][0].get('name', 'Planifier la première étape')
+
+    alternatives = result.get('alternatives') or []
+    if not isinstance(alternatives, list) or not alternatives:
+        alternatives = [
+            {"name": "Route rapide", "role": target_role, "time": "6 - 12 mois", "probability": 75},
+            {"name": "Route experte", "role": target_role, "time": "24 - 36 mois", "probability": 65},
+        ]
+
+    # Normalisation des alternatives
+    normalized_alternatives = []
+    for alt in alternatives:
+        if isinstance(alt, dict):
+            normalized_alternatives.append({
+                "name": alt.get('name', 'Itinéraire alternatif'),
+                "role": alt.get('role', target_role),
+                "time": alt.get('time') or alt.get('estimated_time') or '12 - 24 mois',
+                "probability": int(alt.get('probability') or alt.get('feasibility_score') or 65),
+                "steps": alt.get('steps', []),
+                "obstacles": alt.get('obstacles', []),
+            })
+    alternatives = normalized_alternatives if normalized_alternatives else alternatives
+
+    # Normalisation des valeurs numériques (évite 0 ou null)
+    current['employability_score'] = int(current.get('employability_score') or 60)
+    route['probability'] = int(route.get('probability') or 60)
+    progression['percentage'] = int(progression.get('percentage') or 50)
+    radar['demand_score'] = int(radar.get('demand_score') or 70)
+    for alt in alternatives:
+        if isinstance(alt, dict):
+            alt['probability'] = int(alt.get('probability') or 65)
+
+    return {
+        **result,
+        "current_position": current,
+        "destination": destination,
+        "route": route,
+        "progression": progression,
+        "market_radar": radar,
+        "alternatives": alternatives,
+    }
+
+
 async def process_career_gps_in_background(task_id: str, data: dict):
     print(f"[Task {task_id}] 🧭 Starting Career GPS (Async)...")
     await _run_career_gps_logic(task_id, data)
@@ -955,35 +1127,36 @@ async def _run_career_gps_logic(task_id: str, data: dict):
 
         target_lang = normalize_language(data.get('target_language', 'French'))
         prompt_template = load_prompt(get_prompt_path("career_gps.md"))
-        
+
         target_role = data.get('target_role_primary') or data.get('target_job') or 'Non défini'
         job_desc = data.get('job_description', '')
-        
+
         destination_context = target_role
         if job_desc and len(job_desc) > 50:
             destination_context += f"\n\nDESCRIPTION DE L'OFFRE (Détails de la destination) :\n{job_desc}"
 
         final_prompt = f"""
         {prompt_template}
-        
+
         PROFIL DU VOYAGEUR (CANDIDAT) :
         {json.dumps(_sanitize_data_for_ai(data, strict=True), indent=2, ensure_ascii=False, default=str)}
-        
+
         DESTINATION SOUHAITÉE :
         {destination_context}
-        
+
         OUTPUT LANGUAGE: {target_lang}
         """
-        
+
         result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are a Career Navigation System. Output STRICT JSON.")
-        
+
         if "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
-            await set_cached_content(cache_key, user_id, "career_gps", result)
-            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
-            await manager.broadcast(task_id, "GPS Carrière généré", status="COMPLETED", data=result)
+            normalized = _normalize_career_gps_result(result, data)
+            await set_cached_content(cache_key, user_id, "career_gps", normalized)
+            await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", normalized)
+            await manager.broadcast(task_id, "GPS Carrière généré", status="COMPLETED", data=normalized)
     except Exception as e:
         await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", {"error": str(e)})
         err = {"error": str(e)}
@@ -1310,6 +1483,8 @@ async def orchestrate_dashboard_tasks(tasks_map: dict, cv_dict: dict):
     if "job_decoder" in tasks_map: fire("job_decoder", process_job_decoder_in_background(tasks_map["job_decoder"], cv_dict))
     if "risk_analysis" in tasks_map: fire("risk_analysis", process_risk_analysis_in_background(tasks_map["risk_analysis"], cv_dict))
     if "hidden_market" in tasks_map: fire("hidden_market", process_hidden_market_in_background(tasks_map["hidden_market"], cv_dict))
+    if "career_radar" in tasks_map: fire("career_radar", process_career_radar_in_background(tasks_map["career_radar"], cv_dict))
+    if "career_gps" in tasks_map: fire("career_gps", process_career_gps_in_background(tasks_map["career_gps"], cv_dict))
 
 
     print("[ORCHESTRATOR] ✅ All tasks queued successfully. Semaphore is handling the flow.", flush=True)

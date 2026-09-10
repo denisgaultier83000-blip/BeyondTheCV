@@ -188,30 +188,30 @@ def initialize_schema():
 
         print("   - Migration de la table 'users' (Ajout des quotas)...")
         try:
-            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_pitch INTEGER DEFAULT 30;")
-            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_qa INTEGER DEFAULT 30;")
-            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_mes INTEGER DEFAULT 30;")
-            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_negotiation INTEGER DEFAULT 30;")
-            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_regeneration INTEGER DEFAULT 30;")
-            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_update INTEGER DEFAULT 30;")
-            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT 30;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_pitch INTEGER DEFAULT 150;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_qa INTEGER DEFAULT 150;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_mes INTEGER DEFAULT 150;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_negotiation INTEGER DEFAULT 150;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_regeneration INTEGER DEFAULT 150;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_update INTEGER DEFAULT 150;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT 150;")
             cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS total_ia_cost REAL DEFAULT 0.0;")
-            # Quotas de ressources (entreprises suivies, offres analysées)
+            # Quotas de ressources (entreprises suivies, offres analysées / candidatures)
             cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_entreprises INTEGER DEFAULT 5;")
-            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_offres INTEGER DEFAULT 15;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_offres INTEGER DEFAULT 5;")
             # Mode test global: tous les comptes existants sont alignés aux limites testeurs.
             cur.execute("""
                 UPDATE users
                 SET is_tester = TRUE,
-                    credits = 30,
-                    quota_pitch = 30,
-                    quota_qa = 30,
-                    quota_mes = 30,
-                    quota_negotiation = 30,
-                    quota_regeneration = 30,
-                    quota_update = 30,
+                    credits = 150,
+                    quota_pitch = 150,
+                    quota_qa = 150,
+                    quota_mes = 150,
+                    quota_negotiation = 150,
+                    quota_regeneration = 150,
+                    quota_update = 150,
                     quota_entreprises = 5,
-                    quota_offres = 15
+                    quota_offres = 5
             """)
         except Exception as e:
             conn.rollback()

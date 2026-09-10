@@ -289,7 +289,7 @@ export const DashboardProvider = ({
               ...prev,
               ...normalizeTrainingQuotas(data),
               entreprises: Number(data?.entreprises ?? data?.quota_entreprises ?? prev.entreprises ?? 5),
-                offres: Number(data?.offres ?? data?.quota_offres ?? prev.offres ?? 15),
+                offres: Number(data?.offres ?? data?.quota_offres ?? prev.offres ?? 5),
             }));
         }
     } catch (e: any) {

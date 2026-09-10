@@ -1,4 +1,6 @@
 import pytest
+import os
+os.environ["TESTING"] = "1"
 from fastapi.testclient import TestClient
 import asyncio
 

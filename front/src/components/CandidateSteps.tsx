@@ -504,6 +504,8 @@ export const StepTarget = ({ data, onChange, errors, loading, lang = 'en' }: Ste
           seniority_level: data.seniority_level,
           current_situation: data.current_situation,
           salary_expectations: data.salary_expectations,
+          salary_min: data.salary_min,
+          salary_max: data.salary_max,
           coaching_style: data.coaching_style,
         }}
         onChange={(newContextData) => {

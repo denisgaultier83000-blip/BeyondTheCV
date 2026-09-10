@@ -1,6 +1,47 @@
 import React, { useState, useEffect, useRef, useCallback, lazy, Suspense, useMemo, FC } from 'react';
 import { useDashboard } from '../hooks/DashboardContext';
-import { Activity, Target, AlertTriangle, MessageSquare, FileText, Globe, Compass, Mic, Search, Eye, Navigation, Network, Loader2, RotateCcw, CheckSquare, Dumbbell, ArrowUp, Printer, Building, ShieldAlert, Calendar, UserCheck, Monitor, HeartPulse, Zap, Award, ClipboardList } from 'lucide-react';
+import {
+  Activity,
+  Target,
+  AlertTriangle,
+  MessageSquare,
+  FileText,
+  Globe,
+  Compass,
+  Mic,
+  Search,
+  Eye,
+  Navigation,
+  Network,
+  Loader2,
+  RotateCcw,
+  CheckSquare,
+  Dumbbell,
+  ArrowUp,
+  Printer,
+  Building,
+  ShieldAlert,
+  Calendar,
+  UserCheck,
+  Monitor,
+  HeartPulse,
+  Zap,
+  Award,
+  ClipboardList,
+  CheckCircle2,
+  ArrowRight,
+  Sparkles,
+  Clock,
+  ChevronRight,
+  Plus,
+  Layers,
+  TrendingUp,
+  Briefcase,
+  Play,
+  HelpCircle,
+  Lightbulb,
+  BookOpen
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PilotBento } from './PilotBento';
 import { GapAnalysisFull } from './GapAnalysisFull';
@@ -8,6 +49,8 @@ import { InterviewTab } from './InterviewTab';
 import { AnalysisTab } from './AnalysisTab';
 import { JobDecoder } from './JobDecoder';
 import { CareerRealityCheck } from './CareerRealityCheck';
+import { CareerRadar } from './CareerRadar';
+import { CareerGPS } from './CareerGPS';
 import { CockpitTab } from './CockpitTab';
 import { RecruiterView } from './RecruiterView';
 import FlawCoaching from './FlawCoaching';
@@ -15,6 +58,26 @@ import TrainingTab from './TrainingTab';
 import { PrintableDossier } from './PrintableDossier';
 import { CoachingSummaryCard } from './CoachingSummaryCard';
 import { StrategicProfileTab } from './StrategicProfileTab';
+import { DashboardCard } from './DashboardCard';
+import Gauge from './Gauge';
+import { CompanyAnalysisCard } from './CompanyAnalysisCard';
+import { MarketAnalysisCard } from './MarketAnalysisCard';
+import { SituationSimulator } from './SituationSimulator';
+import { VocalPitchTrainer } from './VocalPitchTrainer';
+import Questionnaire from './Questionnaire';
+import ObservedQuestionsPanel from './ObservedQuestionsPanel';
+import { ApplicationKeyMessagesView } from './ApplicationKeyMessagesView';
+import { SensitiveSituationsCard } from './SensitiveSituationsCard';
+import { ModuleProvider } from '../context/ModuleContext';
+import RoadmapGeneratorModal from './RoadmapGeneratorModal';
+import { 
+  PostureDataCard, 
+  LastHourChecklistCard, 
+  StrategicQuestionsCard, 
+  SignalsToObserveCard, 
+  PostureGuidesCard, 
+  ContingencyPlanCard 
+} from './PostureTab';
 const DebriefTab = lazy(() => import('./DebriefTab'));
 const PostureTab = lazy(() => import('./PostureTab'));
 
@@ -34,7 +97,6 @@ const PitchPractice = ({ title, pitchText, onSave }: { title: string, pitchText:
   const [isEditing, setIsEditing] = useState(false);
   const [editedText, setEditedText] = useState(pitchText);
 
-  // [FIX] Déplacement de la logique du hook ici pour isoler l'état de chaque instance
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState('');
   const recognitionRef = useRef<any>(null);
@@ -74,118 +136,88 @@ const PitchPractice = ({ title, pitchText, onSave }: { title: string, pitchText:
 };
 
 
-// --- STATIC DATA (Moved outside component) ---
+// --- STATIC DATA ---
+const moduleColors: Record<string, string> = {
+  overview: '#102E5C',
+  job: '#2563EB',
+  company: '#B8325A',
+  speech: '#8B3FD1',
+  training: '#E89112',
+  progress: '#168A5B'
+};
+
+const moduleNames: Record<string, string> = {
+  overview: 'Centre de préparation',
+  job: '1. Comprendre le poste',
+  company: '2. Comprendre l\'entreprise',
+  speech: '3. Construire le discours',
+  training: '4. S\'entraîner',
+  progress: '5. Progresser'
+};
+
 const subMenus: Record<string, {label: string, id: string}[]> = {
   overview: [
-    { label: 'Centre de Suivi', id: 'hub_section' },
-    { label: 'Vue Recruteur', id: 'recruiter_section' }
+    { label: 'Candidature active', id: 'banner_section' },
+    { label: 'Conseil d\'urgence', id: 'emergency_section' },
+    { label: 'Actions prioritaires', id: 'priorities_section' },
+    { label: 'Parcours de préparation', id: 'path_section' },
+    { label: 'Aperçu des modules', id: 'modules_summary_section' },
+    { label: 'Mes candidatures', id: 'candidatures_section' },
+    { label: 'Radar de carrière', id: 'career_radar_section' },
+    { label: 'GPS de carrière', id: 'career_gps_section' },
   ],
-  profile: [
-    { label: 'Graphe', id: 'profile_graph_section' },
-    { label: 'Priorités', id: 'profile_priorities_section' },
-    { label: 'Forces', id: 'profile_strengths_section' },
-    { label: 'Détail', id: 'profile_details_section' }
+  job: [
+    { label: 'Décoder l\'annonce', id: 'decoder_section' },
+    { label: 'Forces & Écarts', id: 'gap_section' },
+    { label: 'Vue Recruteur', id: 'recruiter_section' },
+    { label: 'Signaux à observer', id: 'signals_section' }
   ],
-  interview: [
-    { label: 'Pitch', id: 'pitch_section' },
-    { label: 'Questions & Mises en situation', id: 'questionnaire_section' },
-    { label: 'Parades aux Défauts', id: 'flaws_section' }
+  company: [
+    { label: 'Comprendre l\'entreprise', id: 'company_section' },
+    { label: 'Comprendre le marché', id: 'market_section' },
+    { label: 'Guides de posture', id: 'posture_guides_section' }
   ],
-  market: [
-    { label: 'Gap Analysis', id: 'gap_section' },
-    { label: 'Entreprise', id: 'company_section' },
-    { label: 'Marché', id: 'market_section' },
-    { label: 'Décodeur d\'Annonce', id: 'decoder_section' }
+  speech: [
+    { label: 'Préparer mon pitch', id: 'pitch_section' },
+    { label: 'Arguments clés', id: 'key_messages_section' },
+    { label: 'Situations sensibles', id: 'sensitive_section' },
+    { label: 'Parades aux défauts', id: 'flaws_section' },
+    { label: 'Questions stratégiques', id: 'strategic_questions_section' }
   ],
   training: [
-    { label: 'Mises en situation', id: 'training_mes_section' }, // ID déjà présent
-    { label: 'Entraînement au Pitch', id: 'training_pitch_section' } // ID déjà présent
+    { label: 'Questions probables', id: 'questionnaire_section' },
+    { label: 'Simulations métier', id: 'training_mes_section' },
+    { label: 'Entraînement oral & Rituels', id: 'oral_training_section' }
   ],
-  posture: [
-    { label: 'Dernière Heure', id: 'last_hour_section' },
-    { label: 'Questions Stratégiques', id: 'strategic_questions_section' },
-    { label: 'Signaux à Observer', id: 'signals_section' },
-    { label: 'Guides de Posture', id: 'posture_guides_section' },
-    { label: 'Plan de Secours', id: 'contingency_plan_section' }
+  progress: [
+    { label: 'Profil stratégique', id: 'profile_graph_section' },
+    { label: 'Données de posture', id: 'posture_data_section' },
+    { label: 'Débrief & suivi', id: 'debrief_section' },
+    { label: 'Plan de progression', id: 'recommendations_section' }
   ]
 };
 
 const interviewTypeLabels: Record<string, string> = { rh: 'Ressources Humaines', manager: 'Manager / Opérationnel', tech: 'Équipe Technique', final: 'Direction (Final)' };
 const formatLabels: Record<string, string> = { visio: 'Visioconférence', phone: 'Téléphone', onsite: 'En Présentiel' };
 
-// --- [FIX] SUB-COMPONENTS (for readability) ---
-
-const DeliverablesHub: React.FC<any> = ({ deliverableItems, isProcessing, longLoading, viewedTabs, isDataReady, onPrintClick, onItemClick, remainingSessions, remainingCompanies, remainingOffers, onCreateCandidature }) => {
-  const { t } = useTranslation();
-
-  return (
-    <div className="bento-card col-span-3" id="hub_section" style={{ background: 'var(--bg-card)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div className="bento-header" style={{ marginBottom: 0 }}><Activity size={20} color="var(--primary)"/> {t('hub_title', 'Centre de Suivi des Analyses')}</div>
-        <div style={{ display: 'flex', gap: '0.55rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <button
-            onClick={onCreateCandidature}
-            className="btn-primary"
-            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.45rem 0.95rem', fontSize: '0.85rem' }}
-          >
-            + Nouvelle candidature
-          </button>
-          <button 
-            onClick={onPrintClick} 
-            disabled={isProcessing}
-            className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem', opacity: isProcessing ? 0.5 : 1, cursor: isProcessing ? 'not-allowed' : 'pointer' }}>
-            <Printer size={16} /> Imprimer mon Dossier
-          </button>
-        </div>
-      </div>
-      <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: '0 0 1rem 0' }}>{t('hub_desc', 'Suivez la génération de vos outils en temps réel et cliquez pour y accéder.')}</p>
-    
-      {isProcessing && longLoading && (
-        <div style={{ padding: '0.75rem', backgroundColor: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)', borderRadius: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500, animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}>
-          <Loader2 size={16} className="spin" />
-          {t('hub_long_loading', "L'analyse IA est très approfondie et prend un peu plus de temps. Merci de patienter (jusqu'à 60 secondes)...")}
-        </div>
-      )}
-    
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-        {deliverableItems.map((item: DeliverableItem, idx: number) => {
-            const isReady = isDataReady(item.data) && !item.disabled;
-            const isPending = isProcessing && !isReady && !item.disabled;
-            const isNew = isReady && !viewedTabs.includes(item.tab) && !item.disabled;
-            return (
-              <div 
-                  key={idx} 
-                  onClick={() => !item.disabled && !isPending && onItemClick(item.tab, item.anchor)} 
-                  style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', border: `1px solid ${isReady ? 'var(--primary)' : 'var(--border-color)'}`, display: 'flex', flexDirection: 'column', gap: '0.5rem', cursor: (item.disabled || isPending) ? 'not-allowed' : 'pointer', opacity: item.disabled ? 0.5 : (isPending ? 0.7 : 1), transition: 'all 0.2s', boxShadow: isNew ? '0 4px 12px rgba(59, 130, 246, 0.15)' : 'none' }} 
-                  onMouseOver={(e) => !item.disabled && !isPending && (e.currentTarget.style.transform = 'translateY(-2px)')} 
-                  onMouseOut={(e) => !item.disabled && !isPending && (e.currentTarget.style.transform = 'none')}
-              >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: isReady ? 'var(--text-main)' : 'var(--text-muted)', fontWeight: isReady ? 600 : 400 }}>
-                        <div style={{ color: isReady ? 'var(--primary)' : 'var(--text-muted)', display: 'flex' }}>{item.icon}</div>
-                        <span style={{ fontSize: '0.95rem' }}>{item.name}</span>
-                    </div>
-                    {item.disabled ? null : isNew ? (
-                        <span style={{ background: '#ef4444', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, animation: 'pulse-new 2s infinite' }}>{t('badge_new', 'NEW')}</span>
-                    ) : isReady ? (
-                        <span style={{ background: '#dcfce7', color: '#16a34a', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700 }}>{t('badge_ready', 'PRÊT')}</span>
-                    ) : isPending ? (
-                        <Loader2 size={16} className="spin" color="var(--text-muted)" />
-                    ) : (
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t('badge_pending', 'En attente')}</span>
-                    )}
-                  </div>
-                  {item.disabled && item.disabledReason && (
-                    <div style={{ fontSize: '0.75rem', color: 'var(--danger-text)', fontWeight: 600 }}>
-                      {item.disabledReason}
-                    </div>
-                  )}
-              </div>
-            );
-        })}
-      </div>
-    </div>
-  );
+const getQuestionsArray = (data: any): any[] => {
+  if (!data) return [];
+  let actualData = data.result !== undefined ? data.result : data;
+  let depth = 0;
+  while (typeof actualData === 'string' && depth < 5) {
+    try {
+      const match = actualData.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+      actualData = JSON.parse(match ? match[1] : actualData);
+      depth += 1;
+    } catch {
+      break;
+    }
+  }
+  if (Array.isArray(actualData)) return actualData;
+  const payload = actualData?.interview_questions_result || actualData?.interview_questions || actualData;
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.questions)) return payload.questions;
+  return [];
 };
 
 interface DashboardViewProps {
@@ -223,15 +255,24 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
     gapResult,
     customScenariosResult,
     actionPlanResult,
+    careerGpsResult,
+    careerRadarResult,
+    taskIds,
   } = dashboard;
 
   const pilotError = dashboard?.pilotError ?? dashboard?.error ?? null;
+
+  // [FIX] Le spinner d'une carte ne doit dépendre que de sa propre tâche,
+  // pas du statut global. Sinon toutes les cartes tournent dès qu'une tâche
+  // quelconque est en cours.
+  const isMarketResearchRunning = !!taskIds?.market_research;
 
   // --- GESTION DES NOTIFICATIONS ---
   const [viewedTabs, setViewedTabs] = useState<string[]>(['cockpit']);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [candidatureFilter, setCandidatureFilter] = useState<'all' | 'active' | 'done'>('all');
   const [candidatureSort, setCandidatureSort] = useState<'recent' | 'alpha'>('recent');
+  const [isRoadmapModalOpen, setIsRoadmapModalOpen] = useState(false);
   
   // --- GESTION DE L'IMPRESSION ---
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
@@ -248,23 +289,34 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
     setTimeout(() => window.print(), 300);
   };
 
-  const handleTabChange = (tab: string, anchor?: string) => {
-    (setActiveTab as any)(tab);
-    if (!viewedTabs.includes(tab)) {
-      setViewedTabs(prev => [...prev, tab]);
+  const handleTabChange = useCallback((tab: string, anchor?: string) => {
+    let targetTab = tab;
+    if (tab === 'cockpit') targetTab = 'overview';
+    else if (tab === 'profile') targetTab = 'progress';
+    else if (tab === 'interview') targetTab = 'speech';
+    else if (tab === 'market') {
+      if (anchor === 'company_section' || anchor === 'market_section' || anchor === 'culture_section') targetTab = 'company';
+      else targetTab = 'job';
     }
+    else if (tab === 'posture' || tab === 'debrief') targetTab = 'progress';
+
+    (setActiveTab as any)(targetTab);
+    if (!viewedTabs.includes(targetTab)) {
+      setViewedTabs(prev => [...prev, targetTab]);
+    }
+
     if (anchor) {
       setTimeout(() => {
         const el = document.getElementById(anchor);
         if (el) {
-          const y = el.getBoundingClientRect().top + window.scrollY - 100;
+          const y = el.getBoundingClientRect().top + window.scrollY - 120;
           window.scrollTo({ top: y, behavior: 'smooth' });
         }
       }, 100);
     } else {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  };
+  }, [setActiveTab, viewedTabs]);
 
   // --- ECOUTEUR GLOBAL POUR LE BOUTON "MES DOCUMENTS" DU HEADER ---
   useEffect(() => {
@@ -327,7 +379,10 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
   };
 
   // --- EXTRACTION DU CONTEXTE CANDIDAT ---
-  const meta = cvData?.meta || cvData || {};
+  // [FIX] Fusionne les métadonnées et les champs racine : interview_date, format et type
+  // peuvent être stockés directement dans cvData ou dans cvData.meta. On privilégie
+  // la valeur la plus spécifique (meta) si elle existe, sans écraser les champs racine.
+  const meta = { ...cvData, ...(cvData?.meta || {}) };
 
   // Détection du Mode Commando (Entretien dans < 48h)
   const getDaysUntilInterview = (dateStr: string): number => {
@@ -374,8 +429,8 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
     (Array.isArray(cvData?.interviewHistory) ? cvData.interviewHistory.length : 0) +
     (Array.isArray(cvData?.negotiationHistory) ? cvData.negotiationHistory.length : 0);
 
-  const currentLastInterview = cvData?.interview_date
-    ? String(cvData.interview_date)
+  const currentLastInterview = meta.interview_date
+    ? String(meta.interview_date)
     : '—';
 
   const currentAnalysisDone = Boolean(researchResult || gapResult || jobDecoderResult || pitchResult || questionsResult);
@@ -412,17 +467,22 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
     return filtered;
   }, [targetTree, candidatureFilter, candidatureSort, cvData?.target_company, cvData?.target_job, currentAnalysisDone, currentTrainingCount, currentLastInterview, isProcessing]);
 
+  // Nombre de nouvelles candidatures encore autorisées par le quota mensuel
+  const remainingSlots = useMemo(() => {
+    return Math.max(0, Math.min(remainingCompanies ?? 5, remainingOffers ?? 5));
+  }, [remainingCompanies, remainingOffers]);
+
   // Liste de tous les livrables avec leur état
   const deliverableItems: DeliverableItem[] = useMemo(() => [
-      { name: t('deliv_pitch', "Matrices de pitchs"), tab: "interview", anchor: "pitch_section", data: pitchResult, icon: <Mic size={18}/> },
-      { name: t('card_interview_title', "Questionnaire d'Entretien"), tab: "interview", anchor: "questionnaire_section", data: questionsResult, icon: <MessageSquare size={18}/> },
-      { name: t('deliv_mes', "Mises en situation"), tab: "interview", anchor: "mes_anchor", data: customScenariosResult, icon: <ShieldAlert size={18}/> },
-      { name: t('deliv_flaws', "Parades aux Défauts"), tab: "interview", anchor: "flaws_section", data: flawCoachingResult, icon: <AlertTriangle size={18}/> },
-      { name: t('deliv_gap', "Analyse d'Écarts (Gap)"), tab: "market", anchor: "gap_section", data: gapResult, icon: <Target size={18}/> },
-      { name: t('deliv_company', "Rapport Entreprise"), tab: "market", anchor: "company_section", data: researchResult, icon: <Building size={18}/> },
-      { name: t('deliv_market', "Rapport Marché"), tab: "market", anchor: "market_section", data: researchResult, icon: <Globe size={18}/> },
+      { name: t('deliv_pitch', "Préparer mon pitch"), tab: "interview", anchor: "pitch_section", data: pitchResult, icon: <Mic size={18}/> },
+      { name: t('card_interview_title', "Questions probables"), tab: "interview", anchor: "questionnaire_section", data: questionsResult, icon: <MessageSquare size={18}/> },
+      { name: t('deliv_mes', "Simulations métier"), tab: "interview", anchor: "mes_anchor", data: customScenariosResult, icon: <ShieldAlert size={18}/> },
+      { name: t('deliv_flaws', "Répondre à mes points faibles"), tab: "interview", anchor: "flaws_section", data: flawCoachingResult, icon: <AlertTriangle size={18}/> },
+      { name: t('deliv_gap', "Mes forces et mes écarts"), tab: "market", anchor: "gap_section", data: gapResult, icon: <Target size={18}/> },
+      { name: t('deliv_company', "Comprendre l'entreprise"), tab: "market", anchor: "company_section", data: researchResult, icon: <Building size={18}/> },
+      { name: t('deliv_market', "Comprendre le marché"), tab: "market", anchor: "market_section", data: researchResult, icon: <Globe size={18}/> },
       { 
-        name: t('deliv_decoder', "Décodeur d'Annonce"), 
+        name: t('deliv_decoder', "Décoder l'annonce"), 
         tab: "market", 
         anchor: "decoder_section", 
         data: jobDecoderResult, 
@@ -430,7 +490,7 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
         disabled: (!hasJobDesc && !hasDecoderResult) || (isCommando && !jobDecoderResult),
         disabledReason: (!hasJobDesc && !hasDecoderResult) ? t('card_decoder_disabled', "Annonce non renseignée. Ajoutez l'annonce dans votre profil pour l'analyser.") : (isCommando ? commandoReason : undefined)
       },
-      { name: t('deliv_recruiter', "Vue Recruteur"), tab: "overview", anchor: "recruiter_section", data: recruiterResult, icon: <Eye size={18}/>, disabled: isCommando && !recruiterResult, disabledReason: isCommando ? commandoReason : undefined }
+      { name: t('deliv_recruiter', "Me voir comme un recruteur"), tab: "overview", anchor: "recruiter_section", data: recruiterResult, icon: <Eye size={18}/>, disabled: isCommando && !recruiterResult, disabledReason: isCommando ? commandoReason : undefined }
     ], 
     [
       t, pitchResult, questionsResult, customScenariosResult, cvData, flawCoachingResult, 
@@ -438,15 +498,38 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
     ]
   );
 
+  // Calcul du score global de préparation
+  const prepScore = useMemo(() => {
+    let score = 20; // Profil de base
+    if (cvData?.target_company) score += 15;
+    if (cvData?.target_job) score += 15;
+    if (researchResult) score += 15;
+    if (gapResult) score += 15;
+    if (pitchResult) score += 10;
+    if (questionsResult || customScenariosResult) score += 10;
+    return Math.min(100, Math.max(30, score));
+  }, [cvData, researchResult, gapResult, pitchResult, questionsResult, customScenariosResult]);
+
+  const daysRemainingText = useMemo(() => {
+    if (!meta.interview_date) return "8 jours";
+    const days = getDaysUntilInterview(meta.interview_date);
+    if (days === 0) return "Aujourd'hui";
+    if (days === 1) return "Demain";
+    if (days < 99) return `${days} jours`;
+    return "8 jours";
+  }, [meta.interview_date]);
+
   // Calcul des pastilles par onglet
   const hasUnseen = (tabName: string, items: any[]) => {
     if (viewedTabs.includes(tabName)) return false;
     return items.some(item => isDataReady(item));
   };
   
-  const interviewUnseen = hasUnseen('interview', [pitchResult, questionsResult, flawCoachingResult]);
-  const marketUnseen = hasUnseen('market', [gapResult, researchResult, jobDecoderResult]);
-  const cockpitUnseen = hasUnseen('cockpit', [actionPlanResult]);
+  const jobUnseen = hasUnseen('job', [jobDecoderResult, gapResult, recruiterResult]);
+  const companyUnseen = hasUnseen('company', [researchResult, salaryResult]);
+  const speechUnseen = hasUnseen('speech', [pitchResult, flawCoachingResult]);
+  const trainingUnseen = hasUnseen('training', [questionsResult, customScenariosResult]);
+  const progressUnseen = hasUnseen('progress', [actionPlanResult]);
 
   // [FIX CRITIQUE] On force le chargement du résumé si les données sont absentes pour briser la boucle de crash
   useEffect(() => {
@@ -458,222 +541,679 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
   // La condition de chargement est maintenant robuste grâce à l'état explicite `isPilotLoading`
   const isLoadingOverview = isPilotLoading || (!pilotData && !pilotError);
 
+  const activeCompany = cvData?.target_company || "THALES";
+  const activeJob = cvData?.target_job || "Responsable cybersécurité opérationnelle";
+  const activeDate = meta.interview_date || "Non définie";
+  const activeTarget = meta.interview_type ? (interviewTypeLabels[meta.interview_type as string] || meta.interview_type) : "Manager opérationnel";
+  const activeFormat = meta.interview_format ? (formatLabels[meta.interview_format as string] || meta.interview_format) : "Visio";
+
+  const matchScore = useMemo(() => {
+    if (gapResult?.match_score) return gapResult.match_score;
+    if (gapResult?.matchScore) return gapResult.matchScore;
+    if (gapResult?.score_adequation) return gapResult.score_adequation;
+    if (gapResult?.overall_score) return gapResult.overall_score;
+    if (pilotData?.matchScore) return pilotData.matchScore;
+    if (pilotData?.match_score) return pilotData.match_score;
+    let score = 78;
+    if (cvData?.experiences?.length > 2) score += 2;
+    if (cvData?.skills?.length > 3) score += 2;
+    if (researchResult) score += 3;
+    return Math.min(95, score);
+  }, [gapResult, pilotData, cvData, researchResult]);
+
+  const matchBreakdown = useMemo(() => ({
+    skills: gapResult?.skills_score || gapResult?.skillsScore || pilotData?.skillsScore || 82,
+    exp: gapResult?.experience_score || gapResult?.expScore || pilotData?.expScore || 74,
+    sector: gapResult?.sector_score || gapResult?.sectorScore || pilotData?.sectorScore || 68,
+    leadership: gapResult?.leadership_score || gapResult?.leadershipScore || pilotData?.leadershipScore || 88
+  }), [gapResult, pilotData]);
+
   return (
     <div className="dashboard-wrapper">
-      {/* GROUPE NAVIGATION : Onglets + Sous-menus collés */}
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-      <div className={`tabs-navigation ${subMenus[activeTab] ? 'has-sub' : ''}`}>
-        <button className={`tab-btn ${activeTab === 'cockpit' ? 'active' : ''}`} onClick={() => handleTabChange('cockpit')} style={{ position: 'relative' }}>
-          <Target size={18} /> {t('cockpit_title', "Stratégie d'entretien")} {cockpitUnseen && <span className="notification-dot"></span>}
-        </button>
-        <button className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => handleTabChange('overview')}>
-          <Activity size={18} /> {t('tab_overview', "Vue d'ensemble")}
-        </button>
-        <button className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => handleTabChange('profile')}>
-          <HeartPulse size={18} /> Profil stratégique
-        </button>
-        <button className={`tab-btn ${activeTab === 'interview' ? 'active' : ''}`} onClick={() => handleTabChange('interview')} style={{ position: 'relative' }}>
-          <MessageSquare size={18} /> {t('tab_interview_short', "Entretien")} {interviewUnseen && <span className="notification-dot"></span>}
-        </button>
-        <button className={`tab-btn ${activeTab === 'training' ? 'active' : ''}`} onClick={() => handleTabChange('training')}>
-          <Dumbbell size={18} /> {t('tab_training', "S'entrainer")}
-        </button>
-        <button className={`tab-btn ${activeTab === 'market' ? 'active' : ''}`} onClick={() => handleTabChange('market')} style={{ position: 'relative' }}>
-          <Globe size={18} /> {t('tab_market_offer', "Marché & Offre")} {marketUnseen && <span className="notification-dot"></span>}
-        </button>
-        <button className={`tab-btn ${activeTab === 'posture' ? 'active' : ''}`} onClick={() => handleTabChange('posture')}>
-          <Award size={18} /> {t('tab_posture', "Réussir l'entretien")}
-        </button>
-        <button className={`tab-btn ${activeTab === 'debrief' ? 'active' : ''}`} onClick={() => handleTabChange('debrief')} style={{ position: 'relative' }}>
-          <ClipboardList size={18} /> {t('tab_debrief', "Débrief & Suivi")}
-        </button>
-      </div>
-
-      {/* SOUS-MENUS */}
-      {subMenus[activeTab] && (
-        <div className="sub-tabs-navigation" key={activeTab}>
-          {subMenus[activeTab].map((sub) => (
-            <button key={sub.id} className="sub-tab-btn" onClick={() => {
-              const el = document.getElementById(sub.id);
-              if (el) {
-                const y = el.getBoundingClientRect().top + window.scrollY - 120;
-                window.scrollTo({ top: y, behavior: 'smooth' });
-              }
-            }}>
-              {sub.label}
-            </button>
-          ))}
+      {/* GROUPE NAVIGATION STICKY : 6 Onglets principaux + Sous-menus collés */}
+      <div style={{ display: 'flex', flexDirection: 'column', position: 'sticky', top: '70px', zIndex: 90, background: 'var(--bg-body)', paddingTop: '0.5rem', paddingBottom: '0.25rem', marginBottom: '1rem' }}>
+        <div className={`tabs-navigation ${subMenus[activeTab] ? 'has-sub' : ''}`}>
+          <button className={`tab-btn tab-btn--overview ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => handleTabChange('overview')}>
+            <Activity size={18} color={activeTab === 'overview' ? '#FFFFFF' : '#102E5C'} /> Centre de préparation
+          </button>
+          <button className={`tab-btn tab-btn--job ${activeTab === 'job' ? 'active' : ''}`} onClick={() => handleTabChange('job')} style={{ position: 'relative' }}>
+            <Search size={18} color={activeTab === 'job' ? '#FFFFFF' : '#2563EB'} /> Comprendre le poste {jobUnseen && <span className="notification-dot"></span>}
+          </button>
+          <button className={`tab-btn tab-btn--company ${activeTab === 'company' ? 'active' : ''}`} onClick={() => handleTabChange('company')} style={{ position: 'relative' }}>
+            <Building size={18} color={activeTab === 'company' ? '#FFFFFF' : '#B8325A'} /> Comprendre l'entreprise {companyUnseen && <span className="notification-dot"></span>}
+          </button>
+          <button className={`tab-btn tab-btn--speech ${activeTab === 'speech' ? 'active' : ''}`} onClick={() => handleTabChange('speech')} style={{ position: 'relative' }}>
+            <Sparkles size={18} color={activeTab === 'speech' ? '#FFFFFF' : '#8B3FD1'} /> Construire le discours {speechUnseen && <span className="notification-dot"></span>}
+          </button>
+          <button className={`tab-btn tab-btn--training ${activeTab === 'training' ? 'active' : ''}`} onClick={() => handleTabChange('training')} style={{ position: 'relative' }}>
+            <Dumbbell size={18} color={activeTab === 'training' ? '#FFFFFF' : '#E89112'} /> S'entraîner {trainingUnseen && <span className="notification-dot"></span>}
+          </button>
+          <button className={`tab-btn tab-btn--progress ${activeTab === 'progress' ? 'active' : ''}`} onClick={() => handleTabChange('progress')} style={{ position: 'relative' }}>
+            <Award size={18} color={activeTab === 'progress' ? '#FFFFFF' : '#168A5B'} /> Progresser {progressUnseen && <span className="notification-dot"></span>}
+          </button>
         </div>
-      )}
+
+        {/* SOUS-MENUS COLLÉS AVEC RAPPEL STICKY DU MODULE */}
+        {subMenus[activeTab] && (
+          <div className={`sub-tabs-navigation sub-tabs-${activeTab}`} key={activeTab}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', paddingRight: '0.85rem', borderRight: '1px solid var(--border-color)', flexShrink: 0 }}>
+              <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: moduleColors[activeTab], display: 'inline-block' }}></span>
+              <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-main)', whiteSpace: 'nowrap' }}>{moduleNames[activeTab]}</span>
+            </div>
+            <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              {subMenus[activeTab].map((sub) => (
+                <button key={sub.id} className="sub-tab-btn" onClick={() => {
+                  const el = document.getElementById(sub.id);
+                  if (el) {
+                    const y = el.getBoundingClientRect().top + window.scrollY - 130;
+                    window.scrollTo({ top: y, behavior: 'smooth' });
+                  }
+                }}>
+                  {sub.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Contenu de l'onglet actif */}
       <div className="tab-content">
-        {activeTab === 'cockpit' && (
-           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }} id="cockpit_section">
-             <CockpitTab 
-               actionPlanData={actionPlanResult || { status: isProcessing ? 'PROCESSING' : globalStatus }}
-               interviewDate={meta.interview_date || "Non définie"}
-               interviewFormat={meta.interview_format ? (formatLabels[meta.interview_format as string] || meta.interview_format) : "Non défini"}
-               interviewTarget={meta.interview_type ? (interviewTypeLabels[meta.interview_type as string] || meta.interview_type) : "Non défini"}
-             />
-           </div>
-        )}
-
+        {/* 1. OVERVIEW: Centre de préparation */}
         {activeTab === 'overview' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-            {/* [PRIORITE UX] Centre de suivi placé en premier sur la vue d'ensemble */}
-            <DeliverablesHub
-              deliverableItems={deliverableItems}
-              isProcessing={isProcessing}
-              longLoading={longLoading}
-              viewedTabs={viewedTabs}
-              isDataReady={isDataReady}
-              onPrintClick={() => setIsPrintModalOpen(true)}
-              onItemClick={handleTabChange}
-              remainingSessions={remainingSessions}
-              remainingCompanies={remainingCompanies}
-              remainingOffers={remainingOffers}
-              onCreateCandidature={onCreateCandidature}
-            />
+          <ModuleProvider module="overview">
+          <div className="tab-module-content tab-module-overview" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            {/* BANDEAU SUPÉRIEUR : Candidature en cours avec 3 zones distinctes */}
+            <div className="banner-card" id="banner_section">
+              <div className="banner-top-badge" style={{ background: '#DCEEFF', color: '#102E5C' }}>
+                <Sparkles size={14} color="#2878C8" /> Candidature en cours
+              </div>
+              
+              <div className="banner-grid-3">
+                {/* Zone Gauche: Contexte */}
+                <div className="banner-col-left">
+                  <h2 className="banner-title">
+                    {activeCompany} — {activeJob}
+                  </h2>
+                  <div className="banner-meta">
+                    <span><Calendar size={15} color="#2878C8" /> Entretien : {activeDate}</span>
+                    <span className="banner-dot">•</span>
+                    <span><UserCheck size={15} color="#2878C8" /> Interlocuteur : {activeTarget}</span>
+                    <span className="banner-dot">•</span>
+                    <span><Monitor size={15} color="#2878C8" /> Format : {activeFormat}</span>
+                  </div>
+                </div>
 
-            <div className="bento-card col-span-3" style={{ background: 'var(--bg-card)' }}>
-              <div className="bento-header" style={{ marginBottom: '0.75rem' }}>
-                <ClipboardList size={20} color="var(--primary)"/>
-                {t('hub_applications_title', 'Mes candidatures / postes')}
-              </div>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.7rem' }}>
-                <button className="btn-ghost" style={{ border: candidatureFilter === 'all' ? '1px solid var(--primary)' : '1px solid var(--border-color)' }} onClick={() => setCandidatureFilter('all')}>Toutes</button>
-                <button className="btn-ghost" style={{ border: candidatureFilter === 'active' ? '1px solid var(--primary)' : '1px solid var(--border-color)' }} onClick={() => setCandidatureFilter('active')}>Actives</button>
-                <button className="btn-ghost" style={{ border: candidatureFilter === 'done' ? '1px solid var(--primary)' : '1px solid var(--border-color)' }} onClick={() => setCandidatureFilter('done')}>Terminées</button>
-                <button className="btn-ghost" style={{ border: '1px solid var(--border-color)' }} onClick={() => setCandidatureSort((prev) => (prev === 'recent' ? 'alpha' : 'recent'))}>
-                  Tri: {candidatureSort === 'recent' ? 'récent' : 'alphabétique'}
-                </button>
-              </div>
-              {candidatureCards.length === 0 ? (
-                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>Aucune candidature enregistrée pour le moment.</p>
-              ) : (
-                <div style={{ display: 'grid', gap: '0.7rem' }}>
-                  {candidatureCards.map((item) => (
-                    <div key={item.key} style={{ border: '1px solid var(--border-color)', borderRadius: '12px', padding: '0.8rem', background: 'var(--bg-secondary)' }}>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.company}</div>
-                      <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.1rem' }}>{item.job}</div>
-                      <div style={{ marginTop: '0.35rem', fontSize: '0.82rem', color: 'var(--text-muted)' }}>{item.statusLabel} · {item.trainings} entraînements · dernier entretien {item.lastInterview}</div>
-                      <div style={{ marginTop: '0.55rem' }}>
-                        <button className="btn-primary" style={{ fontSize: '0.8rem', padding: '0.35rem 0.7rem' }} onClick={() => onPrepareCandidature?.(item.company, item.job)}>
-                          Préparer cette candidature
-                        </button>
+                {/* Zone Jauges Circulaires : Adéquation au poste & Avancement de la préparation */}
+                <div className="banner-gauges-row">
+                  {/* Cercle 1 : Adéquation au poste */}
+                  <div className="banner-gauge-card" style={{ borderLeft: '4px solid #10B981' }}>
+                    <div className="gauge-wrapper-desktop">
+                      <Gauge score={matchScore} color="#10B981" size={104} strokeWidth={10} subText="%" />
+                    </div>
+                    <div className="gauge-wrapper-mobile">
+                      <Gauge score={matchScore} color="#10B981" size={68} strokeWidth={7} subText="%" />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: 1, minWidth: 0 }}>
+                      <span className="indicator-label" style={{ fontSize: '0.78rem', letterSpacing: '0.06em' }}>Adéquation au poste</span>
+                      <span style={{ background: matchScore >= 75 ? '#DCFCE7' : '#FFF4D6', color: matchScore >= 75 ? '#065f46' : '#92400e', fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.65rem', borderRadius: '999px', width: 'fit-content' }}>
+                        {matchScore >= 75 ? 'Bon alignement' : (matchScore >= 55 ? 'Alignement moyen' : 'Écarts à combler')}
+                      </span>
+                      <div className="gauge-submetrics">
+                        <span>Compétences : <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>{matchBreakdown.skills}%</strong></span>
+                        <span>Expérience : <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>{matchBreakdown.exp}%</strong></span>
+                        <span>Secteur : <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>{matchBreakdown.sector}%</strong></span>
+                        <span>Leadership : <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>{matchBreakdown.leadership}%</strong></span>
                       </div>
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Cercle 2 : Avancement de la préparation */}
+                  <div className="banner-gauge-card" style={{ borderLeft: '4px solid #2878C8' }}>
+                    <div className="gauge-wrapper-desktop">
+                      <Gauge score={prepScore} color="#2878C8" size={104} strokeWidth={10} subText="%" />
+                    </div>
+                    <div className="gauge-wrapper-mobile">
+                      <Gauge score={prepScore} color="#2878C8" size={68} strokeWidth={7} subText="%" />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: 1, minWidth: 0 }}>
+                      <span className="indicator-label" style={{ fontSize: '0.78rem', letterSpacing: '0.06em' }}>Préparation</span>
+                      <span style={{ background: '#DCEEFF', color: '#102E5C', fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.65rem', borderRadius: '999px', width: 'fit-content' }}>
+                        {prepScore >= 80 ? 'Prêt à postuler' : 'Préparation en cours'}
+                      </span>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                        Temps restant : <strong style={{ color: '#2878C8', fontWeight: 800 }}>{daysRemainingText}</strong>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
-
-            {((!cvData?.target_company && cvData?.target_industry) || !hasJobDesc) && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {(!cvData?.target_company && cvData?.target_industry) && (
-                  <div style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#d97706', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(245, 158, 11, 0.2)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <AlertTriangle size={20} style={{ flexShrink: 0 }} />
-                    <span style={{ fontSize: '0.95rem', lineHeight: '1.5' }}><strong>Attention :</strong> Vous avez renseigné le secteur (<strong>{cvData.target_industry}</strong>) mais laissé l'entreprise cible vide. L'IA générera des conseils génériques pour ce secteur. Modifiez votre profil pour cibler une entreprise précise si vous en avez une.</span>
-                  </div>
-                )}
-                {!hasJobDesc && (
-                  <div style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#2563eb', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(59, 130, 246, 0.2)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <FileText size={20} style={{ flexShrink: 0 }} />
-                    <span style={{ fontSize: '0.95rem', lineHeight: '1.5' }}><strong>Astuce :</strong> Le module <strong>Décodeur d'Annonce</strong> est actuellement inactif. Renseignez la description de l'offre d'emploi dans votre profil pour l'activer et découvrir les attentes cachées du recruteur.</span>
-                  </div>
-                )}
               </div>
-            )}
 
-            {isLoadingOverview ? (
-              <div className="bento-grid">
-                <div className="bento-card row-span-2 skeleton-pulse" style={{ minHeight: '350px' }}></div>
-                <div className="bento-card col-span-2 skeleton-pulse" style={{ minHeight: '150px' }}></div>
-                <div className="bento-card col-span-2 skeleton-pulse" style={{ minHeight: '150px' }}></div>
-              </div>
-            ) : pilotError ? (
-              <div className="bento-card col-span-3" style={{ textAlign: 'center', padding: '3rem 1rem', border: '1px solid var(--danger-text)', background: 'var(--bg-card)' }}>
-                <AlertTriangle size={48} color="var(--danger-text)" style={{ margin: '0 auto 1rem auto' }} />
-                <h3 style={{ color: 'var(--danger-text)', marginBottom: '0.5rem' }}>Analyse momentanément interrompue</h3>
-                <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>{pilotError}</p>
-                <button onClick={fetchPilotData} className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <RotateCcw size={16} /> Réessayer
+              <div className="banner-actions">
+                {isCommando && (
+                  <button className="btn-primary" style={{ background: '#EF6461', borderColor: '#EF6461' }} onClick={() => {
+                    const el = document.getElementById('last_hour_section');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}>
+                    <Clock size={16} /> Mode J-1 / Dernière heure
+                  </button>
+                )}
+                <button className="btn-primary" onClick={() => {
+                  const el = document.getElementById('priorities_section');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}>
+                  <Play size={16} /> Continuer ma préparation
+                </button>
+                <button className="btn-secondary" onClick={() => handleTabChange('training')}>
+                  <Dumbbell size={16} /> M’entraîner maintenant
+                </button>
+                <button className="btn-outline" onClick={() => handleTabChange('progress', 'debrief_section')}>
+                  <ClipboardList size={16} /> Ajouter un débrief
                 </button>
               </div>
-            ) : (
-              <>
-                <PilotBento
-                  data={pilotData}
-                  onGoToGap={() => handleTabChange('market', 'gap_section')}
-                />
-                <CoachingSummaryCard
-                  data={pitchResult?.coaching_notes}
-                  loading={isProcessing && !pitchResult}
-                />
-                <CareerRealityCheck data={realityResult} score={realityResult?.score} loading={isProcessing && !realityResult && !isCommando} />
-                {(!isCommando || recruiterResult) && (
-                  <div id="recruiter_section">
-                    <RecruiterView data={recruiterResult} loading={isProcessing && !recruiterResult} />
+            </div>
+
+            {/* CONSEIL STRATÉGIQUE D'URGENCE (Court & Percutant) */}
+            <div id="emergency_section" style={{ background: 'linear-gradient(135deg, #102E5C 0%, #1e3a8a 100%)', borderRadius: '1rem', padding: '1.25rem 1.6rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '1.2rem', boxShadow: '0 6px 20px rgba(16,46,92,0.12)' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Sparkles size={24} color="#F59E0B" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <h4 style={{ margin: '0 0 0.3rem 0', fontSize: '1.05rem', fontWeight: 800, color: '#F7FAFC' }}>
+                  💡 À garder en tête pour cet entretien
+                </h4>
+                <p style={{ margin: 0, fontSize: '0.92rem', lineHeight: 1.5, opacity: 0.95 }}>
+                  {activeTarget.toLowerCase().includes('manager') || activeTarget.toLowerCase().includes('opérationnel')
+                    ? "Face à un manager opérationnel, insistez sur vos résultats concrets et votre capacité à piloter une équipe. En visio, regard caméra et réponses structurées."
+                    : "Face au recruteur RH, valorisez la cohérence de votre parcours, votre motivation pour l'entreprise et votre intelligence relationnelle."}
+                </p>
+              </div>
+            </div>
+
+            {/* FEUILLE DE ROUTE PERSONNALISÉE */}
+            <div id="roadmap_section">
+              <DashboardCard title="Feuille de Route Personnalisée" icon={<Compass size={24} color="var(--primary)" />}>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '-0.5rem', marginBottom: '1.25rem' }}>
+                  Générez un plan d'action sur-mesure en fonction du type d'entretien, de votre interlocuteur et de votre niveau de séniorité.
+                </p>
+                <button onClick={() => setIsRoadmapModalOpen(true)} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Compass size={18} /> Ouvrir le Générateur de Feuille de Route
+                </button>
+              </DashboardCard>
+            </div>
+
+            {/* ACTIONS PRIORITAIRES */}
+            <div className="bento-card col-span-3" id="priorities_section" style={{ background: 'var(--bg-card)' }}>
+              <div className="bento-header">
+                <Zap size={20} color="var(--warning)" /> Ce que vous devez travailler maintenant
+              </div>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '-0.4rem', marginBottom: '1.2rem' }}>
+                Recommandations prioritaires de votre coach IA pour réussir cet entretien.
+              </p>
+              <div className="priorities-grid">
+                <div className="priority-card" style={{ background: '#FFF5F5', borderColor: '#FCA5A5', borderLeft: '5px solid #EF6461' }}>
+                  <div style={{ display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: '999px', background: '#FEE2E2', color: '#991b1b', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem', alignSelf: 'flex-start' }}>
+                    1 — PRIORITÉ HAUTE
+                  </div>
+                  <div className="priority-body">
+                    <h4 className="priority-head">Retravailler votre réponse sur le manque d’expérience sectorielle</h4>
+                    <p className="priority-why"><strong>Pourquoi :</strong> Risque probable détecté côté recruteur</p>
+                  </div>
+                  <button className="btn-primary-action" style={{ background: '#2878C8' }} onClick={() => handleTabChange('speech', 'flaws_section')}>
+                    Lancer 3 questions ciblées <ArrowRight size={14} />
+                  </button>
+                </div>
+
+                <div className="priority-card" style={{ background: '#F0F7FF', borderColor: '#BFDBFE', borderLeft: '5px solid #2878C8' }}>
+                  <div style={{ display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: '999px', background: '#DCEEFF', color: '#1e40af', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem', alignSelf: 'flex-start' }}>
+                    2 — À PRÉPARER
+                  </div>
+                  <div className="priority-body">
+                    <h4 className="priority-head">Préparer votre pitch manager en 1 minute</h4>
+                    <p className="priority-why"><strong>Pourquoi :</strong> Entretien prévu avec un profil opérationnel</p>
+                  </div>
+                  <button className="btn-primary-action" style={{ background: '#2878C8' }} onClick={() => handleTabChange('speech', 'pitch_section')}>
+                    Ouvrir la matrice de pitch <ArrowRight size={14} />
+                  </button>
+                </div>
+
+                <div className="priority-card" style={{ background: '#ECFDF5', borderColor: '#A7F3D0', borderLeft: '5px solid #10B981' }}>
+                  <div style={{ display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: '999px', background: '#DCFCE7', color: '#065f46', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem', alignSelf: 'flex-start' }}>
+                    3 — À ANTICIPER
+                  </div>
+                  <div className="priority-body">
+                    <h4 className="priority-head">Préparer 2 questions intelligentes sur l’entreprise</h4>
+                    <p className="priority-why"><strong>Pourquoi :</strong> Rapport marché et enjeux récents disponibles</p>
+                  </div>
+                  <button className="btn-primary-action" style={{ background: '#2878C8' }} onClick={() => handleTabChange('company', 'company_section')}>
+                    Voir les questions à poser <ArrowRight size={14} />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* PARCOURS DE PRÉPARATION EN 5 BLOCS */}
+            <div className="bento-card col-span-3" id="path_section" style={{ background: 'var(--bg-card)' }}>
+              <div className="bento-header">
+                <Layers size={20} color="var(--bleu-action)" /> Votre parcours de préparation
+              </div>
+              <div className="path-stepper-grid">
+                <div className="path-step-card" style={{ background: '#DCFCE7', borderColor: '#10B981' }}>
+                  <div className="step-header">
+                    <span className="step-number" style={{ background: '#10B981' }}>1</span>
+                    <span className="step-title">Comprendre le poste</span>
+                    <span className="step-badge-ok">✓ OK</span>
+                  </div>
+                  <p className="step-detail" style={{ color: '#065f46' }}>Annonce décodée — {gapResult ? 'Écarts calculés' : 'Analyse prête'}</p>
+                  <button className="step-action-btn" style={{ color: '#047857' }} onClick={() => handleTabChange('job')}>
+                    Explorer le poste <ChevronRight size={14} />
+                  </button>
+                </div>
+
+                <div className="path-step-card" style={{ background: '#DCFCE7', borderColor: '#10B981' }}>
+                  <div className="step-header">
+                    <span className="step-number" style={{ background: '#10B981' }}>2</span>
+                    <span className="step-title">Comprendre l'entreprise</span>
+                    <span className="step-badge-ok">✓ OK</span>
+                  </div>
+                  <p className="step-detail" style={{ color: '#065f46' }}>{researchResult ? 'Rapport généré — 3 actualités' : 'Rapport disponible'}</p>
+                  <button className="step-action-btn" style={{ color: '#047857' }} onClick={() => handleTabChange('company')}>
+                    Voir le rapport <ChevronRight size={14} />
+                  </button>
+                </div>
+
+                <div className="path-step-card" style={{ background: '#FFF4D6', borderColor: 'var(--mod-training-accent)' }}>
+                  <div className="step-header">
+                    <span className="step-number" style={{ background: '#F59E0B' }}>3</span>
+                    <span className="step-title">Construire le discours</span>
+                    <span className="step-badge-warn">! À finaliser</span>
+                  </div>
+                  <p className="step-detail" style={{ color: '#78350f' }}>Pitch 30s prêt — Arguments à peaufiner</p>
+                  <button className="step-action-btn" style={{ color: '#b45309' }} onClick={() => handleTabChange('speech')}>
+                    Affiner le discours <ChevronRight size={14} />
+                  </button>
+                </div>
+
+                <div className="path-step-card" style={{ background: '#DCEEFF', borderColor: '#2878C8' }}>
+                  <div className="step-header">
+                    <span className="step-number" style={{ background: '#2878C8' }}>4</span>
+                    <span className="step-title">S'entraîner</span>
+                    <span className="step-badge-blue">● En cours</span>
+                  </div>
+                  <p className="step-detail" style={{ color: '#1e40af' }}>12 réponses analysées sur 150</p>
+                  <button className="step-action-btn" style={{ color: '#1d4ed8' }} onClick={() => handleTabChange('training')}>
+                    S'entraîner <ChevronRight size={14} />
+                  </button>
+                </div>
+
+                <div className="path-step-card" style={{ background: '#EEF3F8', borderColor: '#CBD5E1' }}>
+                  <div className="step-header">
+                    <span className="step-number" style={{ background: '#94A3B8' }}>5</span>
+                    <span className="step-title">Progresser</span>
+                    <span className="step-badge-gray">○ En cours</span>
+                  </div>
+                  <p className="step-detail" style={{ color: '#64748b' }}>Profil stratégique & Débriefs</p>
+                  <button className="step-action-btn" style={{ color: '#475569' }} onClick={() => handleTabChange('progress')}>
+                    Voir mes progrès <ChevronRight size={14} />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Aperçu synthétique des 5 modules */}
+            <div className="bento-card col-span-3" id="modules_summary_section" style={{ background: 'var(--bg-card)' }}>
+              <div className="bento-header">
+                <Compass size={20} color="var(--bleu-action)" /> Aperçu de vos 5 modules de préparation
+              </div>
+              <div className="modules-summary-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                <div style={{ background: 'var(--mod-job-bg-soft)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--mod-job-border)', borderTop: '4px solid var(--mod-job-accent)' }}>
+                  <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem', marginBottom: '0.3rem' }}>1. Comprendre le poste</div>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Annonce décodée & forces/écarts</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--mod-job-accent)', marginBottom: '0.5rem' }}>72 %</div>
+                  <button onClick={() => handleTabChange('job')} className="btn-outline" style={{ width: '100%', padding: '0.35rem', fontSize: '0.8rem', borderColor: 'var(--mod-job-accent)', color: 'var(--mod-job-accent)' }}>Ouvrir</button>
+                </div>
+
+                <div style={{ background: 'var(--mod-company-bg-soft)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--mod-company-border)', borderTop: '4px solid var(--mod-company-accent)' }}>
+                  <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem', marginBottom: '0.3rem' }}>2. Comprendre l'entreprise</div>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Rapport entreprise & marché</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--mod-company-accent)', marginBottom: '0.5rem' }}>Terminé</div>
+                  <button onClick={() => handleTabChange('company')} className="btn-outline" style={{ width: '100%', padding: '0.35rem', fontSize: '0.8rem', borderColor: 'var(--mod-company-accent)', color: 'var(--mod-company-accent)' }}>Ouvrir</button>
+                </div>
+
+                <div style={{ background: 'var(--mod-speech-bg-soft)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--mod-speech-border)', borderTop: '4px solid var(--mod-speech-accent)' }}>
+                  <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem', marginBottom: '0.3rem' }}>3. Construire le discours</div>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Pitchs, marqueurs & parades</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--mod-speech-accent)', marginBottom: '0.5rem' }}>55 %</div>
+                  <button onClick={() => handleTabChange('speech')} className="btn-outline" style={{ width: '100%', padding: '0.35rem', fontSize: '0.8rem', borderColor: 'var(--mod-speech-accent)', color: 'var(--mod-speech-accent)' }}>Ouvrir</button>
+                </div>
+
+                <div style={{ background: 'var(--mod-training-bg-soft)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--mod-training-border)', borderTop: '4px solid var(--mod-training-accent)' }}>
+                  <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem', marginBottom: '0.3rem' }}>4. S'entraîner</div>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Questions, simulations & rituels</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--mod-training-accent)', marginBottom: '0.5rem' }}>12 / 150</div>
+                  <button onClick={() => handleTabChange('training')} className="btn-outline" style={{ width: '100%', padding: '0.35rem', fontSize: '0.8rem', borderColor: 'var(--mod-training-accent)', color: 'var(--mod-training-accent)' }}>Ouvrir</button>
+                </div>
+
+                <div style={{ background: 'var(--mod-progress-bg-soft)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--mod-progress-border)', borderTop: '4px solid var(--mod-progress-accent)' }}>
+                  <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem', marginBottom: '0.3rem' }}>5. Progresser</div>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Profil stratégique & débriefs</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--mod-progress-accent)', marginBottom: '0.5rem' }}>1 débrief</div>
+                  <button onClick={() => handleTabChange('progress')} className="btn-outline" style={{ width: '100%', padding: '0.35rem', fontSize: '0.8rem', borderColor: 'var(--mod-progress-accent)', color: 'var(--mod-progress-accent)' }}>Ouvrir</button>
+                </div>
+              </div>
+            </div>
+
+            {/* Candidatures */}
+            <div className="bento-card col-span-3" id="candidatures_section" style={{ background: 'var(--bg-card)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div className="bento-header" style={{ marginBottom: 0 }}>
+                  <Building size={20} color="var(--primary)"/> Mes candidatures ({candidatureCards.length})
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <select value={candidatureFilter} onChange={(e) => setCandidatureFilter(e.target.value as any)} style={{ fontSize: '0.82rem', padding: '0.35rem 0.6rem', borderRadius: '0.4rem' }}>
+                    <option value="all">Toutes</option>
+                    <option value="active">À traiter</option>
+                    <option value="done">Terminées</option>
+                  </select>
+                  <select value={candidatureSort} onChange={(e) => setCandidatureSort(e.target.value as any)} style={{ fontSize: '0.82rem', padding: '0.35rem 0.6rem', borderRadius: '0.4rem' }}>
+                    <option value="recent">Plus récentes</option>
+                    <option value="alpha">Ordre alphabétique</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.85rem' }}>
+                {candidatureCards.map((card) => {
+                  const isCurrent = isCurrentTarget(card.company, card.job);
+                  return (
+                    <div key={card.key} style={{ background: isCurrent ? 'rgba(59, 130, 246, 0.08)' : 'var(--bg-secondary)', border: `1px solid ${isCurrent ? 'var(--primary)' : 'var(--border-color)'}`, borderRadius: '0.75rem', padding: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <strong style={{ fontSize: '0.95rem', color: 'var(--text-main)' }}>{card.company}</strong>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '999px', background: card.done ? '#dcfce7' : 'rgba(245, 158, 11, 0.15)', color: card.done ? '#16a34a' : '#d97706' }}>{card.statusLabel}</span>
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{card.job}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', gap: '0.8rem' }}>
+                        <span>Entraînements : {card.trainings}</span>
+                        <span>Entretien : {card.lastInterview}</span>
+                      </div>
+                      <button className="btn-outline" style={{ marginTop: '0.4rem', padding: '0.35rem 0.7rem', fontSize: '0.8rem' }} onClick={() => onPrepareCandidature && onPrepareCandidature(card.company, card.job)}>
+                        {isCurrent ? 'Continuer la préparation' : 'Activer cette candidature'}
+                      </button>
+                    </div>
+                  );
+                })}
+
+                {/* Cartes d'ajout avec "+" : une par candidature restante dans le quota mensuel */}
+                {Array.from({ length: remainingSlots }, (_, index) => index + 1).map((index) => (
+                  <div
+                    key={`add-card-${index}`}
+                    onClick={() => {
+                      if (onCreateCandidature) {
+                        onCreateCandidature();
+                      } else if (typeof setCurrentStep === 'function') {
+                        setCurrentStep(2);
+                      }
+                    }}
+                    style={{
+                      background: 'var(--bg-secondary)',
+                      border: '2px dashed var(--border-color)',
+                      borderRadius: '0.75rem',
+                      padding: '1.2rem 0.9rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justify: 'center',
+                      gap: '0.5rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      minHeight: '140px',
+                      color: 'var(--text-muted)'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--primary)';
+                      e.currentTarget.style.color = 'var(--primary)';
+                      e.currentTarget.style.background = 'rgba(59, 130, 246, 0.05)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border-color)';
+                      e.currentTarget.style.color = 'var(--text-muted)';
+                      e.currentTarget.style.background = 'var(--bg-secondary)';
+                    }}
+                  >
+                    <div style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '50%',
+                      border: '2px dashed currentColor',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justify: 'center'
+                    }}>
+                      <Plus size={20} />
+                    </div>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Ajouter une candidature</span>
+                  </div>
+                ))}
+                {remainingSlots === 0 && (
+                  <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    Vous avez atteint votre quota de candidatures pour ce cycle.
                   </div>
                 )}
-              </>
-            )}
+              </div>
+            </div>
+
+            {/* RADAR DE CARRIÈRE */}
+            <div id="career_radar_section">
+              <DashboardCard
+                title="Radar de Carrière"
+                icon={<Compass size={24} color="var(--primary)" />}
+              >
+                <CareerRadar data={careerRadarResult} loading={isProcessing && !careerRadarResult} />
+              </DashboardCard>
+            </div>
+
+            {/* GPS DE CARRIÈRE */}
+            <div id="career_gps_section">
+              <DashboardCard
+                title="GPS de Carrière"
+                icon={<Navigation size={24} color="var(--primary)" />}
+              >
+                <CareerGPS data={careerGpsResult} loading={isProcessing && !careerGpsResult} />
+              </DashboardCard>
+            </div>
+
+            {/* DERNIÈRE HEURE AVANT L'ENTRETIEN */}
+            <LastHourChecklistCard />
+
+            {/* PLAN DE SECOURS (GÉRER LES IMPRÉVUS) */}
+            <ContingencyPlanCard />
           </div>
-        )}
-        
-        {activeTab === 'interview' && (
-           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-             <InterviewTab />
-             <div id="flaws_section">
-               <FlawCoaching data={flawCoachingResult} inline={true} loading={isProcessing && !flawCoachingResult} />
-             </div>
-           </div>
+          </ModuleProvider>
         )}
 
-        {activeTab === 'profile' && (
-           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-             <StrategicProfileTab
-               onNavigate={handleTabChange}
-               profileCompletion={profileCompletion}
-               profileRecommendations={profileRecommendations}
-             />
-           </div>
+        {/* 2. JOB: Comprendre le poste */}
+        {activeTab === 'job' && (
+          <ModuleProvider module="job">
+          <div className="tab-module-content tab-module-job" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <div style={{ padding: '1.25rem 1.5rem', background: 'var(--mod-job-bg-soft)', borderRadius: '1rem', border: '1px solid var(--mod-job-border)', borderLeft: '5px solid var(--mod-job-accent)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <Search size={26} color="#2F6BFF" />
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>1. Comprendre le poste</h3>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Décodez les exigences de l'annonce, analysez vos forces et vos écarts, et visualisez le regard du recruteur.</p>
+              </div>
+            </div>
+
+            {(!isCommando || jobDecoderResult) && (
+              <div id="decoder_section">
+                <JobDecoder data={jobDecoderResult} loading={isProcessing && !jobDecoderResult} />
+              </div>
+            )}
+
+            <div id="gap_section">
+              <GapAnalysisFull data={gapResult || pilotData} loading={isProcessing && !gapResult} onBack={() => handleTabChange('overview')} />
+            </div>
+
+            {(!isCommando || recruiterResult) && (
+              <div id="recruiter_section">
+                <RecruiterView data={recruiterResult} loading={isProcessing && !recruiterResult} />
+              </div>
+            )}
+
+            <div id="signals_section">
+              <SignalsToObserveCard />
+            </div>
+          </div>
+          </ModuleProvider>
         )}
 
-        {activeTab === 'market' && (
-           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-             <div id="gap_section">
-               <GapAnalysisFull data={gapResult || pilotData} loading={isProcessing && !gapResult} onBack={() => handleTabChange('overview')} />
-             </div>
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-               <AnalysisTab researchResult={researchResult} salaryResult={salaryResult} onRefresh={triggerResearch} isRefreshing={isProcessing} />
-             </div>
-             {(!isCommando || jobDecoderResult) && (
-               <div id="decoder_section">
-                 <JobDecoder data={jobDecoderResult} loading={isProcessing && !jobDecoderResult} />
-               </div>
-             )}
-           </div>
+        {/* 3. COMPANY: Comprendre l'entreprise */}
+        {activeTab === 'company' && (
+          <ModuleProvider module="company">
+          <div className="tab-module-content tab-module-company" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <div style={{ padding: '1.25rem 1.5rem', background: 'var(--mod-company-bg-soft)', borderRadius: '1rem', border: '1px solid var(--mod-company-border)', borderLeft: '5px solid var(--mod-company-accent)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <Building size={26} color="#00A6A6" />
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>2. Comprendre l'entreprise</h3>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Explorez l'actualité récente de la société, l'analyse du marché et la culture d'entreprise.</p>
+              </div>
+            </div>
+
+            <div id="company_section">
+              <CompanyAnalysisCard data={researchResult} loading={isMarketResearchRunning && !researchResult} error={researchResult?.error} />
+            </div>
+
+            <div id="market_section">
+              <MarketAnalysisCard data={researchResult} salaryData={salaryResult} loading={isMarketResearchRunning && !researchResult} error={researchResult?.error || salaryResult?.error} />
+            </div>
+
+            <div id="posture_guides_section">
+              <PostureGuidesCard />
+            </div>
+          </div>
+          </ModuleProvider>
         )}
 
+        {/* 4. SPEECH: Construire le discours */}
+        {activeTab === 'speech' && (
+          <ModuleProvider module="speech">
+          <div className="tab-module-content tab-module-speech" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <div style={{ padding: '1.25rem 1.5rem', background: 'var(--mod-speech-bg-soft)', borderRadius: '1rem', border: '1px solid var(--mod-speech-border)', borderLeft: '5px solid var(--mod-speech-accent)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <Sparkles size={26} color="#7C5CFC" />
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>3. Construire le discours</h3>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Formulez vos pitchs de présentation, vos marqueurs différenciants et vos parades aux objections.</p>
+              </div>
+            </div>
+
+            <div id="pitch_section">
+              <InterviewTab />
+            </div>
+
+            <div id="key_messages_section">
+              <ApplicationKeyMessagesView applicationId={cvData?.application_id || cvData?.id} />
+            </div>
+
+            <div id="sensitive_section">
+              <SensitiveSituationsCard />
+            </div>
+
+            <div id="flaws_section">
+              <FlawCoaching data={flawCoachingResult} inline={true} loading={isProcessing && !flawCoachingResult} />
+            </div>
+
+            <div id="strategic_questions_section">
+              <StrategicQuestionsCard />
+            </div>
+          </div>
+          </ModuleProvider>
+        )}
+
+        {/* 5. TRAINING: S'entraîner */}
         {activeTab === 'training' && (
-           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-             <TrainingTab />
-           </div>
+          <ModuleProvider module="training">
+          <div className="tab-module-content tab-module-training" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <div style={{ padding: '1.25rem 1.5rem', background: 'var(--mod-training-bg-soft)', borderRadius: '1rem', border: '1px solid var(--mod-training-border)', borderLeft: '5px solid var(--mod-training-accent)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <Dumbbell size={26} color="#F59E0B" />
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>4. S'entraîner</h3>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Mises en situation, rituels vocaux et entraînement intensif aux questions cibles.</p>
+              </div>
+            </div>
+
+            <div id="questionnaire_section">
+              <DashboardCard
+                title="Questions probables d'entretien"
+                icon={<MessageSquare size={24} color="#F59E0B" />}
+                featureId="interview_questions"
+              >
+                <Questionnaire questions={getQuestionsArray(questionsResult)} />
+                <ObservedQuestionsPanel />
+              </DashboardCard>
+            </div>
+
+            <div id="training_mes_section">
+              <DashboardCard
+                title="Simulations métier & Mises en situation"
+                icon={<ShieldAlert size={24} color="#F59E0B" />}
+              >
+                <SituationSimulator />
+              </DashboardCard>
+            </div>
+
+            <div id="oral_training_section">
+              <DashboardCard
+                title="Entraînement oral & Rituels vocaux"
+                icon={<Mic size={24} color="#F59E0B" />}
+              >
+                <VocalPitchTrainer targetJob={cvData?.target_job} targetCompany={cvData?.target_company} jobDescription={cvData?.job_description} />
+              </DashboardCard>
+            </div>
+
+            <TrainingTab />
+          </div>
+          </ModuleProvider>
         )}
 
-        {activeTab === 'posture' && (
-          <Suspense fallback={<div className="p-8 text-center">Chargement du module...</div>}>
-            <PostureTab />
-          </Suspense>
-        )}
+        {/* 6. PROGRESS: Progresser */}
+        {activeTab === 'progress' && (
+          <ModuleProvider module="progress">
+          <div className="tab-module-content tab-module-progress" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <div style={{ padding: '1.25rem 1.5rem', background: 'var(--mod-progress-bg-soft)', borderRadius: '1rem', border: '1px solid var(--mod-progress-border)', borderLeft: '5px solid var(--mod-progress-accent)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <Award size={26} color="#16A36A" />
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>5. Progresser</h3>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Suivez votre profil stratégique évolutif, vos débriefs et vos recommandations de progression.</p>
+              </div>
+            </div>
 
-        {activeTab === 'debrief' && (
-          <Suspense fallback={<div className="p-8 text-center">Chargement du module...</div>}>
-            <DebriefTab />
-          </Suspense>
+            <div id="profile_graph_section">
+              <StrategicProfileTab
+                onNavigate={handleTabChange}
+                profileCompletion={profileCompletion}
+                profileRecommendations={profileRecommendations}
+              />
+            </div>
+
+            <div id="posture_data_section">
+              <PostureDataCard />
+            </div>
+
+            <div id="debrief_section">
+              <Suspense fallback={<div className="p-8 text-center">Chargement des débriefs...</div>}>
+                <DebriefTab />
+              </Suspense>
+            </div>
+
+            <div id="recommendations_section">
+              <CockpitTab 
+                actionPlanData={actionPlanResult || { status: isProcessing ? 'PROCESSING' : globalStatus }}
+                interviewDate={meta.interview_date || "Non définie"}
+                interviewFormat={meta.interview_format ? (formatLabels[meta.interview_format as string] || meta.interview_format) : "Non défini"}
+                interviewTarget={meta.interview_type ? (interviewTypeLabels[meta.interview_type as string] || meta.interview_type) : "Non défini"}
+              />
+            </div>
+          </div>
+          </ModuleProvider>
         )}
       </div>
 
@@ -710,6 +1250,9 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
         </div>
       )}
 
+      {/* Modal Feuille de Route */}
+      {isRoadmapModalOpen && <RoadmapGeneratorModal onClose={() => setIsRoadmapModalOpen(false)} />}
+
       {/* Composant d'impression invisible à l'écran */}
       <PrintableDossier selection={printSelection} />
 
@@ -736,15 +1279,318 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
         
         .tabs-navigation { display: flex; gap: 0.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0; overflow-x: auto; align-items: flex-end; scrollbar-width: none; -ms-overflow-style: none; }
         .tabs-navigation::-webkit-scrollbar { display: none; }
-        .tabs-navigation.has-sub { border-bottom: 2px solid var(--primary); }
-        .tab-btn { display: flex; align-items: center; gap: 0.5rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-bottom: none; padding: 0.75rem 1.25rem; cursor: pointer; font-weight: 600; color: var(--text-muted); border-radius: 0.75rem 0.75rem 0 0; transition: all 0.2s; white-space: nowrap; margin-bottom: -2px; z-index: 1; }
-        .tab-btn:hover { background: var(--bg-card); color: var(--text-main); border-color: var(--primary); }
-        .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); border-bottom: 2px solid var(--primary); z-index: 10; }
+        .tab-btn { display: flex; align-items: center; gap: 0.5rem; background: var(--bg-card); border: 1px solid var(--border-color); border-bottom: none; padding: 0.75rem 1.25rem; cursor: pointer; font-weight: 600; color: var(--text-muted); border-radius: 0.75rem 0.75rem 0 0; transition: all 0.2s; white-space: nowrap; margin-bottom: -2px; z-index: 1; }
+        .tab-btn:hover { background: #DCEEFF; color: #102E5C; }
         
-        .sub-tabs-navigation { display: flex; gap: 0.75rem; flex-wrap: wrap; padding: 1rem 1.5rem; background: rgba(59, 130, 246, 0.05); border: 2px solid var(--primary); border-top: none; border-radius: 0 0 1rem 1rem; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.05); }
-        .sub-tab-btn { background: var(--bg-card); border: 1px solid rgba(59, 130, 246, 0.3); padding: 0.5rem 1.25rem; border-radius: 2rem; font-size: 0.85rem; font-weight: 600; color: var(--primary); cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .sub-tab-btn:hover { background: var(--primary); color: white; border-color: var(--primary); transform: translateY(-1px); box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2); }
+        .tab-btn--overview { border-color: var(--mod-overview-accent); }
+        .tab-btn--job { border-color: var(--mod-job-accent); }
+        .tab-btn--company { border-color: var(--mod-company-accent); }
+        .tab-btn--speech { border-color: var(--mod-speech-accent); }
+        .tab-btn--training { border-color: var(--mod-training-accent); }
+        .tab-btn--progress { border-color: var(--mod-progress-accent); }
+
+        .tab-btn--overview.active { background: var(--mod-overview-accent) !important; color: white !important; border-color: var(--mod-overview-accent) !important; }
+        .tab-btn--job.active { background: var(--mod-job-accent) !important; color: white !important; border-color: var(--mod-job-accent) !important; }
+        .tab-btn--company.active { background: var(--mod-company-accent) !important; color: white !important; border-color: var(--mod-company-accent) !important; }
+        .tab-btn--speech.active { background: var(--mod-speech-accent) !important; color: white !important; border-color: var(--mod-speech-accent) !important; }
+        .tab-btn--training.active { background: var(--mod-training-accent) !important; color: white !important; border-color: var(--mod-training-accent) !important; }
+        .tab-btn--progress.active { background: var(--mod-progress-accent) !important; color: white !important; border-color: var(--mod-progress-accent) !important; }
         
+        .sub-tabs-navigation { display: flex; gap: 0.75rem; flex-wrap: wrap; padding: 0.85rem 1.25rem; border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 1rem 1rem; box-shadow: 0 4px 6px -2px rgba(16, 35, 63, 0.04); }
+        .sub-tabs-overview { background: var(--mod-overview-bg-soft); border-color: var(--mod-overview-border); border-top: 3px solid var(--mod-overview-accent); }
+        .sub-tabs-job { background: var(--mod-job-bg-soft); border-color: var(--mod-job-border); border-top: 3px solid var(--mod-job-accent); }
+        .sub-tabs-company { background: var(--mod-company-bg-soft); border-color: var(--mod-company-border); border-top: 3px solid var(--mod-company-accent); }
+        .sub-tabs-speech { background: var(--mod-speech-bg-soft); border-color: var(--mod-speech-border); border-top: 3px solid var(--mod-speech-accent); }
+        .sub-tabs-training { background: var(--mod-training-bg-soft); border-color: var(--mod-training-border); border-top: 3px solid var(--mod-training-accent); }
+        .sub-tabs-progress { background: var(--mod-progress-bg-soft); border-color: var(--mod-progress-border); border-top: 3px solid var(--mod-progress-accent); }
+
+        .sub-tab-btn { background: var(--bg-card); border: 1px solid var(--border-color); padding: 0.45rem 1.1rem; border-radius: 2rem; font-size: 0.85rem; font-weight: 600; color: var(--text-main); cursor: pointer; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
+        .sub-tabs-overview .sub-tab-btn:hover { background: var(--mod-overview-accent); color: white; border-color: var(--mod-overview-accent); }
+        .sub-tabs-job .sub-tab-btn:hover { background: var(--mod-job-accent); color: white; border-color: var(--mod-job-accent); }
+        .sub-tabs-company .sub-tab-btn:hover { background: var(--mod-company-accent); color: white; border-color: var(--mod-company-accent); }
+        .sub-tabs-speech .sub-tab-btn:hover { background: var(--mod-speech-accent); color: white; border-color: var(--mod-speech-accent); }
+        .sub-tabs-training .sub-tab-btn:hover { background: var(--mod-training-accent); color: white; border-color: var(--mod-training-accent); }
+        .sub-tabs-progress .sub-tab-btn:hover { background: var(--mod-progress-accent); color: white; border-color: var(--mod-progress-accent); }
+
+        .tab-module-overview .bento-card, .tab-module-overview .card, .tab-module-overview .result-card, .tab-module-overview .info-card { border-top: 4px solid var(--mod-overview-accent) !important; }
+        .tab-module-job .bento-card, .tab-module-job .card, .tab-module-job .result-card, .tab-module-job .info-card { border-top: 4px solid var(--mod-job-accent) !important; }
+        .tab-module-company .bento-card, .tab-module-company .card, .tab-module-company .result-card, .tab-module-company .info-card { border-top: 4px solid var(--mod-company-accent) !important; }
+        .tab-module-speech .bento-card, .tab-module-speech .card, .tab-module-speech .result-card, .tab-module-speech .info-card { border-top: 4px solid var(--mod-speech-accent) !important; }
+        .tab-module-training .bento-card, .tab-module-training .card, .tab-module-training .result-card, .tab-module-training .info-card { border-top: 4px solid var(--mod-training-accent) !important; }
+        .tab-module-progress .bento-card, .tab-module-progress .card, .tab-module-progress .result-card, .tab-module-progress .info-card { border-top: 4px solid var(--mod-progress-accent) !important; }
+        
+        /* BANDEAU CANDIDATURE EN COURS */
+        .banner-card {
+          background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(30, 58, 138, 0.05) 100%), var(--bg-card);
+          border: 1px solid var(--border-color);
+          border-left: 5px solid var(--primary);
+          border-radius: 1rem;
+          padding: 1.8rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1.4rem;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        }
+        .banner-top-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
+          padding: 0.35rem 0.85rem;
+          border-radius: 999px;
+          background: rgba(59, 130, 246, 0.12);
+          color: var(--primary);
+          font-size: 0.82rem;
+          font-weight: 700;
+          align-self: flex-start;
+        }
+        .banner-main {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 1.5rem;
+        }
+        .banner-title {
+          font-size: 1.65rem;
+          font-weight: 850;
+          color: var(--text-main);
+          margin: 0 0 0.5rem 0;
+          letter-spacing: -0.02em;
+        }
+        .banner-meta {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 0.6rem;
+          font-size: 0.92rem;
+          color: var(--text-muted);
+        }
+        .banner-meta span { display: inline-flex; align-items: center; gap: 0.4rem; }
+        .banner-dot { opacity: 0.4; }
+        .banner-grid-3 {
+          display: flex;
+          justify-content: space-between;
+          align-items: stretch;
+          flex-wrap: wrap;
+          gap: 1.5rem;
+          width: 100%;
+        }
+        .banner-col-left {
+          flex: 1 1 300px;
+          min-width: 260px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+        .banner-gauges-row {
+          flex: 2.4 1 560px;
+          display: flex;
+          align-items: stretch;
+          gap: 1.25rem;
+        }
+        .banner-gauge-card {
+          flex: 1 1 260px;
+          background: var(--bg-card);
+          border: 1px solid var(--border-color);
+          border-radius: 1.1rem;
+          padding: 1.25rem 1.5rem;
+          display: flex;
+          align-items: center;
+          gap: 1.35rem;
+          box-shadow: 0 4px 14px rgba(16, 35, 63, 0.05);
+          transition: all 0.25s ease;
+          min-width: 0;
+        }
+        .banner-gauge-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 22px rgba(16, 35, 63, 0.09);
+        }
+        .gauge-wrapper-desktop { display: block; flex-shrink: 0; }
+        .gauge-wrapper-mobile { display: none; flex-shrink: 0; }
+        .gauge-submetrics {
+          font-size: 0.82rem;
+          color: var(--text-muted);
+          margin-top: 0.25rem;
+          display: flex;
+          gap: 0.85rem;
+          flex-wrap: wrap;
+        }
+        .indicator-label {
+          font-size: 0.72rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--text-muted);
+          font-weight: 700;
+        }
+        .indicator-value-row {
+          display: flex;
+          align-items: center;
+          gap: 0.8rem;
+        }
+        .indicator-score { font-size: 1.35rem; font-weight: 850; color: #10b981; }
+        .indicator-bar { flex: 1; height: 8px; background: var(--border-color); border-radius: 4px; overflow: hidden; }
+        .indicator-fill { height: 100%; background: #10b981; border-radius: 4px; transition: width 0.5s ease; }
+        .indicator-days { font-size: 1.35rem; font-weight: 850; color: var(--primary); }
+        .banner-actions { display: flex; gap: 0.8rem; flex-wrap: wrap; }
+
+        /* PARCOURS DE PRÉPARATION */
+        .path-stepper-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+          gap: 1rem;
+          margin-top: 0.5rem;
+        }
+        .path-step-card {
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+          border-radius: 0.85rem;
+          padding: 1.1rem;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          gap: 0.7rem;
+        }
+        .step-header { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+        .step-number {
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          background: var(--primary);
+          color: white;
+          font-size: 0.8rem;
+          font-weight: 800;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .step-title { font-weight: 700; font-size: 0.95rem; color: var(--text-main); flex: 1; }
+        .step-badge-ok { background: #dcfce7; color: #16a34a; padding: 0.15rem 0.55rem; border-radius: 1rem; font-size: 0.72rem; font-weight: 700; }
+        .step-badge-warn { background: rgba(245, 158, 11, 0.15); color: #d97706; padding: 0.15rem 0.55rem; border-radius: 1rem; font-size: 0.72rem; font-weight: 700; }
+        .step-badge-blue { background: rgba(59, 130, 246, 0.15); color: var(--primary); padding: 0.15rem 0.55rem; border-radius: 1rem; font-size: 0.72rem; font-weight: 700; }
+        .step-badge-gray { background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border-color); padding: 0.15rem 0.55rem; border-radius: 1rem; font-size: 0.72rem; font-weight: 700; }
+        .step-detail { font-size: 0.82rem; color: var(--text-muted); margin: 0; line-height: 1.4; flex: 1; }
+        .step-action-btn {
+          display: flex;
+          align-items: center;
+          gap: 0.3rem;
+          background: transparent;
+          border: none;
+          color: var(--primary);
+          font-size: 0.82rem;
+          font-weight: 700;
+          cursor: pointer;
+          padding: 0;
+          margin-top: auto;
+        }
+        .step-action-btn:hover { text-decoration: underline; }
+
+        /* PRIORITÉS RECOMMANDÉES */
+        .priorities-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 1.2rem;
+        }
+        .priority-card {
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+          border-left: 4px solid var(--primary);
+          border-radius: 0.85rem;
+          padding: 1.25rem;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          gap: 1rem;
+        }
+        .priority-num {
+          font-size: 1.4rem;
+          font-weight: 900;
+          color: var(--primary);
+          line-height: 1;
+        }
+        .priority-head { font-size: 1rem; font-weight: 750; color: var(--text-main); margin: 0 0 0.4rem 0; line-height: 1.35; }
+        .priority-why { font-size: 0.85rem; color: var(--text-muted); margin: 0; line-height: 1.4; }
+        .btn-primary-action {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          padding: 0.65rem 1rem;
+          background: var(--primary);
+          color: white;
+          border: none;
+          border-radius: 0.5rem;
+          font-weight: 700;
+          font-size: 0.85rem;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .btn-primary-action:hover { filter: brightness(0.95); transform: translateY(-1px); }
+
+        /* CARTES FAMILLES */
+        .families-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          gap: 1.1rem;
+        }
+        .family-card {
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+          border-radius: 0.85rem;
+          padding: 1.2rem;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          gap: 0.9rem;
+        }
+        .family-head { display: flex; align-items: center; gap: 0.6rem; }
+        .family-head h4 { font-size: 1rem; font-weight: 750; margin: 0; color: var(--text-main); }
+        .family-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.83rem; color: var(--text-muted); }
+        .family-status { font-size: 0.78rem; font-weight: 600; color: var(--primary); background: rgba(59, 130, 246, 0.08); padding: 0.4rem 0.7rem; border-radius: 0.5rem; }
+        .family-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.4rem;
+          background: var(--bg-card);
+          border: 1px solid var(--border-color);
+          border-radius: 0.5rem;
+          padding: 0.55rem 0.8rem;
+          font-size: 0.82rem;
+          font-weight: 700;
+          color: var(--text-main);
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .family-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+        /* WIDGET PROFIL STRATÉGIQUE */
+        .widget-profile-grid {
+          display: grid;
+          grid-template-columns: 1.3fr 1fr;
+          gap: 1.8rem;
+        }
+        @media (max-width: 850px) { .widget-profile-grid { grid-template-columns: 1fr; } }
+        .widget-scores-col { display: flex; flex-direction: column; gap: 0.75rem; }
+        .widget-score-row { display: flex; align-items: center; gap: 0.75rem; }
+        .widget-score-label { font-size: 0.88rem; font-weight: 600; color: var(--text-main); width: 170px; flex-shrink: 0; }
+        .widget-score-bar { flex: 1; height: 8px; background: var(--border-color); border-radius: 4px; overflow: hidden; }
+        .widget-score-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+        .widget-score-num { font-size: 0.88rem; font-weight: 750; color: var(--text-main); width: 48px; text-align: right; flex-shrink: 0; }
+        .widget-feedback-box {
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+          border-radius: 0.85rem;
+          padding: 1.25rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.8rem;
+          justify-content: space-between;
+        }
+        .feedback-tag { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: #d97706; }
+        .feedback-text { font-size: 0.9rem; color: var(--text-main); margin: 0; line-height: 1.45; }
+        .feedback-rec { font-size: 0.85rem; color: var(--text-muted); background: var(--bg-card); padding: 0.7rem 0.9rem; border-radius: 0.5rem; border-left: 3px solid var(--primary); }
+
         /* BENTO GRID CSS */
         .bento-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; grid-auto-rows: minmax(150px, auto); }
         .bento-card { background: var(--bg-card); border-radius: 1rem; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid var(--border-color); border-top: 3px solid var(--primary); display: flex; flex-direction: column; position: relative; overflow: hidden; color: var(--text-main); }
@@ -843,11 +1689,11 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
         .teleprompter-controls { position: absolute; bottom: 2rem; display: flex; gap: 1rem; }
         
         /* Notifications & Animations */
-        .notification-dot { position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; background-color: #ef4444; border-radius: 50%; border: 2px solid var(--bg-card); animation: pulse-dot 2s infinite; }
+        .notification-dot { position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; background-color: #EF6461; border-radius: 50%; border: 2px solid var(--bg-card); animation: pulse-dot 2s infinite; }
         @keyframes pulse-dot {
-          0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-          70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+          0% { box-shadow: 0 0 0 0 rgba(239, 100, 97, 0.7); }
+          70% { box-shadow: 0 0 0 6px rgba(239, 100, 97, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(239, 100, 97, 0); }
         }
         @keyframes pulse-new {
           0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
@@ -858,6 +1704,15 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
 
         /* --- RESPONSIVE & MOBILE OPTIMIZATIONS --- */
         @media (max-width: 768px) {
+          .banner-card { padding: 1.25rem !important; gap: 1rem !important; }
+          .banner-grid-3 { flex-direction: column; align-items: stretch; gap: 1rem; }
+          .banner-col-left { min-width: 0; }
+          .banner-gauges-row { flex-direction: column; gap: 0.65rem; width: 100%; flex: auto; }
+          .banner-gauge-card { padding: 0.65rem 0.85rem; gap: 0.8rem; min-width: 0; width: 100%; box-sizing: border-box; border-radius: 0.75rem; }
+          .gauge-wrapper-desktop { display: none !important; }
+          .gauge-wrapper-mobile { display: block !important; }
+          .gauge-submetrics { font-size: 0.75rem; gap: 0.5rem; }
+
           .bento-grid { grid-template-columns: 1fr !important; }
           .bento-card.col-span-2, .bento-card.col-span-3 { grid-column: span 1 !important; }
           .bento-card.row-span-2 { grid-row: auto !important; }

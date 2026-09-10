@@ -9,6 +9,7 @@ import { AsyncBoundary } from './AsyncBoundary';
 import AutoResizeTextarea from './AutoResizeTextarea';
 import { useVideoRecorder } from '../hooks/useVideoRecorder';
 import { VideoPreview } from './VideoPreview';
+import { Button } from './common';
 
 interface VocalPitchTrainerProps {
   targetJob?: string;
@@ -235,24 +236,24 @@ export const VocalPitchTrainer = ({ targetJob = "", targetCompany, jobDescriptio
 
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
             {isRecording || videoRecorder.isVideoRecording ? (
-              <button onClick={stopRecording} className="btn-primary" style={{ background: '#ef4444', borderColor: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem', fontSize: '1.1rem', animation: 'pulse-record 1.5s infinite' }}>
-                <Square size={20} /> Arrêter l'enregistrement
-              </button>
+              <Button variant="danger" size="lg" icon={<Square size={20} />} onClick={stopRecording}>
+                Arrêter l'enregistrement
+              </Button>
             ) : (
               <>
-                <button onClick={startRecording} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 1.5rem', fontSize: '1rem' }}>
-                  <Mic size={20} /> {transcript ? "Recommencer (Vocal)" : "Enregistrer Vocal"}
-                </button>
-                <button onClick={startVideoRecording} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 1.5rem', fontSize: '1rem' }}>
-                  <Video size={20} /> {transcript ? "Recommencer (Vidéo)" : "Enregistrer Vidéo"}
-                </button>
+                <Button variant="secondary" module="training" size="md" icon={<Mic size={20} />} onClick={startRecording}>
+                  {transcript ? "Recommencer (Vocal)" : "Enregistrer Vocal"}
+                </Button>
+                <Button variant="secondary" module="training" size="md" icon={<Video size={20} />} onClick={startVideoRecording}>
+                  {transcript ? "Recommencer (Vidéo)" : "Enregistrer Vidéo"}
+                </Button>
                 {transcript.trim().length > 0 && (
-                  <button onClick={() => {
+                  <Button variant="primary" module="training" size="md" icon={<Activity size={20} />} onClick={() => {
                     if (seconds < 5) { alert("L'enregistrement est trop court pour une analyse pertinente."); return; }
                     analyzePitch();
-                  }} className="btn-primary" style={{ background: '#10b981', borderColor: '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem', fontSize: '1.1rem' }}>
-                    <Activity size={20} /> Analyser ma prestation
-                  </button>
+                  }}>
+                    Analyser ma prestation
+                  </Button>
                 )}
               </>
             )}
@@ -322,9 +323,9 @@ export const VocalPitchTrainer = ({ targetJob = "", targetCompany, jobDescriptio
           </div>
 
           <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-            <button onClick={() => { setResult(null); setTranscript(""); setSeconds(0); }} className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-              <RotateCcw size={16} /> Refaire un essai
-            </button>
+            <Button variant="secondary" module="training" icon={<RotateCcw size={16} />} onClick={() => { setResult(null); setTranscript(""); setSeconds(0); }}>
+              Refaire un essai
+            </Button>
           </div>
         </div>
       )}

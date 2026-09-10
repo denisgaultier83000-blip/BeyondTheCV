@@ -3,6 +3,7 @@ import { AlertTriangle, X, Target, CheckCircle, Lightbulb, Clock } from 'lucide-
 import Gauge from './Gauge';
 import { DashboardCard } from './DashboardCard';
 import { FeedbackWidget } from './FeedbackWidget';
+import { Button } from './common';
 
 export const GapAnalysisFull = ({ data, loading, onBack }: { data: any, loading?: boolean, onBack: () => void }) => {
   // Normalisation robuste des données
@@ -33,7 +34,7 @@ export const GapAnalysisFull = ({ data, loading, onBack }: { data: any, loading?
       errorText="L'analyse des écarts n'a pas pu être chargée."
       featureId="gap_analysis"
       feedbackQuestion="Cette analyse d'écarts vous semble-t-elle pertinente et actionable ?"
-      headerAction={<button onClick={onBack} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><X size={16} /> Retour</button>}
+      headerAction={<Button variant="secondary" size="sm" icon={<X size={16} />} onClick={onBack}>Retour</Button>}
     >
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2.5rem' }}>
         <Gauge score={match_score} color={scoreColor} />

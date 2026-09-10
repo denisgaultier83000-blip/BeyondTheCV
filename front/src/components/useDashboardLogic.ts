@@ -21,11 +21,13 @@ const INITIAL_DATA = {
   interests: [],
   languages: [],
   free_text: "",
+  off_cv_text: "",
+  differentiators: [],
   clarifications: [], // Pour stocker les réponses aux questions générées
   provider: "gemini"
 };
 
-const TESTER_SESSION_CAP = 30;
+const TESTER_SESSION_CAP = 150;
 
 const LEGACY_TASK_KEY_MAP: Record<string, string> = {
   flaws: 'flaw_coaching',
@@ -63,7 +65,7 @@ const normalizeTrainingQuotas = (data: any) => {
     regeneration: credits,
     update: credits,
     entreprises: Number(data?.entreprises ?? data?.quota_entreprises ?? 5),
-    offres: Number(data?.offres ?? data?.quota_offres ?? 15),
+    offres: Number(data?.offres ?? data?.quota_offres ?? 5),
   };
 };
 
@@ -290,7 +292,7 @@ export function useDashboardLogic() {
           regeneration: toEffectiveSessionQuota(parsed?.regeneration ?? parsed?.quota_regeneration),
           update: toEffectiveSessionQuota(parsed?.update ?? parsed?.quota_update),
           entreprises: Number(parsed?.entreprises ?? parsed?.quota_entreprises ?? 5),
-          offres: Number(parsed?.offres ?? parsed?.quota_offres ?? 15),
+          offres: Number(parsed?.offres ?? parsed?.quota_offres ?? 5),
         };
       }
     } catch (e) {
@@ -306,7 +308,7 @@ export function useDashboardLogic() {
       regeneration: 30,
       update: 30,
       entreprises: 5,
-      offres: 15,
+      offres: 5,
     };
   });
 
@@ -694,6 +696,7 @@ export function useDashboardLogic() {
     localStorage.removeItem("salaryResult");
     localStorage.removeItem("pilotData");
     localStorage.removeItem("pilotSignature");
+    localStorage.removeItem("btcv_target_tree");
     // etc. pour tous les résultats
     Object.keys(localStorage).forEach(key => {
       if (key.endsWith("Result")) localStorage.removeItem(key);

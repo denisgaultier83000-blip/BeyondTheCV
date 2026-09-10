@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { DifferentiatorsSection } from './DifferentiatorsSection';
+import { Button } from './common';
 import {
   RadarChart as RechartsRadarChart,
   PolarGrid,
@@ -197,7 +199,8 @@ export function StrategicProfileTab({ onNavigate, profileCompletion, profileReco
     flawCoachingResult,
     jobDecoderResult,
     actionPlanResult,
-    customScenariosResult
+    customScenariosResult,
+    updateFormData
   } = useDashboard();
   const [mode, setMode] = useState<ProfileMode>('general');
   const [showScoringHelp, setShowScoringHelp] = useState(false);
@@ -342,7 +345,7 @@ export function StrategicProfileTab({ onNavigate, profileCompletion, profileReco
     ].filter(hasContent).length;
 
     const salaryRangeReady = hasContent(salaryResult?.salary_range);
-    const salaryExpectationsReady = hasContent(cvData?.salary_expectations);
+    const salaryExpectationsReady = hasContent(cvData?.salary_expectations) || hasContent(cvData?.salary_min) || hasContent(cvData?.salary_max);
     const negotiationHistory = Array.isArray(cvData?.negotiationHistory) ? cvData.negotiationHistory : [];
     const negotiationAverage = average(
       negotiationHistory.map((entry: any) => toNumber(entry?.feedback?.score)).filter((value: number) => value > 0)
@@ -786,6 +789,12 @@ export function StrategicProfileTab({ onNavigate, profileCompletion, profileReco
         </div>
       </DashboardCard>
 
+      <DifferentiatorsSection
+        cvData={cvData}
+        offCvText={cvData?.off_cv_text}
+        onOffCvTextChange={(txt) => updateFormData && updateFormData('off_cv_text', txt)}
+      />
+
       <DashboardCard
         title="Profil stratégique évolutif"
         icon={<Sparkles size={24} />}
@@ -897,9 +906,9 @@ export function StrategicProfileTab({ onNavigate, profileCompletion, profileReco
                 <div style={{ color: 'var(--text-main)', fontWeight: 600, fontSize: '0.92rem' }}>
                   Domaine concerné : {axis.label} · {axis.level} ({axis.score}/100)
                 </div>
-                <button className="btn-primary" onClick={() => onNavigate(axis.targetTab, axis.targetAnchor)} style={{ alignSelf: 'flex-start', padding: '0.65rem 1rem' }}>
+                <Button variant="primary" module="progress" onClick={() => onNavigate(axis.targetTab, axis.targetAnchor)} style={{ alignSelf: 'flex-start' }}>
                   {axis.recommendationAction}
-                </button>
+                </Button>
               </div>
             ))}
           </div>
@@ -1106,16 +1115,17 @@ export function StrategicProfileTab({ onNavigate, profileCompletion, profileReco
               ))}
             </div>
 
-            <button
-              className="btn-primary"
-              style={{ width: '100%' }}
+            <Button
+              variant="primary"
+              module="progress"
+              fullWidth
               onClick={() => {
                 onNavigate(selectedAxis.targetTab, selectedAxis.targetAnchor);
                 setSelectedAxis(null);
               }}
             >
               {selectedAxis.recommendationAction}
-            </button>
+            </Button>
           </div>
         </div>
       )}

@@ -124,6 +124,7 @@ class FullCVData(BaseModel):
 # --- [NOUVEAU] Modèle pour le débrief d'entretien ---
 class InterviewDebriefRequest(BaseModel):
     """Modèle pour la création d'un nouveau compte rendu d'entretien."""
+    application_id: Optional[str] = None
     company_name: Optional[str] = ""
     job_title: Optional[str] = ""
     interview_date: date
@@ -139,6 +140,7 @@ class InterviewDebriefRequest(BaseModel):
     learnings: Optional[str] = ""
     preparation_points: Optional[str] = ""
     interest_level: int = 3
+    message_deliveries: Optional[List[Dict[str, Any]]] = Field(default_factory=list)
 
 # --- Request Models ---
 class GenerateRequest(BaseModel):

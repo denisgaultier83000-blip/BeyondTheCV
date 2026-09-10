@@ -1,0 +1,245 @@
+/* --- BTCV Button Design System & Segmented Control Styles --- */
+
+.btcv-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 8px;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.88rem;
+  line-height: 1.25;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+  text-decoration: none;
+}
+
+.btcv-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Sizes */
+.btcv-btn--sm {
+  height: 32px;
+  padding: 0 0.75rem;
+  font-size: 0.81rem;
+}
+
+.btcv-btn--md {
+  height: 40px;
+  padding: 0 1.1rem;
+  font-size: 0.88rem;
+}
+
+.btcv-btn--lg {
+  height: 48px;
+  padding: 0 1.5rem;
+  font-size: 1rem;
+}
+
+.btcv-btn--full {
+  width: 100%;
+}
+
+/* Icons */
+.btcv-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Variants - Module Specific or Default */
+/* 1. Primary (Solid module color) */
+.btcv-btn--primary {
+  color: #ffffff;
+  border: 1px solid transparent;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.btcv-btn--primary.btcv-mod--job {
+  background: var(--mod-job-accent);
+}
+.btcv-btn--primary.btcv-mod--company {
+  background: var(--mod-company-accent);
+}
+.btcv-btn--primary.btcv-mod--speech {
+  background: var(--mod-speech-accent);
+}
+.btcv-btn--primary.btcv-mod--training {
+  background: var(--mod-training-accent);
+}
+.btcv-btn--primary.btcv-mod--progress {
+  background: var(--mod-progress-accent);
+}
+.btcv-btn--primary.btcv-mod--overview {
+  background: var(--mod-overview-accent);
+}
+
+.btcv-btn--primary:hover:not(:disabled) {
+  filter: brightness(0.92);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 2. Secondary (Outline + module color) */
+.btcv-btn--secondary {
+  background: var(--bg-card);
+}
+
+.btcv-btn--secondary.btcv-mod--job {
+  border: 1px solid var(--mod-job-accent);
+  color: var(--mod-job-accent);
+}
+.btcv-btn--secondary.btcv-mod--company {
+  border: 1px solid var(--mod-company-accent);
+  color: var(--mod-company-accent);
+}
+.btcv-btn--secondary.btcv-mod--speech {
+  border: 1px solid var(--mod-speech-accent);
+  color: var(--mod-speech-accent);
+}
+.btcv-btn--secondary.btcv-mod--training {
+  border: 1px solid var(--mod-training-accent);
+  color: var(--mod-training-accent);
+}
+.btcv-btn--secondary.btcv-mod--progress {
+  border: 1px solid var(--mod-progress-accent);
+  color: var(--mod-progress-accent);
+}
+.btcv-btn--secondary.btcv-mod--overview {
+  border: 1px solid var(--mod-overview-accent);
+  color: var(--mod-overview-accent);
+}
+
+.btcv-btn--secondary.btcv-mod--job:hover:not(:disabled) { background: var(--mod-job-bg-soft); }
+.btcv-btn--secondary.btcv-mod--company:hover:not(:disabled) { background: var(--mod-company-bg-soft); }
+.btcv-btn--secondary.btcv-mod--speech:hover:not(:disabled) { background: var(--mod-speech-bg-soft); }
+.btcv-btn--secondary.btcv-mod--training:hover:not(:disabled) { background: var(--mod-training-bg-soft); }
+.btcv-btn--secondary.btcv-mod--progress:hover:not(:disabled) { background: var(--mod-progress-bg-soft); }
+.btcv-btn--secondary.btcv-mod--overview:hover:not(:disabled) { background: var(--mod-overview-bg-soft); }
+
+/* 3. Ghost (Discreet / text-only) */
+.btcv-btn--ghost {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+}
+.btcv-btn--ghost:hover:not(:disabled) {
+  background: rgba(16, 35, 63, 0.05);
+  color: var(--text-main);
+}
+.dark-mode .btcv-btn--ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+/* 4. Success (Validation / Completed) */
+.btcv-btn--success {
+  background: var(--success);
+  color: #ffffff;
+  border: 1px solid transparent;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
+}
+.btcv-btn--success:hover:not(:disabled) {
+  filter: brightness(0.92);
+  transform: translateY(-1px);
+}
+
+/* 5. Danger (Destructive) */
+.btcv-btn--danger {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  border: 1px solid var(--danger-border);
+}
+.btcv-btn--danger:hover:not(:disabled) {
+  background: var(--danger);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+/* --- Segmented Control / Selectors / Chips --- */
+.btcv-segmented-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.btcv-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 32px;
+  padding: 0 0.85rem;
+  border-radius: 6px;
+  font-size: 0.81rem;
+  font-weight: 500;
+  cursor: pointer;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.btcv-chip:hover:not(.btcv-chip--active) {
+  border-color: var(--text-muted);
+  color: var(--text-main);
+  background: var(--bg-secondary);
+}
+
+.btcv-chip--active {
+  font-weight: 700;
+}
+
+.btcv-chip--active.btcv-mod--job {
+  background: var(--mod-job-bg-soft);
+  border-color: var(--mod-job-accent);
+  color: var(--mod-job-accent);
+}
+.btcv-chip--active.btcv-mod--company {
+  background: var(--mod-company-bg-soft);
+  border-color: var(--mod-company-accent);
+  color: var(--mod-company-accent);
+}
+.btcv-chip--active.btcv-mod--speech {
+  background: var(--mod-speech-bg-soft);
+  border-color: var(--mod-speech-accent);
+  color: var(--mod-speech-accent);
+}
+.btcv-chip--active.btcv-mod--training {
+  background: var(--mod-training-bg-soft);
+  border-color: var(--mod-training-accent);
+  color: var(--mod-training-accent);
+}
+.btcv-chip--active.btcv-mod--progress {
+  background: var(--mod-progress-bg-soft);
+  border-color: var(--mod-progress-accent);
+  color: var(--mod-progress-accent);
+}
+.btcv-chip--active.btcv-mod--overview {
+  background: var(--mod-overview-bg-soft);
+  border-color: var(--mod-overview-accent);
+  color: var(--mod-overview-accent);
+}
+
+/* --- Layout Helper for Action Rows --- */
+.btcv-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.btcv-action-row--space-between {
+  justify-content: space-between;
+}

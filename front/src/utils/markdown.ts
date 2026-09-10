@@ -2,8 +2,15 @@
  * Parseur Markdown léger et sécurisé pour l'affichage des analyses IA.
  * Gère l'échappement HTML basique, les titres, le gras et les listes à puces.
  */
-export const formatMarkdown = (text: string | null | undefined) => {
+export const formatMarkdown = (text: any) => {
     if (!text) return { __html: "" };
+    if (typeof text !== 'string') {
+      if (typeof text === 'object') {
+        text = JSON.stringify(text);
+      } else {
+        text = String(text);
+      }
+    }
     
     let safeText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   

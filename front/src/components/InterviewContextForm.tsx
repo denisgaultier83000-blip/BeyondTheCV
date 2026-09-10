@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, Monitor, UserCheck, Clock, HeartPulse, Award, Compass, DollarSign, MessageCircle } from 'lucide-react';
 
@@ -11,6 +11,8 @@ export interface InterviewContextData {
   seniority_level: string;
   current_situation: string;
   salary_expectations: string;
+  salary_min: string;
+  salary_max: string;
   coaching_style: string;
 }
 
@@ -20,12 +22,41 @@ interface Props {
   errors?: Record<string, boolean>;
 }
 
+const formatSalaryNumber = (raw: string): string => {
+  const num = Number(raw);
+  if (!Number.isFinite(num) || num <= 0) return '';
+  if (num >= 1000) return `${Math.round(num / 1000)}k€`;
+  return `${num}€`;
+};
+
 export const InterviewContextForm: React.FC<Props> = ({ data, onChange, errors }) => {
   const { t } = useTranslation();
 
   const handleChange = (field: keyof InterviewContextData, value: string) => {
     onChange({ ...data, [field]: value });
   };
+
+  // [FIX] Synchronise la fourchette saisie (min/max) avec le champ legacy salary_expectations
+  // utilisé par le simulateur de négociation et le profil stratégique.
+  useEffect(() => {
+    const min = String(data.salary_min || '').trim();
+    const max = String(data.salary_max || '').trim();
+    if (!min && !max) return;
+
+    let expected = '';
+    if (min && max) {
+      expected = `${formatSalaryNumber(min)} - ${formatSalaryNumber(max)}`;
+    } else if (min) {
+      expected = `à partir de ${formatSalaryNumber(min)}`;
+    } else if (max) {
+      expected = `jusqu'à ${formatSalaryNumber(max)}`;
+    }
+
+    if (expected && expected !== data.salary_expectations) {
+      handleChange('salary_expectations', expected);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.salary_min, data.salary_max]);
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
@@ -194,19 +225,35 @@ export const InterviewContextForm: React.FC<Props> = ({ data, onChange, errors }
           </select>
         </div>
 
-        {/* Salaire visé */}
+        {/* Fourchette salariale (toujours saisissable, y compris pour l'entretien final) */}
         <div>
           <label className="flex items-center gap-2 text-sm font-medium text-[#446285] mb-2">
             <DollarSign className="w-4 h-4" />
-            Prétentions Salariales
+            Fourchette de négociation salariale
           </label>
-          <input
-            type="text"
-            placeholder="Ex: 45k€, Négociable..."
-            value={data.salary_expectations || ''}
-            onChange={(e) => handleChange('salary_expectations', e.target.value)}
-            className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#6DBEF7] focus:border-[#6DBEF7] outline-none bg-white transition-all"
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              type="number"
+              inputMode="numeric"
+              min="0"
+              placeholder="Basse (€ brut/an)"
+              value={data.salary_min || ''}
+              onChange={(e) => handleChange('salary_min', e.target.value)}
+              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#6DBEF7] focus:border-[#6DBEF7] outline-none bg-white transition-all"
+            />
+            <input
+              type="number"
+              inputMode="numeric"
+              min="0"
+              placeholder="Haute (€ brut/an)"
+              value={data.salary_max || ''}
+              onChange={(e) => handleChange('salary_max', e.target.value)}
+              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#6DBEF7] focus:border-[#6DBEF7] outline-none bg-white transition-all"
+            />
+          </div>
+          <p className="text-xs text-gray-500 mt-1">
+            Définissez dès maintenant votre plancher et votre plafond pour la négociation avec la Direction.
+          </p>
         </div>
       </div>
     </div>

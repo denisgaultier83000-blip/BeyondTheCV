@@ -50,8 +50,22 @@ export function CareerRealityCheck({ data, loading, error, score }: Props) {
   };
 
   // Parseur minimaliste pour interpréter le **gras** (Markdown) renvoyé par l'IA
-  const formatMarkdown = (text: string) => {
-    if (!text) return null;
+  const formatMarkdown = (text: any) => {
+    if (text === null || text === undefined) return null;
+    if (typeof text !== 'string') {
+      if (Array.isArray(text)) {
+        return text.map((item, idx) => (
+          <React.Fragment key={idx}>
+            {formatMarkdown(item)}
+            {idx < text.length - 1 ? ' ' : ''}
+          </React.Fragment>
+        ));
+      }
+      if (typeof text === 'object') {
+        return JSON.stringify(text);
+      }
+      text = String(text);
+    }
     const parts = text.split(/(\*\*.*?\*\*)/g);
     return parts.map((part, i) => {
       if (part.startsWith('**') && part.endsWith('**')) {

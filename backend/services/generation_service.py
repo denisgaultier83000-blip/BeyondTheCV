@@ -55,6 +55,8 @@ async def rerun_generation(
             "hidden_market": tasks.process_hidden_market_in_background,
             "reality_check": tasks.process_reality_check_in_background,
             "market_research": tasks.process_research_in_background,
+            "career_radar": tasks.process_career_radar_in_background,
+            "career_gps": tasks.process_career_gps_in_background,
         }
 
         process_function = task_functions.get(task_name)

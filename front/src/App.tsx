@@ -27,6 +27,7 @@ import { LoadingScreen } from './components/LoadingScreen';
 import DocumentsModal from './components/DocumentsModal';
 import PackStatusWidget from './components/PackStatusWidget';
 import ConfirmAnalysisModal from './components/ConfirmAnalysisModal';
+import DeleteAccountModal from './components/DeleteAccountModal';
 import { API_BASE_URL } from './config';
 import { authenticatedFetch } from './utils/auth';
 import './index.css';
@@ -42,6 +43,17 @@ function Step6Ghost({ onNext, t }: { onNext: () => void, t: any }) {
 
   return <LoadingScreen title={t('loading_strat_title', "Creation de votre profil strategique...")} description={t('loading_strat_desc', "Analyse de vos experiences et exigences du marche...")} />;
 }
+
+const getCurrentUserId = (): string | null => {
+  try {
+    const raw = localStorage.getItem('user');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.id || null;
+  } catch {
+    return null;
+  }
+};
 
 function AppContent() {
   const navigate = useNavigate();
@@ -76,6 +88,7 @@ function AppContent() {
   // --- Ãƒâ€°tats de l'interface ---
   const [showAdmin, setShowAdmin] = useState(false);
   const [showCGU, setShowCGU] = useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showLegal, setShowLegal] = useState(false);
   const [showLanding, setShowLanding] = useState(true);
@@ -89,14 +102,17 @@ function AppContent() {
   const [restoredData, setRestoredData] = useState<any>(null);
   const [lastSaveTime, setLastSaveTime] = useState<Date | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [currentQuotas, setCurrentQuotas] = useState<{ entreprises: number; offres: number; credits: number }>({ entreprises: 5, offres: 15, credits: 30 });
+  const [currentQuotas, setCurrentQuotas] = useState<{ entreprises: number; offres: number; credits: number }>({ entreprises: 5, offres: 5, credits: 150 });
   const [analysisPreview, setAnalysisPreview] = useState<AnalysisPreview | null>(null);
   const [isCheckingAnalysisPreview, setIsCheckingAnalysisPreview] = useState(false);
   const [quotaRefreshToken, setQuotaRefreshToken] = useState(0);
   const [onboardingCompleted, setOnboardingCompleted] = useState(false);
   const [targetTree, setTargetTree] = useState<TargetNode[]>(() => {
     try {
-      const raw = localStorage.getItem('btcv_target_tree');
+      localStorage.removeItem('btcv_target_tree'); // Purge legacy shared key
+      const userId = getCurrentUserId();
+      if (!userId) return [];
+      const raw = localStorage.getItem(`btcv_target_tree_${userId}`);
       if (!raw) return [];
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) return [];
@@ -130,6 +146,7 @@ function AppContent() {
   const { t, i18n } = useTranslation();
   const targetCompaniesUsed = targetTree.length;
   const targetOffersUsed = targetTree.reduce((sum, node) => sum + (Array.isArray(node.jobs) ? node.jobs.length : 0), 0);
+  const remainingCandidatures = targetOffersUsed % 5 === 0 ? 0 : 5 - (targetOffersUsed % 5);
   const {
     isAuthenticated, setIsAuthenticated,
     currentStep, setCurrentStep,
@@ -160,7 +177,7 @@ function AppContent() {
         const next = {
           credits: Number(q?.credits ?? prev.credits ?? 30),
           entreprises: Number(q?.entreprises ?? prev.entreprises ?? 5),
-          offres: Number(q?.offres ?? prev.offres ?? 15),
+          offres: Number(q?.offres ?? prev.offres ?? 5),
         };
         if (
           prev.credits === next.credits &&
@@ -282,9 +299,15 @@ function AppContent() {
 
   const filterPrefixJobs = (jobsList: string[]): string[] => {
     const unique = Array.from(new Set(jobsList.map((j) => normalizeText(j)).filter(Boolean)));
-    unique.sort((a, b) => b.length - a.length);
+    // Si d'autres postes existent, on écarte 'poste non spécifié'
+    const hasSpecificJob = unique.some((j) => !['poste non spécifié', 'non spécifié', 'général'].includes(j.toLowerCase()));
+    const filteredList = hasSpecificJob
+      ? unique.filter((j) => !['poste non spécifié', 'non spécifié', 'général'].includes(j.toLowerCase()))
+      : unique;
+
+    filteredList.sort((a, b) => b.length - a.length);
     const cleaned: string[] = [];
-    for (const job of unique) {
+    for (const job of filteredList) {
       const jobLower = job.toLowerCase();
       const isPrefix = cleaned.some((longer) => longer.toLowerCase().startsWith(jobLower));
       if (!isPrefix) {
@@ -364,13 +387,18 @@ function AppContent() {
         }))
         .filter((node) => node.company);
 
-      if (nodesFromApi.length === 0) return;
+      if (cvData?.target_company) {
+        nodesFromApi.push({
+          company: normalizeText(cvData.target_company),
+          jobs: [normalizeText(cvData.target_job)].filter(Boolean),
+        });
+      }
 
-      setTargetTree((prev) => collapseTargetTree([...prev, ...nodesFromApi]));
+      setTargetTree(collapseTargetTree(nodesFromApi));
     } catch {
       // non-blocking
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, cvData?.target_company, cvData?.target_job]);
 
   // --- Handlers transmis aux composants enfants ---
   const handleChange = (key: string, value: any) => setFormData((prev: any) => ({ ...(prev || {}), [key]: value }));
@@ -678,14 +706,21 @@ function AppContent() {
   useEffect(() => {
     if (!isAuthenticated) return;
     try {
-      localStorage.setItem('btcv_target_tree', JSON.stringify(targetTree));
+      localStorage.removeItem('btcv_target_tree'); // Purge legacy shared key
+      const userId = getCurrentUserId();
+      if (userId) {
+        localStorage.setItem(`btcv_target_tree_${userId}`, JSON.stringify(targetTree));
+      }
     } catch {
       // non-blocking
     }
   }, [targetTree, isAuthenticated]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      setTargetTree([]);
+      return;
+    }
     hydrateTargetTreeFromApplications();
   }, [isAuthenticated, quotaRefreshToken, hydrateTargetTreeFromApplications]);
 
@@ -930,7 +965,7 @@ function AppContent() {
                 setCurrentStep(8);
                 setActiveTab('overview');
               }}
-              onCreateCandidature={handleStartNewApplication}
+              onCreateCandidature={handleStartNewCompany}
             />
             {/* Exemple d'intÃƒÂ©gration si vous appelez ApplicationDossier depuis App.tsx : */}
             {/* <ApplicationDossier onGoToTraining={() => { setActiveTab('training'); setCurrentStep(8); }} /> */}
@@ -1167,7 +1202,17 @@ function AppContent() {
         onStartNewApplication={handleStartNewApplication}
         targetTree={targetTree}
         onSelectTargetNode={handleSelectTargetNode}
-        onLogout={() => { localStorage.removeItem('token'); localStorage.removeItem('user'); resetDashboard(); setIsAuthenticated(false); navigate('/login', { replace: true }); }} 
+        onLogout={() => { 
+          localStorage.removeItem('token'); 
+          localStorage.removeItem('user'); 
+          localStorage.removeItem('btcv_target_tree');
+          const uid = getCurrentUserId();
+          if (uid) localStorage.removeItem(`btcv_target_tree_${uid}`);
+          setTargetTree([]);
+          resetDashboard(); 
+          setIsAuthenticated(false); 
+          navigate('/login', { replace: true }); 
+        }} 
         onLanguageChange={handleLanguageChange} 
         steps={CAREER_EDGE_STEPS}
         currentStep={currentStep}
@@ -1200,30 +1245,30 @@ function AppContent() {
               }
             }} /> :
           (<div className="candidate-layout" style={{ paddingTop: '100px', paddingBottom: '2rem' }}>
-            {/* Sidebar stepper â€” visible on desktop (>= 1024px) */}
+            {/* Sidebar stepper — visible on desktop (>= 1024px) */}
             <aside className="candidate-sidebar">
               <WizardStepper
                 steps={CAREER_EDGE_STEPS}
                 currentStep={currentStep}
                 onStepClick={setCurrentStep}
                 orientation="vertical"
-                navigationMode={onboardingCompleted}
+                navigationMode={true}
                 completedStepIds={getCompletedStepIds(cvData)}
               />
               <div className="quota-summary-desktop" style={{ marginTop: '0.9rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', boxShadow: 'var(--shadow-sm)', padding: '0.85rem 0.9rem', fontSize: '0.82rem', color: 'var(--text-main)', lineHeight: 1.45 }}>
-                <div style={{ fontWeight: 700, marginBottom: '0.2rem' }}>Séances d'entraînement</div>
+                <div style={{ fontWeight: 700, marginBottom: '0.2rem' }}>Candidatures</div>
+                <div>{targetOffersUsed} sur 5 utilisée{targetOffersUsed > 1 ? 's' : ''} - {Math.max(0, 5 - targetOffersUsed)} restante{Math.max(0, 5 - targetOffersUsed) > 1 ? 's' : ''}</div>
+                <div style={{ fontWeight: 700, marginTop: '0.45rem', marginBottom: '0.2rem' }}>Séances d'entraînement</div>
                 <div>{currentQuotas.credits} restante{currentQuotas.credits > 1 ? 's' : ''}</div>
-                <div style={{ fontWeight: 700, marginTop: '0.45rem', marginBottom: '0.2rem' }}>Entreprises ciblées</div>
-                <div>{targetCompaniesUsed} sur 5 utilisée{targetCompaniesUsed > 1 ? 's' : ''} - {Math.max(0, 5 - targetCompaniesUsed)} restante{Math.max(0, 5 - targetCompaniesUsed) > 1 ? 's' : ''}</div>
-                <div style={{ fontWeight: 700, marginTop: '0.45rem', marginBottom: '0.2rem' }}>Offres préparées</div>
-                <div>{targetOffersUsed} sur 15 utilisée{targetOffersUsed > 1 ? 's' : ''} - {Math.max(0, 15 - targetOffersUsed)} restante{Math.max(0, 15 - targetOffersUsed) > 1 ? 's' : ''}</div>
               </div>
               {onboardingCompleted && (
                 <div style={{ marginTop: '0.9rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', boxShadow: 'var(--shadow-sm)', padding: '0.85rem 0.9rem' }}>
                   <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>MES CIBLES</div>
                   <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.6rem' }}>
                     <button className="btn-outline" style={{ fontSize: '0.75rem', padding: '0.3rem 0.45rem' }} onClick={handleStartNewCompany}>+ Entreprise</button>
-                    <button className="btn-primary" style={{ fontSize: '0.75rem', padding: '0.3rem 0.45rem' }} onClick={handleStartNewApplication}>+ Candidature</button>
+                    {remainingCandidatures > 0 && (
+                      <button className="btn-primary" style={{ fontSize: '0.75rem', padding: '0.3rem 0.45rem' }} onClick={handleStartNewApplication}>+ Candidature ({remainingCandidatures})</button>
+                    )}
                   </div>
                   <div style={{ display: 'grid', gap: '0.4rem', maxHeight: '300px', overflowY: 'auto' }}>
                     {targetTree.length === 0 ? (
@@ -1244,14 +1289,14 @@ function AppContent() {
               )}
             </aside>
 
-            {/* Horizontal stepper â€” visible on mobile / tablet (< 1024px) */}
+            {/* Horizontal stepper — visible on mobile / tablet (< 1024px) */}
             <div className="candidate-stepper-mobile" style={{ display: onboardingCompleted ? 'none' : undefined }}>
               <WizardStepper
                 steps={CAREER_EDGE_STEPS}
                 currentStep={currentStep}
                 onStepClick={setCurrentStep}
                 orientation="horizontal"
-                navigationMode={onboardingCompleted}
+                navigationMode={true}
                 completedStepIds={getCompletedStepIds(cvData)}
               />
             </div>
@@ -1351,8 +1396,11 @@ function AppContent() {
         )}
         <button className="btn-ghost" onClick={() => setShowLegal(true)}>{t('footer_legal', 'Mentions Légales')}</button><span>|</span>
         <button className="btn-ghost" onClick={() => setShowCGU(true)}>{t('footer_cgu', 'CGU')}</button><span>|</span>
-        <button className="btn-ghost" onClick={() => setShowPrivacy(true)}>{t('footer_privacy', 'Politique de Confidentialite')}</button>
+        <button className="btn-ghost" onClick={() => setShowPrivacy(true)}>{t('footer_privacy', 'Politique de Confidentialité')}</button><span>|</span>
+        <button className="btn-ghost" onClick={() => setShowDeleteAccount(true)} style={{ color: '#ef4444' }}>Supprimer mon compte</button>
       </footer>
+
+      <DeleteAccountModal isOpen={showDeleteAccount} onClose={() => setShowDeleteAccount(false)} />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useDashboard } from '../hooks/DashboardContext';
 import { DebriefDetail } from './DebriefDetail';
 import { authenticatedFetch } from '../utils/auth';
 import { API_BASE_URL } from '../config';
+import { Button } from './common';
 
 interface DebriefSummary {
   id: string;
@@ -74,9 +75,9 @@ const DebriefTab = () => {
             Transformez chaque entretien en avantage stratégique pour le suivant.
           </p>
         </div>
-        <button className="btn-primary" onClick={() => { setEditingDebriefId(null); setIsModalOpen(true); }} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Plus size={18} /> Enregistrer un Entretien
-        </button>
+        <Button variant="primary" module="progress" icon={<Plus size={18} />} onClick={() => { setEditingDebriefId(null); setIsModalOpen(true); }}>
+          Enregistrer un Entretien
+        </Button>
       </div>
 
       {/* Timeline / Historique */}
@@ -114,20 +115,22 @@ const DebriefTab = () => {
                         </div>
                         <p style={{ margin: 0, color: 'var(--text-muted)', fontStyle: 'italic' }}>{debrief.job_title}</p>
                       </div>
-                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        <button onClick={() => setEditingDebriefId(debrief.id)} className="btn-ghost" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <Edit size={16} /> Modifier
-                        </button>
-                        <button onClick={() => { setAnalyzeOnOpen(false); setSelectedDebriefId(debrief.id); }} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <ArrowRight size={16} /> Voir le Débrief
-                        </button>
-                        <button 
-                          onClick={() => { setAnalyzeOnOpen(true); setSelectedDebriefId(debrief.id); }} 
-                          className="btn-primary" 
-                          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--primary)' }}
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <Button variant="ghost" size="sm" icon={<Edit size={16} />} onClick={() => setEditingDebriefId(debrief.id)}>
+                          Modifier
+                        </Button>
+                        <Button variant="secondary" module="progress" size="sm" icon={<ArrowRight size={16} />} onClick={() => { setAnalyzeOnOpen(false); setSelectedDebriefId(debrief.id); }}>
+                          Voir le Débrief
+                        </Button>
+                        <Button 
+                          variant="primary"
+                          module="progress"
+                          size="sm"
+                          icon={<Zap size={16} />}
+                          onClick={() => { setAnalyzeOnOpen(true); setSelectedDebriefId(debrief.id); }}
                         >
-                          <Zap size={16} /> Préparer la suite
-                        </button>
+                          Préparer la suite
+                        </Button>
                       </div>
                     </div>
                     {debrief.interlocutor_name && (

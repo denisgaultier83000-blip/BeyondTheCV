@@ -12,8 +12,10 @@ interface CompanyAnalysisCardProps {
 
 export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCardProps) {
   const { t } = useTranslation();
-  const companyName = data?.company || t('default_target_company', "Entreprise Ciblée");
-  const report = data?.company_report || data?.synthesis || {};
+  // [FIX] Afficher la carte même sans données (placeholder) au lieu de la faire disparaître.
+  const safeData = data || {};
+  const companyName = safeData.company || t('default_target_company', "Entreprise Ciblée");
+  const report = safeData.company_report || safeData.synthesis || {};
   
   const isValid = (val: any) => {
     if (!val || typeof val !== 'string' || val.trim() === "") return false;
@@ -23,7 +25,9 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
   };
   
   const rawDna = report.identity_dna || report.overview;
-  const dna = isValid(rawDna) ? rawDna : "Les données web sont temporairement indisponibles (Timeout de recherche).";
+  const dna = isValid(rawDna)
+    ? rawDna
+    : "Nous n'avons pas pu identifier cette entreprise avec suffisamment de certitude dans le temps imparti. Vérifiez le nom de l'entreprise ou réessayez.";
   const figures = report.key_figures;
   const finance = report.financial_health;
   const leadership = report.leadership;
@@ -118,8 +122,7 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
       featureId="company_report"
       feedbackQuestion={t('company_feedback_q', "Ce dossier de préparation vous donne-t-il un avantage ?")}
     >
-      {data && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', width: '100%' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', width: '100%' }}>
           
           {/* Section 1 : Identité & Business */}
           <div>
@@ -296,7 +299,6 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
           )}
 
         </div>
-      )}
     </DashboardCard>
   );
 }

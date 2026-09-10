@@ -4,10 +4,23 @@ interface GaugeProps {
   score: number; // 0-100
   color: string;
   trackColor?: string;
+  size?: number;
+  strokeWidth?: number;
+  subText?: string;
+  fontSize?: string;
 }
 
-export default function Gauge({ score, color, trackColor = "#e2e8f0" }: GaugeProps) {
-  const radius = 52;
+export default function Gauge({
+  score,
+  color,
+  trackColor = "var(--border-color, #e2e8f0)",
+  size = 140,
+  strokeWidth = 12,
+  subText = "/ 100",
+  fontSize
+}: GaugeProps) {
+  const center = size / 2;
+  const radius = (size - strokeWidth * 2) / 2;
   const circumference = 2 * Math.PI * radius;
   
   const safeScore = (score === undefined || score === null || isNaN(score)) ? 0 : score;
@@ -27,8 +40,11 @@ export default function Gauge({ score, color, trackColor = "#e2e8f0" }: GaugePro
     }
   }, [safeScore]);
 
+  const defaultFontSize = fontSize || `${Math.max(1.1, size / 55)}rem`;
+  const defaultSubFontSize = `${Math.max(0.65, size / 160)}rem`;
+
   return (
-    <div style={{ position: 'relative', width: '140px', height: '140px', animation: highlight ? 'gauge-pulse 1.5s ease-out' : 'none', borderRadius: '50%' }}>
+    <div style={{ position: 'relative', width: `${size}px`, height: `${size}px`, animation: highlight ? 'gauge-pulse 1.5s ease-out' : 'none', borderRadius: '50%', flexShrink: 0 }}>
       <style>{`
         @keyframes gauge-pulse {
           0% { transform: scale(1); filter: drop-shadow(0 0 0px transparent); }
@@ -37,27 +53,27 @@ export default function Gauge({ score, color, trackColor = "#e2e8f0" }: GaugePro
         }
       `}</style>
       <svg
-        width="140"
-        height="140"
-        viewBox="0 0 120 120"
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
         style={{ transform: 'rotate(-90deg)' }}
       >
         {/* Cercle de fond (la piste grise) */}
         <circle
-          cx="60"
-          cy="60"
+          cx={center}
+          cy={center}
           r={radius}
           stroke={trackColor}
-          strokeWidth="12"
+          strokeWidth={strokeWidth}
           fill="transparent"
         />
         {/* Arc de progression (la jauge colorée) */}
         <circle
-          cx="60"
-          cy="60"
+          cx={center}
+          cy={center}
           r={radius}
           stroke={color}
-          strokeWidth="12"
+          strokeWidth={strokeWidth}
           fill="transparent"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
@@ -70,10 +86,11 @@ export default function Gauge({ score, color, trackColor = "#e2e8f0" }: GaugePro
         style={{
           position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          lineHeight: 1
         }}
       >
-      <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: color }}>{safeScore > 0 ? safeScore : '-'}</span>
-        <span style={{ fontSize: '1rem', color: '#94a3b8', marginTop: '-5px' }}>/ 100</span>
+        <span style={{ fontSize: defaultFontSize, fontWeight: 900, color: color }}>{safeScore > 0 ? safeScore : '-'}</span>
+        {subText && <span style={{ fontSize: defaultSubFontSize, color: 'var(--text-muted)', marginTop: '2px', fontWeight: 600 }}>{subText}</span>}
       </div>
     </div>
   );

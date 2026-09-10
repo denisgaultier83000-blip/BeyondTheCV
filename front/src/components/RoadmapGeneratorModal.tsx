@@ -5,6 +5,7 @@ import { useDashboard } from '../hooks/DashboardContext';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { BulletList } from './BulletList';
+import { Button } from './common';
 
 interface RoadmapGeneratorModalProps {
   onClose: () => void;
@@ -49,7 +50,24 @@ export default function RoadmapGeneratorModal({ onClose }: RoadmapGeneratorModal
       }
 
       const data = await response.json();
-      setResult(data.roadmap);
+      const raw = data.roadmap || {};
+      const normalized = {
+        title: raw.title || "Feuille de Route Détaillée pour votre Entretien",
+        recruiter_focus: raw.recruiter_focus || raw.signals_to_observe?.signals || [],
+        key_messages: raw.key_messages || raw.last_hour_plan?.steps || [],
+        golden_rules: raw.golden_rules || [],
+        mistakes_to_avoid: raw.mistakes_to_avoid || [],
+        pre_interview_checklist: raw.pre_interview_checklist || {
+          h_minus_24: raw.last_hour_plan?.steps?.slice(0, 3) || [],
+          h_minus_1: raw.last_hour_plan?.steps?.slice(3, 6) || [],
+          h_minus_5: raw.last_hour_plan?.steps?.slice(6) || []
+        },
+        opening_statement: raw.opening_statement || "",
+        closing_statement: raw.closing_statement || "",
+        posture_advice: raw.posture_advice || raw.questions_to_ask?.intro || "",
+        contingency_plan: raw.contingency_plan || []
+      };
+      setResult(normalized);
 
     } catch (err: any) {
       setError(err.message);
@@ -160,14 +178,16 @@ export default function RoadmapGeneratorModal({ onClose }: RoadmapGeneratorModal
             )}
 
             <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <button
+              <Button
+                variant="primary"
+                module="progress"
                 onClick={handleGenerate}
                 disabled={loading}
-                className="btn-primary"
+                isLoading={loading}
+                icon={<Zap size={20} />}
               >
-                {loading ? <Loader2 size={20} className="animate-spin" /> : <Zap size={20} />}
-                {loading ? "Génération en cours..." : "Générer mon plan"}
-              </button>
+                Générer mon plan
+              </Button>
             </div>
           </>
         ) : (

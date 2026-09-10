@@ -3,6 +3,7 @@ import os
 import secrets
 import smtplib
 import asyncio
+from typing import Optional
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from email.mime.text import MIMEText
@@ -57,7 +58,7 @@ async def _ensure_tester_training_quotas(user_id: str):
                 quota_regeneration = ?,
                 quota_update = ?,
                 quota_entreprises = COALESCE(quota_entreprises, 5),
-                quota_offres = COALESCE(quota_offres, 15)
+                quota_offres = COALESCE(quota_offres, 5)
             WHERE id = ?
             """,
             (
@@ -92,7 +93,7 @@ async def _insert_user(uid, email, hashed_pw, first, last, created):
                        WHERE id = ?""",
                     (TESTER_SESSION_CAP, TESTER_SESSION_CAP, TESTER_SESSION_CAP,
                      TESTER_SESSION_CAP, TESTER_SESSION_CAP, TESTER_SESSION_CAP,
-                     5, 15, uid)
+                     5, 5, uid)
                 )
             except Exception as q_err:
                 print(f"[DB WARNING] Impossible d'initialiser les quotas : {q_err}", flush=True)
@@ -120,7 +121,9 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         admin_email = os.getenv("ADMIN_EMAIL", "").lower()
         admin_password = os.getenv("ADMIN_PASSWORD")
 
-        if admin_email and admin_password and email == admin_email and form_data.password == admin_password:
+        # [SECURITE] Comparaison en temps constant pour éviter les attaques par timing sur le mot de passe admin.
+        password_matches = bool(admin_password) and secrets.compare_digest(form_data.password, admin_password)
+        if admin_email and admin_password and email == admin_email and password_matches:
             print(f"[AUTH] ✅ Admin login successful for: {email}", flush=True)
             access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
             # [FIX] Le token contient maintenant le rôle pour la protection des endpoints
@@ -322,6 +325,10 @@ class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
 
+class DeleteAccountRequest(BaseModel):
+    reason: str
+    comments: Optional[str] = None
+
 
 @router.post("/forgot-password")
 async def forgot_password(request: ForgotPasswordRequest, background_tasks: BackgroundTasks):
@@ -376,3 +383,73 @@ async def reset_password(request: ResetPasswordRequest):
     except Exception as e:
         print(f"[AUTH ERROR] Reset password failed: {e}", flush=True)
         raise HTTPException(status_code=500, detail="Erreur interne lors de la réinitialisation.")
+
+@router.post("/delete-account")
+@router.delete("/delete-account")
+async def delete_account(
+    request: Optional[DeleteAccountRequest] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Supprime définitivement le compte de l'utilisateur connecté,
+    enregistre le motif de résiliation/suppression et purge les données associées.
+    """
+    user_id = current_user["id"]
+    reason = request.reason if request else "non_spécifié"
+    comments = request.comments if request else None
+
+    reason_labels = {
+        "job_found": "Job trouvé / Emploi décroché",
+        "too_expensive": "Abonnement trop cher (29.90 €/mois)",
+        "not_relevant": "Pas assez pertinent / ne répond pas à mes besoins",
+        "other": "Autre motif"
+    }
+    formatted_reason = reason_labels.get(reason, reason)
+
+    async with db.get_connection() as conn:
+        try:
+            full_comments = f"Motif: {formatted_reason}"
+            if comments and comments.strip():
+                full_comments += f" | Précisions: {comments.strip()}"
+            await db.execute(
+                conn,
+                """
+                INSERT INTO feedbacks (user_id, feature, is_positive, comments, status)
+                VALUES (?, 'account_cancellation', FALSE, ?, 'new')
+                """,
+                (user_id, full_comments)
+            )
+        except Exception as fb_err:
+            print(f"[ACCOUNT DELETE] Feedback error: {fb_err}", flush=True)
+
+        related_tables = [
+            "user_profiles", "job_applications", "products", "documents",
+            "subscription_extensions", "interview_sessions", "training_sessions",
+            "generation_cache"
+        ]
+        for table in related_tables:
+            try:
+                await db.execute(conn, f"DELETE FROM {table} WHERE user_id = ?", (user_id,))
+            except Exception as t_err:
+                print(f"[ACCOUNT DELETE] Error purging {table}: {t_err}", flush=True)
+
+        anonymized_email = f"deleted_{user_id}@beyondthecv.app"
+        invalid_password = f"deleted_hash_{uuid.uuid4()}"
+        
+        await db.execute(conn, """
+            UPDATE users
+            SET 
+                email = ?,
+                hashed_password = ?,
+                first_name = 'Utilisateur',
+                last_name = 'Supprimé',
+                is_active = FALSE,
+                subscription_status = 'expired',
+                deleted_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (anonymized_email, invalid_password, user_id))
+
+    return {
+        "status": "success",
+        "message": "Votre compte et vos données associées ont été supprimés avec succès."
+    }

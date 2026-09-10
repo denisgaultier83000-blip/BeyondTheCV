@@ -9,7 +9,7 @@ from database import db
 
 from asyncio import Lock
 _CACHE_LOCKS = {}
-TESTER_SESSION_CAP = 30
+TESTER_SESSION_CAP = 150
 _QUOTA_SCHEMA_READY = False
 
 
@@ -19,16 +19,16 @@ async def _ensure_quota_schema(conn) -> None:
     if _QUOTA_SCHEMA_READY:
         return
 
-    await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT 30")
+    await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT 150")
     await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_entreprises INTEGER DEFAULT 5")
-    await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_offres INTEGER DEFAULT 15")
+    await db.execute(conn, "ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_offres INTEGER DEFAULT 5")
     await db.execute(
         conn,
         """
         UPDATE users
-        SET credits = COALESCE(credits, 30),
+        SET credits = COALESCE(credits, 150),
             quota_entreprises = COALESCE(quota_entreprises, 5),
-            quota_offres = COALESCE(quota_offres, 15)
+            quota_offres = COALESCE(quota_offres, 5)
         """,
     )
     _QUOTA_SCHEMA_READY = True
@@ -215,12 +215,13 @@ def _sanitize_data_for_ai(data: dict, strict: bool = False) -> dict:
     if strict:
         # WHITELIST : On ne conserve QUE les clés qui impactent la génération IA et le CV
         allowed_keys = {
-            'personal_info', 'experiences', 'educations', 'projects', 'skills', 
-            'languages', 'interests', 'flaws', 'clarifications', 'bio', 
+            'personal_info', 'experiences', 'educations', 'projects', 'skills',
+            'languages', 'interests', 'flaws', 'clarifications', 'bio',
             'work_style', 'relational_style', 'professional_approach', 'free_text',
             'job_description', 'remote_preference', 'interview_date', 'interview_format',
             'interview_type', 'available_time', 'stress_level', 'seniority_level',
-            'current_situation', 'salary_expectations', 'coaching_style', 'clarification_insights'
+            'current_situation', 'salary_expectations', 'salary_min', 'salary_max',
+            'coaching_style', 'clarification_insights'
         }
         clean_data = {k: v for k, v in clean_data.items() if k in allowed_keys}
         

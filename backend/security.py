@@ -81,32 +81,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
                 # [FIX] Le token peut contenir l'ID ou l'Email. On vérifie les deux pour une compatibilité absolue avec les anciennes versions du token.
                 cursor = await db.execute(conn, "SELECT id, email, first_name, last_name, is_premium, is_admin, is_tester FROM users WHERE id = ? OR email = ?", (user_id, user_id))
                 user_row = await cursor.fetchone()
-            
-            if user_row:
-                user_email = user_row["email"]
-                is_admin_db = bool(user_row.get("is_admin", False))
-                
-                # [FIX EXPERT] On vérifie aussi si l'utilisateur courant correspond aux emails de la variable ADMIN_EMAIL
-                admin_emails_str = os.getenv("ADMIN_EMAIL", "")
-                admin_emails = {e.strip().lower() for e in admin_emails_str.split(',') if e.strip()}
-                is_admin_env = user_email.lower() in admin_emails
-                
-                tester_emails_str = os.getenv("TESTER_EMAILS_LIST", "")
-                tester_emails = {e.strip().lower() for e in tester_emails_str.split(',') if e.strip()}
-                is_tester_env = bool(user_email.lower() in tester_emails) or (os.getenv("ENVIRONMENT", "production") != "production")
-
-                return {
-                    "id": user_row["id"],
-                    "email": user_email,
-                    "first_name": user_row["first_name"],
-                    "last_name": user_row["last_name"],
-                    "is_premium": bool(user_row["is_premium"]),
-                    "is_admin": is_admin_db or is_admin_env,
-                    "is_tester": bool(user_row.get("is_tester", False)) or is_tester_env
-                }
-            else:
-                raise HTTPException(status_code=401, detail="User not found")
-                
+        except HTTPException:
+            # [SECURITE] Ne jamais faire tomber une erreur HTTP (ex: 401) dans le mode dégradé ci-dessous.
+            raise
         except Exception as e:
             print(f"[AUTH ERROR] Database error in get_current_user: {e}")
             # Mode dégradé : si la base est inaccessible, on garde un minimum d'info pour ne pas bloquer l'authentification.
@@ -132,7 +109,32 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
                     "is_tester": True,
                 }
             raise HTTPException(status_code=500, detail="Internal server error during authentication verification")
-            
+
+        if user_row:
+            user_email = user_row["email"]
+            is_admin_db = bool(user_row.get("is_admin", False))
+
+            # [FIX EXPERT] On vérifie aussi si l'utilisateur courant correspond aux emails de la variable ADMIN_EMAIL
+            admin_emails_str = os.getenv("ADMIN_EMAIL", "")
+            admin_emails = {e.strip().lower() for e in admin_emails_str.split(',') if e.strip()}
+            is_admin_env = user_email.lower() in admin_emails
+
+            tester_emails_str = os.getenv("TESTER_EMAILS_LIST", "")
+            tester_emails = {e.strip().lower() for e in tester_emails_str.split(',') if e.strip()}
+            is_tester_env = bool(user_email.lower() in tester_emails) or (os.getenv("ENVIRONMENT", "production") != "production")
+
+            return {
+                "id": user_row["id"],
+                "email": user_email,
+                "first_name": user_row["first_name"],
+                "last_name": user_row["last_name"],
+                "is_premium": bool(user_row["is_premium"]),
+                "is_admin": is_admin_db or is_admin_env,
+                "is_tester": bool(user_row.get("is_tester", False)) or is_tester_env
+            }
+        # [SECURITE] La base a répondu mais aucun utilisateur ne correspond au token : refus explicite (pas de mode dégradé).
+        raise HTTPException(status_code=401, detail="User not found")
+
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.JWTError:

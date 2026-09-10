@@ -66,15 +66,15 @@ def main():
                 total_ia_cost REAL DEFAULT 0.0,
                 is_admin BOOLEAN DEFAULT FALSE,
                 is_tester BOOLEAN DEFAULT FALSE,
-                quota_pitch INTEGER DEFAULT 30,
-                quota_qa INTEGER DEFAULT 30,
-                quota_mes INTEGER DEFAULT 30,
-                quota_negotiation INTEGER DEFAULT 30,
-                quota_regeneration INTEGER DEFAULT 30,
-                quota_update INTEGER DEFAULT 30,
+                quota_pitch INTEGER DEFAULT 150,
+                quota_qa INTEGER DEFAULT 150,
+                quota_mes INTEGER DEFAULT 150,
+                quota_negotiation INTEGER DEFAULT 150,
+                quota_regeneration INTEGER DEFAULT 150,
+                quota_update INTEGER DEFAULT 150,
                 quota_entreprises INTEGER DEFAULT 5,
-                quota_offres INTEGER DEFAULT 15,
-                credits INTEGER DEFAULT 30,
+                quota_offres INTEGER DEFAULT 5,
+                credits INTEGER DEFAULT 150,
                 deleted_at TIMESTAMPTZ,
                 is_active BOOLEAN DEFAULT TRUE
             )
@@ -255,6 +255,35 @@ def main():
         cur.execute("ALTER TABLE interview_debriefs ADD COLUMN IF NOT EXISTS analysis_created_at TIMESTAMPTZ")
         print("✅ Columns 'interview_debriefs.analysis_*' ensured")
 
+        # [NOUVEAU] Base de connaissance mutualisée et anonymisée des questions d'entretien réellement observées.
+        # Séparée physiquement de 'interview_debriefs' (données privées du candidat) pour respecter le RGPD :
+        # aucune identité (candidat, recruteur, collègues) n'est stockée ici.
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS interview_question_intelligence (
+                id TEXT PRIMARY KEY,
+                normalized_question TEXT NOT NULL,
+                raw_question TEXT,
+                company_name TEXT,
+                sector TEXT,
+                job_family TEXT,
+                seniority TEXT,
+                interview_stage TEXT,
+                themes JSONB DEFAULT '[]'::jsonb,
+                difficulty INTEGER,
+                candidate_struggled BOOLEAN DEFAULT FALSE,
+                occurrence_count INTEGER DEFAULT 1,
+                first_seen_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                last_seen_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                source_debrief_id TEXT,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        print("✅ Table 'interview_question_intelligence' created")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_qint_company ON interview_question_intelligence(company_name)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_qint_sector ON interview_question_intelligence(sector)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_qint_job_family ON interview_question_intelligence(job_family)")
+
         cur.execute("""
             CREATE TABLE IF NOT EXISTS generation_cache (
                 cache_key TEXT PRIMARY KEY,
@@ -287,6 +316,60 @@ def main():
         print("✅ Table 'job_offer_imports' created")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_job_offer_imports_content_hash ON job_offer_imports(content_hash)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_job_offer_imports_provider ON job_offer_imports(provider)")
+
+        # --- TABLES POUR LES MARQUEURS DIFFÉRENCIANTS ET MESSAGES CLÉS ---
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS candidate_differentiators (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                fact TEXT NOT NULL,
+                proof TEXT NOT NULL,
+                interpretation TEXT NOT NULL,
+                interview_usage TEXT NOT NULL,
+                oral_phrasing TEXT,
+                source TEXT DEFAULT 'manual',
+                raw_user_story TEXT,
+                category TEXT DEFAULT 'general',
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        print("✅ Table 'candidate_differentiators' created")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_cand_diff_user ON candidate_differentiators(user_id)")
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS application_key_messages (
+                id TEXT PRIMARY KEY,
+                application_id TEXT NOT NULL REFERENCES job_applications(id) ON DELETE CASCADE,
+                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                differentiator_id TEXT REFERENCES candidate_differentiators(id) ON DELETE SET NULL,
+                priority_level TEXT NOT NULL DEFAULT 'priority',
+                headline TEXT NOT NULL,
+                supporting_fact TEXT NOT NULL,
+                oral_pitch TEXT,
+                target_situation TEXT,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        print("✅ Table 'application_key_messages' created")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_app_key_msg_app ON application_key_messages(application_id)")
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS interview_message_delivery (
+                id TEXT PRIMARY KEY,
+                debrief_id TEXT NOT NULL REFERENCES interview_debriefs(id) ON DELETE CASCADE,
+                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                application_id TEXT REFERENCES job_applications(id) ON DELETE SET NULL,
+                key_message_id TEXT REFERENCES application_key_messages(id) ON DELETE SET NULL,
+                headline TEXT,
+                delivered BOOLEAN DEFAULT FALSE,
+                reason_if_not_delivered TEXT,
+                candidate_comment TEXT,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        print("✅ Table 'interview_message_delivery' created")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_msg_deliv_debrief ON interview_message_delivery(debrief_id)")
 
         cur.execute("""
             CREATE TABLE IF NOT EXISTS tasks (
@@ -346,18 +429,21 @@ def main():
 
         # Insert default subscription plans
         plans = [
-            ("plan_1_month", "1 Month", 30, 999, "One month extension"),
-            ("plan_3_months", "3 Months", 90, 2499, "Three months extension"),
-            ("plan_6_months", "6 Months", 180, 4499, "Six months extension"),
-            ("plan_1_year", "1 Year", 365, 7999, "One year extension"),
+            ("plan_1_month", "Abonnement Mensuel", 30, 2990, "Accès 1 mois : 5 candidatures et 150 entraînements analysés"),
+            ("plan_3_months", "Abonnement Trimestriel", 90, 7990, "Accès 3 mois : 5 candidatures et 150 entraînements par mois"),
+            ("plan_6_months", "Abonnement Semestriel", 180, 14990, "Accès 6 mois : 5 candidatures et 150 entraînements par mois"),
+            ("plan_1_year", "Abonnement Annuel", 365, 26990, "Accès 1 an : 5 candidatures et 150 entraînements par mois"),
         ]
         
         for plan_id, name, days, price_cents, desc in plans:
             cur.execute("""
                 INSERT INTO subscription_plans 
                 (id, plan_name, duration_days, price_cents, currency, description, is_active)
-                VALUES (%s, %s, %s, %s, 'USD', %s, TRUE)
-                ON CONFLICT (id) DO NOTHING
+                VALUES (%s, %s, %s, %s, 'EUR', %s, TRUE)
+                ON CONFLICT (id) DO UPDATE SET
+                    price_cents = EXCLUDED.price_cents,
+                    description = EXCLUDED.description,
+                    plan_name = EXCLUDED.plan_name
             """, (plan_id, name, days, price_cents, desc))
         
         print("✅ Default subscription plans inserted")
@@ -368,24 +454,24 @@ def main():
         # --- MIGRATION COLONNES MANQUANTES + RECHARGEMENT TESTEURS ---
         # Ajout des colonnes quota_entreprises et quota_offres si absentes
         cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_entreprises INTEGER DEFAULT 5;")
-        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_offres INTEGER DEFAULT 15;")
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_offres INTEGER DEFAULT 5;")
 
-        # Rechargement inconditionnel de tous les comptes à 30 crédits (mode testeur)
+        # Rechargement inconditionnel de tous les comptes à 150 crédits
         cur.execute("""
             UPDATE users SET
-                credits          = 30,
-                quota_pitch      = 30,
-                quota_qa         = 30,
-                quota_mes        = 30,
-                quota_negotiation = 30,
-                quota_regeneration = 30,
-                quota_update     = 30,
+                credits          = 150,
+                quota_pitch      = 150,
+                quota_qa         = 150,
+                quota_mes        = 150,
+                quota_negotiation = 150,
+                quota_regeneration = 150,
+                quota_update     = 150,
                 quota_entreprises = 5,
-                quota_offres     = 15,
+                quota_offres     = 5,
                 is_tester        = TRUE
             WHERE deleted_at IS NULL
         """)
-        print(f"✅ Tous les comptes existants rechargés à 30 crédits (mode testeur)")
+        print(f"✅ Tous les comptes existants rechargés à 150 crédits (5 candidatures)")
 
         conn.commit()
         return True

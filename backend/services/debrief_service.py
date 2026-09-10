@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Body
 from pydantic import BaseModel
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Dict
 import uuid, json
 from datetime import datetime
 
@@ -10,6 +10,7 @@ from models import InterviewDebriefRequest
 # [FIX] Import des utilitaires nécessaires
 from .ai_generator import ai_service
 from .utils import load_prompt, normalize_language
+from . import question_intelligence_service
 
 _DEBRIEF_ANALYSIS_SCHEMA_READY = False
 
@@ -32,8 +33,30 @@ router = APIRouter(
     dependencies=[Depends(get_current_user)]
 )
 
+async def _save_message_deliveries(conn, debrief_id: str, user_id: str, application_id: Optional[str], deliveries: List[Dict[str, Any]]):
+    if not deliveries:
+        return
+    await db.execute(conn, "DELETE FROM interview_message_delivery WHERE debrief_id = ?", (debrief_id,))
+    for item in deliveries:
+        deliv_id = str(uuid.uuid4())
+        await db.execute(
+            conn,
+            """
+            INSERT INTO interview_message_delivery (
+                id, debrief_id, user_id, application_id, key_message_id,
+                headline, delivered, reason_if_not_delivered, candidate_comment
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                deliv_id, debrief_id, user_id, application_id,
+                item.get("key_message_id"), item.get("headline", ""),
+                bool(item.get("delivered", False)), item.get("reason_if_not_delivered", ""),
+                item.get("candidate_comment", "")
+            )
+        )
+
 @router.post("", status_code=201)
-async def create_debrief(debrief_data: InterviewDebriefRequest, current_user: dict = Depends(get_current_user)):
+async def create_debrief(debrief_data: InterviewDebriefRequest, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
     """
     Enregistre un nouveau compte rendu d'entretien pour l'utilisateur connecté.
     """
@@ -59,11 +82,17 @@ async def create_debrief(debrief_data: InterviewDebriefRequest, current_user: di
 
     async with db.get_connection() as conn:
         await db.execute(conn, query, values)
+        if debrief_data.message_deliveries:
+            await _save_message_deliveries(conn, debrief_id, user_id, debrief_data.application_id, debrief_data.message_deliveries)
+
+    # [FEATURE] Enrichissement best-effort de la base de connaissance mutualisée des questions
+    # d'entretien. Ne coûte quasiment rien (le débrief existe déjà) et ne bloque pas la réponse.
+    background_tasks.add_task(question_intelligence_service.process_debrief_for_intelligence, debrief_id, user_id)
 
     return {"id": debrief_id, "status": "created"}
 
 @router.put("/{debrief_id}", status_code=200)
-async def update_debrief(debrief_id: str, debrief_data: InterviewDebriefRequest, current_user: dict = Depends(get_current_user)):
+async def update_debrief(debrief_id: str, debrief_data: InterviewDebriefRequest, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
     """
     Met à jour un compte rendu d'entretien existant.
     """
@@ -88,6 +117,10 @@ async def update_debrief(debrief_id: str, debrief_data: InterviewDebriefRequest,
 
     async with db.get_connection() as conn:
         await db.execute(conn, query, values)
+        if debrief_data.message_deliveries:
+            await _save_message_deliveries(conn, debrief_id, user_id, debrief_data.application_id, debrief_data.message_deliveries)
+
+    background_tasks.add_task(question_intelligence_service.process_debrief_for_intelligence, debrief_id, user_id)
 
     return {"id": debrief_id, "status": "updated"}
 
@@ -105,6 +138,29 @@ async def get_all_debriefs(current_user: dict = Depends(get_current_user)):
 
     debriefs = [dict(row) for row in rows]
     return {"debriefs": debriefs}
+
+@router.get("/insights/questions", response_model=dict)
+async def get_question_insights(
+    company_name: Optional[str] = None,
+    sector: Optional[str] = None,
+    job_family: Optional[str] = None,
+    seniority: Optional[str] = None,
+    interview_stage: Optional[str] = None,
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Restitue, à partir de la base mutualisée et anonymisée, les questions/thèmes déjà observés
+    pertinents pour préparer un entretien (même entreprise > même métier > même secteur > même séniorité).
+    Aucune donnée personnelle n'est exposée par cet endpoint.
+    """
+    insights = await question_intelligence_service.get_observed_questions(
+        company_name=company_name,
+        sector=sector,
+        job_family=job_family,
+        seniority=seniority,
+        interview_stage=interview_stage,
+    )
+    return {"insights": insights}
 
 @router.get("/{debrief_id}", response_model=dict)
 async def get_debrief_details(debrief_id: str, current_user: dict = Depends(get_current_user)):
@@ -144,7 +200,36 @@ async def get_debrief_details(debrief_id: str, current_user: dict = Depends(get_
             # Si le JSON est invalide, fallback sécurisé.
             debrief_details[field] = None if field == 'analysis_result' else []
 
+    # Fetch message delivery records for this debrief
+    async with db.get_connection() as conn:
+        cursor_deliv = await db.execute(
+            conn,
+            "SELECT * FROM interview_message_delivery WHERE debrief_id = ? AND user_id = ?",
+            (debrief_id, user_id)
+        )
+        deliv_rows = await cursor_deliv.fetchall()
+        debrief_details["message_deliveries"] = [dict(r) for r in deliv_rows]
+
     return debrief_details
+
+
+@router.post("/{debrief_id}/message-delivery", response_model=dict)
+async def save_debrief_message_delivery(
+    debrief_id: str,
+    payload: Dict[str, Any] = Body(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Saves candidate key message delivery check states for an interview debrief.
+    """
+    user_id = current_user["id"]
+    deliveries = payload.get("deliveries", [])
+    application_id = payload.get("application_id")
+
+    async with db.get_connection() as conn:
+        await _save_message_deliveries(conn, debrief_id, user_id, application_id, deliveries)
+
+    return {"status": "saved", "debrief_id": debrief_id, "count": len(deliveries)}
 
 @router.post("/{debrief_id}/analyze", response_model=dict)
 async def analyze_debrief(debrief_id: str, request: AnalyzeDebriefRequest, current_user: dict = Depends(get_current_user)):
@@ -156,10 +241,24 @@ async def analyze_debrief(debrief_id: str, request: AnalyzeDebriefRequest, curre
         cursor = await db.execute(conn, "SELECT * FROM interview_debriefs WHERE id = ? AND user_id = ?", (debrief_id, current_user["id"]))
         debrief_row = await cursor.fetchone()
 
+        # Query message deliveries for this debrief and previous debriefs
+        cursor_deliv = await db.execute(conn, "SELECT * FROM interview_message_delivery WHERE debrief_id = ? AND user_id = ?", (debrief_id, current_user["id"]))
+        deliv_rows = await cursor_deliv.fetchall()
+        
+        cursor_past_deliv = await db.execute(
+            conn,
+            "SELECT headline, delivered, reason_if_not_delivered, created_at FROM interview_message_delivery WHERE user_id = ? AND delivered = FALSE ORDER BY created_at DESC LIMIT 10",
+            (current_user["id"],)
+        )
+        past_deliv_rows = await cursor_past_deliv.fetchall()
+
     if not debrief_row:
         raise HTTPException(status_code=404, detail="Debrief not found")
 
     debrief_dict = dict(debrief_row)
+    debrief_dict["current_message_deliveries"] = [dict(r) for r in deliv_rows]
+    debrief_dict["past_unplaced_messages_history"] = [dict(r) for r in past_deliv_rows]
+
     target_lang = normalize_language(request.cvData.get('target_language', 'fr'))
 
     # [FIX] Le prompt attend `NEXT_INTERVIEW_CONTEXT_JSON`, mais il n'était pas fourni.

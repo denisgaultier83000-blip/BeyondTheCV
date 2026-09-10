@@ -1,15 +1,18 @@
 import React, { useRef } from 'react';
 import {
   ArrowRight,
+  BarChart3,
   Building2,
   CheckCircle2,
   FileSearch,
+  Gauge,
   MessageSquareText,
   Mic,
   RefreshCw,
   ShieldCheck,
+  Sparkles,
   Target,
-  Zap,
+  TrendingUp,
 } from 'lucide-react';
 
 interface LandingPageProps {
@@ -31,32 +34,42 @@ export function LandingPage({
 }: LandingPageProps) {
   const pricingRef = useRef<HTMLElement | null>(null);
 
-  const companyTree = [
-    {
-      name: 'Thales',
-      badge: '3 postes',
-      items: [
-        'Analyse entreprise réutilisée',
-        'Poste : Responsable cybersécurité',
-        'Poste : Directeur de programme',
-        'Poste : Responsable opérations',
-      ],
-    },
-    {
-      name: 'Naval Group',
-      badge: '1 poste',
-      items: ['Analyse entreprise réutilisée', 'Poste et entraînements associés'],
-    },
-    {
-      name: 'MBDA',
-      badge: '1 poste',
-      items: ['Analyse entreprise réutilisée', 'Poste et entraînements associés'],
-    },
-  ];
-
   const scrollToPricing = () => {
     pricingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
+
+  const features = [
+    {
+      icon: <FileSearch size={23} />,
+      title: 'Décoder le poste',
+      text: 'Comprenez les attentes explicites, les besoins cachés et les difficultés que le recrutement doit résoudre.',
+    },
+    {
+      icon: <Building2 size={23} />,
+      title: 'Comprendre l’entreprise',
+      text: 'Analysez sa stratégie, son marché, ses actualités, ses enjeux et les éléments à connaître avant l’entretien.',
+    },
+    {
+      icon: <MessageSquareText size={23} />,
+      title: 'Construire votre discours',
+      text: 'Préparez vos pitchs, vos arguments clés et vos réponses aux objections à partir de votre profil réel.',
+    },
+    {
+      icon: <Mic size={23} />,
+      title: 'Vous entraîner réellement',
+      text: 'Répondez aux questions, mises en situation et simulations, puis améliorez vos réponses après analyse.',
+    },
+    {
+      icon: <TrendingUp size={23} />,
+      title: 'Suivre votre progression',
+      text: 'Votre profil stratégique évolue avec vos entraînements et fait ressortir vos forces, vos écarts et vos priorités.',
+    },
+    {
+      icon: <RefreshCw size={23} />,
+      title: 'Capitaliser après l’entretien',
+      text: 'Débriefez les questions posées, les signaux reçus et préparez le prochain échange sans repartir de zéro.',
+    },
+  ];
 
   return (
     <div className="lp-container">
@@ -67,360 +80,676 @@ export function LandingPage({
           background: var(--bg-body);
           min-height: 100vh;
           line-height: 1.6;
+          --lp-blue-soft: rgba(59,130,246,.08);
+          --lp-blue-soft-2: rgba(59,130,246,.13);
+          --lp-cyan-soft: rgba(20,184,166,.10);
+          --lp-violet-soft: rgba(139,92,246,.10);
+          --lp-amber-soft: rgba(245,158,11,.11);
+          --lp-rose-soft: rgba(239,68,68,.09);
         }
+
+        .lp-shell {
+          width: min(1180px, calc(100% - 40px));
+          margin: 0 auto;
+        }
+
         .lp-hero {
-          padding: 7rem 2rem 5rem;
-          text-align: center;
+          position: relative;
+          overflow: hidden;
+          padding: 7rem 0 5rem;
           background:
-            radial-gradient(circle at 50% 0%, rgba(59,130,246,.13), transparent 38%),
+            radial-gradient(circle at 82% 18%, rgba(59,130,246,.24), transparent 30%),
+            radial-gradient(circle at 12% 4%, rgba(99,102,241,.14), transparent 28%),
+            linear-gradient(180deg, rgba(59,130,246,.045), rgba(59,130,246,0) 65%),
             var(--bg-body);
         }
+
+        .lp-hero-grid {
+          display: grid;
+          grid-template-columns: minmax(0, .95fr) minmax(520px, 1.15fr);
+          gap: 4rem;
+          align-items: center;
+        }
+
         .lp-eyebrow {
           display: inline-flex;
           align-items: center;
           gap: .5rem;
-          padding: .45rem .9rem;
-          border: 1px solid var(--border-color);
+          padding: .42rem .85rem;
+          border: 1px solid rgba(59,130,246,.28);
           border-radius: 999px;
+          background: rgba(59,130,246,.08);
           color: var(--primary);
-          background: var(--bg-card);
-          font-size: .86rem;
-          font-weight: 700;
-          margin-bottom: 1.5rem;
+          font-size: .84rem;
+          font-weight: 800;
+          margin-bottom: 1.4rem;
         }
+
         .lp-hero-title {
-          max-width: 930px;
-          margin: 0 auto 1.4rem;
-          font-size: clamp(2.25rem, 5vw, 4rem);
-          line-height: 1.08;
-          letter-spacing: -.04em;
-          font-weight: 850;
+          margin: 0;
+          max-width: 720px;
+          font-size: clamp(2.65rem, 5vw, 4.65rem);
+          line-height: 1.03;
+          letter-spacing: -.055em;
+          font-weight: 880;
         }
+
         .lp-hero-subtitle {
-          max-width: 800px;
-          margin: 0 auto 2.2rem;
+          max-width: 690px;
+          margin: 1.5rem 0 0;
           color: var(--text-muted);
-          font-size: clamp(1.05rem, 2vw, 1.25rem);
+          font-size: clamp(1.05rem, 1.8vw, 1.22rem);
         }
+
+        .lp-hero-strong {
+          color: var(--text-main);
+          font-weight: 760;
+        }
+
         .lp-actions {
           display: flex;
-          justify-content: center;
           flex-wrap: wrap;
-          gap: 1rem;
+          gap: .9rem;
+          margin-top: 2rem;
         }
+
         .lp-button-primary,
         .lp-button-secondary {
           min-height: 52px;
-          padding: 0 1.45rem;
-          border-radius: .65rem;
-          font-size: 1rem;
-          font-weight: 750;
+          padding: 0 1.4rem;
+          border-radius: .62rem;
+          font-size: .98rem;
+          font-weight: 780;
           cursor: pointer;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           gap: .65rem;
-          transition: .2s ease;
+          transition: transform .2s ease, border-color .2s ease, filter .2s ease;
         }
+
         .lp-button-primary {
           border: 1px solid var(--primary);
           background: var(--primary);
           color: #fff;
-          box-shadow: 0 12px 25px rgba(59,130,246,.22);
+          box-shadow: 0 14px 30px rgba(59,130,246,.22);
         }
+
         .lp-button-primary:hover {
           transform: translateY(-2px);
           filter: brightness(.96);
         }
+
         .lp-button-secondary {
           border: 1px solid var(--border-color);
           background: var(--bg-card);
           color: var(--text-main);
         }
+
         .lp-button-secondary:hover {
-          border-color: var(--primary);
           transform: translateY(-2px);
+          border-color: var(--primary);
         }
+
         .lp-reassurance {
           display: flex;
-          justify-content: center;
           flex-wrap: wrap;
-          gap: 1rem 1.5rem;
-          margin-top: 1.25rem;
+          gap: .8rem 1.15rem;
+          margin-top: 1.15rem;
           color: var(--text-muted);
-          font-size: .88rem;
+          font-size: .86rem;
         }
+
         .lp-reassurance span {
           display: inline-flex;
           align-items: center;
           gap: .4rem;
         }
-        .lp-preview {
-          max-width: 1060px;
-          margin: 4rem auto 0;
-          padding: 0 1rem;
+
+        .lp-product-frame {
+          position: relative;
+          padding: 1rem;
+          border-radius: 1.35rem;
+          background: linear-gradient(145deg, rgba(59,130,246,.24), rgba(99,102,241,.08));
+          border: 1px solid rgba(59,130,246,.30);
+          box-shadow: 0 35px 70px -35px rgba(0,0,0,.55);
         }
-        .lp-preview img {
+
+        .lp-product-frame img {
+          width: 100%;
           display: block;
-          width: 100%;
-          border-radius: 1rem;
-          border: 5px solid var(--bg-card);
-          box-shadow: 0 28px 60px -25px rgba(0,0,0,.55);
+          border-radius: .95rem;
+          border: 1px solid var(--border-color);
         }
-        .lp-preview-caption {
-          margin-top: .9rem;
+
+        .lp-floating-card {
+          position: absolute;
+          left: -2rem;
+          bottom: 1.5rem;
+          width: 245px;
+          padding: 1rem 1.05rem;
+          border-radius: .9rem;
+          background: var(--bg-card);
+          border: 1px solid var(--border-color);
+          box-shadow: 0 18px 35px -18px rgba(0,0,0,.45);
+        }
+
+        .lp-floating-card strong {
+          display: block;
+          font-size: .92rem;
+        }
+
+        .lp-floating-card span {
+          display: block;
+          margin-top: .25rem;
           color: var(--text-muted);
-          font-size: .85rem;
+          font-size: .8rem;
         }
-        .lp-band {
-          width: 100%;
-          background: var(--bg-secondary);
+
+        .lp-trust-strip {
+          padding: 1.15rem 0;
           border-top: 1px solid var(--border-color);
           border-bottom: 1px solid var(--border-color);
+          background: linear-gradient(90deg, rgba(59,130,246,.07), rgba(99,102,241,.05));
         }
+
+        .lp-trust-items {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 1rem;
+          text-align: center;
+          color: var(--text-muted);
+          font-size: .88rem;
+          font-weight: 680;
+        }
+
         .lp-section {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 5.5rem 2rem;
+          padding: 6rem 0;
         }
-        .lp-heading {
-          max-width: 820px;
-          margin: 0 auto;
+
+        .lp-section.soft {
+          background:
+            radial-gradient(circle at 90% 10%, rgba(59,130,246,.10), transparent 25%),
+            linear-gradient(180deg, rgba(59,130,246,.045), rgba(99,102,241,.025)),
+            var(--bg-secondary);
+          border-top: 1px solid rgba(59,130,246,.14);
+          border-bottom: 1px solid rgba(59,130,246,.14);
+        }
+
+        .lp-section-header {
+          max-width: 760px;
+          margin-bottom: 3rem;
+        }
+
+        .lp-section-header.center {
+          margin-left: auto;
+          margin-right: auto;
           text-align: center;
         }
-        .lp-heading h2 {
-          margin: 0;
-          font-size: clamp(1.8rem, 3vw, 2.55rem);
-          line-height: 1.2;
-          letter-spacing: -.025em;
+
+        .lp-section-kicker {
+          color: var(--primary);
+          font-size: .82rem;
+          font-weight: 850;
+          text-transform: uppercase;
+          letter-spacing: .08em;
+          margin-bottom: .7rem;
         }
-        .lp-heading p {
-          margin: 1rem auto 0;
+
+        .lp-section h2 {
+          margin: 0;
+          font-size: clamp(2rem, 3.4vw, 3rem);
+          line-height: 1.13;
+          letter-spacing: -.035em;
+        }
+
+        .lp-section-header p {
+          margin: 1rem 0 0;
           color: var(--text-muted);
           font-size: 1.05rem;
         }
-        .lp-grid-3,
-        .lp-grid-6 {
+
+        .lp-problem-grid {
           display: grid;
-          gap: 1.5rem;
-          margin-top: 3.2rem;
-        }
-        .lp-grid-3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
-        .lp-grid-6 { grid-template-columns: repeat(3, minmax(0,1fr)); }
-        .lp-card {
-          background: var(--bg-card);
-          border: 1px solid var(--border-color);
-          border-radius: 1.1rem;
-          padding: 1.65rem;
-          text-align: left;
-          transition: .22s ease;
-        }
-        .lp-card:hover {
-          transform: translateY(-4px);
-          border-color: var(--primary);
-        }
-        .lp-card-icon {
-          width: 46px;
-          height: 46px;
-          display: flex;
+          grid-template-columns: .85fr 1.15fr;
+          gap: 4rem;
           align-items: center;
-          justify-content: center;
-          border-radius: .8rem;
-          color: var(--primary);
-          background: rgba(59,130,246,.1);
-          margin-bottom: 1rem;
         }
-        .lp-card h3 { margin: 0 0 .55rem; font-size: 1.16rem; }
-        .lp-card p { margin: 0; color: var(--text-muted); font-size: .95rem; }
-        .lp-step-label {
-          color: var(--primary);
-          font-weight: 800;
-          font-size: .82rem;
-          text-transform: uppercase;
-          letter-spacing: .08em;
-          margin-bottom: .75rem;
-        }
-        .lp-data-model {
+
+        .lp-problem-copy {
           display: grid;
-          grid-template-columns: repeat(3, minmax(0,1fr));
-          gap: 1.5rem;
-          margin-top: 3rem;
-        }
-        .lp-data-card {
-          background: var(--bg-card);
-          border: 1px solid var(--border-color);
-          border-radius: 1.1rem;
-          padding: 1.7rem;
-          text-align: left;
-        }
-        .lp-data-card.primary { border: 2px solid var(--primary); }
-        .lp-data-number {
-          width: 38px;
-          height: 38px;
-          border-radius: 999px;
-          background: rgba(59,130,246,.12);
-          color: var(--primary);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 850;
-          margin-bottom: 1rem;
-        }
-        .lp-data-card h3 { margin: 0 0 .45rem; }
-        .lp-data-card > p { color: var(--text-muted); margin: 0 0 1.1rem; }
-        .lp-mini-list {
-          display: grid;
-          gap: .55rem;
-          color: var(--text-main);
-          font-size: .92rem;
-        }
-        .lp-mini-list span {
-          display: flex;
-          align-items: flex-start;
-          gap: .5rem;
-        }
-        .lp-mini-list svg {
-          color: var(--primary);
-          flex: 0 0 auto;
-          margin-top: .15rem;
-        }
-        .lp-tree {
-          max-width: 920px;
-          margin: 2.2rem auto 0;
-          padding: 1.4rem;
-          border: 1px solid var(--border-color);
-          border-radius: 1.1rem;
-          background: linear-gradient(145deg, var(--bg-card), var(--bg-secondary));
-          box-shadow: 0 20px 40px -24px rgba(0,0,0,.35);
-        }
-        .lp-tree-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
           gap: 1rem;
-          margin-bottom: 1rem;
-          padding-bottom: .95rem;
+        }
+
+        .lp-problem-item {
+          padding: 1.05rem 0;
           border-bottom: 1px solid var(--border-color);
         }
-        .lp-tree-title { font-weight: 800; }
-        .lp-tree-caption { color: var(--text-muted); font-size: .84rem; }
-        .lp-tree-list { display: grid; gap: .8rem; }
-        .lp-tree-company {
+
+        .lp-problem-item:last-child {
+          border-bottom: 0;
+        }
+
+        .lp-problem-item strong {
+          display: block;
+          margin-bottom: .25rem;
+        }
+
+        .lp-problem-item span {
+          color: var(--text-muted);
+          font-size: .94rem;
+        }
+
+        .lp-solution-panel {
           border: 1px solid var(--border-color);
-          border-radius: .95rem;
-          padding: .95rem 1rem;
-          background: rgba(255,255,255,.04);
-        }
-        .lp-tree-company-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 1rem;
-          margin-bottom: .7rem;
-        }
-        .lp-tree-company-name {
-          display: inline-flex;
-          align-items: center;
-          gap: .55rem;
-          font-weight: 750;
-        }
-        .lp-tree-badge {
-          display: inline-flex;
-          align-items: center;
-          padding: .25rem .6rem;
-          border-radius: 999px;
-          background: rgba(59,130,246,.12);
-          color: var(--primary);
-          font-size: .74rem;
-          font-weight: 700;
-          white-space: nowrap;
-        }
-        .lp-tree-items {
-          display: grid;
-          gap: .55rem;
-          padding-left: 1.1rem;
-        }
-        .lp-tree-item {
-          display: flex;
-          align-items: flex-start;
-          gap: .55rem;
-          font-size: .92rem;
-        }
-        .lp-tree-item svg {
-          color: var(--primary);
-          flex: 0 0 auto;
-          margin-top: .1rem;
-        }
-        .lp-capacity-grid {
-          display: grid;
-          grid-template-columns: repeat(3,minmax(0,1fr));
-          gap: 1rem;
-          max-width: 900px;
-          margin: 2.2rem auto 0;
-        }
-        .lp-capacity-card {
+          border-radius: 1.25rem;
           background: var(--bg-card);
-          border: 1px solid var(--border-color);
-          border-radius: .95rem;
-          padding: 1.4rem;
-          text-align: center;
+          padding: 1.8rem;
+          box-shadow: 0 24px 50px -32px rgba(0,0,0,.45);
         }
-        .lp-capacity-value {
-          font-size: 2rem;
-          line-height: 1.1;
+
+        .lp-solution-title {
+          display: flex;
+          align-items: center;
+          gap: .7rem;
+          margin-bottom: 1.3rem;
+          font-weight: 820;
+        }
+
+        .lp-step {
+          display: grid;
+          grid-template-columns: 42px 1fr;
+          gap: .9rem;
+          padding: 1rem 0;
+          border-top: 1px solid var(--border-color);
+        }
+
+        .lp-step:first-of-type { border-top: 0; }
+
+        .lp-step-number {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(59,130,246,.10);
+          color: var(--primary);
           font-weight: 850;
         }
-        .lp-capacity-label {
-          margin-top: .45rem;
-          font-weight: 750;
-        }
-        .lp-capacity-help {
+
+        .lp-step strong { display: block; }
+        .lp-step span {
+          display: block;
+          margin-top: .2rem;
           color: var(--text-muted);
-          font-size: .84rem;
-          margin-top: .45rem;
+          font-size: .9rem;
         }
-        .lp-training-definition {
-          max-width: 900px;
-          margin: 1.4rem auto 0;
-          background: rgba(59,130,246,.08);
-          border: 1px solid rgba(59,130,246,.25);
-          border-radius: 1rem;
-          padding: 1.2rem 1.4rem;
-          text-align: center;
-        }
-        .lp-training-definition strong { color: var(--primary); }
-        .lp-comparison {
+
+        .lp-feature-grid {
           display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1.5rem;
-          margin-top: 3rem;
+          grid-template-columns: repeat(3, minmax(0,1fr));
+          gap: 1.2rem;
         }
-        .lp-comparison-column {
+
+        .lp-feature-card {
           border: 1px solid var(--border-color);
+          background: var(--bg-card);
           border-radius: 1rem;
-          padding: 1.8rem;
+          padding: 1.45rem;
+          transition: transform .2s ease, border-color .2s ease;
+        }
+
+        .lp-feature-card:hover {
+          transform: translateY(-3px);
+          border-color: var(--primary);
+        }
+
+        .lp-feature-icon {
+          width: 43px;
+          height: 43px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: .75rem;
+          background: rgba(59,130,246,.10);
+          color: var(--primary);
+          margin-bottom: 1rem;
+        }
+
+        .lp-feature-card h3 {
+          margin: 0 0 .45rem;
+          font-size: 1.08rem;
+        }
+
+        .lp-feature-card p {
+          margin: 0;
+          color: var(--text-muted);
+          font-size: .92rem;
+        }
+
+        .lp-feature-card:nth-child(1) { background: linear-gradient(180deg, var(--lp-blue-soft), var(--bg-card)); }
+        .lp-feature-card:nth-child(2) { background: linear-gradient(180deg, var(--lp-cyan-soft), var(--bg-card)); }
+        .lp-feature-card:nth-child(3) { background: linear-gradient(180deg, var(--lp-violet-soft), var(--bg-card)); }
+        .lp-feature-card:nth-child(4) { background: linear-gradient(180deg, var(--lp-amber-soft), var(--bg-card)); }
+        .lp-feature-card:nth-child(5) { background: linear-gradient(180deg, var(--lp-rose-soft), var(--bg-card)); }
+        .lp-feature-card:nth-child(6) { background: linear-gradient(180deg, var(--lp-blue-soft-2), var(--bg-card)); }
+
+        .lp-method-grid {
+          display: grid;
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+          gap: 1rem;
+          margin-top: 2.6rem;
+          align-items: stretch;
+        }
+
+        .lp-method-card {
+          position: relative;
+          border: 1px solid var(--border-color);
+          background: var(--bg-card);
+          border-radius: 1rem;
+          padding: 1.45rem 1.15rem;
+          min-height: 235px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+        }
+
+        .lp-method-card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 18px 35px -26px rgba(0,0,0,.35);
+        }
+
+        .lp-method-card.accent-1 {
+          border-top: 4px solid #3b82f6;
+          background: linear-gradient(180deg, var(--lp-blue-soft), var(--bg-card));
+        }
+        .lp-method-card.accent-2 {
+          border-top: 4px solid #14b8a6;
+          background: linear-gradient(180deg, var(--lp-cyan-soft), var(--bg-card));
+        }
+        .lp-method-card.accent-3 {
+          border-top: 4px solid #8b5cf6;
+          background: linear-gradient(180deg, var(--lp-violet-soft), var(--bg-card));
+        }
+        .lp-method-card.accent-4 {
+          border-top: 4px solid #f59e0b;
+          background: linear-gradient(180deg, var(--lp-amber-soft), var(--bg-card));
+        }
+        .lp-method-card.accent-5 {
+          border-top: 4px solid #ef4444;
+          background: linear-gradient(180deg, var(--lp-rose-soft), var(--bg-card));
+        }
+
+        .lp-method-card h3 {
+          margin: 0;
+          font-size: 1.04rem;
+          line-height: 1.25;
+        }
+
+        .lp-method-card ul {
+          list-style: none;
+          padding: 0;
+          margin: 1.5rem 0 0;
+          display: grid;
+          gap: .6rem;
+        }
+
+        .lp-method-card li {
+          color: var(--text-muted);
+          font-size: .9rem;
+          line-height: 1.35;
+        }
+
+        .lp-method-footer {
+          max-width: 920px;
+          margin: 2.4rem auto 0;
+          padding: 1rem 1.2rem;
+          text-align: center;
+          border-radius: .9rem;
+          background: rgba(59,130,246,.08);
+          border: 1px solid rgba(59,130,246,.18);
+          color: var(--text-main);
+          font-weight: 780;
+        }
+
+        .lp-eval-showcase {
+          margin-top: 2.5rem;
+        }
+
+        .lp-eval-frame {
+          padding: 1rem;
+          border-radius: 1.25rem;
+          background: linear-gradient(145deg, rgba(59,130,246,.18), rgba(99,102,241,.06));
+          border: 1px solid rgba(59,130,246,.28);
+          box-shadow: 0 28px 55px -34px rgba(0,0,0,.45);
+        }
+
+        .lp-eval-frame img {
+          display: block;
+          width: 100%;
+          height: auto;
+          border-radius: .9rem;
+          border: 1px solid var(--border-color);
+        }
+
+        .lp-eval-points {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 1rem;
+          margin-top: 1.2rem;
+        }
+
+        .lp-eval-point {
+          display: flex;
+          gap: .65rem;
+          align-items: flex-start;
+          padding: 1rem;
+          border: 1px solid var(--border-color);
+          border-radius: .9rem;
           background: var(--bg-card);
         }
-        .lp-comparison-column.highlight { border: 2px solid var(--primary); }
-        .lp-comparison-column h3 { margin-top: 0; }
-        .lp-checklist { display: grid; gap: .85rem; margin-top: 1.3rem; }
-        .lp-check {
-          display: flex;
-          gap: .7rem;
-          align-items: flex-start;
-        }
-        .lp-check svg {
+
+        .lp-eval-point svg {
+          color: var(--primary);
           flex: 0 0 auto;
           margin-top: .15rem;
-          color: var(--primary);
         }
-        .lp-outcomes {
-          max-width: 900px;
-          margin: 3rem auto 0;
+
+        .lp-eval-point strong {
+          display: block;
+          margin-bottom: .2rem;
+          font-size: .95rem;
+        }
+
+        .lp-eval-point span {
+          color: var(--text-muted);
+          font-size: .85rem;
+          line-height: 1.45;
+        }
+
+        .lp-showcase {
           display: grid;
-          grid-template-columns: repeat(2,minmax(0,1fr));
+          grid-template-columns: 1fr 1fr;
+          gap: 4rem;
+          align-items: center;
+        }
+
+        .lp-showcase.reverse .lp-showcase-copy { order: 2; }
+        .lp-showcase.reverse .lp-showcase-visual { order: 1; }
+
+        .lp-showcase-copy h2 {
+          margin: 0;
+          font-size: clamp(2rem, 3.2vw, 2.85rem);
+          line-height: 1.14;
+          letter-spacing: -.035em;
+        }
+
+        .lp-showcase-copy > p {
+          color: var(--text-muted);
+          font-size: 1.02rem;
+          margin: 1rem 0 0;
+        }
+
+        .lp-bullet-list {
+          display: grid;
+          gap: .8rem;
+          margin-top: 1.5rem;
+        }
+
+        .lp-bullet {
+          display: flex;
+          gap: .65rem;
+          align-items: flex-start;
+        }
+
+        .lp-bullet svg {
+          color: var(--primary);
+          flex: 0 0 auto;
+          margin-top: .15rem;
+        }
+
+        .lp-showcase-visual {
+          min-height: 350px;
+          padding: 1.5rem;
+          border-radius: 1.25rem;
+          border: 1px solid var(--border-color);
+          background:
+            radial-gradient(circle at 82% 18%, rgba(59,130,246,.18), transparent 36%),
+            linear-gradient(160deg, rgba(59,130,246,.06), rgba(139,92,246,.035)),
+            var(--bg-card);
+          box-shadow: 0 24px 50px -32px rgba(0,0,0,.45);
+        }
+
+        .lp-profile-top {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0,1fr));
+          gap: .75rem;
+        }
+
+        .lp-profile-stat {
+          padding: .9rem;
+          border-radius: .8rem;
+          border: 1px solid var(--border-color);
+          background: rgba(59,130,246,.05);
+        }
+
+        .lp-profile-stat span {
+          display: block;
+          color: var(--text-muted);
+          font-size: .72rem;
+          text-transform: uppercase;
+          font-weight: 760;
+        }
+
+        .lp-profile-stat strong {
+          display: block;
+          margin-top: .2rem;
+          font-size: 1.02rem;
+        }
+
+        .lp-profile-bars {
+          display: grid;
+          gap: .85rem;
+          margin-top: 1.25rem;
+        }
+
+        .lp-profile-row {
+          display: grid;
+          grid-template-columns: 145px 1fr 40px;
+          align-items: center;
+          gap: .7rem;
+          font-size: .82rem;
+        }
+
+        .lp-progress {
+          height: 8px;
+          background: var(--bg-secondary);
+          border-radius: 999px;
+          overflow: hidden;
+          border: 1px solid var(--border-color);
+        }
+
+        .lp-progress > span {
+          display: block;
+          height: 100%;
+          background: var(--primary);
+          border-radius: inherit;
+        }
+
+        .lp-priority-card {
+          margin-top: 1.3rem;
+          padding: 1rem;
+          border: 1px solid rgba(59,130,246,.35);
+          background: rgba(59,130,246,.08);
+          border-radius: .85rem;
+        }
+
+        .lp-priority-card small {
+          color: var(--primary);
+          font-weight: 800;
+          text-transform: uppercase;
+        }
+
+        .lp-priority-card strong {
+          display: block;
+          margin-top: .25rem;
+        }
+
+
+
+
+
+
+
+        .lp-compare-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.3rem;
+        }
+
+        .lp-compare-card {
+          border: 1px solid var(--border-color);
+          background: var(--bg-card);
+          border-radius: 1rem;
+          padding: 1.5rem;
+        }
+
+        .lp-compare-card.highlight {
+          border: 2px solid var(--primary);
+          background: linear-gradient(180deg, rgba(59,130,246,.10), var(--bg-card));
+          box-shadow: 0 20px 40px -30px rgba(59,130,246,.55);
+        }
+
+        .lp-compare-card h3 { margin-top: 0; }
+
+        .lp-checklist {
+          display: grid;
+          gap: .8rem;
+          margin-top: 1rem;
+        }
+
+        .lp-check {
+          display: flex;
+          gap: .65rem;
+          align-items: flex-start;
+        }
+
+        .lp-check svg {
+          color: var(--primary);
+          flex: 0 0 auto;
+          margin-top: .16rem;
+        }
+
+        .lp-outcomes {
+          max-width: 920px;
+          margin: 2rem auto 0;
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0,1fr));
           gap: 1rem;
         }
+
         .lp-outcome {
           display: flex;
           gap: .75rem;
@@ -430,660 +759,1038 @@ export function LandingPage({
           border-radius: .9rem;
           padding: 1rem 1.1rem;
         }
+
         .lp-outcome svg {
           color: var(--primary);
           flex: 0 0 auto;
           margin-top: .15rem;
         }
-        .lp-pricing-grid {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 1.5rem;
-          max-width: 760px;
-          margin: 3.2rem auto 0;
+
+        .lp-pricing-wrap {
+          max-width: 860px;
+          margin: 0 auto;
         }
+
         .lp-price-card {
-          background: var(--bg-card);
           border: 2px solid var(--primary);
-          border-radius: 1.15rem;
+          background:
+            radial-gradient(circle at 85% 0%, rgba(59,130,246,.14), transparent 28%),
+            linear-gradient(180deg, rgba(59,130,246,.045), rgba(59,130,246,0)),
+            var(--bg-card);
+          border-radius: 1.2rem;
           padding: 2.2rem;
+          box-shadow: 0 25px 55px -28px rgba(59,130,246,.45);
+        }
+
+        .lp-price-top {
           display: flex;
-          flex-direction: column;
-          position: relative;
-          box-shadow: 0 20px 45px rgba(59,130,246,.12);
-        }
-        .lp-badge {
-          position: absolute;
-          top: -13px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: var(--primary);
-          color: white;
-          padding: .3rem .9rem;
-          border-radius: 999px;
-          font-size: .76rem;
-          font-weight: 800;
-          white-space: nowrap;
-        }
-        .lp-price-card h3 { margin: 0; font-size: 1.35rem; }
-        .lp-price-desc {
-          color: var(--text-muted);
-          margin: .5rem 0 0;
-        }
-        .lp-price {
-          margin: 1.2rem 0 .2rem;
-          font-size: 3rem;
-          font-weight: 850;
-          letter-spacing: -.04em;
-        }
-        .lp-price-meta { color: var(--text-muted); font-size: .9rem; }
-        .lp-price-list {
-          display: grid;
-          gap: .8rem;
-          text-align: left;
-          margin: 1.7rem 0 2rem;
-        }
-        .lp-price-card button { width: 100%; }
-        .lp-recharge-grid {
-          display: grid;
-          grid-template-columns: repeat(3,minmax(0,1fr));
-          gap: 1rem;
-          max-width: 960px;
-          margin: 2rem auto 0;
-        }
-        .lp-recharge-card {
-          background: var(--bg-card);
-          border: 1px solid var(--border-color);
-          border-radius: 1rem;
-          padding: 1.5rem;
-          text-align: left;
-        }
-        .lp-recharge-card.featured { border-color: var(--primary); }
-        .lp-recharge-card h3 {
-          margin: 0;
-          font-size: .9rem;
-          color: var(--text-muted);
-          text-transform: uppercase;
-          letter-spacing: .06em;
-        }
-        .lp-recharge-price {
-          font-size: 2rem;
-          font-weight: 850;
-          margin: .4rem 0 1rem;
-        }
-        .lp-note {
-          max-width: 840px;
-          margin: 1.4rem auto 0;
-          color: var(--text-muted);
-          text-align: center;
-          font-size: .9rem;
-        }
-        .lp-faq { max-width: 860px; margin: 3rem auto 0; }
-        .lp-faq-item {
-          padding: 1.4rem 0;
+          justify-content: space-between;
+          gap: 2rem;
+          align-items: flex-start;
+          padding-bottom: 1.5rem;
           border-bottom: 1px solid var(--border-color);
         }
-        .lp-faq-item h3 { margin: 0; font-size: 1.06rem; }
-        .lp-faq-item p { margin: .65rem 0 0; color: var(--text-muted); }
-        .lp-final {
-          max-width: 920px;
-          margin: 0 auto;
-          padding: 4rem 2rem;
+
+        .lp-price-eyebrow {
+          color: var(--primary);
+          font-weight: 850;
+          text-transform: uppercase;
+          font-size: .78rem;
+          letter-spacing: .08em;
+        }
+
+        .lp-price-card h3 {
+          margin: .35rem 0 0;
+          font-size: 1.6rem;
+        }
+
+        .lp-price-card .desc {
+          margin: .55rem 0 0;
+          color: var(--text-muted);
+        }
+
+        .lp-price {
+          white-space: nowrap;
+          text-align: right;
+        }
+
+        .lp-price strong {
+          font-size: 3rem;
+          letter-spacing: -.045em;
+        }
+
+        .lp-price span {
+          display: block;
+          color: var(--text-muted);
+          font-size: .86rem;
+        }
+
+        .lp-included-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: .8rem 1.3rem;
+          margin: 1.5rem 0 1.8rem;
+        }
+
+        .lp-capacity {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0,1fr));
+          gap: .8rem;
+          margin: 1.3rem 0 1.6rem;
+        }
+
+        .lp-capacity-card {
+          padding: 1rem;
           text-align: center;
-          border-radius: 1.3rem;
-          background: var(--bg-card);
           border: 1px solid var(--border-color);
+          border-radius: .8rem;
+          background: var(--bg-secondary);
         }
-        .lp-final h2 {
-          margin: 0 0 1rem;
-          font-size: clamp(1.8rem,3vw,2.5rem);
+
+        .lp-capacity-card strong {
+          display: block;
+          font-size: 1.55rem;
         }
-        .lp-final p {
-          max-width: 700px;
-          margin: 0 auto 1.7rem;
+
+        .lp-capacity-card span {
+          display: block;
           color: var(--text-muted);
+          font-size: .8rem;
+          margin-top: .15rem;
         }
-        .lp-footer {
+
+        .lp-recharge-title {
+          margin-top: 4.2rem;
           text-align: center;
-          padding: 3rem 2rem;
+        }
+
+        .lp-recharge-title h3 {
+          font-size: 1.55rem;
+          margin-bottom: .35rem;
+        }
+
+        .lp-recharge-title p {
+          margin: 0;
           color: var(--text-muted);
+        }
+
+        .lp-recharge-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0,1fr));
+          gap: 1rem;
+          margin-top: 1.5rem;
+        }
+
+        .lp-recharge-card {
+          padding: 1.35rem;
+          border: 1px solid var(--border-color);
+          border-radius: 1rem;
+          background: var(--bg-card);
+        }
+
+        .lp-recharge-card.featured {
+          border-color: var(--primary);
+        }
+
+        .lp-recharge-card:nth-child(1) {
+          background: linear-gradient(180deg, var(--lp-blue-soft), var(--bg-card));
+        }
+        .lp-recharge-card:nth-child(2) {
+          background: linear-gradient(180deg, var(--lp-violet-soft), var(--bg-card));
+        }
+        .lp-recharge-card:nth-child(3) {
+          background: linear-gradient(180deg, var(--lp-cyan-soft), var(--bg-card));
+        }
+
+        .lp-recharge-card .label {
+          color: var(--text-muted);
+          font-size: .76rem;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: .07em;
+        }
+
+        .lp-recharge-card .recharge-price {
+          margin: .25rem 0 .85rem;
+          font-size: 1.9rem;
+          font-weight: 850;
+        }
+
+        .lp-recharge-card strong {
+          display: block;
+          margin-bottom: .25rem;
+        }
+
+        .lp-recharge-card p {
+          margin: 0;
+          color: var(--text-muted);
+          font-size: .88rem;
+        }
+
+        .lp-note {
+          max-width: 820px;
+          margin: 1.3rem auto 0;
+          text-align: center;
+          color: var(--text-muted);
+          font-size: .88rem;
+        }
+
+        .lp-faq {
+          max-width: 880px;
+          margin: 0 auto;
+        }
+
+        .lp-faq-item {
+          padding: 1.35rem 0;
+          border-bottom: 1px solid var(--border-color);
+        }
+
+        .lp-faq-item h3 {
+          margin: 0;
+          font-size: 1.03rem;
+        }
+
+        .lp-faq-item p {
+          margin: .55rem 0 0;
+          color: var(--text-muted);
+        }
+
+        .lp-founder-card {
+          max-width: 980px;
+          margin: 0 auto;
+          display: grid;
+          grid-template-columns: 150px 1fr;
+          gap: 2rem;
+          align-items: start;
+          padding: 2rem;
+          border: 1px solid var(--border-color);
+          border-radius: 1.2rem;
+          background:
+            radial-gradient(circle at 0% 0%, rgba(59,130,246,.10), transparent 28%),
+            var(--bg-card);
+          box-shadow: 0 22px 45px -30px rgba(0,0,0,.35);
+        }
+
+        .lp-founder-photo-wrap {
+          display: flex;
+          justify-content: center;
+          padding-top: .2rem;
+        }
+
+        .lp-founder-photo {
+          width: 132px;
+          height: 132px;
+          object-fit: cover;
+          object-position: center 24%;
+          border-radius: 50%;
+          border: 4px solid var(--bg-card);
+          outline: 1px solid var(--border-color);
+          box-shadow: 0 12px 28px rgba(0,0,0,.18);
+        }
+
+        .lp-founder-content h2 {
+          margin: 0;
+          font-size: 1.7rem;
+          line-height: 1.15;
+          letter-spacing: -.02em;
+        }
+
+        .lp-founder-role {
+          margin: .3rem 0 1rem !important;
+          color: var(--text-muted);
+          font-weight: 650;
+        }
+
+        .lp-founder-content > p {
+          margin: .8rem 0;
+          color: var(--text-muted);
+        }
+
+        .lp-founder-content > p strong {
+          color: var(--text-main);
+        }
+
+        .lp-founder-tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: .55rem;
+          margin-top: 1.05rem;
+        }
+
+        .lp-founder-tag {
+          display: inline-flex;
+          align-items: center;
+          gap: .42rem;
+          padding: .36rem .68rem;
+          border-radius: 999px;
+          background: rgba(59,130,246,.08);
+          color: var(--primary);
+          border: 1px solid rgba(59,130,246,.18);
+          font-size: .8rem;
+          font-weight: 740;
+        }
+
+        .lp-founder-quote {
+          margin-top: 1.1rem !important;
+          color: var(--text-main) !important;
+          font-weight: 780;
+          font-size: 1rem;
+        }
+
+        .lp-final {
+          text-align: center;
+          padding: 4.2rem 2rem;
+          border-radius: 1.3rem;
+          border: 1px solid rgba(59,130,246,.20);
+          background:
+            radial-gradient(circle at 50% 0%, rgba(59,130,246,.24), transparent 48%),
+            linear-gradient(160deg, rgba(59,130,246,.08), rgba(99,102,241,.05)),
+            var(--bg-card);
+        }
+
+        .lp-final h2 {
+          margin: .75rem auto 0;
+          max-width: 760px;
+          font-size: clamp(2rem, 3.2vw, 2.8rem);
+          line-height: 1.15;
+          letter-spacing: -.035em;
+        }
+
+        .lp-final p {
+          max-width: 680px;
+          margin: 1rem auto 1.7rem;
+          color: var(--text-muted);
+        }
+
+        .lp-footer {
+          padding: 3rem 0;
           background: var(--bg-secondary);
           border-top: 1px solid var(--border-color);
+          color: var(--text-muted);
+          text-align: center;
         }
+
         .lp-footer-links {
           display: flex;
           justify-content: center;
           flex-wrap: wrap;
-          gap: 1.3rem;
-          margin-top: 1rem;
+          gap: 1.2rem;
+          margin-top: .9rem;
         }
+
         .lp-footer button {
           border: 0;
+          padding: 0;
           background: transparent;
           color: var(--text-muted);
           cursor: pointer;
-          padding: 0;
         }
-        @media (max-width: 900px) {
-          .lp-grid-3,
-          .lp-grid-6,
-          .lp-data-model,
-          .lp-comparison,
-          .lp-recharge-grid {
+
+        @media (max-width: 980px) {
+          .lp-hero-grid,
+          .lp-problem-grid,
+          .lp-showcase {
             grid-template-columns: 1fr;
           }
+
+          .lp-hero-grid { gap: 3rem; }
+          .lp-showcase.reverse .lp-showcase-copy,
+          .lp-showcase.reverse .lp-showcase-visual { order: initial; }
+          .lp-feature-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+          .lp-floating-card { left: 1rem; }
+          .lp-trust-items { grid-template-columns: repeat(2, minmax(0,1fr)); }
         }
-        @media (max-width: 620px) {
-          .lp-hero { padding: 5rem 1.2rem 3.5rem; }
-          .lp-section { padding: 4rem 1.2rem; }
-          .lp-capacity-grid,
-          .lp-outcomes { grid-template-columns: 1fr; }
+
+        @media (max-width: 680px) {
+          .lp-shell { width: min(100% - 28px, 1180px); }
+          .lp-hero { padding: 5rem 0 3.7rem; }
+          .lp-section { padding: 4.3rem 0; }
+          .lp-feature-grid,
+          .lp-compare-grid,
+          .lp-included-grid,
+          .lp-recharge-grid,
+          .lp-capacity,
+          .lp-profile-top,
+          .lp-method-grid,
+          .lp-eval-points,
+          .lp-outcomes {
+            grid-template-columns: 1fr;
+          }
           .lp-actions { flex-direction: column; }
           .lp-actions button { width: 100%; }
-          .lp-tree-header,
-          .lp-tree-company-header {
+          .lp-floating-card {
+            position: static;
+            width: auto;
+            margin-top: .8rem;
+          }
+          .lp-price-top {
             flex-direction: column;
-            align-items: flex-start;
+          }
+          .lp-price { text-align: left; }
+          .lp-profile-row {
+            grid-template-columns: 110px 1fr 34px;
+          }
+
+          .lp-founder-card {
+            grid-template-columns: 1fr;
+            text-align: center;
+            padding: 1.5rem;
+          }
+
+          .lp-founder-photo {
+            width: 116px;
+            height: 116px;
+          }
+
+          .lp-founder-tags {
+            justify-content: center;
           }
         }
       `}</style>
 
+      {/* HERO */}
       <section className="lp-hero">
-        <div className="lp-eyebrow">
-          <Target size={16} /> Préparation stratégique aux entretiens
-        </div>
-        <h1 className="lp-hero-title">
-          Ne subissez plus l’entretien. Pilotez la conversation.
-        </h1>
-        <p className="lp-hero-subtitle">
-          BeyondTheCV analyse votre profil, le poste et l’entreprise, puis vous entraîne
-          jusqu’à ce que vos réponses soient réellement prêtes pour l’entretien.
-        </p>
-        <div className="lp-actions">
-          <button onClick={onStart} className="lp-button-primary">
-            Préparer mon prochain entretien <ArrowRight size={18} />
-          </button>
-          <button onClick={scrollToPricing} className="lp-button-secondary">
-            Voir l’abonnement
-          </button>
-        </div>
-        <div className="lp-reassurance">
-          <span><CheckCircle2 size={15} /> 29,90 € / mois</span>
-          <span><CheckCircle2 size={15} /> Sans engagement</span>
-          <span><ShieldCheck size={15} /> Espace personnel sécurisé</span>
-        </div>
+        <div className="lp-shell lp-hero-grid">
+          <div>
+            <div className="lp-eyebrow">
+              <Sparkles size={16} /> Préparation stratégique et suivi de progression
+            </div>
 
-        <div className="lp-preview">
-          <img
-            src={darkMode ? '/dashboard-preview-night.png' : '/dashboard-preview.png'}
-            alt="Aperçu de l’espace de préparation BeyondTheCV"
-          />
-          <p className="lp-preview-caption">
-            Aperçu de votre espace de préparation
-          </p>
+            <h1 className="lp-hero-title">
+              Préparez chaque candidature comme si vous aviez un coach à vos côtés.
+            </h1>
+
+            <p className="lp-hero-subtitle">
+              BeyondTheCV relie votre profil, l’entreprise, le poste et vos entraînements
+              pour vous aider à <span className="lp-hero-strong">comprendre, convaincre,
+              vous entraîner et progresser</span> jusqu’à l’entretien.
+            </p>
+
+            <div className="lp-actions">
+              <button onClick={onStart} className="lp-button-primary">
+                Préparer ma prochaine candidature <ArrowRight size={18} />
+              </button>
+              <button onClick={scrollToPricing} className="lp-button-secondary">
+                Voir l’offre à 29,90 €
+              </button>
+            </div>
+
+            <div className="lp-reassurance">
+              <span><CheckCircle2 size={15} /> 5 candidatures chaque mois</span>
+              <span><CheckCircle2 size={15} /> 150 entraînements analysés</span>
+              <span><ShieldCheck size={15} /> Sans engagement</span>
+            </div>
+          </div>
+
+          <div className="lp-product-frame">
+            <img
+              src={darkMode ? '/dashboard-preview-night.png' : '/dashboard-preview.png'}
+              alt="Aperçu du tableau de bord BeyondTheCV"
+            />
+            <div className="lp-floating-card">
+              <strong>Votre préparation reste structurée</strong>
+              <span>Profil, entreprises, postes, entraînements et débriefs réunis dans un même espace.</span>
+            </div>
+          </div>
         </div>
       </section>
 
-      <div className="lp-band">
-        <section className="lp-section">
-          <div className="lp-heading">
-            <h2>Un bon parcours ne garantit pas un bon entretien</h2>
-            <p>
-              Vous pouvez avoir l’expérience attendue et perdre l’avantage faute
-              d’exemples précis, d’un discours adapté ou d’une réponse solide à
-              une objection sensible.
-            </p>
-          </div>
-          <div className="lp-grid-3">
-            <div className="lp-card">
-              <h3>Vous récitez votre CV</h3>
-              <p>Votre parcours est riche, mais votre présentation manque de hiérarchie et de message central.</p>
-            </div>
-            <div className="lp-card">
-              <h3>Une question vous déstabilise</h3>
-              <p>Reconversion, trou dans le parcours, manque sectoriel ou rémunération : l’objection arrive sans prévenir.</p>
-            </div>
-            <div className="lp-card">
-              <h3>Vous quittez l’entretien dans le doute</h3>
-              <p>Vous ne savez pas ce qui a convaincu, ce qui a inquiété ni comment préparer le tour suivant.</p>
-            </div>
-          </div>
-        </section>
+      <div className="lp-trust-strip">
+        <div className="lp-shell lp-trust-items">
+          <div>Profil réutilisable</div>
+          <div>Analyses contextualisées</div>
+          <div>Suivi de progression</div>
+          <div>Débrief après entretien</div>
+        </div>
       </div>
 
+      {/* PROBLEM / SOLUTION */}
       <section className="lp-section">
-        <div className="lp-heading">
-          <h2>Une préparation continue, avant et après chaque entretien</h2>
-          <p>
-            BeyondTheCV ne produit pas une réponse isolée. La plateforme organise
-            toute votre préparation autour d’une candidature réelle.
-          </p>
-        </div>
-        <div className="lp-grid-3">
-          <div className="lp-card">
-            <div className="lp-step-label">Avant</div>
-            <h3>Construisez votre stratégie</h3>
-            <p>Décodez l’offre, analysez l’entreprise, identifiez vos écarts et préparez des pitchs adaptés.</p>
+        <div className="lp-shell lp-problem-grid">
+          <div>
+            <div className="lp-section-kicker">Le problème</div>
+            <h2>Un bon CV vous ouvre la porte. Il ne répond pas à votre place.</h2>
+            <div className="lp-problem-copy">
+              <div className="lp-problem-item">
+                <strong>Votre parcours est riche, mais difficile à synthétiser.</strong>
+                <span>Vous risquez de réciter votre CV au lieu de défendre une proposition de valeur claire.</span>
+              </div>
+              <div className="lp-problem-item">
+                <strong>Chaque poste change les attentes.</strong>
+                <span>Un argument pertinent chez Thales ne sera pas forcément le bon chez Naval Group ou MBDA.</span>
+              </div>
+              <div className="lp-problem-item">
+                <strong>Vous savez rarement quoi travailler en priorité.</strong>
+                <span>Sans suivi, vous répétez parfois les mêmes erreurs d’un entretien à l’autre.</span>
+              </div>
+            </div>
           </div>
-          <div className="lp-card">
-            <div className="lp-step-label">Entraînement</div>
-            <h3>Testez vos réponses</h3>
-            <p>Travaillez les questions probables, les mises en situation, l’oral, la négociation et les objections.</p>
-          </div>
-          <div className="lp-card">
-            <div className="lp-step-label">Après</div>
-            <h3>Débriefez et progressez</h3>
-            <p>Analysez les signaux reçus, corrigez vos réponses et préparez le prochain échange.</p>
+
+          <div className="lp-solution-panel">
+            <div className="lp-solution-title">
+              <Target size={21} color="var(--primary)" />
+              BeyondTheCV transforme la recherche d’emploi en préparation structurée
+            </div>
+
+            <div className="lp-step">
+              <div className="lp-step-number">1</div>
+              <div>
+                <strong>Votre profil est construit une fois</strong>
+                <span>CV, expériences, compétences, réalisations, préférences, salaire et pitch général.</span>
+              </div>
+            </div>
+
+            <div className="lp-step">
+              <div className="lp-step-number">2</div>
+              <div>
+                <strong>Chaque candidature reçoit son contexte</strong>
+                <span>Entreprise, offre, enjeux, adéquation, objections, questions et plan de préparation.</span>
+              </div>
+            </div>
+
+            <div className="lp-step">
+              <div className="lp-step-number">3</div>
+              <div>
+                <strong>Vos entraînements font évoluer votre profil</strong>
+                <span>L’application détecte les points solides, les axes à renforcer et les trois priorités du moment.</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <div className="lp-band">
-        <section className="lp-section">
-          <div className="lp-heading">
-            <h2>Un profil, plusieurs entreprises, plusieurs postes</h2>
+      {/* FEATURES */}
+      <section className="lp-section soft">
+        <div className="lp-shell">
+          <div className="lp-section-header center">
+            <div className="lp-section-kicker">Une méthode complète</div>
+            <h2>De l’annonce au débrief, tout reste relié</h2>
             <p>
-              Votre profil candidat est créé une fois. L’analyse d’une entreprise
-              est réutilisée pour ses différents postes. Chaque poste garde ensuite
-              sa préparation et ses entraînements.
+              BeyondTheCV n’empile pas des outils. Chaque module utilise le même profil
+              et le même contexte de candidature pour maintenir une préparation cohérente.
             </p>
           </div>
 
-          <div className="lp-data-model">
-            <div className="lp-data-card">
-              <div className="lp-data-number">1</div>
-              <h3>Votre profil candidat</h3>
-              <p>Créé une fois, puis réutilisé dans toutes vos candidatures.</p>
-              <div className="lp-mini-list">
-                {[
-                  'CV et expériences',
-                  'Compétences et réalisations',
-                  'Préférences et prétentions salariales',
-                  'Pitch général',
-                ].map((item) => (
-                  <span key={item}><CheckCircle2 size={16} />{item}</span>
-                ))}
+          <div className="lp-feature-grid">
+            {features.map((feature) => (
+              <div className="lp-feature-card" key={feature.title}>
+                <div className="lp-feature-icon">{feature.icon}</div>
+                <h3>{feature.title}</h3>
+                <p>{feature.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+
+      {/* METHOD */}
+      <section className="lp-section">
+        <div className="lp-shell">
+          <div className="lp-section-header center">
+            <div className="lp-section-kicker">Une méthode, pas un catalogue</div>
+            <h2>Votre préparation s’organise autour de cinq étapes simples.</h2>
+            <p>
+              Vous avancez étape par étape, en sachant toujours ce que vous devez comprendre,
+              préparer, entraîner et améliorer.
+            </p>
+          </div>
+
+          <div className="lp-method-grid">
+            <div className="lp-method-card accent-1">
+              <div>
+                <h3>Comprendre le poste</h3>
+                <ul>
+                  <li>Décoder l’annonce</li>
+                  <li>Analyser ses écarts</li>
+                  <li>Se voir comme un recruteur</li>
+                </ul>
               </div>
             </div>
 
-            <div className="lp-data-card primary">
-              <div className="lp-data-number">2</div>
-              <h3>Chaque entreprise cible</h3>
-              <p>Une analyse dédiée, conservée et réutilisée pour tous ses postes.</p>
-              <div className="lp-mini-list">
-                {[
-                  'Stratégie, marché et actualités',
-                  'Culture, risques et concurrents',
-                  'Enjeux et défis de recrutement',
-                  'Posture à adopter en entretien',
-                ].map((item) => (
-                  <span key={item}><CheckCircle2 size={16} />{item}</span>
-                ))}
+            <div className="lp-method-card accent-2">
+              <div>
+                <h3>Comprendre l’entreprise</h3>
+                <ul>
+                  <li>Comprendre l’entreprise</li>
+                  <li>Comprendre le marché</li>
+                  <li>Enjeux &amp; culture</li>
+                </ul>
               </div>
             </div>
 
-            <div className="lp-data-card">
-              <div className="lp-data-number">3</div>
-              <h3>Chaque poste ciblé</h3>
-              <p>Une préparation spécifique et jusqu’à 30 entraînements analysés.</p>
-              <div className="lp-mini-list">
-                {[
-                  'Décodage des attentes',
-                  'Adéquation candidat-poste',
-                  'Objections et questions probables',
-                  'Pitch, MES et plan de préparation',
-                ].map((item) => (
-                  <span key={item}><CheckCircle2 size={16} />{item}</span>
-                ))}
+            <div className="lp-method-card accent-3">
+              <div>
+                <h3>Construire le discours</h3>
+                <ul>
+                  <li>Préparer son pitch</li>
+                  <li>Arguments clés</li>
+                  <li>Répondre à ses points faibles</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="lp-method-card accent-4">
+              <div>
+                <h3>S’entraîner</h3>
+                <ul>
+                  <li>Questions probables</li>
+                  <li>Mises en situation</li>
+                  <li>Entraînement oral</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="lp-method-card accent-5">
+              <div>
+                <h3>Progresser</h3>
+                <ul>
+                  <li>Profil stratégique</li>
+                  <li>Débrief &amp; suivi</li>
+                  <li>Recommandations</li>
+                </ul>
               </div>
             </div>
           </div>
 
-          <div className="lp-tree">
-            <div className="lp-tree-header">
-              <div className="lp-tree-title">Votre recherche d’emploi</div>
-              <div className="lp-tree-caption">
-                Profil partagé • analyses entreprises • préparations par poste
-              </div>
+          <div className="lp-method-footer">
+            BTCV n’aide pas seulement à écrire. Il organise la préparation et fait travailler le candidat.
+          </div>
+        </div>
+      </section>
+
+
+      {/* TRAINING PROGRESS SHOWCASE */}
+      <section className="lp-section soft">
+        <div className="lp-shell">
+          <div className="lp-section-header center">
+            <div className="lp-section-kicker">Mesurez vos progrès</div>
+            <h2>Suivez votre évolution, pas seulement vos réponses.</h2>
+            <p>
+              BeyondTheCV consolide vos entraînements, suit votre progression et
+              met en évidence les thématiques à renforcer avant le prochain entretien.
+            </p>
+          </div>
+
+          <div className="lp-eval-showcase">
+            <div className="lp-eval-frame">
+              <img
+                src={darkMode ? '/evaluation-preview-night.png' : '/evaluation-preview.png'}
+                alt="Suivi des entraînements et de la progression dans BeyondTheCV"
+              />
             </div>
-            <div className="lp-tree-list">
-              {companyTree.map((company) => (
-                <div className="lp-tree-company" key={company.name}>
-                  <div className="lp-tree-company-header">
-                    <div className="lp-tree-company-name">
-                      <Building2 size={16} />
-                      <span>{company.name}</span>
-                    </div>
-                    <div className="lp-tree-badge">{company.badge}</div>
-                  </div>
-                  <div className="lp-tree-items">
-                    {company.items.map((item) => (
-                      <div className="lp-tree-item" key={item}>
-                        <CheckCircle2 size={15} />
-                        <span>{item}</span>
-                      </div>
-                    ))}
-                  </div>
+
+            <div className="lp-eval-points">
+              <div className="lp-eval-point">
+                <BarChart3 size={19} />
+                <div>
+                  <strong>Progression globale</strong>
+                  <span>Visualisez l’évolution de vos performances au fil des entraînements.</span>
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
 
-          <p className="lp-note">
-            Ajouter un nouveau poste dans une entreprise déjà analysée ne relance
-            pas inutilement toute l’analyse de l’entreprise.
-          </p>
-        </section>
-      </div>
+              <div className="lp-eval-point">
+                <Target size={19} />
+                <div>
+                  <strong>Détail par thématique</strong>
+                  <span>Repérez rapidement les domaines solides et ceux qui demandent encore du travail.</span>
+                </div>
+              </div>
 
-      <section className="lp-section">
-        <div className="lp-heading">
-          <h2>30 entraînements analysés par poste</h2>
-          <p>
-            Une limite compréhensible et directement liée à votre préparation —
-            pas un système de crédits où chaque bouton a un tarif différent.
-          </p>
-        </div>
-
-        <div className="lp-capacity-grid">
-          <div className="lp-capacity-card">
-            <div className="lp-capacity-value">3</div>
-            <div className="lp-capacity-label">entreprises</div>
-            <div className="lp-capacity-help">Analyses dédiées et réutilisables.</div>
-          </div>
-          <div className="lp-capacity-card">
-            <div className="lp-capacity-value">5</div>
-            <div className="lp-capacity-label">postes</div>
-            <div className="lp-capacity-help">Une préparation spécifique pour chacun.</div>
-          </div>
-          <div className="lp-capacity-card">
-            <div className="lp-capacity-value">150</div>
-            <div className="lp-capacity-label">entraînements analysés</div>
-            <div className="lp-capacity-help">Jusqu’à 30 pour chacun des 5 postes.</div>
-          </div>
-        </div>
-
-        <div className="lp-training-definition">
-          <strong>1 entraînement analysé</strong> = 1 réponse, 1 pitch,
-          1 mise en situation ou 1 simulation courte évaluée par BeyondTheCV.
-          <br />
-          Consulter une analyse déjà produite ne consomme aucun entraînement.
-        </div>
-      </section>
-
-      <div className="lp-band">
-        <section className="lp-section">
-          <div className="lp-heading">
-            <h2>Tout ce qu’il faut pour transformer votre expérience en arguments convaincants</h2>
-          </div>
-          <div className="lp-grid-6">
-            <div className="lp-card">
-              <div className="lp-card-icon"><FileSearch size={23} /></div>
-              <h3>Décodez le poste</h3>
-              <p>Repérez les attentes explicites, les besoins cachés et les difficultés que le recrutement doit résoudre.</p>
-            </div>
-            <div className="lp-card">
-              <div className="lp-card-icon"><Building2 size={23} /></div>
-              <h3>Comprenez l’entreprise</h3>
-              <p>Identifiez ses actualités, ses priorités et les sujets à connaître avant de rencontrer le recruteur.</p>
-            </div>
-            <div className="lp-card">
-              <div className="lp-card-icon"><MessageSquareText size={23} /></div>
-              <h3>Construisez vos pitchs</h3>
-              <p>Adaptez votre présentation au RH, au manager, à la direction ou à un échange réseau.</p>
-            </div>
-            <div className="lp-card">
-              <div className="lp-card-icon"><Mic size={23} /></div>
-              <h3>Entraînez-vous réellement</h3>
-              <p>Répondez, recevez une analyse et recommencez jusqu’à obtenir une réponse solide et naturelle.</p>
-            </div>
-            <div className="lp-card">
-              <div className="lp-card-icon"><ShieldCheck size={23} /></div>
-              <h3>Anticipez les objections</h3>
-              <p>Préparez des réponses crédibles sur les écarts de parcours, la reconversion ou la rémunération.</p>
-            </div>
-            <div className="lp-card">
-              <div className="lp-card-icon"><RefreshCw size={23} /></div>
-              <h3>Exploitez chaque entretien</h3>
-              <p>Transformez les questions, réactions et signaux du recruteur en plan d’action pour la suite.</p>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <section className="lp-section">
-        <div className="lp-heading">
-          <h2>Pourquoi ne pas simplement utiliser une IA généraliste ?</h2>
-          <p>
-            Une IA généraliste répond à un prompt. BeyondTheCV suit votre préparation
-            dans le temps et relie profil, entreprise, poste, entraînements et débriefs.
-          </p>
-        </div>
-        <div className="lp-comparison">
-          <div className="lp-comparison-column">
-            <h3>IA généraliste</h3>
-            <div className="lp-checklist">
-              <div className="lp-check"><CheckCircle2 size={18} /><span>Répond à un prompt isolé</span></div>
-              <div className="lp-check"><CheckCircle2 size={18} /><span>Vous laisse organiser vous-même les informations</span></div>
-              <div className="lp-check"><CheckCircle2 size={18} /><span>Ne suit pas naturellement votre progression par poste</span></div>
-              <div className="lp-check"><CheckCircle2 size={18} /><span>N’impose pas une méthode spécialisée entretien</span></div>
-            </div>
-          </div>
-          <div className="lp-comparison-column highlight">
-            <h3>BeyondTheCV</h3>
-            <div className="lp-checklist">
-              <div className="lp-check"><CheckCircle2 size={18} /><span>Relie votre profil, l’entreprise et le poste</span></div>
-              <div className="lp-check"><CheckCircle2 size={18} /><span>Centralise pitchs, objections et entraînements</span></div>
-              <div className="lp-check"><CheckCircle2 size={18} /><span>Évalue vos réponses selon le poste ciblé</span></div>
-              <div className="lp-check"><CheckCircle2 size={18} /><span>Capitalise sur vos progrès et vos débriefs</span></div>
+              <div className="lp-eval-point">
+                <Sparkles size={19} />
+                <div>
+                  <strong>Conseils personnalisés</strong>
+                  <span>Le coach vous oriente vers les prochains exercices les plus utiles à votre préparation.</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <div className="lp-band">
-        <section className="lp-section">
-          <div className="lp-heading">
-            <h2>À la fin de votre préparation, vous savez précisément quoi défendre</h2>
+      {/* STRATEGIC PROFILE */}
+      <section className="lp-section">
+        <div className="lp-shell lp-showcase">
+          <div className="lp-showcase-copy">
+            <div className="lp-section-kicker">Le coach qui apprend avec vous</div>
+            <h2>Votre profil stratégique évolue à mesure que vous vous entraînez.</h2>
+            <p>
+              Comme un coach suit vos entraînements, BeyondTheCV observe les éléments
+              réellement travaillés et fait évoluer ses recommandations.
+            </p>
+
+            <div className="lp-bullet-list">
+              <div className="lp-bullet">
+                <CheckCircle2 size={18} />
+                <span>Identifie vos forces à exploiter.</span>
+              </div>
+              <div className="lp-bullet">
+                <CheckCircle2 size={18} />
+                <span>Repère les domaines qui restent fragiles ou peu documentés.</span>
+              </div>
+              <div className="lp-bullet">
+                <CheckCircle2 size={18} />
+                <span>Fait ressortir trois priorités concrètes plutôt qu’une liste interminable.</span>
+              </div>
+              <div className="lp-bullet">
+                <CheckCircle2 size={18} />
+                <span>Vous renvoie directement vers l’exercice le plus utile à ce moment-là.</span>
+              </div>
+            </div>
           </div>
+
+          <div className="lp-showcase-visual" aria-label="Aperçu du profil stratégique évolutif">
+            <div className="lp-profile-top">
+              <div className="lp-profile-stat">
+                <span>Niveau actuel</span>
+                <strong>En progression</strong>
+              </div>
+              <div className="lp-profile-stat">
+                <span>Lecture</span>
+                <strong>Continue</strong>
+              </div>
+              <div className="lp-profile-stat">
+                <span>Mise à jour</span>
+                <strong>Dynamique</strong>
+              </div>
+            </div>
+
+            <div className="lp-profile-bars">
+              <div className="lp-profile-row">
+                <span>Clarté du discours</span>
+                <div className="lp-progress"><span style={{ width: '82%' }} /></div>
+                <strong>82</strong>
+              </div>
+              <div className="lp-profile-row">
+                <span>Impact et preuves</span>
+                <div className="lp-progress"><span style={{ width: '66%' }} /></div>
+                <strong>66</strong>
+              </div>
+              <div className="lp-profile-row">
+                <span>Adéquation au poste</span>
+                <div className="lp-progress"><span style={{ width: '81%' }} /></div>
+                <strong>81</strong>
+              </div>
+              <div className="lp-profile-row">
+                <span>Gestion objections</span>
+                <div className="lp-progress"><span style={{ width: '82%' }} /></div>
+                <strong>82</strong>
+              </div>
+              <div className="lp-profile-row">
+                <span>Posture / leadership</span>
+                <div className="lp-progress"><span style={{ width: '53%' }} /></div>
+                <strong>53</strong>
+              </div>
+            </div>
+
+            <div className="lp-priority-card">
+              <small>Priorité actuelle</small>
+              <strong>Renforcer votre posture sur les situations managériales</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* MULTI APPLICATION MODEL */}
+      <section className="lp-section soft">
+        <div className="lp-shell">
+          <div className="lp-section-header center">
+            <div className="lp-section-kicker">Plusieurs candidatures, sans repartir de zéro</div>
+            <h2>Votre profil reste. Chaque candidature garde sa propre préparation.</h2>
+            <p>
+              Vous pouvez viser plusieurs entreprises et plusieurs postes sans écraser
+              les analyses précédentes. Votre profil candidat est réutilisé, tandis que
+              chaque candidature conserve son contexte, ses entraînements, ses entretiens
+              et ses débriefs.
+            </p>
+          </div>
+
           <div className="lp-outcomes">
-            <div className="lp-outcome"><CheckCircle2 size={20} /><span>Présenter votre valeur sans réciter votre CV.</span></div>
-            <div className="lp-outcome"><CheckCircle2 size={20} /><span>Illustrer vos compétences avec des exemples concrets.</span></div>
-            <div className="lp-outcome"><CheckCircle2 size={20} /><span>Répondre aux principales objections sur votre profil.</span></div>
-            <div className="lp-outcome"><CheckCircle2 size={20} /><span>Expliquer pourquoi vous visez ce poste et cette entreprise.</span></div>
-            <div className="lp-outcome"><CheckCircle2 size={20} /><span>Aborder la rémunération avec une position préparée.</span></div>
-            <div className="lp-outcome"><CheckCircle2 size={20} /><span>Capitaliser sur chaque entretien pour progresser.</span></div>
-          </div>
-        </section>
-      </div>
-
-      <section ref={pricingRef} className="lp-section">
-        <div className="lp-heading">
-          <h2>Un abonnement simple. Toute la puissance de BeyondTheCV.</h2>
-          <p>
-            Une seule offre, sans engagement. Pas de fonctionnalités artificiellement
-            bloquées, pas de système de crédits à convertir.
-          </p>
-        </div>
-
-        <div className="lp-pricing-grid">
-          <div className="lp-price-card">
-            <div className="lp-badge">Offre BeyondTheCV</div>
-            <h3>Abonnement complet</h3>
-            <p className="lp-price-desc">
-              Pour piloter plusieurs candidatures et vous entraîner réellement avant vos entretiens.
-            </p>
-            <div className="lp-price">29,90 €</div>
-            <div className="lp-price-meta">
-              par mois · Sans engagement · Résiliable à tout moment
+            <div className="lp-outcome">
+              <CheckCircle2 size={20} />
+              <span>Un profil candidat commun à toute votre recherche.</span>
             </div>
-
-            <div className="lp-price-list">
-              {[
-                '1 profil candidat réutilisable',
-                '3 entreprises ciblées',
-                '5 postes préparés',
-                '150 entraînements analysés',
-                '30 entraînements par poste',
-                'Analyse entreprise, marché et actualités',
-                'Décodage et adéquation de chaque poste',
-                'Pitchs, objections et questions adaptés',
-                'Mises en situation, négociation et simulations',
-                'Débrief et préparation du tour suivant',
-                'Suivi de votre progression dans le temps',
-              ].map((item) => (
-                <div className="lp-check" key={item}>
-                  <CheckCircle2 size={18} />
-                  <span>{item}</span>
-                </div>
-              ))}
+            <div className="lp-outcome">
+              <CheckCircle2 size={20} />
+              <span>Une analyse dédiée à chaque entreprise ciblée.</span>
             </div>
-
-            <button onClick={onLoginRedirect} className="lp-button-primary">
-              Commencer ma préparation
-            </button>
-          </div>
-        </div>
-
-        <p className="lp-note">
-          <strong>Puis chaque mois :</strong> +1 entreprise, +1 poste et +30
-          entraînements analysés viennent compléter votre capacité de préparation.
-        </p>
-
-        <div className="lp-heading" style={{ marginTop: '4rem' }}>
-          <h2>Besoin de préparer davantage de candidatures ?</h2>
-          <p>
-            Ajoutez uniquement la capacité dont vous avez besoin. Votre abonnement ne change pas.
-          </p>
-        </div>
-
-        <div className="lp-recharge-grid">
-          <div className="lp-recharge-card">
-            <h3>Recharge 1</h3>
-            <div className="lp-recharge-price">9 €</div>
-            <div className="lp-checklist">
-              <div className="lp-check"><CheckCircle2 size={18} /><span>+1 entreprise</span></div>
-              <div className="lp-check"><CheckCircle2 size={18} /><span>+1 poste</span></div>
-              <div className="lp-check"><CheckCircle2 size={18} /><span>+30 entraînements</span></div>
+            <div className="lp-outcome">
+              <CheckCircle2 size={20} />
+              <span>Une préparation spécifique pour chaque offre.</span>
             </div>
-          </div>
-
-          <div className="lp-recharge-card featured">
-            <h3>Recharge 2</h3>
-            <div className="lp-recharge-price">19 €</div>
-            <div className="lp-checklist">
-              <div className="lp-check"><CheckCircle2 size={18} /><span>+2 entreprises</span></div>
-              <div className="lp-check"><CheckCircle2 size={18} /><span>+3 postes</span></div>
-              <div className="lp-check"><CheckCircle2 size={18} /><span>+90 entraînements</span></div>
-            </div>
-          </div>
-
-          <div className="lp-recharge-card">
-            <h3>Recharge 3</h3>
-            <div className="lp-recharge-price">29 €</div>
-            <div className="lp-checklist">
-              <div className="lp-check"><CheckCircle2 size={18} /><span>+3 entreprises</span></div>
-              <div className="lp-check"><CheckCircle2 size={18} /><span>+5 postes</span></div>
-              <div className="lp-check"><CheckCircle2 size={18} /><span>+150 entraînements</span></div>
+            <div className="lp-outcome">
+              <CheckCircle2 size={20} />
+              <span>Un historique conservé pour suivre chaque candidature dans le temps.</span>
             </div>
           </div>
         </div>
-
-        <p className="lp-note">
-          Les recharges servent uniquement lorsque votre recherche s’intensifie.
-          Aucun besoin d’acheter des « crédits » pour chaque fonctionnalité.
-        </p>
       </section>
 
-      <div className="lp-band">
-        <section className="lp-section">
-          <div className="lp-heading">
-            <h2>Vos questions, nos réponses</h2>
+      {/* AI GENERALIST */}
+      <section className="lp-section">
+        <div className="lp-shell">
+          <div className="lp-section-header center">
+            <div className="lp-section-kicker">Plus qu’un chatbot</div>
+            <h2>Pourquoi ne pas simplement utiliser ChatGPT ou Claude ?</h2>
+            <p>
+              Une IA généraliste peut répondre à une question. BeyondTheCV organise
+              une préparation complète, persistante et centrée sur chaque candidature.
+            </p>
+          </div>
+
+          <div className="lp-compare-grid">
+            <div className="lp-compare-card">
+              <h3>IA généraliste</h3>
+              <div className="lp-checklist">
+                <div className="lp-check"><CheckCircle2 size={18} /><span>Répond à un prompt ponctuel.</span></div>
+                <div className="lp-check"><CheckCircle2 size={18} /><span>Vous laisse organiser seul les informations et l’historique.</span></div>
+                <div className="lp-check"><CheckCircle2 size={18} /><span>Ne structure pas naturellement plusieurs candidatures.</span></div>
+                <div className="lp-check"><CheckCircle2 size={18} /><span>Ne transforme pas automatiquement vos résultats en plan de progression.</span></div>
+              </div>
+            </div>
+
+            <div className="lp-compare-card highlight">
+              <h3>BeyondTheCV</h3>
+              <div className="lp-checklist">
+                <div className="lp-check"><CheckCircle2 size={18} /><span>Relie profil, entreprise, offre et entraînements.</span></div>
+                <div className="lp-check"><CheckCircle2 size={18} /><span>Centralise vos candidatures et leur historique.</span></div>
+                <div className="lp-check"><CheckCircle2 size={18} /><span>Évalue vos réponses dans le contexte du poste ciblé.</span></div>
+                <div className="lp-check"><CheckCircle2 size={18} /><span>Met à jour votre profil stratégique et vos priorités.</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FOUNDER */}
+      <section className="lp-section">
+        <div className="lp-shell">
+          <div className="lp-founder-card">
+            <div className="lp-founder-photo-wrap">
+              <img
+                src="/denis-gaultier.png"
+                alt="Denis Gaultier, fondateur de BeyondTheCV"
+                className="lp-founder-photo"
+              />
+            </div>
+
+            <div className="lp-founder-content">
+              <div className="lp-section-kicker">Pourquoi BeyondTheCV a été créé</div>
+              <h2>Denis Gaultier</h2>
+              <p className="lp-founder-role">
+                Fondateur de BeyondTheCV — TacticEdge
+              </p>
+
+              <p>
+                Plus de vingt ans d’expérience dans des environnements exigeants, avec des responsabilités
+                de management, d’évaluation et de recrutement de profils à haut niveau de responsabilité,
+                notamment au sein d’organisations opérationnelles et de sécurité nationale.
+              </p>
+
+              <p>
+                BeyondTheCV est né d’un constat simple : on peut avoir un excellent parcours et pourtant
+                mal défendre sa valeur en entretien. La plateforme a donc été conçue pour transformer
+                l’expérience du candidat en une préparation structurée, progressive et directement actionnable.
+              </p>
+
+              <div className="lp-founder-tags">
+                <span className="lp-founder-tag"><CheckCircle2 size={15} />Management</span>
+                <span className="lp-founder-tag"><CheckCircle2 size={15} />Évaluation et recrutement</span>
+                <span className="lp-founder-tag"><CheckCircle2 size={15} />Cyber et environnements complexes</span>
+                <span className="lp-founder-tag"><CheckCircle2 size={15} />Préparation à forte exigence</span>
+              </div>
+
+              <p className="lp-founder-quote">
+                Un bon parcours ne suffit pas. Il faut savoir le défendre.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* PRICING */}
+      <section ref={pricingRef} className="lp-section soft">
+        <div className="lp-shell">
+          <div className="lp-section-header center">
+            <div className="lp-section-kicker">Une offre simple</div>
+            <h2>5 nouvelles candidatures chaque mois. Toutes les fonctionnalités.</h2>
+            <p>
+              Pas de pack amputé, pas de choix entre plusieurs niveaux de préparation.
+              Votre abonnement vous donne accès à l’ensemble de BeyondTheCV.
+            </p>
+          </div>
+
+          <div className="lp-pricing-wrap">
+            <div className="lp-price-card">
+              <div className="lp-price-top">
+                <div>
+                  <div className="lp-price-eyebrow">Abonnement BeyondTheCV</div>
+                  <h3>Préparation complète</h3>
+                  <p className="desc">
+                    Pour piloter plusieurs candidatures et progresser pendant toute votre recherche.
+                  </p>
+                </div>
+
+                <div className="lp-price">
+                  <strong>29,90 €</strong>
+                  <span>par mois · sans engagement</span>
+                </div>
+              </div>
+
+              <div className="lp-capacity">
+                <div className="lp-capacity-card">
+                  <strong>5</strong>
+                  <span>nouvelles candidatures / mois</span>
+                </div>
+                <div className="lp-capacity-card">
+                  <strong>150</strong>
+                  <span>entraînements analysés / mois</span>
+                </div>
+                <div className="lp-capacity-card">
+                  <strong>200</strong>
+                  <span>plafond d’entraînements disponibles</span>
+                </div>
+              </div>
+
+              <div className="lp-included-grid">
+                {[
+                  'Profil candidat réutilisable',
+                  'Analyse entreprise et marché',
+                  'Décodage de chaque offre',
+                  'Gap analysis et objections',
+                  'Pitchs adaptés',
+                  'Questions probables',
+                  'Mises en situation',
+                  'Entraînement oral',
+                  'Négociation salariale',
+                  'Débrief post-entretien',
+                  'Profil stratégique évolutif',
+                  'Recommandations personnalisées',
+                ].map((item) => (
+                  <div className="lp-check" key={item}>
+                    <CheckCircle2 size={18} />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+
+              <button onClick={onLoginRedirect} className="lp-button-primary">
+                Commencer ma préparation <ArrowRight size={18} />
+              </button>
+            </div>
+
+            <p className="lp-note">
+              Une candidature correspond à un poste dans une entreprise donnée.
+              Si plusieurs postes visent la même entreprise, l’analyse entreprise peut être réutilisée.
+              Les entraînements non utilisés peuvent être conservés dans la limite de 200 disponibles.
+            </p>
+
+            <div className="lp-recharge-title">
+              <h3>Votre recherche s’intensifie ?</h3>
+              <p>Ajoutez des candidatures immédiatement, sans changer d’abonnement.</p>
+            </div>
+
+            <div className="lp-recharge-grid">
+              <div className="lp-recharge-card">
+                <div className="label">Recharge ponctuelle</div>
+                <div className="recharge-price">9 €</div>
+                <strong>+1 candidature</strong>
+                <p>+30 entraînements analysés associés.</p>
+              </div>
+
+              <div className="lp-recharge-card featured">
+                <div className="label">La plus polyvalente</div>
+                <div className="recharge-price">19 €</div>
+                <strong>+3 candidatures</strong>
+                <p>+90 entraînements analysés associés.</p>
+              </div>
+
+              <div className="lp-recharge-card">
+                <div className="label">Recherche intensive</div>
+                <div className="recharge-price">29 €</div>
+                <strong>+5 candidatures</strong>
+                <p>+150 entraînements analysés associés.</p>
+              </div>
+            </div>
+
+            <p className="lp-note">
+              Les recharges augmentent immédiatement votre capacité de préparation.
+              Elles ne débloquent aucune fonctionnalité supplémentaire : tout est déjà inclus dans l’abonnement.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="lp-section">
+        <div className="lp-shell">
+          <div className="lp-section-header center">
+            <div className="lp-section-kicker">Questions fréquentes</div>
+            <h2>Ce que vous devez savoir avant de commencer</h2>
           </div>
 
           <div className="lp-faq">
             <div className="lp-faq-item">
-              <h3>L’abonnement est-il avec engagement ?</h3>
-              <p>Non. L’abonnement est mensuel et sans engagement. Vous pouvez le résilier à tout moment.</p>
-            </div>
-
-            <div className="lp-faq-item">
-              <h3>Qu’est-ce qu’un entraînement analysé ?</h3>
+              <h3>Qu’est-ce qu’une candidature ?</h3>
               <p>
-                Un entraînement correspond à une réponse, un pitch, une mise en
-                situation ou une simulation courte que BeyondTheCV évalue pour
-                vous faire progresser. Chaque poste comprend jusqu’à 30 entraînements.
-              </p>
-            </div>
-
-            <div className="lp-faq-item">
-              <h3>Pourquoi 30 entraînements par poste ?</h3>
-              <p>
-                Parce qu’une candidature sérieuse demande de répéter. Vous pouvez
-                travailler différentes questions, vos pitchs, les mises en situation,
-                la négociation et recommencer une réponse après correction.
-              </p>
-            </div>
-
-            <div className="lp-faq-item">
-              <h3>Consulter une analyse existante consomme-t-il un entraînement ?</h3>
-              <p>
-                Non. Relire vos analyses, recommandations, pitchs et débriefs ne
-                consomme rien. Un entraînement est décompté lorsqu’une nouvelle
-                performance est analysée.
-              </p>
-            </div>
-
-            <div className="lp-faq-item">
-              <h3>Que se passe-t-il après le premier mois ?</h3>
-              <p>
-                Votre capacité augmente de +1 entreprise, +1 poste et +30 entraînements
-                analysés. Vos préparations existantes restent dans votre espace.
+                Une candidature correspond à l’association d’une entreprise et d’un poste ciblé.
+                Vous disposez de 5 nouvelles candidatures chaque mois.
               </p>
             </div>
 
             <div className="lp-faq-item">
               <h3>Puis-je préparer plusieurs postes dans la même entreprise ?</h3>
               <p>
-                Oui. L’analyse de l’entreprise est réalisée une fois puis réutilisée.
-                Chaque poste conserve son propre décodage, ses questions, ses
-                entraînements, ses entretiens et ses débriefs.
+                Oui. Chaque poste constitue une candidature distincte, mais l’analyse de l’entreprise
+                déjà réalisée peut être réutilisée au lieu d’être reconstruite inutilement.
               </p>
             </div>
 
             <div className="lp-faq-item">
-              <h3>À quoi servent les recharges ?</h3>
+              <h3>Qu’est-ce qu’un entraînement analysé ?</h3>
               <p>
-                Elles permettent d’ajouter immédiatement de nouvelles entreprises,
-                de nouveaux postes et les entraînements correspondants lorsque votre
-                recherche est plus intense que prévu.
+                Il s’agit d’une réponse, d’un pitch, d’une mise en situation ou d’une simulation courte
+                que BeyondTheCV analyse pour vous fournir un retour et vous faire progresser.
               </p>
+            </div>
+
+            <div className="lp-faq-item">
+              <h3>Que deviennent les entraînements non utilisés ?</h3>
+              <p>
+                Ils peuvent être conservés d’un mois sur l’autre dans la limite de 200 entraînements
+                disponibles. Au-delà de ce plafond, les nouveaux entraînements mensuels ne s’ajoutent plus.
+              </p>
+            </div>
+
+            <div className="lp-faq-item">
+              <h3>À quoi sert le profil stratégique évolutif ?</h3>
+              <p>
+                Il synthétise les éléments observés pendant votre préparation, fait ressortir vos forces,
+                vos axes de progrès et vos trois priorités du moment. Il évolue avec vos nouveaux exercices
+                et vos entretiens.
+              </p>
+            </div>
+
+            <div className="lp-faq-item">
+              <h3>Le profil stratégique est-il une évaluation psychologique ?</h3>
+              <p>
+                Non. Il repose sur les informations que vous avez fournies et sur les performances observées
+                dans l’application. Les scores sont des indicateurs de préparation, pas une prédiction du
+                comportement d’un recruteur ni un diagnostic psychologique.
+              </p>
+            </div>
+
+            <div className="lp-faq-item">
+              <h3>L’abonnement est-il avec engagement ?</h3>
+              <p>Non. Il est mensuel et peut être résilié à tout moment.</p>
             </div>
 
             <div className="lp-faq-item">
               <h3>Pourquoi payer alors que ChatGPT ou Claude existent ?</h3>
               <p>
-                BeyondTheCV ne se limite pas à générer du texte. La plateforme relie
-                votre profil, les entreprises, les postes, vos entraînements, vos
-                progrès et vos débriefs dans une méthode structurée.
-              </p>
-            </div>
-
-            <div className="lp-faq-item">
-              <h3>La plateforme convient-elle aux cadres expérimentés ?</h3>
-              <p>
-                Oui. BeyondTheCV est conçu pour des candidats qui doivent défendre
-                un parcours, des décisions, du leadership, des résultats et une
-                valeur professionnelle concrète.
-              </p>
-            </div>
-
-            <div className="lp-faq-item">
-              <h3>Mes informations restent-elles confidentielles ?</h3>
-              <p>
-                Votre espace est personnel et vos données sont utilisées pour produire
-                votre préparation. Les modalités précises sont détaillées dans la
-                politique de confidentialité.
+                BeyondTheCV ne se limite pas à générer du texte. Il relie durablement votre profil,
+                vos candidatures, vos entraînements, vos progrès et vos débriefs dans une méthode spécialisée.
               </p>
             </div>
 
@@ -1091,34 +1798,33 @@ export function LandingPage({
               <h3>BeyondTheCV garantit-il une embauche ?</h3>
               <p>
                 Non. Aucun outil sérieux ne peut garantir une décision de recrutement.
-                BeyondTheCV vous aide à arriver mieux préparé et à progresser d’un
-                entretien à l’autre.
+                BeyondTheCV vous aide à arriver mieux préparé et à progresser d’un entretien à l’autre.
               </p>
             </div>
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
 
+      {/* FINAL CTA */}
       <section className="lp-section">
-        <div className="lp-final">
-          <Zap size={34} style={{ color: 'var(--primary)', marginBottom: '1rem' }} />
-          <h2>Votre prochain entretien mérite mieux qu’une préparation improvisée</h2>
-          <p>
-            Construisez votre stratégie, entraînez vos réponses et progressez
-            jusqu’à l’entretien — pour 29,90 € par mois, sans engagement.
-          </p>
-          <button onClick={onLoginRedirect} className="lp-button-primary">
-            Commencer pour 29,90 € / mois <ArrowRight size={18} />
-          </button>
+        <div className="lp-shell">
+          <div className="lp-final">
+            <Gauge size={34} color="var(--primary)" />
+            <h2>Votre prochaine candidature mérite mieux qu’une préparation improvisée.</h2>
+            <p>
+              Centralisez vos candidatures, entraînez vos réponses et laissez votre profil
+              stratégique vous indiquer ce qu’il faut travailler ensuite.
+            </p>
+            <button onClick={onLoginRedirect} className="lp-button-primary">
+              Commencer pour 29,90 € / mois <ArrowRight size={18} />
+            </button>
+          </div>
         </div>
       </section>
 
       <footer className="lp-footer">
-        <p>© 2026 BeyondTheCV. Tous droits réservés.</p>
-        <div className="lp-footer-links">
-          <button onClick={onShowLegal}>Mentions légales</button>
-          <button onClick={onShowCGU}>CGU</button>
-          <button onClick={onShowPrivacy}>Politique de confidentialité</button>
+        <div className="lp-shell">
+          <p>© 2026 BeyondTheCV. Tous droits réservés.</p>
         </div>
       </footer>
     </div>

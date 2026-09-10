@@ -28,76 +28,53 @@ Tu dois retourner un objet JSON unique contenant la feuille de route. Le JSON do
 
 ```json
 {
-    "last_hour_plan": {
-      "title": "Plan d'Action : Dernière Heure Avant l'Entretien",
-      "steps": [
-        "Relire votre pitch de 90 secondes.",
-        "Relire les 3 messages clés à faire passer.",
-        "Vérifier le nom et la fonction exacte des interlocuteurs sur LinkedIn.",
-        "Préparer 3 questions intelligentes (voir section dédiée).",
-        "Préparer une réponse courte sur vos attentes salariales, votre disponibilité et votre motivation.",
-        "Fermer tous les onglets et applications inutiles.",
-        "Couper toutes les notifications (téléphone, ordinateur).",
-        "Prendre 2 minutes pour respirer lentement et se recentrer."
-      ]
-    },
-    "questions_to_ask": {
-      "title": "Questions Stratégiques à Poser",
-      "intro": "Poser des questions pertinentes montre votre intelligence de situation. Adaptez-les à votre interlocuteur.",
-      "by_interlocutor": [
-        {
-          "audience": "Face à un RH",
-          "questions": [
-            "Quels sont les critères qui feront qu’un candidat sera considéré comme une réussite sur ce poste dans 6 mois ?",
-            "Quelles sont les prochaines étapes du processus de recrutement ?",
-            "Y a-t-il des points de mon parcours que vous souhaiteriez approfondir ou qui nécessitent une clarification ?"
-          ]
-        },
-        {
-          "audience": "Face à un Manager Opérationnel",
-          "questions": [
-            "Quels sont les trois enjeux ou défis prioritaires pour votre équipe sur les six prochains mois ?",
-            "Qu’est-ce qui vous ferait dire dans six mois que ce recrutement est un succès total ?",
-            "Quels sont les irritants actuels ou les obstacles que votre équipe rencontre ?"
-          ]
-        },
-        {
-          "audience": "Face à un Dirigeant (C-Level)",
-          "questions": [
-            "Quelle contribution clé attendez-vous de ce poste sur la trajectoire globale de l’entreprise ?",
-            "Quels arbitrages stratégiques auront le plus d’impact sur votre périmètre dans les mois à venir ?",
-            "Au-delà des compétences, quelle qualité humaine est pour vous non-négociable pour réussir dans votre équipe de direction ?"
-          ]
-        }
-      ]
-    },
-    "signals_to_observe": {
-      "title": "Signaux à Observer Pendant l'Entretien",
-      "intro": "Vous n'êtes pas seulement évalué, vous évaluez aussi. Soyez attentif à ces signaux.",
-      "signals": [
-        "Le poste et ses responsabilités sont-ils décrits clairement et de manière cohérente par tous ?",
-        "Les attentes (objectifs, délais) semblent-elles réalistes au vu des moyens annoncés ?",
-        "Le manager parle-t-il de son équipe avec respect et considération ?",
-        "Le processus de recrutement est-il structuré et transparent ?",
-        "Y a-t-il des contradictions majeures entre la fiche de poste, le discours du RH et celui du manager ?"
-      ]
-    },
-    "post_interview_debrief": {
-      "title": "Débrief et Suivi Post-Entretien",
-      "debrief_questions": [
-        "Qu'est-ce qui s'est particulièrement bien passé ?",
-        "Quelle question m'a mis en difficulté et pourquoi ?",
-        "Quels points nécessitent une clarification ou un suivi ?",
-        "Quels signaux positifs ai-je perçus (intérêt, langage corporel) ?",
-        "Quels signaux faibles ou 'red flags' m'ont alerté ?",
-        "Quelle est l'action de suivi immédiate (mail, contact, etc.) ?"
-      ],
-      "thank_you_email_template": {
-        "subject": "Suite à notre entretien pour le poste de [Poste]",
-        "body": "Bonjour [Nom de l'interlocuteur],\n\nJe tenais à vous remercier pour le temps que vous m'avez accordé aujourd'hui. Nos échanges ont confirmé mon vif intérêt pour le poste de [Poste] et pour les défis de [Entreprise].\n\nJ'ai été particulièrement intéressé par [mentionner un point précis de la discussion, ex: le projet de transformation digitale]. Cela fait écho à mon expérience chez [Votre ancienne entreprise] où j'ai pu [votre réussite clé en une phrase].\n\nJe reste à votre entière disposition pour toute information complémentaire et pour les prochaines étapes du processus.\n\nCordialement,\n\n[Votre Nom Complet]\n[Votre Téléphone]"
-      }
+  "title": "Feuille de Route Détaillée pour votre Entretien",
+  "recruiter_focus": [
+    "Validation de l'adéquation technique et culturelle avec le poste.",
+    "Capacité à démontrer de la valeur et de l'impact business rapidement.",
+    "Savoir-être, posture et communication sous pression."
+  ],
+  "key_messages": [
+    "Démontrer une solide compréhension des enjeux du poste et de l'entreprise.",
+    "Mettre en valeur des exemples concrets avec la méthode STAR (Situation, Action, Résultat).",
+    "Afficher une posture proactive, orientée solutions et esprit d'équipe."
+  ],
+  "golden_rules": [
+    "Écouter attentivement avant de répondre et ne pas couper la parole.",
+    "Rester synthétique et structuré (réponses de 1 à 2 minutes max).",
+    "Garder une attitude positive et constructive même face aux questions pièges."
+  ],
+  "mistakes_to_avoid": [
+    "Rester trop théorique sans donner d'exemples chiffrés ou vécus.",
+    "Critiquer ses anciens employeurs ou collègues.",
+    "Donner une réponse vague ou fuir une question difficile."
+  ],
+  "pre_interview_checklist": {
+    "h_minus_24": [
+      "Répéter le pitch de 90 secondes",
+      "Rechercher l'actualité récente de l'entreprise"
+    ],
+    "h_minus_1": [
+      "Relire la fiche de poste et ses notes",
+      "Vérifier le matériel et l'environnement (visio/matériel)"
+    ],
+    "h_minus_5": [
+      "Faire un exercice de respiration",
+      "Garder de l'eau à portée de main"
+    ]
+  },
+  "opening_statement": "Ravi de vous rencontrer. Mon objectif aujourd'hui est de comprendre vos priorités et de vous montrer comment mon expérience peut y répondre directement.",
+  "closing_statement": "Je vous remercie pour cet échange constructif qui confirme mon vif intérêt pour ce poste et les défis de votre équipe.",
+  "posture_advice": "Restez calme, souriant et à l'écoute. Adoptez une posture d'égal à égal axée sur la résolution de problèmes.",
+  "contingency_plan": [
+    {
+      "situation": "Question piège ou trou de mémoire",
+      "action": "Prendre une seconde pour respirer et demander une clarification avec calme.",
+      "ready_to_send_message": "C'est un point très intéressant, laissez-moi y réfléchir un instant pour vous donner l'exemple le plus pertinent."
     }
+  ]
 }
+```
 ```
 
 ## 📥 CONTEXTE CANDIDAT & ENTRETIEN

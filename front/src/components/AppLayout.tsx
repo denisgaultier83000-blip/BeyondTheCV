@@ -4,6 +4,7 @@ import Header from './Header';
 import { useDashboard } from '../hooks/DashboardContext';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import DeleteAccountModal from './DeleteAccountModal';
 
 const AppLayout = () => {
   const { isAuthenticated, setIsAuthenticated, resetDashboard, cvData } = useDashboard();
@@ -42,6 +43,7 @@ const AppLayout = () => {
   ];
 
   const [darkMode, setDarkMode] = React.useState<boolean>(() => localStorage.getItem('theme') === 'dark');
+  const [showDeleteAccount, setShowDeleteAccount] = React.useState<boolean>(false);
 
   React.useEffect(() => {
     document.body.classList.toggle('dark-mode', darkMode);
@@ -56,7 +58,14 @@ const AppLayout = () => {
         isAuthenticated={isAuthenticated}
         userName={parsedUserName} 
         onOpenProfile={() => {}} 
-        onLogout={() => { localStorage.removeItem('token'); localStorage.removeItem('user'); resetDashboard(); setIsAuthenticated(false); navigate('/', { replace: true }); }} 
+        onLogout={() => { 
+          localStorage.removeItem('token'); 
+          localStorage.removeItem('user'); 
+          localStorage.removeItem('btcv_target_tree');
+          resetDashboard(); 
+          setIsAuthenticated(false); 
+          navigate('/', { replace: true }); 
+        }} 
         onLanguageChange={() => {}} 
         steps={CAREER_EDGE_STEPS}
         currentStep={0}
@@ -72,8 +81,22 @@ const AppLayout = () => {
         )}
         <button className="btn-ghost" onClick={() => navigate('/legal')}>{t('footer_legal', 'Mentions Légales')}</button><span>|</span>
         <button className="btn-ghost" onClick={() => navigate('/cgu')}>{t('footer_cgu', 'CGU')}</button><span>|</span>
-        <button className="btn-ghost" onClick={() => navigate('/privacy')}>{t('footer_privacy', 'Politique de Confidentialité')}</button>
+        <button className="btn-ghost" onClick={() => navigate('/privacy')}>{t('footer_privacy', 'Politique de Confidentialité')}</button><span>|</span>
+        <button className="btn-ghost" onClick={() => setShowDeleteAccount(true)} style={{ color: '#ef4444' }}>Supprimer mon compte</button>
       </footer>
+
+      <DeleteAccountModal
+        isOpen={showDeleteAccount}
+        onClose={() => setShowDeleteAccount(false)}
+        onSuccess={() => {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          localStorage.removeItem('btcv_target_tree');
+          resetDashboard();
+          setIsAuthenticated(false);
+          navigate('/', { replace: true });
+        }}
+      />
     </div>
   );
 };

@@ -11,6 +11,7 @@ import { AsyncBoundary } from './AsyncBoundary';
 import { useVideoRecorder } from '../hooks/useVideoRecorder';
 import { VideoPreview } from './VideoPreview';
 import { savePostureSession } from '../utils/postureStorage';
+import { Button } from './common';
 
 // --- TYPES ---
 
@@ -404,10 +405,9 @@ export function SituationSimulator() {
           <Award size={48} color="#10b981" style={{ margin: '0 auto 1rem' }} />
           <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>{t('sim_congrats_title', 'Félicitations, vous maîtrisez tous les scénarios !')}</h3>
           <p style={{ margin: '0 0 1.5rem 0', color: 'var(--text-muted)' }}>{t('sim_congrats_desc', 'Vous êtes prêt pour affronter les cas pratiques de cet entretien.')}</p>
-          <button onClick={handleGenerateMore} disabled={isGeneratingMore} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-            {isGeneratingMore ? <Loader2 size={18} className="spin" /> : <RefreshCw size={18} />}
+          <Button variant="primary" module="training" onClick={handleGenerateMore} disabled={isGeneratingMore} icon={<RefreshCw size={18} />}>
             {t('sim_generate_more', 'Générer de nouveaux cas complexes (IA)')} (Coût : 2 MES)
-          </button>
+          </Button>
         </div>
       )}
 
@@ -550,10 +550,10 @@ export function SituationSimulator() {
                   />
                   
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                    <button onClick={reset} className="btn-ghost">{t('sim_btn_cancel', 'Annuler')}</button>
-                    <button onClick={handleSubmit} disabled={!userAnswer.trim()} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Send size={18} /> {t('sim_analyze_answer', 'Analyser ma réponse')}
-                    </button>
+                    <Button variant="ghost" onClick={reset}>{t('sim_btn_cancel', 'Annuler')}</Button>
+                    <Button variant="primary" module="training" icon={<Send size={18} />} onClick={handleSubmit} disabled={!userAnswer.trim()}>
+                      {t('sim_analyze_answer', 'Analyser ma réponse')}
+                    </Button>
                   </div>
                 </div>
                 </AsyncBoundary>
@@ -623,12 +623,12 @@ export function SituationSimulator() {
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '1rem' }}>
-                    <button onClick={() => { setAiFeedback(null); setUserAnswer(""); }} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Edit3 size={16} /> {t('sim_retry', 'Réessayer')}
-                    </button>
-                    <button onClick={reset} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Button variant="secondary" module="training" icon={<Edit3 size={16} />} onClick={() => { setAiFeedback(null); setUserAnswer(""); }}>
+                      {t('sim_retry', 'Réessayer')}
+                    </Button>
+                    <Button variant="primary" module="training" onClick={reset}>
                       {t('sim_validate_return', 'Valider et retourner aux scénarios')}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}

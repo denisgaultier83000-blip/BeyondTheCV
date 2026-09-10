@@ -21,8 +21,12 @@ export function MarketAnalysisCard({ data, salaryData, loading, error }: MarketA
       }
   }
   
+  // [FIX] Afficher la carte avec des placeholders par défaut même sans données,
+  // au lieu de la faire disparaître complètement.
   // Éviter de crasher lors du parsing asynchrone
-  if (!loading && !error && (!parsedData || parsedData.error)) return null;
+  if (!parsedData || parsedData.error) {
+    parsedData = {};
+  }
 
   // [FIX] Unwrap au cas où l'IA encapsule l'objet JSON
   const safeParsedData = (parsedData && typeof parsedData === 'object') ? parsedData : {};
@@ -60,7 +64,7 @@ export function MarketAnalysisCard({ data, salaryData, loading, error }: MarketA
         "Je veux des signaux plus exploitables.",
       ]}
     >
-      {!loading && !error && parsedData && !parsedData.error && (
+      {!loading && !error && (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
         
         {/* Tension & Dynamique */}

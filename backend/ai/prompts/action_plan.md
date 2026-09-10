@@ -36,7 +36,7 @@ Tu dois lire attentivement le profil du candidat qui te sera fourni, en ciblant 
 - Pour le `training_plan`, adapte la durée de chaque module au temps disponible quotidien du candidat (généralement 10, 20 ou 45 min).
 - Adapte le rythme du `training_plan` à la date de l'entretien (Mode Commando ultra-ciblé si < 48h, Mode Intensif si < 4 jours, Mode Progressif si > 7 jours).
 - **ADAPTATION AU FORMAT STRICTE :** Pour les conseils logistiques ou matériels et le `strategy_advice`, base-toi UNIQUEMENT sur le `interview_format` fourni. Ne donne pas de conseils conditionnels (ex: "Si c'est en visio faites A, si c'est en présentiel faites B"). Donne directement et uniquement le conseil adapté au format exact.
-- **ANTICIPATION OBLIGATOIRE (Grisé) :** Le `training_plan` doit OBLIGATOIREMENT se terminer par 1 ou 2 modules d'anticipation pour les rounds SUIVANTS (Négociation salariale, Test technique). Ces futurs modules doivent IMPÉRATIVEMENT avoir `"stage": "upcoming"` et `"day": "À venir"`.
+- **ANTICIPATION ACTIVE (Non grisé) :** Le `training_plan` doit OBLIGATOIREMENT inclure 1 ou 2 modules d'anticipation pour les rounds SUIVANTS (Négociation salariale, Test technique). Ces modules doivent IMPÉRATIVEMENT avoir `"stage": "upcoming"` et `"day": "À venir"`. Leur action doit être lanceable immédiatement dans l'application : par exemple, proposer de simuler la négociation salariale dès maintenant en utilisant la fourchette basse/haute que le candidat peut définir, ou de lancer un test technique d'entretien. Ne pas bloquer ni griser ces modules.
 - Le format DOIT être un JSON strict.
 
 ## 📦 SORTIE ATTENDUE (JSON STRICT)
@@ -91,7 +91,7 @@ Tu dois lire attentivement le profil du candidat qui te sera fourni, en ciblant 
       "stage": "upcoming",
       "module": "Anticipation : Négociation Salariale & Entretien Final",
       "duration_minutes": 15,
-      "focus": "Une fois ce tour passé, vous devrez définir votre fourchette basse et haute pour la négociation avec la Direction. Nous simulerons cette étape plus tard."
+      "focus": "Définissez dès maintenant votre fourchette basse et haute pour la négociation avec la Direction, puis lancez la simulation de négociation salariale dans l'onglet Entraînement."
     }
   ],
   "strategy_advice": "Pour ce poste de Chef de Projet, le recruteur cherchera à valider votre capacité à prendre de la hauteur. Ne vous perdez pas dans les détails techniques de l'IA : parlez d'impact business, de respect des délais et de coordination d'équipe. [Ajoutez ici une astuce de posture adaptée UNIQUEMENT au format de l'entretien, sans utiliser de conditionnel 'Si...']."

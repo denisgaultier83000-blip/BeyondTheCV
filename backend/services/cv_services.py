@@ -1371,7 +1371,7 @@ async def get_training_balance(current_user: dict = Depends(get_current_user)):
         data = dict(row) if hasattr(row, 'keys') else {
             "credits": row[0],
             "quota_entreprises": row[1] if len(row) > 1 else 5,
-            "quota_offres": row[2] if len(row) > 2 else 15,
+            "quota_offres": row[2] if len(row) > 2 else 5,
         }
 
         def _effective_session_balance(raw_value: int | None) -> int:
@@ -1379,7 +1379,7 @@ async def get_training_balance(current_user: dict = Depends(get_current_user)):
                 val = int(raw_value or 0)
             except Exception:
                 val = 0
-            # Le moteur recharge automatiquement les quotas d'entraînement à 30
+            # Le moteur recharge automatiquement les quotas d'entraînement à 150
             # lorsqu'ils tombent à 0: l'UI doit refléter ce solde effectif.
             return TESTER_SESSION_CAP if val <= 0 else val
 
@@ -1399,17 +1399,17 @@ async def get_training_balance(current_user: dict = Depends(get_current_user)):
             "quota_regeneration": effective_credits,
             "quota_update":  effective_credits,
             "entreprises":   data.get("quota_entreprises", 5),
-            "offres":        data.get("quota_offres", 15),
+            "offres":        data.get("quota_offres", 5),
         }
     except HTTPException:
         raise
     except Exception as e:
         print(f"[BALANCE] Error: {e}", flush=True)
-        return {"credits": 30, "pitch": 30, "qa": 30, "mes": 30,
-                "negotiation": 30, "regeneration": 30, "update": 30,
-                "quota_pitch": 30, "quota_qa": 30, "quota_mes": 30,
-                "quota_negotiation": 30, "quota_regeneration": 30, "quota_update": 30,
-                "entreprises": 5, "offres": 15}
+        return {"credits": 150, "pitch": 150, "qa": 150, "mes": 150,
+                "negotiation": 150, "regeneration": 150, "update": 150,
+                "quota_pitch": 150, "quota_qa": 150, "quota_mes": 150,
+                "quota_negotiation": 150, "quota_regeneration": 150, "quota_update": 150,
+                "entreprises": 5, "offres": 5}
 
 
 async def _build_training_pool_for_context(user_id: str | None, payload: dict) -> dict:
@@ -2055,13 +2055,13 @@ async def get_analysis_preview(
         quotas = {
             "credits": 30,
             "entreprises": 5,
-            "offres": 15,
+            "offres": 5,
         }
         if row:
             data = dict(row) if hasattr(row, "keys") else {
                 "credits": row[0],
                 "quota_entreprises": row[1] if len(row) > 1 else 5,
-                "quota_offres": row[2] if len(row) > 2 else 15,
+                "quota_offres": row[2] if len(row) > 2 else 5,
             }
             def _effective_session_balance(raw_value: int | None) -> int:
                 try:
@@ -2095,7 +2095,7 @@ async def get_analysis_preview(
             "offer_cached": False,
             "costs": {"entreprises": 1, "offres": 1},
             "should_confirm": True,
-            "quotas": {"credits": 30, "entreprises": 5, "offres": 15},
+            "quotas": {"credits": 30, "entreprises": 5, "offres": 5},
         }
 
 
@@ -2916,7 +2916,7 @@ async def generate_action_plan(candidate_data: dict) -> dict:
         "training_plan": [
             {"day": "Aujourd'hui", "stage": "current", "module": "Pitch oral 3 minutes", "duration_minutes": 20, "focus": "Répéter à voix haute avec chronomètre et transitions claires."},
             {"day": "J-1", "stage": "current", "module": "Simulation questions pièges", "duration_minutes": 20, "focus": "S'entraîner sur objections, leadership, résultats chiffrés."},
-            {"day": "À venir", "stage": "upcoming", "module": "Anticipation : Négociation salariale", "duration_minutes": 15, "focus": "Préparer une fourchette cible et les arguments de valeur."}
+            {"day": "BONUS", "stage": "upcoming", "module": "Anticipation : Négociation salariale", "duration_minutes": 15, "focus": "Préparer une fourchette cible et les arguments de valeur."}
         ],
         "strategy_advice": "Restez concret, orienté impact, et structurez vos réponses autour de preuves observables plutôt que de généralités."
     }
@@ -3082,6 +3082,8 @@ async def start_analysis(
             process_flaw_coaching_in_background,
             process_action_plan_in_background,
             process_custom_scenarios_in_background,
+            process_career_radar_in_background,
+            process_career_gps_in_background,
         )
 
         user_id = current_user.get("id")
@@ -3125,6 +3127,8 @@ async def start_analysis(
             "flaw_coaching": process_flaw_coaching_in_background,
             "action_plan": process_action_plan_in_background,
             "custom_scenarios": process_custom_scenarios_in_background,
+            "career_radar": process_career_radar_in_background,
+            "career_gps": process_career_gps_in_background,
         }
 
         # Job decoder seulement si annonce disponible
@@ -3364,4 +3368,70 @@ PROFIL_CANDIDAT_JSON:
         "strengths": [str(s) for s in (ai_strengths or strengths_fallback)[:6]],
         "gapsMatrix": normalized_gaps,
         "recommendedStrategy": strategy_text
+    }
+
+
+@router.post("/generate-roadmap")
+async def generate_roadmap_endpoint(payload: dict = Body(...), current_user: dict = Depends(get_current_user)):
+    """
+    Génère une feuille de route stratégique et personnalisée pour l'entretien.
+    """
+    user_id = current_user.get("id")
+    context_data = payload.get("context") or {}
+    profile_data = payload.get("profile") or {}
+    target_lang = normalize_language(context_data.get("target_language") or profile_data.get("target_language") or "French")
+
+    try:
+        if user_id:
+            await consume_quota(user_id, "qa", cost=1)
+    except Exception as q_err:
+        print(f"[ROADMAP] Quota info: {q_err}", flush=True)
+
+    try:
+        prompt_template = load_prompt("roadmap_generator.md")
+        safe_profile = _sanitize_data_for_ai(profile_data, strict=True)
+        final_prompt = f"{prompt_template}\n\nCONTEXTE DE L'ENTRETIEN:\n{json.dumps(context_data, ensure_ascii=False, indent=2)}\n\nPROFIL CANDIDAT:\n{json.dumps(safe_profile, ensure_ascii=False, indent=2, default=str)}\n\nOUTPUT LANGUAGE: {target_lang}"
+
+        result = await ai_service.generate_valid_json(
+            final_prompt,
+            provider="openai",
+            system_instruction=f"You are an executive career coach. Output STRICT JSON roadmap following the schema. Language: {target_lang}."
+        )
+        if isinstance(result, dict) and (result.get("last_hour_plan") or result.get("recruiter_focus") or result.get("title")):
+            return {"roadmap": result}
+    except Exception as e:
+        print(f"[ROADMAP] AI generation failed: {e}", flush=True)
+
+    return {
+        "roadmap": {
+            "title": "Feuille de Route Détaillée pour votre Entretien",
+            "recruiter_focus": [
+                "Validation de l'adéquation technique et culturelle avec le poste.",
+                "Capacité à démontrer de la valeur et de l'impact business rapidement.",
+                "Savoir-être, posture et communication sous pression."
+            ],
+            "key_messages": [
+                "Démontrer une solide compréhension des enjeux du poste et de l'entreprise.",
+                "Mettre en valeur des exemples concrets avec la méthode STAR (Situation, Action, Résultat).",
+                "Afficher une posture proactive, orientée solutions et esprit d'équipe."
+            ],
+            "golden_rules": [
+                "Écouter attentivement avant de répondre et ne pas couper la parole.",
+                "Rester synthétique et structuré (réponses de 1 à 2 minutes max).",
+                "Garder une attitude positive et constructive même face aux questions pièges."
+            ],
+            "mistakes_to_avoid": [
+                "Rester trop théorique sans donner d'exemples chiffrés ou vécus.",
+                "Critiquer ses anciens employeurs ou collègues.",
+                "Donner une réponse vague ou fuir une question difficile."
+            ],
+            "pre_interview_checklist": {
+                "h_minus_24": ["Répéter le pitch de 90 secondes", "Rechercher l'actualité récente de l'entreprise"],
+                "h_minus_1": ["Relire la fiche de poste et ses notes", "Vérifier le matériel et l'environnement (visio/matériel)"],
+                "h_minus_5": ["Prendre 2 minutes pour respirer calmement", "Avoir son verre d'eau et son bloc-notes prêts"]
+            },
+            "opening_statement": "Ravi de vous rencontrer. Je suis très enthousiaste à l'idée d'échanger avec vous sur ce poste et de vous présenter comment mon parcours répond à vos enjeux.",
+            "closing_statement": "Cet échange a confirmé mon vif intérêt pour le poste. Quelles sont les prochaines étapes du processus ?",
+            "posture_advice": "Soyez à l'écoute, adoptez une voix posée et dynamique, et faites preuve d'assurance humble."
+        }
     }

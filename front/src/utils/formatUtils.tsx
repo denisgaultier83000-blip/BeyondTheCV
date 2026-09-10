@@ -4,9 +4,22 @@ import React from 'react';
  * Parseur minimaliste pour interpréter le **gras** (Markdown) et renvoyer un ReactNode.
  * Prévient les failles XSS tout en permettant un formatage basique et léger.
  */
-export const formatMarkdownReact = (text: string | undefined | null): React.ReactNode => {
-  if (!text) return text as any;
-  if (typeof text !== 'string') return text as any;
+export const formatMarkdownReact = (text: any): React.ReactNode => {
+  if (text === null || text === undefined) return null;
+  if (typeof text !== 'string') {
+    if (Array.isArray(text)) {
+      return text.map((item, idx) => (
+        <React.Fragment key={idx}>
+          {formatMarkdownReact(item)}
+          {idx < text.length - 1 ? ' ' : ''}
+        </React.Fragment>
+      ));
+    }
+    if (typeof text === 'object') {
+      return JSON.stringify(text);
+    }
+    text = String(text);
+  }
   const parts = text.split(/(\*\*.*?\*\*)/g);
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
