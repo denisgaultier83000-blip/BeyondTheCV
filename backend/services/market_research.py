@@ -5,6 +5,7 @@ import re
 from datetime import datetime
 from urllib.parse import urlparse
 from .ai_generator import ai_service
+from .ai_feature_caller import ai_call
 from .search_service import search_web
 # Correction de l'import circulaire : utilisation de utils
 from ai.prompts.osint_pipeline import OSINTPipeline
@@ -89,10 +90,11 @@ async def _score_osint_articles(articles: list[dict], company: str, role: str, p
                             .replace("{role}", role or "Poste visé") \
                             .replace("{articles_json}", json.dumps(articles, ensure_ascii=False, indent=2, default=str))
     try:
-        scored = await ai_service.generate_valid_json(
-            prompt,
-            provider=provider or "openai",
-            system_instruction="You are an OSINT scoring engine. Output STRICT JSON only."
+        scored = await ai_call(
+            feature="osint_score_articles",
+            prompt=prompt,
+            system_instruction="You are an OSINT scoring engine. Output STRICT JSON only.",
+            json_mode=True,
         )
     except Exception as e:
         print(f"[OSINT SCORING] Error: {e}", flush=True)
@@ -136,10 +138,11 @@ async def _extract_osint_facts(selected_articles: list[dict], provider: str | No
         f"{json.dumps(selected_articles, ensure_ascii=False, indent=2, default=str)}\n"
     )
     try:
-        extracted = await ai_service.generate_valid_json(
-            prompt,
-            provider=provider or "openai",
-            system_instruction="You are a factual extraction engine. Output STRICT JSON only."
+        extracted = await ai_call(
+            feature="osint_extract_facts",
+            prompt=prompt,
+            system_instruction="You are a factual extraction engine. Output STRICT JSON only.",
+            json_mode=True,
         )
     except Exception as e:
         print(f"[OSINT EXTRACTION] Error: {e}", flush=True)
@@ -163,10 +166,11 @@ async def _cluster_osint_facts(facts: list[dict], company: str, industry: str, r
                             .replace("{country}", country or "Global") \
                             .replace("{facts_json}", json.dumps(facts, ensure_ascii=False, indent=2, default=str))
     try:
-        clustered = await ai_service.generate_valid_json(
-            prompt,
-            provider=provider or "openai",
-            system_instruction="You are an OSINT clustering engine. Output STRICT JSON only."
+        clustered = await ai_call(
+            feature="osint_cluster_facts",
+            prompt=prompt,
+            system_instruction="You are an OSINT clustering engine. Output STRICT JSON only.",
+            json_mode=True,
         )
     except Exception as e:
         print(f"[OSINT CLUSTERING] Error: {e}", flush=True)
@@ -353,13 +357,14 @@ async def _identify_company_online(company: str, industry: str | None = None) ->
             .replace("{{USER_QUERY}}", company) \
             .replace("{{CONTEXT_JSON}}", context_json)
         try:
-            ai_res = await ai_service.generate_valid_json(
-                final_prompt,
-                provider="openai",
+            ai_res = await ai_call(
+                feature="company_disambiguation",
+                prompt=final_prompt,
                 system_instruction="You are a strict JSON-only business intelligence API. Output valid JSON only.",
+                json_mode=True,
                 bypass_queue=True,
             )
-            if "error" not in ai_res:
+            if isinstance(ai_res, dict) and "error" not in ai_res:
                 ai_candidates = [c for c in ai_res.get("candidates", []) if isinstance(c, dict)]
         except Exception as e:
             print(f"[IDENTIFICATION] AI disambiguation error for {company}: {e}", flush=True)
@@ -565,7 +570,12 @@ async def generate_ai_search_plan(company: str, industry: str, role: str, countr
                                       .replace("{role}", role or "Candidat") \
                                       .replace("{country}", country or "Non spécifié")
         
-        res_str = await ai_service.generate(final_prompt, provider="gemini", system_instruction="You are a Strategic Search Planner. Output STRICT JSON.")
+        res_str = await ai_call(
+            feature="market_search_plan",
+            prompt=final_prompt,
+            system_instruction="You are a Strategic Search Planner. Output STRICT JSON.",
+            json_mode=False,
+        )
         res_json = clean_ai_json_response(res_str)
         
         queries = res_json.get("queries", [])
@@ -609,7 +619,12 @@ async def _analyze_search_results(results: list, company: str, provider: str = N
         Respond in {lang}.
         """
         
-    res = await ai_service.generate(prompt, provider="gemini", system_instruction=f"You are a Market Research Analyst. Language: {lang}")
+    res = await ai_call(
+        feature="market_analyze_search_results",
+        prompt=prompt,
+        system_instruction=f"You are a Market Research Analyst. Language: {lang}.",
+        json_mode=False,
+    )
     return clean_ai_json_response(res)
 
 def build_unknown_company_fallback(company: str | None, industry: str | None, identification: dict | None = None) -> dict:
@@ -802,8 +817,14 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
         Si inconnu, laisse vide.
         """
         try:
-            profile_res = await ai_service.generate_valid_json(profile_prompt, provider="gemini", system_instruction="You are a data API.", bypass_queue=True)
-            company_profile = profile_res if "error" not in profile_res else {}
+            profile_res = await ai_call(
+                feature="company_express_profile",
+                prompt=profile_prompt,
+                system_instruction="You are a data API.",
+                json_mode=True,
+                bypass_queue=True,
+            )
+            company_profile = profile_res if isinstance(profile_res, dict) and "error" not in profile_res else {}
         except Exception:
             pass
 
@@ -959,8 +980,13 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
     # [ROBUSTESSE] Utilisation de generate_valid_json pour bénéficier du Retry automatique (Tenacity)
     final_synthesis = {}
     try:
-        parsed = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction=f"You are a Strategic Corporate Analyst. Output STRICT JSON in {target_lang}.")
-        if "error" not in parsed:
+        parsed = await ai_call(
+            feature="market_final_synthesis",
+            prompt=final_prompt,
+            system_instruction=f"You are a Strategic Corporate Analyst. Output STRICT JSON in {target_lang}.",
+            json_mode=True,
+        )
+        if isinstance(parsed, dict) and "error" not in parsed:
             final_synthesis = parsed
         else:
             print(f"[PIPELINE ERROR] AI JSON error: {parsed['error']}", flush=True)

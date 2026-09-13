@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Target, Sparkles, CheckCircle2, Award, AlertCircle, Loader2, ArrowRight } from 'lucide-react';
 import { authenticatedFetch } from '../utils/auth';
-import { API_BASE_URL } from '../config';
-import { useDashboard } from '../hooks/DashboardContext';
 import { Button } from './common';
 
 export interface KeyMessage {
@@ -20,63 +18,23 @@ interface ApplicationKeyMessagesViewProps {
   applicationId?: string;
 }
 
-const normalize = (value: any) => String(value || '').trim().toLowerCase();
-
-export const ApplicationKeyMessagesView: React.FC<ApplicationKeyMessagesViewProps> = ({ applicationId: applicationIdProp }) => {
-  const dashboard = useDashboard();
-  const cvData = dashboard?.cvData || {};
+export const ApplicationKeyMessagesView: React.FC<ApplicationKeyMessagesViewProps> = ({ applicationId }) => {
   const [keyMessages, setKeyMessages] = useState<KeyMessage[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [selecting, setSelecting] = useState<boolean>(false);
   const [message, setMessage] = useState<string>('');
-  const [resolvedApplicationId, setResolvedApplicationId] = useState<string | undefined>(applicationIdProp);
-
-  // Résout automatiquement l'application_id à partir de la cible active si la prop n'est pas fournie
-  useEffect(() => {
-    if (applicationIdProp) {
-      setResolvedApplicationId(applicationIdProp);
-      return;
-    }
-    const targetCompany = normalize(cvData?.target_company);
-    const targetJob = normalize(cvData?.target_job);
-    if (!targetCompany && !targetJob) {
-      setResolvedApplicationId(undefined);
-      return;
-    }
-    let cancelled = false;
-    const resolveApplicationId = async () => {
-      try {
-        const res = await authenticatedFetch(`${API_BASE_URL}/applications`);
-        if (!res.ok) return;
-        const applications = await res.json();
-        if (!Array.isArray(applications)) return;
-        const match = applications.find((app: any) => {
-          const appCompany = normalize(app?.target_company);
-          const appJob = normalize(app?.target_job);
-          return appCompany === targetCompany && (targetJob ? appJob === targetJob : true);
-        });
-        if (!cancelled && match?.id) {
-          setResolvedApplicationId(match.id);
-        }
-      } catch (e) {
-        console.error('Error resolving application id:', e);
-      }
-    };
-    void resolveApplicationId();
-    return () => { cancelled = true; };
-  }, [applicationIdProp, cvData?.target_company, cvData?.target_job]);
 
   useEffect(() => {
-    if (resolvedApplicationId) {
+    if (applicationId) {
       fetchKeyMessages();
     }
-  }, [resolvedApplicationId]);
+  }, [applicationId]);
 
   const fetchKeyMessages = async () => {
-    if (!resolvedApplicationId) return;
+    if (!applicationId) return;
     setLoading(true);
     try {
-      const res = await authenticatedFetch(`/api/differentiators/applications/${resolvedApplicationId}/key-messages`);
+      const res = await authenticatedFetch(`/api/differentiators/applications/${applicationId}/key-messages`);
       if (res.ok) {
         const data = await res.json();
         setKeyMessages(data.key_messages || []);
@@ -89,7 +47,7 @@ export const ApplicationKeyMessagesView: React.FC<ApplicationKeyMessagesViewProp
   };
 
   const handleSelectKeyMessages = async () => {
-    if (!resolvedApplicationId) {
+    if (!applicationId) {
       setMessage("Veuillez d'abord sélectionner une candidature active.");
       return;
     }
@@ -97,7 +55,7 @@ export const ApplicationKeyMessagesView: React.FC<ApplicationKeyMessagesViewProp
     setSelecting(true);
     setMessage('');
     try {
-      const res = await authenticatedFetch(`/api/differentiators/applications/${resolvedApplicationId}/select`, {
+      const res = await authenticatedFetch(`/api/differentiators/applications/${applicationId}/select`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ target_language: 'fr' })
@@ -107,10 +65,14 @@ export const ApplicationKeyMessagesView: React.FC<ApplicationKeyMessagesViewProp
         const data = await res.json();
         setKeyMessages(data.key_messages || []);
         setMessage("✨ Vos 3 à 6 marqueurs différenciants pour cette candidature ont été sélectionnés par l'IA !");
+      } else {
+        const errText = await res.text();
+        console.error("Error selecting key messages:", res.status, errText);
+        setMessage(`Erreur ${res.status} lors de la sélection des marqueurs. ${errText}`);
       }
     } catch (e) {
       console.error("Error selecting key messages:", e);
-      setMessage("Erreur lors de la sélection des marqueurs par l'IA.");
+      setMessage("Erreur réseau lors de la sélection des marqueurs par l'IA.");
     } finally {
       setSelecting(false);
     }
@@ -137,7 +99,7 @@ export const ApplicationKeyMessagesView: React.FC<ApplicationKeyMessagesViewProp
             variant="primary"
             module="speech"
             onClick={handleSelectKeyMessages}
-            disabled={selecting || !resolvedApplicationId}
+            disabled={selecting || !applicationId}
             isLoading={selecting}
             icon={<Sparkles size={16} />}
           >

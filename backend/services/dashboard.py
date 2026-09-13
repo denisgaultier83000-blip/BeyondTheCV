@@ -9,6 +9,7 @@ from security import get_current_user, require_admin_user
 from models import ResearchRequest, DisambiguationRequest
 # [FIX] Import relatif cohérent
 from .ai_generator import ai_service
+from .ai_feature_caller import ai_call
 # [FIX] Utilisation de l'import relatif pour éviter les conflits de path
 from .tasks import (
     process_research_in_background, 
@@ -100,48 +101,19 @@ async def start_research(request: ResearchRequest, background_tasks: BackgroundT
     }
 
 # [FIX] L'URL est maintenant relative au préfixe du routeur.
-@router.post("/analyze-completeness")
-async def analyze_completeness(request: Request, current_user: dict = Depends(get_current_user)):
-    # [MODIF] Exécution SYNCHRONE demandée pour la Page 7
-    try:
-        body = await request.json()
-        data_to_analyze = body.get("data", body)
-        
-        cache_key = _generate_cache_key(current_user["id"], "completeness_sync", data_to_analyze)
-        cached = await get_cached_content(cache_key)
-        if cached:
-            return cached
-            
-        target_lang = normalize_language(data_to_analyze.get("target_language", "French"))
-        text_content = json.dumps(data_to_analyze, indent=2, default=str)
-        
-        prompt = f"""
-        Analyze the candidate's profile completeness with a specific focus on generating a strong Elevator Pitch (Who I am, What I've done, What I bring, Why this role).
-        
-        Return JSON with 'score', 'quality', 'missing_info', 'suggestions', 'clarifications'.
-        
-        For 'clarifications', you MUST provide EXACTLY 3 objects: { 'question': '...', 'suggested_answer': '...' }.
-        Even if the profile seems completely perfect, you MUST ask 3 strategic questions to extract quantifiable metrics (KPIs), specific challenges overcome, or unique value propositions that will make the oral pitch memorable.
-        The suggested answer should be a plausible draft based on the context, written in the first person.
-        
-        CONTENT:
-        {text_content[:15000]}
-        
-        OUTPUT LANGUAGE: {target_lang}
-        """
-        result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a Data Quality Analyst. Language: {target_lang}. Output STRICT JSON.", bypass_queue=True)
-        if "error" not in result:
-            await set_cached_content(cache_key, current_user["id"], "completeness_sync", result)
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-# [FIX] L'URL est maintenant relative au préfixe du routeur.
 @router.post("/disambiguate")
 async def disambiguate_company_endpoint(request: DisambiguationRequest):
     try:
-        result_str = await ai_service.generate(f"Disambiguate company: {request.company_name}. Respond in JSON with a 'candidates' list.", provider="gemini", system_instruction="You are a JSON API.", bypass_queue=True)
-        cleaned_result = result_str.replace("```json", "").replace("```", "").strip()
+        result = await ai_call(
+            feature="disambiguate_company",
+            prompt=f"Disambiguate company: {request.company_name}. Respond in JSON with a 'candidates' list.",
+            system_instruction="You are a JSON API.",
+            bypass_queue=True,
+            json_mode=True,
+        )
+        if isinstance(result, dict):
+            return result
+        cleaned_result = result.replace("```json", "").replace("```", "").strip()
         return json.loads(cleaned_result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI disambiguation failed: {str(e)}")

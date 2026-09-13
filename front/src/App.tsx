@@ -185,6 +185,7 @@ function AppContent() {
     cvData,
     setFormData,
     resetDashboard,
+    invalidateStaleResearchResult,
     triggerResearch,
     toasts, setToasts,
     // [FIX] Ajout des variables manquantes pour gÃƒÂ©rer les onglets
@@ -618,8 +619,10 @@ function AppContent() {
         if (rawProfileData && Object.keys(rawProfileData).length > 0) {
           const frontendData = transformProfileForFrontend(rawProfileData);
           setFormData(frontendData);
-          // [FIX] Si un ancien researchResult est stocké pour une autre entreprise, on l'invalide.
+          // [FIX] Si un ancien researchResult est stocké pour une autre entreprise, on l'invalide
+          // à la fois dans localStorage et dans le state React déjà initialisé.
           invalidateStaleResearchCache((frontendData as any).target_company || '');
+          invalidateStaleResearchResult((frontendData as any).target_company || '');
           if ((frontendData as any).target_language) { i18n.changeLanguage((frontendData as any).target_language.toLowerCase()); }
 
           const hasImportedProfileData = !!(
@@ -872,7 +875,12 @@ function AppContent() {
             if (stepErrors[key]) setStepErrors(prev => ({ ...prev, [key]: false }));
           }} errors={stepErrors} loading={globalStatus === "STARTING"} />
           {globalStatus === "FAILED" && (<div className="error-box"><AlertCircle size={16}/><span>{t('error_msg')} {error}</span><button className="btn-link" onClick={() => handleNextStep()}>{t('btn_retry')}</button></div>)}
-          <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>
+          <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem', gap: '1rem', alignItems: 'center' }}>
+            {onboardingCompleted && (
+              <button className="btn-ghost" onClick={() => setCurrentStep(8)} style={{ marginRight: 'auto' }}>
+                ← Retour au tableau de bord
+              </button>
+            )}
             <button className="btn-primary" onClick={handleTargetAnalysisContinue} disabled={globalStatus === "STARTING" || isCheckingAnalysisPreview}>
               {isCheckingAnalysisPreview ? <><Loader2 size={16} className="spin" style={{ marginRight: '0.5rem' }} />Verification...</> : t('btn_next')}
             </button>
@@ -909,38 +917,57 @@ function AppContent() {
           <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}><button className="btn-primary" onClick={() => handleNextStep()}>{t('btn_next')}</button></div>
         </div>);
     case 5:
-        if (["STARTING", "PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus)) return <LoadingScreen title={t('loading_strat_title', "Creation de votre profil strategique...")} description={t('loading_strat_desc', "Analyse de vos experiences et exigences du marche...")} />;
         return (
           <div className="step-wrapper">
-          <StepQualitiesFlaws data={cvData || {}} onChange={handleChange} successes={[]} onAddSuccess={() => {}} onUpdateSuccess={() => {}} failures={[]} onAddFailure={() => {}} onUpdateFailure={() => {}} />
+            <StepQualitiesFlaws data={cvData || {}} onChange={handleChange} successes={[]} onAddSuccess={() => {}} onUpdateSuccess={() => {}} failures={[]} onAddFailure={() => {}} onUpdateFailure={() => {}} />
             {globalStatus === "FAILED" && (<div className="error-box"><AlertCircle size={16}/><span>{t('generation_error_msg')} {error}</span><button className="btn-link" onClick={() => handleNextStep()}>{t('btn_retry')}</button></div>)}
             <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>
-              <button 
-                className="btn-primary" 
-                onClick={(e) => { 
-                  if (isFrozen) { 
-                    e.preventDefault(); 
-                    setShowPaywall(true); 
-                  } else { 
+              <button
+                className="btn-primary"
+                onClick={(e) => {
+                  if (isFrozen) {
+                    e.preventDefault();
+                    setShowPaywall(true);
+                  } else {
                     const currentSignature = getCoreDataSignature(cvData);
-                    // Si la signature n'a pas changÃƒÂ© et que nous avons dÃƒÂ©jÃƒÂ  des questions
+                    // Si la signature n'a pas changé et que nous avons déjà des questions
                     if (cvData?.clarifications?.length > 0 && cvData?.last_clarification_signature === currentSignature) {
-                    setCurrentStep(7); // On bypass le handleNextStep (pas d'appel API)
+                      setCurrentStep(7); // On bypass le handleNextStep (pas d'appel API)
                     } else {
                       // Sinon, on sauvegarde la nouvelle signature et on lance l'IA
                       handleChange('last_clarification_signature', currentSignature);
-                      handleNextStep(); 
+                      handleNextStep();
                     }
-                  } 
-                }} 
-                disabled={["STARTING", "PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus)}
+                  }
+                }}
               >
-                {["STARTING", "PROCESSING", "LOADING", "FETCHING", "POLLING", "PENDING", "RUNNING"].includes(globalStatus) ? t('generating') : t('btn_generate_questions')}
+                {cvData?.clarifications?.length > 0 && cvData?.last_clarification_signature === getCoreDataSignature(cvData)
+                  ? t('btn_next', 'Suivant')
+                  : t('btn_generate_questions')}
               </button>
             </div>
           </div>);
     case 6:
       // [FIX EXPERT] Composant fantÃƒÂ´me pour rÃƒÂ©aligner la machine ÃƒÂ  ÃƒÂ©tats du DashboardContext
+      if (globalStatus === "FAILED") {
+        return (
+          <div className="step-wrapper">
+            <div className="error-box" style={{ marginBottom: '1.5rem' }}>
+              <AlertCircle size={20}/>
+              <div>
+                <strong>{t('generation_error_msg', 'Une erreur est survenue')}</strong>
+                <p style={{ margin: '0.5rem 0 0' }}>{error}</p>
+              </div>
+            </div>
+            <div className="actions-row" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="btn-primary" onClick={() => handleNextStep()}>
+                <RefreshCw size={16} style={{ marginRight: '0.5rem' }}/>
+                {t('btn_retry', 'RÃƒÂ©essayer')}
+              </button>
+            </div>
+          </div>
+        );
+      }
       return <Step6Ghost onNext={handleNextStep} t={t} />;
     case 7: 
         const clarificationAnswers = (cvData?.clarifications || []).reduce((acc: any, curr: any) => {
@@ -1006,12 +1033,9 @@ function AppContent() {
   const handleStartNewCompany = () => {
     setShowLanding(false);
     setCurrentStep(2);
-    setFormData((prev: any) => ({
-      ...(prev || {}),
-      target_company: '',
-      target_job: '',
-      job_description: '',
-    }));
+    // On garde l'entreprise/poste actuels pré-remplis pour permettre un retour
+    // au tableau de bord sans perte de données si l'utilisateur clique par erreur.
+    // L'application_id est supprimé automatiquement par updateFormData si la cible change.
   };
 
   const handleStartNewApplication = () => {

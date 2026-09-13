@@ -69,6 +69,15 @@ const normalizeTrainingQuotas = (data: any) => {
   };
 };
 
+const normalizeCompanyNameForCache = (name: string | null | undefined): string => {
+  return (name || '').toLowerCase().trim().replace(/\s+/g, ' ');
+};
+
+const getCachedCompanyName = (result: any): string => {
+  if (!result || typeof result !== 'object') return '';
+  return result?.company || result?.company_report?.company || result?.data?.company || '';
+};
+
 // Champs qui impactent réellement le dashboard stratégique.
 // Les champs mineurs (ville, adresse, etc.) sont volontairement exclus.
 const buildDashboardImpactPayload = (data: any) => ({
@@ -759,6 +768,20 @@ export function useDashboardLogic() {
     }
   };
 
+  // [FIX] Invalide le state React researchResult si l'entreprise en cache ne correspond
+  // plus à la candidature en cours. Nécessaire car localStorage est lu avant loadProfile.
+  const invalidateStaleResearchResult = useCallback((currentTargetCompany: string): void => {
+    const cachedCompany = getCachedCompanyName(researchResult);
+    if (!cachedCompany) return;
+    if (normalizeCompanyNameForCache(cachedCompany) !== normalizeCompanyNameForCache(currentTargetCompany)) {
+      console.info('[STATE INVALIDATION] researchResult mismatch:', cachedCompany, '!=', currentTargetCompany);
+      setResearchResult(null);
+      localStorage.removeItem('researchResult');
+      localStorage.removeItem('research_result');
+      localStorage.removeItem('research_data');
+    }
+  }, [researchResult]);
+
   // --- ORCHESTRATION DES ÉTAPES ---
   const handleNextStep = async () => {
     const payload = { ...formData, target_language: formData.target_language || 'fr' };
@@ -815,6 +838,9 @@ export function useDashboardLogic() {
         });
         if (!res.ok) throw new Error(`Erreur API (Marché): ${res.statusText}`);
         const data = await res.json();
+        if (data.application_id) {
+          setFormData((prev: any) => ({ ...(prev || {}), application_id: data.application_id }));
+        }
         setTaskIds(prev => ({
           ...(prev || {}),
           ...(normalizeTaskIds(data.tasks) || {}),
@@ -829,46 +855,38 @@ export function useDashboardLogic() {
         setCurrentStep(3);
       } 
       else if (currentStep === 5) {
-        // Lancement anticipé (asynchrone) de l'analyse de complétude
-        console.log("🚀 Triggering Page 5 Background Task (Completeness)...");
-        authenticatedFetch(`/cv/analyze-completeness`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        }).then(res => res.json()).then(data => {
-            if (data.task_id) setTaskIds(prev => ({ ...prev, completeness: data.task_id }));
-        }).catch(err => console.error("Completeness trigger error:", err));
-        
+        // Transition vers l'écran de génération des clarifications
         setCurrentStep(6);
       }
       else if (currentStep === 6) {
         // PAGE 6 -> 7 : Sync Call for Clarifications
         setGlobalStatus("PROCESSING"); // Petit feedback visuel
-        console.log("⏳ Fetching Clarification Questions..."); 
+        console.log("⏳ Fetching Clarification Questions...");
         let responseData: any = null;
-        {
-            // [FIX] Toujours régénérer à partir des données courantes pour éviter les questions figées
-            // quand l'utilisateur modifie les étapes précédentes puis revient à cette page.
-            const res = await authenticatedFetch(`/cv/analyze-completeness`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload)
-            });
-            if (!res.ok) throw new Error(`Erreur API (Clarifications): ${res.statusText}`);
-            responseData = await res.json();
+        try {
+          // [FIX] Toujours régénérer à partir des données courantes pour éviter les questions figées
+          // quand l'utilisateur modifie les étapes précédentes puis revient à cette page.
+          const res = await authenticatedFetch(`/cv/analyze-completeness`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) throw new Error(`Erreur API (Clarifications): ${res.statusText}`);
+          responseData = await res.json();
+
+          // Mise à jour du formulaire avec les questions reçues
+          if (responseData.clarifications && Array.isArray(responseData.clarifications)) {
+              const clarifications = responseData.clarifications.map((c: any, i: number) => ({ id: i, question: c.question || c, answer: "" }));
+              updateFormData("clarifications", clarifications);
+          } else if (responseData.questions && Array.isArray(responseData.questions)) {
+              // Fallback de rétrocompatibilité
+              const clarifications = responseData.questions.map((q: string, i: number) => ({ id: i, question: q, answer: "" }));
+              updateFormData("clarifications", clarifications);
+          }
+          setCurrentStep(7);
+        } finally {
+          setGlobalStatus("IDLE");
         }
-        
-        // Mise à jour du formulaire avec les questions reçues
-        if (responseData.clarifications && Array.isArray(responseData.clarifications)) {
-            const clarifications = responseData.clarifications.map((c: any, i: number) => ({ id: i, question: c.question || c, answer: "" }));
-            updateFormData("clarifications", clarifications);
-        } else if (responseData.questions && Array.isArray(responseData.questions)) {
-            // Fallback de rétrocompatibilité
-            const clarifications = responseData.questions.map((q: string, i: number) => ({ id: i, question: q, answer: "" }));
-            updateFormData("clarifications", clarifications);
-        }
-        setGlobalStatus("IDLE");
-        setCurrentStep(7);
       }
       else if (currentStep === 7) {
          // PAGE 7 -> DASHBOARD : Trigger Full Analysis
@@ -1007,6 +1025,9 @@ export function useDashboardLogic() {
                });
                if (researchRes.ok) {
                  const researchData = await researchRes.json();
+                 if (researchData.application_id) {
+                   setFormData((prev: any) => ({ ...(prev || {}), application_id: researchData.application_id }));
+                 }
                  setTaskIds(prev => ({
                    ...(prev || {}),
                    ...(normalizeTaskIds(researchData.tasks) || {}),
@@ -1117,6 +1138,9 @@ export function useDashboardLogic() {
 
              if (researchRes.ok) {
                const researchData = await researchRes.json();
+               if (researchData.application_id) {
+                 setFormData((prev: any) => ({ ...(prev || {}), application_id: researchData.application_id }));
+               }
                setTaskIds(prev => ({
                  ...(prev || {}),
                  ...(normalizeTaskIds(researchData.tasks) || {}),
@@ -1403,6 +1427,9 @@ export function useDashboardLogic() {
       });
       if (!res.ok) throw new Error("Failed to start research");
       const data = await res.json();
+      if (data.application_id) {
+        setFormData((prev: any) => ({ ...(prev || {}), application_id: data.application_id }));
+      }
       setTaskIds(prev => ({
         ...(prev || {}),
         ...(normalizeTaskIds(data.tasks) || {}),
@@ -1433,6 +1460,7 @@ export function useDashboardLogic() {
     setFormData,
     updateList,
     resetDashboard,
+    invalidateStaleResearchResult,
     activeTab, setActiveTab,
     isPilotLoading, setIsPilotLoading,
     pilotData, setPilotData,

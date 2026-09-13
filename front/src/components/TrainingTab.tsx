@@ -18,8 +18,7 @@ import {
   AlertCircle,
   Dumbbell,
   Sparkles,
-  Loader2,
-  Play
+  Loader2
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { DashboardCard } from './DashboardCard';
@@ -29,7 +28,6 @@ import { authenticatedFetch } from '../utils/auth';
 import { useDashboard } from '../hooks/DashboardContext';
 import { VocalPitchTrainer } from './VocalPitchTrainer';
 import { RechargeModal } from './RechargeModal';
-import SalaryNegotiator from './SalaryNegotiator';
 import { Button, SegmentedControl } from './common';
 
 export default function TrainingTab() {
@@ -367,44 +365,20 @@ export default function TrainingTab() {
       {upcomingModules.length > 0 && (
         <DashboardCard title="Anticipation & Prochains Rounds" icon={<TrendingUp size={24} />}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {upcomingModules.map((mod: any, idx: number) => {
-              const isNegotiation = /négociation|salarial|salaire/i.test(mod.module || '') || /négociation|salarial|salaire/i.test(mod.focus || '');
-              return (
-                <div key={idx} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '1.5rem', display: 'flex', gap: '1.25rem', alignItems: 'flex-start' }}>
-                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: '0.75rem', borderRadius: '0.75rem', color: 'var(--primary)' }}>
-                    {isNegotiation ? <DollarSign size={24} /> : <Lock size={24} />}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)', fontWeight: 700, fontSize: '1.05rem' }}>{mod.module}</h4>
-                    <p style={{ margin: '0 0 0.75rem 0', color: 'var(--text-main)', fontSize: '0.95rem', lineHeight: 1.5 }}>{mod.focus}</p>
-                    {isNegotiation && (
-                      <Button
-                        variant="primary"
-                        module="training"
-                        size="sm"
-                        icon={<Play size={16} />}
-                        onClick={() => {
-                          const el = document.getElementById('salary_negotiation_section');
-                          if (el) {
-                            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                          }
-                        }}
-                      >
-                        Lancer la simulation de négociation
-                      </Button>
-                    )}
-                  </div>
+            {upcomingModules.map((mod: any, idx: number) => (
+              <div key={idx} style={{ background: 'var(--bg-secondary)', border: '1px dashed var(--border-color)', borderRadius: '1rem', padding: '1.5rem', display: 'flex', gap: '1.25rem', alignItems: 'flex-start', opacity: 0.8 }}>
+                <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: '0.75rem', borderRadius: '0.75rem', color: 'var(--text-muted)' }}>
+                  <Lock size={24} />
                 </div>
-              );
-            })}
+                <div>
+                  <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontWeight: 700, fontSize: '1.05rem' }}>{mod.module}</h4>
+                  <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.5 }}>{mod.focus}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </DashboardCard>
       )}
-
-      {/* --- SIMULATION DE NÉGOCIATION SALARIALE --- */}
-      <div id="salary_negotiation_section">
-        <SalaryNegotiator />
-      </div>
 
       {/* --- NOUVEAU : AFFICHAGE DES QUOTAS PAR MODULE --- */}
       <DashboardCard title="Simulations Notées Disponibles" icon={<Dumbbell size={24} />} id="training_section">
@@ -585,18 +559,6 @@ export default function TrainingTab() {
           </div>
 
           <div>
-            <h4 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)', fontSize: '1.05rem' }}>2. Choisissez le thème</h4>
-            <SegmentedControl
-              label="Thématique"
-              module="training"
-              value={selectedTheme}
-              onChange={(val) => setSelectedTheme(val)}
-              options={themes.map(theme => ({ value: theme, label: theme }))}
-            />
-          </div>
-
-          <div>
-            <h4 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)', fontSize: '1.05rem' }}>3. Choisissez le mode de réponse</h4>
             <SegmentedControl
               label="Choix de la saisie"
               module="training"

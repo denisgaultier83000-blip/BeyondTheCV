@@ -16,6 +16,7 @@ from typing import Optional
 
 from database import db
 from .ai_generator import ai_service
+from .ai_feature_caller import ai_call
 from .utils import load_prompt
 
 _SCHEMA_READY = False
@@ -80,10 +81,11 @@ async def _extract_questions_via_ai(debrief_dict: dict, candidate_context: dict)
         .replace("{{CANDIDATE_CONTEXT_JSON}}", json.dumps(candidate_context, ensure_ascii=False, indent=2, default=str))
     )
 
-    result = await ai_service.generate_valid_json(
-        final_prompt,
-        provider="openai",
+    result = await ai_call(
+        feature="question_intelligence_extract",
+        prompt=final_prompt,
         system_instruction="You are a strict anonymized data extraction engine. Output STRICT JSON only.",
+        json_mode=True,
     )
 
     if not isinstance(result, dict) or "error" in result:

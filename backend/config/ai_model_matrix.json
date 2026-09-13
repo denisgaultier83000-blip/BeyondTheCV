@@ -1,0 +1,576 @@
+{
+  "comment": "Matrice de routage des modèles IA par fonctionnalité BTCV. Permet d'optimiser les coûts tout en garantissant un niveau de qualité minimal.",
+  "models": {
+    "openai_gpt4o": {
+      "provider": "openai",
+      "model": "gpt-4o",
+      "cost_tier": "premium",
+      "strengths": "reasoning, complex structured outputs, high reliability"
+    },
+    "openai_gpt4o_mini": {
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "cost_tier": "mid",
+      "strengths": "fast, cheap, good JSON"
+    },
+    "gemini_2_5_flash": {
+      "provider": "gemini",
+      "model": "gemini-2.5-flash",
+      "cost_tier": "mid",
+      "strengths": "fast, cheap, long context"
+    },
+    "gemini_2_0_flash": {
+      "provider": "gemini",
+      "model": "gemini-2.0-flash",
+      "cost_tier": "mid",
+      "strengths": "cheap, long context"
+    },
+    "gemini_2_0_flash_lite": {
+      "provider": "gemini",
+      "model": "gemini-2.0-flash-lite",
+      "cost_tier": "cheap",
+      "strengths": "cheapest, fastest"
+    }
+  },
+  "features": {
+    "recruiter_view": {
+      "primary_model": "openai_gpt4o",
+      "fallback_model": "gemini_2_5_flash",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "premium-first",
+      "max_tokens": 4096,
+      "temperature": 0.65,
+      "timeout": 60,
+      "criticality": "high",
+      "description": "Vue recruteur : forte valeur ajoutée, insights originaux"
+    },
+    "differentiators_select": {
+      "primary_model": "openai_gpt4o",
+      "fallback_model": "gemini_2_5_flash",
+      "cheap_model": null,
+      "strategy": "premium-first",
+      "max_tokens": 4096,
+      "temperature": 0.7,
+      "timeout": 60,
+      "criticality": "high",
+      "description": "Sélection des marqueurs différenciants"
+    },
+    "differentiators_extract": {
+      "primary_model": "openai_gpt4o",
+      "fallback_model": "gemini_2_5_flash",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "premium-first",
+      "max_tokens": 4096,
+      "temperature": 0.65,
+      "timeout": 60,
+      "criticality": "high",
+      "description": "Extraction automatique des différentiateurs"
+    },
+    "gap_analysis": {
+      "primary_model": "openai_gpt4o",
+      "fallback_model": "gemini_2_5_flash",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "premium-first",
+      "max_tokens": 4096,
+      "temperature": 0.6,
+      "timeout": 60,
+      "criticality": "high",
+      "description": "Analyse des écarts critiques"
+    },
+    "debrief_analysis": {
+      "primary_model": "openai_gpt4o",
+      "fallback_model": "gemini_2_5_flash",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "premium-first",
+      "max_tokens": 4096,
+      "temperature": 0.65,
+      "timeout": 60,
+      "criticality": "high",
+      "description": "Débrief intelligent post-entretien"
+    },
+    "interview_preparation": {
+      "primary_model": "openai_gpt4o",
+      "fallback_model": "gemini_2_5_flash",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "premium-first",
+      "max_tokens": 4096,
+      "temperature": 0.65,
+      "timeout": 60,
+      "criticality": "high",
+      "description": "Préparation du prochain entretien"
+    },
+    "high_stakes_simulation": {
+      "primary_model": "openai_gpt4o",
+      "fallback_model": "gemini_2_5_flash",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "premium-first",
+      "max_tokens": 4096,
+      "temperature": 0.7,
+      "timeout": 60,
+      "criticality": "high",
+      "description": "Simulations à fort enjeu"
+    },
+    "market_research": {
+      "primary_model": "gemini_2_5_flash",
+      "fallback_model": "openai_gpt4o",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "premium-first",
+      "max_tokens": 8192,
+      "temperature": 0.6,
+      "timeout": 120,
+      "criticality": "high",
+      "description": "Recherche entreprise et marché (long context préféré)"
+    },
+    "company_research": {
+      "primary_model": "gemini_2_5_flash",
+      "fallback_model": "openai_gpt4o",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "premium-first",
+      "max_tokens": 8192,
+      "temperature": 0.6,
+      "timeout": 120,
+      "criticality": "high",
+      "description": "Analyse entreprise synthétique"
+    },
+    "career_navigation": {
+      "primary_model": "openai_gpt4o",
+      "fallback_model": "gemini_2_5_flash",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "premium-first",
+      "max_tokens": 4096,
+      "temperature": 0.7,
+      "timeout": 60,
+      "criticality": "high",
+      "description": "GPS de carrière / stratégie long terme"
+    },
+    "hidden_market_strategy": {
+      "primary_model": "openai_gpt4o",
+      "fallback_model": "gemini_2_5_flash",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "premium-first",
+      "max_tokens": 4096,
+      "temperature": 0.7,
+      "timeout": 60,
+      "criticality": "high",
+      "description": "Stratégie marché caché"
+    },
+    "pitch": {
+      "primary_model": "gemini_2_5_flash",
+      "fallback_model": "openai_gpt4o_mini",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "premium-first",
+      "max_tokens": 4096,
+      "temperature": 0.75,
+      "timeout": 60,
+      "criticality": "medium",
+      "description": "Pitch personnalisé"
+    },
+    "action_plan": {
+      "primary_model": "gemini_2_5_flash",
+      "fallback_model": "openai_gpt4o_mini",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "premium-first",
+      "max_tokens": 4096,
+      "temperature": 0.65,
+      "timeout": 60,
+      "criticality": "medium",
+      "description": "Plan d'action / feuille de route"
+    },
+    "questions_probable": {
+      "primary_model": "gemini_2_5_flash",
+      "fallback_model": "openai_gpt4o_mini",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "cheap-first",
+      "max_tokens": 4096,
+      "temperature": 0.65,
+      "timeout": 60,
+      "criticality": "medium",
+      "description": "Questions probables d'entretien"
+    },
+    "reality_check": {
+      "primary_model": "gemini_2_5_flash",
+      "fallback_model": "openai_gpt4o_mini",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "premium-first",
+      "max_tokens": 4096,
+      "temperature": 0.6,
+      "timeout": 60,
+      "criticality": "medium",
+      "description": "Réalité du marché / analyse de posture"
+    },
+    "salary_estimation": {
+      "primary_model": "gemini_2_5_flash",
+      "fallback_model": "openai_gpt4o_mini",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "cheap-first",
+      "max_tokens": 2048,
+      "temperature": 0.4,
+      "timeout": 60,
+      "criticality": "medium",
+      "description": "Estimation salariale"
+    },
+    "career_risks": {
+      "primary_model": "gemini_2_5_flash",
+      "fallback_model": "openai_gpt4o_mini",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "premium-first",
+      "max_tokens": 4096,
+      "temperature": 0.6,
+      "timeout": 60,
+      "criticality": "medium",
+      "description": "Radar de carrière / risques"
+    },
+    "flaw_coaching": {
+      "primary_model": "gemini_2_0_flash",
+      "fallback_model": "gemini_2_5_flash",
+      "cheap_model": "gemini_2_0_flash_lite",
+      "strategy": "cheap-first",
+      "max_tokens": 2048,
+      "temperature": 0.6,
+      "timeout": 45,
+      "criticality": "low",
+      "description": "Coaching sur points faibles"
+    },
+    "job_decoder": {
+      "primary_model": "gemini_2_0_flash",
+      "fallback_model": "gemini_2_5_flash",
+      "cheap_model": "gemini_2_0_flash_lite",
+      "strategy": "cheap-first",
+      "max_tokens": 4096,
+      "temperature": 0.4,
+      "timeout": 60,
+      "criticality": "low",
+      "description": "Décodage d'annonce"
+    },
+    "extract_job_requirements": {
+      "primary_model": "gemini_2_0_flash_lite",
+      "fallback_model": "gemini_2_0_flash",
+      "cheap_model": null,
+      "strategy": "cheap-first",
+      "max_tokens": 2048,
+      "temperature": 0.3,
+      "timeout": 45,
+      "criticality": "low",
+      "description": "Extraction de requirements d'offre"
+    },
+    "tag_interview_question": {
+      "primary_model": "gemini_2_0_flash_lite",
+      "fallback_model": "gemini_2_0_flash",
+      "cheap_model": null,
+      "strategy": "cheap-first",
+      "max_tokens": 1024,
+      "temperature": 0.3,
+      "timeout": 30,
+      "criticality": "low",
+      "description": "Tagging des questions d'entretien"
+    },
+    "reformulation": {
+      "primary_model": "gemini_2_0_flash_lite",
+      "fallback_model": "gemini_2_0_flash",
+      "cheap_model": null,
+      "strategy": "cheap-first",
+      "max_tokens": 2048,
+      "temperature": 0.5,
+      "timeout": 30,
+      "criticality": "low",
+      "description": "Reformulation simple"
+    },
+    "summarize": {
+      "primary_model": "gemini_2_0_flash",
+      "fallback_model": "gemini_2_5_flash",
+      "cheap_model": "gemini_2_0_flash_lite",
+      "strategy": "cheap-first",
+      "max_tokens": 2048,
+      "temperature": 0.4,
+      "timeout": 45,
+      "criticality": "low",
+      "description": "Résumés"
+    },
+    "classify_sensitive": {
+      "primary_model": "gemini_2_0_flash_lite",
+      "fallback_model": "gemini_2_0_flash",
+      "cheap_model": null,
+      "strategy": "cheap-first",
+      "max_tokens": 1024,
+      "temperature": 0.3,
+      "timeout": 30,
+      "criticality": "low",
+      "description": "Classification des situations sensibles"
+    },
+    "disambiguate_company": {
+      "primary_model": "gemini_2_0_flash",
+      "fallback_model": "gemini_2_5_flash",
+      "cheap_model": "gemini_2_0_flash_lite",
+      "strategy": "cheap-first",
+      "max_tokens": 2048,
+      "temperature": 0.3,
+      "timeout": 45,
+      "criticality": "low",
+      "description": "Désambiguïsation d'entreprise"
+    },
+    "cv_draft": {
+      "primary_model": "gemini_2_5_flash",
+      "fallback_model": "openai_gpt4o_mini",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "premium-first",
+      "max_tokens": 4096,
+      "temperature": 0.65,
+      "timeout": 60,
+      "criticality": "medium",
+      "description": "Génération de brouillon de CV structuré"
+    },
+    "extract_cv": {
+      "primary_model": "gemini_2_0_flash_lite",
+      "fallback_model": "gemini_2_0_flash",
+      "cheap_model": null,
+      "strategy": "cheap-first",
+      "max_tokens": 4096,
+      "temperature": 0.3,
+      "timeout": 60,
+      "criticality": "low",
+      "description": "Extraction structurée de CV"
+    },
+    "evaluate_interview_response": {
+      "primary_model": "gemini_2_5_flash",
+      "fallback_model": "openai_gpt4o_mini",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "cheap-first",
+      "max_tokens": 2048,
+      "temperature": 0.5,
+      "timeout": 45,
+      "criticality": "medium",
+      "description": "Évaluation d'une réponse d'entretien"
+    },
+    "evaluate_pitch": {
+      "primary_model": "gemini_2_5_flash",
+      "fallback_model": "openai_gpt4o_mini",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "cheap-first",
+      "max_tokens": 2048,
+      "temperature": 0.5,
+      "timeout": 45,
+      "criticality": "medium",
+      "description": "Évaluation d'un pitch oral"
+    },
+    "generate_clarifications": {
+      "primary_model": "gemini_2_5_flash",
+      "fallback_model": "openai_gpt4o_mini",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "cheap-first",
+      "max_tokens": 2048,
+      "temperature": 0.65,
+      "timeout": 45,
+      "criticality": "medium",
+      "description": "Génération de questions de clarification"
+    },
+    "custom_scenarios": {
+      "primary_model": "openai_gpt4o",
+      "fallback_model": "gemini_2_5_flash",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "premium-first",
+      "max_tokens": 4096,
+      "temperature": 0.7,
+      "timeout": 60,
+      "criticality": "high",
+      "description": "Génération de scénarios personnalisés"
+    },
+    "dashboard_summary": {
+      "primary_model": "gemini_2_5_flash",
+      "fallback_model": "openai_gpt4o_mini",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "cheap-first",
+      "max_tokens": 2048,
+      "temperature": 0.5,
+      "timeout": 45,
+      "criticality": "medium",
+      "description": "Synthèse dashboard"
+    },
+    "generate_roadmap": {
+      "primary_model": "openai_gpt4o",
+      "fallback_model": "gemini_2_5_flash",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "premium-first",
+      "max_tokens": 4096,
+      "temperature": 0.65,
+      "timeout": 60,
+      "criticality": "high",
+      "description": "Feuille de route pré-entretien"
+    },
+    "analyze_completeness": {
+      "primary_model": "gemini_2_5_flash",
+      "fallback_model": "openai_gpt4o_mini",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "cheap-first",
+      "max_tokens": 4096,
+      "temperature": 0.5,
+      "timeout": 60,
+      "criticality": "medium",
+      "description": "Analyse de complétude de profil"
+    },
+    "differentiators_deepen": {
+      "primary_model": "gemini_2_5_flash",
+      "fallback_model": "openai_gpt4o_mini",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "cheap-first",
+      "max_tokens": 4096,
+      "temperature": 0.6,
+      "timeout": 60,
+      "criticality": "medium",
+      "description": "Approfondissement des différentiateurs"
+    },
+    "sensitive_situations": {
+      "primary_model": "gemini_2_5_flash",
+      "fallback_model": "openai_gpt4o_mini",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "premium-first",
+      "max_tokens": 4096,
+      "temperature": 0.65,
+      "timeout": 60,
+      "criticality": "medium",
+      "description": "Analyse des situations sensibles du candidat"
+    },
+    "osint_score_articles": {
+      "primary_model": "gemini_2_0_flash",
+      "fallback_model": "gemini_2_5_flash",
+      "cheap_model": "gemini_2_0_flash_lite",
+      "strategy": "cheap-first",
+      "max_tokens": 2048,
+      "temperature": 0.3,
+      "timeout": 45,
+      "criticality": "low",
+      "description": "Scoring OSINT des articles web"
+    },
+    "osint_extract_facts": {
+      "primary_model": "gemini_2_0_flash",
+      "fallback_model": "gemini_2_5_flash",
+      "cheap_model": "gemini_2_0_flash_lite",
+      "strategy": "cheap-first",
+      "max_tokens": 4096,
+      "temperature": 0.3,
+      "timeout": 60,
+      "criticality": "low",
+      "description": "Extraction de faits OSINT"
+    },
+    "osint_cluster_facts": {
+      "primary_model": "gemini_2_5_flash",
+      "fallback_model": "openai_gpt4o_mini",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "cheap-first",
+      "max_tokens": 4096,
+      "temperature": 0.3,
+      "timeout": 60,
+      "criticality": "medium",
+      "description": "Clustering de faits OSINT"
+    },
+    "company_disambiguation": {
+      "primary_model": "gemini_2_0_flash",
+      "fallback_model": "gemini_2_5_flash",
+      "cheap_model": "gemini_2_0_flash_lite",
+      "strategy": "cheap-first",
+      "max_tokens": 2048,
+      "temperature": 0.2,
+      "timeout": 45,
+      "criticality": "medium",
+      "description": "Désambiguïsation d'entreprise via recherche web"
+    },
+    "market_search_plan": {
+      "primary_model": "gemini_2_5_flash",
+      "fallback_model": "openai_gpt4o_mini",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "cheap-first",
+      "max_tokens": 4096,
+      "temperature": 0.4,
+      "timeout": 60,
+      "criticality": "medium",
+      "description": "Plan de recherche marché"
+    },
+    "market_analyze_search_results": {
+      "primary_model": "gemini_2_5_flash",
+      "fallback_model": "openai_gpt4o_mini",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "cheap-first",
+      "max_tokens": 8192,
+      "temperature": 0.4,
+      "timeout": 90,
+      "criticality": "medium",
+      "description": "Analyse des résultats de recherche marché"
+    },
+    "company_express_profile": {
+      "primary_model": "gemini_2_0_flash",
+      "fallback_model": "gemini_2_5_flash",
+      "cheap_model": "gemini_2_0_flash_lite",
+      "strategy": "cheap-first",
+      "max_tokens": 1024,
+      "temperature": 0.2,
+      "timeout": 30,
+      "criticality": "low",
+      "description": "Profil express d'entreprise"
+    },
+    "market_final_synthesis": {
+      "primary_model": "openai_gpt4o",
+      "fallback_model": "gemini_2_5_flash",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "premium-first",
+      "max_tokens": 8192,
+      "temperature": 0.5,
+      "timeout": 120,
+      "criticality": "high",
+      "description": "Synthèse finale de recherche marché"
+    },
+    "question_intelligence_extract": {
+      "primary_model": "gemini_2_0_flash",
+      "fallback_model": "gemini_2_5_flash",
+      "cheap_model": "gemini_2_0_flash_lite",
+      "strategy": "cheap-first",
+      "max_tokens": 2048,
+      "temperature": 0.3,
+      "timeout": 45,
+      "criticality": "low",
+      "description": "Extraction anonymisée de questions d'entretien"
+    },
+    "career_simulation": {
+      "primary_model": "openai_gpt4o",
+      "fallback_model": "gemini_2_5_flash",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "premium-first",
+      "max_tokens": 4096,
+      "temperature": 0.7,
+      "timeout": 60,
+      "criticality": "high",
+      "description": "Simulation de trajectoire de carrière"
+    },
+    "json_salvage": {
+      "primary_model": "gemini_2_0_flash",
+      "fallback_model": "gemini_2_5_flash",
+      "cheap_model": "gemini_2_0_flash_lite",
+      "strategy": "cheap-first",
+      "max_tokens": 4096,
+      "temperature": 0.2,
+      "timeout": 45,
+      "criticality": "low",
+      "description": "Conversion de sortie brute en JSON structuré"
+    },
+    "salary_negotiation_feedback": {
+      "primary_model": "gemini_2_5_flash",
+      "fallback_model": "openai_gpt4o_mini",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "cheap-first",
+      "max_tokens": 2048,
+      "temperature": 0.5,
+      "timeout": 45,
+      "criticality": "medium",
+      "description": "Feedback sur négociation salariale"
+    },
+    "default": {
+      "primary_model": "gemini_2_5_flash",
+      "fallback_model": "openai_gpt4o_mini",
+      "cheap_model": "gemini_2_0_flash",
+      "strategy": "premium-first",
+      "max_tokens": 4096,
+      "temperature": 0.65,
+      "timeout": 60,
+      "criticality": "medium",
+      "description": "Comportement par défaut"
+    }
+  }
+}

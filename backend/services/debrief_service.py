@@ -9,6 +9,7 @@ from database import db
 from models import InterviewDebriefRequest
 # [FIX] Import des utilitaires nécessaires
 from .ai_generator import ai_service
+from .ai_feature_caller import ai_call
 from .utils import load_prompt, normalize_language
 from . import question_intelligence_service
 
@@ -277,7 +278,12 @@ async def analyze_debrief(debrief_id: str, request: AnalyzeDebriefRequest, curre
 
     try:
         # Appel au service IA pour générer l'analyse
-        analysis_result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction=f"You are a Career Coach. Output STRICT JSON in {target_lang}.")
+        analysis_result = await ai_call(
+            feature="debrief_analysis",
+            prompt=final_prompt,
+            system_instruction=f"You are a Career Coach. Output STRICT JSON in {target_lang}.",
+            json_mode=True,
+        )
         async with db.get_connection() as conn:
             await _ensure_debrief_analysis_schema(conn)
             await db.execute(

@@ -27,6 +27,7 @@ from security import get_current_user
 from database import db
 from .utils import _get_sortable_date_tuple, load_prompt, normalize_language, _sanitize_data_for_ai, _sanitize_data_for_recruiter_view, consume_quota, refund_quota, TESTER_SESSION_CAP, _ensure_quota_schema
 from .ai_generator import ai_service
+from .ai_feature_caller import ai_call
 
 TRAINING_THEME_LABELS = {
     "management": "Management",
@@ -1181,7 +1182,11 @@ async def _parse_cv_text(text: str, current_user: dict) -> dict:
         if prompt_template:
             prompt = f"{prompt_template}\n\nCV_TEXT:\n{text}"
             try:
-                parsed = await ai_service.generate_valid_json(prompt)
+                parsed = await ai_call(
+                    feature="extract_cv",
+                    prompt=prompt,
+                    json_mode=True,
+                )
                 if isinstance(parsed, dict) and parsed.get("first_name") is not None:
                     return parsed
             except Exception as e:
@@ -1607,10 +1612,11 @@ RÉPONSE DU CANDIDAT:
 
 OUTPUT LANGUAGE: {target_lang}
 """
-        result = await ai_service.generate_valid_json(
-            final_prompt,
-            provider="openai",
-            system_instruction=f"You are a strict interview evaluator. Output STRICT JSON only. Language: {target_lang}."
+        result = await ai_call(
+            feature="evaluate_interview_response",
+            prompt=final_prompt,
+            system_instruction=f"You are a strict interview evaluator. Output STRICT JSON only. Language: {target_lang}.",
+            json_mode=True,
         )
 
         if not isinstance(result, dict):
@@ -1831,10 +1837,11 @@ async def evaluate_vocal_pitch(payload: dict = Body(...), current_user: dict = D
             "Rappel: retourne STRICTEMENT un JSON valide conforme au schéma demandé."
         )
 
-        result = await ai_service.generate_valid_json(
-            prompt,
-            provider="openai",
-            system_instruction=f"You are a strict pitch evaluator. Output STRICT JSON only. Language: {target_lang}."
+        result = await ai_call(
+            feature="evaluate_pitch",
+            prompt=prompt,
+            system_instruction=f"You are a strict pitch evaluator. Output STRICT JSON only. Language: {target_lang}.",
+            json_mode=True,
         )
 
         if not isinstance(result, dict):
@@ -2352,11 +2359,12 @@ async def analyze_completeness(payload: dict = Body(...), current_user: dict = D
             .replace("{{CANDIDATE_DATA_JSON}}", json.dumps(safe_data, ensure_ascii=False, indent=2, default=str))
             .replace("{{TARGET_LANGUAGE}}", target_lang)
         )
-        ai_result = await ai_service.generate_valid_json(
-            final_prompt,
-            provider="openai",
+        ai_result = await ai_call(
+            feature="generate_clarifications",
+            prompt=final_prompt,
             system_instruction=f"You are a senior interview strategist. Output STRICT JSON only. Language: {target_lang}.",
-            bypass_queue=True
+            bypass_queue=True,
+            json_mode=True,
         )
 
         raw_clarifications = []
@@ -2591,10 +2599,11 @@ async def generate_interview_questions(candidate_data: dict) -> dict:
         f"{theme_context}\n\n"
         f"OUTPUT LANGUAGE: {target_lang}"
     )
-    result = await ai_service.generate_valid_json(
-        final_prompt,
-        provider="openai",
-        system_instruction=f"You are an expert interviewer. Output STRICT JSON only. Language: {target_lang}."
+    result = await ai_call(
+        feature="questions_probable",
+        prompt=final_prompt,
+        system_instruction=f"You are an expert interviewer. Output STRICT JSON only. Language: {target_lang}.",
+        json_mode=True,
     )
 
     if isinstance(result, dict) and isinstance(result.get("questions"), list):
@@ -2725,10 +2734,11 @@ async def generate_custom_scenarios(candidate_data: dict) -> dict:
         f"{theme_context}\n\n"
         f"OUTPUT LANGUAGE: {target_lang}"
     )
-    result = await ai_service.generate_valid_json(
-        final_prompt,
-        provider="openai",
-        system_instruction=f"You are an expert interviewer. Output STRICT JSON only. Language: {target_lang}."
+    result = await ai_call(
+        feature="custom_scenarios",
+        prompt=final_prompt,
+        system_instruction=f"You are an expert interviewer. Output STRICT JSON only. Language: {target_lang}.",
+        json_mode=True,
     )
 
     if isinstance(result, dict) and isinstance(result.get("categories"), list):
@@ -2786,10 +2796,11 @@ async def generate_flaw_coaching(candidate_data: dict) -> dict:
         "flaws": flaws
     }
     final_prompt = f"{prompt_template}\n\nCONTEXT:\n{json.dumps(payload, ensure_ascii=False, indent=2, default=str)}\n\nOUTPUT LANGUAGE: {target_lang}"
-    result = await ai_service.generate_valid_json(
-        final_prompt,
-        provider="openai",
-        system_instruction=f"You are a career interview coach. Output STRICT JSON only. Language: {target_lang}."
+    result = await ai_call(
+        feature="flaw_coaching",
+        prompt=final_prompt,
+        system_instruction=f"You are a career interview coach. Output STRICT JSON only. Language: {target_lang}.",
+        json_mode=True,
     )
 
     if isinstance(result, dict) and isinstance(result.get("coaching"), list):
@@ -2817,10 +2828,11 @@ async def generate_recruiter_view(candidate_data: dict) -> dict:
     prompt_template = load_prompt("recruiter_view.md")
     safe_data = _sanitize_data_for_recruiter_view(candidate_data)
     final_prompt = f"{prompt_template}\n\nCANDIDAT:\n{json.dumps(safe_data, ensure_ascii=False, indent=2, default=str)}\n\nOUTPUT LANGUAGE: {target_lang}"
-    result = await ai_service.generate_valid_json(
-        final_prompt,
-        provider="openai",
-        system_instruction=f"You are an experienced recruiter. Output STRICT JSON only. Language: {target_lang}."
+    result = await ai_call(
+        feature="recruiter_view",
+        prompt=final_prompt,
+        system_instruction=f"You are an experienced recruiter. Output STRICT JSON only. Language: {target_lang}.",
+        json_mode=True,
     )
 
     persona = result.get("recruiter_persona") if isinstance(result, dict) else None
@@ -2851,10 +2863,11 @@ async def generate_reality_check(candidate_data: dict) -> dict:
     prompt_template = load_prompt("career_reality_check.md")
     safe_data = _sanitize_data_for_ai(candidate_data, strict=True)
     final_prompt = f"{prompt_template}\n\nCANDIDAT:\n{json.dumps(safe_data, ensure_ascii=False, indent=2, default=str)}\n\nOUTPUT LANGUAGE: {target_lang}"
-    result = await ai_service.generate_valid_json(
-        final_prompt,
-        provider="openai",
-        system_instruction=f"You are a personal branding expert. Output STRICT JSON only. Language: {target_lang}."
+    result = await ai_call(
+        feature="reality_check",
+        prompt=final_prompt,
+        system_instruction=f"You are a personal branding expert. Output STRICT JSON only. Language: {target_lang}.",
+        json_mode=True,
     )
 
     rc = result.get("reality_check") if isinstance(result, dict) else None
@@ -2891,10 +2904,11 @@ async def generate_action_plan(candidate_data: dict) -> dict:
     prompt_template = load_prompt("action_plan.md")
     safe_data = _sanitize_data_for_ai(candidate_data, strict=True)
     final_prompt = f"{prompt_template}\n\nPROFIL:\n{json.dumps(safe_data, ensure_ascii=False, indent=2, default=str)}\n\nOUTPUT LANGUAGE: {target_lang}"
-    result = await ai_service.generate_valid_json(
-        final_prompt,
-        provider="openai",
-        system_instruction=f"You are a pragmatic career coach. Output STRICT JSON only. Language: {target_lang}."
+    result = await ai_call(
+        feature="action_plan",
+        prompt=final_prompt,
+        system_instruction=f"You are a pragmatic career coach. Output STRICT JSON only. Language: {target_lang}.",
+        json_mode=True,
     )
 
     if isinstance(result, dict):
@@ -2942,10 +2956,11 @@ PROFIL CANDIDAT:
 
 OUTPUT LANGUAGE: {target_lang}
 """
-    result = await ai_service.generate_valid_json(
-        final_prompt,
-        provider="openai",
-        system_instruction=f"You are a Career Coach. Output STRICT JSON only. Language: {target_lang}."
+    result = await ai_call(
+        feature="gap_analysis",
+        prompt=final_prompt,
+        system_instruction=f"You are a Career Coach. Output STRICT JSON only. Language: {target_lang}.",
+        json_mode=True,
     )
 
     if isinstance(result, dict):
@@ -3020,10 +3035,11 @@ async def generate_pitch(candidate_data: dict, quality: str = "smart") -> dict:
     )
     print("[PITCH] Using prompt strategic_pitch_v4.md", flush=True)
 
-    result = await ai_service.generate_valid_json(
-        final_prompt,
-        provider="openai",
-        system_instruction=f"You are an executive interview coach. Output STRICT JSON only. Language: {target_lang}."
+    result = await ai_call(
+        feature="pitch",
+        prompt=final_prompt,
+        system_instruction=f"You are an executive interview coach. Output STRICT JSON only. Language: {target_lang}.",
+        json_mode=True,
     )
 
     return _ensure_pitch_matrix_shape(result, candidate_data)
@@ -3047,10 +3063,11 @@ Entreprise : {candidate_data.get('target_company', 'Non spécifiée')}
 OUTPUT LANGUAGE: {target_lang}
 """
 
-    result = await ai_service.generate_valid_json(
-        final_prompt,
-        provider="openai",
-        system_instruction="You are a Job Market Analyst. Output STRICT JSON."
+    result = await ai_call(
+        feature="job_decoder",
+        prompt=final_prompt,
+        system_instruction="You are a Job Market Analyst. Output STRICT JSON.",
+        json_mode=True,
     )
 
     if isinstance(result, dict) and "error" not in result:
@@ -3301,10 +3318,11 @@ PROFIL_CANDIDAT_JSON:
 
     try:
         ai_result = await asyncio.wait_for(
-            ai_service.generate_valid_json(
-                prompt,
-                provider="openai",
-                system_instruction=f"You are an executive interview strategist. Output STRICT JSON only. Language: {target_lang}."
+            ai_call(
+                feature="dashboard_summary",
+                prompt=prompt,
+                system_instruction=f"You are an executive interview strategist. Output STRICT JSON only. Language: {target_lang}.",
+                json_mode=True,
             ),
             timeout=DASHBOARD_SUMMARY_AI_TIMEOUT_SECONDS,
         )
@@ -3392,10 +3410,11 @@ async def generate_roadmap_endpoint(payload: dict = Body(...), current_user: dic
         safe_profile = _sanitize_data_for_ai(profile_data, strict=True)
         final_prompt = f"{prompt_template}\n\nCONTEXTE DE L'ENTRETIEN:\n{json.dumps(context_data, ensure_ascii=False, indent=2)}\n\nPROFIL CANDIDAT:\n{json.dumps(safe_profile, ensure_ascii=False, indent=2, default=str)}\n\nOUTPUT LANGUAGE: {target_lang}"
 
-        result = await ai_service.generate_valid_json(
-            final_prompt,
-            provider="openai",
-            system_instruction=f"You are an executive career coach. Output STRICT JSON roadmap following the schema. Language: {target_lang}."
+        result = await ai_call(
+            feature="generate_roadmap",
+            prompt=final_prompt,
+            system_instruction=f"You are an executive career coach. Output STRICT JSON roadmap following the schema. Language: {target_lang}.",
+            json_mode=True,
         )
         if isinstance(result, dict) and (result.get("last_hour_plan") or result.get("recruiter_focus") or result.get("title")):
             return {"roadmap": result}

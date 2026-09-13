@@ -41,6 +41,15 @@ export const authenticatedFetch = async (url: string, options: RequestInit = {})
     headers.set('Authorization', 'Bearer ' + token);
   }
 
-  const response = await fetch(fullUrl, { ...options, headers });
-  return response;
+  // [FIX] Timeout client pour éviter les blocages infinis sur les appels lents
+  const controller = new AbortController();
+  const timeoutMs = options.signal ? undefined : 60000;
+  const timeoutId = timeoutMs ? setTimeout(() => controller.abort(), timeoutMs) : undefined;
+
+  try {
+    const response = await fetch(fullUrl, { ...options, headers, signal: controller.signal });
+    return response;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
 };

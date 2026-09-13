@@ -10,6 +10,7 @@ from models import (
 from security import get_current_user
 from database import db
 from .ai_generator import ai_service
+from .ai_feature_caller import ai_call
 from .utils import load_prompt, clean_ai_json_response, normalize_language, consume_quota, refund_quota
 
 router = APIRouter(
@@ -50,7 +51,12 @@ async def coach_keyword(request: dict = Body(...), current_user: dict = Depends(
     CV DU CANDIDAT :
     {json.dumps(_sanitize_for_prompt(cv_data), default=str)}
     """
-    result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a Career Coach. Output STRICT JSON in {target_lang}.")
+    result = await ai_call(
+        feature="flaw_coaching",
+        prompt=prompt,
+        system_instruction=f"You are a Career Coach. Output STRICT JSON in {target_lang}.",
+        json_mode=True,
+    )
     return result
 
 @router.post("/simulate-career")
@@ -72,7 +78,12 @@ async def simulate_career(request: SimulationRequest, current_user: dict = Depen
     """
     
     try:
-        result_str = await ai_service.generate(final_prompt, provider="openai", system_instruction="You are a Career Simulator Engine.")
+        result_str = await ai_call(
+            feature="career_simulation",
+            prompt=final_prompt,
+            system_instruction="You are a Career Simulator Engine.",
+            json_mode=False,
+        )
         return clean_ai_json_response(result_str)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Simulation failed: {str(e)}")
@@ -98,10 +109,16 @@ async def simulate_situation(request: SituationSimulationRequest, current_user: 
     """
     
     try:
-        result_str = await ai_service.generate(final_prompt, provider="openai", system_instruction="Tu es un Recruteur Expert et Coach de Carrière.")
+        feedback = await ai_call(
+            feature="high_stakes_simulation",
+            prompt=final_prompt,
+            system_instruction="Tu es un Recruteur Expert et Coach de Carrière.",
+            json_mode=True,
+        )
 
-        # Nettoyage initial via helper
-        feedback = clean_ai_json_response(result_str)
+        # Le router garantit déjà du JSON ; on normalise au cas où.
+        if isinstance(feedback, str):
+            feedback = clean_ai_json_response(feedback)
 
         # Validation simple du feedback attendu
         def _is_valid_situation(fb):
@@ -119,7 +136,12 @@ async def simulate_situation(request: SituationSimulationRequest, current_user: 
                 raw_text = str(result_str)
             salvage_prompt = f"Parse the following recruiter/coaching AI output into STRICT JSON with keys: adapted_scenario, user_answer_analyzed, score, strengths, weaknesses, analysis (diagnostic, human, action, follow_up), recommendations, improved_answer. Language: {normalize_language(request.candidate_profile.get('target_language', 'French'))}. RAW:\n{raw_text}"
             try:
-                salvage = await ai_service.generate_valid_json(salvage_prompt, provider="openai", system_instruction="You are a JSON conversion assistant. Output STRICT JSON matching the schema exactly.")
+                salvage = await ai_call(
+                    feature="json_salvage",
+                    prompt=salvage_prompt,
+                    system_instruction="You are a JSON conversion assistant. Output STRICT JSON matching the schema exactly.",
+                    json_mode=True,
+                )
                 if isinstance(salvage, dict) and _is_valid_situation(salvage):
                     feedback = salvage
                     print(f"[VALIDATION] Salvaged simulate_situation feedback for scenario_id={request.scenario_id}", flush=True)
@@ -244,7 +266,12 @@ async def simulate_negotiation(request: NegotiationSimulationRequest, current_us
     LANGUAGE: {target_lang}
     """
     try:
-        feedback = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are an Expert Salary Negotiator. Output STRICT JSON.")
+        feedback = await ai_call(
+            feature="salary_negotiation_feedback",
+            prompt=prompt,
+            system_instruction="You are an Expert Salary Negotiator. Output STRICT JSON.",
+            json_mode=True,
+        )
         
         # Sanitisation des tableaux
         if not isinstance(feedback.get("strengths"), list):

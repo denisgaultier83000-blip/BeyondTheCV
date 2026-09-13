@@ -68,8 +68,7 @@ import Questionnaire from './Questionnaire';
 import ObservedQuestionsPanel from './ObservedQuestionsPanel';
 import { ApplicationKeyMessagesView } from './ApplicationKeyMessagesView';
 import { SensitiveSituationsCard } from './SensitiveSituationsCard';
-import { ModuleProvider } from '../context/ModuleContext';
-import RoadmapGeneratorModal from './RoadmapGeneratorModal';
+import { RoadmapGenerator } from './RoadmapGenerator';
 import { 
   PostureDataCard, 
   LastHourChecklistCard, 
@@ -257,22 +256,16 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
     actionPlanResult,
     careerGpsResult,
     careerRadarResult,
-    taskIds,
   } = dashboard;
 
   const pilotError = dashboard?.pilotError ?? dashboard?.error ?? null;
-
-  // [FIX] Le spinner d'une carte ne doit dépendre que de sa propre tâche,
-  // pas du statut global. Sinon toutes les cartes tournent dès qu'une tâche
-  // quelconque est en cours.
-  const isMarketResearchRunning = !!taskIds?.market_research;
 
   // --- GESTION DES NOTIFICATIONS ---
   const [viewedTabs, setViewedTabs] = useState<string[]>(['cockpit']);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [candidatureFilter, setCandidatureFilter] = useState<'all' | 'active' | 'done'>('all');
   const [candidatureSort, setCandidatureSort] = useState<'recent' | 'alpha'>('recent');
-  const [isRoadmapModalOpen, setIsRoadmapModalOpen] = useState(false);
+
   
   // --- GESTION DE L'IMPRESSION ---
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
@@ -379,10 +372,7 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
   };
 
   // --- EXTRACTION DU CONTEXTE CANDIDAT ---
-  // [FIX] Fusionne les métadonnées et les champs racine : interview_date, format et type
-  // peuvent être stockés directement dans cvData ou dans cvData.meta. On privilégie
-  // la valeur la plus spécifique (meta) si elle existe, sans écraser les champs racine.
-  const meta = { ...cvData, ...(cvData?.meta || {}) };
+  const meta = cvData?.meta || cvData || {};
 
   // Détection du Mode Commando (Entretien dans < 48h)
   const getDaysUntilInterview = (dateStr: string): number => {
@@ -429,8 +419,8 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
     (Array.isArray(cvData?.interviewHistory) ? cvData.interviewHistory.length : 0) +
     (Array.isArray(cvData?.negotiationHistory) ? cvData.negotiationHistory.length : 0);
 
-  const currentLastInterview = meta.interview_date
-    ? String(meta.interview_date)
+  const currentLastInterview = cvData?.interview_date
+    ? String(cvData.interview_date)
     : '—';
 
   const currentAnalysisDone = Boolean(researchResult || gapResult || jobDecoderResult || pitchResult || questionsResult);
@@ -466,11 +456,6 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
     }
     return filtered;
   }, [targetTree, candidatureFilter, candidatureSort, cvData?.target_company, cvData?.target_job, currentAnalysisDone, currentTrainingCount, currentLastInterview, isProcessing]);
-
-  // Nombre de nouvelles candidatures encore autorisées par le quota mensuel
-  const remainingSlots = useMemo(() => {
-    return Math.max(0, Math.min(remainingCompanies ?? 5, remainingOffers ?? 5));
-  }, [remainingCompanies, remainingOffers]);
 
   // Liste de tous les livrables avec leur état
   const deliverableItems: DeliverableItem[] = useMemo(() => [
@@ -543,7 +528,7 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
 
   const activeCompany = cvData?.target_company || "THALES";
   const activeJob = cvData?.target_job || "Responsable cybersécurité opérationnelle";
-  const activeDate = meta.interview_date || "Non définie";
+  const activeDate = meta.interview_date || "12 septembre";
   const activeTarget = meta.interview_type ? (interviewTypeLabels[meta.interview_type as string] || meta.interview_type) : "Manager opérationnel";
   const activeFormat = meta.interview_format ? (formatLabels[meta.interview_format as string] || meta.interview_format) : "Visio";
 
@@ -621,7 +606,6 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
       <div className="tab-content">
         {/* 1. OVERVIEW: Centre de préparation */}
         {activeTab === 'overview' && (
-          <ModuleProvider module="overview">
           <div className="tab-module-content tab-module-overview" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             {/* BANDEAU SUPÉRIEUR : Candidature en cours avec 3 zones distinctes */}
             <div className="banner-card" id="banner_section">
@@ -734,11 +718,13 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
             <div id="roadmap_section">
               <DashboardCard title="Feuille de Route Personnalisée" icon={<Compass size={24} color="var(--primary)" />}>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '-0.5rem', marginBottom: '1.25rem' }}>
-                  Générez un plan d'action sur-mesure en fonction du type d'entretien, de votre interlocuteur et de votre niveau de séniorité.
+                  Générez un plan d'action sur-mesure en fonction du type d'entretien, de votre interlocuteur et de votre niveau de séniorité. Chaque plan généré est conservé ci-dessous pour être relu ou comparé.
                 </p>
-                <button onClick={() => setIsRoadmapModalOpen(true)} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Compass size={18} /> Ouvrir le Générateur de Feuille de Route
-                </button>
+                <RoadmapGenerator
+                  cvData={cvData}
+                  history={cvData?.roadmapHistory || []}
+                  onHistoryChange={(history) => dashboard?.updateFormData && dashboard.updateFormData('roadmapHistory', history)}
+                />
               </DashboardCard>
             </div>
 
@@ -943,8 +929,8 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
                   );
                 })}
 
-                {/* Cartes d'ajout avec "+" : une par candidature restante dans le quota mensuel */}
-                {Array.from({ length: remainingSlots }, (_, index) => index + 1).map((index) => (
+                {/* 4 cartes d'ajout avec "+" */}
+                {[1, 2, 3, 4].map((index) => (
                   <div
                     key={`add-card-${index}`}
                     onClick={() => {
@@ -962,7 +948,7 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      justify: 'center',
+                      justifyContent: 'center',
                       gap: '0.5rem',
                       cursor: 'pointer',
                       transition: 'all 0.2s ease',
@@ -987,18 +973,13 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
                       border: '2px dashed currentColor',
                       display: 'flex',
                       alignItems: 'center',
-                      justify: 'center'
+                      justifyContent: 'center'
                     }}>
                       <Plus size={20} />
                     </div>
                     <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Ajouter une candidature</span>
                   </div>
                 ))}
-                {remainingSlots === 0 && (
-                  <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                    Vous avez atteint votre quota de candidatures pour ce cycle.
-                  </div>
-                )}
               </div>
             </div>
 
@@ -1028,12 +1009,10 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
             {/* PLAN DE SECOURS (GÉRER LES IMPRÉVUS) */}
             <ContingencyPlanCard />
           </div>
-          </ModuleProvider>
         )}
 
         {/* 2. JOB: Comprendre le poste */}
         {activeTab === 'job' && (
-          <ModuleProvider module="job">
           <div className="tab-module-content tab-module-job" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             <div style={{ padding: '1.25rem 1.5rem', background: 'var(--mod-job-bg-soft)', borderRadius: '1rem', border: '1px solid var(--mod-job-border)', borderLeft: '5px solid var(--mod-job-accent)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <Search size={26} color="#2F6BFF" />
@@ -1063,12 +1042,10 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
               <SignalsToObserveCard />
             </div>
           </div>
-          </ModuleProvider>
         )}
 
         {/* 3. COMPANY: Comprendre l'entreprise */}
         {activeTab === 'company' && (
-          <ModuleProvider module="company">
           <div className="tab-module-content tab-module-company" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             <div style={{ padding: '1.25rem 1.5rem', background: 'var(--mod-company-bg-soft)', borderRadius: '1rem', border: '1px solid var(--mod-company-border)', borderLeft: '5px solid var(--mod-company-accent)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <Building size={26} color="#00A6A6" />
@@ -1079,23 +1056,21 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
             </div>
 
             <div id="company_section">
-              <CompanyAnalysisCard data={researchResult} loading={isMarketResearchRunning && !researchResult} error={researchResult?.error} />
+              <CompanyAnalysisCard data={researchResult} loading={isProcessing && !researchResult} error={researchResult?.error} />
             </div>
 
             <div id="market_section">
-              <MarketAnalysisCard data={researchResult} salaryData={salaryResult} loading={isMarketResearchRunning && !researchResult} error={researchResult?.error || salaryResult?.error} />
+              <MarketAnalysisCard data={researchResult} salaryData={salaryResult} loading={isProcessing && !researchResult} error={researchResult?.error || salaryResult?.error} />
             </div>
 
             <div id="posture_guides_section">
               <PostureGuidesCard />
             </div>
           </div>
-          </ModuleProvider>
         )}
 
         {/* 4. SPEECH: Construire le discours */}
         {activeTab === 'speech' && (
-          <ModuleProvider module="speech">
           <div className="tab-module-content tab-module-speech" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             <div style={{ padding: '1.25rem 1.5rem', background: 'var(--mod-speech-bg-soft)', borderRadius: '1rem', border: '1px solid var(--mod-speech-border)', borderLeft: '5px solid var(--mod-speech-accent)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <Sparkles size={26} color="#7C5CFC" />
@@ -1125,15 +1100,15 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
               <StrategicQuestionsCard />
             </div>
           </div>
-          </ModuleProvider>
         )}
 
         {/* 5. TRAINING: S'entraîner */}
         {activeTab === 'training' && (
-          <ModuleProvider module="training">
           <div className="tab-module-content tab-module-training" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             <div style={{ padding: '1.25rem 1.5rem', background: 'var(--mod-training-bg-soft)', borderRadius: '1rem', border: '1px solid var(--mod-training-border)', borderLeft: '5px solid var(--mod-training-accent)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <Dumbbell size={26} color="#F59E0B" />
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '2.75rem', height: '2.75rem', borderRadius: '0.75rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--mod-training-accent)' }}>
+                <Dumbbell size={24} />
+              </span>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>4. S'entraîner</h3>
                 <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Mises en situation, rituels vocaux et entraînement intensif aux questions cibles.</p>
@@ -1143,7 +1118,7 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
             <div id="questionnaire_section">
               <DashboardCard
                 title="Questions probables d'entretien"
-                icon={<MessageSquare size={24} color="#F59E0B" />}
+                icon={<MessageSquare size={24} />}
                 featureId="interview_questions"
               >
                 <Questionnaire questions={getQuestionsArray(questionsResult)} />
@@ -1154,7 +1129,7 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
             <div id="training_mes_section">
               <DashboardCard
                 title="Simulations métier & Mises en situation"
-                icon={<ShieldAlert size={24} color="#F59E0B" />}
+                icon={<ShieldAlert size={24} />}
               >
                 <SituationSimulator />
               </DashboardCard>
@@ -1163,7 +1138,7 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
             <div id="oral_training_section">
               <DashboardCard
                 title="Entraînement oral & Rituels vocaux"
-                icon={<Mic size={24} color="#F59E0B" />}
+                icon={<Mic size={24} />}
               >
                 <VocalPitchTrainer targetJob={cvData?.target_job} targetCompany={cvData?.target_company} jobDescription={cvData?.job_description} />
               </DashboardCard>
@@ -1171,15 +1146,15 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
 
             <TrainingTab />
           </div>
-          </ModuleProvider>
         )}
 
         {/* 6. PROGRESS: Progresser */}
         {activeTab === 'progress' && (
-          <ModuleProvider module="progress">
           <div className="tab-module-content tab-module-progress" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             <div style={{ padding: '1.25rem 1.5rem', background: 'var(--mod-progress-bg-soft)', borderRadius: '1rem', border: '1px solid var(--mod-progress-border)', borderLeft: '5px solid var(--mod-progress-accent)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <Award size={26} color="#16A36A" />
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '2.75rem', height: '2.75rem', borderRadius: '0.75rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--mod-progress-accent)' }}>
+                <Award size={24} />
+              </span>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>5. Progresser</h3>
                 <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Suivez votre profil stratégique évolutif, vos débriefs et vos recommandations de progression.</p>
@@ -1213,7 +1188,6 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
               />
             </div>
           </div>
-          </ModuleProvider>
         )}
       </div>
 
@@ -1249,9 +1223,6 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
           </div>
         </div>
       )}
-
-      {/* Modal Feuille de Route */}
-      {isRoadmapModalOpen && <RoadmapGeneratorModal onClose={() => setIsRoadmapModalOpen(false)} />}
 
       {/* Composant d'impression invisible à l'écran */}
       <PrintableDossier selection={printSelection} />
@@ -1722,14 +1693,9 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
           .sub-tabs-navigation { padding: 0.75rem 1rem !important; justify-content: flex-start !important; flex-wrap: nowrap !important; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
           .sub-tabs-navigation::-webkit-scrollbar { display: none; }
           .bento-card { padding: 1.25rem !important; }
-
+          
           /* Prévention des dépassements de texte (Mots/URL trop longs) */
           .bento-card p, .bento-card h3, .bento-card h4, .bento-card div { overflow-wrap: break-word; word-break: break-word; hyphens: auto; }
-        }
-
-        /* En mode paysage sur téléphone, les sous-menus prennent trop de hauteur : on les masque */
-        @media (orientation: landscape) and (max-height: 600px) and (hover: none) and (pointer: coarse) {
-          .sub-tabs-navigation { display: none !important; }
         }
       `}</style>
     </div>

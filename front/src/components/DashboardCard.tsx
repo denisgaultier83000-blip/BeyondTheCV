@@ -42,7 +42,11 @@ export function DashboardCard({
           {(title || headerAction) && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
               <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: 0, color: 'var(--text-main)' }}>
-                {icon && React.cloneElement(icon as React.ReactElement, { color: 'var(--primary)' })} {title}
+                {icon && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '2.25rem', height: '2.25rem', borderRadius: '0.6rem', background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--primary)' }}>
+                    {React.cloneElement(icon as React.ReactElement, { color: 'currentColor' })}
+                  </span>
+                )} {title}
               </h3>
               {headerAction && <div>{headerAction}</div>}
             </div>

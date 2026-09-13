@@ -385,11 +385,12 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
                 <div style={{ 
-                  background: isDone ? theme.border + '20' : '#eff6ff', 
+                  background: isDone ? theme.border + '20' : 'var(--bg-input)', 
                   padding: '0.6rem', 
                   borderRadius: '10px', 
                   color: isDone ? theme.border : 'var(--primary)',
-                  flexShrink: 0
+                  flexShrink: 0,
+                  border: '1px solid var(--border-color)'
                 }}>
                   <HelpCircle size={22} />
                 </div>
@@ -471,7 +472,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
               <div style={{ marginTop: '1rem', background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)', animation: 'fadeIn 0.3s ease-out' }}>
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                     <div style={{ fontSize: '0.95rem', color: 'var(--text-main)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Edit3 size={18} color="#8b5cf6" /> {t('q_write_dictate', 'Rédigez ou dictez votre réponse')}
+                      <Edit3 size={18} color="var(--primary)" /> {t('q_write_dictate', 'Rédigez ou dictez votre réponse')}
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                       <button 

@@ -345,7 +345,7 @@ export function StrategicProfileTab({ onNavigate, profileCompletion, profileReco
     ].filter(hasContent).length;
 
     const salaryRangeReady = hasContent(salaryResult?.salary_range);
-    const salaryExpectationsReady = hasContent(cvData?.salary_expectations) || hasContent(cvData?.salary_min) || hasContent(cvData?.salary_max);
+    const salaryExpectationsReady = hasContent(cvData?.salary_expectations);
     const negotiationHistory = Array.isArray(cvData?.negotiationHistory) ? cvData.negotiationHistory : [];
     const negotiationAverage = average(
       negotiationHistory.map((entry: any) => toNumber(entry?.feedback?.score)).filter((value: number) => value > 0)
@@ -986,7 +986,7 @@ export function StrategicProfileTab({ onNavigate, profileCompletion, profileReco
               <div key={axis.id} style={{ background: 'rgba(16, 185, 129, 0.06)', border: '1px solid rgba(16, 185, 129, 0.18)', borderRadius: '1rem', padding: '1rem 1.15rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '0.5rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: 'var(--text-main)', fontWeight: 700 }}>
-                    <CheckCircle2 size={18} color="#10b981" /> {axis.label}
+                    <CheckCircle2 size={18} color="var(--success)" /> {axis.label}
                   </div>
                   <span style={{ color: '#10b981', fontWeight: 800 }}>{axis.score}/100</span>
                 </div>
@@ -1056,11 +1056,11 @@ export function StrategicProfileTab({ onNavigate, profileCompletion, profileReco
             <p style={{ margin: 0, color: 'var(--text-muted)', lineHeight: 1.55 }}>Les éléments factuels proviennent des informations que vous avez renseignées, de vos candidatures et des analyses déjà réalisées.</p>
           </div>
           <div style={{ background: 'var(--bg-secondary)', borderRadius: '1rem', padding: '1rem', border: '1px solid var(--border-color)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem', color: 'var(--text-main)', fontWeight: 700 }}><ShieldAlert size={18} color="#f59e0b" /> Observations de préparation</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem', color: 'var(--text-main)', fontWeight: 700 }}><ShieldAlert size={18} color="var(--warning)" /> Observations de préparation</div>
             <p style={{ margin: 0, color: 'var(--text-muted)', lineHeight: 1.55 }}>Les forces et les axes de progrès sont des observations de coaching. Elles évoluent avec vos réponses, vos simulations et vos entretiens.</p>
           </div>
           <div style={{ background: 'var(--bg-secondary)', borderRadius: '1rem', padding: '1rem', border: '1px solid var(--border-color)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem', color: 'var(--text-main)', fontWeight: 700 }}><Zap size={18} color="#10b981" /> Actions recommandées</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem', color: 'var(--text-main)', fontWeight: 700 }}><Zap size={18} color="var(--success)" /> Actions recommandées</div>
             <p style={{ margin: 0, color: 'var(--text-muted)', lineHeight: 1.55 }}>Chaque priorité vous dirige vers un exercice concret afin de transformer l'analyse en progression.</p>
           </div>
         </div>

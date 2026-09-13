@@ -8,6 +8,7 @@ from datetime import datetime
 from security import get_current_user
 from database import db
 from .ai_generator import ai_service
+from .ai_feature_caller import ai_call
 from .utils import load_prompt, normalize_language
 
 router = APIRouter(
@@ -228,13 +229,14 @@ async def extract_differentiators(
     )
 
     try:
-        res = await ai_service.generate_valid_json(
-            final_prompt,
-            provider="openai",
-            system_instruction=f"You are a top Executive Interview Coach. Output STRICT JSON in {target_lang}."
+        res = await ai_call(
+            feature="differentiators_extract",
+            prompt=final_prompt,
+            system_instruction=f"You are a top Executive Interview Coach. Output STRICT JSON in {target_lang}.",
+            json_mode=True,
         )
 
-        differentiators = res.get("differentiators", [])
+        differentiators = res.get("differentiators", []) if isinstance(res, dict) else []
         saved_items = []
 
         async with db.get_connection() as conn:
@@ -309,13 +311,14 @@ async def deepen_differentiator(
     )
 
     try:
-        res = await ai_service.generate_valid_json(
-            final_prompt,
-            provider="openai",
-            system_instruction=f"You are an interview proof verification coach. Output STRICT JSON in {target_lang}."
+        res = await ai_call(
+            feature="differentiators_deepen",
+            prompt=final_prompt,
+            system_instruction=f"You are an interview proof verification coach. Output STRICT JSON in {target_lang}.",
+            json_mode=True,
         )
 
-        if not res.get("needs_clarification") and res.get("differentiator"):
+        if isinstance(res, dict) and not res.get("needs_clarification") and res.get("differentiator"):
             # Automatically save verified differentiator to DB
             user_id = current_user["id"]
             diff = res["differentiator"]
@@ -397,13 +400,14 @@ async def select_application_key_messages(
     )
 
     try:
-        res = await ai_service.generate_valid_json(
-            final_prompt,
-            provider="openai",
-            system_instruction=f"You are a top executive coach selecting interview key messages. Output STRICT JSON in {target_lang}."
+        res = await ai_call(
+            feature="differentiators_select",
+            prompt=final_prompt,
+            system_instruction=f"You are a top executive coach selecting interview key messages. Output STRICT JSON in {target_lang}.",
+            json_mode=True,
         )
 
-        key_messages = res.get("key_messages", [])
+        key_messages = res.get("key_messages", []) if isinstance(res, dict) else []
         saved_messages = []
 
         async with db.get_connection() as conn:
@@ -438,7 +442,7 @@ async def select_application_key_messages(
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
-                        km_id, application_id, user_id, km_id,
+                        km_id, application_id, user_id, msg_obj.get("differentiator_id"),
                         priority, msg_obj["headline"], msg_obj["supporting_fact"],
                         msg_obj["oral_pitch"], msg_obj["target_situation"]
                     )
@@ -510,13 +514,14 @@ async def analyze_sensitive_situations(
     )
 
     try:
-        res = await ai_service.generate_valid_json(
-            final_prompt,
-            provider="openai",
-            system_instruction=f"You are a top executive coach. Output STRICT JSON in {target_lang}."
+        res = await ai_call(
+            feature="sensitive_situations",
+            prompt=final_prompt,
+            system_instruction=f"You are a top executive coach. Output STRICT JSON in {target_lang}.",
+            json_mode=True,
         )
 
-        situations = res.get("situations", [])
+        situations = res.get("situations", []) if isinstance(res, dict) else []
         async with db.get_connection() as conn:
             await db.execute(
                 conn,

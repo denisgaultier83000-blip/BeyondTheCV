@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from database import db
 from .ai_generator import ai_service
+from .ai_feature_caller import ai_call
 from .ia_costs import estimate_task_cost
 from .websocket_manager import manager
 # Import de la vraie logique de recherche
@@ -348,8 +349,13 @@ async def _run_salary_logic(task_id: str, candidate_data: dict):
 
         prompt = f"Estimate a realistic salary range (low, mid, high) for this profile {geo_context}.\n\nSPECIAL INSTRUCTION: If location is Remote/International, use USD or EUR and explain in 'commentary' that salary depends on Company HQ location. Write the 'commentary' in {target_lang}.\n\nPROFILE:\n{json.dumps(_sanitize_data_for_ai(candidate_data, strict=True), indent=2, ensure_ascii=False, default=str)}\n\n⚠️ INSTRUCTION CRITIQUE : Ne recopie JAMAIS les valeurs d'exemple du JSON. Tu DOIS calculer de vrais montants basés sur le marché actuel pour ce profil précis.\nRespond in STRICT JSON: {{\"salary_range\": {{\"low\": 0, \"mid\": 0, \"high\": 0}}, \"currency\": \"EUR\", \"confidence\": \"Haute | Moyenne | Faible\", \"commentary\": \"...\"}}\nIMPORTANT: 'low', 'mid', 'high' MUST be integers."
         
-        result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are a compensation expert. You must output STRICT JSON.")
-        if "error" in result:
+        result = await ai_call(
+            feature="salary_estimation",
+            prompt=prompt,
+            system_instruction="You are a compensation expert. You must output STRICT JSON.",
+            json_mode=True,
+        )
+        if isinstance(result, dict) and "error" in result:
             result = {"salary_range": {"low": 0, "mid": 0, "high": 0}, "currency": "EUR", "commentary": "Estimation indisponible."}
         else:
             await set_cached_content(cache_key, user_id, "salary", result)
@@ -376,8 +382,13 @@ async def _run_cv_draft_logic(task_id: str, source_data: dict):
         prompt_template = load_prompt(get_prompt_path("master_prompt.md"))
         context_str = json.dumps(_sanitize_data_for_ai(source_data, strict=True), indent=2, ensure_ascii=False, default=str)
         final_prompt = f"{prompt_template}\n\nINPUT DATA:\n{context_str}"
-        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are the AI for BeyondTheCV. Output STRICT JSON.")
-        if "error" not in result:
+        result = await ai_call(
+            feature="cv_draft",
+            prompt=final_prompt,
+            system_instruction="You are the AI for BeyondTheCV. Output STRICT JSON.",
+            json_mode=True,
+        )
+        if isinstance(result, dict) and "error" not in result:
             await set_cached_content(cache_key, user_id, "cv_draft", result)
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
         await manager.broadcast(task_id, "Brouillon généré", status="COMPLETED", data=result)
@@ -413,8 +424,13 @@ async def _run_completeness_logic(task_id: str, payload: dict):
         CONTENT:
         {text_content[:15000]}
         """
-        result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a Data Quality Analyst. Output STRICT JSON. Language: {target_lang}.")
-        if "error" not in result:
+        result = await ai_call(
+            feature="analyze_completeness",
+            prompt=prompt,
+            system_instruction=f"You are a Data Quality Analyst. Output STRICT JSON. Language: {target_lang}.",
+            json_mode=True,
+        )
+        if isinstance(result, dict) and "error" not in result:
             await set_cached_content(cache_key, user_id, "completeness", result)
         await asyncio.to_thread(update_task_status_sync, task_id, "SUCCESS", result)
         await manager.broadcast(task_id, "Analyse terminée", status="COMPLETED", data=result)
@@ -501,7 +517,12 @@ async def _run_questions_logic(task_id: str, candidate_data: dict):
             OUTPUT LANGUAGE: {target_lang}
             """
             
-            result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction=f"You are an expert interviewer. Output ONLY JSON. Language: {target_lang}.")
+            result = await ai_call(
+                feature="interview_preparation",
+                prompt=final_prompt,
+                system_instruction=f"You are an expert interviewer. Output ONLY JSON. Language: {target_lang}.",
+                json_mode=True,
+            )
 
             # --- Validation du format de sortie (détection des dérives vers des scénarios/MES ou du texte libre) ---
             def _is_valid_questions(res):
@@ -517,7 +538,12 @@ async def _run_questions_logic(task_id: str, candidate_data: dict):
 
                 schema_str = '{"questions": [{"category":"","question":"","score":1,"suggested_answer":"","advice":""}]}'
                 salvage_prompt = f"Parse the following AI output into STRICT JSON with schema: {schema_str} . The language must be {target_lang}.\n\nRAW_OUTPUT:\n{raw_text}"
-                salvage = await ai_service.generate_valid_json(salvage_prompt, provider="openai", system_instruction="You are a JSON conversion assistant. Output STRICT JSON matching the schema exactly.")
+                salvage = await ai_call(
+                    feature="json_salvage",
+                    prompt=salvage_prompt,
+                    system_instruction="You are a JSON conversion assistant. Output STRICT JSON matching the schema exactly.",
+                    json_mode=True,
+                )
                 if isinstance(salvage, dict) and isinstance(salvage.get("questions"), list):
                     result = salvage
                     print(f"[VALIDATION] Salvaged interview questions for task={task_id}", flush=True)
@@ -621,8 +647,13 @@ async def _run_gap_analysis_logic(task_id: str, data: dict):
         OUTPUT LANGUAGE: {target_lang}
         """
         
-        result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a Career Coach. Output STRICT JSON in {target_lang}.")
-        if "error" in result:
+        result = await ai_call(
+            feature="gap_analysis",
+            prompt=prompt,
+            system_instruction=f"You are a Career Coach. Output STRICT JSON in {target_lang}.",
+            json_mode=True,
+        )
+        if isinstance(result, dict) and "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur d'analyse", status="FAILED", data=result)
         else:
@@ -682,7 +713,12 @@ async def run_gap_analysis_and_get_result(data: dict):
         OUTPUT LANGUAGE: {target_lang}
         """
         
-        return await ai_service.generate_valid_json(prompt, provider="openai", system_instruction=f"You are a Career Coach. Output STRICT JSON in {target_lang}.")
+        return await ai_call(
+            feature="gap_analysis",
+            prompt=prompt,
+            system_instruction=f"You are a Career Coach. Output STRICT JSON in {target_lang}.",
+            json_mode=True,
+        )
     except Exception as e:
         print(f"[Gap Analysis Error] {e}")
         return {"error": str(e), "match_score": 0, "missing_gaps": []}
@@ -723,9 +759,14 @@ async def _run_career_radar_logic(task_id: str, data: dict):
         OUTPUT LANGUAGE: {target_lang}
         """
         
-        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are a Career Strategist. Output STRICT JSON.")
-        
-        if "error" in result:
+        result = await ai_call(
+            feature="career_risks",
+            prompt=final_prompt,
+            system_instruction="You are a Career Strategist. Output STRICT JSON.",
+            json_mode=True,
+        )
+
+        if isinstance(result, dict) and "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
@@ -761,9 +802,14 @@ async def _run_recruiter_view_logic(task_id: str, data: dict):
         OUTPUT LANGUAGE: {target_lang}
         """
         
-        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an empathetic, strategic Career Coach. Help the candidate succeed. Output STRICT JSON.")
-        
-        if "error" in result:
+        result = await ai_call(
+            feature="recruiter_view",
+            prompt=final_prompt,
+            system_instruction="You are an empathetic, strategic Career Coach. Help the candidate succeed. Output STRICT JSON.",
+            json_mode=True,
+        )
+
+        if isinstance(result, dict) and "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
@@ -803,9 +849,14 @@ async def _run_oneliner_logic(task_id: str, data: dict):
         LANGUAGE: {target_lang}
         """
         
-        result = await ai_service.generate_valid_json(prompt, provider="gemini", system_instruction="You are a Personal Branding Expert. Output STRICT JSON.")
-        
-        if "error" in result:
+        result = await ai_call(
+            feature="reformulation",
+            prompt=prompt,
+            system_instruction="You are a Personal Branding Expert. Output STRICT JSON.",
+            json_mode=True,
+        )
+
+        if isinstance(result, dict) and "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
@@ -856,9 +907,14 @@ async def _run_risk_analysis_logic(task_id: str, data: dict):
         LANGUAGE: {target_lang}
         """
         
-        result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are a Career Risk Analyst.")
-        
-        if "error" in result:
+        result = await ai_call(
+            feature="career_risks",
+            prompt=prompt,
+            system_instruction="You are a Career Risk Analyst.",
+            json_mode=True,
+        )
+
+        if isinstance(result, dict) and "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
@@ -896,9 +952,14 @@ async def _run_job_decoder_logic(task_id: str, data: dict):
         OUTPUT LANGUAGE: {target_lang}
         """
         
-        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are a Job Market Analyst. Output STRICT JSON.")
-        
-        if "error" in result:
+        result = await ai_call(
+            feature="job_decoder",
+            prompt=final_prompt,
+            system_instruction="You are a Job Market Analyst. Output STRICT JSON.",
+            json_mode=True,
+        )
+
+        if isinstance(result, dict) and "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
@@ -939,9 +1000,14 @@ async def _run_hidden_market_logic(task_id: str, data: dict):
         OUTPUT LANGUAGE: {target_lang}
         """
         
-        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are a Networking Strategist. Output STRICT JSON.")
-        
-        if "error" in result:
+        result = await ai_call(
+            feature="hidden_market_strategy",
+            prompt=final_prompt,
+            system_instruction="You are a Networking Strategist. Output STRICT JSON.",
+            json_mode=True,
+        )
+
+        if isinstance(result, dict) and "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
@@ -1147,9 +1213,14 @@ async def _run_career_gps_logic(task_id: str, data: dict):
         OUTPUT LANGUAGE: {target_lang}
         """
 
-        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are a Career Navigation System. Output STRICT JSON.")
+        result = await ai_call(
+            feature="career_navigation",
+            prompt=final_prompt,
+            system_instruction="You are a Career Navigation System. Output STRICT JSON.",
+            json_mode=True,
+        )
 
-        if "error" in result:
+        if isinstance(result, dict) and "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
@@ -1186,9 +1257,14 @@ async def _run_reality_check_logic(task_id: str, data: dict):
         OUTPUT LANGUAGE: {target_lang}
         """
         
-        result = await ai_service.generate_valid_json(final_prompt, provider="gemini", system_instruction="You are a Personal Branding Expert. Output STRICT JSON.")
-        
-        if "error" in result:
+        result = await ai_call(
+            feature="reality_check",
+            prompt=final_prompt,
+            system_instruction="You are a Personal Branding Expert. Output STRICT JSON.",
+            json_mode=True,
+        )
+
+        if isinstance(result, dict) and "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
@@ -1242,8 +1318,13 @@ async def _run_profile_validation_logic(task_id: str, data: dict):
         LANGUAGE: {target_lang}
         """
         
-        result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are a strict HR reviewer and career coach.")
-        if "error" in result:
+        result = await ai_call(
+            feature="reformulation",
+            prompt=prompt,
+            system_instruction="You are a strict HR reviewer and career coach.",
+            json_mode=True,
+        )
+        if isinstance(result, dict) and "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
@@ -1282,8 +1363,13 @@ async def process_flaw_coaching_in_background(task_id: str, data: dict):
         Adapte le ton et les exemples au niveau de séniorité du poste visé.
         OUTPUT LANGUAGE: {target_lang}
         """
-        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an Interview Coach. Output STRICT JSON.")
-        if "error" in result:
+        result = await ai_call(
+            feature="flaw_coaching",
+            prompt=final_prompt,
+            system_instruction="You are an Interview Coach. Output STRICT JSON.",
+            json_mode=True,
+        )
+        if isinstance(result, dict) and "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
@@ -1316,8 +1402,13 @@ async def process_action_plan_in_background(task_id: str, cv_dict: dict):
             
         prompt = f"{prompt_template}\n\nPROFIL:\n{json.dumps(safe_data, ensure_ascii=False, default=str)}\n\nOUTPUT LANGUAGE: {target_lang}"
         
-        result = await ai_service.generate_valid_json(prompt, provider="openai", system_instruction="You are a Career Coach.")
-        if "error" in result:
+        result = await ai_call(
+            feature="action_plan",
+            prompt=prompt,
+            system_instruction="You are a Career Coach.",
+            json_mode=True,
+        )
+        if isinstance(result, dict) and "error" in result:
             await asyncio.to_thread(update_task_status_sync, task_id, "FAILED", result)
             await manager.broadcast(task_id, "Erreur", status="FAILED", data=result)
         else:
@@ -1368,7 +1459,12 @@ async def process_custom_scenarios_in_background(task_id: str, data: dict):
         OUTPUT LANGUAGE: {target_lang}
         """
         
-        result = await ai_service.generate_valid_json(final_prompt, provider="openai", system_instruction="You are an Expert HR Scenario Designer.")
+        result = await ai_call(
+            feature="high_stakes_simulation",
+            prompt=final_prompt,
+            system_instruction="You are an Expert HR Scenario Designer.",
+            json_mode=True,
+        )
 
         # --- Validation du format attendu (categories / scenarios) ---
         def _is_valid_scenarios(res):
@@ -1395,7 +1491,12 @@ async def process_custom_scenarios_in_background(task_id: str, data: dict):
 
             scenario_schema = '{"categories": [{"category":"","icon":"","scenarios":[{"id":"","title":"","description":"","ideal_response_flow":{}}]}]}'
             salvage_prompt = f"Parse the following AI output into STRICT JSON with schema: {scenario_schema} . The language must be {target_lang}.\n\nRAW_OUTPUT:\n{raw_text}"
-            salvage = await ai_service.generate_valid_json(salvage_prompt, provider="openai", system_instruction="You are a JSON conversion assistant. Output STRICT JSON matching the schema exactly.")
+            salvage = await ai_call(
+                feature="json_salvage",
+                prompt=salvage_prompt,
+                system_instruction="You are a JSON conversion assistant. Output STRICT JSON matching the schema exactly.",
+                json_mode=True,
+            )
             if isinstance(salvage, dict) and _is_valid_scenarios(salvage):
                 result = salvage
                 print(f"[VALIDATION] Salvaged custom scenarios for task={task_id}", flush=True)

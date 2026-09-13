@@ -357,7 +357,20 @@ export const DifferentiatorsSection: React.FC<DifferentiatorsSectionProps> = ({
             </p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+          <>
+            <style>{`
+              .differentiator-grid {
+                display: grid;
+                gap: 1rem;
+              }
+              @media (max-width: 768px) {
+                .differentiator-grid { grid-template-columns: 1fr !important; }
+              }
+            `}</style>
+            <div
+              className="differentiator-grid"
+              style={{ gridTemplateColumns: `repeat(${Math.min(differentiators.length, 4)}, minmax(0, 1fr))` }}
+            >
             {differentiators.map((diff, index) => {
               const catLower = (diff.category || '').toLowerCase();
               let badgeBg = '#F3E8FF';
@@ -415,7 +428,7 @@ export const DifferentiatorsSection: React.FC<DifferentiatorsSectionProps> = ({
                     </div>
 
                     {diff.oral_phrasing && (
-                      <div style={{ padding: '0.65rem 0.85rem', background: 'var(--mod-speech-bg-soft)', borderRadius: '0.5rem', borderLeft: '3px solid var(--mod-speech-accent)', fontSize: '0.82rem', color: '#4c1d95', fontStyle: 'italic' }}>
+                      <div style={{ padding: '0.65rem 0.85rem', background: 'var(--mod-speech-bg-soft)', borderRadius: '0.5rem', borderLeft: '3px solid var(--mod-speech-accent)', fontSize: '0.85rem', color: '#4c1d95', fontStyle: 'italic' }}>
                         💬 <em>« {diff.oral_phrasing} »</em>
                       </div>
                     )}
@@ -423,7 +436,8 @@ export const DifferentiatorsSection: React.FC<DifferentiatorsSectionProps> = ({
                 </div>
               );
             })}
-          </div>
+            </div>
+          </>
         )}
       </div>
 

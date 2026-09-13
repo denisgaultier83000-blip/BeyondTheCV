@@ -25,7 +25,7 @@ def test_clean_json_array_format():
     res = clean_ai_json_response(raw)
     assert isinstance(res, list)
     assert len(res) == 2
-    assert res["id"] == 1
+    assert res[0]["id"] == 1
 
 def test_clean_json_failure_fallback():
     """Cas fatal : le JSON est irrémédiablement cassé (il manque une accolade)."""
