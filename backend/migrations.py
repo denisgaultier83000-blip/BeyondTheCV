@@ -92,6 +92,11 @@ def create_tables():
         cur.execute("ALTER TABLE job_applications ADD COLUMN IF NOT EXISTS tasks_map JSONB;")
         print("✅ Table 'job_applications' migrated.")
 
+        # --- MIGRATIONS POUR LA TABLE 'training_sessions' ---
+        cur.execute("ALTER TABLE training_sessions ADD COLUMN IF NOT EXISTS tags JSONB DEFAULT '[]'::jsonb;")
+        cur.execute("ALTER TABLE training_sessions ADD COLUMN IF NOT EXISTS application_id TEXT REFERENCES job_applications(id) ON DELETE SET NULL;")
+        print("✅ Table 'training_sessions' migrated.")
+
         # --- MIGRATIONS POUR LA TABLE 'interview_debriefs' ---
         cur.execute("ALTER TABLE interview_debriefs ADD COLUMN IF NOT EXISTS analysis_result JSONB;")
         cur.execute("ALTER TABLE interview_debriefs ADD COLUMN IF NOT EXISTS analysis_created_at TIMESTAMPTZ;")

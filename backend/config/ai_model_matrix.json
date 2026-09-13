@@ -21,13 +21,13 @@
     },
     "gemini_2_0_flash": {
       "provider": "gemini",
-      "model": "gemini-2.0-flash",
+      "model": "gemini-3.6-flash",
       "cost_tier": "mid",
       "strengths": "cheap, long context"
     },
     "gemini_2_0_flash_lite": {
       "provider": "gemini",
-      "model": "gemini-2.0-flash-lite",
+      "model": "gemini-3.6-flash",
       "cost_tier": "cheap",
       "strengths": "cheapest, fastest"
     }

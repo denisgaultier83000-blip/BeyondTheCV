@@ -223,6 +223,7 @@ def main():
         """)
         print("✅ Table 'training_sessions' created")
         cur.execute("ALTER TABLE training_sessions ADD COLUMN IF NOT EXISTS tags JSONB DEFAULT '[]'::jsonb;")
+        cur.execute("ALTER TABLE training_sessions ADD COLUMN IF NOT EXISTS application_id TEXT REFERENCES job_applications(id) ON DELETE SET NULL;")
         print("✅ Column 'training_sessions.tags' ensured")
 
         # Interview debriefs table (used by debrief_service.py)
