@@ -1371,6 +1371,41 @@ async def get_training_balance(current_user: dict = Depends(get_current_user)):
                 (current_user["id"],)
             )
             row = await cursor.fetchone()
+
+            # Compteurs réels indépendants des quotas (rechargés en mode testeur)
+            # - sessions_used : cumul des entraînements réalisés
+            # - applications_used : offres ayant fait l'objet d'une analyse
+            # - companies_used : entreprises distinctes sur ces offres analysées
+            sessions_used = 0
+            applications_used = 0
+            companies_used = 0
+            try:
+                count_cursor = await db.execute(
+                    conn,
+                    "SELECT COUNT(*) FROM training_sessions WHERE user_id = ?",
+                    (current_user["id"],)
+                )
+                count_row = await count_cursor.fetchone()
+                if count_row:
+                    sessions_used = int(count_row[0] if isinstance(count_row, tuple) else count_row.get("count", 0))
+
+                # Une offre est comptabilisée comme "préparée" seulement si elle
+                # a été analysée (tasks_map non vide) ou associée à une session.
+                app_cursor = await db.execute(
+                    conn,
+                    """SELECT COUNT(*), COUNT(DISTINCT COALESCE(target_company, ''))
+                       FROM job_applications
+                       WHERE user_id = ?
+                         AND (tasks_map IS NOT NULL OR session_hash IS NOT NULL)""",
+                    (current_user["id"],)
+                )
+                app_row = await app_cursor.fetchone()
+                if app_row:
+                    applications_used = int(app_row[0] if isinstance(app_row, tuple) else app_row.get("count", 0))
+                    companies_used = int(app_row[1] if isinstance(app_row, tuple) else app_row.get("count_1", app_row.get("count", 0)))
+            except Exception as count_err:
+                print(f"[BALANCE] Count usage error: {count_err}", flush=True)
+
         if not row:
             raise HTTPException(status_code=404, detail="Utilisateur introuvable.")
         data = dict(row) if hasattr(row, 'keys') else {
@@ -1403,8 +1438,11 @@ async def get_training_balance(current_user: dict = Depends(get_current_user)):
             "quota_negotiation": effective_credits,
             "quota_regeneration": effective_credits,
             "quota_update":  effective_credits,
-            "entreprises":   data.get("quota_entreprises", 5),
-            "offres":        data.get("quota_offres", 5),
+            "entreprises":        data.get("quota_entreprises", 5),
+            "offres":             data.get("quota_offres", 5),
+            "sessions_used":      sessions_used,
+            "applications_used":  applications_used,
+            "companies_used":     companies_used,
         }
     except HTTPException:
         raise
@@ -1414,7 +1452,8 @@ async def get_training_balance(current_user: dict = Depends(get_current_user)):
                 "negotiation": 150, "regeneration": 150, "update": 150,
                 "quota_pitch": 150, "quota_qa": 150, "quota_mes": 150,
                 "quota_negotiation": 150, "quota_regeneration": 150, "quota_update": 150,
-                "entreprises": 5, "offres": 5}
+                "entreprises": 5, "offres": 5,
+                "sessions_used": 0, "applications_used": 0, "companies_used": 0}
 
 
 async def _build_training_pool_for_context(user_id: str | None, payload: dict) -> dict:

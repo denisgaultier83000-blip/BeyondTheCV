@@ -66,6 +66,13 @@ def create_tables():
         cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_regeneration INTEGER DEFAULT 3;")
         cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS quota_update INTEGER DEFAULT 1;")
         cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT 100;")
+        # [FIX] Certains utilisateurs testeurs ont été créés avec 30 crédits
+        # au lieu de 150 à cause d'une constante incohérente dans auth.py.
+        cur.execute(
+            "UPDATE users SET credits = 150 WHERE credits = 30 AND is_tester = TRUE"
+        )
+        if cur.rowcount:
+            print(f"✅ Corrected {cur.rowcount} tester accounts from 30 to 150 training credits.")
         print("✅ Table 'users' migrated.")
 
         # --- MIGRATIONS POUR LA TABLE 'documents' ---

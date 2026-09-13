@@ -17,7 +17,7 @@ router = APIRouter(
     prefix="/auth", # [FIX] Ajout du préfixe manquant pour correspondre à l'URL /api/auth/token
     tags=["Authentication"]
 )
-TESTER_SESSION_CAP = 30
+TESTER_SESSION_CAP = 150
 AUTH_DB_TIMEOUT_SECONDS = 8
 AUTH_LAST_LOGIN_TIMEOUT_SECONDS = 3
 

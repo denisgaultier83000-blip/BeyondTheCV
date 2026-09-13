@@ -16,6 +16,7 @@ import { useDashboard } from '../hooks/DashboardContext';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
+import { FeedbackWidget } from './FeedbackWidget';
 
 // --- TYPES ---
 interface PitchFeedback {
@@ -259,6 +260,15 @@ export function PitchTrainer() {
             </p>
           </div>
 
+          <FeedbackWidget
+            feature="pitch_trainer"
+            question="Cette analyse de votre pitch vous est-elle utile ?"
+            negativeBullets={[
+              "L'analyse ne reflète pas ma prestation.",
+              "Les conseils sont trop génériques.",
+              "La version réécrite ne me convient pas."
+            ]}
+          />
         </div>
       )}
 

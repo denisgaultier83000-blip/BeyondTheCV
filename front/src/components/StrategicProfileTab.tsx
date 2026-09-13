@@ -764,7 +764,12 @@ export function StrategicProfileTab({ onNavigate, profileCompletion, profileReco
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <DashboardCard title="Mon profil" icon={<UserCheck size={24} />}>
+      <DashboardCard
+        title="Mon profil"
+        icon={<UserCheck size={24} />}
+        featureId="strategic_profile_overview"
+        feedbackQuestion="Ce résumé de votre profil vous semble-t-il fidèle et utile ?"
+      >
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
           <div style={{ minWidth: '220px' }}>
             <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Profil complété</div>
@@ -916,7 +921,12 @@ export function StrategicProfileTab({ onNavigate, profileCompletion, profileReco
       </div>
 
       <div id="profile_graph_section" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
-        <DashboardCard title="Vue rapide des domaines" icon={<BarChart3 size={24} />}>
+        <DashboardCard
+          title="Vue rapide des domaines"
+          icon={<BarChart3 size={24} />}
+          featureId="domain_radar"
+          feedbackQuestion="Ce radar vous aide-t-il à visualiser vos forces et axes de progrès ?"
+        >
           <div style={{ height: 320 }}>
             <ResponsiveContainer width="100%" height="100%">
               <RechartsRadarChart data={profile.axes} outerRadius="68%">
@@ -932,7 +942,12 @@ export function StrategicProfileTab({ onNavigate, profileCompletion, profileReco
           </p>
         </DashboardCard>
 
-        <DashboardCard title="Lecture plus précise" icon={<Activity size={24} />}>
+        <DashboardCard
+          title="Lecture plus précise"
+          icon={<Activity size={24} />}
+          featureId="domain_bar_chart"
+          feedbackQuestion="Cette lecture plus précise des domaines vous est-elle utile ?"
+        >
           <div style={{ height: 320 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={profile.axes} layout="vertical" margin={{ top: 8, right: 16, bottom: 8, left: 16 }}>
@@ -950,7 +965,12 @@ export function StrategicProfileTab({ onNavigate, profileCompletion, profileReco
         </DashboardCard>
       </div>
 
-      <DashboardCard title="Progression récente" icon={<TrendingUp size={24} />}>
+      <DashboardCard
+        title="Progression récente"
+        icon={<TrendingUp size={24} />}
+        featureId="progress_evolution"
+        feedbackQuestion="Cette évolution de votre progression vous est-elle utile ?"
+      >
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
           <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '1rem' }}>
             <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '0.4rem' }}>Domaine en hausse</div>
@@ -1012,7 +1032,12 @@ export function StrategicProfileTab({ onNavigate, profileCompletion, profileReco
       </div>
 
       <div id="profile_details_section">
-        <DashboardCard title="Détail par domaine" icon={<Eye size={24} />}>
+        <DashboardCard
+          title="Détail par domaine"
+          icon={<Eye size={24} />}
+          featureId="domain_detail"
+          feedbackQuestion="Ce détail par domaine vous aide-t-il à cibler vos entraînements ?"
+        >
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
             {profile.axes.map((axis) => (
               <div key={axis.id} style={{ border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '1.15rem', background: 'var(--bg-card)', boxShadow: 'var(--shadow-sm)' }}>

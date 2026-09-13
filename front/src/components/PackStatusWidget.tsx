@@ -10,7 +10,10 @@ import { authenticatedFetch } from '../utils/auth';
 interface Quotas {
   entreprises: number;
   offres: number;
-  credits: number;  // séances entraînement (on prend credits comme proxy des séances restantes)
+  credits: number;  // séances entraînement restantes (rechargées à 150 à 0)
+  sessions_used?: number; // cumul réel des entraînements effectués
+  companies_used?: number; // cumul réel d'entreprises ciblées
+  applications_used?: number; // cumul réel d'offres/candidatures préparées
   qa: number;
   pitch: number;
   mes: number;
@@ -66,21 +69,26 @@ const PackStatusWidget: React.FC<Props> = ({ onQuotasLoaded, refreshToken }) => 
 
   if (!quotas) return null;
 
-  const trainingsUsed = TOTAL_ENTRAINEMENTS - (quotas.credits ?? 0);
+  // Les compteurs `_used` retournés par le backend reflètent l'usage réel.
+  // Les soldes `entreprises` / `offres` / `credits` sont les quotas restants
+  // (rechargés automatiquement à leurs plafonds en mode testeur).
+  const trainingsUsed = quotas.sessions_used ?? (TOTAL_ENTRAINEMENTS - (quotas.credits ?? 0));
   const trainingsLeft = quotas.credits ?? 0;
+  const companiesUsed = quotas.companies_used ?? (TOTAL_ENTREPRISES - quotas.entreprises);
+  const offersUsed = quotas.applications_used ?? (TOTAL_OFFRES - quotas.offres);
 
   const items = [
     {
       icon: <Building2 size={16} />,
       label: 'Entreprises ciblées',
-      used: TOTAL_ENTREPRISES - quotas.entreprises,
+      used: companiesUsed,
       total: TOTAL_ENTREPRISES,
       left: quotas.entreprises,
     },
     {
       icon: <FileText size={16} />,
       label: 'Offres préparées',
-      used: TOTAL_OFFRES - quotas.offres,
+      used: offersUsed,
       total: TOTAL_OFFRES,
       left: quotas.offres,
     },

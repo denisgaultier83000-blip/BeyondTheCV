@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import scenariosData from './scenarios.json';
 import { RechargeModal } from './RechargeModal';
 import { AsyncBoundary } from './AsyncBoundary';
+import { FeedbackWidget } from './FeedbackWidget';
 import { useVideoRecorder } from '../hooks/useVideoRecorder';
 import { VideoPreview } from './VideoPreview';
 import { savePostureSession } from '../utils/postureStorage';
@@ -630,6 +631,16 @@ export function SituationSimulator() {
                       {t('sim_validate_return', 'Valider et retourner aux scénarios')}
                     </Button>
                   </div>
+
+                  <FeedbackWidget
+                    feature="situation_simulator"
+                    question="Ce feedback sur la mise en situation vous est-il utile ?"
+                    negativeBullets={[
+                      "Le diagnostic est trop général.",
+                      "La réponse optimisée ne convient pas au contexte.",
+                      "Les critères d'évaluation me semblent incohérents."
+                    ]}
+                  />
                 </div>
               )}
             </div>

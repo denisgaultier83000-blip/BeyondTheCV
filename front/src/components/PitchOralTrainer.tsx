@@ -10,6 +10,7 @@ import { AsyncBoundary } from './AsyncBoundary';
 import AutoResizeTextarea from './AutoResizeTextarea';
 import { useVideoRecorder } from '../hooks/useVideoRecorder';
 import { VideoPreview } from './VideoPreview';
+import { FeedbackWidget } from './FeedbackWidget';
 
 export default function PitchOralTrainer() {
   const { cvData, quotas, fetchQuotas } = useDashboard();
@@ -213,6 +214,16 @@ export default function PitchOralTrainer() {
           )}
           <div style={{ background: 'var(--bg-body)', padding: '1.25rem', borderRadius: '0.75rem', borderLeft: '4px solid #8b5cf6' }}><h4 style={{ margin: '0 0 0.5rem 0', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Lightbulb size={18} /> La version "Executive"</h4><p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-main)', fontStyle: 'italic', lineHeight: '1.6' }}>"{feedback.improved_pitch}"</p></div>
           <div style={{ textAlign: 'right' }}><button onClick={() => { setFeedback(null); setUserAnswer(""); }} className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><RefreshCw size={16} /> Refaire un essai</button></div>
+
+          <FeedbackWidget
+            feature="pitch_oral_trainer"
+            question="Ce feedback sur votre pitch oral vous est-il utile ?"
+            negativeBullets={[
+              "Le diagnostic ne reflète pas ma prestation.",
+              "Les conseils sont trop génériques.",
+              "La version réécrite ne sonne pas comme moi."
+            ]}
+          />
         </div>
       )}
       <RechargeModal isOpen={showRechargeModal} onClose={() => setShowRechargeModal(false)} />

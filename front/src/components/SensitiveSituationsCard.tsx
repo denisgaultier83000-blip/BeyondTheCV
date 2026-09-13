@@ -3,6 +3,7 @@ import { ShieldAlert, Sparkles, AlertCircle, CheckCircle2, Loader2, ArrowRight, 
 import AutoResizeTextarea from './AutoResizeTextarea';
 import { authenticatedFetch } from '../utils/auth';
 import { Button } from './common';
+import { FeedbackWidget } from './FeedbackWidget';
 
 export interface SensitiveSituation {
   raw_input?: string;
@@ -233,6 +234,16 @@ export const SensitiveSituationsCard: React.FC<SensitiveSituationsCardProps> = (
           </div>
         </div>
       )}
+
+      <FeedbackWidget
+        feature="sensitive_situations"
+        question="Ce plan de sécurisation vous aide-t-il à mieux gérer vos situations sensibles ?"
+        negativeBullets={[
+          "Les situations couvertes ne correspondent pas aux miennes.",
+          "Les conseils sont trop génériques.",
+          "Les phrases clés ne sonnent pas naturelles."
+        ]}
+      />
     </div>
   );
 };

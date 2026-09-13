@@ -123,6 +123,16 @@ export function HiddenMarket({ data, loading, error }: HiddenMarketProps) {
           )}
         </div>
       </div>
+
+      <FeedbackWidget
+        feature="hidden_market"
+        question="Cette stratégie pour accéder au marché caché vous est-elle utile ?"
+        negativeBullets={[
+          "Les profils ou entreprises suggérés ne sont pas pertinents.",
+          "Le message d'approche est trop générique.",
+          "Les conseils de networking sont basiques."
+        ]}
+      />
     </>
       ) : (
         <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Analyse du marché caché indisponible.</div>

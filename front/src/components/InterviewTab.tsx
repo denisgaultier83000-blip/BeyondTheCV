@@ -223,7 +223,7 @@ export const InterviewTab = () => {
               <div className="pitch-single-field" style={{ animation: 'fadeIn 0.4s ease-out' }}>
                 <AutoResizeTextarea
                   className="pitch-textarea"
-                  style={{ fontSize: 'clamp(1rem, 2.5vw, 1.25rem)' }}
+                  style={{ fontSize: '1rem' }}
                   value={fullPitchText}
                   onChange={e => handlePitchChange(e.target.value)}
                   minHeight={140}

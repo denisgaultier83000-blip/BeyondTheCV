@@ -95,6 +95,8 @@ export function LastHourChecklistCard() {
       title="Dernière Heure Avant l'Entretien"
       icon={<Clock size={24} />}
       id="last_hour_section"
+      featureId="last_hour_checklist"
+      feedbackQuestion="Cette check-list de dernière heure vous est-elle utile ?"
     >
       <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
         Le guide de survie ultime. Pas de théorie, uniquement des actions à mener dans les 60 minutes qui précèdent l'échange.
@@ -126,6 +128,8 @@ export function StrategicQuestionsCard() {
       title="Questions Stratégiques à Poser"
       icon={<HelpCircle size={24} />}
       id="strategic_questions_section"
+      featureId="strategic_questions"
+      feedbackQuestion="Ces questions vous aident-elles à mieux préparer vos échanges ?"
     >
       <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
         Ne subissez plus l'entretien, pilotez-le. Des questions pertinentes pour chaque type d'interlocuteur.
@@ -165,6 +169,8 @@ export function SignalsToObserveCard() {
       title="Signaux à Observer (Pendant l'entretien)"
       icon={<Eye size={24} />}
       id="signals_section"
+      featureId="signals_to_observe"
+      feedbackQuestion="Ces signaux vous aident-ils à évaluer le recruteur ?"
     >
       <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
         Vous n'êtes pas seulement évalué, vous évaluez aussi. Gardez ces points en tête pour prendre la bonne décision.
@@ -193,6 +199,8 @@ export function PostureGuidesCard() {
       title="Adapter ma posture (Guides de Posture)"
       icon={<UserCog size={24} />}
       id="posture_guides_section"
+      featureId="posture_guides"
+      feedbackQuestion="Ces guides de posture vous sont-ils utiles ?"
     >
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
         {[
@@ -222,6 +230,8 @@ export function ContingencyPlanCard() {
       title="Plan de secours (Gérer les Imprévus)"
       icon={<LifeBuoy size={24} />}
       id="contingency_plan_section"
+      featureId="contingency_plan"
+      feedbackQuestion="Ce plan de secours couvre-t-il les imprévus que vous craignez ?"
     >
       <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
         Des réponses prêtes à l’emploi pour rester professionnel même quand l’entretien ne se déroule pas comme prévu.
@@ -274,6 +284,8 @@ export default function PostureTab() {
         title={t('posture_generator_title', "Feuille de Route Personnalisée")}
         icon={<MapIcon size={24} />}
         id="roadmap_section"
+        featureId="roadmap_generator"
+        feedbackQuestion="Cette feuille de route vous est-elle utile ?"
       >
         <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
           Générez un plan d'action sur-mesure en fonction du type d'entretien, de votre interlocuteur et de votre niveau de séniorité. Obtenez des conseils de posture, des phrases clés et une check-list pour ne rien laisser au hasard.

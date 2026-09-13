@@ -5,6 +5,7 @@ import { authenticatedFetch } from '../utils/auth';
 import { useDashboard } from '../hooks/DashboardContext';
 import { useModuleContext } from '../context/ModuleContext';
 import { Button } from './common';
+import { FeedbackWidget } from './FeedbackWidget';
 
 export interface Differentiator {
   id?: string;
@@ -440,6 +441,16 @@ export const DifferentiatorsSection: React.FC<DifferentiatorsSectionProps> = ({
           </>
         )}
       </div>
+
+      <FeedbackWidget
+        feature="differentiators"
+        question="Ces marqueurs différenciants vous aident-ils à préparer vos entretiens ?"
+        negativeBullets={[
+          "Les marqueurs proposés ne reflètent pas mon profil.",
+          "Les formulations orales ne sonnent pas naturelles.",
+          "Je ne vois pas comment les utiliser en entretien."
+        ]}
+      />
 
       {/* MODAL CLARIFICATION IA */}
       {showQuestionsModal && (

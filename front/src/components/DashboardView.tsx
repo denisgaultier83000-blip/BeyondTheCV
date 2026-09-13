@@ -69,6 +69,7 @@ import ObservedQuestionsPanel from './ObservedQuestionsPanel';
 import { ApplicationKeyMessagesView } from './ApplicationKeyMessagesView';
 import { SensitiveSituationsCard } from './SensitiveSituationsCard';
 import { RoadmapGenerator } from './RoadmapGenerator';
+import { FeedbackWidget } from './FeedbackWidget';
 import { 
   PostureDataCard, 
   LastHourChecklistCard, 
@@ -725,6 +726,15 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
                   history={cvData?.roadmapHistory || []}
                   onHistoryChange={(history) => dashboard?.updateFormData && dashboard.updateFormData('roadmapHistory', history)}
                 />
+                <FeedbackWidget
+                  feature="roadmap_generator"
+                  question="Cette feuille de route vous est-elle utile ?"
+                  negativeBullets={[
+                    "Le plan manque de concision.",
+                    "Les conseils ne sont pas adaptés à mon contexte.",
+                    "Certaines sections sont hors sujet."
+                  ]}
+                />
               </DashboardCard>
             </div>
 
@@ -988,6 +998,8 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
               <DashboardCard
                 title="Radar de Carrière"
                 icon={<Compass size={24} color="var(--primary)" />}
+                featureId="career_radar"
+                feedbackQuestion="Ces suggestions de trajectoires sont-elles pertinentes ?"
               >
                 <CareerRadar data={careerRadarResult} loading={isProcessing && !careerRadarResult} />
               </DashboardCard>
@@ -998,6 +1010,8 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
               <DashboardCard
                 title="GPS de Carrière"
                 icon={<Navigation size={24} color="var(--primary)" />}
+                featureId="career_gps"
+                feedbackQuestion="Cette feuille de route vous semble-t-elle réaliste et applicable ?"
               >
                 <CareerGPS data={careerGpsResult} loading={isProcessing && !careerGpsResult} />
               </DashboardCard>

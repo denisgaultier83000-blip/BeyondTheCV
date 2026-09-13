@@ -7,6 +7,7 @@ import { useDashboard } from '../hooks/DashboardContext';
 import { RechargeModal } from './RechargeModal';
 import { AsyncBoundary } from './AsyncBoundary';
 import AutoResizeTextarea from './AutoResizeTextarea';
+import { FeedbackWidget } from './FeedbackWidget';
 import { useVideoRecorder } from '../hooks/useVideoRecorder';
 import { VideoPreview } from './VideoPreview';
 import { Button } from './common';
@@ -327,6 +328,16 @@ export const VocalPitchTrainer = ({ targetJob = "", targetCompany, jobDescriptio
               Refaire un essai
             </Button>
           </div>
+
+          <FeedbackWidget
+            feature="vocal_pitch_trainer"
+            question="Ce diagnostic de pitch vocal vous est-il utile ?"
+            negativeBullets={[
+              "Les métriques (rythme, tics) ne reflètent pas ma prestation.",
+              "Les conseils sont trop génériques.",
+              "Le score ne me semble pas juste."
+            ]}
+          />
         </div>
       )}
       <RechargeModal isOpen={showRechargeModal} onClose={() => setShowRechargeModal(false)} />
