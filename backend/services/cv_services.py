@@ -1688,20 +1688,42 @@ OUTPUT LANGUAGE: {target_lang}
 
         session_id = f"train_{user_id}_{int(datetime.now(timezone.utc).timestamp() * 1000)}"
         async with db.get_connection() as conn:
-            await db.execute(
-                conn,
-                """
-                INSERT INTO training_sessions (id, user_id, theme, question_type, question_text, user_answer, score, strengths, weaknesses, improved_answer, tags, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, NOW())
-                """,
-                (
-                    session_id, user_id, theme, question_type, question_text, user_answer, score,
-                    json.dumps(feedback["strengths"], ensure_ascii=False),
-                    json.dumps(feedback["weaknesses"], ensure_ascii=False),
-                    improved_answer,
-                    json.dumps(session_tags, ensure_ascii=False)
+            # [ROBUSTESSE] Si la colonne tags n'existe pas encore (schema non migré),
+            # on insère sans elle pour ne pas bloquer l'évaluation.
+            try:
+                await db.execute(
+                    conn,
+                    """
+                    INSERT INTO training_sessions (id, user_id, theme, question_type, question_text, user_answer, score, strengths, weaknesses, improved_answer, tags, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, NOW())
+                    """,
+                    (
+                        session_id, user_id, theme, question_type, question_text, user_answer, score,
+                        json.dumps(feedback["strengths"], ensure_ascii=False),
+                        json.dumps(feedback["weaknesses"], ensure_ascii=False),
+                        improved_answer,
+                        json.dumps(session_tags, ensure_ascii=False)
+                    )
                 )
-            )
+            except Exception as insert_err:
+                err_msg = str(insert_err).lower()
+                if "column \"tags\"" in err_msg or "tags" in err_msg and "does not exist" in err_msg:
+                    print(f"[TRAINING EVALUATE] Column tags missing, inserting without it.", flush=True)
+                    await db.execute(
+                        conn,
+                        """
+                        INSERT INTO training_sessions (id, user_id, theme, question_type, question_text, user_answer, score, strengths, weaknesses, improved_answer, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                        """,
+                        (
+                            session_id, user_id, theme, question_type, question_text, user_answer, score,
+                            json.dumps(feedback["strengths"], ensure_ascii=False),
+                            json.dumps(feedback["weaknesses"], ensure_ascii=False),
+                            improved_answer
+                        )
+                    )
+                else:
+                    raise
 
             await db.execute(
                 conn,
