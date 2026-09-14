@@ -2085,33 +2085,80 @@ async def evaluate_vocal_pitch(payload: dict = Body(...), current_user: dict = D
 
     try:
         async with db.get_connection() as conn:
-            await db.execute(
-                conn,
-                """
-                INSERT INTO training_sessions (
-                    id, user_id, theme, question_type, question_text, user_answer, score, impact_score,
-                    strengths, weaknesses, improved_answer, tags, metrics, evidence_extraction, evaluation_scores, created_at
+            # [ROBUSTESSE] Insertion complète si le schema est à jour.
+            try:
+                await db.execute(
+                    conn,
+                    """
+                    INSERT INTO training_sessions (
+                        id, user_id, theme, question_type, question_text, user_answer, score, impact_score,
+                        strengths, weaknesses, improved_answer, tags, metrics, evidence_extraction, evaluation_scores, created_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, NOW())
+                    """,
+                    (
+                        session_id,
+                        user_id,
+                        target_job,
+                        "PITCH",
+                        target_company or job_description or "Pitch oral",
+                        transcript,
+                        int(feedback.get("score") or 0),
+                        int(feedback.get("impact_score") or feedback.get("score") or 0),
+                        json.dumps(feedback.get("strengths") or [], ensure_ascii=False),
+                        json.dumps(feedback.get("weaknesses") or [], ensure_ascii=False),
+                        str(feedback.get("improved_pitch") or ""),
+                        json.dumps(["pitch", "oral"], ensure_ascii=False),
+                        json.dumps(metrics, ensure_ascii=False),
+                        json.dumps(evidence_extraction, ensure_ascii=False),
+                        json.dumps(evaluation_scores, ensure_ascii=False),
+                    )
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, NOW())
-                """,
-                (
-                    session_id,
-                    user_id,
-                    target_job,
-                    "PITCH",
-                    target_company or job_description or "Pitch oral",
-                    transcript,
-                    int(feedback.get("score") or 0),
-                    int(feedback.get("impact_score") or feedback.get("score") or 0),
-                    json.dumps(feedback.get("strengths") or [], ensure_ascii=False),
-                    json.dumps(feedback.get("weaknesses") or [], ensure_ascii=False),
-                    str(feedback.get("improved_pitch") or ""),
-                    json.dumps(["pitch", "oral"], ensure_ascii=False),
-                    json.dumps(metrics, ensure_ascii=False),
-                    json.dumps(evidence_extraction, ensure_ascii=False),
-                    json.dumps(evaluation_scores, ensure_ascii=False),
-                )
-            )
+            except Exception as insert_err:
+                err_msg = str(insert_err).lower()
+                if "column \"tags\"" in err_msg or ("tags" in err_msg and "does not exist" in err_msg):
+                    print(f"[VOCAL PITCH] Column tags missing, inserting without it.", flush=True)
+                    await db.execute(
+                        conn,
+                        """
+                        INSERT INTO training_sessions (
+                            id, user_id, theme, question_type, question_text, user_answer, score, impact_score,
+                            strengths, weaknesses, improved_answer, metrics, created_at
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, NOW())
+                        """,
+                        (
+                            session_id, user_id, target_job, "PITCH",
+                            target_company or job_description or "Pitch oral",
+                            transcript,
+                            int(feedback.get("score") or 0),
+                            int(feedback.get("impact_score") or feedback.get("score") or 0),
+                            json.dumps(feedback.get("strengths") or [], ensure_ascii=False),
+                            json.dumps(feedback.get("weaknesses") or [], ensure_ascii=False),
+                            str(feedback.get("improved_pitch") or ""),
+                            json.dumps(metrics, ensure_ascii=False),
+                        )
+                    )
+                elif "column \"metrics\"" in err_msg or ("metrics" in err_msg and "does not exist" in err_msg) or "column \"impact_score\"" in err_msg or ("impact_score" in err_msg and "does not exist" in err_msg) or "column \"evidence_extraction\"" in err_msg or ("evidence_extraction" in err_msg and "does not exist" in err_msg) or "column \"evaluation_scores\"" in err_msg or ("evaluation_scores" in err_msg and "does not exist" in err_msg):
+                    print(f"[VOCAL PITCH] Columns metrics/impact_score/evidence_extraction/evaluation_scores missing, inserting without them.", flush=True)
+                    await db.execute(
+                        conn,
+                        """
+                        INSERT INTO training_sessions (id, user_id, theme, question_type, question_text, user_answer, score, strengths, weaknesses, improved_answer, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                        """,
+                        (
+                            session_id, user_id, target_job, "PITCH",
+                            target_company or job_description or "Pitch oral",
+                            transcript,
+                            int(feedback.get("score") or 0),
+                            json.dumps(feedback.get("strengths") or [], ensure_ascii=False),
+                            json.dumps(feedback.get("weaknesses") or [], ensure_ascii=False),
+                            str(feedback.get("improved_pitch") or "")
+                        )
+                    )
+                else:
+                    raise
     except Exception as e:
         print(f"[VOCAL PITCH] History save failed: {e}", flush=True)
 
