@@ -815,7 +815,7 @@ export default function TrainingTab() {
                     <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-muted)' }}><strong>Votre réponse :</strong> {q.userAnswer || q.user_answer}</p>
                   </div>
                   {fb && (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', fontSize: '0.9rem' }}>
+                    <div className="feedback-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.9rem' }}>
                       <div>
                         <strong style={{ color: '#10b981' }}>Points forts :</strong>
                         <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.2rem' }}>{Array.isArray(fb.strengths) && fb.strengths.length > 0 ? fb.strengths.map((s: any, i: number) => <li key={i}>{renderSafeText(s)}</li>) : <li>Aucun point fort détaillé.</li>}</ul>
@@ -856,6 +856,9 @@ export default function TrainingTab() {
           0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
           70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
           100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        @media (max-width: 640px) {
+          .feedback-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
       <RechargeModal isOpen={showRechargeModal} onClose={() => setShowRechargeModal(false)} />
