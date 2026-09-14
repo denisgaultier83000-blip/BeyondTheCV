@@ -21,6 +21,7 @@ Générer EXACTEMENT 10 questions d'entretien d'une extrême pertinence, adapté
   Indique toujours que le candidat en est conscient et travaille dessus d'une manière très professionnelle.
 - **POSTURE DE COACH :** Si le candidat a indiqué des défauts "red flags" (ex: fainéant, menteur), utilise le champ `advice` pour le recadrer fermement mais avec bienveillance et propose une reformulation professionnelle dans `suggested_answer`.
 - Échappe tous les guillemets internes et les retours à la ligne correctement.
+- **CASSE FRANÇAISE STANDARD :** Dans les catégories et intitulés de questions, utilise une majuscule uniquement en début de phrase et pour les noms propres. Évite absolument le Title Case anglais. Exemple correct : 'Gestion de crise en communication institutionnelle'. Exemple interdit : 'Gestion de Crise en Communication Institutionnelle'.
 
 ## 📦 FORMAT DE SORTIE (JSON STRICT)
 ```json

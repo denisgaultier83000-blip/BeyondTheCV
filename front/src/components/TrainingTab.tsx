@@ -317,7 +317,19 @@ export default function TrainingTab() {
   // --- FUSION DES HISTORIQUES (PITCH + MES + ENTRETIEN + NEGO) ---
   const negoHistory = cvData?.negotiationHistory || [];
   const unifiedHistory = [
-    ...trainingHistory.map((h: any) => ({ ...h, source: 'training', date: new Date(h.created_at || Date.now()) })),
+    ...trainingHistory.map((h: any) => {
+      const qt = String(h?.question_type || '').toUpperCase();
+      const isPitch = qt === 'PITCH';
+      return {
+        ...h,
+        source: 'training',
+        category: isPitch ? 'Pitch oral' : (h.theme || 'Entraînement'),
+        type: isPitch ? 'Vocal' : (qt === 'MES' ? 'MES' : 'Classique'),
+        question: isPitch ? (h.question_text || 'Pitch oral') : h.question_text,
+        userAnswer: h.user_answer,
+        date: new Date(h.created_at || Date.now())
+      };
+    }),
     ...interviewHistory.map((h: any) => ({ ...h, source: 'interview', category: "Question d'entretien", type: 'Classique', userAnswer: h.user_answer, score: h.score, date: new Date(h.created_at || Date.now()) })),
     ...negoHistory.map((h: any) => ({ ...h, source: 'negotiation', category: 'Négociation salariale', type: 'Négo', question: "Défense des prétentions salariales", score: h.feedback?.score || 0, date: new Date(h.date || Date.now()) }))
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
@@ -748,7 +760,7 @@ export default function TrainingTab() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                     <div>
                       <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '1.1rem' }}>{q.category} <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 400 }}>• {q.type}</span></div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 500, marginTop: '0.25rem' }}>{q.date.toLocaleString('fr-FR')} • Source : {q.source === 'training' ? 'Entraînement Libre' : q.source === 'interview' ? 'Questions Entretien' : 'Négociation'}</div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 500, marginTop: '0.25rem' }}>{q.date.toLocaleString('fr-FR')} • Source : {q.source === 'training' ? (q.type === 'Vocal' ? 'Pitch' : 'Entraînement Libre') : q.source === 'interview' ? 'Questions Entretien' : 'Négociation'}</div>
                     </div>
                     <div style={{ background: scoreColor, color: 'white', padding: '0.25rem 1rem', borderRadius: '1rem', fontWeight: 'bold', fontSize: '1.1rem', alignSelf: 'center' }}>
                       {score10.toFixed(1)} / 10

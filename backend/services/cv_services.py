@@ -28,6 +28,13 @@ from database import db
 from .utils import _get_sortable_date_tuple, load_prompt, normalize_language, _sanitize_data_for_ai, _sanitize_data_for_recruiter_view, consume_quota, refund_quota, TESTER_SESSION_CAP, _ensure_quota_schema
 from .ai_generator import ai_service
 from .ai_feature_caller import ai_call
+from .oral_metrics_service import compute_oral_metrics, impact_label
+from .evidence_service import (
+    update_competency_profile,
+    get_candidate_evidence,
+    get_competency_profile,
+    attach_source_to_evidence,
+)
 
 TRAINING_THEME_LABELS = {
     "management": "Management",
@@ -1614,6 +1621,8 @@ async def generate_training_question(payload: dict = Body(...), current_user: di
 async def evaluate_training_answer(payload: dict = Body(...), current_user: dict = Depends(get_current_user)):
     """
     Évalue la réponse utilisateur d'un défi TrainingTab et enregistre la session.
+    Intègre les métriques orales locales (WPM, tics, mots dévalorisants) et un
+    score d'impact complémentaire sans appel IA supplémentaire.
     """
     user_id = current_user.get("id")
     raw_question_type = str(payload.get("question_type") or "QA").strip().upper()
@@ -1629,6 +1638,7 @@ async def evaluate_training_answer(payload: dict = Body(...), current_user: dict
     theme = str(payload.get("theme") or "Général").strip()
     target_lang = normalize_language(payload.get("target_language", "French"))
     session_tags = _normalize_training_tags(payload.get("tags"), fallback_text=f"{question_text} {theme}")
+    duration_seconds = payload.get("duration_seconds") or payload.get("duration") or 0
 
     if not user_answer:
         raise HTTPException(status_code=400, detail="Réponse vide.")
@@ -1636,6 +1646,14 @@ async def evaluate_training_answer(payload: dict = Body(...), current_user: dict
     await consume_quota(user_id, quota_type, cost=1)
 
     try:
+        exercise_type = "mes" if question_type == "MES" else "qa"
+        metrics = compute_oral_metrics(
+            transcript=user_answer,
+            duration_seconds=duration_seconds,
+            exercise_type=exercise_type,
+            language=target_lang,
+        )
+
         prompt_template = load_prompt("evaluate_interview_answer.md")
         final_prompt = f"""
 {prompt_template}
@@ -1648,6 +1666,12 @@ CATÉGORIE / ATTENTE:
 
 RÉPONSE DU CANDIDAT:
 {user_answer}
+
+MÉTRIQUES ORALES LOCALES:
+- Débit: {metrics['wpm']} mots/minute ({metrics['pace_status']})
+- Tics de langage détectés: {metrics['filler_count']}
+- Mots dévalorisants détectés: {metrics['negative_count']}
+- Longueur: {metrics['word_count']} mots ({metrics['length_assessment']})
 
 OUTPUT LANGUAGE: {target_lang}
 """
@@ -1668,6 +1692,13 @@ OUTPUT LANGUAGE: {target_lang}
             score = 0
         score = max(0, min(100, score))
 
+        impact_score = result.get("impact_score", score)
+        try:
+            impact_score = int(impact_score)
+        except Exception:
+            impact_score = score
+        impact_score = max(0, min(100, impact_score))
+
         strengths = result.get("strengths") if isinstance(result.get("strengths"), list) else []
         weaknesses = result.get("weaknesses") if isinstance(result.get("weaknesses"), list) else []
         improved_answer = result.get("improved_answer") if isinstance(result.get("improved_answer"), str) else ""
@@ -1679,36 +1710,68 @@ OUTPUT LANGUAGE: {target_lang}
         if not improved_answer:
             improved_answer = "Je structure ma réponse avec la méthode STAR et j'illustre l'impact avec un KPI concret."
 
+        evaluation_scores = result.get("evaluation_scores") if isinstance(result.get("evaluation_scores"), dict) else {}
+        evidence_extraction = result.get("evidence") if isinstance(result.get("evidence"), list) else []
+
         feedback = {
             "score": score,
+            "impact_score": impact_score,
+            "impact_label": impact_label(impact_score),
+            "evaluation_scores": evaluation_scores,
+            "metrics": metrics,
             "strengths": [str(s) for s in strengths[:4]],
             "weaknesses": [str(w) for w in weaknesses[:4]],
-            "improved_answer": improved_answer
+            "improved_answer": improved_answer,
         }
 
         session_id = f"train_{user_id}_{int(datetime.now(timezone.utc).timestamp() * 1000)}"
+
         async with db.get_connection() as conn:
-            # [ROBUSTESSE] Si la colonne tags n'existe pas encore (schema non migré),
-            # on insère sans elle pour ne pas bloquer l'évaluation.
+            # [ROBUSTESSE] Insertion progressive selon le schema migré.
             try:
                 await db.execute(
                     conn,
                     """
-                    INSERT INTO training_sessions (id, user_id, theme, question_type, question_text, user_answer, score, strengths, weaknesses, improved_answer, tags, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, NOW())
+                    INSERT INTO training_sessions (
+                        id, user_id, theme, question_type, question_text, user_answer, score, impact_score,
+                        strengths, weaknesses, improved_answer, tags, metrics, evidence_extraction, evaluation_scores, created_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, NOW())
                     """,
                     (
-                        session_id, user_id, theme, question_type, question_text, user_answer, score,
+                        session_id, user_id, theme, question_type, question_text, user_answer, score, impact_score,
                         json.dumps(feedback["strengths"], ensure_ascii=False),
                         json.dumps(feedback["weaknesses"], ensure_ascii=False),
                         improved_answer,
-                        json.dumps(session_tags, ensure_ascii=False)
+                        json.dumps(session_tags, ensure_ascii=False),
+                        json.dumps(metrics, ensure_ascii=False),
+                        json.dumps(evidence_extraction, ensure_ascii=False),
+                        json.dumps(evaluation_scores, ensure_ascii=False),
                     )
                 )
             except Exception as insert_err:
                 err_msg = str(insert_err).lower()
-                if "column \"tags\"" in err_msg or "tags" in err_msg and "does not exist" in err_msg:
+                if "column \"tags\"" in err_msg or ("tags" in err_msg and "does not exist" in err_msg):
                     print(f"[TRAINING EVALUATE] Column tags missing, inserting without it.", flush=True)
+                    await db.execute(
+                        conn,
+                        """
+                        INSERT INTO training_sessions (
+                            id, user_id, theme, question_type, question_text, user_answer, score, impact_score,
+                            strengths, weaknesses, improved_answer, metrics, created_at
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, NOW())
+                        """,
+                        (
+                            session_id, user_id, theme, question_type, question_text, user_answer, score, impact_score,
+                            json.dumps(feedback["strengths"], ensure_ascii=False),
+                            json.dumps(feedback["weaknesses"], ensure_ascii=False),
+                            improved_answer,
+                            json.dumps(metrics, ensure_ascii=False),
+                        )
+                    )
+                elif "column \"metrics\"" in err_msg or ("metrics" in err_msg and "does not exist" in err_msg) or "column \"impact_score\"" in err_msg or ("impact_score" in err_msg and "does not exist" in err_msg) or "column \"evidence_extraction\"" in err_msg or ("evidence_extraction" in err_msg and "does not exist" in err_msg) or "column \"evaluation_scores\"" in err_msg or ("evaluation_scores" in err_msg and "does not exist" in err_msg):
+                    print(f"[TRAINING EVALUATE] Columns metrics/impact_score/evidence_extraction/evaluation_scores missing, inserting without them.", flush=True)
                     await db.execute(
                         conn,
                         """
@@ -1737,6 +1800,14 @@ OUTPUT LANGUAGE: {target_lang}
                 )
             )
 
+        # Mise à jour du profil stratégique à partir des preuves fournies par le même appel IA
+        try:
+            await update_competency_profile(
+                user_id, attach_source_to_evidence(evidence_extraction, session_id)
+            )
+        except Exception as ev_err:
+            print(f"[TRAINING EVALUATE] Competency profile update failed: {ev_err}", flush=True)
+
         return {"feedback": feedback}
 
     except HTTPException:
@@ -1761,9 +1832,6 @@ async def evaluate_vocal_pitch(payload: dict = Body(...), current_user: dict = D
     target_job = raw_target_job or inferred_target_job or "ce poste"
     target_lang = normalize_language(payload.get("target_language", "French"))
     duration_seconds = payload.get("duration_seconds") or payload.get("duration") or 0
-    transcript_words = [word for word in re.split(r"\s+", transcript.lower()) if word]
-    filler_word_bank = {"euh", "heu", "bah", "voilà", "genre", "en fait", "du coup"}
-    negative_word_bank = {"impossible", "difficile", "hésite", "peur", "problème", "problèmes", "stress"}
 
     if not transcript:
         raise HTTPException(status_code=400, detail="Transcription vide.")
@@ -1775,26 +1843,12 @@ async def evaluate_vocal_pitch(payload: dict = Body(...), current_user: dict = D
 
     await consume_quota(user_id, "pitch", cost=2)
 
-    def _build_metrics() -> dict:
-        duration_minutes = max(duration_seconds, 1) / 60.0
-        wpm = round(len(transcript_words) / duration_minutes) if transcript_words else 0
-        pace_status = "à calibrer"
-        if 90 <= wpm <= 160:
-            pace_status = "bon"
-        elif wpm < 90:
-            pace_status = "lent"
-        elif wpm > 160:
-            pace_status = "rapide"
-
-        filler_words_detected = [word for word in filler_word_bank if word in transcript.lower()]
-        negative_words_detected = [word for word in negative_word_bank if word in transcript.lower()]
-
-        return {
-            "wpm": wpm,
-            "pace_status": pace_status,
-            "filler_words_detected": filler_words_detected,
-            "negative_words_detected": negative_words_detected,
-        }
+    metrics = compute_oral_metrics(
+        transcript=transcript,
+        duration_seconds=duration_seconds,
+        exercise_type="pitch",
+        language=target_lang,
+    )
 
     def _fallback_feedback() -> dict:
         word_count = len([w for w in re.split(r"\s+", transcript) if w])
@@ -1871,7 +1925,6 @@ async def evaluate_vocal_pitch(payload: dict = Body(...), current_user: dict = D
         if not prompt_template:
             raise ValueError("Prompt introuvable: evaluate_pitch_v2.md")
 
-        metrics = _build_metrics()
         context_payload = {
             "POSTE_CIBLE": target_job,
             "ENTREPRISE_CIBLE": target_company,
@@ -1915,6 +1968,13 @@ async def evaluate_vocal_pitch(payload: dict = Body(...), current_user: dict = D
             score = 0
         score = max(0, min(100, score))
 
+        impact_score = result.get("impact_score", score)
+        try:
+            impact_score = int(impact_score)
+        except Exception:
+            impact_score = score
+        impact_score = max(0, min(100, impact_score))
+
         strengths = result.get("strengths") if isinstance(result.get("strengths"), list) else []
         analysis = result.get("analysis") if isinstance(result.get("analysis"), dict) else {}
         improved_pitch = result.get("improved_pitch") if isinstance(result.get("improved_pitch"), str) else ""
@@ -1926,6 +1986,8 @@ async def evaluate_vocal_pitch(payload: dict = Body(...), current_user: dict = D
 
         feedback = {
             "score": score,
+            "impact_score": impact_score,
+            "impact_label": impact_label(impact_score),
             "strengths": [str(s) for s in strengths[:4]] or ["Pitch compréhensible et exploitable."],
             "weaknesses": normalized_weaknesses,
             "subscores": {
@@ -1949,6 +2011,8 @@ async def evaluate_vocal_pitch(payload: dict = Body(...), current_user: dict = D
 
         response = {
             "score": feedback["score"],
+            "impact_score": feedback["impact_score"],
+            "impact_label": feedback["impact_label"],
             "subscores": feedback["subscores"],
             "metrics": metrics,
             "feedback": {
@@ -1978,9 +2042,10 @@ async def evaluate_vocal_pitch(payload: dict = Body(...), current_user: dict = D
         await refund_quota(user_id, "pitch", cost=2)
         print(f"[VOCAL PITCH] Error: {e}", flush=True)
         feedback = _fallback_feedback()
-        metrics = _build_metrics()
         response = {
             "score": feedback["score"],
+            "impact_score": feedback.get("impact_score", feedback["score"]),
+            "impact_label": impact_label(feedback.get("impact_score", feedback["score"])),
             "metrics": metrics,
             "feedback": {
                 "pace_and_silences": feedback["analysis"]["delivery"],
@@ -2002,13 +2067,32 @@ async def evaluate_vocal_pitch(payload: dict = Body(...), current_user: dict = D
         }
 
     session_id = f"pitch_{user_id}_{int(datetime.now(timezone.utc).timestamp() * 1000)}"
+
+    # Persist evaluation evidence extracted by the same AI call used for the feedback
+    evidence_extraction = result.get("evidence") if isinstance(result.get("evidence"), list) else []
+    evaluation_scores = {
+        "score": feedback.get("score", 0),
+        "impact_score": feedback.get("impact_score", feedback.get("score", 0)),
+        "subscores": feedback.get("subscores", {}),
+    }
+
+    try:
+        await update_competency_profile(
+            user_id, attach_source_to_evidence(evidence_extraction, session_id)
+        )
+    except Exception as ev_err:
+        print(f"[VOCAL PITCH] Competency profile update failed: {ev_err}", flush=True)
+
     try:
         async with db.get_connection() as conn:
             await db.execute(
                 conn,
                 """
-                INSERT INTO training_sessions (id, user_id, theme, question_type, question_text, user_answer, score, strengths, weaknesses, improved_answer, tags, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, NOW())
+                INSERT INTO training_sessions (
+                    id, user_id, theme, question_type, question_text, user_answer, score, impact_score,
+                    strengths, weaknesses, improved_answer, tags, metrics, evidence_extraction, evaluation_scores, created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, NOW())
                 """,
                 (
                     session_id,
@@ -2018,10 +2102,14 @@ async def evaluate_vocal_pitch(payload: dict = Body(...), current_user: dict = D
                     target_company or job_description or "Pitch oral",
                     transcript,
                     int(feedback.get("score") or 0),
+                    int(feedback.get("impact_score") or feedback.get("score") or 0),
                     json.dumps(feedback.get("strengths") or [], ensure_ascii=False),
                     json.dumps(feedback.get("weaknesses") or [], ensure_ascii=False),
                     str(feedback.get("improved_pitch") or ""),
                     json.dumps(["pitch", "oral"], ensure_ascii=False),
+                    json.dumps(metrics, ensure_ascii=False),
+                    json.dumps(evidence_extraction, ensure_ascii=False),
+                    json.dumps(evaluation_scores, ensure_ascii=False),
                 )
             )
     except Exception as e:
@@ -3515,3 +3603,40 @@ async def generate_roadmap_endpoint(payload: dict = Body(...), current_user: dic
             "posture_advice": "Soyez à l'écoute, adoptez une voix posée et dynamique, et faites preuve d'assurance humble."
         }
     }
+
+
+@router.get("/candidate/evidence")
+async def list_candidate_evidence(
+    competency: str | None = None,
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Liste les preuves factuelles extraites des entraînements du candidat.
+    Filtre optionnel par compétence.
+    """
+    user_id = current_user.get("id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Utilisateur non authentifié")
+    try:
+        items = await get_candidate_evidence(user_id, competency=competency)
+        return {"evidence": items}
+    except Exception as e:
+        print(f"[CANDIDATE EVIDENCE] Error: {e}", flush=True)
+        raise HTTPException(status_code=500, detail="Erreur lors de la récupération des preuves.")
+
+
+@router.get("/candidate/competency-profile")
+async def get_candidate_competency_profile(current_user: dict = Depends(get_current_user)):
+    """
+    Retourne le profil de compétences stratégiques du candidat,
+    calculé à partir des preuves accumulées dans tous les entraînements oraux.
+    """
+    user_id = current_user.get("id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Utilisateur non authentifié")
+    try:
+        profile = await get_competency_profile(user_id)
+        return {"competency_profile": profile}
+    except Exception as e:
+        print(f"[COMPETENCY PROFILE] Error: {e}", flush=True)
+        raise HTTPException(status_code=500, detail="Erreur lors de la récupération du profil de compétences.")

@@ -13,6 +13,7 @@ import { useVideoRecorder } from '../hooks/useVideoRecorder';
 import { VideoPreview } from './VideoPreview';
 import { savePostureSession } from '../utils/postureStorage';
 import { Button } from './common';
+import { OralFeedbackCard } from './OralFeedbackCard';
 
 interface QuestionnaireProps {
   questions: any[];
@@ -46,6 +47,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
   // Nouveaux états pour le mode interactif (Entraînement)
   const videoRecorder = useVideoRecorder();
   const [recordingModes, setRecordingModes] = useState<Record<string, 'voice' | 'video'>>({});
+  const [recordingStartTimes, setRecordingStartTimes] = useState<Record<string, number>>({});
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
   const [activeMode, setActiveMode] = useState<Record<string, boolean>>({});
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>(cvData?.[userAnswersKey] || {});
@@ -124,7 +126,8 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
     const newF = {...feedbacks}; delete newF[qKey];
     const newA = {...userAnswers}; delete newA[qKey];
     const newE = {...errors}; delete newE[qKey];
-    setFeedbacks(newF); setUserAnswers(newA); setErrors(newE);
+    const newS = {...recordingStartTimes}; delete newS[qKey];
+    setFeedbacks(newF); setUserAnswers(newA); setErrors(newE); setRecordingStartTimes(newS);
     if (updateFormData) { updateFormData(feedbacksKey, newF); updateFormData(userAnswersKey, newA); }
     
     setActiveMode(prev => ({...prev, [qKey]: true}));
@@ -173,6 +176,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
       recognition.start();
       recognitionRef.current = recognition;
       setIsRecording(qKey);
+      setRecordingStartTimes(prev => ({ ...prev, [qKey]: prev[qKey] || Date.now() }));
     } catch (e) {
       setIsRecording(null);
     }
@@ -193,6 +197,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
     }
 
     setRecordingModes(prev => ({ ...prev, [qKey]: 'voice' }));
+    setRecordingStartTimes(prev => ({ ...prev, [qKey]: prev[qKey] || Date.now() }));
     startSpeechRecognition(qKey);
   };
 
@@ -210,6 +215,7 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
       const ok = await videoRecorder.startVideo(qKey);
       if (ok) {
         setRecordingModes(prev => ({ ...prev, [qKey]: 'video' }));
+        setRecordingStartTimes(prev => ({ ...prev, [qKey]: prev[qKey] || Date.now() }));
         startSpeechRecognition(qKey);
       }
     }
@@ -241,6 +247,9 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
     const suggestedAnswer = q.suggested_answer || q.answer || q.reponse_suggeree || q.reponse || "";
     
     try {
+      const startTime = recordingStartTimes[qKey];
+      const durationSeconds = startTime ? Math.round((Date.now() - startTime) / 1000) : 0;
+
       const response = await authenticatedFetch(`${API_BASE_URL}${evalEndpoint || '/cv/training/evaluate'}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -254,7 +263,8 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
             question_type: q.type,
             question_text: questionText,
             interview_format: cvData?.interview_format,
-            stress_level: cvData?.stress_level
+            stress_level: cvData?.stress_level,
+            duration_seconds: durationSeconds || undefined,
         }),
       });
       
@@ -311,17 +321,13 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
                 {t('back_productions') || 'Retour'}
               </Button>
             ) : <div />}
-            <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-main)' }}>
-              <MessageSquare size={28} color="var(--primary)" />
-              {t('card_interview_title') || 'Questionnaire d\'Entretien'}
-            </h2>
             {onPrint ? (
               <Button variant="primary" module="training" size="sm" icon={<Printer size={16} />} onClick={() => onPrint(questions)} disabled={loading}>
                 {loading ? t('generating') : (t('print') || 'Imprimer')}
               </Button>
             ) : <div />}
           </div>
-          
+
           <div style={{ background: 'var(--bg-card)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
             <Lightbulb size={20} color="#eab308" style={{ flexShrink: 0 }} />
             <span><strong>Indicateur de difficulté :</strong> De ★ (Question abordable) à ★★★★★ (Mise en situation complexe ou question piège). Et la dernière question vous permet de vous entraîner à l'inversion de rôle !</span>
@@ -535,15 +541,23 @@ export default function Questionnaire({ questions, onBack, onPrint, onUpdate, lo
             {/* FEEDBACK IA APRÈS ENTRAÎNEMENT */}
             {isDone && showFeedback && (
               <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', animation: 'fadeIn 0.4s ease-out' }}>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', position: 'relative' }}>
-                    <ScoreGauge score={feedback.score / 10} label={t('q_impact_score', "Impact de la réponse")} />
-                    <div style={{ flex: 1 }}>
-                       <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>{t('q_ai_diagnostic', 'Diagnostic IA')}</h4>
-                       <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-                         {feedback.score >= 80 ? t('q_diag_excellent', "Excellente réponse, très bien structurée.") : feedback.score >= 50 ? t('q_diag_good', "Bonne base, mais manque de structure ou de pragmatisme.") : t('q_diag_poor', "Réponse à retravailler, les attentes du recruteur ne sont pas couvertes.")}
-                       </p>
+                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', position: 'relative' }}>
+                       <ScoreGauge score={feedback.score / 10} label={t('q_impact_score', "Impact de la réponse")} />
+                       <div style={{ flex: 1 }}>
+                          <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>{t('q_ai_diagnostic', 'Diagnostic IA')}</h4>
+                          <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem' }}>
+                            {feedback.score >= 80 ? t('q_diag_excellent', "Excellente réponse, très bien structurée.") : feedback.score >= 50 ? t('q_diag_good', "Bonne base, mais manque de structure ou de pragmatisme.") : t('q_diag_poor', "Réponse à retravailler, les attentes du recruteur ne sont pas couvertes.")}
+                          </p>
+                       </div>
+                       <button onClick={() => setShowFeedbackDetails(prev => ({...prev, [qKey]: false}))} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }} title="Fermer"><EyeOff size={16} /> {t('q_hide', 'Masquer')}</button>
                     </div>
-                    <button onClick={() => setShowFeedbackDetails(prev => ({...prev, [qKey]: false}))} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }} title="Fermer"><EyeOff size={16} /> {t('q_hide', 'Masquer')}</button>
+                    <OralFeedbackCard
+                       metrics={feedback.metrics}
+                       impactScore={feedback.impact_score ?? feedback.score}
+                       impactLabel={feedback.impact_label}
+                       title="Qualité orale"
+                    />
                  </div>
                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
                     <div style={{ background: 'rgba(34, 197, 94, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(34, 197, 94, 0.2)' }}>

@@ -95,7 +95,51 @@ def create_tables():
         # --- MIGRATIONS POUR LA TABLE 'training_sessions' ---
         cur.execute("ALTER TABLE training_sessions ADD COLUMN IF NOT EXISTS tags JSONB DEFAULT '[]'::jsonb;")
         cur.execute("ALTER TABLE training_sessions ADD COLUMN IF NOT EXISTS application_id TEXT REFERENCES job_applications(id) ON DELETE SET NULL;")
+        cur.execute("ALTER TABLE training_sessions ADD COLUMN IF NOT EXISTS metrics JSONB;")
+        cur.execute("ALTER TABLE training_sessions ADD COLUMN IF NOT EXISTS impact_score INTEGER;")
+        cur.execute("ALTER TABLE training_sessions ADD COLUMN IF NOT EXISTS evidence_extraction JSONB;")
+        cur.execute("ALTER TABLE training_sessions ADD COLUMN IF NOT EXISTS evaluation_scores JSONB;")
         print("✅ Table 'training_sessions' migrated.")
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS candidate_evidence (
+                id TEXT PRIMARY KEY,
+                user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+                source_answer_id TEXT REFERENCES training_sessions(id) ON DELETE SET NULL,
+                source_type TEXT DEFAULT 'training',
+                evidence_type TEXT,
+                competency TEXT,
+                title TEXT,
+                description TEXT,
+                metric_value TEXT,
+                metric_unit TEXT,
+                scope TEXT,
+                duration TEXT,
+                context TEXT,
+                confidence_score NUMERIC(4,3),
+                verification_status TEXT DEFAULT 'candidate_declared',
+                first_detected_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                last_confirmed_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                usage_count INTEGER DEFAULT 1
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS candidate_competency_scores (
+                user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+                competency TEXT,
+                score INTEGER,
+                demonstration_score INTEGER,
+                evidence_strength INTEGER,
+                evidence_count INTEGER DEFAULT 0,
+                strong_evidence_count INTEGER DEFAULT 0,
+                weak_evidence_count INTEGER DEFAULT 0,
+                trend TEXT DEFAULT 'stable',
+                confidence TEXT DEFAULT 'moyenne',
+                last_updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, competency)
+            )
+        """)
+        print("✅ Tables 'candidate_evidence' & 'candidate_competency_scores' migrated.")
 
         # --- MIGRATIONS POUR LA TABLE 'interview_debriefs' ---
         cur.execute("ALTER TABLE interview_debriefs ADD COLUMN IF NOT EXISTS analysis_result JSONB;")

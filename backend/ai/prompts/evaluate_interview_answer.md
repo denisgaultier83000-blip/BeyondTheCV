@@ -27,6 +27,31 @@ Tu dois analyser si la réponse est structurée, si elle répond vraiment à la 
 ```json
 {
   "score": 70,
+  "impact_score": 68,
+  "evaluation_scores": {
+    "relevance_score": 8,
+    "specificity_score": 5,
+    "evidence_score": 4,
+    "structure_score": 8,
+    "credibility_score": 8,
+    "impact_score": 6,
+    "clarity_score": 9,
+    "language_score": 8
+  },
+  "evidence": [
+    {
+      "evidence_type": "achievement",
+      "competency": "communication_strategique",
+      "title": "Campagne d'influence Havas",
+      "description": "Pilotage d'une campagne d'influence nationale",
+      "metric_value": "",
+      "metric_unit": "",
+      "scope": "national",
+      "duration": "4 mois",
+      "context": "client national",
+      "confidence_score": 0.85
+    }
+  ],
   "strengths": [
     "Point fort 1 (ex: Très bon exemple choisi)",
     "Point fort 2"
@@ -38,3 +63,8 @@ Tu dois analyser si la réponse est structurée, si elle répond vraiment à la 
   "improved_answer": "La version idéale, réécrite avec de l'impact, prête à être prononcée à l'oral."
 }
 ```
+
+- `score` : évaluation globale de la réponse (/100).
+- `impact_score` : évaluation spécifique de la force de conviction, de la clarté et de la crédibilité à l'oral (/100). Peut être légèrement différent du score global.
+- `evaluation_scores` : décomposition fine de la qualité de la réponse (sur 10, sauf indication contraire).
+- `evidence` : liste des faits réutilisables extraits. N'invente aucun chiffre. Utilise `candidate_declared` comme statut implicite.

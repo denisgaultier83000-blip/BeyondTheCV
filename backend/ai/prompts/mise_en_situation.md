@@ -46,6 +46,7 @@ Si le profil du candidat précise un type d'entretien (dans l'objet `meta.interv
   "adapted_scenario": "Le scénario de base, reformulé et adapté au profil du candidat.",
   "user_answer_analyzed": "<user_answer>CONTENU DE LA REPONSE DU CANDIDAT ICI</user_answer>",
   "score": 65,
+  "impact_score": 62,
   "strengths": [
     "Point fort 1 (ex: Bonne réactivité face à l'urgence)",
     "Point fort 2"

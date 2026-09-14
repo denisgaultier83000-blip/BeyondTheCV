@@ -173,6 +173,8 @@ async def lifespan(app: FastAPI):
                                 weaknesses JSONB,
                                 improved_answer TEXT,
                                 tags JSONB DEFAULT '[]'::jsonb,
+                                metrics JSONB,
+                                impact_score INTEGER,
                                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                             )
                         """)

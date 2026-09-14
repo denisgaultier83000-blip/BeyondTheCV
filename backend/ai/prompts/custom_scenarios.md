@@ -12,6 +12,7 @@ Générer EXACTEMENT 3 thèmes de Mises en Situation (MES), contenant chacun EXA
 - **Icônes autorisées :** Pour chaque thème, choisis une icône parmi cette liste exacte : `AlertTriangle`, `Users`, `MessageSquare`, `ListChecks`, `BrainCircuit`, `Shield`.
 - **Format de l'ID :** Génère un identifiant unique court pour chaque scénario (ex: `crisis_01`).
 - **LANGUE :** Les scénarios générés doivent impérativement être rédigés dans la langue du poste ciblé. Ne mélange pas les langues.
+- **CASSE FRANÇAISE STANDARD :** Dans les titres de thèmes et de scénarios, utilise une majuscule uniquement en début de phrase et pour les noms propres. Évite absolument le Title Case anglais. Exemple correct : 'Gestion de crise en communication institutionnelle'. Exemple interdit : 'Gestion de Crise en Communication Institutionnelle'.
 
 ## 📦 FORMAT DE SORTIE (JSON STRICT)
 ```json

@@ -10,6 +10,7 @@ import { AsyncBoundary } from './AsyncBoundary';
 import { useVideoRecorder } from '../hooks/useVideoRecorder';
 import { VideoPreview } from './VideoPreview';
 import { savePostureSession } from '../utils/postureStorage';
+import { OralFeedbackCard } from './OralFeedbackCard';
 
 export default function SalaryNegotiator() {
   const { cvData, salaryResult, updateFormData, quotas, fetchQuotas } = useDashboard();
@@ -29,6 +30,8 @@ export default function SalaryNegotiator() {
   const [isEditingExpectations, setIsEditingExpectations] = useState(false);
   
   const [history, setHistory] = useState<any[]>(cvData?.negotiationHistory || []);
+  const [negotiationDuration, setNegotiationDuration] = useState(0);
+  const negotiationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const incoming = String(cvData?.salary_expectations || '').trim();
@@ -143,7 +146,26 @@ export default function SalaryNegotiator() {
       }
     }
   };
-  
+
+  // Chronomètre simple pour mesurer la durée de la réponse orale
+  useEffect(() => {
+    if (feedback) {
+      if (negotiationTimerRef.current) clearInterval(negotiationTimerRef.current);
+      return;
+    }
+    if (userAnswer.trim() && !negotiationTimerRef.current) {
+      negotiationTimerRef.current = setInterval(() => {
+        setNegotiationDuration(prev => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (negotiationTimerRef.current) {
+        clearInterval(negotiationTimerRef.current);
+        negotiationTimerRef.current = null;
+      }
+    };
+  }, [userAnswer, feedback]);
+
   // Le recruteur utilise l'estimation basse du marché de l'IA pour créer la tension
   const currencySymbol = salaryResult?.currency === 'USD' ? '$' : '€';
   const marketLowNum = salaryResult?.salary_range?.low;
@@ -214,7 +236,8 @@ export default function SalaryNegotiator() {
         body: JSON.stringify({
           candidate_profile: cvData,
           recruiter_prompt: recruiterPrompt,
-          user_answer: userAnswer
+          user_answer: userAnswer,
+          duration_seconds: negotiationDuration || undefined,
         })
       });
 
@@ -391,13 +414,19 @@ export default function SalaryNegotiator() {
         </AsyncBoundary>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', animation: 'slideUp 0.4s ease-out' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
-            <ScoreGauge score={feedback.score / 10} label="Force de persuasion" />
-            <div style={{ flex: 1 }}>
-               <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-                 {feedback.score >= 80 ? "Excellente défense ! Vous avez maintenu votre valeur sans braquer le recruteur." : feedback.score >= 50 ? "Pas mal, mais vous laissez trop d'argent sur la table ou manquez d'arguments de valeur." : "Attention, votre réponse risque de clore la négociation prématurément."}
-               </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
+            <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <ScoreGauge score={feedback.score / 10} label="Force de persuasion" />
+              <p style={{ margin: '0.75rem 0 0 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                {feedback.score >= 80 ? "Excellente défense ! Vous avez maintenu votre valeur sans braquer le recruteur." : feedback.score >= 50 ? "Pas mal, mais vous laissez trop d'argent sur la table ou manquez d'arguments de valeur." : "Attention, votre réponse risque de clore la négociation prématurément."}
+              </p>
             </div>
+            <OralFeedbackCard
+              metrics={feedback.metrics}
+              impactScore={feedback.impact_score ?? feedback.score}
+              impactLabel={feedback.impact_label}
+              title="Qualité orale"
+            />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
@@ -417,7 +446,7 @@ export default function SalaryNegotiator() {
           </div>
 
           <div style={{ textAlign: 'right' }}>
-            <button onClick={() => { setFeedback(null); setUserAnswer(""); }} className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button onClick={() => { setFeedback(null); setUserAnswer(""); setNegotiationDuration(0); }} className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
               <RefreshCw size={16} /> Retenter ma chance
             </button>
           </div>

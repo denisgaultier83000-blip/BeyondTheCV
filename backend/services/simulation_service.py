@@ -1,4 +1,6 @@
 import json
+import uuid
+from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Body, Depends
 from typing import Optional, Dict, Any
 from pydantic import BaseModel
@@ -12,6 +14,8 @@ from database import db
 from .ai_generator import ai_service
 from .ai_feature_caller import ai_call
 from .utils import load_prompt, clean_ai_json_response, normalize_language, consume_quota, refund_quota
+from .oral_metrics_service import compute_oral_metrics, impact_label
+from .evidence_service import update_competency_profile, attach_source_to_evidence
 
 router = APIRouter(
     prefix="/cv",
@@ -32,6 +36,7 @@ class NegotiationSimulationRequest(BaseModel):
     candidate_profile: dict
     recruiter_prompt: str
     user_answer: str
+    duration_seconds: Optional[float] = 0
 
 @router.post("/coach-keyword")
 async def coach_keyword(request: dict = Body(...), current_user: dict = Depends(get_current_user)):
@@ -231,37 +236,75 @@ async def simulate_situation(request: SituationSimulationRequest, current_user: 
 
 @router.post("/simulate-negotiation")
 async def simulate_negotiation(request: NegotiationSimulationRequest, current_user: dict = Depends(get_current_user)):
-    """Analyse la façon dont le candidat négocie ou défend son salaire face à une objection du recruteur."""
-    
+    """Analyse la façon dont le candidat négocie ou défend son salaire face à une objection du recruteur.
+    Intègre les métriques orales locales et un score d'impact sans appel IA supplémentaire.
+    """
+
     await consume_quota(current_user["id"], "negotiation", cost=1)
-    
+
     target_lang = normalize_language(request.candidate_profile.get('target_language', 'French'))
     salary_expectations = request.candidate_profile.get('salary_expectations', 'Non spécifié')
     target_job = request.candidate_profile.get('target_job', 'Poste visé')
-    
+
+    metrics = compute_oral_metrics(
+        transcript=request.user_answer,
+        duration_seconds=request.duration_seconds or 0,
+        exercise_type="negotiation",
+        language=target_lang,
+    )
+
     prompt = f"""
     Tu es un Directeur des Ressources Humaines et un Négociateur Expert.
     Ta mission est d'évaluer la façon dont le candidat défend ses prétentions salariales.
-    
+
     CONTEXTE :
     Poste visé : {target_job}
     Profil du candidat : {json.dumps(_sanitize_for_prompt(request.candidate_profile), default=str)}
     Prétentions salariales du candidat : {salary_expectations}
-    
+
     LE RECRUTEUR A DÉCLARÉ : "{request.recruiter_prompt}"
     RÉPONSE DU CANDIDAT : "{request.user_answer}"
-    
+
+    MÉTRIQUES ORALES LOCALES :
+    - Débit : {metrics['wpm']} mots/minute ({metrics['pace_status']})
+    - Formulations affaiblissantes détectées : {metrics['negative_count']}
+    - Tics de langage détectés : {metrics['filler_count']}
+    - Longueur : {metrics['word_count']} mots
+
     Évalue la réponse du candidat :
     - Est-il trop agressif ou au contraire trop timide ?
     - S'est-il justifié par ses besoins personnels (mauvais) ou par sa valeur ajoutée/ROI (excellent) ?
     - A-t-il gardé la porte ouverte à la négociation (avantages, primes) ?
-    
+    - Sanctionne fortement les formulations affaiblissantes ("désolé", "peut-être", "un peu", "si c'est possible", etc.).
+
     OUTPUT STRICT JSON:
     {{
         "score": 75,
+        "impact_score": 72,
         "strengths": ["..."],
         "weaknesses": ["..."],
-        "improved_answer": "La réponse idéale mot à mot (méthode d'ancrage, ouverture, ou justification par la valeur)."
+        "improved_answer": "La réponse idéale mot à mot (méthode d'ancrage, ouverture, ou justification par la valeur).",
+        "evidence": [
+            {{
+                "evidence_type": "skill_signal",
+                "competency": "negociation",
+                "title": "Preuve de négociation détectée",
+                "description": "Fait clé démontré dans la réponse",
+                "metric_value": "",
+                "metric_unit": "",
+                "scope": "",
+                "duration": "",
+                "context": "négociation salariale",
+                "confidence_score": 0.8
+            }}
+        ],
+        "evaluation_scores": {{
+            "overall_score": 75,
+            "value_argument_score": 8,
+            "anchoring_score": 7,
+            "openness_score": 8,
+            "confidence_score": 7
+        }}
     }}
     LANGUAGE: {target_lang}
     """
@@ -272,15 +315,78 @@ async def simulate_negotiation(request: NegotiationSimulationRequest, current_us
             system_instruction="You are an Expert Salary Negotiator. Output STRICT JSON.",
             json_mode=True,
         )
-        
-        # Sanitisation des tableaux
+
+        # Sanitisation des tableaux et des scores
         if not isinstance(feedback.get("strengths"), list):
             s = feedback.get("strengths")
             feedback["strengths"] = [s] if s and isinstance(s, str) else []
         if not isinstance(feedback.get("weaknesses"), list):
             w = feedback.get("weaknesses")
             feedback["weaknesses"] = [w] if w and isinstance(w, str) else []
-            
+
+        score = feedback.get("score", 0)
+        try:
+            score = int(score)
+        except Exception:
+            score = 0
+        score = max(0, min(100, score))
+        feedback["score"] = score
+
+        impact_score = feedback.get("impact_score", score)
+        try:
+            impact_score = int(impact_score)
+        except Exception:
+            impact_score = score
+        impact_score = max(0, min(100, impact_score))
+        feedback["impact_score"] = impact_score
+        feedback["impact_label"] = impact_label(impact_score)
+        feedback["metrics"] = metrics
+
+        # Persistance de la session de négociation et mise à jour du profil stratégique
+        user_id = current_user.get("id")
+        session_id = f"nego_{user_id}_{int(datetime.now(timezone.utc).timestamp() * 1000)}"
+        evidence_extraction = feedback.get("evidence") if isinstance(feedback.get("evidence"), list) else []
+        evaluation_scores = feedback.get("evaluation_scores") if isinstance(feedback.get("evaluation_scores"), dict) else {}
+
+        try:
+            await update_competency_profile(
+                user_id, attach_source_to_evidence(evidence_extraction, session_id)
+            )
+        except Exception as ev_err:
+            print(f"[NEGOTIATION] Competency profile update failed: {ev_err}", flush=True)
+
+        try:
+            async with db.get_connection() as conn:
+                await db.execute(
+                    conn,
+                    """
+                    INSERT INTO training_sessions (
+                        id, user_id, theme, question_type, question_text, user_answer, score, impact_score,
+                        strengths, weaknesses, improved_answer, tags, metrics, evidence_extraction, evaluation_scores, created_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, NOW())
+                    """,
+                    (
+                        session_id,
+                        user_id,
+                        target_job,
+                        "NEGOTIATION",
+                        request.recruiter_prompt,
+                        request.user_answer,
+                        score,
+                        impact_score,
+                        json.dumps(feedback.get("strengths") or [], ensure_ascii=False),
+                        json.dumps(feedback.get("weaknesses") or [], ensure_ascii=False),
+                        str(feedback.get("improved_answer") or ""),
+                        json.dumps(["negotiation", "oral", "salary"], ensure_ascii=False),
+                        json.dumps(metrics, ensure_ascii=False),
+                        json.dumps(evidence_extraction, ensure_ascii=False),
+                        json.dumps(evaluation_scores, ensure_ascii=False),
+                    )
+                )
+        except Exception as save_err:
+            print(f"[NEGOTIATION] History save failed: {save_err}", flush=True)
+
         return {"feedback": feedback}
     except HTTPException:
         await refund_quota(current_user["id"], "negotiation", cost=1)

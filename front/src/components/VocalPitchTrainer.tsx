@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Square, Play, RotateCcw, Loader2, Activity, MessageSquare, AlertTriangle, CheckCircle2, Dumbbell, Ban, Video, VideoOff } from 'lucide-react';
+import { Mic, Square, Play, RotateCcw, Loader2, Activity, MessageSquare, AlertTriangle, Dumbbell, Video, VideoOff } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +11,7 @@ import { FeedbackWidget } from './FeedbackWidget';
 import { useVideoRecorder } from '../hooks/useVideoRecorder';
 import { VideoPreview } from './VideoPreview';
 import { Button } from './common';
+import { OralFeedbackCard } from './OralFeedbackCard';
 
 interface VocalPitchTrainerProps {
   targetJob?: string;
@@ -275,28 +276,12 @@ export const VocalPitchTrainer = ({ targetJob = "", targetCompany, jobDescriptio
 
       {result && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', animation: 'fadeIn 0.5s ease-out' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
-            <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-              <Activity size={24} color="#3b82f6" style={{ margin: '0 auto 0.5rem auto' }} />
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-main)' }}>{result.metrics.wpm}</div>
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Mots / Minute ({result.metrics.pace_status})</div>
-            </div>
-            <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-              <AlertTriangle size={24} color="#f59e0b" style={{ margin: '0 auto 0.5rem auto' }} />
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#b45309' }}>{Array.isArray(result.metrics?.filler_words_detected) && result.metrics.filler_words_detected.length > 0 ? result.metrics.filler_words_detected.join(', ') : "Aucun"}</div>
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Tics de langage</div>
-            </div>
-            <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-              <Ban size={24} color="#ef4444" style={{ margin: '0 auto 0.5rem auto' }} />
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#b91c1c' }}>{Array.isArray(result.metrics?.negative_words_detected) && result.metrics.negative_words_detected.length > 0 ? result.metrics.negative_words_detected.join(', ') : "Aucun"}</div>
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Mots dévalorisants</div>
-            </div>
-            <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-              <CheckCircle2 size={24} color="#10b981" style={{ margin: '0 auto 0.5rem auto' }} />
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#047857' }}>{result.score}/100</div>
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Score d'Impact</div>
-            </div>
-          </div>
+          <OralFeedbackCard
+            metrics={result.metrics}
+            impactScore={result.impact_score ?? result.score}
+            impactLabel={result.impact_label}
+            title="Qualité de votre réponse orale"
+          />
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
             <div style={{ padding: '1.5rem', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '0.75rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>

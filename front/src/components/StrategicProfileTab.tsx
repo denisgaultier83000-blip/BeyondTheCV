@@ -187,6 +187,16 @@ const scoreDeltaLabel = (delta: number | null) => {
   return 'Stable';
 };
 
+const getCompetencyScore = (profile: any[], competency: string): number => {
+  const item = profile.find((p) => String(p?.competency || '').toLowerCase() === competency.toLowerCase());
+  return item ? clamp(toNumber(item.score)) : 0;
+};
+
+const getCompetencyEvidenceCount = (profile: any[], competency: string): number => {
+  const item = profile.find((p) => String(p?.competency || '').toLowerCase() === competency.toLowerCase());
+  return item ? toNumber(item.evidence_count) : 0;
+};
+
 export function StrategicProfileTab({ onNavigate, profileCompletion, profileRecommendations }: StrategicProfileTabProps) {
   const {
     cvData,
@@ -207,6 +217,8 @@ export function StrategicProfileTab({ onNavigate, profileCompletion, profileReco
   const [trainingHistory, setTrainingHistory] = useState<HistoryEntry[]>([]);
   const [interviewHistory, setInterviewHistory] = useState<HistoryEntry[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [competencyProfile, setCompetencyProfile] = useState<any[]>([]);
+  const [isLoadingCompetencyProfile, setIsLoadingCompetencyProfile] = useState(false);
   const [selectedAxis, setSelectedAxis] = useState<AxisDefinition | null>(null);
 
   useEffect(() => {
@@ -214,10 +226,12 @@ export function StrategicProfileTab({ onNavigate, profileCompletion, profileReco
 
     const loadHistory = async () => {
       setIsLoadingHistory(true);
+      setIsLoadingCompetencyProfile(true);
       try {
-        const [trainingRes, interviewRes] = await Promise.all([
+        const [trainingRes, interviewRes, competencyRes] = await Promise.all([
           authenticatedFetch('/cv/training/history'),
-          authenticatedFetch('/cv/interview/history')
+          authenticatedFetch('/cv/interview/history'),
+          authenticatedFetch('/cv/candidate/competency-profile')
         ]);
 
         if (!cancelled && trainingRes.ok) {
@@ -257,13 +271,22 @@ export function StrategicProfileTab({ onNavigate, profileCompletion, profileReco
             .filter((entry: HistoryEntry | null) => Boolean(entry));
           setInterviewHistory(normalizedInterview as HistoryEntry[]);
         }
+
+        if (!cancelled && competencyRes.ok) {
+          const competencyData = await competencyRes.json();
+          setCompetencyProfile(Array.isArray(competencyData?.competency_profile) ? competencyData.competency_profile : []);
+        }
       } catch {
         if (!cancelled) {
           setTrainingHistory([]);
           setInterviewHistory([]);
+          setCompetencyProfile([]);
         }
       } finally {
-        if (!cancelled) setIsLoadingHistory(false);
+        if (!cancelled) {
+          setIsLoadingHistory(false);
+          setIsLoadingCompetencyProfile(false);
+        }
       }
     };
 
@@ -275,6 +298,15 @@ export function StrategicProfileTab({ onNavigate, profileCompletion, profileReco
 
   const profile = useMemo(() => {
     const experiences = Array.isArray(cvData?.experiences) ? cvData.experiences : [];
+
+    const competencyLeadership = getCompetencyScore(competencyProfile, 'leadership');
+    const competencyCommunication = getCompetencyScore(competencyProfile, 'communication_strategique');
+    const competencyCrisis = getCompetencyScore(competencyProfile, 'gestion_de_crise');
+    const competencyNegotiation = getCompetencyScore(competencyProfile, 'negociation');
+    const competencyResults = getCompetencyScore(competencyProfile, 'resultats_chiffres');
+    const competencyManagement = getCompetencyScore(competencyProfile, 'management');
+    const hasCompetencySignals = competencyProfile.length > 0;
+
     const simulatorScores = Object.values(cvData?.simulatorScores || {})
       .map((value) => toNumber(value))
       .filter((value) => value > 0);
@@ -379,7 +411,9 @@ export function StrategicProfileTab({ onNavigate, profileCompletion, profileReco
       Math.min(32, quantifiedExperienceCount * 10) +
       gapScore * 0.32 +
       recruiterReassurance * 5 +
-      (generalBoost ? 6 : 0)
+      (generalBoost ? 6 : 0) +
+      (competencyResults > 0 ? competencyResults * 0.22 : 0) +
+      (competencyCommunication > 0 ? competencyCommunication * 0.08 : 0)
     );
 
     const jobFit = clamp(
@@ -417,7 +451,11 @@ export function StrategicProfileTab({ onNavigate, profileCompletion, profileReco
       recruiterReassurance * 6 +
       (simulatorAverage > 0 ? simulatorAverage * 0.16 : 0) -
       recruiterRedFlags * 4 +
-      (generalBoost ? 6 : 0)
+      (generalBoost ? 6 : 0) +
+      (competencyLeadership > 0 ? competencyLeadership * 0.25 : 0) +
+      (competencyManagement > 0 ? competencyManagement * 0.18 : 0) +
+      (competencyCrisis > 0 ? competencyCrisis * 0.12 : 0) +
+      (competencyCommunication > 0 ? competencyCommunication * 0.1 : 0)
     );
 
     const claritySignals = [pitchText, questionCount > 0, simulatorAverage > 0].filter(Boolean).length;
@@ -425,15 +463,27 @@ export function StrategicProfileTab({ onNavigate, profileCompletion, profileReco
     const jobFitSignals = [hasJobDescription, gapScore > 0, hasJobDecoder, targetJobReady].filter(Boolean).length;
     const companyKnowledgeSignals = [targetCompanyReady, hasCompanyResearch, hasMarketResearch].filter(Boolean).length;
     const objectionsSignals = [flawCount > 0, hasJobDecoder, scenarioCount > 0, questionCount > 0].filter(Boolean).length;
-    const leadershipSignals = [experiences.length > 0, hasRecruiterSignals, simulatorAverage > 0].filter(Boolean).length;
-    const salarySignals = [salaryRangeReady, salaryExpectationsReady, negotiationAverage > 0, negotiationHistory.length > 0].filter(Boolean).length;
+    const leadershipSignals = [
+      experiences.length > 0,
+      hasRecruiterSignals,
+      simulatorAverage > 0,
+      competencyLeadership > 0 || competencyManagement > 0 || competencyCrisis > 0
+    ].filter(Boolean).length;
+    const salarySignals = [
+      salaryRangeReady,
+      salaryExpectationsReady,
+      negotiationAverage > 0,
+      negotiationHistory.length > 0,
+      competencyNegotiation > 0
+    ].filter(Boolean).length;
 
     const salary = clamp(
       15 +
       (salaryRangeReady ? 24 : 0) +
       (salaryExpectationsReady ? 18 : 0) +
       (negotiationAverage > 0 ? negotiationAverage * 0.25 : 0) +
-      Math.min(16, negotiationHistory.length * 4)
+      Math.min(16, negotiationHistory.length * 4) +
+      (competencyNegotiation > 0 ? competencyNegotiation * 0.22 : 0)
     );
 
     const axisDefinitions: AxisDefinition[] = [
@@ -550,14 +600,18 @@ export function StrategicProfileTab({ onNavigate, profileCompletion, profileReco
         signalCount: leadershipSignals,
         color: colorForScore(leadership),
         level: levelForScore(leadership),
-        why: hasRecruiterSignals
-          ? 'Votre posture a été évaluée dans des simulations et des signaux recruteur, avec encore des points à consolider.'
-          : 'Le leadership reste encore peu observable sans simulations et sans regard recruteur.',
+        why: hasCompetencySignals
+          ? 'Vos entraînements oraux alimentent un profil de leadership évolutif basé sur des preuves détectées.'
+          : hasRecruiterSignals
+            ? 'Votre posture a été évaluée dans des simulations et des signaux recruteur, avec encore des points à consolider.'
+            : 'Le leadership reste encore peu observable sans simulations et sans regard recruteur.',
         evidence: [
           `${experiences.length} expérience(s) alimentent actuellement le profil.`,
           hasRecruiterSignals ? `La vue recruteur a identifié ${recruiterReassurance} point(s) rassurant(s) et ${recruiterRedFlags} point(s) de vigilance.` : 'La vue recruteur n\'a pas encore été calculée.',
-          simulatorAverage > 0 ? `Moyenne actuelle des simulations : ${Math.round(simulatorAverage)}/100.` : 'Aucune simulation notée ne permet encore de consolider la posture.'
-        ],
+          simulatorAverage > 0 ? `Moyenne actuelle des simulations : ${Math.round(simulatorAverage)}/100.` : 'Aucune simulation notée ne permet encore de consolider la posture.',
+          competencyLeadership > 0 ? `Score leadership issu des entraînements : ${competencyLeadership}/100.` : 'Aucune preuve de leadership n\'est encore extraite des entraînements.',
+          competencyManagement > 0 ? `Score management issu des entraînements : ${competencyManagement}/100.` : null
+        ].filter(Boolean) as string[],
         recommendationTitle: 'Montrer davantage votre capacité à tenir le poste',
         recommendationAction: 'Lancer une simulation ciblée',
         targetTab: 'training',
@@ -571,13 +625,16 @@ export function StrategicProfileTab({ onNavigate, profileCompletion, profileReco
         signalCount: salarySignals,
         color: colorForScore(salary),
         level: levelForScore(salary),
-        why: salaryRangeReady
-          ? 'Le positionnement marché existe déjà, il reste à mieux l\'argumenter si besoin.'
-          : 'La négociation reste fragile sans repère de marché ni formulation claire de vos attentes.',
+        why: competencyNegotiation > 0
+          ? 'Vos entraînements de négociation alimentent un score de compétence spécifique.'
+          : salaryRangeReady
+            ? 'Le positionnement marché existe déjà, il reste à mieux l\'argumenter si besoin.'
+            : 'La négociation reste fragile sans repère de marché ni formulation claire de vos attentes.',
         evidence: [
           salaryRangeReady ? 'Une fourchette salariale issue du marché est disponible.' : 'Aucune fourchette salariale n\'est encore disponible.',
           salaryExpectationsReady ? `Prétentions renseignées : ${cvData?.salary_expectations}.` : 'Vos prétentions salariales ne sont pas encore renseignées.',
-          negotiationAverage > 0 ? `Moyenne des négociations entraînées : ${Math.round(negotiationAverage)}/100.` : 'Aucune simulation de négociation n\'alimente encore cet axe.'
+          negotiationAverage > 0 ? `Moyenne des négociations entraînées : ${Math.round(negotiationAverage)}/100.` : 'Aucune simulation de négociation n\'alimente encore cet axe.',
+          competencyNegotiation > 0 ? `Score négociation issu des entraînements : ${competencyNegotiation}/100.` : 'Aucune preuve de négociation n\'est encore extraite des entraînements.'
         ],
         recommendationTitle: 'Mieux défendre votre positionnement de valeur',
         recommendationAction: 'Préparer ma négo',
@@ -748,7 +805,9 @@ export function StrategicProfileTab({ onNavigate, profileCompletion, profileReco
     customScenariosResult,
     trainingHistory,
     interviewHistory,
-    isLoadingHistory
+    isLoadingHistory,
+    competencyProfile,
+    isLoadingCompetencyProfile
   ]);
 
   const priorities = useMemo(() => {
@@ -1051,6 +1110,56 @@ export function StrategicProfileTab({ onNavigate, profileCompletion, profileReco
               </div>
             ))}
           </div>
+        </DashboardCard>
+      </div>
+
+      <div id="profile_competencies_section">
+        <DashboardCard
+          title="Compétences orales évaluées"
+          icon={<TrendingUp size={24} />}
+          featureId="strategic_profile_competencies"
+          feedbackQuestion="Ce suivi de compétences basé sur vos entraînements vous semble-t-il utile ?"
+        >
+          <div style={{ marginBottom: '1rem', color: 'var(--text-muted)', fontSize: '0.92rem', lineHeight: 1.5 }}>
+            Ces scores sont construits à partir des preuves extraites de vos réponses lors des entraînements oraux (pitch, questions, mises en situation, négociation).
+          </div>
+
+          {isLoadingCompetencyProfile ? (
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Chargement du profil de compétences…</div>
+          ) : competencyProfile.length === 0 ? (
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+              Aucune compétence oral n\'est encore évaluée. Lancez un entraînement pour commencer à construire ce profil.
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+              {competencyProfile.map((comp) => {
+                const score = clamp(toNumber(comp?.score));
+                const demonstrationScore = clamp(toNumber(comp?.demonstration_score));
+                const evidenceStrength = clamp(toNumber(comp?.evidence_strength));
+                const competencyLabel = String(comp?.competency || '')
+                  .replace(/_/g, ' ')
+                  .replace(/\b\w/g, (c) => c.toUpperCase());
+                return (
+                  <div key={comp?.competency || Math.random()} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                      <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{competencyLabel}</div>
+                      <div style={{ fontWeight: 800, color: colorForScore(score), fontSize: '0.95rem' }}>{score}/100</div>
+                    </div>
+                    <div style={{ width: '100%', height: '6px', background: 'var(--border-color)', borderRadius: '999px', overflow: 'hidden', marginBottom: '0.75rem' }}>
+                      <div style={{ width: `${score}%`, height: '100%', background: colorForScore(score) }} />
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                      <span>Démonstration : {demonstrationScore}/100</span>
+                      <span>·</span>
+                      <span>Preuves : {evidenceStrength}/100</span>
+                      <span>·</span>
+                      <span>{toNumber(comp?.evidence_count)} preuve(s)</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </DashboardCard>
       </div>
 

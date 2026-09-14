@@ -483,6 +483,7 @@ Retourne uniquement un objet JSON valide.
 ```json
 {
   "score": 82,
+  "impact_score": 80,
   "subscores": {
     "hook": 17,
     "value": 17,
@@ -517,6 +518,20 @@ Retourne uniquement un objet JSON valide.
       "audio_data_available": false
     }
   },
+  "evidence": [
+    {
+      "evidence_type": "achievement",
+      "competency": "communication_strategique",
+      "title": "Preuve principale du pitch",
+      "description": "Fait clé démontré dans le pitch",
+      "metric_value": "",
+      "metric_unit": "",
+      "scope": "",
+      "duration": "",
+      "context": "poste visé",
+      "confidence_score": 0.85
+    }
+  ],
   "priority_improvement": "Le levier unique qui produirait le plus d'effet, ou null si aucun changement majeur n'est nécessaire.",
   "improved_pitch": "Version améliorée fidèle aux données disponibles et naturelle à l'oral."
 }

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Mic, Square, Loader2, Play, Activity, AlertTriangle, CheckCircle2, Target, Award, X, RotateCcw, Flame, Video, VideoOff } from 'lucide-react';
+import { Mic, Square, Loader2, Play, Activity, Target, Award, X, RotateCcw, Flame, Video, VideoOff } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import ScoreGauge from './ScoreGauge';
@@ -9,6 +9,7 @@ import { useDashboard } from '../hooks/DashboardContext';
 import { AsyncBoundary } from './AsyncBoundary';
 import { useVideoRecorder } from '../hooks/useVideoRecorder';
 import { VideoPreview } from './VideoPreview';
+import { OralFeedbackCard } from './OralFeedbackCard';
 
 interface OralSimulatorModalProps {
   isOpen: boolean;
@@ -309,34 +310,16 @@ export default function OralSimulatorModal({ isOpen, onClose, targetJob, targetC
 
           {status === 'result' && feedback && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', animation: 'fadeIn 0.4s ease' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
-                <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <ScoreGauge score={feedback.score / 10} label="Score d'Impact" />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
+                <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <ScoreGauge score={feedback.score / 10} label="Score global" />
                 </div>
-                <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '1rem' }}>
-                  <div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Débit Vocal (WPM)</div>
-                    <div style={{ fontSize: '1.5rem', color: 'var(--primary)', fontWeight: 800 }}>{feedback.metrics?.wpm} <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-muted)' }}>mots/min</span></div>
-                    <div style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>{feedback.metrics?.pace_status}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.5rem' }}>Tics de langage détectés</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                      {feedback.metrics?.filler_words_detected?.length > 0 ? feedback.metrics.filler_words_detected.map((w: string, i: number) => (
-                        <span key={i} style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#d97706', border: '1px solid rgba(245, 158, 11, 0.2)', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.85rem', fontWeight: 600 }}>{w}</span>
-                      )) : <span style={{ color: '#10b981', fontSize: '0.9rem', fontWeight: 600 }}>Aucun tic détecté ✨</span>}
-                    </div>
-                  </div>
-                  
-                  <div style={{ marginTop: '1rem' }}>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.5rem' }}>Mots dévalorisants / Interdits</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                      {feedback.metrics?.negative_words_detected?.length > 0 ? feedback.metrics.negative_words_detected.map((w: string, i: number) => (
-                        <span key={i} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.85rem', fontWeight: 600 }}>{w}</span>
-                      )) : <span style={{ color: '#10b981', fontSize: '0.9rem', fontWeight: 600 }}>Aucun mot négatif ✨</span>}
-                    </div>
-                  </div>
-                </div>
+                <OralFeedbackCard
+                  metrics={feedback.metrics}
+                  impactScore={feedback.impact_score ?? feedback.score}
+                  impactLabel={feedback.impact_label}
+                  title="Qualité orale"
+                />
               </div>
 
               <div style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
