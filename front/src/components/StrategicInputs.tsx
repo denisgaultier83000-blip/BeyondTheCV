@@ -47,7 +47,7 @@ const StrategicInputs: React.FC<StrategicInputsProps> = ({
 }) => {
   return (
     <div className="strategic-inputs-section">
-      <h3>Paramètres Stratégiques du Pitch</h3>
+      <h3>Paramètres stratégiques du pitch</h3>
       <p>Ces champs sont cruciaux pour permettre à l'IA de générer des pitchs réellement adaptés et percutants.</p>
 
       <div className="form-group">

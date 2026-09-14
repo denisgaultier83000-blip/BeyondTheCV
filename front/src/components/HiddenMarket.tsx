@@ -73,7 +73,7 @@ export function HiddenMarket({ data, loading, error }: HiddenMarketProps) {
           
           {(hidden_market.suggested_companies || []).length > 0 && (
             <div>
-               <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.75rem' }}>Entreprises Suggérées</h4>
+               <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.75rem' }}>Entreprises suggérées</h4>
                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                  {(hidden_market.suggested_companies || []).map((company: any, i: number) => (
                    <span key={i} style={{ 

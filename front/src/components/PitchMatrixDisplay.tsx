@@ -58,7 +58,7 @@ export const PitchMatrixDisplay: React.FC<PitchMatrixDisplayProps> = ({ pitchDat
 
   return (
     <div style={{ fontFamily: 'sans-serif', maxWidth: '900px', margin: 'auto' }}>
-      <h2>Votre Matrice de Pitchs Stratégiques</h2>
+      <h2>Votre matrice de pitchs stratégiques</h2>
       <p>Un pitch central, décliné en durées et adapté à chaque interlocuteur.</p>
 
       <div style={{ marginBottom: '24px' }}>

@@ -144,7 +144,7 @@ export default function AdminFeedbacks() {
       </div>
 
       <div className="admin-card mb-8">
-        <h3 className="text-lg font-bold text-slate-800 mb-4">Taux de Satisfaction par Fonctionnalité</h3>
+        <h3 className="text-lg font-bold text-slate-800 mb-4">Taux de satisfaction par fonctionnalité</h3>
         <div style={{ height: '300px' }}>
             <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={featureStats} margin={{ top: 5, right: 20, left: -10, bottom: 60 }}>

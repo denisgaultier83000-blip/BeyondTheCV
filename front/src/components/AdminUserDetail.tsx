@@ -176,7 +176,7 @@ export function AdminUserDetail() {
 
             {/* --- ACTIONS ADMIN --- */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
-              <h2 className="text-lg font-bold text-slate-800 mb-4">Actions Rapides</h2>
+              <h2 className="text-lg font-bold text-slate-800 mb-4">Actions rapides</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 <button onClick={() => handleAdminAction("Prolonger l'accès")} className="btn-admin-action"><Clock size={16}/> Prolonger Accès</button>
                 <button onClick={() => handleAdminAction("Ajouter des séances")} className="btn-admin-action"><PlusCircle size={16}/> Ajouter Séances</button>

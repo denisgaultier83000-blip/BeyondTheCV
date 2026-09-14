@@ -845,25 +845,6 @@ export function StrategicProfileTab({ onNavigate, profileCompletion, profileReco
             <button className="btn-outline" style={{ marginTop: '0.75rem', padding: '0.45rem 0.7rem', fontSize: '0.8rem' }} onClick={() => setShowScoringHelp((prev) => !prev)}>
               {showScoringHelp ? 'Masquer la méthode de calcul' : 'Comment ce score est-il calculé ?'}
             </button>
-            <button
-              onClick={() => {
-                const node = document.getElementById('profile_principles_section');
-                if (node) node.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }}
-              style={{
-                marginTop: '0.45rem',
-                background: 'transparent',
-                border: 'none',
-                padding: 0,
-                color: 'var(--primary)',
-                textDecoration: 'underline',
-                cursor: 'pointer',
-                fontSize: '0.82rem',
-                textAlign: 'left'
-              }}
-            >
-              Comment cette analyse est-elle construite ?
-            </button>
           </div>
           <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '1.25rem' }}>
             <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Lecture du profil</div>

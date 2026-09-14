@@ -187,7 +187,7 @@ const subMenus: Record<string, {label: string, id: string}[]> = {
   training: [
     { label: 'Questions probables', id: 'questionnaire_section' },
     { label: 'Simulations métier', id: 'training_mes_section' },
-    { label: 'Entraînement oral & Rituels', id: 'oral_training_section' }
+    { label: 'Entraînement oral', id: 'oral_training_section' }
   ],
   progress: [
     { label: 'Profil stratégique', id: 'profile_graph_section' },
@@ -554,6 +554,8 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
     leadership: gapResult?.leadership_score || gapResult?.leadershipScore || pilotData?.leadershipScore || 88
   }), [gapResult, pilotData]);
 
+  const emptyAddSlots = ((5 - (candidatureCards.length % 5)) % 5) || 5;
+
   return (
     <div className="dashboard-wrapper">
       {/* GROUPE NAVIGATION STICKY : 6 Onglets principaux + Sous-menus collés */}
@@ -717,7 +719,7 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
 
             {/* FEUILLE DE ROUTE PERSONNALISÉE */}
             <div id="roadmap_section">
-              <DashboardCard title="Feuille de Route Personnalisée" icon={<Compass size={24} color="var(--primary)" />}>
+              <DashboardCard title="Feuille de route personnalisée" icon={<Compass size={24} color="var(--primary)" />}>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '-0.5rem', marginBottom: '1.25rem' }}>
                   Générez un plan d'action sur-mesure en fonction du type d'entretien, de votre interlocuteur et de votre niveau de séniorité. Chaque plan généré est conservé ci-dessous pour être relu ou comparé.
                 </p>
@@ -885,7 +887,7 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
 
                 <div style={{ background: 'var(--mod-training-bg-soft)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--mod-training-border)', borderTop: '4px solid var(--mod-training-accent)' }}>
                   <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem', marginBottom: '0.3rem' }}>4. S'entraîner</div>
-                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Questions, simulations & rituels</div>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Questions, simulations & entraînement oral</div>
                   <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--mod-training-accent)', marginBottom: '0.5rem' }}>12 / 150</div>
                   <button onClick={() => handleTabChange('training')} className="btn-outline" style={{ width: '100%', padding: '0.35rem', fontSize: '0.8rem', borderColor: 'var(--mod-training-accent)', color: 'var(--mod-training-accent)' }}>Ouvrir</button>
                 </div>
@@ -939,8 +941,8 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
                   );
                 })}
 
-                {/* 4 cartes d'ajout avec "+" */}
-                {[1, 2, 3, 4].map((index) => (
+                {/* Cartes d'ajout avec "+" (complète le bloc de 5 en cours) */}
+                {Array.from({ length: emptyAddSlots }).map((_, index) => (
                   <div
                     key={`add-card-${index}`}
                     onClick={() => {
@@ -1125,7 +1127,7 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
               </span>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>4. S'entraîner</h3>
-                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Mises en situation, rituels vocaux et entraînement intensif aux questions cibles.</p>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Mises en situation, entraînement oral et entraînement intensif aux questions cibles.</p>
               </div>
             </div>
 
@@ -1151,7 +1153,7 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
 
             <div id="oral_training_section">
               <DashboardCard
-                title="Entraînement oral & Rituels vocaux"
+                title="Entraînement oral"
                 icon={<Mic size={24} />}
               >
                 <VocalPitchTrainer targetJob={cvData?.target_job} targetCompany={cvData?.target_company} jobDescription={cvData?.job_description} />

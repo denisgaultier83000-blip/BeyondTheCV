@@ -143,7 +143,7 @@ const ResearchModal: React.FC<ResearchModalProps> = ({ data, mode = 'company', o
                 </div>
 
                 <div>
-                    <h3 style={headingStyle}>{t('company_finance', 'Santé Financière')}</h3>
+                    <h3 style={headingStyle}>{t('company_finance', 'Santé financière')}</h3>
                     <p style={textStyle}>{company_report.financial_health}</p>
                 </div>
 
@@ -163,7 +163,7 @@ const ResearchModal: React.FC<ResearchModalProps> = ({ data, mode = 'company', o
                         <p style={{...textStyle, fontSize: '0.85rem'}}>{company_report.team_structure}</p>
                     </div>
                   <div style={{ background: 'rgba(225, 29, 72, 0.05)', border: '1px solid rgba(225, 29, 72, 0.2)', padding: '1rem', borderRadius: '8px' }}>
-                      <h4 style={{ margin: '0 0 1rem 0', color: 'var(--danger-text)' }}>{t('company_news', 'Actualités & Leviers Stratégiques')}</h4>
+                      <h4 style={{ margin: '0 0 1rem 0', color: 'var(--danger-text)' }}>{t('company_news', 'Actualités & leviers stratégiques')}</h4>
                         {company_report.news_links && company_report.news_links.length > 0 ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             {company_report.news_links.map((link: any, i: number) => {

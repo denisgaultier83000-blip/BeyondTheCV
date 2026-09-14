@@ -136,13 +136,13 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
               </div>
               {isValid(figures) && (
                 <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
-                  <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>Chiffres Clés</h4>
+                  <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>Chiffres clés</h4>
                   <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-muted)' }}>{figures}</p>
                 </div>
               )}
               {isValid(finance) && (
                 <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
-                  <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>Santé Financière</h4>
+                  <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>Santé financière</h4>
                   <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-muted)' }}>{finance}</p>
                 </div>
               )}
@@ -151,7 +151,7 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
               {strategicChallenges && strategicChallenges.length > 0 && (
                 <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.2)', gridColumn: '1 / -1' }}>
                   <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--danger-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Target size={18}/> Défis Stratégiques
+                    <Target size={18}/> Défis stratégiques
                   </h4>
                   <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--danger-text)', fontSize: '0.95rem' }}>
                     {strategicChallenges.map((defi: string, idx: number) => (

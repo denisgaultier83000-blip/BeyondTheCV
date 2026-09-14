@@ -117,7 +117,7 @@ const AdminGenerations: React.FC = () => {
     <div style={styles.container}>
       <div style={styles.header}>
         <Zap size={32} />
-        <h2 style={styles.headerTitle}>Historique des Générations IA</h2>
+        <h2 style={styles.headerTitle}>Historique des générations IA</h2>
       </div>
 
       {loading && <p>Chargement de l'historique...</p>}

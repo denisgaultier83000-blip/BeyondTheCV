@@ -251,12 +251,6 @@ export default function SalaryNegotiator() {
           100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
       `}</style>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#10b981', margin: 0, fontSize: '1.2rem' }}>
-          <DollarSign size={24} /> Entraînement : Négociation Salariale
-        </h3>
-      </div>
-
       <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
         L'argent ne doit pas être un sujet tabou. Défendez vos prétentions salariales face à l'objection du recruteur.
       </p>

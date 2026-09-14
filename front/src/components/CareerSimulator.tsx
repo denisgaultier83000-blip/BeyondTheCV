@@ -59,7 +59,7 @@ export function CareerSimulator({ candidateData }: SimulatorProps) {
 
   return (
     <DashboardCard
-      title="Simulateur de Carrière"
+      title="Simulateur de carrière"
       icon={<Play size={24} />}
       featureId={result ? "career_simulator" : undefined}
       feedbackQuestion="Cette simulation vous aide-t-elle à décider plus clairement ?"

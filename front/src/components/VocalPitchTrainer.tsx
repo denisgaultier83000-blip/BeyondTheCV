@@ -192,7 +192,7 @@ export const VocalPitchTrainer = ({ targetJob = "", targetCompany, jobDescriptio
       `}</style>
       <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
         <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 1rem 0' }}>
-          <Mic size={24} color="#8b5cf6" /> Simulateur de Pitch Vocal (Sans filet)
+          <Mic size={24} color="#8b5cf6" /> Simulateur de pitch vocal
         </h2>
         {error && (
           <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.2)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: 'var(--danger-text)', maxWidth: '600px', margin: '0 auto 1.5rem auto' }}>

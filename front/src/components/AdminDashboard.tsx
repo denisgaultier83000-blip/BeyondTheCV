@@ -229,13 +229,13 @@ export function AdminDashboard() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
         <KpiCard title="CA du mois" value={`${(stats?.revenue_month ?? 0).toFixed(2)} €`} icon={<DollarSign size={20} className="text-green-600"/>} />
         <KpiCard title="Coûts IA" value={`${(stats?.ai_cost_month ?? 0).toFixed(2)} €`} icon={<Cpu size={20} className="text-red-600"/>} />
-        <KpiCard title="Marge Brute" value={`${grossMargin.toFixed(2)} €`} icon={<Percent size={20} className="text-blue-600"/>} />
+        <KpiCard title="Marge brute" value={`${grossMargin.toFixed(2)} €`} icon={<Percent size={20} className="text-blue-600"/>} />
         <KpiCard title="Ratio IA/CA" value={`${costRevenueRatio.toFixed(1)}%`} icon={costRevenueRatio > 35 ? <TrendingDown size={20} className="text-red-600"/> : <TrendingUp size={20} className="text-green-600"/>} />
-        <KpiCard title="Utilisateurs Actifs" value={stats?.active_users ?? 0} icon={<Users size={20} className="text-cyan-600"/>} subtext={`+${stats?.new_users_7d} (7j)`}/>
+        <KpiCard title="Utilisateurs actifs" value={stats?.active_users ?? 0} icon={<Users size={20} className="text-cyan-600"/>} subtext={`+${stats?.new_users_7d} (7j)`}/>
         <KpiCard title="Générations" value={stats?.total_tasks ?? 0} icon={<Package size={20} className="text-slate-600"/>} />
         <KpiCard title="Taux de succès" value={`${stats?.total_tasks??0 > 0 ? (100 * (stats?.successful_generations??0) / stats.total_tasks).toFixed(1) : 100}%`} icon={<CheckCircle size={20} className="text-green-600"/>} />
         <KpiCard title="Échecs" value={stats?.failed_generations ?? 0} icon={<XCircle size={20} className="text-red-600"/>} />
-        <KpiCard title="Alertes Coût" value={stats?.users_in_cost_alert ?? 0} icon={<AlertTriangle size={20} className="text-amber-600"/>} />
+        <KpiCard title="Alertes coût" value={stats?.users_in_cost_alert ?? 0} icon={<AlertTriangle size={20} className="text-amber-600"/>} />
         <KpiCard title="Hit Ratio Cache" value={`${(stats?.cache_hit_ratio??0).toFixed(1)}%`} icon={<Database size={20} className="text-indigo-600"/>} />
       </div>
 

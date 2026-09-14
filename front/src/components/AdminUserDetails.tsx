@@ -312,7 +312,7 @@ const AdminUserDetails: React.FC = () => {
 
         {/* Carte d'actions */}
         <div style={styles.card}>
-          <h3 style={styles.cardTitle}>Actions Administrateur</h3>
+          <h3 style={styles.cardTitle}>Actions administrateur</h3>
           <button onClick={handleToggleActive} disabled={isToggling} style={styles.actionButton}>
             {user.is_active ? <LucidePowerOff size={16}/> : <LucidePower size={16}/>}
             {isToggling ? '...' : (user.is_active ? 'Désactiver le compte' : 'Activer le compte')}

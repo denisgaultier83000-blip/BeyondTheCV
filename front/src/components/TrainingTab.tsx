@@ -18,7 +18,8 @@ import {
   AlertCircle,
   Dumbbell,
   Sparkles,
-  Loader2
+  Loader2,
+  Video
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { DashboardCard } from './DashboardCard';
@@ -26,8 +27,9 @@ import Questionnaire from './Questionnaire';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
 import { useDashboard } from '../hooks/DashboardContext';
-import { VocalPitchTrainer } from './VocalPitchTrainer';
+import SalaryNegotiator from './SalaryNegotiator';
 import { RechargeModal } from './RechargeModal';
+import { FeedbackWidget } from './FeedbackWidget';
 import { Button, SegmentedControl } from './common';
 
 export default function TrainingTab() {
@@ -58,7 +60,7 @@ export default function TrainingTab() {
   const prewarmTriggeredRef = useRef<string | null>(null);
 
   const themes = ['Management', 'Gestion de crise', 'Négociation', 'Leadership', 'Communication'];
-  const types = [{ id: 'Classique', label: 'Questions Classiques' }, { id: 'MES', label: 'Mises en Situation' }];
+  const types = [{ id: 'Classique', label: 'Questions classiques' }, { id: 'MES', label: 'Mises en situation' }];
 
   // Méthode de rafraîchissement des stats globales extraite pour pouvoir être appelée par le Questionnaire
   const fetchStats = async () => {
@@ -317,7 +319,7 @@ export default function TrainingTab() {
   const unifiedHistory = [
     ...trainingHistory.map((h: any) => ({ ...h, source: 'training', date: new Date(h.created_at || Date.now()) })),
     ...interviewHistory.map((h: any) => ({ ...h, source: 'interview', category: "Question d'entretien", type: 'Classique', userAnswer: h.user_answer, score: h.score, date: new Date(h.created_at || Date.now()) })),
-    ...negoHistory.map((h: any) => ({ ...h, source: 'negotiation', category: 'Négociation Salariale', type: 'Négo', question: "Défense des prétentions salariales", score: h.feedback?.score || 0, date: new Date(h.date || Date.now()) }))
+    ...negoHistory.map((h: any) => ({ ...h, source: 'negotiation', category: 'Négociation salariale', type: 'Négo', question: "Défense des prétentions salariales", score: h.feedback?.score || 0, date: new Date(h.date || Date.now()) }))
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
   // Calcul des stats Négo
@@ -333,7 +335,7 @@ export default function TrainingTab() {
   const qaTotalSessions = trainingQACount + interviewQACount;
   const qaScore = qaTotalSessions > 0 ? Math.round((trainingQATotalScore + interviewQATotalScore) / qaTotalSessions) : 0;
 
-  // Fonction de sécurité pour afficher les objets JSON de l'IA (Pitch Vocal) sans faire crasher React
+  // Fonction de sécurité pour afficher les objets JSON de l'IA sans faire crasher React
   const renderSafeText = (item: any) => {
     if (!item) return "";
     if (typeof item === 'string') return item;
@@ -352,7 +354,7 @@ export default function TrainingTab() {
       
       {/* --- CONSEIL STRATÉGIQUE (IA) --- */}
       {actionPlanResult?.strategy_advice && (
-        <DashboardCard title="Conseil Stratégique d'Entretien" icon={<Lightbulb size={24} />}>
+        <DashboardCard title="Conseil stratégique d'entretien" icon={<Lightbulb size={24} />}>
           <div style={{ background: 'rgba(59, 130, 246, 0.05)', borderLeft: '4px solid var(--primary)', padding: '1.5rem', borderRadius: '0.5rem' }}>
             <p style={{ margin: 0, color: 'var(--text-main)', fontSize: '1rem', lineHeight: '1.6' }}>
               {actionPlanResult.strategy_advice}
@@ -363,7 +365,7 @@ export default function TrainingTab() {
 
       {/* --- MODULES D'ANTICIPATION --- */}
       {upcomingModules.length > 0 && (
-        <DashboardCard title="Anticipation & Prochains Rounds" icon={<TrendingUp size={24} />}>
+        <DashboardCard title="Anticipation & prochains rounds" icon={<TrendingUp size={24} />}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {upcomingModules.map((mod: any, idx: number) => (
               <div key={idx} style={{ background: 'var(--bg-secondary)', border: '1px dashed var(--border-color)', borderRadius: '1rem', padding: '1.5rem', display: 'flex', gap: '1.25rem', alignItems: 'flex-start', opacity: 0.8 }}>
@@ -381,7 +383,7 @@ export default function TrainingTab() {
       )}
 
       {/* --- NOUVEAU : AFFICHAGE DES QUOTAS PAR MODULE --- */}
-      <DashboardCard title="Simulations Notées Disponibles" icon={<Dumbbell size={24} />} id="training_section">
+      <DashboardCard title="Simulations notées disponibles" icon={<Dumbbell size={24} />} id="training_section">
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
           Votre pack inclut un solde global unique de simulations évaluées par l'IA, partagé entre tous les exercices. L'entraînement libre (lecture des questions et réponses) est illimité.
         </p>
@@ -405,9 +407,9 @@ export default function TrainingTab() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '0.6rem' }}>
               {[
                 { key: 'qa', label: "Questions / Réponses", icon: <MessageSquare size={18} /> },
-                { key: 'pitch', label: "Pitch Vocal", icon: <Mic size={18} /> },
-                { key: 'mes', label: "Mises en Situation", icon: <BrainCircuit size={18} /> },
-                { key: 'negotiation', label: "Négociation Salariale", icon: <DollarSign size={18} /> },
+                { key: 'pitch', label: "Pitch vocal", icon: <Mic size={18} /> },
+                { key: 'mes', label: "Mises en situation", icon: <BrainCircuit size={18} /> },
+                { key: 'negotiation', label: "Négociation salariale", icon: <DollarSign size={18} /> },
               ].map(q => (
                 <div key={q.key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-main)', fontSize: '0.9rem', fontWeight: 600, padding: '0.55rem 0.65rem', borderRadius: '0.55rem', border: '1px solid var(--border-color)', background: 'var(--bg-card)' }}>
                   <span style={{ color: 'var(--primary)', display: 'inline-flex' }}>{q.icon}</span>
@@ -421,7 +423,7 @@ export default function TrainingTab() {
       </DashboardCard>
 
       {/* --- SECTION STATISTIQUES --- */}
-      <DashboardCard title="Statistiques Globales & Évolution" icon={<Activity size={24} />}>
+      <DashboardCard title="Statistiques globales & évolution" icon={<Activity size={24} />}>
         {/* TOP STATS */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
           <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', textAlign: 'center' }}>
@@ -433,7 +435,7 @@ export default function TrainingTab() {
           </div>
           
           <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Pitch Vocal</div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Pitch vocal</div>
             <div style={{ fontSize: '2.5rem', fontWeight: 800, color: oralPitchScore > 0 ? getScoreColor(oralPitchScore) : 'var(--text-muted)', margin: '0.5rem 0' }}>
               {oralPitchScore > 0 ? (oralPitchScore / 10).toFixed(1) : '-'} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ 10</span>
             </div>
@@ -441,7 +443,7 @@ export default function TrainingTab() {
           </div>
 
           <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Négociation Salariale</div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Négociation salariale</div>
             <div style={{ fontSize: '2.5rem', fontWeight: 800, color: negoTotalSessions > 0 ? getScoreColor(negoScore) : 'var(--text-muted)', margin: '0.5rem 0' }}>
               {negoTotalSessions > 0 ? (negoScore / 10).toFixed(1) : '-'} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ 10</span>
             </div>
@@ -514,7 +516,7 @@ export default function TrainingTab() {
               <Award size={18} /> Conseil du Coach
             </div>
             <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.95rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
-            Votre tableau de bord consolide désormais tous vos entraînements (Pitch, Mises en situation, Négociation de salaire). Identifiez vos points faibles et ciblez vos prochaines sessions sur ces thématiques pour équilibrer votre profil avant l'entretien !
+            Votre tableau de bord consolide désormais tous vos entraînements (Pitch vocal, Mises en situation, Négociation salariale). Identifiez vos points faibles et ciblez vos prochaines sessions sur ces thématiques pour équilibrer votre profil avant l'entretien !
             </p>
           </div>
         </div>
@@ -522,7 +524,7 @@ export default function TrainingTab() {
 
       {/* --- SECTION CONFIGURATION --- */}
       <div id="training_mes_section">
-        <DashboardCard title="Nouvelle Session d'Entraînement" icon={<Settings2 size={24} />}>
+        <DashboardCard title="Nouvelle session d'entraînement" icon={<Settings2 size={24} />}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
           {errorMsg && !activeQuestion && (
@@ -554,6 +556,33 @@ export default function TrainingTab() {
                     {t.id === 'MES' ? "Scénarios complexes et immersion." : "Questions pièges et parcours."}
                   </p>
                 </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Choix du thème */}
+          <div>
+            <h4 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)', fontSize: '1.05rem' }}>2. Choisissez un thème de préparation</h4>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
+              {themes.map((theme) => (
+                <button
+                  key={theme}
+                  type="button"
+                  onClick={() => setSelectedTheme(theme)}
+                  style={{
+                    padding: '0.6rem 1rem',
+                    borderRadius: '2rem',
+                    border: `2px solid ${selectedTheme === theme ? 'var(--primary)' : 'var(--border-color)'}`,
+                    background: selectedTheme === theme ? 'var(--primary)' : 'var(--bg-secondary)',
+                    color: selectedTheme === theme ? '#fff' : 'var(--text-main)',
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {theme}
+                </button>
               ))}
             </div>
           </div>
@@ -623,6 +652,18 @@ export default function TrainingTab() {
           )}
         </div>
       </DashboardCard>
+      </div>
+
+      {/* --- NÉGOCIATION SALARIALE --- */}
+      <div id="salary_negotiation_section">
+        <DashboardCard
+          title="Négociation salariale"
+          icon={<DollarSign size={24} />}
+          featureId="salary_negotiation"
+          feedbackQuestion="Cet entraînement à la négociation salariale vous est-il utile ?"
+        >
+          <SalaryNegotiator />
+        </DashboardCard>
       </div>
 
       {/* --- SESSION INTERACTIVE EN COURS --- */}

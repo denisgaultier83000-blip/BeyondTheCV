@@ -54,7 +54,7 @@ export default function JobDecoderModal({ data, onClose }: JobDecoderModalProps)
           {/* 1. Jargon vs Réalité */}
           {decoder.reality_check && decoder.reality_check.length > 0 && (
             <div>
-              <h4 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '1rem' }}>🔍 Réalité vs Jargon</h4>
+              <h4 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '1rem' }}>🔍 Réalité vs jargon</h4>
               <div style={{ display: 'grid', gap: '0.75rem' }}>
                 {decoder.reality_check.map((item, idx) => (
                   <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.75rem', fontSize: '0.95rem', border: '1px solid var(--border-color)' }}>

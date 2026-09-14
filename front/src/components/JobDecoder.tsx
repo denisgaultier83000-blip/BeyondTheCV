@@ -134,11 +134,11 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
 
             <div className="job-decoder-grid">
               {decoderData.manager_fear && (
-                <Section title="La Peur du Manager" icon={<User size={18} />} className="manager-fear-section">
+                <Section title="La peur du manager" icon={<User size={18} />} className="manager-fear-section">
                   <InfoCard title="Hypothèse" className="hypothesis-card">
                     <p>"{decoderData.manager_fear.hypothesis}"</p>
                   </InfoCard>
-                  <InfoCard title="Comment Rassurer" className="reassurance-card">
+                  <InfoCard title="Comment rassurer" className="reassurance-card">
                     <p>{decoderData.manager_fear.how_to_reassure}</p>
                   </InfoCard>
                 </Section>
@@ -167,7 +167,7 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
                   <InfoCard title="Posture Recommandée">
                     <p>{decoderData.candidate_positioning.recommended_posture}</p>
                   </InfoCard>
-                  <InfoCard title="Messages Clés à faire passer">
+                  <InfoCard title="Messages clés à faire passer">
                     <BulletList items={decoderData.candidate_positioning.messages_to_send} />
                   </InfoCard>
                   <InfoCard title="Erreurs à éviter">

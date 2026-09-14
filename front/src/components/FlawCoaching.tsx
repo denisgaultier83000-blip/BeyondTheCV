@@ -136,7 +136,7 @@ export default function FlawCoaching({ data, onBack, inline = false, loading = f
                <span style={{ fontSize: '0.75rem', fontWeight: 800, marginTop: '0.5rem', textAlign: 'center', lineHeight: 1.1, textTransform: 'uppercase' }}>{globalRiskLabel}</span>
             </div>
             <div style={{ flex: 1, minWidth: '250px' }}>
-               <h3 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)', fontSize: '1.1rem' }}>{t('flaw_global_diag', 'Diagnostic Global pour ce poste')}</h3>
+               <h3 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)', fontSize: '1.1rem' }}>{t('flaw_global_diag', 'Diagnostic global pour ce poste')}</h3>
                <div style={{ width: '100%', height: '10px', display: 'flex', borderRadius: '5px', overflow: 'hidden', marginBottom: '1rem', background: 'var(--border-color)' }}>
                  {highRiskCount > 0 && <div style={{ width: `${(highRiskCount/totalWithImpact)*100}%`, background: '#ef4444', transition: 'width 1s ease-out' }} title={`${highRiskCount} ${t('flaw_crit', 'Critique')}`} />}
                  {mediumRiskCount > 0 && <div style={{ width: `${(mediumRiskCount/totalWithImpact)*100}%`, background: '#f59e0b', transition: 'width 1s ease-out' }} title={`${mediumRiskCount} ${t('flaw_mod', 'Modéré')}`} />}

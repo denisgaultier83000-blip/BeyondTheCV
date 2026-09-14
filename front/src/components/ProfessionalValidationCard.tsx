@@ -27,7 +27,7 @@ export function ProfessionalValidationCard({ data, loading, error }: Props) {
     <AsyncBoundary
       loading={loading}
       error={error}
-      title="Audit de Professionnalisme"
+      title="Audit de professionnalisme"
       icon={<ShieldCheck size={24} />}
       loadingText="Nettoyage et validation de vos données..."
     >
@@ -37,7 +37,7 @@ export function ProfessionalValidationCard({ data, loading, error }: Props) {
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0, color: 'var(--text-main)' }}>
-                <ShieldCheck size={24} color={scoreColor} /> Audit de Professionnalisme
+                <ShieldCheck size={24} color={scoreColor} /> Audit de professionnalisme
               </h3>
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: scoreColor }}>
                 {data.professionalism_score} <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ 100</span>
@@ -47,7 +47,7 @@ export function ProfessionalValidationCard({ data, loading, error }: Props) {
             <div className="grid-2" style={{ gap: '1.5rem' }}>
               <div style={{ background: data.alerts?.length > 0 ? 'rgba(239, 68, 68, 0.05)' : 'rgba(16, 185, 129, 0.05)', padding: '1.25rem', borderRadius: '0.75rem', border: `1px solid ${data.alerts?.length > 0 ? '#fecaca' : '#bbf7d0'}` }}>
                 <h4 style={{ fontSize: '1rem', fontWeight: 600, color: data.alerts?.length > 0 ? '#b91c1c' : '#15803d', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  {data.alerts?.length > 0 ? <AlertTriangle size={18} /> : <CheckCircle size={18} />} Alertes Candidature
+                  {data.alerts?.length > 0 ? <AlertTriangle size={18} /> : <CheckCircle size={18} />} Alertes candidature
                 </h4>
                 {data.alerts?.length > 0 ? (
                   <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#7f1d1d', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>

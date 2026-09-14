@@ -329,7 +329,7 @@ export const DifferentiatorsSection: React.FC<DifferentiatorsSectionProps> = ({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Award color="var(--mod-speech-accent)" size={22} /> Vos Marqueurs Différenciants ({differentiators.length})
+              <Award color="var(--mod-speech-accent)" size={22} /> Vos marqueurs différenciants ({differentiators.length})
             </h3>
             <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.88rem', color: 'var(--text-muted)' }}>
               Les atouts uniques de votre histoire formalisés en faits, preuves et arguments d'entretien.

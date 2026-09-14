@@ -59,7 +59,7 @@ const AdminAuditLogs: React.FC = () => {
     <div style={styles.container}>
       <div style={styles.header}>
         <LucideBookUser size={32} />
-        <h2 style={styles.headerTitle}>Journal d'Audit Administrateur</h2>
+        <h2 style={styles.headerTitle}>Journal d'audit administrateur</h2>
       </div>
       
       {loading && <p>Chargement des logs...</p>}

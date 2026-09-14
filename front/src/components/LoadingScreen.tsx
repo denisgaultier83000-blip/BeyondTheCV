@@ -17,7 +17,7 @@ const proTips = [
 ];
 
 const progressSteps = [
-  { key: 'market_research', label: 'Analyse du Marché & Entreprise', icon: <Search size={18} />, detail: 'Nous décryptons l\'actualité, la culture et les enjeux de votre cible.' },
+  { key: 'market_research', label: 'Analyse du marché & entreprise', icon: <Search size={18} />, detail: 'Nous décryptons l\'actualité, la culture et les enjeux de votre cible.' },
   { key: 'gap_analysis', label: 'Adéquation au poste', icon: <Target size={18} />, detail: 'Vos forces et écarts sont croisés avec les exigences du poste.' },
   { key: 'recruiter_view', label: 'Simulation recruteur', icon: <Eye size={18} />, detail: 'On anticipe ce que verra l\'autre côté du bureau.' },
   { key: 'pitch', label: 'Pitch stratégique', icon: <Mic size={18} />, detail: 'Votre introduction est affûtée pour marquer dès les premières secondes.' },

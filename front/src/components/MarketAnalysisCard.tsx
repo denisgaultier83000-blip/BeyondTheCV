@@ -50,7 +50,7 @@ export function MarketAnalysisCard({ data, salaryData, loading, error }: MarketA
 
   return (
     <DashboardCard
-      title="Analyse du Marché"
+      title="Analyse du marché"
       icon={<Globe size={24} />}
       loading={loading}
       loadingText="Analyse du marché en cours..."
@@ -104,7 +104,7 @@ export function MarketAnalysisCard({ data, salaryData, loading, error }: MarketA
         <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0, color: 'var(--text-main)' }}>
-              <Wallet size={18} color="var(--success)" /> Baromètre des Salaires
+              <Wallet size={18} color="var(--success)" /> Baromètre des salaires
             </h4>
             {salaryData?.confidence && (
               <span style={{ fontSize: '0.75rem', background: salaryData.confidence.toLowerCase().includes('haute') || salaryData.confidence.toLowerCase().includes('high') ? 'rgba(16, 185, 129, 0.1)' : salaryData.confidence.toLowerCase().includes('faible') || salaryData.confidence.toLowerCase().includes('low') ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)', color: salaryData.confidence.toLowerCase().includes('haute') || salaryData.confidence.toLowerCase().includes('high') ? 'var(--success)' : salaryData.confidence.toLowerCase().includes('faible') || salaryData.confidence.toLowerCase().includes('low') ? 'var(--danger-text)' : 'var(--warning)', border: `1px solid ${salaryData.confidence.toLowerCase().includes('haute') || salaryData.confidence.toLowerCase().includes('high') ? 'rgba(16, 185, 129, 0.2)' : salaryData.confidence.toLowerCase().includes('faible') || salaryData.confidence.toLowerCase().includes('low') ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`, padding: '0.2rem 0.6rem', borderRadius: '1rem', fontWeight: 600 }}>

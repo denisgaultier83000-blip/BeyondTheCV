@@ -130,7 +130,7 @@ export function ResearchReport({ data, companyName }: ResearchReportProps) {
           <Building size={24} color="#2563eb" />
         </div>
         <div>
-          <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b' }}>Rapport Stratégique : {companyName || 'Entreprise Cible'}</h3>
+          <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b' }}>Rapport stratégique : {companyName || 'Entreprise cible'}</h3>
           <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Synthèse globale (Entreprise & Marché)</span>
         </div>
       </div>
@@ -160,7 +160,7 @@ export function ResearchReport({ data, companyName }: ResearchReportProps) {
 
         <div style={{ background: '#f0fdf4', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #bbf7d0' }}>
           <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#166534', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <DollarSign size={16}/> Santé Financière
+            <DollarSign size={16}/> Santé financière
           </h4>
           <p style={{ fontSize: '0.85rem', color: '#14532d', margin: '0 0 0.5rem 0' }}><strong>Chiffres:</strong> {figures}</p>
           <p style={{ fontSize: '0.85rem', color: '#14532d', margin: 0 }}><strong>Dynamique:</strong> {finance}</p>
@@ -170,7 +170,7 @@ export function ResearchReport({ data, companyName }: ResearchReportProps) {
         {strategicChallenges.length > 0 && (
           <div style={{ background: '#fef2f2', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #fee2e2' }}>
             <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              🎯 Défis Stratégiques
+              🎯 Défis stratégiques
             </h4>
             <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#7f1d1d', fontSize: '0.85rem' }}>
               {strategicChallenges.map((defi: string, idx: number) => (
@@ -185,7 +185,7 @@ export function ResearchReport({ data, companyName }: ResearchReportProps) {
       {advice.length > 0 && (
         <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
           <h4 style={{ margin: '0 0 0.75rem 0', color: '#334155', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Lightbulb size={18}/> Insights Additionnels
+            <Lightbulb size={18}/> Insights additionnels
           </h4>
           <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#475569', fontSize: '0.9rem' }}>
           {advice.map((item: any, idx: number) => (
@@ -199,7 +199,7 @@ export function ResearchReport({ data, companyName }: ResearchReportProps) {
       {newsLinks.length > 0 && (
         <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
           <h4 style={{ margin: '0 0 1rem 0', color: '#334155', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Newspaper size={18}/> Actualités & Leviers Stratégiques
+            <Newspaper size={18}/> Actualités & leviers stratégiques
           </h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {newsLinks.map((article: any, idx: number) => {

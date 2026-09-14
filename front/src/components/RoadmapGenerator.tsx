@@ -157,25 +157,25 @@ export const RoadmapGenerator: React.FC<RoadmapGeneratorProps> = ({ cvData, hist
     <div style={{ animation: 'fadeIn 0.3s ease-out', display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '1.5rem' }}>
       <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold', textAlign: 'center', color: 'var(--primary)' }}>{result.title}</h3>
 
-      <RoadmapSection title="Focus du Recruteur" icon={<Target size={18} />} color="var(--primary)">
+      <RoadmapSection title="Focus du recruteur" icon={<Target size={18} />} color="var(--primary)">
         <p style={{ fontSize: '0.75rem', fontStyle: 'italic', marginBottom: '0.5rem' }}>Ce que votre interlocuteur cherchera à valider en priorité.</p>
         <BulletList items={result.recruiter_focus || []} />
       </RoadmapSection>
 
-      <RoadmapSection title="Messages Clés à Marteler" icon={<MessageCircle size={18} />} color="var(--success)">
+      <RoadmapSection title="Messages clés à marteler" icon={<MessageCircle size={18} />} color="var(--success)">
         <p style={{ fontSize: '0.75rem', fontStyle: 'italic', marginBottom: '0.5rem' }}>Les 3 idées que vous devez absolument faire passer, peu importe les questions.</p>
         <BulletList items={result.key_messages || []} />
       </RoadmapSection>
 
-      <RoadmapSection title="Règles d'Or" icon={<Star size={18} />} color="var(--warning)">
+      <RoadmapSection title="Règles d'or" icon={<Star size={18} />} color="var(--warning)">
         <BulletList items={result.golden_rules || []} />
       </RoadmapSection>
 
-      <RoadmapSection title="Erreurs à Éviter" icon={<Shield size={18} />} color="var(--danger)">
+      <RoadmapSection title="Erreurs à éviter" icon={<Shield size={18} />} color="var(--danger)">
         <BulletList items={result.mistakes_to_avoid || []} />
       </RoadmapSection>
 
-      <RoadmapSection title="Check-list Avant Entretien" icon={<CheckSquare size={18} />}>
+      <RoadmapSection title="Check-list avant entretien" icon={<CheckSquare size={18} />}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div><h5 style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}><Clock size={16}/> 24h avant</h5><BulletList items={result.pre_interview_checklist?.h_minus_24 || []} /></div>
           <div><h5 style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}><Clock size={16}/> 1h avant</h5><BulletList items={result.pre_interview_checklist?.h_minus_1 || []} /></div>

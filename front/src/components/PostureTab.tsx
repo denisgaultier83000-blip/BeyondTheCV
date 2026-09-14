@@ -281,7 +281,7 @@ export default function PostureTab() {
       <PostureDataCard />
 
       <DashboardCard
-        title={t('posture_generator_title', "Feuille de Route Personnalisée")}
+        title={t('posture_generator_title', "Feuille de route personnalisée")}
         icon={<MapIcon size={24} />}
         id="roadmap_section"
         featureId="roadmap_generator"

@@ -19,7 +19,7 @@ export const CoachingSummaryCard: React.FC<CoachingSummaryCardProps> = ({ data, 
 
   return (
     <DashboardCard
-      title="Synthèse du Coaching Vocal"
+      title="Synthèse du coaching vocal"
       icon={<Mic size={24} />}
       loading={loading}
       loadingText="Analyse de votre posture et de vos angles d'attaque..."

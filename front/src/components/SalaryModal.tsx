@@ -41,7 +41,7 @@ const SalaryModal: React.FC<SalaryModalProps> = ({ data, onClose, lang }) => {
             ✕
         </button>
         
-		<h2 style={{ textAlign: 'center', color: 'var(--text-main)', marginBottom: '0.5rem', fontSize: '1.8rem' }}>{t('salary_title', 'Baromètre des Salaires')}</h2>
+		<h2 style={{ textAlign: 'center', color: 'var(--text-main)', marginBottom: '0.5rem', fontSize: '1.8rem' }}>{t('salary_title', 'Baromètre des salaires')}</h2>
 		<p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: confidence ? '1.5rem' : '2.5rem' }}>{t('salary_subtitle', 'Estimation basée sur votre profil et le marché')}</p>
 
         {confidence && (

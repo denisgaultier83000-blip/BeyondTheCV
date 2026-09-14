@@ -67,28 +67,28 @@ const AnalysisResultDisplay = ({ analysis }: { analysis: any }) => {
   return (
     <div style={{ marginTop: '2.5rem', borderTop: '2px dashed var(--border-color)', paddingTop: '2.5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-main)', textAlign: 'center', margin: 0 }}>
-        Analyse Stratégique & Plan d'Action
+        Analyse stratégique & plan d'action
       </h2>
 
-      <AnalysisSection title="Évaluation Globale" icon={<Lightbulb size={20} />}>
+      <AnalysisSection title="Évaluation globale" icon={<Lightbulb size={20} />}>
         <p>{summary.overall_assessment}</p>
       </AnalysisSection>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
         {summary.positive_signals?.length > 0 && (
-          <AnalysisSection title="Signaux Positifs" icon={<CheckCircle2 size={20} />} color="var(--success)">
+          <AnalysisSection title="Signaux positifs" icon={<CheckCircle2 size={20} />} color="var(--success)">
             <BulletList items={summary.positive_signals.map((s: any) => s.signal)} type="success" />
           </AnalysisSection>
         )}
         {summary.risk_signals?.length > 0 && (
-          <AnalysisSection title="Zones de Vigilance" icon={<ShieldAlert size={20} />} color="var(--danger-text)">
+          <AnalysisSection title="Zones de vigilance" icon={<ShieldAlert size={20} />} color="var(--danger-text)">
             <BulletList items={summary.risk_signals.map((s: any) => s.signal)} type="danger" />
           </AnalysisSection>
         )}
       </div>
 
       {summary.weak_answers_to_improve?.length > 0 && (
-        <AnalysisSection title="Points Faibles à Corriger" icon={<Zap size={20} />} color="var(--warning)">
+        <AnalysisSection title="Points faibles à corriger" icon={<Zap size={20} />} color="var(--warning)">
          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             {summary.weak_answers_to_improve.map((item: any, index: number) => (
               <div key={index} style={{ background: 'var(--bg-card)', padding: '1.25rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
@@ -117,7 +117,7 @@ const AnalysisResultDisplay = ({ analysis }: { analysis: any }) => {
 
       {/* [NOUVEAU] Affichage du plan de préparation */}
       {summary.next_interview_preparation && (
-        <AnalysisSection title="Plan de Préparation pour le Prochain Entretien" icon={<Wand2 size={20} />}>
+        <AnalysisSection title="Plan de préparation pour le prochain entretien" icon={<Wand2 size={20} />}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             {summary.next_interview_preparation.priority_topics?.length > 0 && <DetailSection title="Sujets prioritaires à maîtriser"><BulletList items={summary.next_interview_preparation.priority_topics} /></DetailSection>}
             {summary.next_interview_preparation.answers_to_prepare?.length > 0 && <DetailSection title="Réponses à préparer"><BulletList items={summary.next_interview_preparation.answers_to_prepare} /></DetailSection>}

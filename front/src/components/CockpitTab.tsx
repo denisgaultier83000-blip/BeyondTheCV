@@ -253,7 +253,7 @@ export const CockpitTab: React.FC<CockpitProps> = ({
         <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
           <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0' }}>
             <ShieldAlert size={16} style={{ animation: 'pulse 2s infinite' }} />
-            {t('cockpit_strategy_title', "Conseil Stratégique d'Urgence")} ({interviewFormat} - {interviewTarget})
+            {t('cockpit_strategy_title', "Conseil stratégique d'urgence")} ({interviewFormat} - {interviewTarget})
           </h3>
           <p style={{ color: 'var(--text-main)', margin: 0, lineHeight: 1.6, fontSize: '0.95rem' }}>
             {advice}
@@ -325,9 +325,9 @@ export const CockpitTab: React.FC<CockpitProps> = ({
         <div className="bento-card" style={{ borderTop: '4px solid #8b5cf6' }}>
           <h3 style={{ fontSize: '1.1rem', margin: '0 0 1.5rem 0', fontWeight: 800, color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             <Mic size={20} />
-            Rituels Vocaux (Répétitions)
+            Plan d'entraînement
           </h3>
-          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '-1rem', marginBottom: '1.5rem' }}>Votre routine quotidienne. La maîtrise vient par la répétition à voix haute.</p>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '-1rem', marginBottom: '1.5rem' }}>Votre routine quotidienne pour progresser avant l'entretien.</p>
           
           {training.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

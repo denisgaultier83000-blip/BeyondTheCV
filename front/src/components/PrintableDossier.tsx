@@ -372,7 +372,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
               <p><strong>LinkedIn :</strong> <a href={companyReport.linkedin_url} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'none' }}>Accéder à la page de l'entreprise</a></p>
             )}
             <p><strong>ADN & Identité :</strong> {companyReport.identity_dna || "N/A"}</p>
-            <p><strong>Santé Financière :</strong> {companyReport.financial_health || "N/A"}</p>
+            <p><strong>Santé financière :</strong> {companyReport.financial_health || "N/A"}</p>
             <p><strong>Défis & USP :</strong> {companyReport.usp || "N/A"}</p>
             <p><strong>Culture :</strong> {companyReport.culture_environment || "N/A"}</p>
           </div>
@@ -385,13 +385,13 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
 
           {companyReport.news_links && companyReport.news_links.length > 0 && (
             <div className="print-box avoid-break">
-              <h3 style={{ color: '#e11d48', marginTop: '1rem' }}>📰 Actualités & Leviers Stratégiques</h3>
+              <h3 style={{ color: '#e11d48', marginTop: '1rem' }}>📰 Actualités & leviers stratégiques</h3>
               {companyReport.news_links.map((link: any, idx: number) => (
                 <div key={idx} style={{ marginBottom: '1rem' }}>
                   <p style={{ margin: '0 0 0.25rem 0', fontWeight: 'bold' }}>• {link.title}</p>
                   {link.strategic_analysis && (
                     <div style={{ margin: '0.5rem 0 0 0', color: '#475569', paddingLeft: '1rem', fontSize: '0.95rem', lineHeight: 1.6 }}>
-                      <strong style={{ color: '#0f172a' }}>Conseil Stratégique :</strong>
+                      <strong style={{ color: '#0f172a' }}>Conseil stratégique :</strong>
                   <div style={{ marginTop: '0.25rem' }}>{formatStrategicAnalysisReact(link.strategic_analysis)}</div>
                     </div>
                   )}
@@ -505,7 +505,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
 
           {actionPlanResult?.training_plan && (
             <div className="print-box-purple avoid-break">
-              <h3 style={{ color: '#7c3aed', margin: '0 0 1rem 0', marginTop: 0 }}>🎙️ Rituels Vocaux (Entraînement)</h3>
+              <h3 style={{ color: '#7c3aed', margin: '0 0 1rem 0', marginTop: 0 }}>🎙️ Plan d'entraînement</h3>
               {actionPlanResult.training_plan.map((step: any, i: number) => {
                 const isUpcoming = step.stage === 'upcoming';
                 const accentColor = isUpcoming ? '#94a3b8' : '#7c3aed';

@@ -98,11 +98,11 @@ export function AdminAiUsage() {
             {/* Marge par Offre et Recharges */}
             <div className="bg-white p-6 rounded-xl shadow-sm border">
                 <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                    <DollarSign size={20} /> Marge Brute Estimée
+                    <DollarSign size={20} /> Marge brute estimée
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <h3 className="font-semibold text-slate-600">Par Offre</h3>
+                        <h3 className="font-semibold text-slate-600">Par offre</h3>
                         {stats.gross_margin_by_offer?.map(offer => (
                             <div key={offer.offer_name} className="flex justify-between items-center mt-2">
                                 <span>{offer.offer_name}</span>
@@ -121,7 +121,7 @@ export function AdminAiUsage() {
 
             {/* Coût par Module */}
             <div className="bg-white p-6 rounded-xl shadow-sm border overflow-x-auto">
-              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><BarChart3 size={20} /> Rentabilité par Module</h2>
+              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><BarChart3 size={20} /> Rentabilité par module</h2>
               <table className="w-full text-sm text-left">
                 <thead className="text-xs text-slate-500 uppercase bg-slate-50">
                   <tr>
@@ -150,7 +150,7 @@ export function AdminAiUsage() {
 
             {/* Alertes Utilisateurs */}
             <div className="bg-white p-6 rounded-xl shadow-sm border">
-              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><AlertTriangle size={20} className="text-red-500" /> Alertes Coûts Utilisateurs</h2>
+              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><AlertTriangle size={20} className="text-red-500" /> Alertes coûts utilisateurs</h2>
               {stats.user_alerts.length > 0 ? (
                 <table className="w-full text-sm text-left">
                   <thead className="text-xs text-slate-500 uppercase bg-slate-50">
@@ -159,7 +159,7 @@ export function AdminAiUsage() {
                       <th className="px-4 py-2">Offre</th>
                       <th className="px-4 py-2 text-right">Coût IA / Prix Payé</th>
                       <th className="px-4 py-2 text-right">Ratio</th>
-                      <th className="px-4 py-2 text-right">Marge Brute</th>
+                      <th className="px-4 py-2 text-right">Marge brute</th>
                       <th className="px-4 py-2">Niveau d'Alerte</th>
                     </tr>
                   </thead>
