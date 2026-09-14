@@ -327,11 +327,30 @@ export default function TrainingTab() {
         type: isPitch ? 'Vocal' : (qt === 'MES' ? 'MES' : 'Classique'),
         question: isPitch ? (h.question_text || 'Pitch oral') : h.question_text,
         userAnswer: h.user_answer,
+        feedback: normalizeTrainingFeedback(h),
         date: new Date(h.created_at || Date.now())
       };
     }),
-    ...interviewHistory.map((h: any) => ({ ...h, source: 'interview', category: "Question d'entretien", type: 'Classique', userAnswer: h.user_answer, score: h.score, date: new Date(h.created_at || Date.now()) })),
-    ...negoHistory.map((h: any) => ({ ...h, source: 'negotiation', category: 'Négociation salariale', type: 'Négo', question: "Défense des prétentions salariales", score: h.feedback?.score || 0, date: new Date(h.date || Date.now()) }))
+    ...interviewHistory.map((h: any) => ({
+      ...h,
+      source: 'interview',
+      category: "Question d'entretien",
+      type: 'Classique',
+      userAnswer: h.user_answer,
+      score: h.score,
+      feedback: h.feedback || null,
+      date: new Date(h.created_at || Date.now())
+    })),
+    ...negoHistory.map((h: any) => ({
+      ...h,
+      source: 'negotiation',
+      category: 'Négociation salariale',
+      type: 'Négo',
+      question: "Défense des prétentions salariales",
+      score: h.feedback?.score || 0,
+      feedback: h.feedback || null,
+      date: new Date(h.date || Date.now())
+    }))
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
   // Calcul des stats Négo
@@ -348,12 +367,39 @@ export default function TrainingTab() {
   const qaScore = qaTotalSessions > 0 ? Math.round((trainingQATotalScore + interviewQATotalScore) / qaTotalSessions) : 0;
 
   // Fonction de sécurité pour afficher les objets JSON de l'IA sans faire crasher React
-  const renderSafeText = (item: any) => {
-    if (!item) return "";
-    if (typeof item === 'string') return item;
-    if (typeof item === 'object') {
-      if (item.pace_and_silences) return `Rythme: ${item.pace_and_silences} | Structure: ${item.structure_and_clarity}`;
-      if (item.wpm) return `Débit: ${item.wpm} mots/min (${item.pace_status})`;
+const parseJsonField = (value: any): any => {
+  if (value === null || value === undefined) return value;
+  if (Array.isArray(value) || typeof value !== 'string') return value;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed;
+  } catch {
+    return value;
+  }
+};
+
+const normalizeTrainingFeedback = (h: any) => {
+  if (!h) return null;
+  if (h.feedback && typeof h.feedback === 'object') return h.feedback;
+  return {
+    score: h.score,
+    strengths: parseJsonField(h.strengths) || [],
+    weaknesses: parseJsonField(h.weaknesses) || [],
+    improved_answer: h.improved_answer,
+    metrics: h.metrics,
+    impact_score: h.impact_score
+  };
+};
+
+const renderSafeText = (item: any) => {
+  if (!item) return "";
+  if (typeof item === 'string') return item;
+  if (typeof item === 'object') {
+    if (item.pace_and_silences) return `Rythme: ${item.pace_and_silences} | Structure: ${item.structure_and_clarity}`;
+    if (item.wpm) return `Débit: ${item.wpm} mots/min (${item.pace_status})`;
+    if (item.issue && typeof item.issue === 'string') {
+      return `${item.issue}${item.recommendation ? ` → ${item.recommendation}` : ''}`;
+    }
       try { return JSON.stringify(item); } catch { return "Données complexes"; }
     }
     return String(item);
@@ -773,17 +819,28 @@ export default function TrainingTab() {
                   {fb && (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', fontSize: '0.9rem' }}>
                       <div>
-                        <strong style={{ color: '#10b981' }}>{q.type === 'Vocal' ? 'Métriques :' : 'Points forts :'}</strong>
-                        <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.2rem' }}>{Array.isArray(fb.strengths) ? fb.strengths.map((s: any, i: number) => <li key={i}>{renderSafeText(s)}</li>) : <li>{renderSafeText(fb.strengths)}</li>}</ul>
+                        <strong style={{ color: '#10b981' }}>Points forts :</strong>
+                        <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.2rem' }}>{Array.isArray(fb.strengths) && fb.strengths.length > 0 ? fb.strengths.map((s: any, i: number) => <li key={i}>{renderSafeText(s)}</li>) : <li>Aucun point fort détaillé.</li>}</ul>
                       </div>
                       <div>
-                        <strong style={{ color: '#ef4444' }}>{q.type === 'Vocal' ? 'Diagnostic :' : 'À améliorer :'}</strong>
-                        <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.2rem' }}>{Array.isArray(fb.weaknesses) ? fb.weaknesses.map((w: any, i: number) => <li key={i}>{renderSafeText(w)}</li>) : <li>{renderSafeText(fb.weaknesses)}</li>}</ul>
+                        <strong style={{ color: '#ef4444' }}>À améliorer :</strong>
+                        <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.2rem' }}>{Array.isArray(fb.weaknesses) && fb.weaknesses.length > 0 ? fb.weaknesses.map((w: any, i: number) => <li key={i}>{renderSafeText(w)}</li>) : <li>Aucun axe d'amélioration détaillé.</li>}</ul>
                       </div>
+                      {fb.metrics && (
+                        <div style={{ gridColumn: '1 / -1', background: 'rgba(59, 130, 246, 0.05)', padding: '1rem', borderRadius: '0.5rem', borderLeft: '3px solid var(--primary)', marginTop: '0.5rem' }}>
+                          <strong style={{ color: 'var(--primary)' }}>Métriques orales :</strong>
+                          <p style={{ margin: '0.25rem 0 0 0', color: 'var(--text-muted)' }}>
+                            {fb.metrics.wpm ? `Débit : ${fb.metrics.wpm} mots/min (${fb.metrics.pace_status})` : null}
+                            {fb.metrics.filler_count !== undefined ? ` • Tics : ${fb.metrics.filler_count}` : null}
+                            {fb.metrics.negative_count !== undefined ? ` • Mots dévalorisants : ${fb.metrics.negative_count}` : null}
+                            {fb.metrics.word_count !== undefined ? ` • Mots : ${fb.metrics.word_count}` : null}
+                          </p>
+                        </div>
+                      )}
                       {fb.improved_answer && (
                         <div style={{ gridColumn: '1 / -1', background: 'rgba(16, 185, 129, 0.05)', padding: '1rem', borderRadius: '0.5rem', borderLeft: '3px solid #10b981', marginTop: '0.5rem' }}>
                           <strong style={{ color: '#10b981' }}>Réponse du Coach :</strong>
-                          <p style={{ margin: '0.25rem 0 0 0', color: 'var(--text-main)', fontStyle: 'italic' }}>"{fb.improved_answer}"</p>
+                          <p style={{ margin: '0.25rem 0 0 0', color: 'var(--text-main)', fontStyle: 'italic' }}>"{typeof fb.improved_answer === 'object' ? JSON.stringify(fb.improved_answer) : fb.improved_answer}"</p>
                         </div>
                       )}
                     </div>
