@@ -32,6 +32,43 @@ import { RechargeModal } from './RechargeModal';
 import { FeedbackWidget } from './FeedbackWidget';
 import { Button, SegmentedControl } from './common';
 
+const parseJsonField = (value: any): any => {
+  if (value === null || value === undefined) return value;
+  if (Array.isArray(value) || typeof value !== 'string') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+};
+
+const normalizeTrainingFeedback = (h: any) => {
+  if (!h) return null;
+  if (h.feedback && typeof h.feedback === 'object') return h.feedback;
+  return {
+    score: h.score,
+    strengths: parseJsonField(h.strengths) || [],
+    weaknesses: parseJsonField(h.weaknesses) || [],
+    improved_answer: h.improved_answer,
+    metrics: h.metrics,
+    impact_score: h.impact_score
+  };
+};
+
+const renderSafeText = (item: any) => {
+  if (!item) return "";
+  if (typeof item === 'string') return item;
+  if (typeof item === 'object') {
+    if (item.pace_and_silences) return `Rythme: ${item.pace_and_silences} | Structure: ${item.structure_and_clarity}`;
+    if (item.wpm) return `Débit: ${item.wpm} mots/min (${item.pace_status})`;
+    if (item.issue && typeof item.issue === 'string') {
+      return `${item.issue}${item.recommendation ? ` → ${item.recommendation}` : ''}`;
+    }
+    try { return JSON.stringify(item); } catch { return "Données complexes"; }
+  }
+  return String(item);
+};
+
 export default function TrainingTab() {
   const { cvData, updateFormData, actionPlanResult, quotas, fetchQuotas } = useDashboard();
   const trainingRemaining = Number(quotas?.credits ?? quotas?.qa ?? quotas?.pitch ?? quotas?.mes ?? quotas?.negotiation ?? 0);
@@ -365,45 +402,6 @@ export default function TrainingTab() {
 
   const qaTotalSessions = trainingQACount + interviewQACount;
   const qaScore = qaTotalSessions > 0 ? Math.round((trainingQATotalScore + interviewQATotalScore) / qaTotalSessions) : 0;
-
-  // Fonction de sécurité pour afficher les objets JSON de l'IA sans faire crasher React
-const parseJsonField = (value: any): any => {
-  if (value === null || value === undefined) return value;
-  if (Array.isArray(value) || typeof value !== 'string') return value;
-  try {
-    const parsed = JSON.parse(value);
-    return parsed;
-  } catch {
-    return value;
-  }
-};
-
-const normalizeTrainingFeedback = (h: any) => {
-  if (!h) return null;
-  if (h.feedback && typeof h.feedback === 'object') return h.feedback;
-  return {
-    score: h.score,
-    strengths: parseJsonField(h.strengths) || [],
-    weaknesses: parseJsonField(h.weaknesses) || [],
-    improved_answer: h.improved_answer,
-    metrics: h.metrics,
-    impact_score: h.impact_score
-  };
-};
-
-const renderSafeText = (item: any) => {
-  if (!item) return "";
-  if (typeof item === 'string') return item;
-  if (typeof item === 'object') {
-    if (item.pace_and_silences) return `Rythme: ${item.pace_and_silences} | Structure: ${item.structure_and_clarity}`;
-    if (item.wpm) return `Débit: ${item.wpm} mots/min (${item.pace_status})`;
-    if (item.issue && typeof item.issue === 'string') {
-      return `${item.issue}${item.recommendation ? ` → ${item.recommendation}` : ''}`;
-    }
-      try { return JSON.stringify(item); } catch { return "Données complexes"; }
-    }
-    return String(item);
-  };
 
   const upcomingModules = actionPlanResult?.training_plan?.filter((t: any) => t.stage === 'upcoming') || [];
 
