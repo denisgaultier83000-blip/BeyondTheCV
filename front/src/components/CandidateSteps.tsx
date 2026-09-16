@@ -969,12 +969,18 @@ export const StepClarification = ({ clarifications, answers = {}, onAnswer, lang
     return map;
   });
 
-  // Keep localAnswers in sync when clarifications or answers props change
+  // Ref to the latest `answers` prop so the sync effect can read it without
+  // depending on it. The parent rebuilds `answers` on every render; adding it
+  // to the effect deps would overwrite the text the user is currently typing.
+  const answersRef = useRef(answers);
+  answersRef.current = answers;
+
+  // Keep localAnswers in sync when the questions list changes.
   useEffect(() => {
     const map: Record<string, string> = {};
-    (clarifications || []).forEach((c: any) => { map[c.id] = (answers && answers[c.id]) || ""; });
+    (clarifications || []).forEach((c: any) => { map[c.id] = (answersRef.current && answersRef.current[c.id]) || ""; });
     setLocalAnswers(map);
-  }, [clarifications, answers]);
+  }, [clarifications]);
 
   if (!clarifications || clarifications.length === 0) return <div className="step-content"><h2>{t('all_good')}</h2><p>{t('profile_complete')}</p></div>;
 
