@@ -32,7 +32,9 @@ const normalizeUrl = (url: string): string => {
   return `${base}${path}`;
 };
 
-export const authenticatedFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
+type AuthenticatedFetchOptions = RequestInit & { timeoutMs?: number };
+
+export const authenticatedFetch = async (url: string, options: AuthenticatedFetchOptions = {}): Promise<Response> => {
   const token = storageManager.local.getItem('token');
   const fullUrl = normalizeUrl(url);
 
@@ -43,13 +45,23 @@ export const authenticatedFetch = async (url: string, options: RequestInit = {})
 
   // [FIX] Timeout client pour éviter les blocages infinis sur les appels lents
   const controller = new AbortController();
-  const timeoutMs = options.signal ? undefined : 60000;
+  const timeoutMs = options.timeoutMs ?? (options.signal ? undefined : 60000);
   const timeoutId = timeoutMs ? setTimeout(() => controller.abort(), timeoutMs) : undefined;
+
+  // Propager l'annulation externe vers le contrôleur interne
+  let onExternalAbort: (() => void) | null = null;
+  if (options.signal) {
+    onExternalAbort = () => controller.abort();
+    options.signal.addEventListener('abort', onExternalAbort);
+  }
 
   try {
     const response = await fetch(fullUrl, { ...options, headers, signal: controller.signal });
     return response;
   } finally {
     if (timeoutId) clearTimeout(timeoutId);
+    if (options.signal && onExternalAbort) {
+      options.signal.removeEventListener('abort', onExternalAbort);
+    }
   }
 };

@@ -303,6 +303,7 @@ export const StepTarget = ({ data, onChange, errors, loading, lang = 'en' }: Ste
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: normalizedUrl }),
+        timeoutMs: 20000,
       });
 
       if (!response.ok) {

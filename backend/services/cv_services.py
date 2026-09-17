@@ -747,7 +747,10 @@ async def _resolve_hostname_ips(hostname: str) -> list[str]:
         resolved = socket.getaddrinfo(hostname, None, proto=socket.IPPROTO_TCP)
         return list(dict.fromkeys([entry[4][0] for entry in resolved if entry and entry[4]]))
     try:
-        return await asyncio.to_thread(_resolve)
+        # [FIX] Le DNS bloquant peut attendre très longtemps ; on le cappe.
+        return await asyncio.wait_for(asyncio.to_thread(_resolve), timeout=5)
+    except asyncio.TimeoutError as exc:
+        raise HTTPException(status_code=400, detail=f"Hôte inaccessible (timeout DNS): {hostname}") from exc
     except socket.gaierror as exc:
         raise HTTPException(status_code=400, detail=f"Hôte introuvable: {hostname}") from exc
 
@@ -1254,7 +1257,17 @@ async def import_job_offer_from_url(payload: dict = Body(...), current_user: dic
     if not source_url:
         raise HTTPException(status_code=400, detail="Veuillez fournir une URL d'annonce.")
 
-    return await _extract_job_offer_preview_from_url(source_url)
+    try:
+        # [FIX] Capper l'ensemble du traitement pour éviter un endpoint qui ne répond jamais.
+        return await asyncio.wait_for(
+            _extract_job_offer_preview_from_url(source_url),
+            timeout=JOB_IMPORT_TIMEOUT_SECONDS + 5,
+        )
+    except asyncio.TimeoutError as exc:
+        raise HTTPException(
+            status_code=504,
+            detail="L'import de l'annonce a pris trop de temps. Veuillez réessayer ou copier-coller le texte de l'offre.",
+        ) from exc
 
 
 @router.get("/interview/history")
