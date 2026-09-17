@@ -304,6 +304,68 @@ def _is_likely_official_domain(domain: str, company: str) -> bool:
 _COMPANY_IDENTIFICATION_CACHE: dict[str, dict] = {}
 
 
+# --- INTÉGRATION LINKEDIN VIA MOTEUR DE RECHERCHE (PAS DE SCRAPING DIRECT) ---
+
+def _extract_linkedin_company_url(articles: list[dict]) -> str | None:
+    """
+    Extrait l'URL LinkedIn officielle de l'entreprise à partir des résultats
+    de moteur de recherche, sans jamais scraper linkedin.com directement.
+    """
+    for art in articles or []:
+        url = str(art.get("url") or "").strip()
+        if not url:
+            continue
+        parsed = urlparse(url)
+        host = (parsed.netloc or "").lower().replace("www.", "", 1)
+        if host != "linkedin.com":
+            continue
+        path = parsed.path or ""
+        # On cherche /company/<vanity-name>[/...]
+        match = re.search(r"^/company/([^/]+)", path)
+        if match:
+            vanity = match.group(1)
+            if vanity and vanity.lower() not in {"home", "login", "signup", "jobs", "feed"}:
+                return f"https://www.linkedin.com/company/{vanity}"
+    return None
+
+
+def _generate_linkedin_search_queries(company: str, official_domain: str | None = None) -> list[str]:
+    """
+    Génère des requêtes de moteur de recherche ciblant les pages publiques
+    LinkedIn de l'entreprise. Les résultats sont exploités comme signal OSINT.
+    """
+    safe_company = str(company or "").strip()
+    if not safe_company or safe_company.lower() in {"unknown", "none"}:
+        return []
+
+    variants = _generate_company_variants(safe_company)[:3]
+    queries = []
+    for variant in variants:
+        queries.append(f'site:linkedin.com/company "{variant}"')
+        queries.append(f'"{variant}" LinkedIn company')
+
+    # Requête par domaine officiel (souvent LinkedIn indexe le site et expose le lien company)
+    if official_domain:
+        clean_domain = official_domain.replace("www.", "", 1)
+        queries.append(f'"{clean_domain}" site:linkedin.com/company')
+
+    return _deduplicate_queries(queries, limit=8)
+
+
+def _tag_linkedin_articles(articles: list[dict]) -> list[dict]:
+    """Marque les articles provenant de résultats LinkedIn pour le contexte IA."""
+    tagged = []
+    for art in articles or []:
+        url = str(art.get("url") or "").strip()
+        host = urlparse(url).netloc.lower().replace("www.", "", 1)
+        if host == "linkedin.com":
+            art = dict(art)
+            art["source_type"] = "linkedin_search_result"
+            art["retrieval_method"] = "search_engine"
+        tagged.append(art)
+    return tagged
+
+
 async def _identify_company_online(company: str, industry: str | None = None) -> dict:
     """
     Phase d'identification préliminaire : combine une recherche web rapide et
@@ -330,14 +392,18 @@ async def _identify_company_online(company: str, industry: str | None = None) ->
         if " " in variant:
             queries.append(variant)
 
-    queries = _deduplicate_queries(queries, limit=12)
+    # Requêtes LinkedIn via moteur (jamais de scraping direct de linkedin.com)
+    queries.extend(_generate_linkedin_search_queries(company))
+
+    queries = _deduplicate_queries(queries, limit=15)
 
     try:
         osint = OSINTPipeline(serper_api_key=api_key)
-        articles = await osint.run_structured(company_name=company, queries=queries, max_articles=15)
+        articles = await osint.run_structured(company_name=company, queries=queries, max_articles=20)
+        articles = _tag_linkedin_articles(articles)
     except Exception as e:
         print(f"[IDENTIFICATION] OSINT error for {company}: {e}", flush=True)
-        error_result = {"official_domain": None, "confidence": 0, "sources": [], "queries": queries, "error": str(e)}
+        error_result = {"official_domain": None, "linkedin_url": None, "confidence": 0, "sources": [], "queries": queries, "error": str(e)}
         _COMPANY_IDENTIFICATION_CACHE[cache_key] = error_result
         return error_result
 
@@ -369,6 +435,9 @@ async def _identify_company_online(company: str, industry: str | None = None) ->
         except Exception as e:
             print(f"[IDENTIFICATION] AI disambiguation error for {company}: {e}", flush=True)
 
+    # Extraction de l'URL LinkedIn officielle depuis les résultats moteur
+    linkedin_url = _extract_linkedin_company_url(articles)
+
     # Si l'IA a identifié un candidat fiable, on l'utilise comme source de vérité.
     best_ai = ai_candidates[0] if ai_candidates else None
     if best_ai and best_ai.get("confidence", 0) >= 0.7:
@@ -383,6 +452,7 @@ async def _identify_company_online(company: str, industry: str | None = None) ->
             }
             result = {
                 "official_domain": selected["domain"],
+                "linkedin_url": linkedin_url,
                 "confidence": selected["confidence"],
                 "sources": [selected, *ai_candidates[1:5]],
                 "queries": queries,
@@ -452,6 +522,7 @@ async def _identify_company_online(company: str, industry: str | None = None) ->
         "results_rejected": len(rejected_domains),
         "rejection_reason": rejection_reason,
         "selected_domain": selected_domain,
+        "linkedin_url": linkedin_url,
         "disambiguation_score": disambiguation_score,
         "timeout_stage": False,
         "candidates": sorted_candidates[:5],
@@ -461,6 +532,7 @@ async def _identify_company_online(company: str, industry: str | None = None) ->
     if best and disambiguation_score >= 30:
         result = {
             "official_domain": selected_domain,
+            "linkedin_url": linkedin_url,
             "confidence": min(disambiguation_score, 100),
             "sources": sorted_candidates[:5],
             "queries": queries,
@@ -468,6 +540,7 @@ async def _identify_company_online(company: str, industry: str | None = None) ->
     else:
         result = {
             "official_domain": selected_domain,
+            "linkedin_url": linkedin_url,
             "confidence": disambiguation_score,
             "sources": sorted_candidates[:5],
             "queries": queries,
@@ -714,7 +787,7 @@ async def build_unknown_company_fallback(company: str | None, industry: str | No
             "usp": mission_values.get("stated_mission", ""),
             "culture_environment": culture_env,
             "team_structure": "Structure des équipes non disponible pour cette entreprise spécifique.",
-            "linkedin_url": "",
+            "linkedin_url": (identification or {}).get("linkedin_url") or "",
             "strategic_challenges": [tip for tip in interview_tips if tip] or ["Données stratégiques non disponibles."],
             "news_links": news_links,
         },
@@ -812,6 +885,7 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
     # normalisation (ET vs &, casse, formes juridiques).
     identification = None
     official_domain = None
+    linkedin_url = None
     if api_key and safe_company and safe_company.lower() not in {"unknown", "none"}:
         if task_id:
             await manager.broadcast(task_id, "🔎 Identification préliminaire de l'entreprise en ligne...")
@@ -821,8 +895,11 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
                 timeout=20.0,
             )
             official_domain = identification.get("official_domain")
+            linkedin_url = identification.get("linkedin_url")
             if official_domain:
                 print(f"[IDENTIFICATION] Official domain confirmed for {raw_company}: {official_domain}", flush=True)
+                if linkedin_url:
+                    print(f"[IDENTIFICATION] LinkedIn URL detected for {raw_company}: {linkedin_url}", flush=True)
                 if task_id:
                     await manager.broadcast(task_id, f"✅ Entreprise identifiée : {official_domain}")
             else:
@@ -1054,6 +1131,10 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
         safe_synthesis["market_report"] = cached_market_report
         if task_id:
             await manager.broadcast(task_id, "♻️ Données marché injectées depuis le cache partagé.")
+
+    # Injection de l'URL LinkedIn officielle (issue de la recherche moteur, pas du scraping)
+    if linkedin_url:
+        safe_synthesis["company_report"]["linkedin_url"] = linkedin_url
 
     # On récupère le tableau d'actualités généré par l'IA contenant son analyse stratégique
     ai_generated_news = safe_synthesis["company_report"].get("news_links", [])

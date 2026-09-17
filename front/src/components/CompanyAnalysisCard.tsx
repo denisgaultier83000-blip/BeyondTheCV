@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Building, Newspaper, ExternalLink, Globe2, Target, Users, TrendingUp, BookOpen, Brain, Activity } from 'lucide-react';
+import { Building, Newspaper, ExternalLink, Globe2, Target, Users, TrendingUp, BookOpen, Brain, Activity, Linkedin } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 import { useTranslation } from 'react-i18next';
 import { formatStrategicAnalysisReact as formatMarkdownReact } from '../utils/formatUtils';
@@ -36,13 +36,13 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
   const usp = report.usp || report.key_challenges;
   const psychological_prep = report.psychological_prep;
   const cross_referenced_signals = report.cross_referenced_signals;
-  
+
   // [FIX EXPERT] On s'assure d'avoir un tableau, même si l'IA hallucine une string.
   const rawStrategicChallenges = report.strategic_challenges || data?.synthesis?.company_report?.strategic_challenges || [];
   const strategicChallenges = Array.isArray(rawStrategicChallenges) ? rawStrategicChallenges : (typeof rawStrategicChallenges === 'string' ? [rawStrategicChallenges] : []);
-  
+
   const sources = data?.sources || []; // Exploitation des sources Web fournies par le backend
-  
+
   let newsLinks = report.news_links || [];
 
   const getSafeHttpUrl = (rawUrl: any): string | null => {
@@ -60,6 +60,24 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
       return null;
     }
   };
+
+  const getSafeLinkedInUrl = (rawUrl: any): string | null => {
+    const value = String(rawUrl || '').trim();
+    if (!value) return null;
+    const url = getSafeHttpUrl(value);
+    if (!url) return null;
+    try {
+      const parsed = new URL(url);
+      if (!parsed.hostname.toLowerCase().includes('linkedin.com')) return null;
+      const match = parsed.pathname.match(/^\/company\/[^/]+/);
+      if (!match) return null;
+      return `https://www.linkedin.com${match[0]}`;
+    } catch {
+      return null;
+    }
+  };
+
+  const linkedinUrl = getSafeLinkedInUrl(report.linkedin_url || safeData.linkedin_url);
 
   const getFaviconCandidates = (url: string | null): string[] => {
     if (!url) return [];
@@ -133,6 +151,30 @@ export function CompanyAnalysisCard({ data, loading, error }: CompanyAnalysisCar
               <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)', gridColumn: '1 / -1' }}>
                 <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>ADN & Positionnement</h4>
                 <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>{dna}</p>
+                {linkedinUrl && (
+                  <a
+                    href={linkedinUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      marginTop: '0.75rem',
+                      padding: '0.4rem 0.75rem',
+                      borderRadius: '0.5rem',
+                      background: 'rgba(10, 102, 194, 0.1)',
+                      color: '#0a66c2',
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      textDecoration: 'none',
+                    }}
+                  >
+                    <Linkedin size={16} />
+                    {t('view_on_linkedin', 'Voir l\'entreprise sur LinkedIn')}
+                    <ExternalLink size={12} />
+                  </a>
+                )}
               </div>
               {isValid(figures) && (
                 <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
