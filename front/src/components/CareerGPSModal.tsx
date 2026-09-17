@@ -60,7 +60,7 @@ export default function CareerGPSModal({ data, onClose }: CareerGPSModalProps) {
         >✕</button>
 
         <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-main)', marginBottom: '0.5rem', fontSize: '1.8rem' }}>
-          <Map size={32} color="var(--primary)" /> GPS de Carrière
+          <Map size={32} color="var(--primary)" /> GPS de carrière
         </h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '1rem', marginBottom: '2rem' }}>
           Votre feuille de route pas-à-pas pour atteindre votre poste cible.

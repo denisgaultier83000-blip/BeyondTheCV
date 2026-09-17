@@ -995,10 +995,10 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
               </div>
             </div>
 
-            {/* RADAR DE CARRIÈRE */}
+            {/* Radar de carrière */}
             <div id="career_radar_section">
               <DashboardCard
-                title="Radar de Carrière"
+                title="Radar de carrière"
                 icon={<Compass size={24} color="var(--primary)" />}
                 featureId="career_radar"
                 feedbackQuestion="Ces suggestions de trajectoires sont-elles pertinentes ?"
@@ -1007,10 +1007,10 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
               </DashboardCard>
             </div>
 
-            {/* GPS DE CARRIÈRE */}
+            {/* GPS de carrière */}
             <div id="career_gps_section">
               <DashboardCard
-                title="GPS de Carrière"
+                title="GPS de carrière"
                 icon={<Navigation size={24} color="var(--primary)" />}
                 featureId="career_gps"
                 feedbackQuestion="Cette feuille de route vous semble-t-elle réaliste et applicable ?"
@@ -1019,7 +1019,7 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
               </DashboardCard>
             </div>
 
-            {/* DERNIÈRE HEURE AVANT L'ENTRETIEN */}
+            {/* Dernière heure avant l'entretien */}
             <LastHourChecklistCard />
 
             {/* PLAN DE SECOURS (GÉRER LES IMPRÉVUS) */}

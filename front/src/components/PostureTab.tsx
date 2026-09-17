@@ -92,7 +92,7 @@ export function PostureDataCard() {
 export function LastHourChecklistCard() {
   return (
     <DashboardCard
-      title="Dernière Heure Avant l'Entretien"
+      title="Dernière heure avant l'entretien"
       icon={<Clock size={24} />}
       id="last_hour_section"
       featureId="last_hour_checklist"

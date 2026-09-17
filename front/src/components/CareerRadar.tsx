@@ -61,7 +61,7 @@ export const CareerRadar: React.FC<CareerRadarProps> = ({ data, loading, error }
   }
 
   return (
-    <AsyncBoundary loading={loading} error={error} errorText="Une erreur est survenue lors de la génération du Radar de Carrière. Veuillez réessayer." style={{ background: 'transparent', border: 'none', padding: 0 }}>
+    <AsyncBoundary loading={loading} error={error} errorText="Une erreur est survenue lors de la génération du Radar de carrière. Veuillez réessayer." style={{ background: 'transparent', border: 'none', padding: 0 }}>
       {data && data.trajectories && data.trajectories.length > 0 && (
     <>
       <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
