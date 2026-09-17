@@ -627,11 +627,12 @@ async def _analyze_search_results(results: list, company: str, provider: str = N
     )
     return clean_ai_json_response(res)
 
-def build_unknown_company_fallback(company: str | None, industry: str | None, identification: dict | None = None) -> dict:
+async def build_unknown_company_fallback(company: str | None, industry: str | None, identification: dict | None = None, role: str | None = None, target_lang: str = "French") -> dict:
     """
-    Fallback rapide lorsque la recherche web échoue ou dépasse le délai imparti.
-    Le message est volontairement prudent : on indique que l'identification n'a pas
-    pu être confirmée dans le temps imparti, sans affirmer que l'entreprise est inconnue.
+    Fallback lorsque la recherche web échoue ou dépasse le délai imparti.
+    Au lieu de renvoyer des champs vides, on tente une analyse sectorielle générique
+    basée sur les connaissances générales du modèle, afin que le candidat reparte
+    tout de même avec des éléments actionnables.
     """
     company_name = company or "Entreprise ciblée"
     sector = industry or "Secteur non renseigné"
@@ -642,29 +643,80 @@ def build_unknown_company_fallback(company: str | None, industry: str | None, id
         elif identification.get("sources"):
             reason = f" (meilleur candidat trouvé : {identification['sources'][0].get('domain')}, score {identification['sources'][0].get('score')})"
 
+    identity_intro = (
+        f"Nous n'avons pas pu identifier '{company_name}' ({sector}) avec suffisamment de certitude dans le temps imparti.{reason} "
+        f"Vérifiez le nom de l'entreprise ou réessayez. En attendant, voici une analyse sectorielle générique pour vous préparer."
+    )
+
+    # Analyse sectorielle de secours (sans recherche web, rapide)
+    sector_analysis: dict = {}
+    try:
+        prompt_template = load_prompt("company_research_v2.md")
+        if prompt_template:
+            final_prompt = prompt_template \
+                .replace("{job_role}", role or "Candidat") \
+                .replace("{industry}", sector) \
+                .replace("{company_name}", "Non spécifiée")
+            sector_analysis = await ai_call(
+                feature="company_unknown_fallback",
+                prompt=final_prompt,
+                system_instruction=f"You are a strategic analyst. Output STRICT JSON only. Language: {target_lang}.",
+                json_mode=True,
+                bypass_queue=True,
+            )
+            if not isinstance(sector_analysis, dict):
+                sector_analysis = {}
+    except Exception as e:
+        print(f"[UNKNOWN COMPANY FALLBACK] AI sector analysis failed: {e}", flush=True)
+        sector_analysis = {}
+
+    # Extraction des champs générés par l'IA
+    executive_summary = sector_analysis.get("executive_summary", "")
+    mission_values = sector_analysis.get("mission_and_values", {}) or {}
+    recent_developments = sector_analysis.get("recent_developments", []) or []
+    culture = sector_analysis.get("culture_and_interview", {}) or {}
+
+    # Conversion des actualités récentes vers le format news_links attendu par le front
+    news_links = []
+    for item in recent_developments[:5]:
+        if isinstance(item, dict):
+            news_links.append({
+                "title": item.get("title", "Actualité sectorielle"),
+                "url": "",
+                "source": "Analyse sectorielle (connaissances générales)",
+                "date": item.get("date", ""),
+                "strategic_analysis": item.get("summary", ""),
+                "interview_relevance": 70,
+                "hidden_meaning": "",
+            })
+
+    interview_tips = culture.get("interview_tips_for_candidate", []) or []
+    culture_env = culture.get("work_environment", "")
+    leadership_style = culture.get("leadership_style", "")
+
     return {
         "company": company_name,
         "market_report": {
-            "tension_index": "Données marché temporairement indisponibles.",
-            "tension_score": 0,
+            "tension_index": f"Analyse de marché indisponible pour '{company_name}'. Utilisez les sources sectorielles ci-dessous.",
+            "tension_score": 50,
             "salary_barometer": "Données salariales temporairement indisponibles.",
-            "competitive_landscape": "Analyse concurrentielle indisponible.",
-            "trends": "Tendances de marché non disponibles.",
-            "recruitment_dynamics": "Données de recrutement non disponibles.",
-            "major_disruptions": "Aucune information disponible.",
+            "competitive_landscape": "Analyse concurrentielle indisponible pour cette entreprise spécifique.",
+            "trends": "Tendances de marché non disponibles pour cette entreprise spécifique.",
+            "recruitment_dynamics": "Données de recrutement non disponibles pour cette entreprise spécifique.",
+            "major_disruptions": "Aucune information disponible pour cette entreprise spécifique.",
             "top_skills": {"hard": [], "soft": []},
         },
         "company_report": {
-            "key_figures": "Aucun chiffre clé disponible.",
-            "leadership": "Direction non renseignée.",
-            "identity_dna": f"Nous n'avons pas pu identifier '{company_name}' ({sector}) avec suffisamment de certitude dans le temps imparti.{reason} Vérifiez le nom de l'entreprise ou réessayez.",
-            "financial_health": "Données financières non disponibles.",
-            "usp": "Aucune information disponible.",
-            "culture_environment": "Culture d'entreprise non disponible.",
-            "team_structure": "Structure des équipes non disponible.",
+            "key_figures": "Aucun chiffre clé spécifique disponible.",
+            "leadership": leadership_style,
+            "identity_dna": f"{identity_intro}\n\n{executive_summary}",
+            "financial_health": "Données financières non disponibles pour cette entreprise spécifique.",
+            "usp": mission_values.get("stated_mission", ""),
+            "culture_environment": culture_env,
+            "team_structure": "Structure des équipes non disponible pour cette entreprise spécifique.",
             "linkedin_url": "",
-            "strategic_challenges": ["Données stratégiques non disponibles."],
-            "news_links": [],
+            "strategic_challenges": [tip for tip in interview_tips if tip] or ["Données stratégiques non disponibles."],
+            "news_links": news_links,
         },
         "sources": [],
         "identification": identification or {},

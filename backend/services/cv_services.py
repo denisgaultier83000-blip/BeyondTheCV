@@ -3033,8 +3033,10 @@ async def generate_flaw_coaching(candidate_data: dict) -> dict:
     }
 
 async def generate_recruiter_view(candidate_data: dict) -> dict:
+    from datetime import datetime
     target_lang = normalize_language(candidate_data.get("target_language", "French"))
     prompt_template = load_prompt("recruiter_view.md")
+    prompt_template = prompt_template.replace("{{CURRENT_DATE}}", datetime.now().strftime("%Y-%m-%d"))
     safe_data = _sanitize_data_for_recruiter_view(candidate_data)
     final_prompt = f"{prompt_template}\n\nCANDIDAT:\n{json.dumps(safe_data, ensure_ascii=False, indent=2, default=str)}\n\nOUTPUT LANGUAGE: {target_lang}"
     result = await ai_call(

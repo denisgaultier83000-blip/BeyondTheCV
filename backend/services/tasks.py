@@ -293,9 +293,11 @@ async def _run_research_logic(task_id: str, request_data: dict):
             )
         except asyncio.TimeoutError:
             print(f"[Task {task_id}] ⏱️ Market research timeout, returning unknown-company fallback", flush=True)
-            final_report = build_unknown_company_fallback(
+            final_report = await build_unknown_company_fallback(
                 request_data.get("target_company"),
                 request_data.get("target_industry"),
+                role=request_data.get("target_role_primary") or request_data.get("target_job"),
+                target_lang=normalize_language(request_data.get('target_language', 'French')),
             )
 
         # Stocker en cache partagé L1 + L3
@@ -786,12 +788,14 @@ async def process_recruiter_view_in_background(task_id: str, data: dict):
 async def _run_recruiter_view_logic(task_id: str, data: dict):
     await asyncio.to_thread(update_task_status_sync, task_id, "RUNNING")
     try:
+        from datetime import datetime
         user_id = data.get("user_id", "unknown_user")
         is_cached, cache_key = await _check_cache_and_broadcast(task_id, user_id, "recruiter_view", data, "Vue recruteur récupérée en cache")
         if is_cached: return
 
         target_lang = normalize_language(data.get('target_language', 'French'))
         prompt_template = load_prompt(get_prompt_path("recruiter_view.md"))
+        prompt_template = prompt_template.replace("{{CURRENT_DATE}}", datetime.now().strftime("%Y-%m-%d"))
         
         final_prompt = f"""
         {prompt_template}
