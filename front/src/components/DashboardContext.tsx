@@ -202,17 +202,48 @@ export const DashboardProvider = ({
   const cvActionPlanResult = pickCvFallback(initialCvData, ['action_plan_result', 'actionPlanResult', 'action_plan']);
   const cvCustomScenariosResult = pickCvFallback(initialCvData, ['custom_scenarios_result', 'customScenariosResult', 'custom_scenarios']);
 
-  const [cachedResearchResult] = useState<any>(() => readCachedResult('researchResult'));
-  const [cachedSalaryResult] = useState<any>(() => readCachedResult('salaryResult'));
-  const [cachedGapResult] = useState<any>(() => readCachedResult('gapResult'));
-  const [cachedJobDecoderResult] = useState<any>(() => readCachedResult('jobDecoderResult'));
-  const [cachedPitchResult] = useState<any>(() => readCachedResult('pitchResult'));
-  const [cachedQuestionsResult] = useState<any>(() => readCachedResult('questionsResult'));
-  const [cachedRecruiterResult] = useState<any>(() => readCachedResult('recruiterResult'));
-  const [cachedRealityResult] = useState<any>(() => readCachedResult('realityResult'));
-  const [cachedFlawCoachingResult] = useState<any>(() => readCachedResult('flawCoachingResult'));
-  const [cachedActionPlanResult] = useState<any>(() => readCachedResult('actionPlanResult'));
-  const [cachedCustomScenariosResult] = useState<any>(() => readCachedResult('customScenariosResult'));
+  const [cachedResearchResult, setCachedResearchResult] = useState<any>(() => readCachedResult('researchResult'));
+  const [cachedSalaryResult, setCachedSalaryResult] = useState<any>(() => readCachedResult('salaryResult'));
+  const [cachedGapResult, setCachedGapResult] = useState<any>(() => readCachedResult('gapResult'));
+  const [cachedJobDecoderResult, setCachedJobDecoderResult] = useState<any>(() => readCachedResult('jobDecoderResult'));
+  const [cachedPitchResult, setCachedPitchResult] = useState<any>(() => readCachedResult('pitchResult'));
+  const [cachedQuestionsResult, setCachedQuestionsResult] = useState<any>(() => readCachedResult('questionsResult'));
+  const [cachedRecruiterResult, setCachedRecruiterResult] = useState<any>(() => readCachedResult('recruiterResult'));
+  const [cachedRealityResult, setCachedRealityResult] = useState<any>(() => readCachedResult('realityResult'));
+  const [cachedFlawCoachingResult, setCachedFlawCoachingResult] = useState<any>(() => readCachedResult('flawCoachingResult'));
+  const [cachedActionPlanResult, setCachedActionPlanResult] = useState<any>(() => readCachedResult('actionPlanResult'));
+  const [cachedCustomScenariosResult, setCachedCustomScenariosResult] = useState<any>(() => readCachedResult('customScenariosResult'));
+
+  // [FIX] Si l'utilisateur change de candidature (entreprise/poste) alors que le
+  // DashboardContext est déjà monté, les useState de cache gardent en mémoire les
+  // résultats de la candidature précédente. On invalide ces caches dès que la
+  // signature cible change, pour que "Comprendre l'entreprise" et les autres onglets
+  // reflètent bien la candidature active.
+  const getTargetSignature = useCallback((cv: any) => {
+    const normalize = (v: any) => String(v || '').trim().toLowerCase();
+    return `${normalize(cv?.target_company)}|${normalize(cv?.target_job)}|${normalize(cv?.target_industry)}`;
+  }, []);
+
+  const lastTargetSignatureRef = useRef<string>(getTargetSignature(initialCvData));
+
+  useEffect(() => {
+    const currentSignature = getTargetSignature(initialCvData);
+    if (currentSignature !== lastTargetSignatureRef.current) {
+      console.info('[DASHBOARD CONTEXT] Target signature changed:', lastTargetSignatureRef.current, '->', currentSignature);
+      lastTargetSignatureRef.current = currentSignature;
+      setCachedResearchResult(null);
+      setCachedSalaryResult(null);
+      setCachedGapResult(null);
+      setCachedJobDecoderResult(null);
+      setCachedPitchResult(null);
+      setCachedQuestionsResult(null);
+      setCachedRecruiterResult(null);
+      setCachedRealityResult(null);
+      setCachedFlawCoachingResult(null);
+      setCachedActionPlanResult(null);
+      setCachedCustomScenariosResult(null);
+    }
+  }, [initialCvData, getTargetSignature]);
 
   const resolvedResearchResult = isUsableResult(initialResearchResult) ? initialResearchResult : (cvResearchResult || cachedResearchResult);
   const resolvedSalaryResult = isUsableResult(initialSalaryResult) ? initialSalaryResult : (cvSalaryResult || cachedSalaryResult);

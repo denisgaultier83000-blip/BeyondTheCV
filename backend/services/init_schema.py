@@ -338,7 +338,7 @@ def initialize_schema():
                 updated_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-
+        cur.execute("ALTER TABLE candidate_behavioral_data ADD COLUMN IF NOT EXISTS off_cv_text TEXT;")
         conn.commit()
         print("\n🎉 Schéma vérifié et fonctionnel pour les données à venir !")
 

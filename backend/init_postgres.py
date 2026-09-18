@@ -370,6 +370,28 @@ def main():
 
         # --- TABLES POUR LES MARQUEURS DIFFÉRENCIANTS ET MESSAGES CLÉS ---
         cur.execute("""
+            CREATE TABLE IF NOT EXISTS candidate_behavioral_data (
+                user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+                flaws JSONB DEFAULT '[]'::jsonb,
+                motivations TEXT,
+                work_style JSONB DEFAULT '[]'::jsonb,
+                relational_style JSONB DEFAULT '[]'::jsonb,
+                professional_approach JSONB DEFAULT '[]'::jsonb,
+                coaching_style TEXT,
+                fears TEXT,
+                clarification_insights JSONB DEFAULT '{}'::jsonb,
+                stress_level TEXT,
+                current_situation TEXT,
+                salary_expectations TEXT,
+                remote_preference TEXT,
+                off_cv_text TEXT,
+                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute("ALTER TABLE candidate_behavioral_data ADD COLUMN IF NOT EXISTS off_cv_text TEXT;")
+        print("✅ Table 'candidate_behavioral_data' created")
+
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS candidate_differentiators (
                 id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

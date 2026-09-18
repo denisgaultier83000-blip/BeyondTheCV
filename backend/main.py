@@ -232,10 +232,12 @@ async def lifespan(app: FastAPI):
                                 current_situation TEXT,
                                 salary_expectations TEXT,
                                 remote_preference TEXT,
+                                off_cv_text TEXT,
                                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                                 FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
                             )
                         """)
+                        cur.execute("ALTER TABLE candidate_behavioral_data ADD COLUMN IF NOT EXISTS off_cv_text TEXT;")
                     conn.commit()
             except Exception as e:
                 print(f"[DB WARNING] Failed to create tables: {e}", flush=True)

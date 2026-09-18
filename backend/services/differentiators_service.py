@@ -61,13 +61,17 @@ async def get_my_differentiators(current_user: dict = Depends(get_current_user))
         rows = await cursor.fetchall()
 
         # Fetch off_cv_text from candidate_behavioral_data or profile
-        cursor_beh = await db.execute(
-            conn,
-            "SELECT off_cv_text FROM candidate_behavioral_data WHERE user_id = ?",
-            (user_id,)
-        )
-        beh_row = await cursor_beh.fetchone()
-        off_cv_text = beh_row["off_cv_text"] if beh_row and beh_row["off_cv_text"] else ""
+        off_cv_text = ""
+        try:
+            cursor_beh = await db.execute(
+                conn,
+                "SELECT off_cv_text FROM candidate_behavioral_data WHERE user_id = ?",
+                (user_id,)
+            )
+            beh_row = await cursor_beh.fetchone()
+            off_cv_text = beh_row["off_cv_text"] if beh_row and beh_row["off_cv_text"] else ""
+        except Exception as e:
+            print(f"[DIFFERENTIATORS] candidate_behavioral_data read failed (column may be missing): {e}", flush=True)
 
         if not off_cv_text:
             cursor_prof = await db.execute(
@@ -98,16 +102,19 @@ async def save_differentiators(
     items = payload.get("differentiators", [])
 
     async with db.get_connection() as conn:
-        # Save off_cv_text in candidate_behavioral_data
-        await db.execute(
-            conn,
-            """
-            INSERT INTO candidate_behavioral_data (user_id, off_cv_text, updated_at)
-            VALUES (?, ?, CURRENT_TIMESTAMP)
-            ON CONFLICT (user_id) DO UPDATE SET off_cv_text = EXCLUDED.off_cv_text, updated_at = CURRENT_TIMESTAMP
-            """,
-            (user_id, off_cv_text)
-        )
+        # Save off_cv_text in candidate_behavioral_data (table/column may not exist yet)
+        try:
+            await db.execute(
+                conn,
+                """
+                INSERT INTO candidate_behavioral_data (user_id, off_cv_text, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT (user_id) DO UPDATE SET off_cv_text = EXCLUDED.off_cv_text, updated_at = CURRENT_TIMESTAMP
+                """,
+                (user_id, off_cv_text)
+            )
+        except Exception as e:
+            print(f"[DIFFERENTIATORS] candidate_behavioral_data write failed (column may be missing): {e}", flush=True)
 
         # Save differentiators in candidate_differentiators
         saved_differentiators = []
@@ -242,15 +249,18 @@ async def extract_differentiators(
         async with db.get_connection() as conn:
             # Save extracted off_cv_text
             if off_cv_text:
-                await db.execute(
-                    conn,
-                    """
-                    INSERT INTO candidate_behavioral_data (user_id, off_cv_text, updated_at)
-                    VALUES (?, ?, CURRENT_TIMESTAMP)
-                    ON CONFLICT (user_id) DO UPDATE SET off_cv_text = EXCLUDED.off_cv_text, updated_at = CURRENT_TIMESTAMP
-                    """,
-                    (user_id, off_cv_text)
-                )
+                try:
+                    await db.execute(
+                        conn,
+                        """
+                        INSERT INTO candidate_behavioral_data (user_id, off_cv_text, updated_at)
+                        VALUES (?, ?, CURRENT_TIMESTAMP)
+                        ON CONFLICT (user_id) DO UPDATE SET off_cv_text = EXCLUDED.off_cv_text, updated_at = CURRENT_TIMESTAMP
+                        """,
+                        (user_id, off_cv_text)
+                    )
+                except Exception as e:
+                    print(f"[DIFFERENTIATORS] candidate_behavioral_data write failed during extraction: {e}", flush=True)
 
             for item in differentiators:
                 diff_id = str(uuid.uuid4())

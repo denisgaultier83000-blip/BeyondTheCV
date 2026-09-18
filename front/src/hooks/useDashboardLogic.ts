@@ -175,6 +175,25 @@ const hasUsableDashboardCache = (state: any) => {
   return !!state;
 };
 
+// [FIX] Un résultat de recherche entreprise n'est réutilisable que s'il contient
+// réellement des articles avec des liens cliquables. Les anciens résultats qui
+// n'ont que des analyses sans URL doivent être recalculés pour restaurer les
+// logos média et les liens vers les articles.
+const hasUsableResearchCache = (state: any) => {
+  if (!hasUsableDashboardCache(state)) return false;
+  const companyReport = state?.company_report || state?.synthesis || state;
+  const newsLinks = companyReport?.news_links;
+  if (Array.isArray(newsLinks) && newsLinks.length > 0) {
+    const hasNewsWithUrl = newsLinks.some((n: any) => {
+      const url = String(n?.url || '').trim();
+      return url && url.startsWith('http');
+    });
+    if (hasNewsWithUrl) return true;
+  }
+  const sources = state?.sources;
+  return Array.isArray(sources) && sources.length > 0 && sources.some((s: any) => String(s || '').startsWith('http'));
+};
+
 const parsePossiblySerialized = (value: any): any => {
   if (typeof value !== 'string') return value;
   const trimmed = value.trim();
@@ -782,6 +801,60 @@ export function useDashboardLogic() {
     }
   }, [researchResult]);
 
+  // [FIX] Lorsqu'on change de candidature (company/job), tous les résultats d'analyse
+  // précédents deviennent obsolètes. On les invalide explicitement pour éviter que
+  // "Comprendre l'entreprise" ou les autres onglets affichent les données de la
+  // candidature précédente.
+  const invalidateStaleAnalysisResults = useCallback((nextCompany: string, nextJob: string): void => {
+    const currentCompany = normalizeCompanyNameForCache(formData?.target_company);
+    const currentJob = normalizeCompanyNameForCache(formData?.target_job);
+    const targetCompany = normalizeCompanyNameForCache(nextCompany);
+    const targetJob = normalizeCompanyNameForCache(nextJob);
+
+    const hasChanged = currentCompany !== targetCompany || currentJob !== targetJob;
+    if (!hasChanged) return;
+
+    console.info('[STATE INVALIDATION] Target changed:', { currentCompany, currentJob }, '->', { targetCompany, targetJob });
+
+    setGapResult(null);
+    setResearchResult(null);
+    setSalaryResult(null);
+    setCareerGpsResult(null);
+    setCareerRadarResult(null);
+    setJobDecoderResult(null);
+    setPitchResult(null);
+    setQuestionsResult(null);
+    setHiddenMarketResult(null);
+    setRecruiterResult(null);
+    setRealityResult(null);
+    setFlawCoachingResult(null);
+    setActionPlanResult(null);
+    setCustomScenariosResult(null);
+
+    const keysToRemove = [
+      'researchResult', 'research_result', 'research_data',
+      'gapResult', 'gap_result', 'gap_analysis',
+      'salaryResult', 'salary_result',
+      'careerGpsResult', 'career_gps_result', 'career_gps',
+      'careerRadarResult', 'career_radar_result', 'career_radar',
+      'jobDecoderResult', 'job_decoder_result', 'job_decoder',
+      'pitchResult', 'pitch_result',
+      'questionsResult', 'questions_result', 'interview_questions_result', 'interview_questions',
+      'hiddenMarketResult', 'hidden_market_result', 'hidden_market',
+      'recruiterResult', 'recruiter_result', 'recruiter_view_result', 'recruiter_view',
+      'realityResult', 'reality_result', 'reality_check_result', 'reality_check',
+      'flawCoachingResult', 'flaw_coaching_result', 'flaw_coaching',
+      'actionPlanResult', 'action_plan_result', 'action_plan',
+      'customScenariosResult', 'custom_scenarios_result', 'custom_scenarios', 'scenarios',
+    ];
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
+    Object.keys(localStorage).forEach((key) => {
+      if (key.endsWith('Result') || key.endsWith('_result') || key.endsWith('_data')) {
+        localStorage.removeItem(key);
+      }
+    });
+  }, [formData?.target_company, formData?.target_job]);
+
   // --- ORCHESTRATION DES ÉTAPES ---
   const handleNextStep = async () => {
     const payload = { ...formData, target_language: formData.target_language || 'fr' };
@@ -794,9 +867,13 @@ export function useDashboardLogic() {
         const currentSignature = getTargetAnalysisSignature(formData);
         const previousSignature = formData?.last_target_analysis_signature;
         const hasTarget = !!(formData.target_company || formData.target_industry);
+        const companyReport = researchResult?.company_report || researchResult;
         const hasCachedMarketData = !!(researchResult && !researchResult?.error);
+        const hasUsableNews = Array.isArray(companyReport?.news_links) && companyReport.news_links.length > 0;
+        const hasSources = Array.isArray(researchResult?.sources) && researchResult.sources.length > 0;
+        const isResultComplete = hasCachedMarketData && (hasUsableNews || hasSources);
         const signatureMatch = previousSignature === currentSignature;
-        const canReuseTargetAnalysis = signatureMatch && hasCachedMarketData;
+        const canReuseTargetAnalysis = signatureMatch && isResultComplete;
 
         if (hasTarget) {
           console.info(
@@ -804,6 +881,7 @@ export function useDashboardLogic() {
             {
               signature_match: signatureMatch,
               has_market_cache: hasCachedMarketData,
+              is_result_complete: isResultComplete,
               has_target: hasTarget,
             }
           );
@@ -936,7 +1014,7 @@ export function useDashboardLogic() {
 
          const hasAnyResolvedResult = !!(
            hasCoreAnalysisResolvedResult ||
-           hasUsableDashboardCache(researchResult) ||
+           hasUsableResearchCache(researchResult) ||
            hasUsableDashboardCache(salaryResult)
          );
 
@@ -1058,7 +1136,7 @@ export function useDashboardLogic() {
          };
 
          const hasTargetForResearch = !!(payload.target_company || payload.target_industry);
-         const needsResearchRecovery = hasTargetForResearch && !hasUsableDashboardCache(researchResult);
+         const needsResearchRecovery = hasTargetForResearch && !hasUsableResearchCache(researchResult);
 
          // Cas simple demandé : si rien d'important n'a changé, on ré-ouvre instantanément le dashboard existant.
          if (previousImpactSignature && previousImpactSignature === currentImpactSignature) {
@@ -1391,10 +1469,10 @@ export function useDashboardLogic() {
   ]);
 
   // --- DÉCLENCHEMENT MANUEL ---
-  const triggerResearch = async () => {
+  const triggerResearch = async (force = false) => {
     const currentSignature = getTargetAnalysisSignature(formData);
     const previousSignature = formData?.last_target_analysis_signature;
-    const canReuseTargetAnalysis = previousSignature === currentSignature && !!(researchResult && !researchResult?.error);
+    const canReuseTargetAnalysis = !force && previousSignature === currentSignature && hasUsableResearchCache(researchResult);
 
     if (canReuseTargetAnalysis) {
       setGlobalStatus("COMPLETED");
@@ -1414,6 +1492,9 @@ export function useDashboardLogic() {
       // Force la prise en compte du nouveau task ID (sinon un ancien resultat bloque le polling).
       setResearchResult(null);
       setSalaryResult(null);
+      localStorage.removeItem("researchResult");
+      localStorage.removeItem("research_result");
+      localStorage.removeItem("research_data");
 
       const payload = { ...formData, target_language: formData.target_language || 'fr' };
       const res = await authenticatedFetch(`/research/start`, {
@@ -1461,6 +1542,7 @@ export function useDashboardLogic() {
     updateList,
     resetDashboard,
     invalidateStaleResearchResult,
+    invalidateStaleAnalysisResults,
     activeTab, setActiveTab,
     isPilotLoading, setIsPilotLoading,
     pilotData, setPilotData,

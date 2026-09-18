@@ -15,6 +15,7 @@ import {
   Network,
   Loader2,
   RotateCcw,
+  RefreshCw,
   CheckSquare,
   Dumbbell,
   ArrowUp,
@@ -1063,12 +1064,23 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
         {/* 3. COMPANY: Comprendre l'entreprise */}
         {activeTab === 'company' && (
           <div className="tab-module-content tab-module-company" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-            <div style={{ padding: '1.25rem 1.5rem', background: 'var(--mod-company-bg-soft)', borderRadius: '1rem', border: '1px solid var(--mod-company-border)', borderLeft: '5px solid var(--mod-company-accent)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <Building size={26} color="#00A6A6" />
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>2. Comprendre l'entreprise</h3>
-                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Explorez l'actualité récente de la société, l'analyse du marché et la culture d'entreprise.</p>
+            <div style={{ padding: '1.25rem 1.5rem', background: 'var(--mod-company-bg-soft)', borderRadius: '1rem', border: '1px solid var(--mod-company-border)', borderLeft: '5px solid var(--mod-company-accent)', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <Building size={26} color="#00A6A6" />
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>2. Comprendre l'entreprise</h3>
+                  <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Explorez l'actualité récente de la société, l'analyse du marché et la culture d'entreprise.</p>
+                </div>
               </div>
+              <button
+                className="btn-outline"
+                onClick={() => triggerResearch(true)}
+                disabled={globalStatus === 'PROCESSING' || globalStatus === 'STARTING'}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+              >
+                <RefreshCw size={16} className={globalStatus === 'PROCESSING' || globalStatus === 'STARTING' ? 'spin' : ''} />
+                {globalStatus === 'PROCESSING' || globalStatus === 'STARTING' ? 'Analyse en cours...' : 'Relancer l\'analyse'}
+              </button>
             </div>
 
             <div id="company_section">

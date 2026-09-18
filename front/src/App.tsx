@@ -186,6 +186,7 @@ function AppContent() {
     setFormData,
     resetDashboard,
     invalidateStaleResearchResult,
+    invalidateStaleAnalysisResults,
     triggerResearch,
     toasts, setToasts,
     // [FIX] Ajout des variables manquantes pour gÃƒÂ©rer les onglets
@@ -1009,6 +1010,11 @@ function AppContent() {
               profileRecommendations={getProfileRecommendations(cvData)}
               targetTree={targetTree}
               onPrepareCandidature={(company: string, job: string) => {
+                // [FIX] Invalide tous les résultats d'analyse de la candidature précédente
+                // avant de basculer, afin que les onglets (notamment "Comprendre l'entreprise")
+                // ne restent pas figés sur l'ancienne entreprise/poste.
+                invalidateStaleAnalysisResults(company, job);
+                setRestoredData(null);
                 setFormData((prev: any) => ({
                   ...(prev || {}),
                   target_company: company,

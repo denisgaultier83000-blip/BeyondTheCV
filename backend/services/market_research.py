@@ -11,6 +11,10 @@ from .search_service import search_web
 from ai.prompts.osint_pipeline import OSINTPipeline
 from .utils import load_prompt, clean_ai_json_response
 from .websocket_manager import manager
+from .company_intelligence_service import (
+    gather_company_intelligence,
+    generate_detected_signals,
+)
 
 
 def _extract_urls_from_text(raw_text: str) -> list[str]:
@@ -1138,75 +1142,101 @@ async def perform_market_research(data: dict, task_id: str = None) -> dict:
 
     # On récupère le tableau d'actualités généré par l'IA contenant son analyse stratégique
     ai_generated_news = safe_synthesis["company_report"].get("news_links", [])
-    extracted_web_urls = [article.get("url") for article in selected_articles if article.get("url")]
+    if not isinstance(ai_generated_news, list):
+        ai_generated_news = []
+
+    # Index des articles web réellement collectés par l'agent OSINT
     source_map = {
         str(article.get("url")): article
         for article in selected_articles
         if isinstance(article, dict) and article.get("url")
     }
-    
-    # Extraction intelligente des analyses IA tout en conservant les URLs RÉELLES (issues de Serper)
-    ai_analyses = []
-    if isinstance(ai_generated_news, list):
-        for news in ai_generated_news:
-            if isinstance(news, dict):
-                analysis = news.get('strategic_analysis') or news.get('analyse_strategique') or news.get('conseil_strategique') or news.get('conseil') or ""
-                if analysis or news.get("hidden_meaning") or news.get("interview_relevance"):
-                    ai_analyses.append({
-                        "url": news.get("url", ""),
-                        "title": news.get("title", ""),
-                        "source": news.get("source", "Presse / Web"),
-                        "date": news.get("date", datetime.now().strftime("%Y-%m-%d")),
-                        "analysis": analysis,
-                        "interview_relevance": news.get("interview_relevance"),
-                        "hidden_meaning": news.get("hidden_meaning", "")
-                    })
+    extracted_web_urls = list(source_map.keys())
 
-    if not isinstance(ai_generated_news, list):
-        ai_generated_news = []
-
-    # Remplacement des URLs factices/vides par des URLs réelles trouvées dans le contexte web.
-    replacement_idx = 0
-    normalized_news = []
+    # Index des analyses IA par URL (et par titre si l'URL est absente)
+    ai_analysis_by_url: dict[str, dict] = {}
+    ai_analysis_by_title: dict[str, dict] = {}
     for news in ai_generated_news:
         if not isinstance(news, dict):
             continue
         url = str(news.get("url") or "").strip()
-        if _is_placeholder_url(url):
-            if replacement_idx < len(extracted_web_urls):
-                url = extracted_web_urls[replacement_idx]
-                replacement_idx += 1
-        if _is_placeholder_url(url):
-            continue
+        title = str(news.get("title") or "").strip()
+        analysis = news.get('strategic_analysis') or news.get('analyse_strategique') or news.get('conseil_strategique') or news.get('conseil') or ""
+        entry = {
+            "title": title or None,
+            "source": news.get("source") or "Presse / Web",
+            "date": news.get("date") or "",
+            "analysis": analysis,
+            "interview_relevance": news.get("interview_relevance"),
+            "hidden_meaning": news.get("hidden_meaning", "")
+        }
+        if url and not _is_placeholder_url(url):
+            ai_analysis_by_url[url] = entry
+        if title:
+            ai_analysis_by_title[title.lower()] = entry
 
-        source_data = source_map.get(url, {})
+    # On construit news_links à partir des articles web réels collectés, en y greffant
+    # l'analyse IA quand elle existe. Cela garantit que les articles de presse ne
+    # "disparaissent" jamais, même si l'IA n'a pas produit de news_links.
+    normalized_news: list[dict] = []
+    used_urls: set[str] = set()
+
+    # 1. Articles web réels enrichis par l'IA (ordre de pertinence)
+    for article in selected_articles:
+        if not isinstance(article, dict):
+            continue
+        url = str(article.get("url") or "").strip()
+        if not url or url in used_urls:
+            continue
+        used_urls.add(url)
+
+        ai = ai_analysis_by_url.get(url) or ai_analysis_by_title.get(str(article.get("title") or "").strip().lower()) or {}
+        title = ai.get("title") or article.get("title") or f"Source presse: {_domain_from_url(url)}"
+        source = ai.get("source") or article.get("source") or article.get("domain") or _domain_from_url(url)
+        date = ai.get("date") or article.get("published_at") or ""
+        analysis = ai.get("analysis") or article.get("snippet") or ""
+        hidden_meaning = ai.get("hidden_meaning") or ""
+        relevance = ai.get("interview_relevance") or article.get("candidate_score")
 
         normalized_news.append({
-            "title": news.get("title") or f"Article source {_domain_from_url(url)}",
+            "title": title,
             "url": url,
-            "source": news.get("source") or source_data.get("source") or _domain_from_url(url),
-            "date": news.get("date") or source_data.get("published_at") or datetime.now().strftime("%Y-%m-%d"),
-            "strategic_analysis": news.get("strategic_analysis") or news.get("analyse_strategique") or "",
-            "interview_relevance": news.get("interview_relevance") or source_data.get("candidate_score"),
+            "source": source,
+            "date": date,
+            "strategic_analysis": analysis,
+            "interview_relevance": relevance,
+            "hidden_meaning": hidden_meaning,
+        })
+
+    # 2. Analyses IA qui ne correspondaient à aucune URL web réelle (on garde quand même
+    #    le contenu stratégique, avec une URL vide car on ne peut pas inventer de lien).
+    for news in ai_generated_news:
+        if not isinstance(news, dict):
+            continue
+        url = str(news.get("url") or "").strip()
+        title = str(news.get("title") or "").strip()
+        if url and url in used_urls:
+            continue
+        if not title and not url:
+            continue
+        if url and not _is_placeholder_url(url):
+            used_urls.add(url)
+        analysis = news.get('strategic_analysis') or news.get('analyse_strategique') or ""
+        if not analysis and not news.get("hidden_meaning"):
+            continue
+        normalized_news.append({
+            "title": title or "Enjeu stratégique identifié",
+            "url": url if url and not _is_placeholder_url(url) else "",
+            "source": news.get("source") or "Analyse stratégique",
+            "date": news.get("date") or "",
+            "strategic_analysis": analysis,
+            "interview_relevance": news.get("interview_relevance"),
             "hidden_meaning": news.get("hidden_meaning", "")
         })
 
-    # Si l'IA n'a pas produit de liens exploitables, on construit une revue de presse minimale à partir des URLs web réelles.
-    if not normalized_news and extracted_web_urls:
-        normalized_news = [
-            {
-                "title": source_map.get(url, {}).get("title") or f"Source presse: {_domain_from_url(url)}",
-                "url": url,
-                "source": source_map.get(url, {}).get("source") or _domain_from_url(url),
-                "date": source_map.get(url, {}).get("published_at") or datetime.now().strftime("%Y-%m-%d"),
-                "strategic_analysis": "Source réelle collectée automatiquement. Analyse détaillée indisponible pour cette entrée.",
-                "interview_relevance": source_map.get(url, {}).get("candidate_score"),
-                "hidden_meaning": ""
-            }
-            for url in extracted_web_urls[:8]
-        ]
-
-    safe_synthesis["company_report"]["news_links"] = normalized_news
+    # 3. Dernière sécurité : si vraiment aucun article n'est disponible, on ne génère pas de
+    #    fausses actualités. Le front affichera alors "Aucune actualité identifiée".
+    safe_synthesis["company_report"]["news_links"] = normalized_news[:8]
     display_sources = extracted_web_urls
 
     return {
