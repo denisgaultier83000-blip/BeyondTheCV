@@ -8,8 +8,9 @@ interface GapAnalysisModalProps {
 }
 
 const GapAnalysisModal: React.FC<GapAnalysisModalProps> = ({ data, onClose }) => {
-  if (!data) return null;
   const { t } = useTranslation();
+
+  if (!data) return null;
   
   // Affichage d'erreur explicite si l'IA a planté
   if (data.error) {

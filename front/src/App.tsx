@@ -21,21 +21,21 @@ const StepEducation = lazy(() => import('./components/CandidateSteps').then(m =>
 const StepExperience = lazy(() => import('./components/CandidateSteps').then(m => ({ default: m.StepExperience })));
 const StepQualitiesFlaws = lazy(() => import('./components/CandidateSteps').then(m => ({ default: m.StepQualitiesFlaws })));
 const StepClarification = lazy(() => import('./components/CandidateSteps').then(m => ({ default: m.StepClarification })));
-const WizardStepper = lazy(() => import('./components/WizardStepper').then(m => ({ default: m.WizardStepper })));
-const DocumentsModal = lazy(() => import('./components/DocumentsModal').then(m => ({ default: m.DocumentsModal })));
-const PackStatusWidget = lazy(() => import('./components/PackStatusWidget').then(m => ({ default: m.PackStatusWidget })));
-const ConfirmAnalysisModal = lazy(() => import('./components/ConfirmAnalysisModal').then(m => ({ default: m.ConfirmAnalysisModal })));
-const DeleteAccountModal = lazy(() => import('./components/DeleteAccountModal').then(m => ({ default: m.DeleteAccountModal })));
-const AdminFeedbacks = lazy(() => import('./components/AdminFeedbacks').then(m => ({ default: m.AdminFeedbacks })));
-const AdminUsers = lazy(() => import('./components/AdminUsers').then(m => ({ default: m.AdminUsers })));
-const AdminBilling = lazy(() => import('./components/AdminBilling').then(m => ({ default: m.AdminBilling })));
-const AdminGenerations = lazy(() => import('./components/AdminGenerations').then(m => ({ default: m.AdminGenerations })));
-const AdminAuditLogs = lazy(() => import('./components/AdminAuditLogs').then(m => ({ default: m.AdminAuditLogs })));
+const WizardStepper = lazy(() => import('./components/WizardStepper'));
+const DocumentsModal = lazy(() => import('./components/DocumentsModal'));
+const PackStatusWidget = lazy(() => import('./components/PackStatusWidget'));
+const ConfirmAnalysisModal = lazy(() => import('./components/ConfirmAnalysisModal'));
+const DeleteAccountModal = lazy(() => import('./components/DeleteAccountModal'));
+const AdminFeedbacks = lazy(() => import('./components/AdminFeedbacks'));
+const AdminUsers = lazy(() => import('./components/AdminUsers'));
+const AdminBilling = lazy(() => import('./components/AdminBilling'));
+const AdminGenerations = lazy(() => import('./components/AdminGenerations'));
+const AdminAuditLogs = lazy(() => import('./components/AdminAuditLogs'));
 const AdminDashboard = lazy(() => import('./components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const CGU = lazy(() => import('./components/CGU').then(m => ({ default: m.CGU })));
 const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
 const LegalNotice = lazy(() => import('./components/LegalNotice').then(m => ({ default: m.LegalNotice })));
-const ResetPassword = lazy(() => import('./components/ResetPassword').then(m => ({ default: m.ResetPassword })));
+const ResetPassword = lazy(() => import('./components/ResetPassword'));
 
 // Composant fantÃƒÂ´me sÃƒÂ©parÃƒÂ© pour isoler le cycle de vie du useEffect
 function Step6Ghost({ onNext, t }: { onNext: () => void, t: any }) {

@@ -39,13 +39,11 @@ const AnalysisSection = ({ title, icon, children, color = 'var(--primary)' }: { 
 );
 
 const AnalysisResultDisplay = ({ analysis }: { analysis: any }) => {
-  if (!analysis) return null;
-  const summary = analysis.post_interview_summary;
-  if (!summary) return <p>L'analyse n'a pas pu être structurée correctement.</p>;
+  const summary = analysis?.post_interview_summary;
 
   // [NOUVEAU] État pour rendre le mail éditable et copiable
-  const [emailSubject, setEmailSubject] = useState(summary.next_interview_preparation?.follow_up_email?.subject || '');
-  const [emailBody, setEmailBody] = useState(summary.next_interview_preparation?.follow_up_email?.body || '');
+  const [emailSubject, setEmailSubject] = useState(summary?.next_interview_preparation?.follow_up_email?.subject || '');
+  const [emailBody, setEmailBody] = useState(summary?.next_interview_preparation?.follow_up_email?.body || '');
   const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {

@@ -19,8 +19,9 @@ interface CareerRadarModalProps {
 }
 
 export default function CareerRadarModal({ data, onClose }: CareerRadarModalProps) {
-  if (!data) return null;
   const { t } = useTranslation();
+
+  if (!data) return null;
 
   // Résolution robuste des données (Support de l'encapsulation IA)
   const radarData = data.career_radar_result || data;
