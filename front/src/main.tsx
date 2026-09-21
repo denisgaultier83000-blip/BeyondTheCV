@@ -1,28 +1,30 @@
-import React, { Suspense } from "react";
+import React, { Suspense, lazy } from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import App from "./App";
-import Payment from "./pages/Payment"; // Ce composant n'est plus utilisé, mais on le garde pour référence
 import { ProtectedRoute } from "./components/ProtectedRoute"; // Le seul composant de protection nécessaire
-import ResearchReport from "./pages/ResearchReport"; // Importer la nouvelle page
-import AdminFeedbacks from "./components/AdminFeedbacks";
-import AdminLayout from "./components/AdminLayout"; // Nouveau Layout Admin
-import AdminUsers from "./components/AdminUsers"; // Nouvelle page Admin
-import AdminBilling from "./components/AdminBilling"; // Nouvelle page Admin
-import AdminUserDetails from "./components/AdminUserDetails"; // Nouvelle page de détail
-import AdminGenerations from "./components/AdminGenerations"; // Nouvelle page Admin
-import AdminSettings from "./components/AdminSettings"; // Nouvelle page Admin
-import { AdminDashboard } from "./components/AdminDashboard";
-import ResetPassword from "./components/ResetPassword";
 import ErrorBoundary from "./components/ErrorBoundary";
+
+// Lazy-load secondary routes so the landing bundle stays small.
+const Payment = lazy(() => import("./pages/Payment"));
+const ResearchReport = lazy(() => import("./pages/ResearchReport"));
+const AdminLayout = lazy(() => import("./components/AdminLayout"));
+const AdminFeedbacks = lazy(() => import("./components/AdminFeedbacks"));
+const AdminUsers = lazy(() => import("./components/AdminUsers"));
+const AdminBilling = lazy(() => import("./components/AdminBilling"));
+const AdminUserDetails = lazy(() => import("./components/AdminUserDetails"));
+const AdminGenerations = lazy(() => import("./components/AdminGenerations"));
+const AdminSettings = lazy(() => import("./components/AdminSettings"));
+const AdminDashboard = lazy(() => import("./components/AdminDashboard").then(m => ({ default: m.AdminDashboard })));
+const ResetPassword = lazy(() => import("./components/ResetPassword"));
 import "./index.css";
 import "./theme.css";
 import "./i18n";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <Suspense fallback="loading">
+    <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', fontFamily: 'system-ui, sans-serif', color: '#52677d' }}>Chargement…</div>}>
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ErrorBoundary>
         <Routes>

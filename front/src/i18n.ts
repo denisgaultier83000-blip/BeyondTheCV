@@ -14,6 +14,8 @@ i18n
   // Passe l'instance i18n à react-i18next
   .use(initReactI18next)
   .init({
+    // Langue affichée au démarrage : on évite de charger une autre langue sur la landing.
+    lng: 'fr',
     // Langue par défaut orientée France
     fallbackLng: 'fr',
     // 2. On injecte le Français directement dans le bundle initial
@@ -25,14 +27,16 @@ i18n
     partialBundledLanguages: true, // 3. Indique à i18n de chercher sur le réseau SEULEMENT pour les autres langues
     // Langues supportées par l'interface utilisateur
     supportedLngs: ['en', 'fr', 'es', 'de', 'it'],
+    load: 'languageOnly',
     // Options pour le backend de chargement
     backend: {
       // Chemin vers les fichiers de traduction que nous allons créer
       loadPath: '/locales/{{lng}}/translation.json',
     },
-    // Options de détection de langue
+    // Options de détection de langue : on ne se base plus sur navigator au démarrage,
+    // ce qui supprime le chargement critique de /locales/en/translation.json.
     detection: {
-      order: ['localStorage', 'navigator'],
+      order: ['localStorage'],
       caches: ['localStorage'],
     },
     // Désactive l'échappement des valeurs (React le fait déjà pour se protéger du XSS)

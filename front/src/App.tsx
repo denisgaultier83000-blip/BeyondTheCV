@@ -1,36 +1,41 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
  import { AlertCircle, RotateCcw, RefreshCw, Loader2, FileText, Target, MessageSquare, BarChart3, Bell as LucideBell, X as LucideX, Lock, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Login from './pages/Login';
 import Header, { Step } from './components/Header';
-import { DashboardView } from './components/DashboardView';
 import { DashboardProvider as GlobalProvider, useDashboard as useGlobalDashboard } from './hooks/DashboardContext';
 import { DashboardProvider as TabProvider } from './components/DashboardContext';
-import { 
-  StepImport, StepProfile, StepTarget, StepEducation, StepExperience,
-  StepQualitiesFlaws, StepClarification 
-} from './components/CandidateSteps';
-import AdminFeedbacks from './components/AdminFeedbacks';
-import AdminUsers from './components/AdminUsers';
-import AdminBilling from './components/AdminBilling';
-import AdminGenerations from './components/AdminGenerations';
-import AdminAuditLogs from './components/AdminAuditLogs';
-import { AdminDashboard } from './components/AdminDashboard';
 import { LandingPage } from './components/LandingPage';
-import WizardStepper from './components/WizardStepper';
-import { CGU } from './components/CGU';
-import { PrivacyPolicy } from './components/PrivacyPolicy';
-import { LegalNotice } from './components/LegalNotice';
-import ResetPassword from './components/ResetPassword';
 import { LoadingScreen } from './components/LoadingScreen';
-import DocumentsModal from './components/DocumentsModal';
-import PackStatusWidget from './components/PackStatusWidget';
-import ConfirmAnalysisModal from './components/ConfirmAnalysisModal';
-import DeleteAccountModal from './components/DeleteAccountModal';
 import { API_BASE_URL } from './config';
 import { authenticatedFetch } from './utils/auth';
 import './index.css';
+
+// Lazy-loaded post-login / admin / legal modules to keep the initial bundle small.
+const DashboardView = lazy(() => import('./components/DashboardView').then(m => ({ default: m.DashboardView })));
+const StepImport = lazy(() => import('./components/CandidateSteps').then(m => ({ default: m.StepImport })));
+const StepProfile = lazy(() => import('./components/CandidateSteps').then(m => ({ default: m.StepProfile })));
+const StepTarget = lazy(() => import('./components/CandidateSteps').then(m => ({ default: m.StepTarget })));
+const StepEducation = lazy(() => import('./components/CandidateSteps').then(m => ({ default: m.StepEducation })));
+const StepExperience = lazy(() => import('./components/CandidateSteps').then(m => ({ default: m.StepExperience })));
+const StepQualitiesFlaws = lazy(() => import('./components/CandidateSteps').then(m => ({ default: m.StepQualitiesFlaws })));
+const StepClarification = lazy(() => import('./components/CandidateSteps').then(m => ({ default: m.StepClarification })));
+const WizardStepper = lazy(() => import('./components/WizardStepper').then(m => ({ default: m.WizardStepper })));
+const DocumentsModal = lazy(() => import('./components/DocumentsModal').then(m => ({ default: m.DocumentsModal })));
+const PackStatusWidget = lazy(() => import('./components/PackStatusWidget').then(m => ({ default: m.PackStatusWidget })));
+const ConfirmAnalysisModal = lazy(() => import('./components/ConfirmAnalysisModal').then(m => ({ default: m.ConfirmAnalysisModal })));
+const DeleteAccountModal = lazy(() => import('./components/DeleteAccountModal').then(m => ({ default: m.DeleteAccountModal })));
+const AdminFeedbacks = lazy(() => import('./components/AdminFeedbacks').then(m => ({ default: m.AdminFeedbacks })));
+const AdminUsers = lazy(() => import('./components/AdminUsers').then(m => ({ default: m.AdminUsers })));
+const AdminBilling = lazy(() => import('./components/AdminBilling').then(m => ({ default: m.AdminBilling })));
+const AdminGenerations = lazy(() => import('./components/AdminGenerations').then(m => ({ default: m.AdminGenerations })));
+const AdminAuditLogs = lazy(() => import('./components/AdminAuditLogs').then(m => ({ default: m.AdminAuditLogs })));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const CGU = lazy(() => import('./components/CGU').then(m => ({ default: m.CGU })));
+const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
+const LegalNotice = lazy(() => import('./components/LegalNotice').then(m => ({ default: m.LegalNotice })));
+const ResetPassword = lazy(() => import('./components/ResetPassword').then(m => ({ default: m.ResetPassword })));
 
 // Composant fantÃƒÂ´me sÃƒÂ©parÃƒÂ© pour isoler le cycle de vie du useEffect
 function Step6Ghost({ onNext, t }: { onNext: () => void, t: any }) {
@@ -1036,6 +1041,8 @@ function AppContent() {
 
   const removeToast = (id: number) => setToasts(prev => prev.filter(t => t.id !== id));
 
+  const lazyFallback = <LoadingScreen title="Chargement..." description="Préparation de l'interface..." />;
+
   const handleStartNewCompany = () => {
     setShowLanding(false);
     setCurrentStep(2);
@@ -1089,14 +1096,14 @@ function AppContent() {
   const LegalComponent = showCGU ? CGU : showPrivacy ? PrivacyPolicy : showLegal ? LegalNotice : null;
   const closeLegal = () => { setShowCGU(false); setShowPrivacy(false); setShowLegal(false); };
   if (LegalComponent) return (
-    <div className="app-container"><main className="main-content" style={{ paddingTop: '2rem' }}><button onClick={closeLegal} className="btn-outline" style={{ marginBottom: '2rem' }}>{'<- Retour'}</button><LegalComponent /></main></div>);
+    <div className="app-container"><Suspense fallback={lazyFallback}><main className="main-content" style={{ paddingTop: '2rem' }}><button onClick={closeLegal} className="btn-outline" style={{ marginBottom: '2rem' }}>{'<- Retour'}</button><LegalComponent /></main></Suspense></div>);
 
   if (showAdmin) return (
-    <div className="app-container"><main className="main-content" style={{ paddingTop: '2rem' }}><button onClick={() => setShowAdmin(false)} className="btn-outline" style={{ marginBottom: '2rem' }}>{'<- Retour'}</button><AdminFeedbacks /></main></div>);
+    <div className="app-container"><Suspense fallback={lazyFallback}><main className="main-content" style={{ paddingTop: '2rem' }}><button onClick={() => setShowAdmin(false)} className="btn-outline" style={{ marginBottom: '2rem' }}>{'<- Retour'}</button><AdminFeedbacks /></main></Suspense></div>);
 
   // Interception de la route pour le mot de passe oubliÃƒÂ©
   if (location.pathname === '/reset-password') {
-    return <ResetPassword />;
+    return <Suspense fallback={lazyFallback}><ResetPassword /></Suspense>;
   }
 
   // [FIX] SÃƒÂ©curisation du parsing JSON du nom d'utilisateur pour ÃƒÂ©viter la page blanche au login
@@ -1167,7 +1174,7 @@ function AppContent() {
           </div>
 
           <button onClick={() => navigate('/candidate')} className="btn-outline" style={{ marginBottom: '2rem' }}>{'<- Retour a l\'application'}</button>
-          <AdminDashboard />
+          <Suspense fallback={lazyFallback}><AdminDashboard /></Suspense>
         </main>
       </div>
     );
@@ -1198,38 +1205,7 @@ function AppContent() {
             <button onClick={() => navigate('/admin/feedbacks')} className="btn-ghost">Feedbacks</button>
             <button onClick={() => navigate('/admin/audit-logs')} className="btn-ghost">Audit Logs</button>
           </div>
-          <AdminComponent />
-        </main>
-      </div>
-    );
-  }
-
-  // [NOUVEAU] Routes admin specifiques
-  if (location.pathname.startsWith('/admin/')) {
-    if (!isAuthenticated || !isAdmin) {
-      return <div className="app-container"><main className="main-content" style={{ paddingTop: '4rem', textAlign: 'center', color: 'var(--danger-text)', fontWeight: 'bold' }}>Acces refuse.</main></div>;
-    }
-    
-    let AdminComponent;
-    if (location.pathname === '/admin/users') AdminComponent = AdminUsers;
-    else if (location.pathname === '/admin/billing') AdminComponent = AdminBilling;
-    else if (location.pathname === '/admin/generations') AdminComponent = AdminGenerations;
-    else if (location.pathname === '/admin/feedbacks') AdminComponent = AdminFeedbacks;
-    else if (location.pathname === '/admin/audit-logs') AdminComponent = AdminAuditLogs;
-    else AdminComponent = AdminDashboard;
-
-    return (
-      <div className="app-container">
-        <main className="main-content" style={{ paddingTop: '2rem' }}>
-          <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
-            <button onClick={() => navigate('/admin')} className="btn-ghost">Dashboard</button>
-            <button onClick={() => navigate('/admin/users')} className="btn-ghost">Utilisateurs</button>
-            <button onClick={() => navigate('/admin/billing')} className="btn-ghost">Facturation</button>
-            <button onClick={() => navigate('/admin/generations')} className="btn-ghost">Generations IA</button>
-            <button onClick={() => navigate('/admin/feedbacks')} className="btn-ghost">Feedbacks</button>
-            <button onClick={() => navigate('/admin/audit-logs')} className="btn-ghost">Audit Logs</button>
-          </div>
-          <AdminComponent />
+          <Suspense fallback={lazyFallback}><AdminComponent /></Suspense>
         </main>
       </div>
     );
@@ -1274,6 +1250,7 @@ function AppContent() {
         currentStep={currentStep}
         goToStep={setCurrentStep}
       />
+      <Suspense fallback={lazyFallback}>
       <main className="main-content">
         {showLanding && !isAuthenticated ? (
           <LandingPage 
@@ -1371,6 +1348,7 @@ function AppContent() {
             </div>
           </div>)}
       </main>
+      </Suspense>
 
       {isFrozen && isAuthenticated && !showLanding && !LegalComponent && !showAdmin && (
         <div className="frozen-banner"><Lock size={20} /> {t('frozen_banner_text', 'Acces expire. La generation IA est bloquee.')}<button onClick={() => setShowPaywall(true)} className="btn-reactivate">{t('btn_reactivate', 'Reactiver (30 EUR)')}</button></div>)}
@@ -1390,7 +1368,7 @@ function AppContent() {
            </div>
         </div>)}
 
-      {showDocsModal && <DocumentsModal onClose={() => setShowDocsModal(false)} />}
+      {showDocsModal && <Suspense fallback={null}><DocumentsModal onClose={() => setShowDocsModal(false)} /></Suspense>}
 
       {showNewApplicationModal && (
         <div className="modal-overlay">
@@ -1464,7 +1442,7 @@ function AppContent() {
         <button className="btn-ghost" onClick={() => setShowDeleteAccount(true)} style={{ color: '#ef4444' }}>Supprimer mon compte</button>
       </footer>
 
-      <DeleteAccountModal isOpen={showDeleteAccount} onClose={() => setShowDeleteAccount(false)} />
+      <Suspense fallback={null}><DeleteAccountModal isOpen={showDeleteAccount} onClose={() => setShowDeleteAccount(false)} /></Suspense>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   ArrowRight,
   BarChart3,
@@ -14,6 +14,14 @@ import {
   Target,
   TrendingUp,
 } from 'lucide-react';
+import { ResponsiveImage } from './ResponsiveImage';
+
+// Also emit these values in index.html or the prerendered HTML for crawlers
+// that do not execute JavaScript. HTTP security headers belong to the server.
+export const LANDING_SEO = {
+  title: 'BeyondTheCV | Préparez vos entretiens avec l’IA',
+  description: 'Préparez vos entretiens d’embauche avec BeyondTheCV : analyse du poste, pitch personnalisé et simulations pour vous entraîner avec l’IA.',
+};
 
 interface LandingPageProps {
   onStart: () => void;
@@ -34,6 +42,60 @@ export function LandingPage({
 }: LandingPageProps) {
   const pricingRef = useRef<HTMLElement | null>(null);
 
+  useEffect(() => {
+    const previousTitle = document.title;
+    const cleanups: Array<() => void> = [];
+    document.title = LANDING_SEO.title;
+
+    // Restore the previous head when leaving the landing page (SPA navigation).
+    const setHead = (selector: string, tag: string, attributes: Record<string, string>) => {
+      const existing = document.head.querySelector<HTMLElement>(selector);
+      const element = existing ?? document.createElement(tag);
+      const previous = Object.keys(attributes).map(key => [key, element.getAttribute(key)] as const);
+      Object.entries(attributes).forEach(([key, value]) => element.setAttribute(key, value));
+      if (!existing) document.head.appendChild(element);
+      cleanups.push(() => {
+        if (!existing) { element.remove(); return; }
+        previous.forEach(([key, value]) => {
+          if (value === null) element.removeAttribute(key);
+          else element.setAttribute(key, value);
+        });
+      });
+    };
+    const meta = (key: string, value: string, attribute = 'name') => {
+      setHead(`meta[${attribute}="${key}"]`, 'meta', { [attribute]: key, content: value });
+    };
+    const pageUrl = new URL(window.location.pathname, window.location.origin).href;
+    const imageUrl = new URL('/dashboard-preview.png', window.location.origin).href;
+    meta('description', LANDING_SEO.description);
+    meta('og:type', 'website', 'property');
+    meta('og:site_name', 'BeyondTheCV', 'property');
+    meta('og:locale', 'fr_FR', 'property');
+    meta('og:title', LANDING_SEO.title, 'property');
+    meta('og:description', LANDING_SEO.description, 'property');
+    meta('og:url', pageUrl, 'property');
+    meta('og:image', imageUrl, 'property');
+    meta('og:image:alt', 'Tableau de bord de préparation aux entretiens BeyondTheCV', 'property');
+    meta('twitter:card', 'summary_large_image');
+    meta('twitter:title', LANDING_SEO.title);
+    meta('twitter:description', LANDING_SEO.description);
+    meta('twitter:image', imageUrl);
+
+    // Never force indexation or invent the production domain on preview hosts.
+    // Mirror staging noindex in HTTP headers: this client-side rule is a fallback.
+    if (window.location.hostname === 'staging.beyondthecv.app') {
+      meta('robots', 'noindex, nofollow');
+    }
+    if (['beyondthecv.app', 'www.beyondthecv.app'].includes(window.location.hostname)
+        && !document.head.querySelector('link[rel="canonical"]')) {
+      setHead('link[rel="canonical"]', 'link', { rel: 'canonical', href: pageUrl });
+    }
+    return () => {
+      document.title = previousTitle;
+      cleanups.reverse().forEach(cleanup => cleanup());
+    };
+  }, []);
+
   const scrollToPricing = () => {
     pricingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -41,7 +103,7 @@ export function LandingPage({
   const features = [
     {
       icon: <FileSearch size={23} />,
-      title: 'Décoder le poste',
+      title: 'Analyser l’offre d’emploi',
       text: 'Comprenez les attentes explicites, les besoins cachés et les difficultés que le recrutement doit résoudre.',
     },
     {
@@ -51,12 +113,12 @@ export function LandingPage({
     },
     {
       icon: <MessageSquareText size={23} />,
-      title: 'Construire votre discours',
+      title: 'Préparer votre pitch d’entretien',
       text: 'Préparez vos pitchs, vos arguments clés et vos réponses aux objections à partir de votre profil réel.',
     },
     {
       icon: <Mic size={23} />,
-      title: 'Vous entraîner réellement',
+      title: 'Simuler un entretien d’embauche',
       text: 'Répondez aux questions, mises en situation et simulations, puis améliorez vos réponses après analyse.',
     },
     {
@@ -72,7 +134,7 @@ export function LandingPage({
   ];
 
   return (
-    <div className="lp-container">
+    <div className="lp-container" lang="fr">
       <style>{`
         .lp-container {
           font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -1149,19 +1211,19 @@ export function LandingPage({
       `}</style>
 
       {/* HERO */}
-      <section className="lp-hero">
+      <section className="lp-hero" aria-labelledby="lp-title">
         <div className="lp-shell lp-hero-grid">
           <div>
             <div className="lp-eyebrow">
               <Sparkles size={16} /> Préparation stratégique et suivi de progression
             </div>
 
-            <h1 className="lp-hero-title">
-              Préparez chaque candidature comme si vous aviez un coach à vos côtés.
+            <h1 id="lp-title" className="lp-hero-title">
+              Préparez vos entretiens d’embauche avec l’IA.
             </h1>
 
             <p className="lp-hero-subtitle">
-              BeyondTheCV relie votre profil, l’entreprise, le poste et vos entraînements
+              Votre coach entretien IA BeyondTheCV relie votre CV, l’entreprise, le poste et vos entraînements
               pour vous aider à <span className="lp-hero-strong">comprendre, convaincre,
               vous entraîner et progresser</span> jusqu’à l’entretien.
             </p>
@@ -1183,9 +1245,14 @@ export function LandingPage({
           </div>
 
           <div className="lp-product-frame">
-            <img
+            <ResponsiveImage
               src={darkMode ? '/dashboard-preview-night.png' : '/dashboard-preview.png'}
-              alt="Aperçu du tableau de bord BeyondTheCV"
+              alt="Tableau de bord BeyondTheCV : profil candidat, offres et préparation aux entretiens"
+              widths={[800, 1200]}
+              sizes="(max-width: 980px) 100vw, 55vw"
+              width={1200}
+              height={603}
+              loading="eager"
             />
             <div className="lp-floating-card">
               <strong>Votre préparation reste structurée</strong>
@@ -1264,7 +1331,7 @@ export function LandingPage({
         <div className="lp-shell">
           <div className="lp-section-header center">
             <div className="lp-section-kicker">Une méthode complète</div>
-            <h2>De l’annonce au débrief, tout reste relié</h2>
+            <h2>Des outils pour préparer chaque étape de l’entretien</h2>
             <p>
               BeyondTheCV n’empile pas des outils. Chaque module utilise le même profil
               et le même contexte de candidature pour maintenir une préparation cohérente.
@@ -1289,7 +1356,7 @@ export function LandingPage({
         <div className="lp-shell">
           <div className="lp-section-header center">
             <div className="lp-section-kicker">Une méthode, pas un catalogue</div>
-            <h2>Votre préparation s’organise autour de cinq étapes simples.</h2>
+            <h2>Comment préparer votre entretien en cinq étapes</h2>
             <p>
               Vous avancez étape par étape, en sachant toujours ce que vous devez comprendre,
               préparer, entraîner et améliorer.
@@ -1365,7 +1432,7 @@ export function LandingPage({
         <div className="lp-shell">
           <div className="lp-section-header center">
             <div className="lp-section-kicker">Mesurez vos progrès</div>
-            <h2>Suivez votre évolution, pas seulement vos réponses.</h2>
+            <h2>Mesurez vos progrès après chaque simulation d’entretien</h2>
             <p>
               BeyondTheCV consolide vos entraînements, suit votre progression et
               met en évidence les thématiques à renforcer avant le prochain entretien.
@@ -1374,9 +1441,15 @@ export function LandingPage({
 
           <div className="lp-eval-showcase">
             <div className="lp-eval-frame">
-              <img
+              <ResponsiveImage
                 src={darkMode ? '/evaluation-preview-night.png' : '/evaluation-preview.png'}
                 alt="Suivi des entraînements et de la progression dans BeyondTheCV"
+                widths={[600, 885]}
+                sizes="(max-width: 980px) 100vw, 55vw"
+                width={885}
+                height={702}
+                loading="lazy"
+                decoding="async"
               />
             </div>
 
@@ -1568,10 +1641,16 @@ export function LandingPage({
         <div className="lp-shell">
           <div className="lp-founder-card">
             <div className="lp-founder-photo-wrap">
-              <img
+              <ResponsiveImage
                 src="/denis-gaultier.png"
                 alt="Denis Gaultier, fondateur de BeyondTheCV"
                 className="lp-founder-photo"
+                widths={[132, 186]}
+                sizes="132px"
+                width={186}
+                height={234}
+                loading="lazy"
+                decoding="async"
               />
             </div>
 
@@ -1610,11 +1689,11 @@ export function LandingPage({
       </section>
 
       {/* PRICING */}
-      <section ref={pricingRef} className="lp-section soft">
+      <section id="tarifs" ref={pricingRef} className="lp-section soft">
         <div className="lp-shell">
           <div className="lp-section-header center">
             <div className="lp-section-kicker">Une offre simple</div>
-            <h2>5 nouvelles candidatures chaque mois. Toutes les fonctionnalités.</h2>
+            <h2>Votre préparation aux entretiens dès 29,90 € par mois</h2>
             <p>
               Pas de pack amputé, pas de choix entre plusieurs niveaux de préparation.
               Votre abonnement vous donne accès à l’ensemble de BeyondTheCV.
@@ -1727,10 +1806,19 @@ export function LandingPage({
         <div className="lp-shell">
           <div className="lp-section-header center">
             <div className="lp-section-kicker">Questions fréquentes</div>
-            <h2>Ce que vous devez savoir avant de commencer</h2>
+            <h2>Questions fréquentes sur la préparation aux entretiens avec l’IA</h2>
           </div>
 
           <div className="lp-faq">
+            <div className="lp-faq-item">
+              <h3>Comment préparer un entretien d’embauche avec l’IA ?</h3>
+              <p>
+                Commencez par votre CV et l’offre d’emploi visée. BeyondTheCV vous aide à
+                analyser les attentes du poste, à préparer votre pitch et à vous entraîner
+                aux questions d’entretien. Les retours sur vos réponses vous permettent
+                de cibler les points à améliorer avant de rencontrer le recruteur.
+              </p>
+            </div>
             <div className="lp-faq-item">
               <h3>Qu’est-ce qu’une candidature ?</h3>
               <p>

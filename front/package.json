@@ -20,9 +20,10 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/optimize-images.js && vite build",
     "test": "vitest",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "optimize-images": "node scripts/optimize-images.js"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.2",
