@@ -279,9 +279,11 @@ export function LandingPage({
 
         .lp-product-frame img {
           width: 100%;
+          height: auto;
           display: block;
           border-radius: .95rem;
           border: 1px solid var(--border-color);
+          aspect-ratio: 1868 / 938;
         }
 
         .lp-floating-card {
