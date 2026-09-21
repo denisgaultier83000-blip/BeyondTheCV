@@ -239,7 +239,7 @@ export const PrintableDossier = ({ selection = {} }: { selection?: any }) => {
 
       {/* Logo répété en haut à droite de chaque page */}
       <div className="print-logo-container" style={{ display: 'none' }}>
-        <img src="/logo_reduit_BTCV.png" alt="BeyondTheCV" style={{ height: '100%', width: 'auto', opacity: 0.8 }} />
+        <img src="/logo_reduit_BTCV-384.png" alt="BeyondTheCV" style={{ height: '100%', width: 'auto', opacity: 0.8 }} width="384" height="70" />
       </div>
 
       {/* Filigrane Confidentiel */}

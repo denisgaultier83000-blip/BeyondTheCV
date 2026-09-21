@@ -11,6 +11,8 @@ const images = [
   { name: 'evaluation-preview.png', widths: [600, 885] },
   { name: 'evaluation-preview-night.png', widths: [600, 881] },
   { name: 'denis-gaultier.png', widths: [132, 186] },
+  // Logo displayed at ~384x70 in the header; generate a lightweight responsive variant.
+  { name: 'logo_reduit_BTCV.png', widths: [384] },
 ];
 
 async function optimize() {

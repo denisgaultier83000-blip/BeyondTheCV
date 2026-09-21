@@ -105,7 +105,11 @@ export default function Header({
     <header className="app-header">
       <div className="header-main">
         <div className="header-logo">
-          <img src="/logo_reduit_BTCV.png" alt="BeyondTheCV" className="logo-img" />
+          <picture>
+            <source type="image/avif" srcSet="/logo_reduit_BTCV-384.avif" />
+            <source type="image/webp" srcSet="/logo_reduit_BTCV-384.webp" />
+            <img src="/logo_reduit_BTCV-384.png" alt="BeyondTheCV" className="logo-img" width="384" height="70" />
+          </picture>
         </div>
 
         <div className="header-actions">
