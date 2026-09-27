@@ -535,11 +535,11 @@ export const StepTarget = ({ data, onChange, errors, loading, lang = 'en' }: Ste
           }} 
           style={{ width: "100%", opacity: loading ? 0.6 : 1, border: "1px solid var(--primary)", background: "var(--bg-card)", color: "var(--text-main)" }}
         >
-          <option value="fr">Français 🇫🇷</option>
-          <option value="en">English 🇬🇧</option>
-          <option value="es">Español 🇪🇸</option>
-          <option value="de">Deutsch 🇩🇪</option>
-          <option value="it">Italiano 🇮🇹</option>
+          <option value="fr">{t('language_fr', 'Français 🇫🇷')}</option>
+          <option value="en">{t('language_en', 'English 🇬🇧')}</option>
+          <option value="es">{t('language_es', 'Español 🇪🇸')}</option>
+          <option value="de">{t('language_de', 'Deutsch 🇩🇪')}</option>
+          <option value="it">{t('language_it', 'Italiano 🇮🇹')}</option>
         </select>
         <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "4px", marginBottom: 0 }}>
           {t('target_language_hint', "L'IA générera tous vos documents dans cette langue.")}

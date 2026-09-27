@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, AlertTriangle, Trash2, History, FileText, Dumbbell, Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { authenticatedFetch } from '../utils/auth';
@@ -10,6 +11,7 @@ interface DeleteAccountModalProps {
 }
 
 export const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({ isOpen, onClose, onSuccess }) => {
+  const { t } = useTranslation();
   const [reason, setReason] = useState<string>('job_found');
   const [comments, setComments] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
@@ -29,7 +31,7 @@ export const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({ isOpen, 
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.detail || 'Erreur lors de la suppression du compte.');
+        throw new Error(errData.detail || t('delete_account_error'));
       }
 
       // Purge du stockage local
@@ -43,7 +45,7 @@ export const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({ isOpen, 
         window.location.href = '/';
       }
     } catch (err: any) {
-      setError(err.message || 'Une erreur est survenue lors de la suppression.');
+      setError(err.message || t('delete_account_generic_error'));
       setLoading(false);
     }
   };
@@ -51,7 +53,7 @@ export const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({ isOpen, 
   return (
     <div style={overlayStyle}>
       <div style={modalStyle}>
-        <button onClick={onClose} style={closeButtonStyle} aria-label="Fermer">
+        <button onClick={onClose} style={closeButtonStyle} aria-label={t('close')}>
           <X size={20} />
         </button>
 
@@ -60,59 +62,56 @@ export const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({ isOpen, 
         </div>
 
         <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.5rem', textAlign: 'center' }}>
-          Supprimer mon compte & résilier
+          {t('delete_account_title')}
         </h2>
 
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.25rem', textAlign: 'center', lineHeight: '1.4' }}>
-          Attention, cette action est <strong>définitive et irréversible</strong>. En supprimant votre compte, vous résiliez votre abonnement (29,90 €/mois) et perdez immédiatement :
+          {t('delete_account_warning')}
         </p>
 
-        {/* Liste des pertes */}
         <div style={lossContainerStyle}>
           <div style={lossItemStyle}>
             <History size={16} color="#ef4444" />
-            <span><strong>Historique des entraînements</strong> (toutes vos prestations et évaluations IA)</span>
+            <span dangerouslySetInnerHTML={{ __html: t('delete_account_loss_history') }} />
           </div>
           <div style={lossItemStyle}>
             <FileText size={16} color="#ef4444" />
-            <span><strong>Candidatures et offres préparées</strong> (analyses d'écart, pitches, synthèses)</span>
+            <span dangerouslySetInnerHTML={{ __html: t('delete_account_loss_applications') }} />
           </div>
           <div style={lossItemStyle}>
             <Dumbbell size={16} color="#ef4444" />
-            <span><strong>Abonnement & crédits restants</strong> (150 entraînements et 5 candidatures mensuels)</span>
+            <span dangerouslySetInnerHTML={{ __html: t('delete_account_loss_subscription') }} />
           </div>
           <div style={lossItemStyle}>
             <Trash2 size={16} color="#ef4444" />
-            <span><strong>Profils IA et documents générés</strong> (CVs, lettres, plans d'action)</span>
+            <span dangerouslySetInnerHTML={{ __html: t('delete_account_loss_documents') }} />
           </div>
         </div>
 
-        {/* Formulaire motif de résiliation */}
         <div style={{ marginBottom: '1.25rem' }}>
           <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.4rem' }}>
-            Motif de la résiliation / suppression :
+            {t('delete_account_reason_label')}
           </label>
           <select
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             style={selectStyle}
           >
-            <option value="job_found">🎉 Job trouvé / Emploi décroché</option>
-            <option value="too_expensive">💰 Abonnement trop cher (29,90 €/mois)</option>
-            <option value="not_relevant">🎯 Pas assez pertinent / ne répond pas à mes besoins</option>
-            <option value="other">💬 Autre motif</option>
+            <option value="job_found">{t('delete_reason_job_found')}</option>
+            <option value="too_expensive">{t('delete_reason_too_expensive')}</option>
+            <option value="not_relevant">{t('delete_reason_not_relevant')}</option>
+            <option value="other">{t('delete_reason_other')}</option>
           </select>
         </div>
 
-        {/* Remarques facultatives */}
         <div style={{ marginBottom: '1.5rem' }}>
           <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.4rem' }}>
-            Commentaires ou suggestions (facultatif) :
+            {t('delete_account_comments_label')}
           </label>
           <textarea
             value={comments}
             onChange={(e) => setComments(e.target.value)}
-            placeholder="Dites-nous ce que nous pourrions améliorer..."
+            placeholder={t('delete_account_comments_placeholder')}
             rows={3}
             style={textareaStyle}
           />
@@ -124,14 +123,13 @@ export const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({ isOpen, 
           </div>
         )}
 
-        {/* Boutons d'action */}
         <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
           <button
             onClick={onClose}
             disabled={loading}
             style={cancelBtnStyle}
           >
-            Annuler
+            {t('cancel')}
           </button>
           <button
             onClick={handleDelete}
@@ -141,10 +139,10 @@ export const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({ isOpen, 
             {loading ? (
               <>
                 <Loader2 size={16} className="spin" style={{ marginRight: '0.4rem' }} />
-                Suppression en cours...
+                {t('delete_account_deleting')}
               </>
             ) : (
-              'Confirmer la suppression'
+              t('delete_account_confirm')
             )}
           </button>
         </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ShieldAlert, Sparkles, AlertCircle, CheckCircle2, Loader2, ArrowRight, HelpCircle } from 'lucide-react';
 import AutoResizeTextarea from './AutoResizeTextarea';
 import { authenticatedFetch } from '../utils/auth';
@@ -35,6 +36,7 @@ export const SensitiveSituationsCard: React.FC<SensitiveSituationsCardProps> = (
   initialText = '',
   onSave
 }) => {
+  const { t } = useTranslation();
   const [sensitiveText, setSensitiveText] = useState<string>(initialText);
   const [situations, setSituations] = useState<SensitiveSituation[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -46,7 +48,7 @@ export const SensitiveSituationsCard: React.FC<SensitiveSituationsCardProps> = (
 
   const handleAnalyze = async () => {
     if (!sensitiveText.trim()) {
-      setMessage("Veuillez indiquer au moins une situation ou inquiétude ci-dessus.");
+      setMessage(t('sensitive_empty_error'));
       return;
     }
 
@@ -67,11 +69,11 @@ export const SensitiveSituationsCard: React.FC<SensitiveSituationsCardProps> = (
         const items: SensitiveSituation[] = data.situations || [];
         setSituations(items);
         if (onSave) onSave(sensitiveText, items);
-        setMessage("✨ Votre plan de sécurisation a été généré par l'IA !");
+        setMessage(t('sensitive_generated_success'));
       }
     } catch (e) {
       console.error("Error analyzing sensitive situations:", e);
-      setMessage("Erreur lors de la génération du plan d'action.");
+      setMessage(t('sensitive_generated_error'));
     } finally {
       setLoading(false);
     }
@@ -81,20 +83,20 @@ export const SensitiveSituationsCard: React.FC<SensitiveSituationsCardProps> = (
     if (level === 'imperative' || level === 'secure_now') {
       return (
         <span style={{ background: '#FEE2E2', color: '#991b1b', border: '1px solid #fecaca', fontSize: '0.75rem', fontWeight: 800, padding: '0.2rem 0.65rem', borderRadius: '999px', textTransform: 'uppercase' }}>
-          🔴 {label || 'À SÉCURISER IMPÉRATIVEMENT'}
+          🔴 {label || t('urgency_secure_now')}
         </span>
       );
     }
     if (level === 'prepare') {
       return (
         <span style={{ background: '#FFF4D6', color: '#92400e', border: '1px solid #fde68a', fontSize: '0.75rem', fontWeight: 800, padding: '0.2rem 0.65rem', borderRadius: '999px', textTransform: 'uppercase' }}>
-          🟡 {label || 'À PRÉPARER'}
+          🟡 {label || t('urgency_prepare')}
         </span>
       );
     }
     return (
       <span style={{ background: '#DCFCE7', color: '#065f46', border: '1px solid #a7f3d0', fontSize: '0.75rem', fontWeight: 800, padding: '0.2rem 0.65rem', borderRadius: '999px', textTransform: 'uppercase' }}>
-        🟢 {label || 'À SURVEILLER'}
+        🟢 {label || t('urgency_watch')}
       </span>
     );
   };
@@ -105,18 +107,18 @@ export const SensitiveSituationsCard: React.FC<SensitiveSituationsCardProps> = (
         <ShieldAlert color="var(--mod-speech-accent)" size={24} />
         <div>
           <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)' }}>
-            Situations sensibles & Points de fragilité
+            {t('sensitive_situations_title')}
           </h3>
           <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-            Anticipez les facteurs de déstabilisation pour transformer vos inquiétudes en plan de préparation concret.
+            {t('sensitive_situations_subtitle')}
           </p>
         </div>
       </div>
 
       <div style={{ padding: '0.85rem 1rem', background: 'var(--mod-speech-bg-soft)', borderRadius: '0.5rem', borderLeft: '4px solid var(--mod-speech-accent)', marginBottom: '1rem', fontSize: '0.88rem', color: 'var(--text-main)' }}>
-        <strong>Y a-t-il une situation qui pourrait vous mettre en difficulté ou vous faire perdre vos moyens pendant cet entretien ?</strong>
+        <strong>{t('sensitive_prompt')}</strong>
         <div style={{ marginTop: '0.35rem', color: 'var(--text-muted)', fontSize: '0.83rem' }}>
-          <em>Exemples :</em> Passage en anglais imprévu, test technique en live, question salariale trop tôt, trou de mémoire, recruteur froid/agressif, étude de cas chronométrée, prise de parole devant un jury...
+          {t('sensitive_examples')}
         </div>
       </div>
 
@@ -126,7 +128,7 @@ export const SensitiveSituationsCard: React.FC<SensitiveSituationsCardProps> = (
           setSensitiveText(e.target.value);
           if (onSave) onSave(e.target.value, situations);
         }}
-        placeholder="Décrivez librement les situations sensibles qui vous inquiètent (ex: 'J'ai peur qu'on me demande de passer soudainement en anglais' ou 'Peur de bloquer sur une étude de cas')..."
+        placeholder={t('sensitive_placeholder')}
         minHeight={100}
         className="form-control"
         style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: 'var(--bg-input)', color: 'var(--text-main)', border: '1px solid var(--border-color)', marginBottom: '1rem' }}
@@ -155,7 +157,7 @@ export const SensitiveSituationsCard: React.FC<SensitiveSituationsCardProps> = (
       {situations.length > 0 && (
         <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            📋 Votre programme de sécurisation personnalisé
+            📋 {t('sensitive_program_title')}
           </h4>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
@@ -182,13 +184,13 @@ export const SensitiveSituationsCard: React.FC<SensitiveSituationsCardProps> = (
                 </h5>
 
                 <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
-                  <strong>Risque principal :</strong> {sit.risk_analysis}
+                  <strong>{t('main_risk_label')}</strong> {sit.risk_analysis}
                 </p>
 
                 {sit.action_plan && sit.action_plan.length > 0 && (
                   <div>
                     <strong style={{ fontSize: '0.85rem', color: 'var(--text-main)', display: 'block', marginBottom: '0.35rem' }}>
-                      Plan d'action de préparation :
+                      {t('action_plan_prep_label')}
                     </strong>
                     <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.85rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
                       {sit.action_plan.map((act, aIdx) => (
@@ -201,19 +203,19 @@ export const SensitiveSituationsCard: React.FC<SensitiveSituationsCardProps> = (
                 {sit.practice_suggestion && (
                   <div style={{ padding: '0.65rem 0.85rem', background: 'var(--mod-speech-bg-soft)', borderRadius: '0.5rem', borderLeft: '3px solid var(--mod-speech-accent)', fontSize: '0.83rem', color: 'var(--text-main)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                     <div>
-                      🎯 <strong>Exercice recommandé :</strong>{' '}
+                      🎯 <strong>{t('recommended_exercise_label')}</strong>{' '}
                       {typeof sit.practice_suggestion === 'string'
                         ? sit.practice_suggestion
                         : sit.practice_suggestion.exercise}
                     </div>
                     {typeof sit.practice_suggestion === 'object' && sit.practice_suggestion.format && (
                       <div style={{ color: 'var(--text-muted)' }}>
-                        <strong>Format :</strong> {sit.practice_suggestion.format}
+                        <strong>{t('format_label')}</strong> {sit.practice_suggestion.format}
                       </div>
                     )}
                     {typeof sit.practice_suggestion === 'object' && sit.practice_suggestion.success_criterion && (
                       <div style={{ color: '#047857', fontWeight: 600 }}>
-                        <strong>Critère de réussite :</strong> {sit.practice_suggestion.success_criterion}
+                        <strong>{t('success_criterion_label')}</strong> {sit.practice_suggestion.success_criterion}
                       </div>
                     )}
                   </div>
@@ -221,7 +223,7 @@ export const SensitiveSituationsCard: React.FC<SensitiveSituationsCardProps> = (
 
                 {sit.ready_to_use_phrases && sit.ready_to_use_phrases.length > 0 && (
                   <div style={{ padding: '0.5rem 0.75rem', background: '#F0F9FF', borderRadius: '0.5rem', border: '1px solid #BAE6FD', fontSize: '0.82rem' }}>
-                    <strong style={{ color: '#0369A1', display: 'block', marginBottom: '0.25rem' }}>💬 Phrases clés prêtes à l'emploi :</strong>
+                    <strong style={{ color: '#0369A1', display: 'block', marginBottom: '0.25rem' }}>💬 {t('ready_to_use_phrases_label')}</strong>
                     <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#0C4A6E' }}>
                       {sit.ready_to_use_phrases.map((phrase, pIdx) => (
                         <li key={pIdx}>"{phrase}"</li>
@@ -237,12 +239,8 @@ export const SensitiveSituationsCard: React.FC<SensitiveSituationsCardProps> = (
 
       <FeedbackWidget
         feature="sensitive_situations"
-        question="Ce plan de sécurisation vous aide-t-il à mieux gérer vos situations sensibles ?"
-        negativeBullets={[
-          "Les situations couvertes ne correspondent pas aux miennes.",
-          "Les conseils sont trop génériques.",
-          "Les phrases clés ne sonnent pas naturelles."
-        ]}
+        question={t('sensitive_feedback_question')}
+        negativeBullets={t('sensitive_negative_bullets', { returnObjects: true }) as string[]}
       />
     </div>
   );

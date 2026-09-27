@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Header, { Step } from './components/Header';
 import { DashboardProvider as GlobalProvider, useDashboard as useGlobalDashboard } from './hooks/DashboardContext';
 import { DashboardProvider as TabProvider } from './components/DashboardContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { LandingPage } from './components/LandingPage';
 import { LoadingScreen } from './components/LoadingScreen';
 import { API_BASE_URL } from './config';
@@ -125,7 +126,7 @@ function AppContent() {
   const [showPaywall, setShowPaywall] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [isImportLoading, setIsImportLoading] = useState(false);
-  const [darkMode, setDarkMode] = useState<boolean>(() => localStorage.getItem('theme') === 'dark');
+  const { darkMode, setDarkMode } = useTheme();
   const [showDocsModal, setShowDocsModal] = useState(false);
   const [stepErrors, setStepErrors] = useState<Record<string, boolean>>({});
   const [restoredData, setRestoredData] = useState<any>(null);
@@ -689,11 +690,11 @@ function AppContent() {
       const parsedData = await res.json();
       const frontendData = transformProfileForFrontend(parsedData);
       setFormData((prev: any) => ({ ...prev, ...frontendData }));
-      setToasts(prev => [...prev, { id: Date.now(), text: "Données extraites avec succès !" }]);
+      setToasts(prev => [...prev, { id: Date.now(), text: t('toast_import_success', 'Données extraites avec succès !') }]);
       setCurrentStep(1);
     } catch (e) {
       console.error(e);
-      setToasts(prev => [...prev, { id: Date.now(), text: "Échec de l'import." }]);
+      setToasts(prev => [...prev, { id: Date.now(), text: t('toast_import_failed', "Échec de l'import.") }]);
     } finally {
       setIsImportLoading(false);
     }
@@ -814,11 +815,6 @@ function AppContent() {
     document.addEventListener('click', handleGlobalClick);
     return () => document.removeEventListener('click', handleGlobalClick);
   }, []);
-
-  useEffect(() => {
-    document.body.classList.toggle('dark-mode', darkMode);
-    localStorage.setItem('theme', darkMode ? 'dark' : 'light');
-  }, [darkMode]);
 
   // --- LOGIQUE DE CACHE (DIRTY CHECK) ---
   const getCoreDataSignature = (data: any) => {
@@ -1041,7 +1037,7 @@ function AppContent() {
 
   const removeToast = (id: number) => setToasts(prev => prev.filter(t => t.id !== id));
 
-  const lazyFallback = <LoadingScreen title="Chargement..." description="Préparation de l'interface..." />;
+  const lazyFallback = <LoadingScreen title={t('loading', 'Chargement...')} description={t('preparing_interface', "Préparation de l'interface...")} />;
 
   const handleStartNewCompany = () => {
     setShowLanding(false);
@@ -1063,11 +1059,11 @@ function AppContent() {
     const chosenJob = normalizeText(newJobForApplication);
 
     if (!chosenCompany) {
-      setToasts(prev => [...prev, { id: Date.now(), text: 'Sélectionnez ou créez une entreprise avant de continuer.' }]);
+      setToasts(prev => [...prev, { id: Date.now(), text: t('toast_select_company', 'Sélectionnez ou créez une entreprise avant de continuer.') }]);
       return;
     }
     if (!chosenJob) {
-      setToasts(prev => [...prev, { id: Date.now(), text: 'Renseignez un intitulé de candidature/poste.' }]);
+      setToasts(prev => [...prev, { id: Date.now(), text: t('toast_enter_job_title', 'Renseignez un intitulé de candidature/poste.') }]);
       return;
     }
 
@@ -1217,6 +1213,7 @@ function AppContent() {
         darkMode={darkMode} 
         setDarkMode={setDarkMode} 
         isAuthenticated={isAuthenticated}
+        showLogin={!isAuthenticated}
         userName={parsedUserName} 
         onOpenProfile={() => setShowDocsModal(true)} 
         onOpenRemainingSessions={() => {
@@ -1297,28 +1294,28 @@ function AppContent() {
                 completedStepIds={getCompletedStepIds(cvData)}
               />
               <div className="quota-summary-desktop" style={{ marginTop: '0.9rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', boxShadow: 'var(--shadow-sm)', padding: '0.85rem 0.9rem', fontSize: '0.82rem', color: 'var(--text-main)', lineHeight: 1.45 }}>
-                <div style={{ fontWeight: 700, marginBottom: '0.2rem' }}>Candidatures</div>
-                <div>{targetOffersUsed} sur 5 utilisée{targetOffersUsed > 1 ? 's' : ''} - {Math.max(0, 5 - targetOffersUsed)} restante{Math.max(0, 5 - targetOffersUsed) > 1 ? 's' : ''}</div>
-                <div style={{ fontWeight: 700, marginTop: '0.45rem', marginBottom: '0.2rem' }}>Séances d'entraînement</div>
-                <div>{currentQuotas.credits} restante{currentQuotas.credits > 1 ? 's' : ''}</div>
+                <div style={{ fontWeight: 700, marginBottom: '0.2rem' }}>{t('header.applications_label')}</div>
+                <div>{t('quota_applications', { used: targetOffersUsed, total: 5, remaining: Math.max(0, 5 - targetOffersUsed) })}</div>
+                <div style={{ fontWeight: 700, marginTop: '0.45rem', marginBottom: '0.2rem' }}>{t('training_sessions_label', 'Séances d\'entraînement')}</div>
+                <div>{t('quota_training_sessions', { count: currentQuotas.credits })}</div>
               </div>
               {onboardingCompleted && (
                 <div style={{ marginTop: '0.9rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', boxShadow: 'var(--shadow-sm)', padding: '0.85rem 0.9rem' }}>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>MES CIBLES</div>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{t('sidebar_my_targets')}</div>
                   <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.6rem' }}>
-                    <button className="btn-outline" style={{ fontSize: '0.75rem', padding: '0.3rem 0.45rem' }} onClick={handleStartNewCompany}>+ Entreprise</button>
+                    <button className="btn-outline" style={{ fontSize: '0.75rem', padding: '0.3rem 0.45rem' }} onClick={handleStartNewCompany}>{t('btn_new_company')}</button>
                     {remainingCandidatures > 0 && (
-                      <button className="btn-primary" style={{ fontSize: '0.75rem', padding: '0.3rem 0.45rem' }} onClick={handleStartNewApplication}>+ Candidature ({remainingCandidatures})</button>
+                      <button className="btn-primary" style={{ fontSize: '0.75rem', padding: '0.3rem 0.45rem' }} onClick={handleStartNewApplication}>{t('btn_new_application')} ({remainingCandidatures})</button>
                     )}
                   </div>
                   <div style={{ display: 'grid', gap: '0.4rem', maxHeight: '300px', overflowY: 'auto' }}>
                     {targetTree.length === 0 ? (
-                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Aucune entreprise enregistree pour le moment.</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{t('sidebar_no_company')}</div>
                     ) : targetTree.map((node, idx) => (
                       <details key={`${node.company}-${idx}`}>
                         <summary style={{ cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>{node.company} ({node.jobs.length})</summary>
                         <div style={{ marginTop: '0.35rem', display: 'grid', gap: '0.28rem' }}>
-                          <button className="btn-ghost" style={{ textAlign: 'left', fontSize: '0.75rem' }} onClick={() => handleSelectTargetNode(node.company)}>Ouvrir les candidatures de cette entreprise</button>
+                          <button className="btn-ghost" style={{ textAlign: 'left', fontSize: '0.75rem' }} onClick={() => handleSelectTargetNode(node.company)}>{t('sidebar_open_company_applications')}</button>
                           {node.jobs.map((job, jdx) => (
                             <button key={`${job}-${jdx}`} className="btn-ghost" style={{ textAlign: 'left', fontSize: '0.74rem', paddingLeft: '0.85rem' }} onClick={() => handleSelectTargetNode(node.company, job)}>{job}</button>
                           ))}
@@ -1351,7 +1348,7 @@ function AppContent() {
       </Suspense>
 
       {isFrozen && isAuthenticated && !showLanding && !LegalComponent && !showAdmin && (
-        <div className="frozen-banner"><Lock size={20} /> {t('frozen_banner_text', 'Acces expire. La generation IA est bloquee.')}<button onClick={() => setShowPaywall(true)} className="btn-reactivate">{t('btn_reactivate', 'Reactiver (30 EUR)')}</button></div>)}
+        <div className="frozen-banner"><Lock size={20} /> {t('frozen_banner_text')}<button onClick={() => setShowPaywall(true)} className="btn-reactivate">{t('btn_reactivate')}</button></div>)}
 
       <div className="toast-container">{(toasts || []).map(t => (<div key={t.id} className="toast-notification"><LucideBell size={16} /> {t.text}<button onClick={() => removeToast(t.id)}><LucideX size={14}/></button></div>))}</div>
 
@@ -1359,11 +1356,11 @@ function AppContent() {
         <div className="modal-overlay">
            <div className="modal-content">
               <div className="modal-icon"><Lock size={40} color="#3b82f6" /></div>
-              <h2>{t('paywall_title', 'Periode d\'acces expiree')}</h2>
-              <p>{t('paywall_desc', 'Vos 3 mois d\'accès illimité sont terminés. Rassurez-vous, votre historique est sauvegardé.')}</p>
+              <h2>{t('paywall_title')}</h2>
+              <p>{t('paywall_desc')}</p>
               <div className="modal-actions">
-                 <button onClick={() => setShowPaywall(false)} className="btn-outline">{t('btn_later', 'Plus tard')}</button>
-                 <button onClick={() => window.open('/payment?plan=renewal', '_blank')} className="btn-primary">{t('btn_unlock', 'Debloquer pour 30 EUR')}</button>
+                 <button onClick={() => setShowPaywall(false)} className="btn-outline">{t('btn_later')}</button>
+                 <button onClick={() => window.open('/payment?plan=renewal', '_blank')} className="btn-primary">{t('btn_unlock')}</button>
               </div>
            </div>
         </div>)}
@@ -1374,12 +1371,12 @@ function AppContent() {
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '560px' }}>
             <div className="modal-icon"><Target size={40} color="#3b82f6" /></div>
-            <h2>Nouvelle candidature</h2>
-            <p>Choisissez une entreprise existante ou créez-en une nouvelle, puis indiquez le poste ciblé.</p>
+            <h2>{t('modal_new_application_title')}</h2>
+            <p>{t('modal_new_application_desc')}</p>
 
             <div style={{ display: 'grid', gap: '0.85rem', marginTop: '1rem', textAlign: 'left' }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '0.35rem' }}>Entreprise existante</label>
+                <label style={{ display: 'block', marginBottom: '0.35rem' }}>{t('existing_company_label')}</label>
                 <select
                   value={selectedCompanyForApplication}
                   onChange={(e) => {
@@ -1387,17 +1384,17 @@ function AppContent() {
                     if (e.target.value) setNewCompanyForApplication('');
                   }}
                 >
-                  <option value="">Choisir une entreprise...</option>
+                  <option value="">{t('existing_company_placeholder')}</option>
                   {targetTree.map((node, idx) => (
                     <option key={`${node.company}-${idx}`} value={node.company}>{node.company}</option>
                   ))}
                 </select>
               </div>
 
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center' }}>ou</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center' }}>{t('or')}</div>
 
               <div>
-                <label style={{ display: 'block', marginBottom: '0.35rem' }}>Nouvelle entreprise</label>
+                <label style={{ display: 'block', marginBottom: '0.35rem' }}>{t('new_company_label')}</label>
                 <input
                   type="text"
                   value={newCompanyForApplication}
@@ -1405,24 +1402,24 @@ function AppContent() {
                     setNewCompanyForApplication(e.target.value);
                     if (e.target.value.trim()) setSelectedCompanyForApplication('');
                   }}
-                  placeholder="Ex: Airbus"
+                  placeholder={t('new_company_placeholder')}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', marginBottom: '0.35rem' }}>Intitulé du poste / candidature</label>
+                <label style={{ display: 'block', marginBottom: '0.35rem' }}>{t('job_title_label')}</label>
                 <input
                   type="text"
                   value={newJobForApplication}
                   onChange={(e) => setNewJobForApplication(e.target.value)}
-                  placeholder="Ex: Directeur cybersécurité"
+                  placeholder={t('job_title_placeholder')}
                 />
               </div>
             </div>
 
             <div className="modal-actions" style={{ marginTop: '1.2rem' }}>
-              <button onClick={() => setShowNewApplicationModal(false)} className="btn-outline">Annuler</button>
-              <button onClick={handleConfirmNewApplication} className="btn-primary">Créer la candidature</button>
+              <button onClick={() => setShowNewApplicationModal(false)} className="btn-outline">{t('cancel')}</button>
+              <button onClick={handleConfirmNewApplication} className="btn-primary">{t('create')}</button>
             </div>
           </div>
         </div>
@@ -1432,14 +1429,14 @@ function AppContent() {
       <footer className="app-footer" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.5rem', padding: '2rem', flexWrap: 'wrap', opacity: 0.8, marginTop: 'auto' }}>
         {isAdmin && (
           <>
-            <button className="btn-ghost" onClick={() => navigate('/admin')}>Dashboard Admin</button><span className="footer-separator">|</span>
-            <button className="btn-ghost" onClick={() => setShowAdmin(true)}>Feedbacks Admin</button><span>|</span>
+            <button className="btn-ghost" onClick={() => navigate('/admin')}>{t('footer_admin_dashboard')}</button><span className="footer-separator">|</span>
+            <button className="btn-ghost" onClick={() => setShowAdmin(true)}>{t('footer_admin_feedbacks')}</button><span>|</span>
           </>
         )}
-        <button className="btn-ghost" onClick={() => setShowLegal(true)}>{t('footer_legal', 'Mentions Légales')}</button><span>|</span>
-        <button className="btn-ghost" onClick={() => setShowCGU(true)}>{t('footer_cgu', 'CGU')}</button><span>|</span>
-        <button className="btn-ghost" onClick={() => setShowPrivacy(true)}>{t('footer_privacy', 'Politique de Confidentialité')}</button><span>|</span>
-        <button className="btn-ghost" onClick={() => setShowDeleteAccount(true)} style={{ color: '#ef4444' }}>Supprimer mon compte</button>
+        <button className="btn-ghost" onClick={() => setShowLegal(true)}>{t('footer_legal')}</button><span>|</span>
+        <button className="btn-ghost" onClick={() => setShowCGU(true)}>{t('footer_cgu')}</button><span>|</span>
+        <button className="btn-ghost" onClick={() => setShowPrivacy(true)}>{t('footer_privacy')}</button><span>|</span>
+        <button className="btn-ghost" onClick={() => setShowDeleteAccount(true)} style={{ color: '#ef4444' }}>{t('footer_delete_account')}</button>
       </footer>
 
       <Suspense fallback={null}><DeleteAccountModal isOpen={showDeleteAccount} onClose={() => setShowDeleteAccount(false)} /></Suspense>
@@ -1450,7 +1447,9 @@ function AppContent() {
 function App() {
   return (
     <GlobalProvider>
-      <AppContent />
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
     </GlobalProvider>
   );
 }

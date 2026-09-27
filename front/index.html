@@ -13,6 +13,46 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="BeyondTheCV | Préparez vos entretiens avec l’IA" />
     <meta name="twitter:description" content="Préparez vos entretiens d’embauche avec BeyondTheCV : analyse du poste, pitch personnalisé et simulations pour vous entraîner avec l’IA." />
+    <script>
+      (function () {
+        try {
+          var lang = localStorage.getItem('i18nextLng') || 'fr';
+          var html = document.documentElement;
+          html.lang = lang;
+          var localeMap = { en: 'en_US', fr: 'fr_FR', es: 'es_ES', de: 'de_DE', it: 'it_IT' };
+          var ogLocale = document.querySelector('meta[property="og:locale"]');
+          if (ogLocale) ogLocale.setAttribute('content', localeMap[lang] || 'fr_FR');
+          var pr = document.querySelector('.lp-prerender');
+          if (pr) pr.setAttribute('lang', lang);
+          if (lang !== 'fr') {
+            var titleEl = document.querySelector('title');
+            if (titleEl) titleEl.textContent = 'BeyondTheCV | Prepare your interviews with AI';
+            var desc = document.querySelector('meta[name="description"]');
+            if (desc) desc.setAttribute('content', 'Prepare your job interviews with BeyondTheCV: role analysis, personalized pitch and AI-powered simulations.');
+            var ogTitle = document.querySelector('meta[property="og:title"]');
+            if (ogTitle) ogTitle.setAttribute('content', 'BeyondTheCV | Prepare your interviews with AI');
+            var ogDesc = document.querySelector('meta[property="og:description"]');
+            if (ogDesc) ogDesc.setAttribute('content', 'Prepare your job interviews with BeyondTheCV: role analysis, personalized pitch and AI-powered simulations.');
+            var twTitle = document.querySelector('meta[name="twitter:title"]');
+            if (twTitle) twTitle.setAttribute('content', 'BeyondTheCV | Prepare your interviews with AI');
+            var twDesc = document.querySelector('meta[name="twitter:description"]');
+            if (twDesc) twDesc.setAttribute('content', 'Prepare your job interviews with BeyondTheCV: role analysis, personalized pitch and AI-powered simulations.');
+            var eyebrow = document.getElementById('lp-eyebrow');
+            if (eyebrow) eyebrow.textContent = 'Strategic preparation and progress tracking';
+            var h1 = document.getElementById('lp-title');
+            if (h1) h1.textContent = 'Prepare your job interviews with AI.';
+            var sub = document.getElementById('lp-subtitle');
+            if (sub) sub.innerHTML = 'Your BeyondTheCV AI interview coach connects your resume, the company, the role and your training to help you <span class="lp-prerender-strong">understand, convince, train and progress</span> until the interview.';
+            var btn1 = document.getElementById('lp-cta-primary');
+            if (btn1) btn1.textContent = 'Prepare my next application →';
+            var btn2 = document.getElementById('lp-cta-secondary');
+            if (btn2) btn2.textContent = 'See the 29.90 € offer';
+            var noscriptP = document.querySelector('noscript p');
+            if (noscriptP) noscriptP.textContent = 'BeyondTheCV requires JavaScript to run.';
+          }
+        } catch (e) {}
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
@@ -38,18 +78,18 @@
   </head>
   <body>
     <div id="root">
-      <div class="lp-prerender" lang="fr">
+      <div class="lp-prerender" id="lp-prerender" lang="fr">
         <section class="lp-prerender-hero" aria-labelledby="lp-title">
           <div class="lp-prerender-shell">
-            <div class="lp-prerender-eyebrow">Préparation stratégique et suivi de progression</div>
+            <div class="lp-prerender-eyebrow" id="lp-eyebrow">Préparation stratégique et suivi de progression</div>
             <h1 id="lp-title" class="lp-prerender-title">Préparez vos entretiens d’embauche avec l’IA.</h1>
-            <p class="lp-prerender-subtitle">
+            <p class="lp-prerender-subtitle" id="lp-subtitle">
               Votre coach entretien IA BeyondTheCV relie votre CV, l’entreprise, le poste et vos entraînements
               pour vous aider à <span class="lp-prerender-strong">comprendre, convaincre, vous entraîner et progresser</span> jusqu’à l’entretien.
             </p>
             <div class="lp-prerender-actions">
-              <button type="button">Préparer ma prochaine candidature →</button>
-              <button type="button">Voir l’offre à 29,90 €</button>
+              <button type="button" id="lp-cta-primary">Préparer ma prochaine candidature →</button>
+              <button type="button" id="lp-cta-secondary">Voir l’offre à 29,90 €</button>
             </div>
             <div class="lp-prerender-reassurance">
               <span>5 candidatures chaque mois</span>

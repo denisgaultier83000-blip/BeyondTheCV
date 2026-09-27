@@ -6,6 +6,11 @@ import HttpApi from 'i18next-http-backend';
 // 1. Import direct de la traduction par défaut pour un affichage instantané (0 requête réseau)
 import frTranslation from '../public/locales/fr/translation.json';
 
+// Respecte la langue stockée localement (ex: après choix sur la landing) tout en
+// gardant le Français comme langue par défaut si aucune préférence n'existe.
+const storedLang = typeof window !== 'undefined' ? window.localStorage.getItem('i18nextLng') : null;
+const initialLang = storedLang && ['en', 'fr', 'es', 'de', 'it'].includes(storedLang) ? storedLang : 'fr';
+
 i18n
   // Charge les traductions depuis une API en premier
   .use(HttpApi)
@@ -14,8 +19,8 @@ i18n
   // Passe l'instance i18n à react-i18next
   .use(initReactI18next)
   .init({
-    // Langue affichée au démarrage : on évite de charger une autre langue sur la landing.
-    lng: 'fr',
+    // Langue affichée au démarrage : celle choisie par l'utilisateur, ou Français par défaut.
+    lng: initialLang,
     // Langue par défaut orientée France
     fallbackLng: 'fr',
     // 2. On injecte le Français directement dans le bundle initial

@@ -71,6 +71,7 @@ import { ApplicationKeyMessagesView } from './ApplicationKeyMessagesView';
 import { SensitiveSituationsCard } from './SensitiveSituationsCard';
 import { RoadmapGenerator } from './RoadmapGenerator';
 import { FeedbackWidget } from './FeedbackWidget';
+import { ResourcesTab } from './ResourcesTab';
 import { 
   PostureDataCard, 
   LastHourChecklistCard, 
@@ -144,62 +145,73 @@ const moduleColors: Record<string, string> = {
   company: '#B8325A',
   speech: '#8B3FD1',
   training: '#E89112',
-  progress: '#168A5B'
+  progress: '#168A5B',
+  resources: '#0D9488'
 };
 
-const moduleNames: Record<string, string> = {
-  overview: 'Centre de préparation',
-  job: '1. Comprendre le poste',
-  company: '2. Comprendre l\'entreprise',
-  speech: '3. Construire le discours',
-  training: '4. S\'entraîner',
-  progress: '5. Progresser'
-};
+const getModuleNames = (t: (key: string) => string): Record<string, string> => ({
+  overview: t('dashboard.page_title'),
+  job: t('dashboard.module_1_title'),
+  company: t('dashboard.module_2_title'),
+  speech: t('dashboard.module_3_title'),
+  training: t('dashboard.module_4_title'),
+  progress: t('dashboard.module_5_title'),
+  resources: t('resources.title_dashboard', 'Ressources')
+});
 
-const subMenus: Record<string, {label: string, id: string}[]> = {
+const getSubMenus = (t: (key: string) => string): Record<string, {label: string, id: string}[]> => ({
   overview: [
-    { label: 'Candidature active', id: 'banner_section' },
-    { label: 'Conseil d\'urgence', id: 'emergency_section' },
-    { label: 'Actions prioritaires', id: 'priorities_section' },
-    { label: 'Parcours de préparation', id: 'path_section' },
-    { label: 'Aperçu des modules', id: 'modules_summary_section' },
-    { label: 'Mes candidatures', id: 'candidatures_section' },
-    { label: 'Radar de carrière', id: 'career_radar_section' },
-    { label: 'GPS de carrière', id: 'career_gps_section' },
+    { label: t('menu.current_application'), id: 'banner_section' },
+    { label: t('menu.emergency'), id: 'emergency_section' },
+    { label: t('menu.priorities'), id: 'priorities_section' },
+    { label: t('menu.path'), id: 'path_section' },
+    { label: t('menu.modules_summary'), id: 'modules_summary_section' },
+    { label: t('menu.my_applications'), id: 'candidatures_section' },
+    { label: t('menu.career_radar'), id: 'career_radar_section' },
+    { label: t('menu.career_gps'), id: 'career_gps_section' },
   ],
   job: [
-    { label: 'Décoder l\'annonce', id: 'decoder_section' },
-    { label: 'Forces & Écarts', id: 'gap_section' },
-    { label: 'Vue Recruteur', id: 'recruiter_section' },
-    { label: 'Signaux à observer', id: 'signals_section' }
+    { label: t('menu.job_decoder'), id: 'decoder_section' },
+    { label: t('menu.gap'), id: 'gap_section' },
+    { label: t('menu.recruiter_view'), id: 'recruiter_section' },
+    { label: t('menu.signals'), id: 'signals_section' }
   ],
   company: [
-    { label: 'Comprendre l\'entreprise', id: 'company_section' },
-    { label: 'Comprendre le marché', id: 'market_section' },
-    { label: 'Guides de posture', id: 'posture_guides_section' }
+    { label: t('menu.company'), id: 'company_section' },
+    { label: t('menu.market'), id: 'market_section' },
+    { label: t('menu.posture_guides'), id: 'posture_guides_section' }
   ],
   speech: [
-    { label: 'Préparer mon pitch', id: 'pitch_section' },
-    { label: 'Arguments clés', id: 'key_messages_section' },
-    { label: 'Situations sensibles', id: 'sensitive_section' },
-    { label: 'Parades aux défauts', id: 'flaws_section' },
-    { label: 'Questions stratégiques', id: 'strategic_questions_section' }
+    { label: t('menu.pitch'), id: 'pitch_section' },
+    { label: t('menu.key_messages'), id: 'key_messages_section' },
+    { label: t('menu.sensitive'), id: 'sensitive_section' },
+    { label: t('menu.flaws'), id: 'flaws_section' },
+    { label: t('menu.strategic_questions'), id: 'strategic_questions_section' }
   ],
   training: [
-    { label: 'Questions probables', id: 'questionnaire_section' },
-    { label: 'Simulations métier', id: 'training_mes_section' },
-    { label: 'Entraînement oral', id: 'oral_training_section' }
+    { label: t('menu.questionnaire'), id: 'questionnaire_section' },
+    { label: t('menu.mes'), id: 'training_mes_section' },
+    { label: t('menu.oral_training'), id: 'oral_training_section' }
   ],
   progress: [
-    { label: 'Profil stratégique', id: 'profile_graph_section' },
-    { label: 'Données de posture', id: 'posture_data_section' },
-    { label: 'Débrief & suivi', id: 'debrief_section' },
-    { label: 'Plan de progression', id: 'recommendations_section' }
+    { label: t('menu.profile_graph'), id: 'profile_graph_section' },
+    { label: t('menu.posture_data'), id: 'posture_data_section' },
+    { label: t('menu.debrief'), id: 'debrief_section' },
+    { label: t('menu.recommendations'), id: 'recommendations_section' }
   ]
-};
+});
 
-const interviewTypeLabels: Record<string, string> = { rh: 'Ressources Humaines', manager: 'Manager / Opérationnel', tech: 'Équipe Technique', final: 'Direction (Final)' };
-const formatLabels: Record<string, string> = { visio: 'Visioconférence', phone: 'Téléphone', onsite: 'En Présentiel' };
+const getInterviewTypeLabels = (t: (key: string) => string): Record<string, string> => ({
+  rh: t('interview.rh'),
+  manager: t('interview.manager'),
+  tech: t('interview.tech'),
+  final: t('interview.final')
+});
+const getFormatLabels = (t: (key: string) => string): Record<string, string> => ({
+  visio: t('interview.format_visio'),
+  phone: t('interview.format_phone'),
+  onsite: t('interview.format_onsite')
+});
 
 const getQuestionsArray = (data: any): any[] => {
   if (!data) return [];
@@ -440,8 +452,8 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
           trainings: current ? currentTrainingCount : 0,
           lastInterview: current ? currentLastInterview : '—',
           statusLabel: current
-            ? (done ? 'Analyse terminée' : (isProcessing ? 'Analyse en cours' : 'Analyse à lancer'))
-            : 'Analyse à lancer',
+            ? (done ? t('dashboard.status_done') : (isProcessing ? t('dashboard.status_in_progress') : t('dashboard.status_todo')))
+            : t('dashboard.status_todo'),
           order: companyIdx * 1000 + jobIdx,
         };
       })
@@ -517,6 +529,7 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
   const speechUnseen = hasUnseen('speech', [pitchResult, flawCoachingResult]);
   const trainingUnseen = hasUnseen('training', [questionsResult, customScenariosResult]);
   const progressUnseen = hasUnseen('progress', [actionPlanResult]);
+  const resourcesUnseen = false;
 
   // [FIX CRITIQUE] On force le chargement du résumé si les données sont absentes pour briser la boucle de crash
   useEffect(() => {
@@ -531,8 +544,8 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
   const activeCompany = cvData?.target_company || "THALES";
   const activeJob = cvData?.target_job || "Responsable cybersécurité opérationnelle";
   const activeDate = meta.interview_date || "12 septembre";
-  const activeTarget = meta.interview_type ? (interviewTypeLabels[meta.interview_type as string] || meta.interview_type) : "Manager opérationnel";
-  const activeFormat = meta.interview_format ? (formatLabels[meta.interview_format as string] || meta.interview_format) : "Visio";
+  const activeTarget = meta.interview_type ? (getInterviewTypeLabels(t)[meta.interview_type as string] || meta.interview_type) : t('interview.manager');
+  const activeFormat = meta.interview_format ? (getFormatLabels(t)[meta.interview_format as string] || meta.interview_format) : t('interview.format_visio');
 
   const matchScore = useMemo(() => {
     if (gapResult?.match_score) return gapResult.match_score;
@@ -557,40 +570,58 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
 
   const emptyAddSlots = ((5 - (candidatureCards.length % 5)) % 5) || 5;
 
+  // Slugs d'articles recommandés en fonction du contexte candidat
+  const recommendedArticleSlugs = useMemo(() => {
+    const slugs: string[] = [];
+    const hasFlaws = Array.isArray(cvData?.flaws) && cvData.flaws.length > 0;
+    const hasPitch = !!cvData?.pitch_result || !!pitchResult;
+    const hasLittleExperience =
+      !cvData?.experiences?.length || cvData.experiences.length <= 1;
+
+    if (hasPitch) slugs.push('parlez-moi-de-vous');
+    if (hasFlaws) slugs.push('parler-de-ses-points-faibles');
+    if (hasLittleExperience) slugs.push('valoriser-un-stage-ou-une-alternance');
+    if (slugs.length === 0) slugs.push('preparer-entretien-embauche');
+    return slugs;
+  }, [cvData, pitchResult]);
+
   return (
     <div className="dashboard-wrapper">
       {/* GROUPE NAVIGATION STICKY : 6 Onglets principaux + Sous-menus collés */}
       <div style={{ display: 'flex', flexDirection: 'column', position: 'sticky', top: '70px', zIndex: 90, background: 'var(--bg-body)', paddingTop: '0.5rem', paddingBottom: '0.25rem', marginBottom: '1rem' }}>
-        <div className={`tabs-navigation ${subMenus[activeTab] ? 'has-sub' : ''}`}>
+        <div className={`tabs-navigation ${getSubMenus(t)[activeTab] ? 'has-sub' : ''}`}>
           <button className={`tab-btn tab-btn--overview ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => handleTabChange('overview')}>
-            <Activity size={18} color={activeTab === 'overview' ? '#FFFFFF' : '#102E5C'} /> Centre de préparation
+            <Activity size={18} color={activeTab === 'overview' ? '#FFFFFF' : '#102E5C'} /> {t('dashboard.page_title')}
           </button>
           <button className={`tab-btn tab-btn--job ${activeTab === 'job' ? 'active' : ''}`} onClick={() => handleTabChange('job')} style={{ position: 'relative' }}>
-            <Search size={18} color={activeTab === 'job' ? '#FFFFFF' : '#2563EB'} /> Comprendre le poste {jobUnseen && <span className="notification-dot"></span>}
+            <Search size={18} color={activeTab === 'job' ? '#FFFFFF' : '#2563EB'} /> {t('dashboard.module_1_title')} {jobUnseen && <span className="notification-dot"></span>}
           </button>
           <button className={`tab-btn tab-btn--company ${activeTab === 'company' ? 'active' : ''}`} onClick={() => handleTabChange('company')} style={{ position: 'relative' }}>
-            <Building size={18} color={activeTab === 'company' ? '#FFFFFF' : '#B8325A'} /> Comprendre l'entreprise {companyUnseen && <span className="notification-dot"></span>}
+            <Building size={18} color={activeTab === 'company' ? '#FFFFFF' : '#B8325A'} /> {t('dashboard.module_2_title')} {companyUnseen && <span className="notification-dot"></span>}
           </button>
           <button className={`tab-btn tab-btn--speech ${activeTab === 'speech' ? 'active' : ''}`} onClick={() => handleTabChange('speech')} style={{ position: 'relative' }}>
-            <Sparkles size={18} color={activeTab === 'speech' ? '#FFFFFF' : '#8B3FD1'} /> Construire le discours {speechUnseen && <span className="notification-dot"></span>}
+            <Sparkles size={18} color={activeTab === 'speech' ? '#FFFFFF' : '#8B3FD1'} /> {t('dashboard.module_3_title')} {speechUnseen && <span className="notification-dot"></span>}
           </button>
           <button className={`tab-btn tab-btn--training ${activeTab === 'training' ? 'active' : ''}`} onClick={() => handleTabChange('training')} style={{ position: 'relative' }}>
-            <Dumbbell size={18} color={activeTab === 'training' ? '#FFFFFF' : '#E89112'} /> S'entraîner {trainingUnseen && <span className="notification-dot"></span>}
+            <Dumbbell size={18} color={activeTab === 'training' ? '#FFFFFF' : '#E89112'} /> {t('dashboard.module_4_title')} {trainingUnseen && <span className="notification-dot"></span>}
           </button>
           <button className={`tab-btn tab-btn--progress ${activeTab === 'progress' ? 'active' : ''}`} onClick={() => handleTabChange('progress')} style={{ position: 'relative' }}>
-            <Award size={18} color={activeTab === 'progress' ? '#FFFFFF' : '#168A5B'} /> Progresser {progressUnseen && <span className="notification-dot"></span>}
+            <Award size={18} color={activeTab === 'progress' ? '#FFFFFF' : '#168A5B'} /> {t('dashboard.module_5_title')} {progressUnseen && <span className="notification-dot"></span>}
+          </button>
+          <button className={`tab-btn tab-btn--resources ${activeTab === 'resources' ? 'active' : ''}`} onClick={() => handleTabChange('resources')} style={{ position: 'relative' }}>
+            <BookOpen size={18} color={activeTab === 'resources' ? '#FFFFFF' : '#0D9488'} /> {t('resources.title_dashboard', 'Ressources')} {resourcesUnseen && <span className="notification-dot"></span>}
           </button>
         </div>
 
         {/* SOUS-MENUS COLLÉS AVEC RAPPEL STICKY DU MODULE */}
-        {subMenus[activeTab] && (
+        {getSubMenus(t)[activeTab] && (
           <div className={`sub-tabs-navigation sub-tabs-${activeTab}`} key={activeTab}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', paddingRight: '0.85rem', borderRight: '1px solid var(--border-color)', flexShrink: 0 }}>
               <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: moduleColors[activeTab], display: 'inline-block' }}></span>
-              <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-main)', whiteSpace: 'nowrap' }}>{moduleNames[activeTab]}</span>
+              <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-main)', whiteSpace: 'nowrap' }}>{getModuleNames(t)[activeTab]}</span>
             </div>
             <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center' }}>
-              {subMenus[activeTab].map((sub) => (
+              {getSubMenus(t)[activeTab].map((sub) => (
                 <button key={sub.id} className="sub-tab-btn" onClick={() => {
                   const el = document.getElementById(sub.id);
                   if (el) {
@@ -614,7 +645,7 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
             {/* BANDEAU SUPÉRIEUR : Candidature en cours avec 3 zones distinctes */}
             <div className="banner-card" id="banner_section">
               <div className="banner-top-badge" style={{ background: '#DCEEFF', color: '#102E5C' }}>
-                <Sparkles size={14} color="#2878C8" /> Candidature en cours
+                <Sparkles size={14} color="#2878C8" /> {t('dashboard.current_application_badge')}
               </div>
               
               <div className="banner-grid-3">
@@ -624,11 +655,11 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
                     {activeCompany} — {activeJob}
                   </h2>
                   <div className="banner-meta">
-                    <span><Calendar size={15} color="#2878C8" /> Entretien : {activeDate}</span>
+                    <span><Calendar size={15} color="#2878C8" /> {t('dashboard.interview')} : {activeDate}</span>
                     <span className="banner-dot">•</span>
-                    <span><UserCheck size={15} color="#2878C8" /> Interlocuteur : {activeTarget}</span>
+                    <span><UserCheck size={15} color="#2878C8" /> {t('dashboard.interviewer')} : {activeTarget}</span>
                     <span className="banner-dot">•</span>
-                    <span><Monitor size={15} color="#2878C8" /> Format : {activeFormat}</span>
+                    <span><Monitor size={15} color="#2878C8" /> {t('dashboard.format')} : {activeFormat}</span>
                   </div>
                 </div>
 
@@ -643,15 +674,15 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
                       <Gauge score={matchScore} color="#10B981" size={68} strokeWidth={7} subText="%" />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: 1, minWidth: 0 }}>
-                      <span className="indicator-label" style={{ fontSize: '0.78rem', letterSpacing: '0.06em' }}>Adéquation au poste</span>
+                      <span className="indicator-label" style={{ fontSize: '0.78rem', letterSpacing: '0.06em' }}>{t('dashboard.match_label')}</span>
                       <span style={{ background: matchScore >= 75 ? '#DCFCE7' : '#FFF4D6', color: matchScore >= 75 ? '#065f46' : '#92400e', fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.65rem', borderRadius: '999px', width: 'fit-content' }}>
-                        {matchScore >= 75 ? 'Bon alignement' : (matchScore >= 55 ? 'Alignement moyen' : 'Écarts à combler')}
+                        {matchScore >= 75 ? t('dashboard.match_good') : (matchScore >= 55 ? t('dashboard.match_average') : t('dashboard.match_poor'))}
                       </span>
                       <div className="gauge-submetrics">
-                        <span>Compétences : <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>{matchBreakdown.skills}%</strong></span>
-                        <span>Expérience : <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>{matchBreakdown.exp}%</strong></span>
-                        <span>Secteur : <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>{matchBreakdown.sector}%</strong></span>
-                        <span>Leadership : <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>{matchBreakdown.leadership}%</strong></span>
+                        <span>{t('dashboard.skills')} : <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>{matchBreakdown.skills}%</strong></span>
+                        <span>{t('dashboard.experience')} : <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>{matchBreakdown.exp}%</strong></span>
+                        <span>{t('dashboard.sector')} : <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>{matchBreakdown.sector}%</strong></span>
+                        <span>{t('dashboard.leadership')} : <strong style={{ color: 'var(--text-main)', fontWeight: 700 }}>{matchBreakdown.leadership}%</strong></span>
                       </div>
                     </div>
                   </div>
@@ -665,12 +696,12 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
                       <Gauge score={prepScore} color="#2878C8" size={68} strokeWidth={7} subText="%" />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: 1, minWidth: 0 }}>
-                      <span className="indicator-label" style={{ fontSize: '0.78rem', letterSpacing: '0.06em' }}>Préparation</span>
+                      <span className="indicator-label" style={{ fontSize: '0.78rem', letterSpacing: '0.06em' }}>{t('dashboard.prep_label')}</span>
                       <span style={{ background: '#DCEEFF', color: '#102E5C', fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.65rem', borderRadius: '999px', width: 'fit-content' }}>
-                        {prepScore >= 80 ? 'Prêt à postuler' : 'Préparation en cours'}
+                        {prepScore >= 80 ? t('dashboard.prep_ready') : t('dashboard.prep_in_progress')}
                       </span>
                       <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                        Temps restant : <strong style={{ color: '#2878C8', fontWeight: 800 }}>{daysRemainingText}</strong>
+                        {t('dashboard.time_remaining')} : <strong style={{ color: '#2878C8', fontWeight: 800 }}>{daysRemainingText}</strong>
                       </div>
                     </div>
                   </div>
@@ -683,20 +714,20 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
                     const el = document.getElementById('last_hour_section');
                     if (el) el.scrollIntoView({ behavior: 'smooth' });
                   }}>
-                    <Clock size={16} /> Mode J-1 / Dernière heure
+                    <Clock size={16} /> {t('dashboard.last_hour_mode')}
                   </button>
                 )}
                 <button className="btn-primary" onClick={() => {
                   const el = document.getElementById('priorities_section');
                   if (el) el.scrollIntoView({ behavior: 'smooth' });
                 }}>
-                  <Play size={16} /> Continuer ma préparation
+                  <Play size={16} /> {t('dashboard.continue_prep')}
                 </button>
                 <button className="btn-secondary" onClick={() => handleTabChange('training')}>
-                  <Dumbbell size={16} /> M’entraîner maintenant
+                  <Dumbbell size={16} /> {t('dashboard.train_now')}
                 </button>
                 <button className="btn-outline" onClick={() => handleTabChange('progress', 'debrief_section')}>
-                  <ClipboardList size={16} /> Ajouter un débrief
+                  <ClipboardList size={16} /> {t('dashboard.add_debrief')}
                 </button>
               </div>
             </div>
@@ -708,21 +739,21 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
               </div>
               <div style={{ flex: 1 }}>
                 <h4 style={{ margin: '0 0 0.3rem 0', fontSize: '1.05rem', fontWeight: 800, color: '#F7FAFC' }}>
-                  💡 À garder en tête pour cet entretien
+                  💡 {t('dashboard.interview_tip_title')}
                 </h4>
                 <p style={{ margin: 0, fontSize: '0.92rem', lineHeight: 1.5, opacity: 0.95 }}>
-                  {activeTarget.toLowerCase().includes('manager') || activeTarget.toLowerCase().includes('opérationnel')
-                    ? "Face à un manager opérationnel, insistez sur vos résultats concrets et votre capacité à piloter une équipe. En visio, regard caméra et réponses structurées."
-                    : "Face au recruteur RH, valorisez la cohérence de votre parcours, votre motivation pour l'entreprise et votre intelligence relationnelle."}
+                  {activeTarget.toLowerCase().includes('manager') || activeTarget.toLowerCase().includes(t('interview.manager').toLowerCase())
+                    ? t('dashboard.interview_tip_manager')
+                    : t('dashboard.interview_tip_hr')}
                 </p>
               </div>
             </div>
 
             {/* FEUILLE DE ROUTE PERSONNALISÉE */}
             <div id="roadmap_section">
-              <DashboardCard title="Feuille de route personnalisée" icon={<Compass size={24} color="var(--primary)" />}>
+              <DashboardCard title={t('dashboard.action_plan_title')} icon={<Compass size={24} color="var(--primary)" />}>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '-0.5rem', marginBottom: '1.25rem' }}>
-                  Générez un plan d'action sur-mesure en fonction du type d'entretien, de votre interlocuteur et de votre niveau de séniorité. Chaque plan généré est conservé ci-dessous pour être relu ou comparé.
+                  {t('dashboard.action_plan_desc')}
                 </p>
                 <RoadmapGenerator
                   cvData={cvData}
@@ -744,48 +775,48 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
             {/* ACTIONS PRIORITAIRES */}
             <div className="bento-card col-span-3" id="priorities_section" style={{ background: 'var(--bg-card)' }}>
               <div className="bento-header">
-                <Zap size={20} color="var(--warning)" /> Ce que vous devez travailler maintenant
+                <Zap size={20} color="var(--warning)" /> {t('dashboard.priorities_title')}
               </div>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '-0.4rem', marginBottom: '1.2rem' }}>
-                Recommandations prioritaires de votre coach IA pour réussir cet entretien.
+                {t('dashboard.priorities_subtitle')}
               </p>
               <div className="priorities-grid">
                 <div className="priority-card" style={{ background: '#FFF5F5', borderColor: '#FCA5A5', borderLeft: '5px solid #EF6461' }}>
                   <div style={{ display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: '999px', background: '#FEE2E2', color: '#991b1b', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem', alignSelf: 'flex-start' }}>
-                    1 — PRIORITÉ HAUTE
+                    1 — {t('dashboard.priority_high')}
                   </div>
                   <div className="priority-body">
-                    <h4 className="priority-head">Retravailler votre réponse sur le manque d’expérience sectorielle</h4>
-                    <p className="priority-why"><strong>Pourquoi :</strong> Risque probable détecté côté recruteur</p>
+                    <h4 className="priority-head">{t('dashboard.priority_action_1')}</h4>
+                    <p className="priority-why"><strong>{t('dashboard.priority_why')}</strong> {t('dashboard.priority_risk')}</p>
                   </div>
                   <button className="btn-primary-action" style={{ background: '#2878C8' }} onClick={() => handleTabChange('speech', 'flaws_section')}>
-                    Lancer 3 questions ciblées <ArrowRight size={14} />
+                    {t('dashboard.priority_action_1_cta')} <ArrowRight size={14} />
                   </button>
                 </div>
 
                 <div className="priority-card" style={{ background: '#F0F7FF', borderColor: '#BFDBFE', borderLeft: '5px solid #2878C8' }}>
                   <div style={{ display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: '999px', background: '#DCEEFF', color: '#1e40af', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem', alignSelf: 'flex-start' }}>
-                    2 — À PRÉPARER
+                    2 — {t('dashboard.priority_prepare')}
                   </div>
                   <div className="priority-body">
-                    <h4 className="priority-head">Préparer votre pitch manager en 1 minute</h4>
-                    <p className="priority-why"><strong>Pourquoi :</strong> Entretien prévu avec un profil opérationnel</p>
+                    <h4 className="priority-head">{t('dashboard.priority_prepare_example')}</h4>
+                    <p className="priority-why"><strong>{t('dashboard.priority_why')}</strong> {t('dashboard.priority_interview_type')}</p>
                   </div>
                   <button className="btn-primary-action" style={{ background: '#2878C8' }} onClick={() => handleTabChange('speech', 'pitch_section')}>
-                    Ouvrir la matrice de pitch <ArrowRight size={14} />
+                    {t('dashboard.open_pitch_matrix')} <ArrowRight size={14} />
                   </button>
                 </div>
 
                 <div className="priority-card" style={{ background: '#ECFDF5', borderColor: '#A7F3D0', borderLeft: '5px solid #10B981' }}>
                   <div style={{ display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: '999px', background: '#DCFCE7', color: '#065f46', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem', alignSelf: 'flex-start' }}>
-                    3 — À ANTICIPER
+                    3 — {t('dashboard.priority_anticipate')}
                   </div>
                   <div className="priority-body">
-                    <h4 className="priority-head">Préparer 2 questions intelligentes sur l’entreprise</h4>
-                    <p className="priority-why"><strong>Pourquoi :</strong> Rapport marché et enjeux récents disponibles</p>
+                    <h4 className="priority-head">{t('dashboard.priority_anticipate_example')}</h4>
+                    <p className="priority-why"><strong>{t('dashboard.priority_why')}</strong> {t('dashboard.priority_context')}</p>
                   </div>
                   <button className="btn-primary-action" style={{ background: '#2878C8' }} onClick={() => handleTabChange('company', 'company_section')}>
-                    Voir les questions à poser <ArrowRight size={14} />
+                    {t('dashboard.see_questions')} <ArrowRight size={14} />
                   </button>
                 </div>
               </div>
@@ -794,66 +825,66 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
             {/* PARCOURS DE PRÉPARATION EN 5 BLOCS */}
             <div className="bento-card col-span-3" id="path_section" style={{ background: 'var(--bg-card)' }}>
               <div className="bento-header">
-                <Layers size={20} color="var(--bleu-action)" /> Votre parcours de préparation
+                <Layers size={20} color="var(--bleu-action)" /> {t('dashboard.path_title')}
               </div>
               <div className="path-stepper-grid">
                 <div className="path-step-card" style={{ background: '#DCFCE7', borderColor: '#10B981' }}>
                   <div className="step-header">
                     <span className="step-number" style={{ background: '#10B981' }}>1</span>
-                    <span className="step-title">Comprendre le poste</span>
-                    <span className="step-badge-ok">✓ OK</span>
+                    <span className="step-title">{t('dashboard.path_job')}</span>
+                    <span className="step-badge-ok">✓ {t('dashboard.path_ok')}</span>
                   </div>
-                  <p className="step-detail" style={{ color: '#065f46' }}>Annonce décodée — {gapResult ? 'Écarts calculés' : 'Analyse prête'}</p>
+                  <p className="step-detail" style={{ color: '#065f46' }}>{t('dashboard.path_explore')} — {gapResult ? t('dashboard.path_gap') : t('dashboard.path_refine')}</p>
                   <button className="step-action-btn" style={{ color: '#047857' }} onClick={() => handleTabChange('job')}>
-                    Explorer le poste <ChevronRight size={14} />
+                    {t('dashboard.path_explore')} <ChevronRight size={14} />
                   </button>
                 </div>
 
                 <div className="path-step-card" style={{ background: '#DCFCE7', borderColor: '#10B981' }}>
                   <div className="step-header">
                     <span className="step-number" style={{ background: '#10B981' }}>2</span>
-                    <span className="step-title">Comprendre l'entreprise</span>
-                    <span className="step-badge-ok">✓ OK</span>
+                    <span className="step-title">{t('dashboard.path_company')}</span>
+                    <span className="step-badge-ok">✓ {t('dashboard.path_ok')}</span>
                   </div>
-                  <p className="step-detail" style={{ color: '#065f46' }}>{researchResult ? 'Rapport généré — 3 actualités' : 'Rapport disponible'}</p>
+                  <p className="step-detail" style={{ color: '#065f46' }}>{researchResult ? t('dashboard.path_report') : t('dashboard.path_report')}</p>
                   <button className="step-action-btn" style={{ color: '#047857' }} onClick={() => handleTabChange('company')}>
-                    Voir le rapport <ChevronRight size={14} />
+                    {t('dashboard.path_see_report')} <ChevronRight size={14} />
                   </button>
                 </div>
 
                 <div className="path-step-card" style={{ background: '#FFF4D6', borderColor: 'var(--mod-training-accent)' }}>
                   <div className="step-header">
                     <span className="step-number" style={{ background: '#F59E0B' }}>3</span>
-                    <span className="step-title">Construire le discours</span>
-                    <span className="step-badge-warn">! À finaliser</span>
+                    <span className="step-title">{t('dashboard.path_speech')}</span>
+                    <span className="step-badge-warn">! {t('dashboard.path_to_finish')}</span>
                   </div>
-                  <p className="step-detail" style={{ color: '#78350f' }}>Pitch 30s prêt — Arguments à peaufiner</p>
+                  <p className="step-detail" style={{ color: '#78350f' }}>{t('dashboard.path_pitch_ready')}</p>
                   <button className="step-action-btn" style={{ color: '#b45309' }} onClick={() => handleTabChange('speech')}>
-                    Affiner le discours <ChevronRight size={14} />
+                    {t('dashboard.path_refine')} <ChevronRight size={14} />
                   </button>
                 </div>
 
                 <div className="path-step-card" style={{ background: '#DCEEFF', borderColor: '#2878C8' }}>
                   <div className="step-header">
                     <span className="step-number" style={{ background: '#2878C8' }}>4</span>
-                    <span className="step-title">S'entraîner</span>
-                    <span className="step-badge-blue">● En cours</span>
+                    <span className="step-title">{t('dashboard.path_training')}</span>
+                    <span className="step-badge-blue">● {t('dashboard.path_in_progress')}</span>
                   </div>
-                  <p className="step-detail" style={{ color: '#1e40af' }}>12 réponses analysées sur 150</p>
+                  <p className="step-detail" style={{ color: '#1e40af' }}>{t('dashboard.path_training_count', { count: 12, total: 150 })}</p>
                   <button className="step-action-btn" style={{ color: '#1d4ed8' }} onClick={() => handleTabChange('training')}>
-                    S'entraîner <ChevronRight size={14} />
+                    {t('dashboard.path_training')} <ChevronRight size={14} />
                   </button>
                 </div>
 
                 <div className="path-step-card" style={{ background: '#EEF3F8', borderColor: '#CBD5E1' }}>
                   <div className="step-header">
                     <span className="step-number" style={{ background: '#94A3B8' }}>5</span>
-                    <span className="step-title">Progresser</span>
-                    <span className="step-badge-gray">○ En cours</span>
+                    <span className="step-title">{t('dashboard.path_progress')}</span>
+                    <span className="step-badge-gray">○ {t('dashboard.path_in_progress')}</span>
                   </div>
-                  <p className="step-detail" style={{ color: '#64748b' }}>Profil stratégique & Débriefs</p>
+                  <p className="step-detail" style={{ color: '#64748b' }}>{t('dashboard.path_profile')}</p>
                   <button className="step-action-btn" style={{ color: '#475569' }} onClick={() => handleTabChange('progress')}>
-                    Voir mes progrès <ChevronRight size={14} />
+                    {t('dashboard.path_see_progress')} <ChevronRight size={14} />
                   </button>
                 </div>
               </div>
@@ -862,42 +893,42 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
             {/* Aperçu synthétique des 5 modules */}
             <div className="bento-card col-span-3" id="modules_summary_section" style={{ background: 'var(--bg-card)' }}>
               <div className="bento-header">
-                <Compass size={20} color="var(--bleu-action)" /> Aperçu de vos 5 modules de préparation
+                <Compass size={20} color="var(--bleu-action)" /> {t('dashboard.modules_title')}
               </div>
               <div className="modules-summary-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                 <div style={{ background: 'var(--mod-job-bg-soft)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--mod-job-border)', borderTop: '4px solid var(--mod-job-accent)' }}>
-                  <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem', marginBottom: '0.3rem' }}>1. Comprendre le poste</div>
-                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Annonce décodée & forces/écarts</div>
+                  <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem', marginBottom: '0.3rem' }}>{t('dashboard.module_1_title')}</div>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>{t('dashboard.module_1_desc')}</div>
                   <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--mod-job-accent)', marginBottom: '0.5rem' }}>72 %</div>
-                  <button onClick={() => handleTabChange('job')} className="btn-outline" style={{ width: '100%', padding: '0.35rem', fontSize: '0.8rem', borderColor: 'var(--mod-job-accent)', color: 'var(--mod-job-accent)' }}>Ouvrir</button>
+                  <button onClick={() => handleTabChange('job')} className="btn-outline" style={{ width: '100%', padding: '0.35rem', fontSize: '0.8rem', borderColor: 'var(--mod-job-accent)', color: 'var(--mod-job-accent)' }}>{t('dashboard.module_1_cta')}</button>
                 </div>
 
                 <div style={{ background: 'var(--mod-company-bg-soft)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--mod-company-border)', borderTop: '4px solid var(--mod-company-accent)' }}>
-                  <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem', marginBottom: '0.3rem' }}>2. Comprendre l'entreprise</div>
-                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Rapport entreprise & marché</div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--mod-company-accent)', marginBottom: '0.5rem' }}>Terminé</div>
-                  <button onClick={() => handleTabChange('company')} className="btn-outline" style={{ width: '100%', padding: '0.35rem', fontSize: '0.8rem', borderColor: 'var(--mod-company-accent)', color: 'var(--mod-company-accent)' }}>Ouvrir</button>
+                  <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem', marginBottom: '0.3rem' }}>{t('dashboard.module_2_title')}</div>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>{t('dashboard.module_2_desc')}</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--mod-company-accent)', marginBottom: '0.5rem' }}>{t('dashboard.module_2_status')}</div>
+                  <button onClick={() => handleTabChange('company')} className="btn-outline" style={{ width: '100%', padding: '0.35rem', fontSize: '0.8rem', borderColor: 'var(--mod-company-accent)', color: 'var(--mod-company-accent)' }}>{t('dashboard.module_1_cta')}</button>
                 </div>
 
                 <div style={{ background: 'var(--mod-speech-bg-soft)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--mod-speech-border)', borderTop: '4px solid var(--mod-speech-accent)' }}>
-                  <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem', marginBottom: '0.3rem' }}>3. Construire le discours</div>
-                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Pitchs, marqueurs & parades</div>
+                  <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem', marginBottom: '0.3rem' }}>{t('dashboard.module_3_title')}</div>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>{t('dashboard.module_3_desc')}</div>
                   <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--mod-speech-accent)', marginBottom: '0.5rem' }}>55 %</div>
-                  <button onClick={() => handleTabChange('speech')} className="btn-outline" style={{ width: '100%', padding: '0.35rem', fontSize: '0.8rem', borderColor: 'var(--mod-speech-accent)', color: 'var(--mod-speech-accent)' }}>Ouvrir</button>
+                  <button onClick={() => handleTabChange('speech')} className="btn-outline" style={{ width: '100%', padding: '0.35rem', fontSize: '0.8rem', borderColor: 'var(--mod-speech-accent)', color: 'var(--mod-speech-accent)' }}>{t('dashboard.module_1_cta')}</button>
                 </div>
 
                 <div style={{ background: 'var(--mod-training-bg-soft)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--mod-training-border)', borderTop: '4px solid var(--mod-training-accent)' }}>
-                  <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem', marginBottom: '0.3rem' }}>4. S'entraîner</div>
-                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Questions, simulations & entraînement oral</div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--mod-training-accent)', marginBottom: '0.5rem' }}>12 / 150</div>
-                  <button onClick={() => handleTabChange('training')} className="btn-outline" style={{ width: '100%', padding: '0.35rem', fontSize: '0.8rem', borderColor: 'var(--mod-training-accent)', color: 'var(--mod-training-accent)' }}>Ouvrir</button>
+                  <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem', marginBottom: '0.3rem' }}>{t('dashboard.module_4_title')}</div>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>{t('dashboard.module_4_desc')}</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--mod-training-accent)', marginBottom: '0.5rem' }}>{t('dashboard.path_training_count', { count: 12, total: 150 })}</div>
+                  <button onClick={() => handleTabChange('training')} className="btn-outline" style={{ width: '100%', padding: '0.35rem', fontSize: '0.8rem', borderColor: 'var(--mod-training-accent)', color: 'var(--mod-training-accent)' }}>{t('dashboard.module_1_cta')}</button>
                 </div>
 
                 <div style={{ background: 'var(--mod-progress-bg-soft)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid var(--mod-progress-border)', borderTop: '4px solid var(--mod-progress-accent)' }}>
-                  <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem', marginBottom: '0.3rem' }}>5. Progresser</div>
-                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Profil stratégique & débriefs</div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--mod-progress-accent)', marginBottom: '0.5rem' }}>1 débrief</div>
-                  <button onClick={() => handleTabChange('progress')} className="btn-outline" style={{ width: '100%', padding: '0.35rem', fontSize: '0.8rem', borderColor: 'var(--mod-progress-accent)', color: 'var(--mod-progress-accent)' }}>Ouvrir</button>
+                  <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem', marginBottom: '0.3rem' }}>{t('dashboard.module_5_title')}</div>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>{t('dashboard.module_5_desc')}</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--mod-progress-accent)', marginBottom: '0.5rem' }}>{t('dashboard.debrief_count', { count: 1 })}</div>
+                  <button onClick={() => handleTabChange('progress')} className="btn-outline" style={{ width: '100%', padding: '0.35rem', fontSize: '0.8rem', borderColor: 'var(--mod-progress-accent)', color: 'var(--mod-progress-accent)' }}>{t('dashboard.module_1_cta')}</button>
                 </div>
               </div>
             </div>
@@ -906,17 +937,17 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
             <div className="bento-card col-span-3" id="candidatures_section" style={{ background: 'var(--bg-card)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <div className="bento-header" style={{ marginBottom: 0 }}>
-                  <Building size={20} color="var(--primary)"/> Mes candidatures ({candidatureCards.length})
+                  <Building size={20} color="var(--primary)"/> {t('dashboard.my_applications')} ({candidatureCards.length})
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                   <select value={candidatureFilter} onChange={(e) => setCandidatureFilter(e.target.value as any)} style={{ fontSize: '0.82rem', padding: '0.35rem 0.6rem', borderRadius: '0.4rem' }}>
-                    <option value="all">Toutes</option>
-                    <option value="active">À traiter</option>
-                    <option value="done">Terminées</option>
+                    <option value="all">{t('dashboard.filter_all')}</option>
+                    <option value="active">{t('dashboard.filter_active')}</option>
+                    <option value="done">{t('dashboard.filter_done')}</option>
                   </select>
                   <select value={candidatureSort} onChange={(e) => setCandidatureSort(e.target.value as any)} style={{ fontSize: '0.82rem', padding: '0.35rem 0.6rem', borderRadius: '0.4rem' }}>
-                    <option value="recent">Plus récentes</option>
-                    <option value="alpha">Ordre alphabétique</option>
+                    <option value="recent">{t('dashboard.sort_recent')}</option>
+                    <option value="alpha">{t('dashboard.sort_alpha')}</option>
                   </select>
                 </div>
               </div>
@@ -932,11 +963,11 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
                       </div>
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{card.job}</div>
                       <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', gap: '0.8rem' }}>
-                        <span>Entraînements : {card.trainings}</span>
-                        <span>Entretien : {card.lastInterview}</span>
+                        <span>{t('dashboard.trainings')} : {card.trainings}</span>
+                        <span>{t('dashboard.interview')} : {card.lastInterview}</span>
                       </div>
                       <button className="btn-outline" style={{ marginTop: '0.4rem', padding: '0.35rem 0.7rem', fontSize: '0.8rem' }} onClick={() => onPrepareCandidature && onPrepareCandidature(card.company, card.job)}>
-                        {isCurrent ? 'Continuer la préparation' : 'Activer cette candidature'}
+                        {isCurrent ? t('dashboard.continue_application') : t('dashboard.activate_application')}
                       </button>
                     </div>
                   );
@@ -990,7 +1021,7 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
                     }}>
                       <Plus size={20} />
                     </div>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Ajouter une candidature</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('dashboard.add_application')}</span>
                   </div>
                 ))}
               </div>
@@ -999,10 +1030,10 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
             {/* Radar de carrière */}
             <div id="career_radar_section">
               <DashboardCard
-                title="Radar de carrière"
+                title={t('career_radar_title')}
                 icon={<Compass size={24} color="var(--primary)" />}
                 featureId="career_radar"
-                feedbackQuestion="Ces suggestions de trajectoires sont-elles pertinentes ?"
+                feedbackQuestion={t('career_radar_feedback')}
               >
                 <CareerRadar data={careerRadarResult} loading={isProcessing && !careerRadarResult} />
               </DashboardCard>
@@ -1011,10 +1042,10 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
             {/* GPS de carrière */}
             <div id="career_gps_section">
               <DashboardCard
-                title="GPS de carrière"
+                title={t('career_gps_title')}
                 icon={<Navigation size={24} color="var(--primary)" />}
                 featureId="career_gps"
-                feedbackQuestion="Cette feuille de route vous semble-t-elle réaliste et applicable ?"
+                feedbackQuestion={t('career_gps_feedback')}
               >
                 <CareerGPS data={careerGpsResult} loading={isProcessing && !careerGpsResult} />
               </DashboardCard>
@@ -1034,8 +1065,8 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
             <div style={{ padding: '1.25rem 1.5rem', background: 'var(--mod-job-bg-soft)', borderRadius: '1rem', border: '1px solid var(--mod-job-border)', borderLeft: '5px solid var(--mod-job-accent)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <Search size={26} color="#2F6BFF" />
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>1. Comprendre le poste</h3>
-                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Décodez les exigences de l'annonce, analysez vos forces et vos écarts, et visualisez le regard du recruteur.</p>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>{t('tab_job_header_title')}</h3>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>{t('tab_job_header_desc')}</p>
               </div>
             </div>
 
@@ -1068,7 +1099,7 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <Building size={26} color="#00A6A6" />
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>2. Comprendre l'entreprise</h3>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>{t('tab_company_header_title')}</h3>
                   <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Explorez l'actualité récente de la société, l'analyse du marché et la culture d'entreprise.</p>
                 </div>
               </div>
@@ -1079,7 +1110,7 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
                 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
               >
                 <RefreshCw size={16} className={globalStatus === 'PROCESSING' || globalStatus === 'STARTING' ? 'spin' : ''} />
-                {globalStatus === 'PROCESSING' || globalStatus === 'STARTING' ? 'Analyse en cours...' : 'Relancer l\'analyse'}
+                {globalStatus === 'PROCESSING' || globalStatus === 'STARTING' ? t('analysis_in_progress') : t('restart_analysis')}
               </button>
             </div>
 
@@ -1103,8 +1134,8 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
             <div style={{ padding: '1.25rem 1.5rem', background: 'var(--mod-speech-bg-soft)', borderRadius: '1rem', border: '1px solid var(--mod-speech-border)', borderLeft: '5px solid var(--mod-speech-accent)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <Sparkles size={26} color="#7C5CFC" />
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>3. Construire le discours</h3>
-                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Formulez vos pitchs de présentation, vos marqueurs différenciants et vos parades aux objections.</p>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>{t('tab_speech_header_title')}</h3>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>{t('tab_speech_header_desc')}</p>
               </div>
             </div>
 
@@ -1138,14 +1169,14 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
                 <Dumbbell size={24} />
               </span>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>4. S'entraîner</h3>
-                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Mises en situation, entraînement oral et entraînement intensif aux questions cibles.</p>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>{t('tab_training_header_title')}</h3>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>{t('tab_training_header_desc')}</p>
               </div>
             </div>
 
             <div id="questionnaire_section">
               <DashboardCard
-                title="Questions probables d'entretien"
+                title={t('likely_interview_questions_title')}
                 icon={<MessageSquare size={24} />}
                 featureId="interview_questions"
               >
@@ -1156,7 +1187,7 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
 
             <div id="training_mes_section">
               <DashboardCard
-                title="Simulations métier & Mises en situation"
+                title={t('business_simulations_title')}
                 icon={<ShieldAlert size={24} />}
               >
                 <SituationSimulator />
@@ -1165,7 +1196,7 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
 
             <div id="oral_training_section">
               <DashboardCard
-                title="Entraînement oral"
+                title={t('oral_training_title')}
                 icon={<Mic size={24} />}
               >
                 <VocalPitchTrainer targetJob={cvData?.target_job} targetCompany={cvData?.target_company} jobDescription={cvData?.job_description} />
@@ -1184,8 +1215,8 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
                 <Award size={24} />
               </span>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>5. Progresser</h3>
-                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Suivez votre profil stratégique évolutif, vos débriefs et vos recommandations de progression.</p>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>{t('tab_progress_header_title')}</h3>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>{t('tab_progress_header_desc')}</p>
               </div>
             </div>
 
@@ -1202,7 +1233,7 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
             </div>
 
             <div id="debrief_section">
-              <Suspense fallback={<div className="p-8 text-center">Chargement des débriefs...</div>}>
+              <Suspense fallback={<div className="p-8 text-center">{t('dashboard.loading_debriefs')}</div>}>
                 <DebriefTab />
               </Suspense>
             </div>
@@ -1210,11 +1241,18 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
             <div id="recommendations_section">
               <CockpitTab 
                 actionPlanData={actionPlanResult || { status: isProcessing ? 'PROCESSING' : globalStatus }}
-                interviewDate={meta.interview_date || "Non définie"}
-                interviewFormat={meta.interview_format ? (formatLabels[meta.interview_format as string] || meta.interview_format) : "Non défini"}
-                interviewTarget={meta.interview_type ? (interviewTypeLabels[meta.interview_type as string] || meta.interview_type) : "Non défini"}
+                interviewDate={meta.interview_date || t('dashboard.not_defined')}
+                interviewFormat={meta.interview_format ? (getFormatLabels(t)[meta.interview_format as string] || meta.interview_format) : t('dashboard.not_defined')}
+                interviewTarget={meta.interview_type ? (getInterviewTypeLabels(t)[meta.interview_type as string] || meta.interview_type) : t('dashboard.not_defined')}
               />
             </div>
+          </div>
+        )}
+
+        {/* 7. RESOURCES: Centre de ressources */}
+        {activeTab === 'resources' && (
+          <div className="tab-module-content tab-module-resources" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <ResourcesTab embedded recommendedSlugs={recommendedArticleSlugs} />
           </div>
         )}
       </div>
@@ -1223,15 +1261,20 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
       {isPrintModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
           <div style={{ background: 'var(--bg-card)', borderRadius: '1rem', padding: '2rem', maxWidth: '500px', width: '100%', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
-            <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>Personnaliser l'impression</h3>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Sélectionnez les éléments que vous souhaitez inclure dans votre dossier (PDF / Papier) :</p>
+            <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>{t('dashboard.print_customize')}</h3>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>{t('dashboard.print_select_elements')}</p>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2rem', maxHeight: '50vh', overflowY: 'auto', paddingRight: '1rem' }}>
               {Object.keys(printSelection).map((key) => {
                 const labels: Record<string, string> = {
-                  pitch: "Pitch de présentation", questions: "Questions d'entretien", mes: "Mises en situation",
-                  flaws: "Parades aux défauts", gap: "Analyse d'écarts (Gap)", research: "Rapports Entreprise & Marché",
-                  decoder: "Décodeur d'annonce", todo: "Plan d'action (To-Do)"
+                  pitch: t('dashboard.print_pitch'),
+                  questions: t('dashboard.print_questions'),
+                  mes: t('dashboard.print_mes'),
+                  flaws: t('dashboard.print_flaws'),
+                  gap: t('dashboard.print_gap'),
+                  research: t('dashboard.print_research'),
+                  decoder: t('dashboard.print_decoder'),
+                  todo: t('dashboard.print_todo')
                 };
                 return (
                   <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', color: 'var(--text-main)', fontSize: '0.95rem' }}>
@@ -1243,9 +1286,9 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
             </div>
             
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-              <button className="btn-secondary" onClick={() => setIsPrintModalOpen(false)}>Annuler</button>
+              <button className="btn-secondary" onClick={() => setIsPrintModalOpen(false)}>{t('dashboard.cancel')}</button>
               <button className="btn-primary" onClick={handlePrintConfirm} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Printer size={16} /> Générer le Document
+                <Printer size={16} /> {t('dashboard.generate_document')}
               </button>
             </div>
           </div>
@@ -1287,6 +1330,8 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
         .tab-btn--speech { border-color: var(--mod-speech-accent); }
         .tab-btn--training { border-color: var(--mod-training-accent); }
         .tab-btn--progress { border-color: var(--mod-progress-accent); }
+        .tab-btn--resources { border-color: #0D9488; }
+        .tab-btn--resources:hover { background: #CCFBF1; color: #0F766E; }
 
         .tab-btn--overview.active { background: var(--mod-overview-accent) !important; color: white !important; border-color: var(--mod-overview-accent) !important; }
         .tab-btn--job.active { background: var(--mod-job-accent) !important; color: white !important; border-color: var(--mod-job-accent) !important; }
@@ -1294,7 +1339,8 @@ export const DashboardView: FC<DashboardViewProps> = ({ remainingSessions, remai
         .tab-btn--speech.active { background: var(--mod-speech-accent) !important; color: white !important; border-color: var(--mod-speech-accent) !important; }
         .tab-btn--training.active { background: var(--mod-training-accent) !important; color: white !important; border-color: var(--mod-training-accent) !important; }
         .tab-btn--progress.active { background: var(--mod-progress-accent) !important; color: white !important; border-color: var(--mod-progress-accent) !important; }
-        
+        .tab-btn--resources.active { background: #0D9488 !important; color: white !important; border-color: #0D9488 !important; }
+
         .sub-tabs-navigation { display: flex; gap: 0.75rem; flex-wrap: wrap; padding: 0.85rem 1.25rem; border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 1rem 1rem; box-shadow: 0 4px 6px -2px rgba(16, 35, 63, 0.04); }
         .sub-tabs-overview { background: var(--mod-overview-bg-soft); border-color: var(--mod-overview-border); border-top: 3px solid var(--mod-overview-accent); }
         .sub-tabs-job { background: var(--mod-job-bg-soft); border-color: var(--mod-job-border); border-top: 3px solid var(--mod-job-accent); }

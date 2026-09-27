@@ -20,39 +20,51 @@ export interface RoadmapHistoryItem {
   result: any;
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  visio: 'Visioconférence',
-  presentiel: 'Présentiel',
-  telephone: 'Téléphonique',
-};
+export function getTypeLabels(t: (key: string) => string): Record<string, string> {
+  return {
+    visio: t('interview_format_visio'),
+    presentiel: t('interview_format_presentiel'),
+    telephone: t('interview_format_telephone'),
+  };
+}
 
-const INTERLOCUTOR_LABELS: Record<string, string> = {
-  rh: 'RH / Recruteur',
-  manager: 'Manager Opérationnel',
-  dg: 'Direction / C-Level',
-  cabinet: 'Cabinet de recrutement',
-};
+export function getInterlocutorLabels(t: (key: string) => string): Record<string, string> {
+  return {
+    rh: t('interview_type_rh'),
+    manager: t('interview_type_manager'),
+    dg: t('interview_type_dg'),
+    cabinet: t('interview_type_cabinet'),
+  };
+}
 
-const LEVEL_LABELS: Record<string, string> = {
-  junior: 'Junior',
-  mid: 'Confirmé',
-  senior: 'Senior / Expert',
-  director: 'Direction',
-};
+export function getLevelLabels(t: (key: string) => string): Record<string, string> {
+  return {
+    junior: t('level_junior'),
+    mid: t('level_mid'),
+    senior: t('level_senior'),
+    director: t('level_director'),
+  };
+}
 
-const CONTEXT_LABELS: Record<string, string> = {
-  first_interview: 'Premier entretien',
-  final_interview: 'Entretien final',
-  negotiation: 'Négociation salariale',
-  reconversion: 'Reconversion',
-};
+export function getContextLabels(t: (key: string) => string): Record<string, string> {
+  return {
+    first_interview: t('context_first_interview'),
+    final_interview: t('context_final_interview'),
+    negotiation: t('context_negotiation'),
+    reconversion: t('context_reconversion'),
+  };
+}
 
-export function formatRoadmapLabel(selections: RoadmapSelection): string {
+export function formatRoadmapLabel(selections: RoadmapSelection, t: (key: string) => string): string {
+  const typeLabels = getTypeLabels(t);
+  const interlocutorLabels = getInterlocutorLabels(t);
+  const levelLabels = getLevelLabels(t);
+  const contextLabels = getContextLabels(t);
   return [
-    TYPE_LABELS[selections.type] || selections.type,
-    INTERLOCUTOR_LABELS[selections.interlocutor] || selections.interlocutor,
-    LEVEL_LABELS[selections.level] || selections.level,
-    CONTEXT_LABELS[selections.context] || selections.context,
+    typeLabels[selections.type] || selections.type,
+    interlocutorLabels[selections.interlocutor] || selections.interlocutor,
+    levelLabels[selections.level] || selections.level,
+    contextLabels[selections.context] || selections.context,
   ].join(' · ');
 }
 
@@ -82,6 +94,10 @@ interface RoadmapGeneratorProps {
 
 export const RoadmapGenerator: React.FC<RoadmapGeneratorProps> = ({ cvData, history = [], onHistoryChange }) => {
   const { t } = useTranslation();
+  const typeLabels = getTypeLabels(t);
+  const interlocutorLabels = getInterlocutorLabels(t);
+  const levelLabels = getLevelLabels(t);
+  const contextLabels = getContextLabels(t);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeResult, setActiveResult] = useState<any | null>(null);
@@ -114,7 +130,7 @@ export const RoadmapGenerator: React.FC<RoadmapGeneratorProps> = ({ cvData, hist
       onHistoryChange?.(nextHistory);
       setActiveResult(result);
     } catch (err: any) {
-      setError(err.message);
+      setError(t('roadmap_generate_error'));
     } finally {
       setLoading(false);
     }
@@ -131,8 +147,8 @@ export const RoadmapGenerator: React.FC<RoadmapGeneratorProps> = ({ cvData, hist
 
   const formatDate = (iso: string) => {
     const d = new Date(iso);
-    return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
-      ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleDateString(t('date_locale'), { day: '2-digit', month: '2-digit', year: 'numeric' }) +
+      t('date_at') + d.toLocaleTimeString(t('date_locale'), { hour: '2-digit', minute: '2-digit' });
   };
 
   const SelectField = ({ label, value, onChange, options }: { label: string, value: string, onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void, options: { value: string, label: string }[] }) => (
@@ -157,46 +173,46 @@ export const RoadmapGenerator: React.FC<RoadmapGeneratorProps> = ({ cvData, hist
     <div style={{ animation: 'fadeIn 0.3s ease-out', display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '1.5rem' }}>
       <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold', textAlign: 'center', color: 'var(--primary)' }}>{result.title}</h3>
 
-      <RoadmapSection title="Focus du recruteur" icon={<Target size={18} />} color="var(--primary)">
-        <p style={{ fontSize: '0.75rem', fontStyle: 'italic', marginBottom: '0.5rem' }}>Ce que votre interlocuteur cherchera à valider en priorité.</p>
+      <RoadmapSection title={t('roadmap_recruiter_focus')} icon={<Target size={18} />} color="var(--primary)">
+        <p style={{ fontSize: '0.75rem', fontStyle: 'italic', marginBottom: '0.5rem' }}>{t('roadmap_recruiter_focus_sub')}</p>
         <BulletList items={result.recruiter_focus || []} />
       </RoadmapSection>
 
-      <RoadmapSection title="Messages clés à marteler" icon={<MessageCircle size={18} />} color="var(--success)">
-        <p style={{ fontSize: '0.75rem', fontStyle: 'italic', marginBottom: '0.5rem' }}>Les 3 idées que vous devez absolument faire passer, peu importe les questions.</p>
+      <RoadmapSection title={t('roadmap_key_messages')} icon={<MessageCircle size={18} />} color="var(--success)">
+        <p style={{ fontSize: '0.75rem', fontStyle: 'italic', marginBottom: '0.5rem' }}>{t('roadmap_key_messages_sub')}</p>
         <BulletList items={result.key_messages || []} />
       </RoadmapSection>
 
-      <RoadmapSection title="Règles d'or" icon={<Star size={18} />} color="var(--warning)">
+      <RoadmapSection title={t('roadmap_golden_rules')} icon={<Star size={18} />} color="var(--warning)">
         <BulletList items={result.golden_rules || []} />
       </RoadmapSection>
 
-      <RoadmapSection title="Erreurs à éviter" icon={<Shield size={18} />} color="var(--danger)">
+      <RoadmapSection title={t('roadmap_mistakes')} icon={<Shield size={18} />} color="var(--danger)">
         <BulletList items={result.mistakes_to_avoid || []} />
       </RoadmapSection>
 
-      <RoadmapSection title="Check-list avant entretien" icon={<CheckSquare size={18} />}>
+      <RoadmapSection title={t('roadmap_checklist')} icon={<CheckSquare size={18} />}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div><h5 style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}><Clock size={16}/> 24h avant</h5><BulletList items={result.pre_interview_checklist?.h_minus_24 || []} /></div>
-          <div><h5 style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}><Clock size={16}/> 1h avant</h5><BulletList items={result.pre_interview_checklist?.h_minus_1 || []} /></div>
-          <div><h5 style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}><Clock size={16}/> 5 min avant</h5><BulletList items={result.pre_interview_checklist?.h_minus_5 || []} /></div>
+          <div><h5 style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}><Clock size={16}/> {t('roadmap_checklist_24h')}</h5><BulletList items={result.pre_interview_checklist?.h_minus_24 || []} /></div>
+          <div><h5 style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}><Clock size={16}/> {t('roadmap_checklist_1h')}</h5><BulletList items={result.pre_interview_checklist?.h_minus_1 || []} /></div>
+          <div><h5 style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}><Clock size={16}/> {t('roadmap_checklist_5min')}</h5><BulletList items={result.pre_interview_checklist?.h_minus_5 || []} /></div>
         </div>
       </RoadmapSection>
 
-      <RoadmapSection title="Phrase d'Ouverture" icon={<ChevronsRight size={18} />}>
+      <RoadmapSection title={t('roadmap_opening')} icon={<ChevronsRight size={18} />}>
         <p style={{ fontStyle: 'italic' }}>"{result.opening_statement}"</p>
       </RoadmapSection>
-      <RoadmapSection title="Phrase de Conclusion" icon={<ChevronsLeft size={18} />}>
+      <RoadmapSection title={t('roadmap_closing')} icon={<ChevronsLeft size={18} />}>
         <p style={{ fontStyle: 'italic' }}>"{result.closing_statement}"</p>
       </RoadmapSection>
-      <RoadmapSection title="Conseils de Posture" icon={<UserCheck size={18} />}>
+      <RoadmapSection title={t('roadmap_posture')} icon={<UserCheck size={18} />}>
         <p>{result.posture_advice}</p>
       </RoadmapSection>
 
       {result.contingency_plan && result.contingency_plan.length > 0 && (
-        <RoadmapSection title="Plan d'Urgence (Imprévus)" icon={<LifeBuoy size={18} />} color="var(--warning)">
+        <RoadmapSection title={t('roadmap_contingency')} icon={<LifeBuoy size={18} />} color="var(--warning)">
           {result.contingency_plan.map((plan: any, index: number) => (
-            <div key={index} style={{ borderLeft: '3px solid var(--warning)', paddingLeft: '1rem', marginBottom: '1rem' }}><strong>{plan.situation}:</strong> {plan.action}<br/><em>Message prêt: "{plan.ready_to_send_message}"</em></div>
+            <div key={index} style={{ borderLeft: '3px solid var(--warning)', paddingLeft: '1rem', marginBottom: '1rem' }}><strong>{plan.situation}:</strong> {plan.action}<br/><em>{t('roadmap_ready_message')}: "{plan.ready_to_send_message}"</em></div>
           ))}
         </RoadmapSection>
       )}
@@ -207,46 +223,46 @@ export const RoadmapGenerator: React.FC<RoadmapGeneratorProps> = ({ cvData, hist
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
         <SelectField
-          label="Type d'entretien"
+          label={t('interview_type_label')}
           value={selections.type}
           onChange={(e) => handleChange('type', e.target.value)}
           options={[
-            { value: 'visio', label: 'Visioconférence' },
-            { value: 'presentiel', label: 'Présentiel' },
-            { value: 'telephone', label: 'Téléphonique' },
+            { value: 'visio', label: typeLabels.visio },
+            { value: 'presentiel', label: typeLabels.presentiel },
+            { value: 'telephone', label: typeLabels.telephone },
           ]}
         />
         <SelectField
-          label="Interlocuteur"
+          label={t('interview_interlocutor_label')}
           value={selections.interlocutor}
           onChange={(e) => handleChange('interlocutor', e.target.value)}
           options={[
-            { value: 'rh', label: 'RH / Recruteur' },
-            { value: 'manager', label: 'Manager Opérationnel' },
-            { value: 'dg', label: 'Direction / C-Level' },
-            { value: 'cabinet', label: 'Cabinet de recrutement' },
+            { value: 'rh', label: interlocutorLabels.rh },
+            { value: 'manager', label: interlocutorLabels.manager },
+            { value: 'dg', label: interlocutorLabels.dg },
+            { value: 'cabinet', label: interlocutorLabels.cabinet },
           ]}
         />
         <SelectField
-          label="Niveau de poste"
+          label={t('level_label')}
           value={selections.level}
           onChange={(e) => handleChange('level', e.target.value)}
           options={[
-            { value: 'junior', label: 'Junior' },
-            { value: 'mid', label: 'Confirmé' },
-            { value: 'senior', label: 'Senior / Expert' },
-            { value: 'director', label: 'Direction' },
+            { value: 'junior', label: levelLabels.junior },
+            { value: 'mid', label: levelLabels.mid },
+            { value: 'senior', label: levelLabels.senior },
+            { value: 'director', label: levelLabels.director },
           ]}
         />
         <SelectField
-          label="Contexte"
+          label={t('context_label')}
           value={selections.context}
           onChange={(e) => handleChange('context', e.target.value)}
           options={[
-            { value: 'first_interview', label: 'Premier entretien' },
-            { value: 'final_interview', label: 'Entretien final' },
-            { value: 'negotiation', label: 'Négociation salariale' },
-            { value: 'reconversion', label: 'Reconversion' },
+            { value: 'first_interview', label: contextLabels.first_interview },
+            { value: 'final_interview', label: contextLabels.final_interview },
+            { value: 'negotiation', label: contextLabels.negotiation },
+            { value: 'reconversion', label: contextLabels.reconversion },
           ]}
         />
       </div>
@@ -266,11 +282,11 @@ export const RoadmapGenerator: React.FC<RoadmapGeneratorProps> = ({ cvData, hist
           isLoading={loading}
           icon={<Zap size={18} />}
         >
-          Générer mon plan
+          {t('generate_plan')}
         </Button>
         {activeResult && (
           <button onClick={() => setActiveResult(null)} className="btn-ghost" style={{ fontSize: '0.85rem' }}>
-            Masquer le résultat
+            {t('hide_result')}
           </button>
         )}
       </div>
@@ -280,7 +296,7 @@ export const RoadmapGenerator: React.FC<RoadmapGeneratorProps> = ({ cvData, hist
       {history.length > 0 && (
         <div style={{ marginTop: '1.75rem', padding: '1.25rem', background: 'var(--bg-secondary)', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
           <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--text-main)', fontSize: '1rem' }}>
-            <History size={18} /> Historique des feuilles de route
+            <History size={18} /> {t('roadmap_history_title')}
           </h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {history.map((item) => (
@@ -306,10 +322,10 @@ export const RoadmapGenerator: React.FC<RoadmapGeneratorProps> = ({ cvData, hist
                   <Eye size={16} color="var(--primary)" />
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {formatRoadmapLabel(item.selections)}
+                      {formatRoadmapLabel(item.selections, t)}
                     </div>
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                      générée le {formatDate(item.createdAt)}
+                      {t('generated_on')} {formatDate(item.createdAt)}
                     </div>
                   </div>
                 </div>
@@ -318,7 +334,7 @@ export const RoadmapGenerator: React.FC<RoadmapGeneratorProps> = ({ cvData, hist
                   style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.35rem', borderRadius: '0.35rem' }}
                   onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.color = '#ef4444'; }}
                   onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
-                  title="Supprimer"
+                  title={t('delete')}
                 >
                   <Trash2 size={16} />
                 </button>

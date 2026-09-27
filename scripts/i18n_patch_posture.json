@@ -1,0 +1,108 @@
+{
+  "last_hour_title": {
+    "fr": "Dernière heure avant l'entretien",
+    "en": "Last hour before the interview",
+    "es": "Última hora antes de la entrevista",
+    "de": "Letzte Stunde vor dem Gespräch",
+    "it": "Ultima ora prima del colloquio"
+  },
+  "last_hour_desc": {
+    "fr": "Le guide de survie ultime. Pas de théorie, uniquement des actions à mener dans les 60 minutes qui précèdent l'échange.",
+    "en": "The ultimate survival guide. No theory, just actions to take in the 60 minutes before the meeting.",
+    "es": "La guía de supervivencia definitiva. Sin teoría, solo acciones para tomar en los 60 minutos previos al encuentro.",
+    "de": "Der ultimative Überlebensleitfaden. Keine Theorie, nur Aktionen für die 60 Minuten vor dem Gespräch.",
+    "it": "La guida di sopravvivenza definitiva. Niente teoria, solo azioni da fare nei 60 minuti prima dell'incontro."
+  },
+  "last_hour_feedback": {
+    "fr": "Cette check-list de dernière heure vous est-elle utile ?",
+    "en": "Is this last-minute checklist useful?",
+    "es": "¿Te resulta útil esta lista de última hora?",
+    "de": "Ist diese Checkliste in letzter Minute nützlich?",
+    "it": "Questa checklist dell'ultimo minuto ti è utile?"
+  },
+  "last_hour_checklist_items": {
+    "fr": ["Relire son pitch en 90 secondes.","Relire les 3 messages clés à faire passer.","Vérifier le nom et la fonction des interlocuteurs.","Préparer 3 questions intelligentes.","Préparer une réponse courte sur salaire, disponibilité et motivation.","Fermer les onglets inutiles.","Couper les notifications.","Respirer lentement 2 minutes."],
+    "en": ["Reread your 90-second pitch.","Reread the 3 key messages to convey.","Check the names and roles of the interviewers.","Prepare 3 smart questions.","Prepare a short answer on salary, availability, and motivation.","Close unnecessary tabs.","Turn off notifications.","Breathe slowly for 2 minutes."],
+    "es": ["Relee tu pitch de 90 segundos.","Relee los 3 mensajes clave a transmitir.","Verifica el nombre y el cargo de los entrevistadores.","Prepara 3 preguntas inteligentes.","Prepara una respuesta corta sobre salario, disponibilidad y motivación.","Cierra las pestañas innecesarias.","Desactiva las notificaciones.","Respira lentamente durante 2 minutos."],
+    "de": ["Lesen Sie Ihren 90-Sekunden-Pitch noch einmal.","Lesen Sie die 3 wichtigsten Botschaften durch.","Prüfen Sie Namen und Rollen der Gesprächspartner.","Bereiten Sie 3 kluge Fragen vor.","Bereiten Sie eine kurze Antwort zu Gehalt, Verfügbarkeit und Motivation vor.","Schließen Sie unnötige Tabs.","Schalten Sie Benachrichtigungen aus.","Atmen Sie 2 Minuten lang langsam."],
+    "it": ["Rileggi il tuo pitch di 90 secondi.","Rileggi i 3 messaggi chiave da trasmettere.","Verifica nome e ruolo dei colloquiatori.","Prepara 3 domande intelligenti.","Prepara una risposta breve su stipendio, disponibilità e motivazione.","Chiudi le schede inutili.","Disattiva le notifiche.","Respira lentamente per 2 minuti."]
+  },
+  "contingency_plan_title": {
+    "fr": "Plan de secours (Gérer les Imprévus)",
+    "en": "Contingency Plan (Handle the Unexpected)",
+    "es": "Plan de emergencia (Manejar los imprevistos)",
+    "de": "Notfallplan (Unerwartetes meistern)",
+    "it": "Piano d'emergenza (Gestire gli imprevisti)"
+  },
+  "contingency_plan_desc": {
+    "fr": "Des réponses prêtes à l'emploi pour rester professionnel même quand l'entretien ne se déroule pas comme prévu.",
+    "en": "Ready-to-use responses to stay professional even when the interview doesn't go as planned.",
+    "es": "Respuestas listas para usar para mantener la profesionalidad incluso cuando la entrevista no salga como se esperaba.",
+    "de": "Einsatzbereite Antworten, um professionell zu bleiben, auch wenn das Gespräch nicht wie geplant verläuft.",
+    "it": "Risposte pronte all'uso per rimanere professionali anche quando il colloquio non va come previsto."
+  },
+  "contingency_plan_feedback": {
+    "fr": "Ce plan de secours couvre-t-il les imprévus que vous craignez ?",
+    "en": "Does this contingency plan cover the unexpected situations you fear?",
+    "es": "¿Este plan de emergencia cubre los imprevistos que temes?",
+    "de": "Deckt dieser Notfallplan die unerwarteten Situationen ab, die Sie befürchten?",
+    "it": "Questo piano d'emergenza copre gli imprevisti che temi?"
+  },
+  "contingency_plans": {
+    "fr": [
+      {"icon":"wifi","title":"Problème de connexion visio","content":"Bonjour,\n\nJe rencontre un problème de connexion pour rejoindre notre entretien. Je tente de me reconnecter immédiatement.\n\nSi le problème persiste, je reste joignable par téléphone au [Votre Numéro] et suis disponible pour poursuivre l'échange selon le format qui vous conviendra.\n\nMerci pour votre compréhension.\n\nBien cordialement,\n[Prénom Nom]"},
+      {"icon":"clock","title":"Retard du recruteur (> 5 min)","content":"Bonjour,\n\nJe suis bien connecté pour notre entretien prévu à [heure]. Je reste disponible en ligne.\n\nN'hésitez pas à me dire si vous souhaitez maintenir l'échange ou le reprogrammer à un moment plus adapté.\n\nBien cordialement,\n[Prénom Nom]"},
+      {"icon":"phoneMissed","title":"Vous êtes en retard","content":"Bonjour,\n\nJe suis désolé, je rencontre un imprévu et serai en retard de quelques minutes pour notre entretien.\n\nJe fais le nécessaire pour être disponible au plus vite. Si cela perturbe votre agenda, je m'adapterai bien entendu à vos disponibilités.\n\nBien cordialement,\n[Prénom Nom]"},
+      {"icon":"volume","title":"Bruit ou interruption imprévue","content":"Je vous prie de m'excuser pour cette interruption. Donnez-moi juste un instant pour régler cela... C'est bon, je suis de nouveau à vous."},
+      {"icon":"brain","title":"Trou de mémoire","content":"C'est une excellente question. Je vais prendre quelques secondes pour structurer ma réponse afin de vous répondre clairement."},
+      {"icon":"shield","title":"Question agressive / déstabilisante","content":"C'est un point légitime. Je ne vais pas le contourner : il y a effectivement un sujet à expliquer. Ce que j'en retiens surtout, c'est [enseignement], et c'est précisément ce qui me permet aujourd'hui d'aborder ce type de situation avec plus de méthode."},
+      {"icon":"dollar","title":"Le salaire est abordé trop tôt","content":"Je préfère d'abord m'assurer de bien comprendre le périmètre exact du poste, les responsabilités attendues et vos enjeux prioritaires. Cela me permettra de vous donner une fourchette cohérente et réaliste."},
+      {"icon":"help","title":"Recruteur froid ou peu expressif","content":"(Posture à adopter) Restez factuel, ne sur-interprétez pas. Concentrez-vous sur votre structure (STAR), posez des questions ouvertes pour l'impliquer (Quel est le principal défi sur ce poste actuellement ?) et validez sa compréhension (Est-ce que cela répond à votre question ?)."},
+      {"icon":"send","title":"L'entretien se termine sans suite claire","content":"Merci pour cet échange très instructif. Pour ma part, je suis très intéressé. Quelles sont les prochaines étapes du processus de votre côté ?"}
+    ],
+    "en": [
+      {"icon":"wifi","title":"Video connection issue","content":"Hello,\n\nI am having a connection issue joining our interview. I am trying to reconnect immediately.\n\nIf the problem persists, I remain reachable by phone at [Your Number] and am available to continue the exchange in whatever format suits you.\n\nThank you for your understanding.\n\nBest regards,\n[First Name Last Name]"},
+      {"icon":"clock","title":"Recruiter is late (> 5 min)","content":"Hello,\n\nI am connected for our interview scheduled at [time]. I remain available online.\n\nPlease let me know if you would like to keep the exchange or reschedule it for a more convenient time.\n\nBest regards,\n[First Name Last Name]"},
+      {"icon":"phoneMissed","title":"You are late","content":"Hello,\n\nI am sorry, something unexpected came up and I will be a few minutes late for our interview.\n\nI am doing my best to be available as soon as possible. If this disrupts your schedule, I will of course adapt to your availability.\n\nBest regards,\n[First Name Last Name]"},
+      {"icon":"volume","title":"Noise or unexpected interruption","content":"Please excuse this interruption. Just give me a moment to sort this out... Alright, I am back with you."},
+      {"icon":"brain","title":"Memory blank","content":"That is an excellent question. I will take a few seconds to structure my answer so I can respond clearly."},
+      {"icon":"shield","title":"Aggressive / destabilizing question","content":"That is a fair point. I will not dodge it: there is indeed something to explain. What I mainly take away from it is [lesson], and that is precisely what enables me today to approach this type of situation more methodically."},
+      {"icon":"dollar","title":"Salary brought up too early","content":"I would first like to make sure I fully understand the exact scope of the role, the expected responsibilities, and your top priorities. This will allow me to give you a consistent and realistic range."},
+      {"icon":"help","title":"Recruiter is cold or unexpressive","content":"(Posture to adopt) Stay factual and do not over-interpret. Focus on your structure (STAR), ask open questions to involve them (What is the main challenge in this role right now?) and check their understanding (Does that answer your question?)."},
+      {"icon":"send","title":"Interview ends without clear next steps","content":"Thank you for this very informative exchange. I am very interested. What are the next steps in the process on your side?"}
+    ],
+    "es": [
+      {"icon":"wifi","title":"Problema de conexión de vídeo","content":"Hola,\n\nTengo un problema de conexión para unirme a nuestra entrevista. Intento reconectar inmediatamente.\n\nSi el problema persiste, sigo disponible por teléfono en [Su Número] y estoy disponible para continuar el intercambio en el formato que prefiera.\n\nGracias por su comprensión.\n\nUn saludo,\n[Nombre Apellido]"},
+      {"icon":"clock","title":"El reclutador llega tarde (> 5 min)","content":"Hola,\n\nEstoy conectado para nuestra entrevista programada a las [hora]. Sigo disponible en línea.\n\nDígame si desea mantener la entrevista o reprogramarla para un momento más conveniente.\n\nUn saludo,\n[Nombre Apellido]"},
+      {"icon":"phoneMissed","title":"Usted llega tarde","content":"Hola,\n\nDisculpe, tuve un imprevisto y llegaré unos minutos tarde a nuestra entrevista.\n\nHago lo posible por estar disponible lo antes posible. Si esto perturba su agenda, me adaptaré por supuesto a su disponibilidad.\n\nUn saludo,\n[Nombre Apellido]"},
+      {"icon":"volume","title":"Ruido o interrupción inesperada","content":"Disculpe esta interrupción. Déme un momento para solucionarlo... Bien, vuelvo a estar con usted."},
+      {"icon":"brain","title":"Laguna de memoria","content":"Es una excelente pregunta. Tomaré unos segundos para estructurar mi respuesta y responderle con claridad."},
+      {"icon":"shield","title":"Pregunta agresiva / desestabilizadora","content":"Es un punto válido. No lo eludiré: efectivamente hay algo que explicar. Lo que principalmente aprendí de ello es [lección], y eso es precisamente lo que me permite hoy abordar este tipo de situaciones con más método."},
+      {"icon":"dollar","title":"El salario se aborda demasiado pronto","content":"Prefiero primero asegurarme de comprender bien el alcance exacto del puesto, las responsabilidades esperadas y sus prioridades. Esto me permitirá darle un rango coherente y realista."},
+      {"icon":"help","title":"Reclutador frío o poco expresivo","content":"(Postura a adoptar) Manténgase objetivo, no sobreinterprete. Concéntrese en su estructura (STAR), haga preguntas abiertas para implicarlo (¿Cuál es el principal desafío de este puesto actualmente?) y verifique su comprensión (¿Responde eso a su pregunta?)."},
+      {"icon":"send","title":"La entrevista termina sin siguientes pasos claros","content":"Gracias por este intercambio muy instructivo. Por mi parte, estoy muy interesado. ¿Cuáles son los siguientes pasos del proceso de su lado?"}
+    ],
+    "de": [
+      {"icon":"wifi","title":"Videoverbindungsproblem","content":"Guten Tag,\n\nIch habe Verbindungsprobleme, um an unserem Gespräch teilzunehmen. Ich versuche sofort, mich neu zu verbinden.\n\nSollte das Problem weiterhin bestehen, bin ich telefonisch unter [Ihre Nummer] erreichbar und stehe für eine Fortsetzung im für Sie passenden Format zur Verfügung.\n\nDanke für Ihr Verständnis.\n\nMit freundlichen Grüßen,\n[Vorname Nachname]"},
+      {"icon":"clock","title":"Recruiter ist zu spät (> 5 Min)","content":"Guten Tag,\n\nIch bin für unser um [Uhrzeit] geplantes Gespräch verbunden. Ich bleibe online verfügbar.\n\nSagen Sie mir bitte Bescheid, ob wir das Gespräch führen oder auf einen passenderen Zeitpunkt verschieben möchten.\n\nMit freundlichen Grüßen,\n[Vorname Nachname]"},
+      {"icon":"phoneMissed","title":"Sie sind zu spät","content":"Guten Tag,\n\nEntschuldigung, es ist etwas dazwischengekommen, und ich werde einige Minuten zu spät zu unserem Gespräch sein.\n\nIch bemühe mich, so schnell wie möglich verfügbar zu sein. Falls dies Ihren Terminkalender stört, passe ich mich selbstverständlich Ihrer Verfügbarkeit an.\n\nMit freundlichen Grüßen,\n[Vorname Nachname]"},
+      {"icon":"volume","title":"Lärm oder unerwartete Unterbrechung","content":"Entschuldigen Sie bitte diese Unterbrechung. Geben Sie mir einen Moment, um das zu regeln... Gut, ich bin wieder bei Ihnen."},
+      {"icon":"brain","title":"Gedächtnislücke","content":"Das ist eine ausgezeichnete Frage. Ich nehme mir einige Sekunden Zeit, um meine Antwort zu strukturieren, damit ich Ihnen klar antworten kann."},
+      {"icon":"shield","title":"Aggressive / destabilisierende Frage","content":"Das ist ein berechtigter Punkt. Ich werde nicht drum herumreden: Es gibt tatsächlich etwas zu erklären. Was ich vor allem daraus gelernt habe, ist [Lektion], und genau das ermöglicht es mir heute, diese Art von Situationen methodischer anzugehen."},
+      {"icon":"dollar","title":"Gehalt wird zu früh angesprochen","content":"Ich möchte mich zunächst vergewissern, dass ich den genauen Aufgabenbereich, die erwarteten Verantwortlichkeiten und Ihre wichtigsten Prioritäten richtig verstehe. So kann ich Ihnen eine stimmige und realistische Spanne nennen."},
+      {"icon":"help","title":"Recruiter wirkt kühl oder ausdruckslos","content":"(Haltung) Bleiben Sie sachlich und überinterpretieren Sie nicht. Konzentrieren Sie sich auf Ihre Struktur (STAR), stellen Sie offene Fragen, um ihn einzubinden (Was ist derzeit die größte Herausforderung in dieser Rolle?) und prüfen Sie sein Verständnis (Beantwortet das Ihre Frage?)."},
+      {"icon":"send","title":"Gespräch endet ohne klare nächste Schritte","content":"Danke für diesen sehr aufschlussreichen Austausch. Ich bin sehr interessiert. Was sind die nächsten Schritte im Prozess auf Ihrer Seite?"}
+    ],
+    "it": [
+      {"icon":"wifi","title":"Problema di connessione video","content":"Buongiorno,\n\nHo un problema di connessione per partecipare al colloquio. Sto cercando di riconnettermi immediatamente.\n\nSe il problema persiste, rimango raggiungibile telefonicamente al [Suo Numero] e sono disponibile a proseguire lo scambio nel formato più comodo per lei.\n\nGrazie per la comprensione.\n\nCordiali saluti,\n[Nome Cognome]"},
+      {"icon":"clock","title":"Il reclutatore è in ritardo (> 5 min)","content":"Buongiorno,\n\nSono collegato per il nostro colloquio previsto alle [ora]. Rimango disponibile online.\n\nMi dica se desidera mantenere lo scambio o riprogrammarlo per un momento più comodo.\n\nCordiali saluti,\n[Nome Cognome]"},
+      {"icon":"phoneMissed","title":"Lei è in ritardo","content":"Buongiorno,\n\nMi scuso, ho avuto un imprevisto e arriverò pochi minuti in ritardo al colloquio.\n\nSto facendo il possibile per essere disponibile al più presto. Se questo disturba la sua agenda, mi adatterò ovviamente alla sua disponibilità.\n\nCordiali saluti,\n[Nome Cognome]"},
+      {"icon":"volume","title":"Rumore o interruzione improvvisa","content":"Mi scusi per questa interruzione. Mi dia solo un attimo per sistemare... Bene, sono di nuovo a sua disposizione."},
+      {"icon":"brain","title":"Vuoto di memoria","content":"È un'ottima domanda. Mi prendo qualche secondo per strutturare la risposta in modo da risponderle chiaramente."},
+      {"icon":"shield","title":"Domanda aggressiva / destabilizzante","content":"È un punto legittimo. Non lo aggirerò: c'è effettivamente qualcosa da spiegare. Ciò che ne ho imparato soprattutto è [lezione], ed è proprio questo che mi permette oggi di affrontare questo tipo di situazioni con più metodo."},
+      {"icon":"dollar","title":"Lo stipendio viene affrontato troppo presto","content":"Preferisco prima assicurarmi di avere ben compreso la portata esatta del ruolo, le responsabilità attese e le sue priorità. Così potrò darle una fascia coerente e realistica."},
+      {"icon":"help","title":"Reclutatore freddo o poco espressivo","content":"(Postura da adottare) Rimanga oggettivo, non sovrainterpreti. Concentrirsi sulla sua struttura (STAR), ponga domande aperte per coinvolgerlo (Qual è la sfida principale di questo ruolo attualmente?) e ne verifichi la comprensione (Risponde alla sua domanda?)."},
+      {"icon":"send","title":"Il colloquio finisce senza passi chiari","content":"Grazie per questo scambio molto istruttivo. Per quanto mi riguarda, sono molto interessato. Quali sono i prossimi passi del processo da parte vostra?"}
+    ]
+  }
+}

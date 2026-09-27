@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Zap, BatteryCharging, Package, Box, Archive, ShoppingCart } from 'lucide-react';
 import { useDashboard } from '../hooks/DashboardContext';
 
@@ -8,6 +9,7 @@ interface RechargeModalProps {
 }
 
 export function RechargeModal({ isOpen, onClose }: RechargeModalProps) {
+  const { t } = useTranslation();
   const dashboard = useDashboard();
 
   // [FIX] Actualisation automatique des quotas quand l'utilisateur revient sur l'onglet
@@ -32,9 +34,9 @@ export function RechargeModal({ isOpen, onClose }: RechargeModalProps) {
         <div style={{ background: 'rgba(59, 130, 246, 0.1)', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto', color: 'var(--primary)' }}>
           <Zap size={32} />
         </div>
-        <h2 style={{ fontSize: '1.8rem', color: 'var(--text-main)', marginBottom: '0.5rem', marginTop: 0 }}>Recharger vos séances d'entraînement</h2>
+        <h2 style={{ fontSize: '1.8rem', color: 'var(--text-main)', marginBottom: '0.5rem', marginTop: 0 }}>{t('recharge_modal_title')}</h2>
         <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', lineHeight: '1.5', fontSize: '0.95rem' }}>
-          Vous avez utilisé toutes vos séances d'entraînement IA. Choisissez une recharge pour continuer à vous perfectionner.
+          {t('recharge_modal_desc')}
         </p>
         
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
@@ -45,6 +47,7 @@ export function RechargeModal({ isOpen, onClose }: RechargeModalProps) {
             { plan: 'recharge_30', icon: Archive, sessions: 30, price: 60, pricePerSession: 2.00, popular: false },
             { plan: 'recharge_60', icon: ShoppingCart, sessions: 60, price: 99, pricePerSession: 1.65, popular: false },
           ].map((pack) => {
+            const sessionsLabel = t('sessions_label', { count: pack.sessions });
             const Icon = pack.icon;
             return (
               <div 
@@ -68,13 +71,13 @@ export function RechargeModal({ isOpen, onClose }: RechargeModalProps) {
               >
                 <Icon size={28} color={pack.popular ? "var(--primary)" : "var(--text-muted)"} style={{ marginBottom: '1rem' }} />
                 <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                  {pack.sessions} Séances
+                  {sessionsLabel}
                 </div>
                 <div style={{ fontSize: '2.2rem', fontWeight: 800, color: pack.popular ? 'var(--primary)' : 'var(--text-main)', margin: '0.5rem 0' }}>
                   {pack.price} €
                 </div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', background: 'var(--bg-card)', padding: '0.2rem 0.6rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
-                  {pack.pricePerSession.toFixed(2)} € / séance
+                  {t('price_per_session', { price: pack.pricePerSession.toFixed(2) })}
                 </div>
               </div>
             );
@@ -83,7 +86,7 @@ export function RechargeModal({ isOpen, onClose }: RechargeModalProps) {
 
         <div style={{ textAlign: 'center', marginTop: '1rem' }}>
           <button onClick={onClose} className="btn-outline">
-            Plus tard
+            {t('btn_later')}
           </button>
           </div>
       </div>

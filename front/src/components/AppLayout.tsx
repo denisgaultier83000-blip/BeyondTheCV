@@ -2,6 +2,7 @@ import React from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Header from './Header';
 import { useDashboard } from '../hooks/DashboardContext';
+import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import DeleteAccountModal from './DeleteAccountModal';
@@ -42,13 +43,8 @@ const AppLayout = () => {
     { id: 7, title: t('clarification_title') }, { id: 8, title: t('step_results', "Résultats") }
   ];
 
-  const [darkMode, setDarkMode] = React.useState<boolean>(() => localStorage.getItem('theme') === 'dark');
+  const { darkMode, setDarkMode } = useTheme();
   const [showDeleteAccount, setShowDeleteAccount] = React.useState<boolean>(false);
-
-  React.useEffect(() => {
-    document.body.classList.toggle('dark-mode', darkMode);
-    localStorage.setItem('theme', darkMode ? 'dark' : 'light');
-  }, [darkMode]);
 
   return (
     <div className="app-container">

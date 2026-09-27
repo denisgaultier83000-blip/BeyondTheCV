@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Search, MessageSquare, Target, ShieldAlert, Building, ArrowRight, User, HelpCircle, Key, List, Lightbulb, FileText } from 'lucide-react';
 import { formatMarkdown } from '../utils/markdown';
 import { authenticatedFetch } from '../utils/auth';
@@ -47,8 +48,6 @@ const extractDecoderData = (data: any) => {
 
   // [FIX] Normalisation des données pour gérer les anciens formats en cache. Si `red_flags` est un tableau de strings, on le transforme en tableau d'objets.
   if (payload.red_flags && Array.isArray(payload.red_flags) && payload.red_flags.length > 0 && typeof payload.red_flags[0] === 'string') {
-    // On ne modifie pas le payload directement, on retourne une promesse qui se résoudra avec les données enrichies.
-    // Pour l'instant, on affiche un placeholder en attendant la logique d'enrichissement.
     payload.red_flags = payload.red_flags.map((flag: string) => {
       const parts = flag.split('=');
       return {
@@ -60,14 +59,13 @@ const extractDecoderData = (data: any) => {
     });
   }
 
-  // Idem pour reality_check. On gère le format "Jargon: Traduction"
   if (payload.reality_check && Array.isArray(payload.reality_check) && payload.reality_check.length > 0 && typeof payload.reality_check[0] === 'string') {
      payload.reality_check = payload.reality_check.map((item: string) => {
-        const parts = item.split(/:(.*)/s); // Sépare au premier ":"
+        const parts = item.split(/:(.*)/s);
         return {
           jargon: parts[0]?.trim() || "Jargon non spécifié",
           translation: parts[1]?.trim() || "Analyse non disponible.",
-          candidate_action: "Vérifier ce point en entretien." // Placeholder
+          candidate_action: "Vérifier ce point en entretien."
         };
     });
   }
@@ -76,6 +74,7 @@ const extractDecoderData = (data: any) => {
 };
 
 export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) => {
+  const { t } = useTranslation();
   const decoderData = extractDecoderData(data);
   const decodedText = typeof decoderData?.decoded === 'string' ? decoderData.decoded.trim() : '';
   const hasStructuredContent = !!(
@@ -103,30 +102,31 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
 
   return (
     <DashboardCard
-      title="Décodeur d'Annonce"
+      title={t('job_decoder_title')}
       icon={<Search size={24} />}
       loading={loading}
-      loadingText="Décodage de l'annonce en cours..."
+      loadingText={t('job_decoder_loading')}
       error={error || (!loading && !decoderData)}
-      errorText="Une erreur est survenue lors du décodage de l'annonce. Vérifiez la description de poste."
-      featureId="job_decoder"      feedbackQuestion="Cette traduction de l'annonce vous est-elle utile ?"    >
+      errorText={t('job_decoder_error')}
+      featureId="job_decoder"
+      feedbackQuestion={t('job_decoder_feedback')}
+    >
       {decoderData && (() => {
 
         return (
           <div className="job-decoder-container">
             <p className="job-decoder-intro">
-              Traduction du jargon RH en réalité opérationnelle pour déjouer les pièges de l'offre.
+              {t('job_decoder_intro')}
             </p>
            {!hasStructuredContent && decodedText && (
-              <Section title="Synthèse de l'annonce" icon={<FileText size={18} />}>
+              <Section title={t('job_summary_title')} icon={<FileText size={18} />}>
                 <p style={{ margin: 0, lineHeight: 1.6 }}>{decodedText}</p>
               </Section>
            )}
            {!hasStructuredContent && !decodedText && (
-              <Section title="Analyse partielle" icon={<HelpCircle size={18} />}>
+              <Section title={t('partial_analysis_title')} icon={<HelpCircle size={18} />}>
                 <p style={{ margin: 0, lineHeight: 1.6 }}>
-                  L'annonce a été détectée mais le détail stratégique n'a pas été renvoyé dans ce format.
-                  Relancez l'analyse depuis la page Cible après avoir collé une description de poste plus complète.
+                  {t('partial_analysis_desc')}
                 </p>
               </Section>
            )}
@@ -134,18 +134,18 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
 
             <div className="job-decoder-grid">
               {decoderData.manager_fear && (
-                <Section title="La peur du manager" icon={<User size={18} />} className="manager-fear-section">
-                  <InfoCard title="Hypothèse" className="hypothesis-card">
+                <Section title={t('manager_fear_title')} icon={<User size={18} />} className="manager-fear-section">
+                  <InfoCard title={t('hypothesis_title')} className="hypothesis-card">
                     <p>"{decoderData.manager_fear.hypothesis}"</p>
                   </InfoCard>
-                  <InfoCard title="Comment rassurer" className="reassurance-card">
+                  <InfoCard title={t('how_to_reassure_title')} className="reassurance-card">
                     <p>{decoderData.manager_fear.how_to_reassure}</p>
                   </InfoCard>
                 </Section>
               )}
 
               {decoderData.red_flags?.length > 0 && (
-                <Section title="Signaux d'Alerte (Red Flags)" icon={<ShieldAlert size={18} />} className="red-flags-section">
+                <Section title={t('red_flags_title')} icon={<ShieldAlert size={18} />} className="red-flags-section">
                   {decoderData.red_flags.map((item: any, idx: number) => (
                     <div key={idx} className="red-flag-item">
                       <div className="red-flag-header">
@@ -153,9 +153,9 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
                         <ConfidenceBadge level={item.confidence} />
                       </div>
                       <div className="red-flag-body">
-                        <div className="red-flag-risk"><strong>Risque :</strong> {item.risk}</div>
+                        <div className="red-flag-risk"><strong>{t('risk_label')}</strong> {item.risk}</div>
                         {item.question_to_verify && item.question_to_verify !== "..." && (
-                          <div className="red-flag-question"><strong>Question à poser :</strong> "{item.question_to_verify}"</div>
+                          <div className="red-flag-question"><strong>{t('question_to_ask_label')}</strong> "{item.question_to_verify}"</div>
                         )}
                       </div>                    </div>
                   ))}
@@ -163,21 +163,21 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
               )}
 
               {decoderData.candidate_positioning && (
-                <Section title="Votre Positionnement Stratégique" icon={<Target size={18} />} className="positioning-section">
-                  <InfoCard title="Posture Recommandée">
+                <Section title={t('positioning_title')} icon={<Target size={18} />} className="positioning-section">
+                  <InfoCard title={t('recommended_posture_title')}>
                     <p>{decoderData.candidate_positioning.recommended_posture}</p>
                   </InfoCard>
-                  <InfoCard title="Messages clés à faire passer">
+                  <InfoCard title={t('messages_to_send_title')}>
                     <BulletList items={decoderData.candidate_positioning.messages_to_send} />
                   </InfoCard>
-                  <InfoCard title="Erreurs à éviter">
+                  <InfoCard title={t('mistakes_to_avoid_title')}>
                     <BulletList items={decoderData.candidate_positioning.mistakes_to_avoid} type="danger" />
                   </InfoCard>
                 </Section>
               )}
 
               {decoderData.implicit_expectations?.length > 0 && (
-                <Section title="Attentes Implicites" icon={<Lightbulb size={18} />}>
+                <Section title={t('implicit_expectations_title')} icon={<Lightbulb size={18} />}>
                   {decoderData.implicit_expectations.map((item: any, idx: number) => (
                     <div key={idx} className="expectation-item">
                       <div className="expectation-header">
@@ -194,7 +194,7 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
               )}
 
               {decoderData.reality_check?.length > 0 && (
-                <Section title="Traduction du Jargon RH" icon={<MessageSquare size={18} />}>
+                <Section title={t('reality_check_title')} icon={<MessageSquare size={18} />}>
                   {decoderData.reality_check.map((item: any, idx: number) => (
                     <div key={idx} className="reality-check-item">
                       <div className="jargon">"{item.jargon}"</div>
@@ -203,7 +203,7 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
                         <span>{item.translation}</span>
                       </div>
                       {item.candidate_action && (
-                        <div className="action"><strong>Action :</strong> {item.candidate_action}</div>
+                        <div className="action"><strong>{t('action_label')}</strong> {item.candidate_action}</div>
                       )}
                     </div>
                   ))}
@@ -211,19 +211,19 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
               )}
 
               {decoderData.questions_to_ask?.length > 0 && (
-                <Section title="Questions Intelligentes à Poser" icon={<HelpCircle size={18} />}>
+                <Section title={t('smart_questions_title')} icon={<HelpCircle size={18} />}>
                   <BulletList items={decoderData.questions_to_ask} />
                 </Section>
               )}
 
               {decoderData.explicit_requirements?.length > 0 && (
-                <Section title="Exigences Explicites du Poste" icon={<List size={18} />}>
+                <Section title={t('explicit_requirements_title')} icon={<List size={18} />}>
                   <BulletList items={decoderData.explicit_requirements} />
                 </Section>
               )}
 
               {decoderData.ats_keywords?.length > 0 && (
-                <Section title="Mots-clés pour l'ATS" icon={<Key size={18} />}>
+                <Section title={t('ats_keywords_title')} icon={<Key size={18} />}>
                   <div className="ats-keywords-list">
                     {decoderData.ats_keywords.map((kw: string) => <span key={kw} className="ats-keyword">{kw}</span>)}
                   </div>
@@ -231,7 +231,7 @@ export const JobDecoder: React.FC<JobDecoderProps> = ({ data, loading, error }) 
               )}
 
               {decoderData.culture_fit && (
-                <Section title="Culture d'Entreprise Déduite" icon={<Building size={18} />}>
+                <Section title={t('culture_fit_title')} icon={<Building size={18} />}>
                   <p dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatMarkdown(decoderData.culture_fit).__html) }} />
                 </Section>
               )}

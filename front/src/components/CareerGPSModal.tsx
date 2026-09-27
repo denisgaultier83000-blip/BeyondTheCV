@@ -35,8 +35,8 @@ export default function CareerGPSModal({ data, onClose }: CareerGPSModalProps) {
         obstacles: alts[selectedRouteIndex].obstacles || []
       };
 
-  const activeRouteName = selectedRouteIndex === -1 
-    ? "Itinéraire Optimal" 
+  const activeRouteName = selectedRouteIndex === -1
+    ? t('career_gps_optimal_route')
     : alts[selectedRouteIndex].name;
 
   const probabilityColor = activeRoute.probability >= 80 ? '#10b981' : activeRoute.probability >= 60 ? '#f59e0b' : '#ef4444';
@@ -60,18 +60,18 @@ export default function CareerGPSModal({ data, onClose }: CareerGPSModalProps) {
         >✕</button>
 
         <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-main)', marginBottom: '0.5rem', fontSize: '1.8rem' }}>
-          <Map size={32} color="var(--primary)" /> GPS de carrière
+          <Map size={32} color="var(--primary)" /> {t('career_gps_title')}
         </h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '1rem', marginBottom: '2rem' }}>
-          Votre feuille de route pas-à-pas pour atteindre votre poste cible.
+          {t('career_gps_desc')}
         </p>
 
         {/* 1. Carte de Navigation (Header visuel) */}
         <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginBottom: '2rem', position: 'relative', overflow: 'hidden' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1 }}>
             <div style={{ textAlign: 'center', flex: 1 }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Départ</div>
-              <div style={{ fontWeight: 600, color: 'var(--text-main)', marginTop: '0.25rem' }}>{currentPos.role || "Non défini"}</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>{t('departure')}</div>
+              <div style={{ fontWeight: 600, color: 'var(--text-main)', marginTop: '0.25rem' }}>{currentPos.role || t('undefined_label')}</div>
             </div>
             
             <div style={{ flex: 2, height: '6px', background: '#e2e8f0', margin: '0 1.5rem', position: 'relative', borderRadius: '3px' }}>
@@ -82,8 +82,8 @@ export default function CareerGPSModal({ data, onClose }: CareerGPSModalProps) {
             </div>
 
             <div style={{ textAlign: 'center', flex: 1 }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Destination</div>
-              <div style={{ fontWeight: 600, color: 'var(--primary)', marginTop: '0.25rem' }}>{dest.target_role || "Non défini"}</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>{t('destination')}</div>
+              <div style={{ fontWeight: 600, color: 'var(--primary)', marginTop: '0.25rem' }}>{dest.target_role || t('undefined_label')}</div>
             </div>
           </div>
         </div>
@@ -93,7 +93,7 @@ export default function CareerGPSModal({ data, onClose }: CareerGPSModalProps) {
           {/* 2. Itinéraire */}
           <div>
             <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: probabilityColor, margin: '0 0 1.5rem 0', fontSize: '1.2rem' }}>
-              <Flag size={20} color={probabilityColor} /> {activeRouteName} ({activeRoute.probability || 0}% succès)
+              <Flag size={20} color={probabilityColor} /> {activeRouteName} ({activeRoute.probability || 0}% {t('success_rate_suffix')})
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               {(activeRoute.steps || []).map((step: any, idx: number) => (
@@ -109,7 +109,7 @@ export default function CareerGPSModal({ data, onClose }: CareerGPSModalProps) {
                     </div>
                     <div style={{ marginTop: '0.75rem' }}>
                       <span style={{ color: step.impact_color || '#3b82f6', backgroundColor: `${step.impact_color || '#3b82f6'}15`, padding: '0.25rem 0.75rem', borderRadius: '1rem', fontSize: '0.85rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <Zap size={14} /> Impact : {step.impact || "Moyen"}
+                        <Zap size={14} /> {t('impact')}: {step.impact || t('impact_medium')}
                       </span>
                     </div>
                   </div>
@@ -124,7 +124,7 @@ export default function CareerGPSModal({ data, onClose }: CareerGPSModalProps) {
             {/* Obstacles */}
             <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
               <h4 style={{ margin: '0 0 1rem 0', color: 'var(--danger-text)', fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <AlertTriangle size={18} /> Ralentissements / Obstacles
+                <AlertTriangle size={18} /> {t('obstacles_title')}
               </h4>
               <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--danger-text)', fontSize: '0.95rem', lineHeight: '1.6' }}>
                 {(activeRoute.obstacles || []).map((obs: any, i: number) => (
@@ -136,18 +136,18 @@ export default function CareerGPSModal({ data, onClose }: CareerGPSModalProps) {
             {/* Radar Marché */}
             <div style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '1.5rem', borderRadius: '0.75rem', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
               <h4 style={{ margin: '0 0 1rem 0', color: 'var(--primary)', fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <TrendingUp size={18} /> Radar Marché
+                <TrendingUp size={18} /> {t('market_radar_title')}
               </h4>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                <div><div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Tension Recrutement</div><div style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '1.2rem' }}>{radar.demand_score || 0}/100</div></div>
-                <div><div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Salaire Cible</div><div style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '1.2rem' }}>{radar.salary_target || "N/A"}</div></div>
+                <div><div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>{t('market_tension_label')}</div><div style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '1.2rem' }}>{radar.demand_score || 0}/100</div></div>
+                <div><div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>{t('target_salary_label')}</div><div style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '1.2rem' }}>{radar.salary_target || "N/A"}</div></div>
               </div>
-              <div style={{ paddingTop: '1rem', borderTop: '1px dashed rgba(59, 130, 246, 0.2)' }}><div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>🚀 Prochaine action</div><div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--primary)' }}>{radar.next_step_recommendation || "Non disponible"}</div></div>
+              <div style={{ paddingTop: '1rem', borderTop: '1px dashed rgba(59, 130, 246, 0.2)' }}><div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>🚀 {t('next_boost_action_label')}</div><div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--primary)' }}>{radar.next_step_recommendation || t('not_available')}</div></div>
             </div>
           </div>
         </div>
 
-        <FeedbackWidget feature="career_gps" question="Cette feuille de route vous semble-t-elle réaliste et applicable ?" />
+        <FeedbackWidget feature="career_gps" question={t('career_gps_feedback')} />
       </div>
     </div>
   );

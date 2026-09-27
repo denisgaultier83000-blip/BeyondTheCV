@@ -1,16 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "../context/ThemeContext";
 import Header from "../components/Header";
 
 export default function Payment() {
   const navigate = useNavigate();
-  const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem("darkMode") === "true";
-  });
-
-  useEffect(() => {
-    localStorage.setItem("darkMode", String(darkMode));
-  }, [darkMode]);
+  const { darkMode, setDarkMode } = useTheme();
 
   return (
     <div className={darkMode ? "dark-mode" : ""} style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingTop: "80px", paddingBottom: "20px", paddingLeft: "20px", paddingRight: "20px", boxSizing: 'border-box' }}>

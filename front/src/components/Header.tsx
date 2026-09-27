@@ -121,7 +121,7 @@ export default function Header({
           
           {userName ? (
             <div className="user-menu-container" ref={dropdownRef} style={{ position: 'relative' }}>
-              <button onClick={() => setDropdownOpen(!dropdownOpen)} className="user-profile-btn" title="Menu utilisateur">
+              <button onClick={() => setDropdownOpen(!dropdownOpen)} className="user-profile-btn" title={t('header.user_menu_title')}>
                 <span className="user-icon">👤</span>
                 <span className="user-name">{userName}</span>
               </button>
@@ -138,7 +138,7 @@ export default function Header({
                   onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                   onClick={() => setDropdownOpen(false)}
                 >
-                  👑 Administration
+                  👑 {t('header.admin')}
                 </Link>
               )}
                   <button 
@@ -151,7 +151,7 @@ export default function Header({
                     onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
                     onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                   >
-                    📄 Imprimer mon dossier
+                    📄 {t('header.print_dossier')}
                   </button>
                   <button
                     onClick={() => {
@@ -162,7 +162,7 @@ export default function Header({
                     onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
                     onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                   >
-                    🎯 Mes séances restantes : {Number.isFinite(remainingSessions) ? remainingSessions : '—'}
+                    🎯 {t('header.remaining_sessions', { count: Number.isFinite(remainingSessions) ? remainingSessions : 0 })}
                   </button>
                   <div
                     className="header-quotas-mobile-only"
@@ -175,8 +175,8 @@ export default function Header({
                       background: 'var(--bg-secondary)'
                     }}
                   >
-                    <div style={{ fontWeight: 700, marginBottom: '0.2rem' }}>Candidatures</div>
-                    <div>{applicationsUsed} sur {totalApplications} utilisée{applicationsUsed > 1 ? 's' : ''} — {applicationsLeft} restante{applicationsLeft > 1 ? 's' : ''}</div>
+                    <div style={{ fontWeight: 700, marginBottom: '0.2rem' }}>{t('header.applications_label')}</div>
+                    <div>{t('header.applications_status', { count: applicationsUsed, total: totalApplications, remaining: applicationsLeft })}</div>
                   </div>
                   <button 
                     onClick={() => { setDropdownOpen(false); onLogout?.(); }} 
@@ -184,13 +184,20 @@ export default function Header({
                     onMouseOver={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
                     onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                   >
-                    🚪 Déconnexion
+                    🚪 {t('header.logout')}
                   </button>
                 </div>
               )}
             </div>
           ) : (
-            showLogin && <Link to="/login" className="login-link">{t('login')}</Link>
+            showLogin && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <Link to="/ressources" className="login-link" style={{ color: '#0D9488', fontWeight: 700 }}>
+                  {t('resources.title_dashboard', 'Ressources')}
+                </Link>
+                <Link to="/login" className="login-link">{t('login')}</Link>
+              </div>
+            )
           )}
 
           <button onClick={() => setDarkMode(prev => !prev)} className="dark-mode-toggle">

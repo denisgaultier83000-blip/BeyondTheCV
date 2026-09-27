@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   Activity, 
   DollarSign,
@@ -70,6 +71,7 @@ const renderSafeText = (item: any) => {
 };
 
 export default function TrainingTab() {
+  const { t } = useTranslation();
   const { cvData, updateFormData, actionPlanResult, quotas, fetchQuotas } = useDashboard();
   const trainingRemaining = Number(quotas?.credits ?? quotas?.qa ?? quotas?.pitch ?? quotas?.mes ?? quotas?.negotiation ?? 0);
   const [score, setScore] = useState(0);
@@ -97,7 +99,7 @@ export default function TrainingTab() {
   const prewarmTriggeredRef = useRef<string | null>(null);
 
   const themes = ['Management', 'Gestion de crise', 'Négociation', 'Leadership', 'Communication'];
-  const types = [{ id: 'Classique', label: 'Questions classiques' }, { id: 'MES', label: 'Mises en situation' }];
+  const trainingTypes = [{ id: 'Classique', label: 'Questions classiques' }, { id: 'MES', label: 'Mises en situation' }];
 
   // Méthode de rafraîchissement des stats globales extraite pour pouvoir être appelée par le Questionnaire
   const fetchStats = async () => {
@@ -410,7 +412,7 @@ export default function TrainingTab() {
       
       {/* --- CONSEIL STRATÉGIQUE (IA) --- */}
       {actionPlanResult?.strategy_advice && (
-        <DashboardCard title="Conseil stratégique d'entretien" icon={<Lightbulb size={24} />}>
+        <DashboardCard title={t('interview_strategy_tip_title')} icon={<Lightbulb size={24} />}>
           <div style={{ background: 'rgba(59, 130, 246, 0.05)', borderLeft: '4px solid var(--primary)', padding: '1.5rem', borderRadius: '0.5rem' }}>
             <p style={{ margin: 0, color: 'var(--text-main)', fontSize: '1rem', lineHeight: '1.6' }}>
               {actionPlanResult.strategy_advice}
@@ -439,33 +441,33 @@ export default function TrainingTab() {
       )}
 
       {/* --- NOUVEAU : AFFICHAGE DES QUOTAS PAR MODULE --- */}
-      <DashboardCard title="Simulations notées disponibles" icon={<Dumbbell size={24} />} id="training_section">
+      <DashboardCard title={t('rated_simulations_available')} icon={<Dumbbell size={24} />} id="training_section">
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '-1rem', marginBottom: '1.5rem' }}>
-          Votre pack inclut un solde global unique de simulations évaluées par l'IA, partagé entre tous les exercices. L'entraînement libre (lecture des questions et réponses) est illimité.
+          {t('rated_simulations_desc')}
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
           <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: `1px solid ${trainingRemaining > 0 ? 'rgba(59, 130, 246, 0.2)' : 'rgba(239, 68, 68, 0.2)'}` }}>
             <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.45rem' }}>
-              Séances notées restantes (total)
+              {t('rated_sessions_remaining_total')}
             </div>
             <div style={{ fontSize: '2rem', fontWeight: 900, color: trainingRemaining > 0 ? 'var(--text-main)' : 'var(--danger-text)', lineHeight: 1 }}>
               {trainingRemaining}
             </div>
             <div style={{ marginTop: '0.5rem', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-              Ce compteur est commun à toutes les simulations évaluées.
+              {t('rated_sessions_shared_counter')}
             </div>
           </div>
 
           <div style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
             <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.55rem' }}>
-              Exercices utilisant ce solde
+              {t('exercises_using_balance')}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '0.6rem' }}>
               {[
-                { key: 'qa', label: "Questions / Réponses", icon: <MessageSquare size={18} /> },
-                { key: 'pitch', label: "Pitch vocal", icon: <Mic size={18} /> },
-                { key: 'mes', label: "Mises en situation", icon: <BrainCircuit size={18} /> },
-                { key: 'negotiation', label: "Négociation salariale", icon: <DollarSign size={18} /> },
+                { key: 'qa', label: t('exercise_qa'), icon: <MessageSquare size={18} /> },
+                { key: 'pitch', label: t('exercise_pitch'), icon: <Mic size={18} /> },
+                { key: 'mes', label: t('exercise_mes'), icon: <BrainCircuit size={18} /> },
+                { key: 'negotiation', label: t('exercise_negotiation'), icon: <DollarSign size={18} /> },
               ].map(q => (
                 <div key={q.key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-main)', fontSize: '0.9rem', fontWeight: 600, padding: '0.55rem 0.65rem', borderRadius: '0.55rem', border: '1px solid var(--border-color)', background: 'var(--bg-card)' }}>
                   <span style={{ color: 'var(--primary)', display: 'inline-flex' }}>{q.icon}</span>
@@ -479,7 +481,7 @@ export default function TrainingTab() {
       </DashboardCard>
 
       {/* --- SECTION STATISTIQUES --- */}
-      <DashboardCard title="Statistiques globales & évolution" icon={<Activity size={24} />}>
+      <DashboardCard title={t('global_stats_title')} icon={<Activity size={24} />}>
         {/* TOP STATS */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
           <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', textAlign: 'center' }}>
@@ -545,15 +547,15 @@ export default function TrainingTab() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', paddingTop: '2rem', borderTop: '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-main)' }}>Détail par thématique</h4>
-            {themes.map(t => {
-              const tScore = themeScores[t] ?? 0;
-              const tCount = themeCounts[t] ?? 0;
+            {themes.map((themeLabel) => {
+              const tScore = themeScores[themeLabel] ?? 0;
+              const tCount = themeCounts[themeLabel] ?? 0;
               const tColor = tCount > 0 ? getScoreColor(tScore) : 'var(--text-muted)';
               return (
-                <div key={t} style={{ opacity: tCount > 0 ? 1 : 0.5 }}>
+                <div key={themeLabel} style={{ opacity: tCount > 0 ? 1 : 0.5 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                     <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                      {t} <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)' }}>({tCount} session{tCount > 1 ? 's' : ''})</span>
+                      {themeLabel} <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)' }}>({tCount} session{tCount > 1 ? 's' : ''})</span>
                     </span>
                     <span style={{ fontSize: '1.1rem', fontWeight: 800, color: tColor }}>
                       {tCount > 0 ? tScore / 10 : '-'} <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>/ 10</span>
@@ -580,7 +582,7 @@ export default function TrainingTab() {
 
       {/* --- SECTION CONFIGURATION --- */}
       <div id="training_mes_section">
-        <DashboardCard title="Nouvelle session d'entraînement" icon={<Settings2 size={24} />}>
+        <DashboardCard title={t('new_training_session_title')} icon={<Settings2 size={24} />}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
           {errorMsg && !activeQuestion && (
@@ -593,23 +595,23 @@ export default function TrainingTab() {
           <div>
             <h4 style={{ margin: '0 0 1rem 0', color: 'var(--text-main)', fontSize: '1.05rem' }}>1. Sélectionnez le format</h4>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-              {types.map(t => (
+              {trainingTypes.map((typeOption) => (
                 <div 
-                  key={t.id} 
-                  onClick={() => setSelectedType(t.id)}
+                  key={typeOption.id} 
+                  onClick={() => setSelectedType(typeOption.id)}
                   style={{ 
                     padding: '1.5rem', borderRadius: '1rem', cursor: 'pointer', transition: 'all 0.2s',
-                    background: selectedType === t.id ? 'var(--bg-card)' : 'var(--bg-secondary)',
-                    border: `2px solid ${selectedType === t.id ? 'var(--primary)' : 'var(--border-color)'}`,
-                    boxShadow: selectedType === t.id ? '0 10px 15px -3px rgba(59, 130, 246, 0.15)' : 'none'
+                    background: selectedType === typeOption.id ? 'var(--bg-card)' : 'var(--bg-secondary)',
+                    border: `2px solid ${selectedType === typeOption.id ? 'var(--primary)' : 'var(--border-color)'}`,
+                    boxShadow: selectedType === typeOption.id ? '0 10px 15px -3px rgba(59, 130, 246, 0.15)' : 'none'
                   }}
                 >
-                  <div style={{ color: selectedType === t.id ? 'var(--primary)' : 'var(--text-muted)', marginBottom: '1rem' }}>
-                    {t.id === 'MES' ? <BrainCircuit size={32} /> : <MessageSquare size={32} />}
+                  <div style={{ color: selectedType === typeOption.id ? 'var(--primary)' : 'var(--text-muted)', marginBottom: '1rem' }}>
+                    {typeOption.id === 'MES' ? <BrainCircuit size={32} /> : <MessageSquare size={32} />}
                   </div>
-                  <h5 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-main)' }}>{t.label}</h5>
+                  <h5 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-main)' }}>{typeOption.label}</h5>
                   <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                    {t.id === 'MES' ? "Scénarios complexes et immersion." : "Questions pièges et parcours."}
+                    {typeOption.id === 'MES' ? t('mes_tab_desc') : t('qa_tab_desc')}
                   </p>
                 </div>
               ))}
@@ -655,7 +657,7 @@ export default function TrainingTab() {
               options={[
                 { value: 'manual', label: 'Saisie manuelle' },
                 { value: 'voice', label: 'Saisie vocale' },
-                { value: 'video', label: 'Saisie vidéo' },
+                { value: 'video', label: t('video_input_label') },
               ]}
             />
 
@@ -679,7 +681,7 @@ export default function TrainingTab() {
                   style={{ display: 'none' }}
                 />
                 <Button variant="primary" module="training" icon={<Video size={18} />} onClick={() => videoInputRef.current?.click()}>
-                  Ajouter une vidéo
+                  {t('add_video')}
                 </Button>
                 {videoFileName && <span style={{ color: 'var(--text-muted)' }}>{videoFileName}</span>}
               </div>
@@ -695,7 +697,7 @@ export default function TrainingTab() {
                 icon={<Sparkles size={18} />}
                 style={{ minWidth: '220px' }}
               >
-                Générer mon défi
+                {t('generate_my_challenge')}
               </Button>
             </div>
           </div>
@@ -713,10 +715,10 @@ export default function TrainingTab() {
       {/* --- NÉGOCIATION SALARIALE --- */}
       <div id="salary_negotiation_section">
         <DashboardCard
-          title="Négociation salariale"
+          title={t('salary_negotiation_title')}
           icon={<DollarSign size={24} />}
           featureId="salary_negotiation"
-          feedbackQuestion="Cet entraînement à la négociation salariale vous est-il utile ?"
+          feedbackQuestion={t('salary_negotiation_feedback')}
         >
           <SalaryNegotiator />
         </DashboardCard>
@@ -724,7 +726,7 @@ export default function TrainingTab() {
 
       {/* --- SESSION INTERACTIVE EN COURS --- */}
       {activeQuestion && (
-        <DashboardCard title="🎯 Votre Défi" icon={<Target size={24} />}>
+        <DashboardCard title={t('your_challenge_title')} icon={<Target size={24} />}>
           <div style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
             <h3 style={{ marginTop: 0, color: 'var(--text-main)' }}>{activeQuestion.question}</h3>
             
@@ -745,7 +747,7 @@ export default function TrainingTab() {
           </div>
 
           <textarea 
-            value={userAnswer} onChange={(e) => setUserAnswer(e.target.value)} placeholder="Rédigez votre réponse ici..."
+            value={userAnswer} onChange={(e) => setUserAnswer(e.target.value)} placeholder={t('write_answer_placeholder')}
             style={{ width: '100%', minHeight: '120px', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-main)', marginBottom: '1rem' }}
           />
 

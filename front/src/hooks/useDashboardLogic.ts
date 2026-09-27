@@ -326,7 +326,7 @@ export function useDashboardLogic() {
   const [error, setError] = useState<string | null>(null);
 
   const [isPilotLoading, setIsPilotLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'cockpit' | 'overview' | 'profile' | 'cv' | 'interview' | 'market' | 'career' | 'actions' | 'training' | 'posture' | 'debrief'>('overview');
+  const [activeTab, setActiveTab] = useState<'cockpit' | 'overview' | 'profile' | 'cv' | 'interview' | 'market' | 'career' | 'actions' | 'training' | 'posture' | 'debrief' | 'resources'>('overview');
   const [pilotData, setPilotData] = useState<any | null>(() => {
     try {
       const raw = localStorage.getItem("pilotData");

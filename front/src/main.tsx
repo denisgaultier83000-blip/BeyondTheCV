@@ -9,6 +9,8 @@ import ErrorBoundary from "./components/ErrorBoundary";
 // Lazy-load secondary routes so the landing bundle stays small.
 const Payment = lazy(() => import("./pages/Payment"));
 const ResearchReport = lazy(() => import("./pages/ResearchReport"));
+const ResourcesTab = lazy(() => import("./components/ResourcesTab").then(m => ({ default: m.ResourcesTab })));
+const ArticlePage = lazy(() => import("./components/ArticlePage").then(m => ({ default: m.ArticlePage })));
 const AdminLayout = lazy(() => import("./components/AdminLayout"));
 const AdminFeedbacks = lazy(() => import("./components/AdminFeedbacks"));
 const AdminUsers = lazy(() => import("./components/AdminUsers"));
@@ -50,6 +52,10 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <Route path="/report" element={
             <ProtectedRoute adminRoute={false}><ResearchReport /></ProtectedRoute>
           } />
+
+          {/* Routes publiques du centre de ressources */}
+          <Route path="/ressources" element={<ResourcesTab />} />
+          <Route path="/ressources/:slug" element={<ArticlePage />} />
 
           {/* Section Administrateur avec Layout dédié */}
           <Route 

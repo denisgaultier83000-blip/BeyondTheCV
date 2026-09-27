@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ArrowRight,
   BarChart3,
@@ -23,6 +24,13 @@ export const LANDING_SEO = {
   description: 'Préparez vos entretiens d’embauche avec BeyondTheCV : analyse du poste, pitch personnalisé et simulations pour vous entraîner avec l’IA.',
 };
 
+function getLandingSeo(t: (key: string) => string) {
+  return {
+    title: t('landing.seo.title'),
+    description: t('landing.seo.description'),
+  };
+}
+
 interface LandingPageProps {
   onStart: () => void;
   onLoginRedirect: () => void;
@@ -40,12 +48,14 @@ export function LandingPage({
   onShowLegal,
   darkMode,
 }: LandingPageProps) {
+  const { t, i18n } = useTranslation();
   const pricingRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const previousTitle = document.title;
     const cleanups: Array<() => void> = [];
-    document.title = LANDING_SEO.title;
+    const seo = getLandingSeo(t);
+    document.title = seo.title;
 
     // Restore the previous head when leaving the landing page (SPA navigation).
     const setHead = (selector: string, tag: string, attributes: Record<string, string>) => {
@@ -67,18 +77,18 @@ export function LandingPage({
     };
     const pageUrl = new URL(window.location.pathname, window.location.origin).href;
     const imageUrl = new URL('/dashboard-preview.png', window.location.origin).href;
-    meta('description', LANDING_SEO.description);
+    meta('description', seo.description);
     meta('og:type', 'website', 'property');
     meta('og:site_name', 'BeyondTheCV', 'property');
-    meta('og:locale', 'fr_FR', 'property');
-    meta('og:title', LANDING_SEO.title, 'property');
-    meta('og:description', LANDING_SEO.description, 'property');
+    meta('og:locale', i18n.language === 'en' ? 'en_US' : i18n.language === 'de' ? 'de_DE' : i18n.language === 'es' ? 'es_ES' : i18n.language === 'it' ? 'it_IT' : 'fr_FR', 'property');
+    meta('og:title', seo.title, 'property');
+    meta('og:description', seo.description, 'property');
     meta('og:url', pageUrl, 'property');
     meta('og:image', imageUrl, 'property');
-    meta('og:image:alt', 'Tableau de bord de préparation aux entretiens BeyondTheCV', 'property');
+    meta('og:image:alt', t('landing.seo.og_image_alt'), 'property');
     meta('twitter:card', 'summary_large_image');
-    meta('twitter:title', LANDING_SEO.title);
-    meta('twitter:description', LANDING_SEO.description);
+    meta('twitter:title', seo.title);
+    meta('twitter:description', seo.description);
     meta('twitter:image', imageUrl);
 
     // Never force indexation or invent the production domain on preview hosts.
@@ -94,47 +104,99 @@ export function LandingPage({
       document.title = previousTitle;
       cleanups.reverse().forEach(cleanup => cleanup());
     };
-  }, []);
+  }, [t, i18n.language]);
 
   const scrollToPricing = () => {
     pricingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
+  const faq = Array.from({ length: 10 }, (_, i) => ({
+    q: t(`landing.faq.items.${i}.q`),
+    a: t(`landing.faq.items.${i}.a`),
+  }));
 
-  const features = [
+  const featureIcons = [
+    <FileSearch size={23} />,
+    <Building2 size={23} />,
+    <MessageSquareText size={23} />,
+    <Mic size={23} />,
+    <TrendingUp size={23} />,
+    <RefreshCw size={23} />,
+  ];
+  const features = featureIcons.map((icon, i) => ({
+    icon,
+    title: t(`landing.features.list.${i}.title`),
+    text: t(`landing.features.list.${i}.text`),
+  }));
+
+  const resourceClusters = [
     {
-      icon: <FileSearch size={23} />,
-      title: 'Analyser l’offre d’emploi',
-      text: 'Comprenez les attentes explicites, les besoins cachés et les difficultés que le recrutement doit résoudre.',
+      title: t('landing.resources.cluster_prepare', 'Préparer son entretien'),
+      icon: <Target size={20} />,
+      links: [
+        t('landing.resources.prepare_full', 'Préparer un entretien de A à Z'),
+        t('landing.resources.prepare_offer', "Analyser une offre d'emploi"),
+        t('landing.resources.prepare_company', "Comprendre l'entreprise en 15 minutes"),
+        t('landing.resources.prepare_swot', 'Identifier ses forces et faiblesses'),
+        t('landing.resources.prepare_lastmin', 'Préparation de dernière heure'),
+      ],
     },
     {
-      icon: <Building2 size={23} />,
-      title: 'Comprendre l’entreprise',
-      text: 'Analysez sa stratégie, son marché, ses actualités, ses enjeux et les éléments à connaître avant l’entretien.',
+      title: t('landing.resources.cluster_recruiter', 'Comprendre le recruteur'),
+      icon: <Building2 size={20} />,
+      links: [
+        t('landing.resources.recruiter_wants', 'Ce que le recruteur cherche vraiment'),
+        t('landing.resources.recruiter_redflags', "Les signaux d'alerte à éviter"),
+        t('landing.resources.recruiter_ats', 'Passer le filtre ATS'),
+        t('landing.resources.recruiter_feedback', "Décrypter un retour d'entretien"),
+      ],
     },
     {
-      icon: <MessageSquareText size={23} />,
-      title: 'Préparer votre pitch d’entretien',
-      text: 'Préparez vos pitchs, vos arguments clés et vos réponses aux objections à partir de votre profil réel.',
+      title: t('landing.resources.cluster_pitch', 'Construire son pitch'),
+      icon: <MessageSquareText size={20} />,
+      links: [
+        t('landing.resources.pitch_pillar', "L'art du pitch d'entretien"),
+        t('landing.resources.pitch_30s', 'Le pitch 30 secondes'),
+        t('landing.resources.pitch_executive', 'Pitch cadre et dirigeant'),
+        t('landing.resources.pitch_tellme', 'Répondre à « Parlez-moi de vous »'),
+        t('landing.resources.pitch_mistakes', 'Erreurs fréquentes de pitch'),
+      ],
     },
     {
-      icon: <Mic size={23} />,
-      title: 'Simuler un entretien d’embauche',
-      text: 'Répondez aux questions, mises en situation et simulations, puis améliorez vos réponses après analyse.',
+      title: t('landing.resources.cluster_questions', 'Répondre aux questions'),
+      icon: <Mic size={20} />,
+      links: [
+        t('landing.resources.questions_pillar', "Les questions d'entretien les plus courantes"),
+        t('landing.resources.questions_trick', 'Questions pièges et comment les gérer'),
+        t('landing.resources.questions_manager', 'Questions pour managers et cadres'),
+        t('landing.resources.questions_ask', 'Questions à poser au recruteur'),
+        t('landing.resources.questions_difficult', 'Répondre aux questions difficiles'),
+      ],
     },
     {
-      icon: <TrendingUp size={23} />,
-      title: 'Suivre votre progression',
-      text: 'Votre profil stratégique évolue avec vos entraînements et fait ressortir vos forces, vos écarts et vos priorités.',
+      title: t('landing.resources.cluster_salary', 'Négocier son salaire'),
+      icon: <TrendingUp size={20} />,
+      links: [
+        t('landing.resources.salary_benchmark', 'Se situer sur le marché'),
+        t('landing.resources.salary_negotiate', 'Négocier une augmentation'),
+        t('landing.resources.salary_package', 'Tout le package : variable, avantages, télétravail'),
+        t('landing.resources.salary_counteroffer', 'Gérer une contre-proposition'),
+      ],
     },
     {
-      icon: <RefreshCw size={23} />,
-      title: 'Capitaliser après l’entretien',
-      text: 'Débriefez les questions posées, les signaux reçus et préparez le prochain échange sans repartir de zéro.',
+      title: t('landing.resources.cluster_leadership', 'Manager / Cadre / Dirigeant'),
+      icon: <ShieldCheck size={20} />,
+      links: [
+        t('landing.resources.leadership_role', 'Vendre une expérience de management'),
+        t('landing.resources.leadership_vision', 'Présenter sa vision'),
+        t('landing.resources.leadership_transfo', 'Parler transformation et changement'),
+        t('landing.resources.leadership_comex', 'Convaincre un COMEX / CODIR'),
+        t('landing.resources.leadership_failure', 'Raconter un projet qui a échoué'),
+      ],
     },
   ];
 
   return (
-    <div className="lp-container" lang="fr">
+    <div className="lp-container" lang={i18n.language ?? 'fr'}>
       <style>{`
         .lp-container {
           font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -1150,6 +1212,95 @@ export function LandingPage({
           cursor: pointer;
         }
 
+        .lp-resources-section {
+          background:
+            radial-gradient(circle at 10% 90%, rgba(59,130,246,.08), transparent 28%),
+            radial-gradient(circle at 90% 10%, rgba(99,102,241,.08), transparent 26%),
+            var(--bg-body);
+        }
+
+        .lp-resources-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 1.3rem;
+        }
+
+        .lp-resource-cluster {
+          border: 1px solid var(--border-color);
+          background: var(--bg-card);
+          border-radius: 1rem;
+          padding: 1.45rem;
+          transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+        }
+
+        .lp-resource-cluster:hover {
+          transform: translateY(-3px);
+          border-color: var(--primary);
+          box-shadow: 0 18px 40px -28px rgba(59,130,246,.35);
+        }
+
+        .lp-resource-cluster-header {
+          display: flex;
+          align-items: center;
+          gap: .7rem;
+          margin-bottom: 1.1rem;
+        }
+
+        .lp-resource-cluster-icon {
+          width: 38px;
+          height: 38px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: .7rem;
+          background: rgba(59,130,246,.10);
+          color: var(--primary);
+        }
+
+        .lp-resource-cluster h3 {
+          margin: 0;
+          font-size: 1.05rem;
+          line-height: 1.25;
+        }
+
+        .lp-resource-links {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          display: grid;
+          gap: .35rem;
+        }
+
+        .lp-resource-link {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: .7rem;
+          padding: .55rem .65rem;
+          border-radius: .55rem;
+          color: var(--text-main);
+          text-decoration: none;
+          font-size: .9rem;
+          transition: background .15s ease, color .15s ease;
+        }
+
+        .lp-resource-link:hover {
+          background: rgba(59,130,246,.08);
+          color: var(--primary);
+        }
+
+        .lp-resource-soon {
+          flex: 0 0 auto;
+          font-size: .68rem;
+          font-weight: 780;
+          text-transform: uppercase;
+          letter-spacing: .04em;
+          padding: .2rem .45rem;
+          border-radius: 999px;
+          background: rgba(245,158,11,.12);
+          color: #d97706;
+        }
+
         @media (max-width: 980px) {
           .lp-hero-grid,
           .lp-problem-grid,
@@ -1161,6 +1312,7 @@ export function LandingPage({
           .lp-showcase.reverse .lp-showcase-copy,
           .lp-showcase.reverse .lp-showcase-visual { order: initial; }
           .lp-feature-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+          .lp-resources-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
           .lp-floating-card { left: 1rem; }
           .lp-trust-items { grid-template-columns: repeat(2, minmax(0,1fr)); }
         }
@@ -1170,6 +1322,7 @@ export function LandingPage({
           .lp-hero { padding: 5rem 0 3.7rem; }
           .lp-section { padding: 4.3rem 0; }
           .lp-feature-grid,
+          .lp-resources-grid,
           .lp-compare-grid,
           .lp-included-grid,
           .lp-recharge-grid,
@@ -1217,39 +1370,37 @@ export function LandingPage({
         <div className="lp-shell lp-hero-grid">
           <div>
             <div className="lp-eyebrow">
-              <Sparkles size={16} /> Préparation stratégique et suivi de progression
+              <Sparkles size={16} /> {t('landing.hero.eyebrow')}
             </div>
 
             <h1 id="lp-title" className="lp-hero-title">
-              Préparez vos entretiens d’embauche avec l’IA.
+              {t('landing.hero.title')}
             </h1>
 
             <p className="lp-hero-subtitle">
-              Votre coach entretien IA BeyondTheCV relie votre CV, l’entreprise, le poste et vos entraînements
-              pour vous aider à <span className="lp-hero-strong">comprendre, convaincre,
-              vous entraîner et progresser</span> jusqu’à l’entretien.
+              {t('landing.hero.subtitle')}
             </p>
 
             <div className="lp-actions">
               <button onClick={onStart} className="lp-button-primary">
-                Préparer ma prochaine candidature <ArrowRight size={18} />
+                {t('landing.hero.cta_primary')} <ArrowRight size={18} />
               </button>
               <button onClick={scrollToPricing} className="lp-button-secondary">
-                Voir l’offre à 29,90 €
+                {t('landing.hero.cta_secondary')}
               </button>
             </div>
 
             <div className="lp-reassurance">
-              <span><CheckCircle2 size={15} /> 5 candidatures chaque mois</span>
-              <span><CheckCircle2 size={15} /> 150 entraînements analysés</span>
-              <span><ShieldCheck size={15} /> Sans engagement</span>
+              <span><CheckCircle2 size={15} /> {t('landing.hero.reassurance_1')}</span>
+              <span><CheckCircle2 size={15} /> {t('landing.hero.reassurance_2')}</span>
+              <span><ShieldCheck size={15} /> {t('landing.hero.reassurance_3')}</span>
             </div>
           </div>
 
           <div className="lp-product-frame">
             <ResponsiveImage
               src={darkMode ? '/dashboard-preview-night.png' : '/dashboard-preview.png'}
-              alt="Tableau de bord BeyondTheCV : profil candidat, offres et préparation aux entretiens"
+              alt={t('landing.hero.frame_alt')}
               widths={[800, 1200]}
               sizes="(max-width: 980px) 100vw, 55vw"
               width={1200}
@@ -1257,8 +1408,8 @@ export function LandingPage({
               loading="eager"
             />
             <div className="lp-floating-card">
-              <strong>Votre préparation reste structurée</strong>
-              <span>Profil, entreprises, postes, entraînements et débriefs réunis dans un même espace.</span>
+              <strong>{t('landing.hero.floating_title')}</strong>
+              <span>{t('landing.hero.floating_text')}</span>
             </div>
           </div>
         </div>
@@ -1266,10 +1417,10 @@ export function LandingPage({
 
       <div className="lp-trust-strip">
         <div className="lp-shell lp-trust-items">
-          <div>Profil réutilisable</div>
-          <div>Analyses contextualisées</div>
-          <div>Suivi de progression</div>
-          <div>Débrief après entretien</div>
+          <div>{t('landing.trust.item_1')}</div>
+          <div>{t('landing.trust.item_2')}</div>
+          <div>{t('landing.trust.item_3')}</div>
+          <div>{t('landing.trust.item_4')}</div>
         </div>
       </div>
 
@@ -1277,20 +1428,20 @@ export function LandingPage({
       <section className="lp-section">
         <div className="lp-shell lp-problem-grid">
           <div>
-            <div className="lp-section-kicker">Le problème</div>
-            <h2>Un bon CV vous ouvre la porte. Il ne répond pas à votre place.</h2>
+            <div className="lp-section-kicker">{t('landing.problem.kicker')}</div>
+            <h2>{t('landing.problem.title')}</h2>
             <div className="lp-problem-copy">
               <div className="lp-problem-item">
-                <strong>Votre parcours est riche, mais difficile à synthétiser.</strong>
-                <span>Vous risquez de réciter votre CV au lieu de défendre une proposition de valeur claire.</span>
+                <strong>{t('landing.problem.item1_title')}</strong>
+                <span>{t('landing.problem.item1_text')}</span>
               </div>
               <div className="lp-problem-item">
-                <strong>Chaque poste change les attentes.</strong>
-                <span>Un argument pertinent chez Thales ne sera pas forcément le bon chez Naval Group ou MBDA.</span>
+                <strong>{t('landing.problem.item2_title')}</strong>
+                <span>{t('landing.problem.item2_text')}</span>
               </div>
               <div className="lp-problem-item">
-                <strong>Vous savez rarement quoi travailler en priorité.</strong>
-                <span>Sans suivi, vous répétez parfois les mêmes erreurs d’un entretien à l’autre.</span>
+                <strong>{t('landing.problem.item3_title')}</strong>
+                <span>{t('landing.problem.item3_text')}</span>
               </div>
             </div>
           </div>
@@ -1298,30 +1449,30 @@ export function LandingPage({
           <div className="lp-solution-panel">
             <div className="lp-solution-title">
               <Target size={21} color="var(--primary)" />
-              BeyondTheCV transforme la recherche d’emploi en préparation structurée
+              {t('landing.solution.title')}
             </div>
 
             <div className="lp-step">
               <div className="lp-step-number">1</div>
               <div>
-                <strong>Votre profil est construit une fois</strong>
-                <span>CV, expériences, compétences, réalisations, préférences, salaire et pitch général.</span>
+                <strong>{t('landing.solution.step1_title')}</strong>
+                <span>{t('landing.solution.step1_text')}</span>
               </div>
             </div>
 
             <div className="lp-step">
               <div className="lp-step-number">2</div>
               <div>
-                <strong>Chaque candidature reçoit son contexte</strong>
-                <span>Entreprise, offre, enjeux, adéquation, objections, questions et plan de préparation.</span>
+                <strong>{t('landing.solution.step2_title')}</strong>
+                <span>{t('landing.solution.step2_text')}</span>
               </div>
             </div>
 
             <div className="lp-step">
               <div className="lp-step-number">3</div>
               <div>
-                <strong>Vos entraînements font évoluer votre profil</strong>
-                <span>L’application détecte les points solides, les axes à renforcer et les trois priorités du moment.</span>
+                <strong>{t('landing.solution.step3_title')}</strong>
+                <span>{t('landing.solution.step3_text')}</span>
               </div>
             </div>
           </div>
@@ -1332,11 +1483,10 @@ export function LandingPage({
       <section className="lp-section soft">
         <div className="lp-shell">
           <div className="lp-section-header center">
-            <div className="lp-section-kicker">Une méthode complète</div>
-            <h2>Des outils pour préparer chaque étape de l’entretien</h2>
+            <div className="lp-section-kicker">{t('landing.features.kicker')}</div>
+            <h2>{t('landing.features.title')}</h2>
             <p>
-              BeyondTheCV n’empile pas des outils. Chaque module utilise le même profil
-              et le même contexte de candidature pour maintenir une préparation cohérente.
+              {t('landing.features.intro')}
             </p>
           </div>
 
@@ -1357,73 +1507,30 @@ export function LandingPage({
       <section className="lp-section">
         <div className="lp-shell">
           <div className="lp-section-header center">
-            <div className="lp-section-kicker">Une méthode, pas un catalogue</div>
-            <h2>Comment préparer votre entretien en cinq étapes</h2>
+            <div className="lp-section-kicker">{t('landing.method.kicker')}</div>
+            <h2>{t('landing.method.title')}</h2>
             <p>
-              Vous avancez étape par étape, en sachant toujours ce que vous devez comprendre,
-              préparer, entraîner et améliorer.
+              {t('landing.method.intro')}
             </p>
           </div>
 
           <div className="lp-method-grid">
-            <div className="lp-method-card accent-1">
-              <div>
-                <h3>Comprendre le poste</h3>
-                <ul>
-                  <li>Décoder l’annonce</li>
-                  <li>Analyser ses écarts</li>
-                  <li>Se voir comme un recruteur</li>
-                </ul>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div className={`lp-method-card accent-${i + 1}`} key={i}>
+                <div>
+                  <h3>{t(`landing.method.cards.${i}.title`)}</h3>
+                  <ul>
+                    {[0, 1, 2].map((j) => (
+                      <li key={j}>{t(`landing.method.cards.${i}.items.${j}`)}</li>
+                    ))}
+                  </ul>
+                </div>
               </div>
-            </div>
-
-            <div className="lp-method-card accent-2">
-              <div>
-                <h3>Comprendre l’entreprise</h3>
-                <ul>
-                  <li>Comprendre l’entreprise</li>
-                  <li>Comprendre le marché</li>
-                  <li>Enjeux &amp; culture</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="lp-method-card accent-3">
-              <div>
-                <h3>Construire le discours</h3>
-                <ul>
-                  <li>Préparer son pitch</li>
-                  <li>Arguments clés</li>
-                  <li>Répondre à ses points faibles</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="lp-method-card accent-4">
-              <div>
-                <h3>S’entraîner</h3>
-                <ul>
-                  <li>Questions probables</li>
-                  <li>Mises en situation</li>
-                  <li>Entraînement oral</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="lp-method-card accent-5">
-              <div>
-                <h3>Progresser</h3>
-                <ul>
-                  <li>Profil stratégique</li>
-                  <li>Débrief &amp; suivi</li>
-                  <li>Recommandations</li>
-                </ul>
-              </div>
-            </div>
+            ))}
           </div>
 
           <div className="lp-method-footer">
-            BTCV n’aide pas seulement à écrire. Il organise la préparation et fait travailler le candidat.
+            {t('landing.method.footer')}
           </div>
         </div>
       </section>
@@ -1433,11 +1540,10 @@ export function LandingPage({
       <section className="lp-section soft">
         <div className="lp-shell">
           <div className="lp-section-header center">
-            <div className="lp-section-kicker">Mesurez vos progrès</div>
-            <h2>Mesurez vos progrès après chaque simulation d’entretien</h2>
+            <div className="lp-section-kicker">{t('landing.progress.kicker')}</div>
+            <h2>{t('landing.progress.title')}</h2>
             <p>
-              BeyondTheCV consolide vos entraînements, suit votre progression et
-              met en évidence les thématiques à renforcer avant le prochain entretien.
+              {t('landing.progress.intro')}
             </p>
           </div>
 
@@ -1445,7 +1551,7 @@ export function LandingPage({
             <div className="lp-eval-frame">
               <ResponsiveImage
                 src={darkMode ? '/evaluation-preview-night.png' : '/evaluation-preview.png'}
-                alt="Suivi des entraînements et de la progression dans BeyondTheCV"
+                alt={t('landing.progress.image_alt')}
                 widths={[600, 885]}
                 sizes="(max-width: 980px) 100vw, 55vw"
                 width={885}
@@ -1459,24 +1565,24 @@ export function LandingPage({
               <div className="lp-eval-point">
                 <BarChart3 size={19} />
                 <div>
-                  <strong>Progression globale</strong>
-                  <span>Visualisez l’évolution de vos performances au fil des entraînements.</span>
+                  <strong>{t('landing.progress.point1_title')}</strong>
+                  <span>{t('landing.progress.point1_text')}</span>
                 </div>
               </div>
 
               <div className="lp-eval-point">
                 <Target size={19} />
                 <div>
-                  <strong>Détail par thématique</strong>
-                  <span>Repérez rapidement les domaines solides et ceux qui demandent encore du travail.</span>
+                  <strong>{t('landing.progress.point2_title')}</strong>
+                  <span>{t('landing.progress.point2_text')}</span>
                 </div>
               </div>
 
               <div className="lp-eval-point">
                 <Sparkles size={19} />
                 <div>
-                  <strong>Conseils personnalisés</strong>
-                  <span>Le coach vous oriente vers les prochains exercices les plus utiles à votre préparation.</span>
+                  <strong>{t('landing.progress.point3_title')}</strong>
+                  <span>{t('landing.progress.point3_text')}</span>
                 </div>
               </div>
             </div>
@@ -1488,80 +1594,79 @@ export function LandingPage({
       <section className="lp-section">
         <div className="lp-shell lp-showcase">
           <div className="lp-showcase-copy">
-            <div className="lp-section-kicker">Le coach qui apprend avec vous</div>
-            <h2>Votre profil stratégique évolue à mesure que vous vous entraînez.</h2>
+            <div className="lp-section-kicker">{t('landing.profile.kicker')}</div>
+            <h2>{t('landing.profile.title')}</h2>
             <p>
-              Comme un coach suit vos entraînements, BeyondTheCV observe les éléments
-              réellement travaillés et fait évoluer ses recommandations.
+              {t('landing.profile.intro')}
             </p>
 
             <div className="lp-bullet-list">
               <div className="lp-bullet">
                 <CheckCircle2 size={18} />
-                <span>Identifie vos forces à exploiter.</span>
+                <span>{t('landing.profile.bullet1')}</span>
               </div>
               <div className="lp-bullet">
                 <CheckCircle2 size={18} />
-                <span>Repère les domaines qui restent fragiles ou peu documentés.</span>
+                <span>{t('landing.profile.bullet2')}</span>
               </div>
               <div className="lp-bullet">
                 <CheckCircle2 size={18} />
-                <span>Fait ressortir trois priorités concrètes plutôt qu’une liste interminable.</span>
+                <span>{t('landing.profile.bullet3')}</span>
               </div>
               <div className="lp-bullet">
                 <CheckCircle2 size={18} />
-                <span>Vous renvoie directement vers l’exercice le plus utile à ce moment-là.</span>
+                <span>{t('landing.profile.bullet4')}</span>
               </div>
             </div>
           </div>
 
-          <div className="lp-showcase-visual" aria-label="Aperçu du profil stratégique évolutif">
+          <div className="lp-showcase-visual" aria-label={t('landing.profile.visual_aria')}>
             <div className="lp-profile-top">
               <div className="lp-profile-stat">
-                <span>Niveau actuel</span>
-                <strong>En progression</strong>
+                <span>{t('landing.profile.stat1_label')}</span>
+                <strong>{t('landing.profile.stat1_value')}</strong>
               </div>
               <div className="lp-profile-stat">
-                <span>Lecture</span>
-                <strong>Continue</strong>
+                <span>{t('landing.profile.stat2_label')}</span>
+                <strong>{t('landing.profile.stat2_value')}</strong>
               </div>
               <div className="lp-profile-stat">
-                <span>Mise à jour</span>
-                <strong>Dynamique</strong>
+                <span>{t('landing.profile.stat3_label')}</span>
+                <strong>{t('landing.profile.stat3_value')}</strong>
               </div>
             </div>
 
             <div className="lp-profile-bars">
               <div className="lp-profile-row">
-                <span>Clarté du discours</span>
+                <span>{t('landing.profile.bar1_label')}</span>
                 <div className="lp-progress"><span style={{ width: '82%' }} /></div>
                 <strong>82</strong>
               </div>
               <div className="lp-profile-row">
-                <span>Impact et preuves</span>
+                <span>{t('landing.profile.bar2_label')}</span>
                 <div className="lp-progress"><span style={{ width: '66%' }} /></div>
                 <strong>66</strong>
               </div>
               <div className="lp-profile-row">
-                <span>Adéquation au poste</span>
+                <span>{t('landing.profile.bar3_label')}</span>
                 <div className="lp-progress"><span style={{ width: '81%' }} /></div>
                 <strong>81</strong>
               </div>
               <div className="lp-profile-row">
-                <span>Gestion objections</span>
+                <span>{t('landing.profile.bar4_label')}</span>
                 <div className="lp-progress"><span style={{ width: '82%' }} /></div>
                 <strong>82</strong>
               </div>
               <div className="lp-profile-row">
-                <span>Posture / leadership</span>
+                <span>{t('landing.profile.bar5_label')}</span>
                 <div className="lp-progress"><span style={{ width: '53%' }} /></div>
                 <strong>53</strong>
               </div>
             </div>
 
             <div className="lp-priority-card">
-              <small>Priorité actuelle</small>
-              <strong>Renforcer votre posture sur les situations managériales</strong>
+              <small>{t('landing.profile.priority_label')}</small>
+              <strong>{t('landing.profile.priority_value')}</strong>
             </div>
           </div>
         </div>
@@ -1571,32 +1676,29 @@ export function LandingPage({
       <section className="lp-section soft">
         <div className="lp-shell">
           <div className="lp-section-header center">
-            <div className="lp-section-kicker">Plusieurs candidatures, sans repartir de zéro</div>
-            <h2>Votre profil reste. Chaque candidature garde sa propre préparation.</h2>
+            <div className="lp-section-kicker">{t('landing.multi.kicker')}</div>
+            <h2>{t('landing.multi.title')}</h2>
             <p>
-              Vous pouvez viser plusieurs entreprises et plusieurs postes sans écraser
-              les analyses précédentes. Votre profil candidat est réutilisé, tandis que
-              chaque candidature conserve son contexte, ses entraînements, ses entretiens
-              et ses débriefs.
+              {t('landing.multi.intro')}
             </p>
           </div>
 
           <div className="lp-outcomes">
             <div className="lp-outcome">
               <CheckCircle2 size={20} />
-              <span>Un profil candidat commun à toute votre recherche.</span>
+              <span>{t('landing.multi.outcome1')}</span>
             </div>
             <div className="lp-outcome">
               <CheckCircle2 size={20} />
-              <span>Une analyse dédiée à chaque entreprise ciblée.</span>
+              <span>{t('landing.multi.outcome2')}</span>
             </div>
             <div className="lp-outcome">
               <CheckCircle2 size={20} />
-              <span>Une préparation spécifique pour chaque offre.</span>
+              <span>{t('landing.multi.outcome3')}</span>
             </div>
             <div className="lp-outcome">
               <CheckCircle2 size={20} />
-              <span>Un historique conservé pour suivre chaque candidature dans le temps.</span>
+              <span>{t('landing.multi.outcome4')}</span>
             </div>
           </div>
         </div>
@@ -1606,32 +1708,31 @@ export function LandingPage({
       <section className="lp-section">
         <div className="lp-shell">
           <div className="lp-section-header center">
-            <div className="lp-section-kicker">Plus qu’un chatbot</div>
-            <h2>Pourquoi ne pas simplement utiliser ChatGPT ou Claude ?</h2>
+            <div className="lp-section-kicker">{t('landing.ai_compare.kicker')}</div>
+            <h2>{t('landing.ai_compare.title')}</h2>
             <p>
-              Une IA généraliste peut répondre à une question. BeyondTheCV organise
-              une préparation complète, persistante et centrée sur chaque candidature.
+              {t('landing.ai_compare.intro')}
             </p>
           </div>
 
           <div className="lp-compare-grid">
             <div className="lp-compare-card">
-              <h3>IA généraliste</h3>
+              <h3>{t('landing.ai_compare.general_title')}</h3>
               <div className="lp-checklist">
-                <div className="lp-check"><CheckCircle2 size={18} /><span>Répond à un prompt ponctuel.</span></div>
-                <div className="lp-check"><CheckCircle2 size={18} /><span>Vous laisse organiser seul les informations et l’historique.</span></div>
-                <div className="lp-check"><CheckCircle2 size={18} /><span>Ne structure pas naturellement plusieurs candidatures.</span></div>
-                <div className="lp-check"><CheckCircle2 size={18} /><span>Ne transforme pas automatiquement vos résultats en plan de progression.</span></div>
+                <div className="lp-check"><CheckCircle2 size={18} /><span>{t('landing.ai_compare.general_item1')}</span></div>
+                <div className="lp-check"><CheckCircle2 size={18} /><span>{t('landing.ai_compare.general_item2')}</span></div>
+                <div className="lp-check"><CheckCircle2 size={18} /><span>{t('landing.ai_compare.general_item3')}</span></div>
+                <div className="lp-check"><CheckCircle2 size={18} /><span>{t('landing.ai_compare.general_item4')}</span></div>
               </div>
             </div>
 
             <div className="lp-compare-card highlight">
-              <h3>BeyondTheCV</h3>
+              <h3>{t('landing.ai_compare.btcv_title')}</h3>
               <div className="lp-checklist">
-                <div className="lp-check"><CheckCircle2 size={18} /><span>Relie profil, entreprise, offre et entraînements.</span></div>
-                <div className="lp-check"><CheckCircle2 size={18} /><span>Centralise vos candidatures et leur historique.</span></div>
-                <div className="lp-check"><CheckCircle2 size={18} /><span>Évalue vos réponses dans le contexte du poste ciblé.</span></div>
-                <div className="lp-check"><CheckCircle2 size={18} /><span>Met à jour votre profil stratégique et vos priorités.</span></div>
+                <div className="lp-check"><CheckCircle2 size={18} /><span>{t('landing.ai_compare.btcv_item1')}</span></div>
+                <div className="lp-check"><CheckCircle2 size={18} /><span>{t('landing.ai_compare.btcv_item2')}</span></div>
+                <div className="lp-check"><CheckCircle2 size={18} /><span>{t('landing.ai_compare.btcv_item3')}</span></div>
+                <div className="lp-check"><CheckCircle2 size={18} /><span>{t('landing.ai_compare.btcv_item4')}</span></div>
               </div>
             </div>
           </div>
@@ -1645,7 +1746,7 @@ export function LandingPage({
             <div className="lp-founder-photo-wrap">
               <ResponsiveImage
                 src="/denis-gaultier.png"
-                alt="Denis Gaultier, fondateur de BeyondTheCV"
+                alt={t('landing.founder.image_alt')}
                 className="lp-founder-photo"
                 widths={[132, 186]}
                 sizes="132px"
@@ -1657,33 +1758,29 @@ export function LandingPage({
             </div>
 
             <div className="lp-founder-content">
-              <div className="lp-section-kicker">Pourquoi BeyondTheCV a été créé</div>
-              <h2>Denis Gaultier</h2>
+              <div className="lp-section-kicker">{t('landing.founder.kicker')}</div>
+              <h2>{t('landing.founder.name')}</h2>
               <p className="lp-founder-role">
-                Fondateur de BeyondTheCV — TacticEdge
+                {t('landing.founder.role')}
               </p>
 
               <p>
-                Plus de vingt ans d’expérience dans des environnements exigeants, avec des responsabilités
-                de management, d’évaluation et de recrutement de profils à haut niveau de responsabilité,
-                notamment au sein d’organisations opérationnelles et de sécurité nationale.
+                {t('landing.founder.para1')}
               </p>
 
               <p>
-                BeyondTheCV est né d’un constat simple : on peut avoir un excellent parcours et pourtant
-                mal défendre sa valeur en entretien. La plateforme a donc été conçue pour transformer
-                l’expérience du candidat en une préparation structurée, progressive et directement actionnable.
+                {t('landing.founder.para2')}
               </p>
 
               <div className="lp-founder-tags">
-                <span className="lp-founder-tag"><CheckCircle2 size={15} />Management</span>
-                <span className="lp-founder-tag"><CheckCircle2 size={15} />Évaluation et recrutement</span>
-                <span className="lp-founder-tag"><CheckCircle2 size={15} />Cyber et environnements complexes</span>
-                <span className="lp-founder-tag"><CheckCircle2 size={15} />Préparation à forte exigence</span>
+                <span className="lp-founder-tag"><CheckCircle2 size={15} />{t('landing.founder.tag1')}</span>
+                <span className="lp-founder-tag"><CheckCircle2 size={15} />{t('landing.founder.tag2')}</span>
+                <span className="lp-founder-tag"><CheckCircle2 size={15} />{t('landing.founder.tag3')}</span>
+                <span className="lp-founder-tag"><CheckCircle2 size={15} />{t('landing.founder.tag4')}</span>
               </div>
 
               <p className="lp-founder-quote">
-                Un bon parcours ne suffit pas. Il faut savoir le défendre.
+                {t('landing.founder.quote')}
               </p>
             </div>
           </div>
@@ -1694,11 +1791,10 @@ export function LandingPage({
       <section id="tarifs" ref={pricingRef} className="lp-section soft">
         <div className="lp-shell">
           <div className="lp-section-header center">
-            <div className="lp-section-kicker">Une offre simple</div>
-            <h2>Votre préparation aux entretiens dès 29,90 € par mois</h2>
+            <div className="lp-section-kicker">{t('landing.pricing.kicker')}</div>
+            <h2>{t('landing.pricing.title')}</h2>
             <p>
-              Pas de pack amputé, pas de choix entre plusieurs niveaux de préparation.
-              Votre abonnement vous donne accès à l’ensemble de BeyondTheCV.
+              {t('landing.pricing.intro')}
             </p>
           </div>
 
@@ -1706,98 +1802,82 @@ export function LandingPage({
             <div className="lp-price-card">
               <div className="lp-price-top">
                 <div>
-                  <div className="lp-price-eyebrow">Abonnement BeyondTheCV</div>
-                  <h3>Préparation complète</h3>
+                  <div className="lp-price-eyebrow">{t('landing.pricing.eyebrow')}</div>
+                  <h3>{t('landing.pricing.plan_title')}</h3>
                   <p className="desc">
-                    Pour piloter plusieurs candidatures et progresser pendant toute votre recherche.
+                    {t('landing.pricing.plan_desc')}
                   </p>
                 </div>
 
                 <div className="lp-price">
-                  <strong>29,90 €</strong>
-                  <span>par mois · sans engagement</span>
+                  <strong>{t('landing.pricing.price')}</strong>
+                  <span>{t('landing.pricing.price_period')}</span>
                 </div>
               </div>
 
               <div className="lp-capacity">
                 <div className="lp-capacity-card">
                   <strong>5</strong>
-                  <span>nouvelles candidatures / mois</span>
+                  <span>{t('landing.capacity_label_1')}</span>
                 </div>
                 <div className="lp-capacity-card">
                   <strong>150</strong>
-                  <span>entraînements analysés / mois</span>
+                  <span>{t('landing.capacity_label_2')}</span>
                 </div>
                 <div className="lp-capacity-card">
                   <strong>200</strong>
-                  <span>plafond d’entraînements disponibles</span>
+                  <span>{t('landing.capacity_label_3')}</span>
                 </div>
               </div>
 
               <div className="lp-included-grid">
-                {[
-                  'Profil candidat réutilisable',
-                  'Analyse entreprise et marché',
-                  'Décodage de chaque offre',
-                  'Gap analysis et objections',
-                  'Pitchs adaptés',
-                  'Questions probables',
-                  'Mises en situation',
-                  'Entraînement oral',
-                  'Négociation salariale',
-                  'Débrief post-entretien',
-                  'Profil stratégique évolutif',
-                  'Recommandations personnalisées',
-                ].map((item) => (
-                  <div className="lp-check" key={item}>
+                {Array.from({ length: 12 }, (_, i) => (
+                  <div className="lp-check" key={i}>
                     <CheckCircle2 size={18} />
-                    <span>{item}</span>
+                    <span>{t(`landing.pricing.included.${i}`)}</span>
                   </div>
                 ))}
               </div>
 
               <button onClick={onLoginRedirect} className="lp-button-primary">
-                Commencer ma préparation <ArrowRight size={18} />
+                {t('landing.pricing.cta')} <ArrowRight size={18} />
               </button>
             </div>
 
             <p className="lp-note">
-              Une candidature correspond à un poste dans une entreprise donnée.
-              Si plusieurs postes visent la même entreprise, l’analyse entreprise peut être réutilisée.
-              Les entraînements non utilisés peuvent être conservés dans la limite de 200 disponibles.
+              {t('landing.pricing.note1')}
             </p>
 
             <div className="lp-recharge-title">
-              <h3>Votre recherche s’intensifie ?</h3>
-              <p>Ajoutez des candidatures immédiatement, sans changer d’abonnement.</p>
+              <h3>{t('landing.pricing.recharge_title')}</h3>
+              <p>{t('landing.pricing.recharge_subtitle')}</p>
             </div>
 
             <div className="lp-recharge-grid">
               <div className="lp-recharge-card">
-                <div className="label">Recharge ponctuelle</div>
-                <div className="recharge-price">9 €</div>
-                <strong>+1 candidature</strong>
-                <p>+30 entraînements analysés associés.</p>
+                <div className="label">{t('landing.pricing.recharge1_label')}</div>
+                <div className="recharge-price">{t('landing.pricing.recharge1_price')}</div>
+                <strong>{t('landing.pricing.recharge1_title')}</strong>
+                <p>{t('landing.pricing.recharge1_desc')}</p>
               </div>
 
               <div className="lp-recharge-card featured">
-                <div className="label">La plus polyvalente</div>
-                <div className="recharge-price">19 €</div>
-                <strong>+3 candidatures</strong>
-                <p>+90 entraînements analysés associés.</p>
+                <div className="label">{t('landing.pricing.recharge2_label')}</div>
+                <div className="recharge-price">{t('landing.pricing.recharge2_price')}</div>
+                <strong>{t('landing.pricing.recharge2_title')}</strong>
+                <p>{t('landing.pricing.recharge2_desc')}</p>
               </div>
 
               <div className="lp-recharge-card">
-                <div className="label">Recherche intensive</div>
-                <div className="recharge-price">29 €</div>
-                <strong>+5 candidatures</strong>
-                <p>+150 entraînements analysés associés.</p>
+                <div className="label">{t('landing.pricing.recharge3_label')}</div>
+                <div className="recharge-price">{t('landing.pricing.recharge3_price')}</div>
+                <strong>{t('landing.pricing.recharge3_title')}</strong>
+                <p>{t('landing.pricing.recharge3_desc')}</p>
               </div>
             </div>
 
             <p className="lp-note">
-              Les recharges augmentent immédiatement votre capacité de préparation.
-              Elles ne débloquent aucune fonctionnalité supplémentaire : tout est déjà inclus dans l’abonnement.
+              {t('landing.pricing.note2')}
             </p>
           </div>
         </div>
@@ -1807,90 +1887,51 @@ export function LandingPage({
       <section className="lp-section">
         <div className="lp-shell">
           <div className="lp-section-header center">
-            <div className="lp-section-kicker">Questions fréquentes</div>
-            <h2>Questions fréquentes sur la préparation aux entretiens avec l’IA</h2>
+            <div className="lp-section-kicker">{t('landing.faq.kicker')}</div>
+            <h2>{t('landing.faq.title')}</h2>
           </div>
 
           <div className="lp-faq">
-            <div className="lp-faq-item">
-              <h3>Comment préparer un entretien d’embauche avec l’IA ?</h3>
-              <p>
-                Commencez par votre CV et l’offre d’emploi visée. BeyondTheCV vous aide à
-                analyser les attentes du poste, à préparer votre pitch et à vous entraîner
-                aux questions d’entretien. Les retours sur vos réponses vous permettent
-                de cibler les points à améliorer avant de rencontrer le recruteur.
-              </p>
-            </div>
-            <div className="lp-faq-item">
-              <h3>Qu’est-ce qu’une candidature ?</h3>
-              <p>
-                Une candidature correspond à l’association d’une entreprise et d’un poste ciblé.
-                Vous disposez de 5 nouvelles candidatures chaque mois.
-              </p>
-            </div>
+            {faq.map((item, i) => (
+              <div className="lp-faq-item" key={i}>
+                <h3>{item.q}</h3>
+                <p>{item.a}</p>
+              </div>
+            ))}
+          </div>          </div>
+        
+      </section>
 
-            <div className="lp-faq-item">
-              <h3>Puis-je préparer plusieurs postes dans la même entreprise ?</h3>
-              <p>
-                Oui. Chaque poste constitue une candidature distincte, mais l’analyse de l’entreprise
-                déjà réalisée peut être réutilisée au lieu d’être reconstruite inutilement.
-              </p>
-            </div>
+      {/* RESOURCES */}
+      <section id="ressources" className="lp-section lp-resources-section">
+        <div className="lp-shell">
+          <div className="lp-section-header center">
+            <div className="lp-section-kicker">{t('landing.resources.kicker', 'Centre de ressources')}</div>
+            <h2>{t('landing.resources.title', 'Pour aller plus loin')}</h2>
+            <p>
+              {t('landing.resources.intro', 'Guides pratiques, méthodes et exemples pour mieux préparer vos candidatures et vos entretiens.')}
+            </p>
+          </div>
 
-            <div className="lp-faq-item">
-              <h3>Qu’est-ce qu’un entraînement analysé ?</h3>
-              <p>
-                Il s’agit d’une réponse, d’un pitch, d’une mise en situation ou d’une simulation courte
-                que BeyondTheCV analyse pour vous fournir un retour et vous faire progresser.
-              </p>
-            </div>
-
-            <div className="lp-faq-item">
-              <h3>Que deviennent les entraînements non utilisés ?</h3>
-              <p>
-                Ils peuvent être conservés d’un mois sur l’autre dans la limite de 200 entraînements
-                disponibles. Au-delà de ce plafond, les nouveaux entraînements mensuels ne s’ajoutent plus.
-              </p>
-            </div>
-
-            <div className="lp-faq-item">
-              <h3>À quoi sert le profil stratégique évolutif ?</h3>
-              <p>
-                Il synthétise les éléments observés pendant votre préparation, fait ressortir vos forces,
-                vos axes de progrès et vos trois priorités du moment. Il évolue avec vos nouveaux exercices
-                et vos entretiens.
-              </p>
-            </div>
-
-            <div className="lp-faq-item">
-              <h3>Le profil stratégique est-il une évaluation psychologique ?</h3>
-              <p>
-                Non. Il repose sur les informations que vous avez fournies et sur les performances observées
-                dans l’application. Les scores sont des indicateurs de préparation, pas une prédiction du
-                comportement d’un recruteur ni un diagnostic psychologique.
-              </p>
-            </div>
-
-            <div className="lp-faq-item">
-              <h3>L’abonnement est-il avec engagement ?</h3>
-              <p>Non. Il est mensuel et peut être résilié à tout moment.</p>
-            </div>
-
-            <div className="lp-faq-item">
-              <h3>Pourquoi payer alors que ChatGPT ou Claude existent ?</h3>
-              <p>
-                BeyondTheCV ne se limite pas à générer du texte. Il relie durablement votre profil,
-                vos candidatures, vos entraînements, vos progrès et vos débriefs dans une méthode spécialisée.
-              </p>
-            </div>
-
-            <div className="lp-faq-item">
-              <h3>BeyondTheCV garantit-il une embauche ?</h3>
-              <p>
-                Non. Aucun outil sérieux ne peut garantir une décision de recrutement.
-                BeyondTheCV vous aide à arriver mieux préparé et à progresser d’un entretien à l’autre.
-              </p>
-            </div>
+          <div className="lp-resources-grid">
+            {resourceClusters.map((cluster) => (
+              <div className="lp-resource-cluster" key={cluster.title}>
+                <div className="lp-resource-cluster-header">
+                  <div className="lp-resource-cluster-icon">{cluster.icon}</div>
+                  <h3>{cluster.title}</h3>
+                </div>
+                <ul className="lp-resource-links">
+                  {cluster.links.map((link) => (
+                    <li key={link}>
+                      <a href="#ressources" onClick={(e) => e.preventDefault()} className="lp-resource-link">
+                        {link}
+                        <span className="lp-resource-soon">{t('landing.resources.soon', 'Bientôt')}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -1900,13 +1941,12 @@ export function LandingPage({
         <div className="lp-shell">
           <div className="lp-final">
             <Gauge size={34} color="var(--primary)" />
-            <h2>Votre prochaine candidature mérite mieux qu’une préparation improvisée.</h2>
+            <h2>{t('landing.final.title')}</h2>
             <p>
-              Centralisez vos candidatures, entraînez vos réponses et laissez votre profil
-              stratégique vous indiquer ce qu’il faut travailler ensuite.
+              {t('landing.final.text')}
             </p>
             <button onClick={onLoginRedirect} className="lp-button-primary">
-              Commencer pour 29,90 € / mois <ArrowRight size={18} />
+              {t('landing.final.cta')} <ArrowRight size={18} />
             </button>
           </div>
         </div>
@@ -1914,7 +1954,7 @@ export function LandingPage({
 
       <footer className="lp-footer">
         <div className="lp-shell">
-          <p>© 2026 BeyondTheCV. Tous droits réservés.</p>
+          <p>{t('landing.footer.copyright')}</p>
         </div>
       </footer>
     </div>

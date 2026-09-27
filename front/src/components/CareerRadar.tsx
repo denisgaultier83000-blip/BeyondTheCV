@@ -1,5 +1,6 @@
 import React from 'react';
-import { Map, Clock, AlertCircle, Loader2, Target, Lightbulb, Wallet, ChevronRight, Compass } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Clock, Target, Lightbulb, Wallet, Compass } from 'lucide-react';
 import { AsyncBoundary } from './AsyncBoundary';
 import { FeedbackWidget } from './FeedbackWidget';
 
@@ -50,22 +51,23 @@ const getScoreColor = (percent: number) => {
 };
 
 export const CareerRadar: React.FC<CareerRadarProps> = ({ data, loading, error }) => {
+  const { t } = useTranslation();
   if (!loading && !error && (!data || !data.trajectories || data.trajectories.length === 0)) {
     return (
       <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-secondary)', borderRadius: '0.75rem', border: '1px dashed var(--border-color)' }}>
         <Compass size={32} style={{ opacity: 0.5, marginBottom: '0.5rem' }} />
-        <p style={{ margin: 0, fontWeight: 500 }}>Votre Radar de carrière sera disponible dès l'analyse de votre candidature.</p>
-        <p style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>Découvrez ici des trajectoires de carrière alternatives et des opportunités de pivot adaptées.</p>
+        <p style={{ margin: 0, fontWeight: 500 }}>{t('career_radar_empty_title')}</p>
+        <p style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>{t('career_radar_empty_desc')}</p>
       </div>
     );
   }
 
   return (
-    <AsyncBoundary loading={loading} error={error} errorText="Une erreur est survenue lors de la génération du Radar de carrière. Veuillez réessayer." style={{ background: 'transparent', border: 'none', padding: 0 }}>
+    <AsyncBoundary loading={loading} error={error} errorText={t('career_radar_error')} style={{ background: 'transparent', border: 'none', padding: 0 }}>
       {data && data.trajectories && data.trajectories.length > 0 && (
     <>
       <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-        Découvrez des trajectoires de carrière alternatives et des opportunités de pivot inattendues.
+        {t('career_radar_desc')}
       </p>
       <div className="radar-grid">
         {data.trajectories.map((traj, idx) => {
@@ -85,14 +87,14 @@ export const CareerRadar: React.FC<CareerRadarProps> = ({ data, loading, error }
 
               {/* SALAIRE */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                <Wallet size={16} color="var(--text-muted)" /> Potentiel : <strong style={{ color: 'var(--text-main)' }}>{traj.salary_potential}</strong>
+                <Wallet size={16} color="var(--text-muted)" /> {t('potential_label')}: <strong style={{ color: 'var(--text-main)' }}>{traj.salary_potential}</strong>
               </div>
 
               {/* LIGNE TEMPORELLE (TIMELINE) */}
               <div style={{ margin: '1.5rem 0', position: 'relative' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  <span style={{ fontWeight: 700 }}>Actuel</span>
-                  <span style={{ fontWeight: 700, color: 'var(--primary)' }}>Cible</span>
+                  <span style={{ fontWeight: 700 }}>{t('current_label')}</span>
+                  <span style={{ fontWeight: 700, color: 'var(--primary)' }}>{t('target_label')}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                   <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--border-color)', border: '2px solid var(--bg-card)', zIndex: 2 }}></div>
@@ -109,13 +111,13 @@ export const CareerRadar: React.FC<CareerRadarProps> = ({ data, loading, error }
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
                 {/* RATIONALE (Carré Vert) */}
                 <div style={{ background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.2)', borderRadius: '0.75rem', padding: '1rem', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.01)' }}>
-                  <h5 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--success)', margin: '0 0 0.5rem 0', fontSize: '0.9rem', fontWeight: 700 }}><Lightbulb size={16} /> Pourquoi ce choix ?</h5>
+                  <h5 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--success)', margin: '0 0 0.5rem 0', fontSize: '0.9rem', fontWeight: 700 }}><Lightbulb size={16} /> {t('why_this_choice')}</h5>
                   <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-main)', lineHeight: 1.6 }}>{formatMarkdown(traj.rationale)}</p>
                 </div>
 
                 {/* GAP (Carré Rosé) */}
                 <div style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '0.75rem', padding: '1rem', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.01)' }}>
-                  <h5 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--danger-text)', margin: '0 0 0.5rem 0', fontSize: '0.9rem', fontWeight: 700 }}><Target size={16} /> Ce qu'il manque</h5>
+                  <h5 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--danger-text)', margin: '0 0 0.5rem 0', fontSize: '0.9rem', fontWeight: 700 }}><Target size={16} /> {t('what_is_missing')}</h5>
                   <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-main)', lineHeight: 1.6 }}>{formatMarkdown(traj.gap)}</p>
                 </div>
               </div>
